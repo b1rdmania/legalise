@@ -123,6 +123,71 @@ export const invokePlugin = (slug: string, plugin: string, skill: string, inputs
     body: JSON.stringify({ plugin, skill, inputs }),
   }).then((r) => jsonOrThrow<PluginInvokeResponse>(r));
 
+// ----- Pre-Motion -----
+
+export interface PreMotionStageStatus {
+  name: string;
+  sub_agent_count: number;
+  duration_ms: number;
+  token_count: number;
+  errors: string[];
+}
+
+export interface PreMotionFailureScenario {
+  category: "procedural" | "substantive" | "evidentiary" | "strategic";
+  scenario: string;
+  probability: "High" | "Medium" | "Low";
+  impact: "High" | "Medium" | "Low";
+  mitigation: string;
+}
+
+export interface PreMotionEvidenceFlag {
+  flag: string;
+  severity: "high" | "medium" | "low";
+  category: string;
+  source_document?: string | null;
+  source_documents?: string[] | null;
+  event?: string | null;
+  date?: string | null;
+}
+
+export interface PreMotionSynthesis {
+  verdict: "steelman" | "borderline" | "strawman";
+  verdict_reasoning: string;
+  summary: string;
+  failure_scenarios: PreMotionFailureScenario[];
+  evidence_inconsistencies: { claim: string; issue: string; severity: "high" | "medium" | "low" }[];
+  blind_spots: string[];
+  if_we_lose_this_will_be_why: string;
+}
+
+export interface PreMotionOptimistic {
+  key_arguments: { argument: string; supporting_evidence: string; case_law: string }[];
+  supporting_evidence: { item: string; weight: "high" | "medium" | "low"; what_it_proves: string }[];
+  expected_counterarguments: string[];
+  optimistic_outcome: string;
+}
+
+export interface PreMotionRunResult {
+  matter_slug: string;
+  started_at: string;
+  completed_at: string;
+  total_duration_ms: number;
+  total_token_count: number;
+  model_used: string;
+  stages: PreMotionStageStatus[];
+  optimistic: PreMotionOptimistic;
+  evidence_flags: PreMotionEvidenceFlag[];
+  synthesis: PreMotionSynthesis;
+}
+
+export const runPreMotion = (slug: string, inputs: { depth?: "fast" | "thorough" } = {}) =>
+  fetch(`${API}/matters/${slug}/pre-motion/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inputs),
+  }).then((r) => jsonOrThrow<PreMotionRunResult>(r));
+
 export interface ChronologyEvent {
   id: string;
   event_date: string;

@@ -5,17 +5,17 @@ import {
   createMatter,
   getChronology,
   getMatter,
-  invokePlugin,
   listAudit,
   listDocuments,
   listMatters,
+  runPreMotion,
   setPrivilege,
   uploadDocument,
   type AuditEntry,
   type ChronologyResponse,
   type Matter,
   type MatterDocument,
-  type PluginInvokeResponse,
+  type PreMotionRunResult,
 } from "./lib/api";
 import { navigate, useRoute } from "./lib/route";
 
@@ -277,7 +277,7 @@ function MatterDetail({ slug }: { slug: string }) {
   const [docs, setDocs] = useState<MatterDocument[] | null>(null);
   const [audit, setAudit] = useState<AuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [premotion, setPremotion] = useState<PluginInvokeResponse | null>(null);
+  const [premotion, setPremotion] = useState<PreMotionRunResult | null>(null);
   const [premotionRunning, setPremotionRunning] = useState(false);
   const [premotionError, setPremotionError] = useState<string | null>(null);
   const [chron, setChron] = useState<ChronologyResponse | null>(null);
@@ -312,9 +312,9 @@ function MatterDetail({ slug }: { slug: string }) {
     setPremotionError(null);
     setPremotion(null);
     try {
-      const result = await invokePlugin(slug, "uk-litigation-legal", "pre-motion");
+      const result = await runPreMotion(slug, { depth: "thorough" });
       setPremotion(result);
-      listAudit(slug, 20).then(setAudit).catch(() => undefined);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
       setPremotionError(String(err));
     } finally {
@@ -449,7 +449,7 @@ function MatterDetail({ slug }: { slug: string }) {
 
       {/* pre-motion -------------------------------------------- */}
       <section className="mb-14">
-        <SectionLabel id="§pre-motion" name="modules · uk-litigation-legal/pre-motion" />
+        <SectionLabel id="§pre-motion" name="modules · uk-litigation-legal/pre-motion · 4-stage pipeline" />
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-sans text-[25px] text-snow">Pre-Motion.</h2>
           <button
@@ -458,32 +458,23 @@ function MatterDetail({ slug }: { slug: string }) {
             className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
             title={matter.privilege_posture === "C_paused" ? "Privilege posture C_paused blocks LLM calls" : ""}
           >
-            {premotionRunning ? "RUNNING…" : "RUN →"}
+            {premotionRunning ? "RUNNING…" : "RUN PREMORTEM →"}
           </button>
         </div>
         <p className="font-sans text-[14px] text-ash-gray max-w-[70ch] mb-4">
-          Adversarial premortem on the case as it stands. v0.1 invokes the
-          skill as a single call; the full four-stage pipeline lives in the
-          standalone premotion repo and ports as a richer module in v0.2.
+          Adversarial premortem: <span className="text-platinum">Optimistic Analyst →
+          Evidence Inspector × 3 parallel sub-agents → Premortem Adversary × 4 parallel
+          sub-agents → Synthesiser.</span> 9 model calls per run, all audited.
         </p>
         {premotionError && (
           <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap mb-3 border border-code-error p-3">
             {premotionError}
           </pre>
         )}
-        {premotion && (
-          <div className="border border-graphite">
-            <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate flex items-center justify-between">
-              <span>response · {premotion.plugin}/{premotion.skill}</span>
-              <span className="text-terminal-green">
-                {premotion.model_used} · {premotion.token_count} tok · {premotion.latency_ms}ms
-              </span>
-            </div>
-            <pre className="p-4 font-sans text-[14px] leading-[1.55] text-platinum whitespace-pre-wrap">
-              {premotion.response_text}
-            </pre>
-          </div>
+        {premotionRunning && !premotion && (
+          <PremotionRunning />
         )}
+        {premotion && <PremotionResult result={premotion} />}
       </section>
 
       {/* chronology -------------------------------------------- */}
@@ -611,6 +602,141 @@ function StatusBadge({ status }: { status: string }) {
     <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
       {status.toUpperCase()}
     </span>
+  );
+}
+
+function PremotionRunning() {
+  return (
+    <div className="border border-graphite p-4 font-mono text-[12px] tracking-[0.053em] text-ash-gray">
+      <span className="text-terminal-green">running…</span> stage 1 → stage 2 (×3 parallel) →
+      stage 3 (×4 parallel) → stage 4. Takes 30–180s depending on provider.
+    </div>
+  );
+}
+
+function PremotionResult({ result }: { result: PreMotionRunResult }) {
+  const verdictColour =
+    result.synthesis.verdict === "steelman"
+      ? "text-terminal-green"
+      : result.synthesis.verdict === "strawman"
+        ? "text-code-red"
+        : "text-platinum";
+  return (
+    <div className="space-y-4">
+      {/* verdict + brutal sentence */}
+      <div className="border border-graphite">
+        <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate flex items-center justify-between">
+          <span>
+            verdict · {result.model_used} · {result.total_token_count} tok ·{" "}
+            {(result.total_duration_ms / 1000).toFixed(1)}s
+          </span>
+          <span className={`uppercase ${verdictColour}`}>{result.synthesis.verdict}</span>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="font-sans text-[14px] leading-[1.5] text-ash-gray">
+            {result.synthesis.verdict_reasoning}
+          </p>
+          {result.synthesis.if_we_lose_this_will_be_why && (
+            <blockquote className="border-l-2 border-code-red pl-3 font-sans italic text-[16px] leading-[1.5] text-snow">
+              {result.synthesis.if_we_lose_this_will_be_why}
+            </blockquote>
+          )}
+          {result.synthesis.summary && (
+            <p className="font-sans text-[14px] leading-[1.55] text-platinum whitespace-pre-wrap">
+              {result.synthesis.summary}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* stage status strip */}
+      <div className="border border-graphite">
+        <div className="grid grid-cols-4">
+          {result.stages.map((s) => (
+            <div
+              key={s.name}
+              className="border-r border-graphite last:border-r-0 p-3 font-mono text-[11px] tracking-[0.04em]"
+            >
+              <div className="text-dim-gray uppercase mb-1">{s.name}</div>
+              <div className="text-platinum">
+                {s.sub_agent_count} call{s.sub_agent_count === 1 ? "" : "s"} ·{" "}
+                {(s.duration_ms / 1000).toFixed(1)}s · {s.token_count}t
+              </div>
+              {s.errors.length > 0 && (
+                <div className="text-code-red mt-1">{s.errors.length} err</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* failure scenarios */}
+      {result.synthesis.failure_scenarios.length > 0 && (
+        <div className="border border-graphite">
+          <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate">
+            failure_scenarios · synthesised across procedural / substantive / evidentiary / strategic
+          </div>
+          {result.synthesis.failure_scenarios.map((fs, i) => (
+            <div key={i} className="border-b border-graphite last:border-b-0 p-3">
+              <div className="flex items-center gap-3 mb-2 font-mono text-[11px] tracking-[0.053em]">
+                <span className="uppercase text-terminal-green">{fs.category}</span>
+                <span className="text-dim-gray">
+                  prob {fs.probability} · impact {fs.impact}
+                </span>
+              </div>
+              <p className="font-sans text-[14px] leading-[1.5] text-snow mb-2">{fs.scenario}</p>
+              {fs.mitigation && (
+                <p className="font-sans text-[13px] leading-[1.5] text-ash-gray">
+                  <span className="text-terminal-green">mitigation —</span> {fs.mitigation}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* blind spots */}
+      {result.synthesis.blind_spots.length > 0 && (
+        <div className="border border-graphite p-3">
+          <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
+            blind_spots
+          </div>
+          <ul className="space-y-1.5">
+            {result.synthesis.blind_spots.map((bs, i) => (
+              <li key={i} className="font-sans text-[14px] leading-[1.5] text-platinum">
+                — {bs}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* evidence inconsistencies */}
+      {result.synthesis.evidence_inconsistencies.length > 0 && (
+        <div className="border border-graphite p-3">
+          <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
+            evidence_inconsistencies
+          </div>
+          <ul className="space-y-2">
+            {result.synthesis.evidence_inconsistencies.map((ei, i) => (
+              <li key={i} className="font-sans text-[13px] leading-[1.5]">
+                <span
+                  className={
+                    ei.severity === "high"
+                      ? "text-code-red font-mono text-[10px] uppercase mr-2"
+                      : "text-dim-gray font-mono text-[10px] uppercase mr-2"
+                  }
+                >
+                  {ei.severity}
+                </span>
+                <span className="text-platinum">{ei.claim}</span> —{" "}
+                <span className="text-ash-gray">{ei.issue}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
