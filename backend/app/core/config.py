@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # Matter filesystem materialisation
     matters_root: str = "/data/matters"
 
+    # claude-for-uk-legal plugin suite checkout. Bind-mounted into the
+    # backend container in dev (see infra/docker-compose.yml).
+    plugins_root: str = "/plugins"
+
 
 @lru_cache
 def get_settings() -> Settings:

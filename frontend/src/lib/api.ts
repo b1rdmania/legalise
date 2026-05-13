@@ -105,3 +105,20 @@ export const setPrivilege = (slug: string, posture: string) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ privilege_posture: posture }),
   }).then((r) => jsonOrThrow<Matter>(r));
+
+export interface PluginInvokeResponse {
+  plugin: string;
+  skill: string;
+  matter_slug: string;
+  response_text: string;
+  model_used: string;
+  token_count: number;
+  latency_ms: number;
+}
+
+export const invokePlugin = (slug: string, plugin: string, skill: string, inputs: Record<string, unknown> = {}) =>
+  fetch(`${API}/matters/${slug}/invoke`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plugin, skill, inputs }),
+  }).then((r) => jsonOrThrow<PluginInvokeResponse>(r));

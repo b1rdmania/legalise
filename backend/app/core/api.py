@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters import plugin_bridge as _plugin_bridge_module
 from app.core.model_gateway import gateway as _gateway
 from app.models import AuditEntry, Matter
 
@@ -102,10 +103,29 @@ model_gateway = _gateway
 
 # Plugin bridge
 # -------------
-# `plugin_bridge.invoke(plugin, skill, matter_id, inputs)` calls a
-# `claude-for-uk-legal` skill with the matter as context. Lands Day 5
-# alongside the first end-to-end module invocation.
-plugin_bridge = None  # type: ignore[assignment]
+# Modules call `plugin_bridge.invoke(...)` to dispatch a
+# `claude-for-uk-legal` skill against a matter. The bridge object itself
+# is initialised at app startup (`main.lifespan`); modules read it via
+# this attribute at call time.
+
+def _get_plugin_bridge():
+    return _plugin_bridge_module.bridge
+
+
+class _PluginBridgeProxy:
+    """Module-friendly facade: forwards attribute access to whichever
+    PluginBridge instance is currently registered. This avoids a stale
+    None reference if a module imports `plugin_bridge` before lifespan
+    has run."""
+
+    def __getattr__(self, name):
+        bridge = _get_plugin_bridge()
+        if bridge is None:
+            raise RuntimeError("plugin bridge not initialised — call from a request, not at import")
+        return getattr(bridge, name)
+
+
+plugin_bridge = _PluginBridgeProxy()
 
 
 # Storage

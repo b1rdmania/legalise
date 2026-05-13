@@ -9,10 +9,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from pathlib import Path
+
+from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
+from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
+from app.providers import register_providers
 
 logger = structlog.get_logger()
 
@@ -31,6 +36,19 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("legalise.startup.db_unreachable", error=str(exc))
         # Allow boot to continue so /health can report the state — useful in dev.
+
+    # Register every provider whose credentials are configured. stub-echo is
+    # always available as a fallback so the workspace runs without keys.
+    register_providers(model_gateway)
+
+    # Wire the plugin bridge with the gateway and the plugins root.
+    plugins_root = Path(settings.plugins_root)
+    set_bridge(PluginBridge(plugins_root=plugins_root, gateway=model_gateway))
+    logger.info(
+        "legalise.startup.plugin_bridge",
+        plugins_root=str(plugins_root),
+        exists=plugins_root.exists(),
+    )
 
     # Seed the demo matter in development so the workspace is never empty.
     if settings.environment in {"development", "dev", "local"}:

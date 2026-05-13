@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters import plugin_bridge as plugin_bridge_module
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_fs import (
@@ -30,6 +31,7 @@ from app.core.matter_fs import (
     materialise_matter,
     record_document,
 )
+from app.core.model_gateway import PrivilegePaused
 from app.models import (
     AuditEntry,
     Document,
@@ -323,6 +325,72 @@ async def set_privilege_posture(
     append_history(matter.slug, "privilege.set", f"{previous} → {body.privilege_posture}")
     materialise_matter(matter)
     return matter
+
+
+class PluginInvokeBody(BaseModel):
+    plugin: str
+    skill: str
+    inputs: dict = Field(default_factory=dict)
+
+
+class PluginInvokeResponse(BaseModel):
+    plugin: str
+    skill: str
+    matter_slug: str
+    response_text: str
+    model_used: str
+    token_count: int
+    latency_ms: int
+
+
+@router.post("/{slug}/invoke", response_model=PluginInvokeResponse)
+async def invoke_plugin(
+    slug: str,
+    body: PluginInvokeBody,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> PluginInvokeResponse:
+    """Invoke a claude-for-uk-legal skill against this matter.
+
+    v0.1 direct skill rendering: SKILL.md → matter context → gateway →
+    response. Two audit rows are written: `plugin.invoked` (this layer)
+    and `model.call` (gateway). C_paused privilege posture blocks the
+    call before any network traffic.
+    """
+    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    bridge = plugin_bridge_module.bridge
+    if bridge is None:
+        raise HTTPException(503, "plugin bridge not initialised")
+
+    try:
+        result = await bridge.invoke(
+            session=session,
+            matter_id=matter.id,
+            actor_id=user.id,
+            plugin=body.plugin,
+            skill=body.skill,
+            inputs=body.inputs,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except PrivilegePaused as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    await session.commit()
+    return PluginInvokeResponse(
+        plugin=result.plugin,
+        skill=result.skill,
+        matter_slug=result.matter_slug,
+        response_text=result.response_text,
+        model_used=result.model_used,
+        token_count=result.token_count,
+        latency_ms=result.latency_ms,
+    )
 
 
 @router.get("/{slug}/audit", response_model=list[AuditEntryRead])

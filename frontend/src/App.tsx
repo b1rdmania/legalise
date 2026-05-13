@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   createMatter,
   getMatter,
+  invokePlugin,
   listAudit,
   listDocuments,
   listMatters,
@@ -11,6 +12,7 @@ import {
   type AuditEntry,
   type Matter,
   type MatterDocument,
+  type PluginInvokeResponse,
 } from "./lib/api";
 import { navigate, useRoute } from "./lib/route";
 
@@ -272,6 +274,9 @@ function MatterDetail({ slug }: { slug: string }) {
   const [docs, setDocs] = useState<MatterDocument[] | null>(null);
   const [audit, setAudit] = useState<AuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [premotion, setPremotion] = useState<PluginInvokeResponse | null>(null);
+  const [premotionRunning, setPremotionRunning] = useState(false);
+  const [premotionError, setPremotionError] = useState<string | null>(null);
 
   const load = () => {
     getMatter(slug)
@@ -282,6 +287,21 @@ function MatterDetail({ slug }: { slug: string }) {
   };
 
   useEffect(load, [slug]);
+
+  const onRunPremotion = async () => {
+    setPremotionRunning(true);
+    setPremotionError(null);
+    setPremotion(null);
+    try {
+      const result = await invokePlugin(slug, "uk-litigation-legal", "pre-motion");
+      setPremotion(result);
+      listAudit(slug, 20).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setPremotionError(String(err));
+    } finally {
+      setPremotionRunning(false);
+    }
+  };
 
   const onPostureChange = async (next: string) => {
     if (!matter || matter.privilege_posture === next) return;
@@ -404,6 +424,45 @@ function MatterDetail({ slug }: { slug: string }) {
                 <span className="text-right">{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* pre-motion -------------------------------------------- */}
+      <section className="mb-14">
+        <SectionLabel id="§02" name="modules · uk-litigation-legal/pre-motion" />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-sans text-[25px] text-snow">Pre-Motion.</h2>
+          <button
+            onClick={onRunPremotion}
+            disabled={premotionRunning || matter.privilege_posture === "C_paused"}
+            className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+            title={matter.privilege_posture === "C_paused" ? "Privilege posture C_paused blocks LLM calls" : ""}
+          >
+            {premotionRunning ? "RUNNING…" : "RUN →"}
+          </button>
+        </div>
+        <p className="font-sans text-[14px] text-ash-gray max-w-[70ch] mb-4">
+          Adversarial premortem on the case as it stands. v0.1 invokes the
+          skill as a single call; the full four-stage pipeline lives in the
+          standalone premotion repo and ports as a richer module in v0.2.
+        </p>
+        {premotionError && (
+          <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap mb-3 border border-code-error p-3">
+            {premotionError}
+          </pre>
+        )}
+        {premotion && (
+          <div className="border border-graphite">
+            <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate flex items-center justify-between">
+              <span>response · {premotion.plugin}/{premotion.skill}</span>
+              <span className="text-terminal-green">
+                {premotion.model_used} · {premotion.token_count} tok · {premotion.latency_ms}ms
+              </span>
+            </div>
+            <pre className="p-4 font-sans text-[14px] leading-[1.55] text-platinum whitespace-pre-wrap">
+              {premotion.response_text}
+            </pre>
           </div>
         )}
       </section>

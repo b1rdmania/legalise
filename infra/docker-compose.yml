@@ -56,11 +56,15 @@ services:
       OLLAMA_URL: http://ollama:11434
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PLUGINS_ROOT: /plugins
     ports:
       - "8000:8000"
     volumes:
       - ../backend:/app
       - matters_data:/data/matters
+      # claude-for-uk-legal checkout — read-only bind mount. PLUGINS_ROOT
+      # can be overridden via .env if the checkout lives elsewhere.
+      - ${PLUGINS_HOST_PATH:-../../claude-for-uk-legal}:/plugins:ro
     depends_on:
       db:
         condition: service_healthy
