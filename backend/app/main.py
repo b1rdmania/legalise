@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.api import matters_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
 
@@ -74,14 +75,14 @@ async def health() -> dict[str, Any]:
     }
 
 
+app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
+
 # Module routers wire in here during the v0.1 build window.
-# from app.modules.matter.router import router as matter_router
 # from app.modules.pre_motion.router import router as pre_motion_router
 # from app.modules.chronology.router import router as chronology_router
 # from app.modules.contract_review.router import router as contract_review_router
 # from app.modules.letters.router import router as letters_router
 #
-# app.include_router(matter_router, prefix="/api/matters", tags=["matters"])
 # app.include_router(pre_motion_router, prefix="/api/pre-motion", tags=["pre-motion"])
 # app.include_router(chronology_router, prefix="/api/chronology", tags=["chronology"])
 # app.include_router(contract_review_router, prefix="/api/contract-review", tags=["contract-review"])

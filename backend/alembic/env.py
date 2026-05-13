@@ -13,11 +13,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import settings
-from app.models.base import Base
-
-# Import side-effect: register all models with Base.metadata when they exist.
-# Day 2 adds matter/user/document/event/audit_entry models here.
-# from app.models import matter, user, document, event, audit_entry  # noqa: F401
+from app.models import Base  # noqa: F401  — imports all models so Base.metadata is populated
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.postgres_dsn)

@@ -1,0 +1,60 @@
+"""Matter model — the spine of the workspace.
+
+Every other resource (documents, events, audit entries, model calls) hangs off
+a Matter. Privilege posture is a first-class property: A_cleared / B_mixed /
+C_paused gates which model providers can be called.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, date
+
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base
+
+
+# Privilege postures — string constants used in `privilege_posture` column.
+PRIVILEGE_CLEARED = "A_cleared"
+PRIVILEGE_MIXED = "B_mixed"
+PRIVILEGE_PAUSED = "C_paused"
+PRIVILEGE_VALUES = {PRIVILEGE_CLEARED, PRIVILEGE_MIXED, PRIVILEGE_PAUSED}
+
+# Status values.
+STATUS_OPEN = "open"
+STATUS_SETTLEMENT = "settlement"
+STATUS_CLOSED = "closed"
+STATUS_VALUES = {STATUS_OPEN, STATUS_SETTLEMENT, STATUS_CLOSED}
+
+
+class Matter(Base):
+    __tablename__ = "matters"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    matter_type: Mapped[str] = mapped_column(String(64), nullable=False, default="employment_tribunal")
+    cause: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default=STATUS_OPEN)
+
+    case_theory: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pivot_fact: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    privilege_posture: Mapped[str] = mapped_column(String(32), nullable=False, default=PRIVILEGE_MIXED)
+    default_model_id: Mapped[str] = mapped_column(String(64), nullable=False, default="claude-opus-4-7")
+
+    # Free-form key/value bag for matter-type-specific fields (EDT, ACAS dates, etc.)
+    facts: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    retention_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    created_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<Matter {self.slug} [{self.status}]>"
