@@ -2,7 +2,7 @@
 
 ## v0.1 (May 2026) — demo launch
 
-Five modules, demo positioning, live at `legalise.dev`. Detailed in `BUILD_PLAN.md` and `SCOPE.md`.
+One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v0.1 proves the matter spine, audit log, privilege posture, local/cloud model routing, Pre-Motion hero workflow, and one `claude-for-uk-legal` plugin invocation through the CPR-letter bridge. Chronology and contract review are visible roadmap surfaces, not end-to-end v0.1 commitments. Detailed in `BUILD_PLAN.md` and `SCOPE.md`.
 
 ## v0.2 (target: July 2026)
 
@@ -14,6 +14,8 @@ Theme: **production-shaped infrastructure**. The workspace stays demo but the fo
 - Observability stack (Sentry for errors, OpenTelemetry traces, structured logs)
 - Vector search over matter documents (pgvector + ingest pipeline)
 - Real audit-log export with hash chain
+- Live chronology extraction, SoF variant generation, and chronology diff view
+- Contract review pipeline with markdown output and staged agent status
 - CI/CD via GitHub Actions: lint, type-check, test, deploy preview per PR
 - E-signature integration stub (DocuSign API surface)
 - Settings UI for matter retention policies
@@ -25,6 +27,7 @@ Theme: **additional modules**. The workspace breadth grows.
 
 - Discrimination quantum analysis module (Vento bands, injury-to-feelings calibration)
 - Settlement agreement review as a workspace module (currently plugin-only)
+- Contract review redlined .docx output
 - Interim relief / freezing-order drafting
 - Possession claims (PD 55)
 - Pension-loss calculator integrating Tribunals' simplified-approach tables
