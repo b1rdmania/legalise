@@ -99,7 +99,8 @@ curl -s http://localhost:8000/api/matters/khan-v-acme-trading-2026/audit | jq '.
 ```
 
 **Things to confirm:**
-- Every mutation (POST/PATCH) on `/api/matters/*` produces **two** audit rows: one semantic (`matter.create`, `document.upload`, `privilege.set`) written inline by the router, one `http.{method}` written by the middleware. Both are intentional — semantic event for humans, HTTP record for forensics. **Push back if you think one should go.**
+- Every mutation (POST/PATCH) on `/api/matters/*` produces **at least two** audit rows: one semantic (`matter.create`, `document.upload`, `privilege.set`) written inline by the router, one `http.{method}` written by the middleware. Both are intentional — semantic event for humans, HTTP record for forensics. **Push back if you think one should go.**
+- Plugin invocations (`POST /api/matters/{slug}/invoke`, landed Day 5) produce **three** rows: `plugin.invoked` (bridge, written before the call so a mid-call crash still leaves provenance), `model.call` (gateway, after success with model/prompt-hash/tokens/latency), and `http.post` (middleware, terminal record). C_paused-blocked attempts produce one row (`http.post` with `status_code=409`) — the gateway raises before it can write `model.call`, and the bridge's `plugin.invoked` is written but rolled back when the request errors out of the session.
 - Slug auto-generation works (`Patel v Greenshore LLP` → `patel-v-greenshore-llp`), collisions append `-2`, `-3`.
 - `privilege_posture` invalid values reject with 400.
 - File upload computes sha256 correctly (verify by re-uploading the same file — different document row, identical sha).
@@ -203,7 +204,7 @@ and tell me where they diverge.
 
 4. **Design contract drift.** I have form for importing patterns that aren't in the spec (drop caps, eyebrows with rule-marks, pill bubbles, mono fonts where the spec said none). Read `docs/DESIGN.md` then `docs/mockups/matter-detail.html` and `frontend/src/App.tsx` and flag anything off-spec. Especially: any font-size not in the allowed list, any radius other than 0/1px, any colour not in the palette.
 
-5. **The two-audit-rows question.** Mutations currently produce both a semantic event and an `http.{method}` row. Is that the right call? Justify or push back.
+5. **Audit row count per surface.** Confirmed at R3: two rows for simple matter mutations (semantic + http), three for plugin invocations (`plugin.invoked` + `model.call` + http). C_paused-blocked invocations produce only the http row with status_code=409 because the bridge's `plugin.invoked` flush is rolled back when the request errors. If you want the `plugin.invoked` breadcrumb to survive blocked attempts, the bridge would need to commit before calling the gateway — which trades transactional integrity for provenance completeness. Current default is integrity. Push back if regulatory wins.
 
 ---
 
