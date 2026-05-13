@@ -1,6 +1,6 @@
 # Cloudflare deployment
 
-The live demo at `legalise.dev` runs on Cloudflare for the edge layer plus a small backend host. Self-host instructions still run Docker Compose locally.
+The live demo at `legalise.dev` runs on Cloudflare for the edge layer plus Fly.io `lhr` for the backend. Self-host instructions still run Docker Compose locally.
 
 This guide is for the maintainer; operators can deploy anywhere.
 
@@ -15,63 +15,68 @@ This guide is for the maintainer; operators can deploy anywhere.
               +-------------+-------------+
               |                           |
               v                           v
-     [ Cloudflare Pages ]         [ Cloudflare Containers ]
-        (Vite frontend)              or [ Fly.io UK ]
-                                    (FastAPI backend)
+     [ Cloudflare Pages ]            [ Fly.io lhr ]
+        (Vite frontend)             (FastAPI backend)
                                           |
                             +-------------+-------------+
                             |             |             |
                             v             v             v
                        [ Neon ]      [ R2 ]      [ Anthropic API ]
-                    (Postgres UK)  (Storage)   (or local model)
+                  (Postgres London) (Storage)   (or local model)
 ```
 
-## Services
+## Services and honest data-residency
 
-| Layer | Provider | Notes |
-|---|---|---|
-| DNS + proxy | Cloudflare | `legalise.dev` zone |
-| Frontend hosting | Cloudflare Pages | Built from `frontend/` via the Pages build hook |
-| Backend hosting | Cloudflare Containers (preferred) or Fly.io (`lhr` region) | FastAPI doesn't run on Workers — needs a container runtime |
-| Database | Neon | Postgres 16 + pgvector, UK region (London) |
-| Storage | Cloudflare R2 | S3-compatible, free egress, drop-in replacement for MinIO |
-| AI | Anthropic API | Local-model toggle (Ollama) is documented as self-host-only — not in the live demo |
-| Document conversion | Gotenberg as a separate container | Sidecar to the backend container |
+| Layer | Provider | Region | Residency claim |
+|---|---|---|---|
+| DNS + proxy | Cloudflare | Global edge with EU/UK PoPs | Edge proxying only — no client-data persistence |
+| Frontend hosting | Cloudflare Pages | Global edge | Static assets; no client-data persistence |
+| Backend hosting | Fly.io `lhr` (default) | London, UK | Backend compute in UK |
+| Backend hosting (experimental) | Cloudflare Containers | `WEUR` placement constraint — EU / Western Europe | Strongest available Cloudflare Containers regional constraint; not UK-only. Use only after explicit downgrade of marketing language from UK to EU/WEUR. |
+| Database | Neon | London (UK) | Postgres data in UK |
+| Storage | Cloudflare R2 | Location hint `WEUR` + jurisdiction `eu` | Hint is best-effort. `eu` jurisdiction is the only contractual guarantee — not UK-only. |
+| AI provider | Anthropic API | US-managed by default | Local-model toggle (Ollama) is documented as self-host-only — not in the live demo. |
+
+**Marketing claim alignment.** With Fly.io `lhr` as backend + Neon London + R2 + Cloudflare Pages, the defensible claim is *"UK-region database and backend; edge CDN and object storage at EU / Western Europe placement."* Don't write "UK data residency end-to-end" — R2's `eu` jurisdiction does not guarantee UK, and Cloudflare Containers is only `WEUR`.
 
 ## Setup steps
 
 ### 1. Cloudflare account
+
 - Add `legalise.dev` to a Cloudflare account
 - Generate an API token scoped to: Pages (read/write), DNS (read/write), R2 (read/write)
 
 ### 2. Neon Postgres
-- Create a project in London region
+
+- Create a project in **London (UK)** region
 - Add `pgvector` extension via SQL editor
 - Capture the connection string
 
 ### 3. Cloudflare R2 bucket
-- Create `legalise-docs` bucket
+
+- Create `legalise-docs` bucket with jurisdiction `eu` and location hint `WEUR`
 - Configure CORS for the frontend origin
 - Capture S3-compatible credentials (R2 access key + secret)
 
-### 4. Backend deploy
-
-**Option A — Cloudflare Containers (preferred):**
-
-```bash
-# Configure wrangler with the Containers project
-wrangler containers deploy backend/
-```
-
-**Option B — Fly.io (fallback):**
+### 4. Backend deploy — Fly.io `lhr` (default)
 
 ```bash
 # From backend/
 fly launch --region lhr --no-deploy
-# Set secrets per the env vars in .env.example
-fly secrets set POSTGRES_DSN="..." ANTHROPIC_API_KEY="..." S3_ACCESS_KEY="..."
+fly secrets set \
+  POSTGRES_DSN="..." \
+  ANTHROPIC_API_KEY="..." \
+  S3_ENDPOINT="..." \
+  S3_ACCESS_KEY="..." \
+  S3_SECRET_KEY="..."
 fly deploy
 ```
+
+UK region (`lhr` = London Heathrow). Single-region deployment for v0.1; HA / multi-region is v0.5+.
+
+### 4-alt. Backend deploy — Cloudflare Containers (experimental)
+
+Only use this if you're comfortable with `WEUR` placement instead of UK-specific. See Cloudflare Containers placement and limits documentation. Configure regional constraint `WEUR` and instance size to taste. **Update marketing language to "EU / Western Europe placement" before deploying via this path.**
 
 ### 5. Frontend deploy (Cloudflare Pages)
 
@@ -84,7 +89,7 @@ Connect the GitHub repo to Cloudflare Pages:
 ### 6. DNS wiring
 
 - `legalise.dev` → Cloudflare Pages project
-- `api.legalise.dev` → Backend container / Fly.io app
+- `api.legalise.dev` → Fly.io app
 - Both proxied through Cloudflare
 
 ### 7. Smoke test
@@ -93,17 +98,18 @@ Connect the GitHub repo to Cloudflare Pages:
 - `https://api.legalise.dev/health` → `{"status":"ok","version":"0.1.0a0"}`
 - One sample matter loads end-to-end
 
-## Why Cloudflare
+## Why this combination
 
-- UK data residency through Pages (global CDN with UK PoPs) + Neon London + R2 storage.
-- R2 free egress materially affects total cost for a content-heavy workspace.
-- Pages + Containers gives single-provider operational simplicity for the live demo.
-- DNS proxying gives DDoS protection, WAF, and cache layer in front of the backend.
+- Fly.io `lhr` gives an actual UK backend region — load-bearing for UK firms who may evaluate the demo.
+- Neon London for Postgres aligns with the backend.
+- Cloudflare R2 + Pages provides cheap egress, edge CDN, DDoS / WAF. The catch is that R2 jurisdiction `eu` is broader than UK; honest residency language reflects that.
+- Cloudflare DNS + proxy in front of the Fly.io backend gives one consistent edge.
 
-## Why not all-Cloudflare-Workers
+## Why not Cloudflare Workers / Containers as default
 
-Workers don't run Python natively (Pyodide is experimental and FastAPI doesn't fit). Cloudflare Containers (or Fly.io as a fallback) is required for the backend until that changes.
+- Workers don't run Python natively (Pyodide is experimental; FastAPI doesn't fit).
+- Cloudflare Containers' tightest regional constraint is `WEUR`, not UK-only. For UK marketing optics, Fly.io `lhr` is cleaner. Containers is the experimental fallback if Fly.io becomes unavailable or for future portability.
 
 ## Operator note
 
-Self-hosters can run the same stack on any S3-compatible storage, any Postgres host, any container runtime. Cloudflare is the maintainer's choice for `legalise.dev`, not a project requirement.
+Self-hosters can run the same stack on any S3-compatible storage, any Postgres host, any container runtime. Cloudflare + Fly.io is the maintainer's choice for `legalise.dev`, not a project requirement.

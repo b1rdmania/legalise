@@ -7,7 +7,7 @@
 3. **Audit everything that touches an LLM or a document.** Prompt hashes, response hashes, document hashes, user, matter, timestamp. No untracked AI inference.
 4. **Privilege posture is a first-class matter property.** It changes which model gets called, which sources can be extracted from, and which outputs filter privileged entries.
 5. **Plugins are the brains. Workspace is the UI.** Modules invoke `claude-for-uk-legal` plugins for legal logic. The workspace adds matter context, audit, document handling, and UI.
-6. **Boring stack, ambitious composition.** Python + FastAPI + React + Postgres. The novelty lives in the composition (multi-agent contract pipeline, Nash settlement analysis, privilege-aware chronology), not the framework choice.
+6. **Boring stack, ambitious composition.** Python + FastAPI + React + Postgres. The novelty lives in the composition (adversarial premortem with parallel sub-agents, multi-agent contract pipeline, privilege-aware chronology), not the framework choice.
 
 ## Stack
 
@@ -24,7 +24,7 @@
 | Multi-agent | `app/agents/` — BaseAgent + Orchestrator | Async, streaming, tool-call-aware. Same pattern as Bird Legal MVP. |
 | Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
-| Hosting (live demo) | Cloudflare: Pages (frontend) + Containers or Fly.io UK (backend) + Neon Postgres (London) + R2 (storage) | UK data residency, free egress on R2, DDoS / WAF at the edge. See `infra/deploy/cloudflare.md`. |
+| Hosting (live demo) | Cloudflare Pages (frontend) + Fly.io `lhr` (backend, default) + Neon Postgres London + R2 (storage). Cloudflare Containers optional / experimental. | UK-region database and backend; edge CDN and storage at EU / Western Europe placement (R2 hint best-effort). See `infra/deploy/cloudflare.md` for honest residency caveats. |
 | Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. Operators can deploy anywhere — Cloudflare is the maintainer's choice, not a requirement. |
 
 ## Module shape

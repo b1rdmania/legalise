@@ -70,6 +70,8 @@ Before Day 1:
 
 ## Week 2 — Hero workflow
 
+**Hard gate before Day 6.** Pre-Motion port does **not** begin until the Day 1-5 path is green: quickstart works, matter CRUD + document upload work, audit log captures every action, privilege posture changes module behaviour visibly, one plugin invocation from the sample matter has succeeded. If Day 5 is yellow or red on any of these, slip Day 6 by a day. Pre-Motion is the hero, but a hero on a weak spine ships nothing.
+
 ### Day 6–7 — Pre-Motion (port from existing app)
 - Source: `/Users/andy/Documents/New project/premotion/` — existing adversarial premortem pipeline. Port wholesale into `legalise/backend/app/modules/pre_motion/`.
 - Backend: `modules/pre_motion/`
@@ -140,11 +142,12 @@ Before Day 1:
 - Tailwind theme pass — solicitor-legible (not AI-app gradient soup)
 
 ### Day 15 — Live deploy
-- Azure UK South (preferred) or AWS eu-west-2
-- HTTPS via the platform's managed cert
-- Postgres managed instance, MinIO as a small VM, Ollama omitted from live demo (local-only feature)
-- Domain `legalise.dev` pointed
-- Health check, basic uptime monitoring
+- Cloudflare Pages (frontend), Fly.io `lhr` (backend, default), Neon Postgres London, Cloudflare R2 (storage). See `infra/deploy/cloudflare.md`.
+- Cloudflare Containers in `WEUR` placement is the experimental alternative for the backend; Fly.io `lhr` is the default because it is the actual UK region.
+- HTTPS via Cloudflare-managed certs and Fly.io managed certs.
+- Ollama omitted from live demo (local-only feature; documented in README).
+- Domain `legalise.dev` pointed at Cloudflare.
+- Health check, basic uptime monitoring.
 
 ### Day 16 — Evals
 - Smoke/eval coverage for the primary sample matter and Pre-Motion output shape
@@ -153,14 +156,16 @@ Before Day 1:
 - README block explaining the eval approach
 - Evals are not gating in v1 but they exist and are documented
 
-### Day 17 — Plain-English module (SDK proof point) + README + launch assets
+### Day 17 — README + launch assets (Plain-English is stretch, not committed)
 
-**Morning — Plain-English module.** Built strictly on the documented `app.core.api` surface — same constraints any third-party contributor faces. Time-box: 2 hours.
+**Hard gate.** Plain-English is built only if the core sample-matter path is green at end of Day 16 — quickstart works, matter spine + audit + privilege posture are real, Pre-Motion runs end-to-end on the sample matter, the letter bridge invokes a plugin successfully, the chronology read-only demo shows the CPR 31.22 gate. If any of those is yellow or red, skip Plain-English entirely and ship the launch with `examples/modules/example-tab/` as the SDK example.
+
+**If green (stretch — ~2 hours, morning only).** Plain-English module built strictly on the documented `app.core.api` surface — same constraints any third-party contributor faces.
 - Backend: `modules/plain_english/` — single endpoint that takes any text (clause, draft letter output, chronology entry) and returns the plain-English version. Wraps the existing `plain-english` Claude Code skill via the model gateway.
 - Frontend: `modules/plain_english/` — tab with "paste text / select from matter" input plus plain-English output panel. Also exposes a `usePlainEnglish` hook other modules can call when they re-introduce contract review and similar surfaces in v0.2.
-- Write up: a launch-post draft documenting how the module was built in two hours using the SDK. This becomes the platform proof point.
+- Write up: a launch-post draft documenting how the module was built in two hours using the SDK. This becomes the SDK proof point.
 
-**Afternoon — README + launch assets.**
+**Afternoon — README + launch assets (always).**
 - Top-level README with:
   - Hero one-liner and demo link
   - Architecture diagram (mermaid)

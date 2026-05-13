@@ -1,8 +1,8 @@
 # Legalise
 
-UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preserving. Open-source platform — built to be extended.
+UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preserving. Open-source. Designed to be extended.
 
-Built on top of the [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) plugin suite. New tabs plug into the matter spine via a documented module SDK — see [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md).
+Built on top of the [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) plugin suite. New tabs plug into the matter spine via a documented module SDK — see [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md). The SDK primitives (`app.core.api`, manifest schema, example module) are in place at the planning level; their concrete implementations land during the v0.1 build window.
 
 > **Pre-build scaffold.** This repo currently contains the plan and skeleton only — the v0.1 build kicks off shortly. See [`EXECUTIVE_SUMMARY.md`](./EXECUTIVE_SUMMARY.md), [`BUILD_PLAN.md`](./BUILD_PLAN.md), [`ARCHITECTURE.md`](./ARCHITECTURE.md), [`SCOPE.md`](./SCOPE.md), [`ROADMAP.md`](./ROADMAP.md), and [`REGULATORY_PLUMBING.md`](./REGULATORY_PLUMBING.md) for the full plan. Reviewers welcome.
 

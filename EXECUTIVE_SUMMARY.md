@@ -47,15 +47,17 @@ England & Wales civil and employment law. Does not cover:
 - Family procedure.
 - Tax tribunal beyond signposting.
 
-## v1 modules (5 surfaces)
+## v1 launch surface — one coherent sample-matter workflow
 
-1. **Matter workspace** — the spine. Matter creation, document upload, audit trail, role stub. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
-2. **Pre-Motion** — adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories and the one brutal one-sentence verdict: "if we lose this, this will be why." The hero module. Ported from the existing premotion app.
-3. **Chronology builder** — document upload, dated event extraction, CPR 31.22 implied-undertaking gate, significance tagging. SoF and working-chronology variants.
-4. **Contract review (multi-agent)** — Parser → Analyst → Redliner → Summariser pipeline. Visible stage status. Output redlined .docx + summary. Developer catnip.
-5. **CPR-letter drafter** — UI on top of the `uk-litigation-legal` plugin. Form-driven, matter-aware drafting.
+Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the hero, and the plugin bridge.
 
-Each module is independently shippable but shares the matter primitive. All five hit v1.
+1. **Matter workspace** — the spine. Matter creation, document upload, audit trail, role stub, privilege posture toggle. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
+2. **Pre-Motion** — adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories, settlement-posture implications, and the one brutal one-sentence verdict: "if we lose this, this will be why." The hero module. Ported from the existing premotion app.
+3. **CPR-letter drafter as plugin-bridge proof** — matter-aware autofill on top of the existing `cpr-letter-drafter` plugin. Proves one real plugin invocation from the workspace.
+4. **Chronology read-only demo** — seeded fixture, CPR 31.22 implied-undertaking gate, significance tagging, SoF variant filtering. Demonstrates the regulatory shape without v0.1 live extraction.
+5. **Contract review** — visible roadmap tab, clearly labelled v0.2. The proven 4-agent pipeline in counsel-mvp graduates as a port + SDK wiring in v0.2, not as a v0.1 commitment.
+
+Plain-English ships as a **launch-week stretch** only if the core sample-matter path is green by Day 16. Documented as the SDK-extensibility proof point in the launch post.
 
 ## Stack
 

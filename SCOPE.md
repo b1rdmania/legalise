@@ -11,9 +11,10 @@ v0.1 is a demo with substance, not a complete five-module workspace. The release
 3. CPR-letter drafter as the plugin-bridge proof (matter-aware autofill on top of the existing `cpr-letter-drafter` plugin)
 4. Chronology as a seeded/read-only demo surface showing the CPR 31.22 gate and privilege filtering shape
 5. Contract review as a credible roadmap tab, not an end-to-end v0.1 workflow
-6. Plain English (launch-week SDK proof point — built on the documented `app.core.api`, demonstrates that any contributor can plug in a tab in hours rather than weeks)
 
 The primary demo is one seeded sample matter that threads facts → Pre-Motion → audit entries visibly accumulating → privilege posture change → letter generation. Breadth exists in navigation, but the launch commitment is one excellent workflow.
+
+**Plain-English is launch-week stretch, not a v0.1 surface.** Built on the documented `app.core.api` as an SDK-extensibility proof point. Ships only after the core path is green at end of Day 16. If skipped, the README still links `examples/modules/example-tab/` as the SDK example.
 
 ### Regulatory plumbing (demo-grade, visible in UI)
 
@@ -28,8 +29,8 @@ The primary demo is one seeded sample matter that threads facts → Pre-Motion �
 ### Infrastructure
 
 - Docker Compose self-host
-- Live demo at `legalise.dev` (Azure UK South or AWS eu-west-2)
-- Postgres + pgvector + MinIO + Redis + Gotenberg + Ollama
+- Live demo at `legalise.dev`: Cloudflare Pages (frontend) + Fly.io `lhr` (backend) + Neon Postgres London + Cloudflare R2 (storage)
+- Postgres + pgvector + MinIO + Redis + Gotenberg + Ollama (local stack)
 - One primary sample matter seeded for the launch narrative, with optional additional sample matters if ahead of plan
 
 ### Documentation

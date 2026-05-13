@@ -106,11 +106,9 @@ export default function MyModule() {
 }
 ```
 
-The nav entry is registered automatically from `module.json`'s `nav` block in v0.1 via build-time discovery. v0.2 adds runtime registration.
-
 ### 5. Register the module
 
-Until auto-discovery lands in v0.2, modules register manually in two places:
+v0.1 module registration is **manual** in two places. Auto-discovery lands in v0.2.
 
 `backend/app/main.py`:
 
