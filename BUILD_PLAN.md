@@ -193,6 +193,28 @@ Before Day 1:
 - Stella's maintainer DM'd ahead: "Shipping Legalise Tuesday. Matter schema is Stella-compatible. Worth a chat?"
 - Be present on HN comments for first 4 hours; reply to everyone
 
+## Cross-cutting: trust & security workstream
+
+The trust posture is the single biggest credibility lever after the workflow
+modules. Source of truth is `docs/TRUST.md` (v0.1 draft committed). It
+covers privilege architecture, sub-processor list, CPR 31.22 access gate,
+audit shape, encryption posture, compliance order (Cyber Essentials Plus →
+ISO 27001 → SOC 2 only on US GTM), open questions, and a vulnerability
+disclosure path. **Not a v1-launch deliverable as a published page.**
+Updated alongside every architectural change in v0.1; published as
+`legalise.dev/trust` in v0.2.
+
+If a soundbite at launch references trust ("matter-first, privilege-aware,
+audit-logged, CPR 31.22 gate on disclosure"), link to the GitHub raw of
+`docs/TRUST.md` from the post. Public route ships v0.2.
+
+Sox-style comparison: Soxton.ai (US) published an aspirational "Building
+trust" post listing a Vanta-supported SOC 2 in progress. The posture
+(public trust page as a first-class surface) is worth copying. The order
+is not — UK GTM should target **Cyber Essentials Plus first** (firm floor),
+**ISO 27001 next** (firm ceiling), **SOC 2 Type II** only when expanding
+into US or US-owned UK firms.
+
 ## Risk register
 
 | Risk | Likelihood | Impact | Mitigation |
@@ -204,6 +226,7 @@ Before Day 1:
 | Solicitor-legible design takes longer than planned weekend | M | L — week 1 design slips into week 2 | Use a pre-built Shadcn theme and don't customise in v1 |
 | Pre-Motion output isn't visually compelling on launch | M | H — kills the hero shot | Day 6 morning: spike one chart library (Recharts/Visx), confirm it can render the ZOPA range cleanly before going deeper |
 | Retention UI looks like compliance theatre | M | M | Keep retention in schema/docs only until enforcement exists |
+| Procurement / SRA reviewers ask for trust documentation we don't have | M | M — slips first firm pilot | `docs/TRUST.md` is the v0.1 holding doc. Link to it from any procurement conversation. v0.2 publishes `legalise.dev/trust` and starts Cyber Essentials Plus. |
 | Eval framework eats Day 16 | L | L | Cap at sample-matter smoke tests; integrate module evals properly post-launch |
 
 ## Definition of done for v1

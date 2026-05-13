@@ -26,20 +26,34 @@ One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v
 
 ## v0.2 (target: July 2026)
 
-Theme: **production-shaped infrastructure**. The workspace stays demo but the foundation hardens.
+Theme: **production-shaped infrastructure** + **trust posture published**. The workspace stays demo but the foundation hardens and the regulatory story becomes a first-class product surface.
 
 - Real auth via WorkOS or Stytch (Microsoft 365 SSO, SAML, audit logs)
 - MCP-based plugin bridge replacing direct skill rendering
 - Background job worker (Celery or RQ proper)
-- Observability stack (Sentry for errors, OpenTelemetry traces, structured logs)
+- Observability stack (Sentry for errors, OpenTelemetry traces, structured logs) — scoped to operational telemetry, no prompts/responses
 - Vector search over matter documents (pgvector + ingest pipeline)
-- Real audit-log export with hash chain
+- Real audit-log export with hash chain; WORM enforcement (Postgres grants revoke UPDATE/DELETE on `audit_entries`)
 - Live chronology extraction, SoF variant generation, and chronology diff view
 - Contract review pipeline with markdown output and staged agent status
 - CI/CD via GitHub Actions: lint, type-check, test, deploy preview per PR
 - E-signature integration stub (DocuSign API surface)
-- Settings UI for matter retention policies
+- Settings UI for matter retention policies — and an actual retention sweep enforcing `retention_until`
 - Hardened privilege gates: refuse to start an LLM call if posture/data combination is invalid
+
+### Trust & security workstream (v0.2)
+
+The single biggest credibility lever after the workflow modules. See `docs/TRUST.md` for the v0.1 source of truth — the v0.2 work makes it real:
+
+- **Publish `legalise.dev/trust`** rendered from `docs/TRUST.md`. Live data flow diagram, current processor list, current gaps, change log.
+- **DPIA summary** as a public artefact, linked from /trust.
+- **Vulnerability disclosure** via `security@legalise.dev` + GitHub Security Advisories. 90-day responsible disclosure.
+- **Status page** at `status.legalise.dev` (instatus.com or equivalent) — uptime, incident history.
+- **Cyber Essentials Plus** certification target — the realistic UK floor for firm procurement. Vanta or equivalent to manage controls.
+- **ISO 27001** opened as a target for v0.3 if revenue justifies the audit cost.
+- **Anthropic / OpenAI UK addenda** signed and referenced from the processor list.
+- **CPR 31.22 gate coverage extended** beyond the chronology surface — any place disclosed material flows (Pre-Motion inputs, letter drafts, plugin invocations) must respect the same access boundary.
+- **Application-layer encryption** evaluation for stored prompts/responses (likely AES-GCM with a Fly Secrets-managed key).
 
 ## v0.3 (target: September 2026)
 

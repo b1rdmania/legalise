@@ -108,6 +108,15 @@ A module is a self-contained backend + frontend pair that plugs into the matter 
 | [`examples/modules/example-tab/`](./examples/modules/example-tab) | Minimal copy-paste starter |
 | [`backend/app/core/api.py`](./backend/app/core/api.py) | Stable public surface modules import |
 
+## Trust & security
+
+The regulatory shape of a UK legal AI workspace — privilege architecture,
+CPR 31.22 gate, sub-processor list, audit posture, compliance order
+(Cyber Essentials Plus → ISO 27001 → SOC 2) — is documented in
+[`docs/TRUST.md`](./docs/TRUST.md). It is the v0.1 source of truth and
+gets published as `legalise.dev/trust` in v0.2. Open questions and gaps
+are listed honestly there rather than papered over.
+
 ## Reviewers
 
 If you're reviewing the plan, start with:
