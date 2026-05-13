@@ -37,9 +37,11 @@ async def lifespan(app: FastAPI):
         logger.error("legalise.startup.db_unreachable", error=str(exc))
         # Allow boot to continue so /health can report the state — useful in dev.
 
-    # Register every provider whose credentials are configured. stub-echo is
-    # always available as a fallback so the workspace runs without keys.
-    register_providers(model_gateway)
+    # Register every provider whose credentials/service is reachable.
+    # stub-echo is always available as a fallback so the workspace runs
+    # without keys. Ollama is probed before registration so a missing
+    # `local-models` compose profile doesn't poison B_mixed routing.
+    await register_providers(model_gateway)
 
     # Wire the plugin bridge with the gateway and the plugins root.
     plugins_root = Path(settings.plugins_root)
