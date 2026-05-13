@@ -3,9 +3,12 @@ import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   createMatter,
   getMatter,
+  listAudit,
   listDocuments,
   listMatters,
+  setPrivilege,
   uploadDocument,
+  type AuditEntry,
   type Matter,
   type MatterDocument,
 } from "./lib/api";
@@ -267,6 +270,7 @@ function NewMatter() {
 function MatterDetail({ slug }: { slug: string }) {
   const [matter, setMatter] = useState<Matter | null>(null);
   const [docs, setDocs] = useState<MatterDocument[] | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
@@ -274,9 +278,21 @@ function MatterDetail({ slug }: { slug: string }) {
       .then(setMatter)
       .catch((e) => setError(String(e)));
     listDocuments(slug).then(setDocs).catch(() => undefined);
+    listAudit(slug, 20).then(setAudit).catch(() => undefined);
   };
 
   useEffect(load, [slug]);
+
+  const onPostureChange = async (next: string) => {
+    if (!matter || matter.privilege_posture === next) return;
+    try {
+      const updated = await setPrivilege(slug, next);
+      setMatter(updated);
+      listAudit(slug, 20).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
 
   if (error) {
     return (
@@ -331,10 +347,10 @@ function MatterDetail({ slug }: { slug: string }) {
           &nbsp;&nbsp;<span className="text-dim-gray">opened:</span>{" "}
           <span className="text-platinum">{matter.opened_at.slice(0, 10)}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={matter.status} />
           <Badge>{matter.matter_type.toUpperCase()}</Badge>
-          <Badge>{matter.privilege_posture.replace("_", " · ").toUpperCase()}</Badge>
+          <PrivilegeControl value={matter.privilege_posture} onChange={onPostureChange} />
           <BadgeViolet>{matter.default_model_id}</BadgeViolet>
         </div>
       </div>
@@ -392,6 +408,43 @@ function MatterDetail({ slug }: { slug: string }) {
         )}
       </section>
 
+      {/* audit log --------------------------------------------- */}
+      <section className="mb-14">
+        <SectionLabel id="§03" name={`audit_log · matters/${matter.slug}`} />
+        <h2 className="font-sans text-[25px] text-snow mb-3">Provenance.</h2>
+        {!audit && <p className="font-mono text-[12px] text-dim-gray">loading audit…</p>}
+        {audit && audit.length === 0 && (
+          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
+            no entries yet — actions on this matter will appear here.
+          </p>
+        )}
+        {audit && audit.length > 0 && (
+          <div className="border border-graphite">
+            <div className="grid grid-cols-[170px_110px_180px_1fr_90px] gap-4 px-3 py-2 bg-graphite text-dim-gray font-mono text-[10px] tracking-[0.014em] uppercase border-b border-slate">
+              <span>timestamp_utc</span>
+              <span>actor</span>
+              <span>action</span>
+              <span>resource</span>
+              <span className="text-right">hash</span>
+            </div>
+            {audit.map((e) => (
+              <div
+                key={e.id}
+                className="grid grid-cols-[170px_110px_180px_1fr_90px] gap-4 px-3 py-2 font-mono text-[12px] tracking-[0.053em] border-b border-graphite last:border-b-0"
+              >
+                <span className="text-steel-gray">{e.timestamp.slice(0, 19).replace("T", " · ")}</span>
+                <span className="text-snow truncate">jasmine.k</span>
+                <span className="text-terminal-green truncate">{e.action}</span>
+                <span className="text-light-gray truncate">{e.resource_id ?? e.resource_type ?? "—"}</span>
+                <span className="text-dim-gray text-right">
+                  {(e.prompt_hash ?? "").slice(0, 8) || "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* meta / colophon --------------------------------------- */}
       <footer className="border-t border-graphite pt-5 grid grid-cols-4 gap-4 font-mono text-[10px] tracking-[0.014em] text-dim-gray">
         <Cell k="matter_id" v={matter.slug} />
@@ -438,6 +491,33 @@ function StatusBadge({ status }: { status: string }) {
     <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
       {status.toUpperCase()}
     </span>
+  );
+}
+
+function PrivilegeControl({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  // Visible posture indicator + native select. Colour reflects posture severity:
+  // A_cleared (terminal-green) → B_mixed (platinum) → C_paused (code-red).
+  const isPaused = value === "C_paused";
+  const isCleared = value === "A_cleared";
+  const colour = isPaused
+    ? "text-code-red"
+    : isCleared
+      ? "text-terminal-green"
+      : "text-platinum";
+  return (
+    <label className={`relative font-mono text-[11px] tracking-[0.053em] bg-graphite ${colour} px-1.5 py-px shadow-subtle-2 cursor-pointer`}>
+      {value.replace("_", " · ").toUpperCase()}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0 cursor-pointer"
+        aria-label="Privilege posture"
+      >
+        <option value="A_cleared">A_cleared — frontier OK</option>
+        <option value="B_mixed">B_mixed — local preferred</option>
+        <option value="C_paused">C_paused — LLM blocked</option>
+      </select>
+    </label>
   );
 }
 

@@ -32,7 +32,7 @@ from app.models import (
     User,
     PRIVILEGE_VALUES,
     PRIVILEGE_MIXED,
-    STATUS_VALUES,
+    STATUS_VALUES,  # noqa: F401 — exported for future endpoints
     STATUS_OPEN,
     TAG_VALUES,
 )
@@ -70,6 +70,28 @@ class MatterRead(BaseModel):
     closed_at: datetime | None
     retention_until: date | None
     created_by_id: uuid.UUID
+
+    model_config = {"from_attributes": True}
+
+
+class PrivilegePatch(BaseModel):
+    privilege_posture: str
+
+
+class AuditEntryRead(BaseModel):
+    id: uuid.UUID
+    timestamp: datetime
+    actor_id: uuid.UUID | None
+    matter_id: uuid.UUID | None
+    action: str
+    resource_type: str | None
+    resource_id: str | None
+    model_used: str | None
+    prompt_hash: str | None
+    response_hash: str | None
+    token_count: int | None
+    latency_ms: int | None
+    payload: dict
 
     model_config = {"from_attributes": True}
 
@@ -256,5 +278,59 @@ async def list_documents(
         raise HTTPException(404, f"matter not found: {slug}")
     rows = await session.scalars(
         select(Document).where(Document.matter_id == matter.id).order_by(Document.uploaded_at.desc())
+    )
+    return list(rows.all())
+
+
+@router.patch("/{slug}/privilege", response_model=MatterRead)
+async def set_privilege_posture(
+    slug: str,
+    body: PrivilegePatch,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> Matter:
+    if body.privilege_posture not in PRIVILEGE_VALUES:
+        raise HTTPException(400, f"privilege_posture must be one of {sorted(PRIVILEGE_VALUES)}")
+
+    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    previous = matter.privilege_posture
+    if previous == body.privilege_posture:
+        return matter
+
+    matter.privilege_posture = body.privilege_posture
+
+    await _write_audit(
+        session,
+        actor=user,
+        matter=matter,
+        action="privilege.set",
+        resource_type="matter",
+        resource_id=matter.slug,
+        payload={"from": previous, "to": body.privilege_posture},
+    )
+    await session.commit()
+    await session.refresh(matter)
+    return matter
+
+
+@router.get("/{slug}/audit", response_model=list[AuditEntryRead])
+async def list_audit(
+    slug: str,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),  # noqa: ARG001
+) -> list[AuditEntry]:
+    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+    limit = max(1, min(limit, 200))
+    rows = await session.scalars(
+        select(AuditEntry)
+        .where(AuditEntry.matter_id == matter.id)
+        .order_by(AuditEntry.timestamp.desc())
+        .limit(limit)
     )
     return list(rows.all())
