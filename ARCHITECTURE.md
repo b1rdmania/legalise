@@ -51,7 +51,9 @@ Modules share the matter primitive but are otherwise loosely coupled. Adding a n
 
 ## Module SDK
 
-Legalise is a platform. Tabs are modules. New modules (a plain-english tab, a time-recording tab, a conflicts-check tab, a firm-specific workflow) plug into the matter spine using the same primitives the built-in modules use.
+Legalise is a **platform-shaped, module-extensible workspace** — the platform claim becomes load-bearing once `app.core.api` is real (v0.1 build window). Until then, the SDK exists at the planning level: manifest schema, example-tab starter, documented public-surface contract, MODULE_DEVELOPMENT.md guide.
+
+Tabs are modules. New modules (a plain-english tab, a time-recording tab, a conflicts-check tab, a firm-specific workflow) plug into the matter spine using the same primitives the built-in modules use.
 
 The contract:
 
