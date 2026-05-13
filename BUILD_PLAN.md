@@ -14,7 +14,7 @@ Before Day 1:
 - [x] Pre-Motion code located and audited — adversarial premortem app at `/Users/andy/Documents/New project/premotion/`. Full FastAPI + React with 4-stage pipeline (Optimistic Analyst, Evidence Inspector w/ 3 parallel sub-agents, Premortem Adversary w/ 4 parallel Opus sub-agents, Synthesiser). Plan: port wholesale into `legalise/backend/app/modules/pre_motion/` rather than rewrite the simplified Nash version originally scoped.
 - [ ] `claude-for-uk-legal` plugin invocation pattern from a FastAPI backend resolved (direct subprocess? MCP server? SDK call?)
 - [ ] Ollama installed locally, one local model pulled for privilege-mode testing (`llama3.1:70b` or `qwen2.5:72b`)
-- [ ] Domain `legalise.dev` pointed (Vercel or CF for the live demo deploy)
+- [ ] Domain `legalise.dev` pointed at Cloudflare (DNS managed by Cloudflare; Pages for frontend, Fly.io `lhr` for backend)
 - [ ] Cloudflare account confirmed (Pages + R2 jurisdiction `eu` / location hint `WEUR`), Fly.io account in `lhr` region, Neon project in London region — per `infra/deploy/cloudflare.md`
 
 ## Week 1 — Foundation + Matter workspace
