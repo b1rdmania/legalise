@@ -9,17 +9,17 @@ UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preser
 ```mermaid
 graph TD
     A[Legalise workspace] --> B[Matter spine]
-    B --> C[Pre-Motion<br/>settlement analysis]
-    B --> D[Chronology<br/>CPR 31.22-aware]
-    B --> E[Contract review<br/>4-agent pipeline]
-    B --> F[CPR-letter drafter]
-    B --> G[Audit log<br/>privilege posture<br/>local-model toggle]
+    B --> C[Sample matter<br/>end-to-end narrative]
+    C --> D[Pre-Motion<br/>settlement analysis]
+    C --> E[CPR-letter drafter<br/>plugin bridge proof]
+    C --> F[Audit log<br/>privilege posture<br/>local-model toggle]
+    B --> G[Chronology / contract review<br/>v0.2 roadmap surfaces]
 
     B -.calls.-> H[claude-for-uk-legal<br/>plugins]
     B -.matter-schema-compatible.-> I[Stella]
 ```
 
-Five modules around a matter spine. Each module composes the `claude-for-uk-legal` plugins with matter context, audit logging, and privilege awareness. Workspace runs locally via Docker Compose or live at `legalise.dev` (deployed in UK region for data residency).
+One coherent sample-matter workflow around a matter spine. v0.1 proves the workspace shape: matter context, audit logging, privilege awareness, local/cloud model routing, Pre-Motion settlement analysis, and one real `claude-for-uk-legal` plugin invocation. Chronology and contract review remain visible roadmap surfaces rather than launch commitments. Workspace runs locally via Docker Compose or live at `legalise.dev` (deployed in UK region for data residency).
 
 ## Pre-build status (May 2026)
 
@@ -28,10 +28,10 @@ The repository contains:
 - Full planning documentation
 - Directory skeleton for backend (FastAPI), frontend (React 19), infrastructure
 - Schema definitions (matter schema compatible with [Stella](https://github.com/stella/stella))
-- `docker-compose.yml` for the full stack (Postgres + pgvector, MinIO, Redis, Gotenberg, Ollama)
+- `infra/docker-compose.yml` for the full stack (Postgres + pgvector, MinIO, Redis, Gotenberg, Ollama)
 - Empty module scaffolds ready to receive the v0.1 implementation
 
-Build kicks off Week 1, target three weeks to v0.1 launch.
+Build kicks off Week 1, target three weeks to v0.1 launch with a fourth-week stretch buffer.
 
 ## Stack
 
@@ -56,19 +56,19 @@ gantt
     section Week 1
     Skeleton boots          :w1d1, 2026-05-14, 1d
     Matter CRUD             :w1d2, after w1d1, 1d
-    Audit log               :w1d3, after w1d2, 1d
-    Filesystem mat.         :w1d4, after w1d3, 1d
-    Plugin bridge           :w1d5, after w1d4, 1d
-    Design pass             :w1we, after w1d5, 2d
+    Audit + privilege       :w1d3, after w1d2, 1d
+    Sample matter           :w1d4, after w1d3, 1d
+    Plugin bridge proof     :w1d5, after w1d4, 1d
 
     section Week 2
-    Pre-Motion              :w2pm, after w1we, 2d
-    Chronology              :w2ch, after w2pm, 2d
-    Contract review         :w2cr, after w2ch, 2d
-    CPR-letter drafter      :w2lt, after w2cr, 1d
+    Pre-Motion              :w2pm, after w1d5, 2d
+    Letter bridge           :w2lt, after w2pm, 1d
+    Seeded chronology       :w2ch, after w2lt, 1d
+    Roadmap tabs            :w2rt, after w2ch, 1d
+    Integration polish      :w2ip, after w2rt, 2d
 
     section Week 3
-    Demo polish             :w3d, after w2lt, 2d
+    Demo polish             :w3d, after w2ip, 2d
     Live deploy             :w3dep, after w3d, 1d
     Evals                   :w3ev, after w3dep, 1d
     README + assets         :w3rm, after w3ev, 1d
@@ -82,7 +82,7 @@ Legalise composes plugins from the [`claude-for-uk-legal`](https://github.com/b1
 | Layer | What it is | Where |
 |---|---|---|
 | Plugins | Markdown SKILL.md files + plugin.json — pure legal logic, no UI | `claude-for-uk-legal` repo |
-| Workspace | FastAPI + React, matter-first, audit + privilege + RBAC scaffolding | `legalise` repo (this one) |
+| Workspace | FastAPI + React, matter-first, audit + privilege + local-model scaffolding | `legalise` repo (this one) |
 | Plugin bridge | Adapter that lets workspace modules invoke plugin skills with matter context | `backend/app/adapters/plugin_bridge.py` |
 
 ## What this isn't

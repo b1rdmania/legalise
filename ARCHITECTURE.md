@@ -25,7 +25,7 @@
 | Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
 | Hosting (live demo) | Azure UK South or AWS eu-west-2 | UK data residency. Azure preferred for M365 integration story; AWS for startup ecosystem familiarity. |
-| Hosting (self) | Docker Compose | Single `docker compose up` brings full stack. |
+| Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. |
 
 ## Module shape
 

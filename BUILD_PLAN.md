@@ -2,6 +2,8 @@
 
 3 weeks, solo. 4 weeks with realistic 25% buffer. Daily granularity to make slippage visible early.
 
+v0.1 is scoped around one coherent sample-matter narrative, not five end-to-end modules. The release commitment is: Docker quickstart works, the matter workspace is real, audit/privilege/model routing are visible, Pre-Motion is excellent, and the CPR-letter drafter proves the plugin bridge.
+
 ## Pre-flight
 
 Before Day 1:
@@ -17,50 +19,56 @@ Before Day 1:
 
 ## Week 1 — Foundation + Matter workspace
 
-### Day 1 — Skeleton boots
-- FastAPI app boots locally: `docker compose up` → `localhost:8000/health` returns 200
-- Postgres + pgvector container running, alembic initialised, first migration created
-- React + Vite app boots: `localhost:3000` renders an empty shell
-- Auth stub: hardcoded user, session via cookie. Production auth is v0.2.
-- Model gateway scaffolded: `core/model_gateway.py` with `AnthropicProvider`, `OllamaProvider`. Switch via env var.
-- **Done state:** clone, `docker compose up`, see a logged-in empty workspace.
+### Day 1 — Skeleton boots for real
+- `docker compose -f infra/docker-compose.yml up` brings up Postgres + pgvector, Redis, MinIO, Gotenberg, backend, and frontend
+- FastAPI app boots locally: `localhost:8000/health` returns 200
+- React + Vite app boots: `localhost:3000` renders an empty workspace shell
+- First migration created and runnable
+- README quickstart matches the actual compose command
+- **Done state:** clone, run one command, see a working shell and health check.
 
-### Day 2 — Matter model and CRUD
+### Day 2 — Matter model, CRUD, and auth stub
 - SQLAlchemy models: `User`, `Matter`, `Document`, `Event`, `AuditEntry`, `Role`
-- Alembic migration 002: matter tables
+- Alembic migration for matter tables
 - API: `POST /matters`, `GET /matters`, `GET /matters/{slug}`, `POST /matters/{slug}/documents`
 - Frontend: matter list page, matter detail page, "new matter" form
-- Document upload to MinIO via signed URL
-- **Done state:** can create a matter, upload a document, see it listed.
+- Auth stub: hardcoded user, session via cookie. Production auth is v0.2.
+- Document upload path records document metadata and SHA-256. Signed MinIO upload is a stretch; local ingest is acceptable for v0.1.
+- **Done state:** can create a matter, upload/register a document, see both listed.
 
-### Day 3 — Audit log
+### Day 3 — Audit log + privilege posture
 - `AuditEntry` model: actor, matter_id, action, resource_type, resource_id, payload_hash, timestamp
 - Middleware that logs every API call touching a matter
 - Hook in `model_gateway` that logs every LLM call (prompt hash, response hash, token count, model used, latency)
 - Frontend: audit-trail tab on matter detail page
-- **Done state:** every action visible in the audit log, hashable, exportable as CSV.
+- Matter-level privilege posture toggle: A_cleared, B_mixed, C_paused
+- C_paused refuses LLM calls. B_mixed visibly warns or routes to local when configured.
+- **Done state:** matter actions and model calls visibly accumulate in the audit log; posture changes behaviour.
 
-### Day 4 — Filesystem materialisation
-- Background job that mirrors a matter to `matters/[slug]/` on disk
+### Day 4 — Sample matter narrative + filesystem materialisation
+- One primary sample matter seeded: unfair dismissal claim, three years' service, conduct dismissal
+- The matter includes facts, parties, documents, claim posture, costs assumptions, and a short chronology fixture
+- Mirror the sample matter to `matters/[slug]/` on disk
   - `matter.md` — facts, parties, case theory (markdown front-matter for structured fields)
   - `history.md` — append-only internal log
   - `documents/` — uploaded files (or symlinks to MinIO)
-  - `chronology.md` — created when chronology module is used
+  - `chronology.md` — seeded/read-only chronology fixture
 - Schema matches Stella's matter folder convention (see `/schemas/matter.json`)
-- Re-hydration: dropping a matter folder in re-imports it on next boot
-- **Done state:** Postgres ↔ filesystem in sync; matter folder is the source of truth for portability.
+- Re-hydration is stretch, not a Day 4 blocker
+- **Done state:** one sample matter tells a coherent story in the UI and on disk.
 
-### Day 5 — Plugin bridge
+### Day 5 — Model gateway + plugin bridge proof
+- Model gateway scaffolded: `core/model_gateway.py` with `AnthropicProvider`, `OllamaProvider`, and a deterministic stub provider for local/demo runs
 - `adapters/plugin_bridge.py` — invokes `claude-for-uk-legal` plugins via subprocess + Claude Code, or via direct MCP if cleaner
-- First invocation: from a matter, call `/uk-research-legal:citation-verifier` on a test citation; return result; log it
+- First invocation: from the sample matter, call the `cpr-letter-drafter` plugin with matter context; return draft markdown; log it
 - Privilege posture wired in — calling a plugin from a B-mixed matter passes the posture as context
-- **Done state:** plugins callable from the workspace, output rendered, audit entry created.
+- **Done state:** one real plugin call works from the workspace, output renders, audit entry created.
 
 ### Weekend — Design pass + risk check
 - UI polish on the matter detail page. Tailwind + Shadcn components. Solicitor-legible: clear hierarchy, real legal language, no AI-app aesthetic.
 - Risk check: are any Day 1–5 deliverables yellow/red? If yes, re-plan week 2 now.
 
-## Week 2 — Hero modules
+## Week 2 — Hero workflow
 
 ### Day 6–7 — Pre-Motion
 - Backend: `modules/pre_motion/`
@@ -74,53 +82,52 @@ Before Day 1:
 - One full worked example seeded — unfair dismissal claim, mid-value, both sides at 60% confidence — renders end-to-end
 - **Done state:** Pre-Motion runs against a real matter, output looks shareable on X.
 
-### Day 8–9 — Chronology
-- Backend: `modules/chronology/`
-  - Endpoint: `POST /matters/{slug}/chronology/build` — accepts document IDs in scope
-  - CPR 31.22 gate: matter must have privilege-posture set; documents must have `from_disclosure` flag set
-  - Multi-agent extraction (uses BaseAgent): per-document event extraction → de-dupe → significance tagging
-  - Outputs: working chronology (markdown), SoF variant (privileged entries filtered), witness-specific variant (filtered to a named witness)
-- Frontend: `modules/chronology/`
-  - Document picker (matter's docs, multi-select)
-  - Privilege posture banner
-  - Output: timeline view, table view, key-events callout
-  - Diff view when rebuilt against new documents
-- **Done state:** upload three sample disclosure docs, build a chronology, see 🔴/🟡/⚪ tags, get SoF prose output.
-
-### Day 10–11 — Contract review (multi-agent)
-- Backend: `modules/contract_review/`
-  - Pipeline: `Parser` (extract clauses) → `Analyst` (risk flags per playbook) → `Redliner` (proposed edits) → `Summariser` (stakeholder summary)
-  - Each stage logs to audit. Stages run sequentially with streamed status to frontend.
-- Frontend: `modules/contract_review/`
-  - Upload .docx
-  - Live pipeline visualisation: four stage cards, current stage highlighted, intermediate outputs visible
-  - Final output: redlined .docx download + plain-language summary + risk table
-- **Done state:** upload a real-looking employment contract, watch the four agents run, get redline + summary out.
-
-### Day 12 — CPR-letter drafter
+### Day 8 — CPR-letter bridge surface
 - Backend: `modules/letters/`
   - Endpoint that calls the `cpr-letter-drafter` plugin with matter context
   - Auto-fills parties, facts, claim heads from `matter.md`
-  - Returns letter as markdown + .docx
+  - Returns letter as markdown; .docx is stretch
 - Frontend: `modules/letters/`
-  - Letter type selector (LBC under PACC, Debt Protocol, Prof Neg, etc.)
+  - Simple letter type selector (one launch path only, e.g. ACAS/settlement correspondence or LBC depending on sample matter)
   - Inputs pre-populated from matter; user edits where needed
-  - Output preview + .docx download
-- **Done state:** from a matter with parties and facts set, generate a compliant LBC in 30 seconds.
+  - Output preview
+- **Done state:** from the sample matter, generate a draft letter in 30 seconds and show the plugin invocation in the audit trail.
 
-### Weekend — Integration + sample matters
-- Three sample matters seeded into the repo for demo:
-  - Employment: unfair dismissal claim, three years' service, conduct dismissal
-  - Civil: SME debt claim, £18k owing, debtor disputing partially
-  - Civil: professional negligence against an accountant, latent damage
-- Each matter has documents, an initial chronology, and a Pre-Motion output ready to display
-- End-to-end smoke test against each sample
+### Day 9 — Chronology read-only demo + CPR 31.22 gate
+- Seed the sample chronology from fixture data, not live extraction
+- Show timeline/table view, significance tags, source documents, and privilege flags
+- Implement the CPR 31.22 gate at document/chronology boundary: disclosed documents with mismatched proceedings references are blocked or clearly flagged
+- SoF variant filters flagged privileged entries from the seeded chronology
+- **Done state:** chronology demonstrates the regulatory shape without promising v0.1 extraction.
+
+### Day 10 — Roadmap module tabs
+- Contract review tab is visible but labelled v0.2
+- Chronology extraction/diff controls are labelled v0.2 if present
+- Copy is transparent: v0.1 proves the matter spine, Pre-Motion, audit, privilege posture, local model toggle, and plugin bridge
+- **Done state:** navigation shows ambition without pretending unfinished modules are done.
+
+### Day 11–12 — Integration + sample matter polish
+- Thread one sample matter through the full demo path:
+  - facts and documents loaded
+  - Pre-Motion run saved
+  - audit entries visibly accumulate
+  - privilege posture changed and reflected in model-routing UI
+  - CPR-letter generated through the plugin bridge
+  - seeded chronology visible as context
+- Loading states, error states, empty states handled on the core path
+- End-to-end smoke test against the sample matter
+- **Done state:** a reviewer can click one matter and understand the workspace without touring feature tabs.
+
+### Weekend — Design pass + risk check
+- Solicitor-legible UI polish on the matter detail page, Pre-Motion output, audit trail, and letter preview
+- Retention appears in schema/docs only; no prominent matter UI until enforcement exists
+- Risk check: are the core path and quickstart green? If not, cut deploy/evals before cutting quality on the primary sample matter.
 
 ## Week 3 — Polish + Launch
 
 ### Day 13–14 — Demo flow
-- Landing page at `/` — explains what Legalise is, links to three demo matters
-- "Open demo matter" buttons — one-click load of pre-seeded matter into the workspace
+- Landing page at `/` — explains Legalise and opens the primary sample matter
+- "Open demo matter" button — one-click load of the seeded matter into the workspace
 - Module navigation cleaned up; consistent header across modules
 - Loading states, error states, empty states all handled
 - Tailwind theme pass — solicitor-legible (not AI-app gradient soup)
@@ -133,7 +140,8 @@ Before Day 1:
 - Health check, basic uptime monitoring
 
 ### Day 16 — Evals
-- One eval per module — input fixtures, expected output shape, scoring against either an LLM judge or string-match heuristics
+- Smoke/eval coverage for the primary sample matter and Pre-Motion output shape
+- One plugin-bridge eval: matter context in, letter markdown shape out
 - `evals/` directory with runnable scripts
 - README block explaining the eval approach
 - Evals are not gating in v1 but they exist and are documented
@@ -142,7 +150,7 @@ Before Day 1:
 - Top-level README with:
   - Hero one-liner and demo link
   - Architecture diagram (mermaid)
-  - Five-module overview with screenshots
+  - Primary sample matter walkthrough with screenshots
   - Plugin-and-workspace relationship explained
   - Stack rationale (one paragraph)
   - Quickstart (Docker Compose)
@@ -152,13 +160,13 @@ Before Day 1:
   - Contributing
   - License
 - One animated GIF of Pre-Motion (input → ZOPA → Nash → offer)
-- One screenshot per module
-- Mermaid diagrams in README: matter lifecycle, multi-agent contract pipeline, audit-log flow
+- Screenshots for matter workspace, Pre-Motion, audit/privilege, and letter bridge
+- Mermaid diagrams in README: matter lifecycle, plugin bridge, audit-log flow
 
 ### Day 18 — Launch
 - Show HN Tuesday morning UK time
 - X main post + reply with link
-- LinkedIn main post + 4 replies (one per module)
+- LinkedIn main post + replies for the sample matter, Pre-Motion, regulatory plumbing, and plugin bridge
 - Cross-link from `claude-for-uk-legal` README
 - Profile README updated
 - Pre-warmed network: 5–10 trusted contacts pinged ahead for stars + comments
@@ -170,18 +178,19 @@ Before Day 1:
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Lawhive recruitment process gets active | M | H — distraction kills the build | Park Lawhive until launch; respond only on launch day or after |
-| Bird Legal code is messier to port than expected | M | M — slips Days 6–11 | Day 5 evening, audit ported code; if rough, simplify Pre-Motion to "calculator only" and drop a week-2 stretch goal |
-| Plugin bridge takes longer than Day 5 | L | H — blocks Days 8 and 12 | Fallback: skip MCP, call plugins via subprocess + Claude Code CLI |
+| Bird Legal code is messier to port than expected | M | M — slips Days 6–12 | Simplify Pre-Motion to calculator + deterministic narrative; keep the UI excellent |
+| Plugin bridge takes longer than Day 5 | M | H — blocks the letter bridge | Fallback: direct skill rendering through the model gateway; if still blocked, use a deterministic demo provider but keep the audit shape honest |
 | Live deploy hits Azure/AWS quota or DNS issue | L | M — slips Day 15 | Have Vercel + Railway as backup deploy targets (Postgres on Neon, app on Railway, domain on CF) |
 | Solicitor-legible design takes longer than planned weekend | M | L — week 1 design slips into week 2 | Use a pre-built Shadcn theme and don't customise in v1 |
 | Pre-Motion output isn't visually compelling on launch | M | H — kills the hero shot | Day 6 morning: spike one chart library (Recharts/Visx), confirm it can render the ZOPA range cleanly before going deeper |
-| Eval framework eats Day 16 | L | L | Cap at one eval per module; integrate properly post-launch |
+| Retention UI looks like compliance theatre | M | M | Keep retention in schema/docs only until enforcement exists |
+| Eval framework eats Day 16 | L | L | Cap at sample-matter smoke tests; integrate module evals properly post-launch |
 
 ## Definition of done for v1
 
-- Clone, `docker compose up`, see a working workspace.
-- Three sample matters load.
-- Each of the five modules runs end-to-end against a sample matter.
+- Clone, `docker compose -f infra/docker-compose.yml up`, see a working workspace.
+- One primary sample matter loads and tells a coherent workflow story.
+- Matter workspace, audit log, privilege posture, model routing, Pre-Motion, and CPR-letter plugin bridge run end-to-end.
 - Audit log shows every action.
 - Privilege posture toggle changes module behaviour visibly.
 - Local model toggle works on at least one module (Pre-Motion is simplest).
@@ -195,8 +204,18 @@ Cut in order:
 
 1. Live deploy (`legalise.dev`) — ship with self-host only, deploy in week 4
 2. Evals — write the docs but skip the implementation
-3. CPR-letter drafter UI — surface the plugin via a simple form, defer richness
-4. Contract review redline output (.docx) — output markdown only, defer .docx
-5. Chronology diff view — output v1 only, no incremental rebuild
+3. Additional sample matters — keep one excellent sample
+4. Letter .docx export — markdown preview is enough
+5. Live chronology extraction — keep seeded/read-only chronology
+6. Contract review implementation — keep roadmap tab only
 
-What does **not** get cut: Pre-Motion (hero), matter workspace (spine), audit log (regulatory plumbing visibility), privilege posture (regulatory plumbing visibility), one working demo matter end-to-end.
+What does **not** get cut: Pre-Motion (hero), matter workspace (spine), audit log (regulatory plumbing visibility), privilege posture (regulatory plumbing visibility), one plugin invocation through the letter bridge, one working demo matter end-to-end.
+
+## Week 4 stretch goals
+
+Only after the v0.1 core path is green:
+
+1. Add two more sample matters.
+2. Add live chronology extraction for a small document set.
+3. Add `.docx` export for the CPR-letter bridge.
+4. Add contract-review markdown output without redline generation.
