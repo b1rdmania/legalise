@@ -516,10 +516,7 @@ function MatterDetail({ slug }: { slug: string }) {
         )}
 
         {chron && chron.events.length > 0 && (
-          <ChronologyTable
-            events={showSoF ? chron.statement_of_facts_variant : chron.events}
-            blurred={chron.gate.required && !chron.gate.confirmed}
-          />
+          <ChronologyTable events={showSoF ? chron.statement_of_facts_variant : chron.events} />
         )}
 
         {chron && chron.gate.confirmed && chron.gate.confirmed_at && (
@@ -649,8 +646,9 @@ function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: () => v
       <p className="font-sans text-[14px] leading-[1.5] text-platinum max-w-[70ch] mb-4">
         {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents
         obtained under disclosure. CPR 31.22(1) restricts use of disclosed material to
-        the proceedings in which it was disclosed. Acknowledge the implied undertaking
-        before this chronology renders.
+        the proceedings in which it was disclosed. Until you acknowledge the implied
+        undertaking, the server withholds detail of those {count === 1 ? "entry" : "entries"} —
+        the rows below show them as redacted.
       </p>
       <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[70ch] mb-4">
         Acknowledgement is recorded in the audit trail (action:{" "}
@@ -668,15 +666,9 @@ function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: () => v
   );
 }
 
-function ChronologyTable({
-  events,
-  blurred,
-}: {
-  events: import("./lib/api").ChronologyEvent[];
-  blurred: boolean;
-}) {
+function ChronologyTable({ events }: { events: import("./lib/api").ChronologyEvent[] }) {
   return (
-    <div className={"border border-graphite " + (blurred ? "opacity-30 pointer-events-none select-none" : "")}>
+    <div className="border border-graphite">
       <div className="grid grid-cols-[130px_60px_1fr_220px] gap-4 px-3 py-2 bg-graphite text-dim-gray font-mono text-[10px] tracking-[0.014em] uppercase border-b border-slate">
         <span>date</span>
         <span>sig</span>
@@ -698,7 +690,13 @@ function ChronologyTable({
           >
             {e.significance >= 4 ? `★ ${e.significance}` : `· ${e.significance}`}
           </span>
-          <span className="font-sans text-[14px] leading-[1.45] text-platinum">{e.description}</span>
+          {e.redacted ? (
+            <span className="font-mono text-[13px] tracking-[0.04em] text-code-red italic">
+              {e.description}
+            </span>
+          ) : (
+            <span className="font-sans text-[14px] leading-[1.45] text-platinum">{e.description}</span>
+          )}
           <span className="font-mono text-[11px] tracking-[0.04em] text-light-gray flex flex-wrap items-baseline gap-2">
             {e.source_doc_filenames.map((fn) => (
               <span key={fn} className="text-ash-gray truncate">

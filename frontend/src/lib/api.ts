@@ -134,6 +134,7 @@ export interface ChronologyEvent {
   from_disclosure: boolean;
   proceedings_refs: string[];
   created_at: string;
+  redacted: boolean;
 }
 
 export interface GateState {

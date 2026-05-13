@@ -49,6 +49,9 @@ router = APIRouter()
 
 # ---------- schemas ---------------------------------------------------------
 
+REDACTED_DESCRIPTION = "[withheld pending CPR 31.22 acknowledgement]"
+
+
 class ChronologyEventRead(BaseModel):
     id: uuid.UUID
     event_date: date
@@ -60,6 +63,8 @@ class ChronologyEventRead(BaseModel):
     from_disclosure: bool          # derived: any source doc is from disclosure
     proceedings_refs: list[str]    # derived: union of source docs' disclosure refs
     created_at: datetime
+    redacted: bool = False         # true if this row's detail is withheld
+                                   # behind the CPR 31.22 gate
 
 
 class GateState(BaseModel):
@@ -114,8 +119,40 @@ def _event_is_tainted(event: Event, docs_by_id: dict[uuid.UUID, Document]) -> bo
     return False
 
 
-def _event_to_read(event: Event, docs_by_id: dict[uuid.UUID, Document]) -> ChronologyEventRead:
+def _event_to_read(
+    event: Event,
+    docs_by_id: dict[uuid.UUID, Document],
+    *,
+    redact_tainted: bool,
+) -> ChronologyEventRead:
+    """Convert an Event row to its API representation.
+
+    If `redact_tainted` is True and the event's source documents include
+    one from disclosure, the description, source filenames, and
+    proceedings refs are withheld at the server boundary — not just
+    hidden in the UI. This is the actual CPR 31.22 access gate. The
+    event's existence (id, date, significance, priv_flag, from_disclosure)
+    is still surfaced so the solicitor can see *that* there is gated
+    material before they choose to acknowledge the undertaking.
+    """
     source_docs = [docs_by_id[d] for d in (event.source_doc_ids or []) if d in docs_by_id]
+    from_disclosure = any(d.from_disclosure for d in source_docs)
+
+    if redact_tainted and from_disclosure:
+        return ChronologyEventRead(
+            id=event.id,
+            event_date=event.event_date,
+            description=REDACTED_DESCRIPTION,
+            significance=event.significance,
+            source_doc_ids=list(event.source_doc_ids or []),
+            source_doc_filenames=[],
+            priv_flag=event.priv_flag,
+            from_disclosure=True,
+            proceedings_refs=[],
+            created_at=event.created_at,
+            redacted=True,
+        )
+
     return ChronologyEventRead(
         id=event.id,
         event_date=event.event_date,
@@ -124,11 +161,12 @@ def _event_to_read(event: Event, docs_by_id: dict[uuid.UUID, Document]) -> Chron
         source_doc_ids=list(event.source_doc_ids or []),
         source_doc_filenames=[d.filename for d in source_docs],
         priv_flag=event.priv_flag,
-        from_disclosure=any(d.from_disclosure for d in source_docs),
+        from_disclosure=from_disclosure,
         proceedings_refs=[
             d.disclosure_proceedings_ref for d in source_docs if d.disclosure_proceedings_ref
         ],
         created_at=event.created_at,
+        redacted=False,
     )
 
 
@@ -167,15 +205,23 @@ async def get_chronology(
         raise HTTPException(404, f"matter not found: {slug}")
 
     events, docs_by_id = await _load_chronology(session, matter)
-    reads = [_event_to_read(e, docs_by_id) for e in events]
 
-    tainted_count = sum(1 for r in reads if r.from_disclosure)
+    # Count tainted entries from raw events (pre-redaction) so the gate
+    # state reflects the truth even when the response withholds detail.
+    tainted_count = sum(1 for e in events if _event_is_tainted(e, docs_by_id))
     gate = await _gate_state(session, matter, user, tainted_count)
+
+    # Server-side access gate: withhold detail of disclosure-tainted
+    # events until the user has acknowledged the CPR 31.22 implied
+    # undertaking. The existence of the entry is surfaced; the content
+    # is not.
+    redact = gate.required and not gate.confirmed
+    reads = [_event_to_read(e, docs_by_id, redact_tainted=redact) for e in events]
 
     # Statement-of-Facts variant strips privileged entries — what you would
     # share externally (counsel, opponent, court bundle). Disclosure-tainted
-    # entries stay (they're disclosable material) but privilege-flagged
-    # entries (advice, internal strategy) do not.
+    # entries stay (they're disclosable material), but priv_flag entries
+    # (advice, internal strategy) do not. Same redaction applies.
     sof = [r for r in reads if not r.priv_flag]
 
     return ChronologyResponse(

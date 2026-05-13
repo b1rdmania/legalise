@@ -27,6 +27,8 @@ env/
 node_modules/
 dist/
 .vite/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Editors
 .vscode/
