@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.api import matters_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
+from app.core.seed import seed_demo_matter
 
 logger = structlog.get_logger()
 
@@ -30,6 +31,15 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("legalise.startup.db_unreachable", error=str(exc))
         # Allow boot to continue so /health can report the state — useful in dev.
+
+    # Seed the demo matter in development so the workspace is never empty.
+    if settings.environment in {"development", "dev", "local"}:
+        try:
+            async with app.state.session_factory() as session:
+                matter = await seed_demo_matter(session)
+            logger.info("legalise.startup.seed_ok", slug=matter.slug)
+        except Exception as exc:
+            logger.warning("legalise.startup.seed_failed", error=str(exc))
 
     yield
 

@@ -25,6 +25,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_fs import (
+    append_history,
+    materialise_matter,
+    record_document,
+)
 from app.models import (
     AuditEntry,
     Document,
@@ -194,6 +199,7 @@ async def create_matter(
     )
     await session.commit()
     await session.refresh(matter)
+    materialise_matter(matter)
     return matter
 
 
@@ -264,6 +270,7 @@ async def upload_document(
     )
     await session.commit()
     await session.refresh(doc)
+    record_document(matter.slug, doc.filename, doc.sha256, doc.size_bytes, doc.tag)
     return doc
 
 
@@ -313,6 +320,8 @@ async def set_privilege_posture(
     )
     await session.commit()
     await session.refresh(matter)
+    append_history(matter.slug, "privilege.set", f"{previous} → {body.privilege_posture}")
+    materialise_matter(matter)
     return matter
 
 
