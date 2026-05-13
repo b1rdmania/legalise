@@ -42,7 +42,7 @@ Build kicks off Week 1, target three weeks to v0.1 launch with a fourth-week str
 - Frontend: React 19 + Vite + TanStack Router, Tailwind + Shadcn primitives
 - AI: model gateway abstracting Anthropic, OpenAI, Ollama (per-matter privilege posture selects provider)
 - Storage: MinIO (S3 API), Gotenberg (HTML→PDF), LibreOffice headless (DOCX)
-- Hosting (live): Azure UK South or AWS eu-west-2 (UK data residency)
+- Hosting (live): Cloudflare Pages + Fly.io `lhr` + Neon London + Cloudflare R2. UK-region database and backend; edge CDN and storage at EU / Western Europe placement. See [`infra/deploy/cloudflare.md`](./infra/deploy/cloudflare.md).
 - Hosting (self): Docker Compose
 
 Stack rationale in `ARCHITECTURE.md`.
@@ -95,7 +95,7 @@ Legalise composes plugins from the [`claude-for-uk-legal`](https://github.com/b1
 
 ## Extending
 
-Legalise is a platform. The five v0.1 modules are the starting set — anyone can add their own.
+Legalise is built as a platform-shaped, module-extensible workspace. The platform claim becomes load-bearing once `app.core.api` is real during the v0.1 build; until then the SDK exists at the planning level (manifest schema, example-tab starter, documented public surface, module developer guide). The v0.1 sample-matter workflow is the starting point — anyone can add their own modules.
 
 A module is a self-contained backend + frontend pair that plugs into the matter spine. Reads matter context, calls the model gateway with audit logging built in, invokes plugin skills, renders output in the matter view. Internal law firm forks can add private modules without ever pushing upstream.
 

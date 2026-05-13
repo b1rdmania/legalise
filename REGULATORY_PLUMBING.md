@@ -65,7 +65,7 @@ The workspace captures whether a document came from disclosure (and which procee
 
 ### 5. UK data residency
 
-**What it is.** Live demo runs in Azure UK South (or AWS eu-west-2). README documents the deployment region. Self-host instructions assume the operator chooses their own region.
+**What it is.** Live demo runs with the backend on Fly.io `lhr` (London, UK) and the database on Neon London. Frontend on Cloudflare Pages and storage on Cloudflare R2 with jurisdiction `eu` and location hint `WEUR`. README documents the deployment region honestly: UK-region database and backend; edge CDN and object storage at EU / Western Europe placement. Self-host instructions assume the operator chooses their own region.
 
 **Why it matters.** UK firms generally require UK data residency for client data. EU data residency is acceptable for some firms, US is generally not.
 

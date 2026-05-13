@@ -15,7 +15,7 @@ Before Day 1:
 - [ ] `claude-for-uk-legal` plugin invocation pattern from a FastAPI backend resolved (direct subprocess? MCP server? SDK call?)
 - [ ] Ollama installed locally, one local model pulled for privilege-mode testing (`llama3.1:70b` or `qwen2.5:72b`)
 - [ ] Domain `legalise.dev` pointed (Vercel or CF for the live demo deploy)
-- [ ] Azure UK South or AWS eu-west-2 account confirmed for deploy target
+- [ ] Cloudflare account confirmed (Pages + R2 jurisdiction `eu` / location hint `WEUR`), Fly.io account in `lhr` region, Neon project in London region — per `infra/deploy/cloudflare.md`
 
 ## Week 1 — Foundation + Matter workspace
 

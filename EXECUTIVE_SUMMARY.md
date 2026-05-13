@@ -66,7 +66,7 @@ Plain-English ships as a **launch-week stretch** only if the core sample-matter 
 - **Frontend:** React 19 + Vite + TanStack Router. Tailwind. Shadcn primitives.
 - **AI:** Model gateway abstracting Anthropic, OpenAI, and local Ollama. Per-matter privilege posture controls model selection.
 - **Storage:** MinIO (S3-compatible) for documents.
-- **Infrastructure:** Docker Compose for self-host. Azure UK South or AWS eu-west-2 for live demo (UK data residency).
+- **Infrastructure:** Docker Compose for self-host. Live demo at `legalise.dev` runs on Cloudflare Pages (frontend) + Fly.io `lhr` (backend, default) + Neon Postgres London + Cloudflare R2 (storage). UK-region database and backend; edge CDN and object storage at EU / Western Europe placement. See `infra/deploy/cloudflare.md` for honest residency caveats.
 - **Other:** Gotenberg for HTML→PDF, LibreOffice headless for DOCX, Tesseract for OCR (post-v1).
 
 Stack rationale: this is the stack you'd want for a regulated UK ABS in 2026. Boring is correct for regulated infrastructure. Python wins on AI ecosystem and document processing libraries. The same stack ports to production if and when the ABS exists.
