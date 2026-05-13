@@ -50,7 +50,7 @@ England & Wales civil and employment law. Does not cover:
 ## v1 modules (5 surfaces)
 
 1. **Matter workspace** — the spine. Matter creation, document upload, audit trail, role stub. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
-2. **Pre-Motion** — settlement analysis via BATNA → ZOPA → Nash bargaining solution. The hero module. Most novel piece in the suite.
+2. **Pre-Motion** — adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories and the one brutal one-sentence verdict: "if we lose this, this will be why." The hero module. Ported from the existing premotion app.
 3. **Chronology builder** — document upload, dated event extraction, CPR 31.22 implied-undertaking gate, significance tagging. SoF and working-chronology variants.
 4. **Contract review (multi-agent)** — Parser → Analyst → Redliner → Summariser pipeline. Visible stage status. Output redlined .docx + summary. Developer catnip.
 5. **CPR-letter drafter** — UI on top of the `uk-litigation-legal` plugin. Form-driven, matter-aware drafting.

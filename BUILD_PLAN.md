@@ -10,8 +10,8 @@ Before Day 1:
 
 - [x] Repo scaffolded with directory structure
 - [x] Plan documents written and pushed for review
-- [ ] Bird Legal MVP code located and audited — identify which modules port cleanly
-- [ ] Pre-Motion code located and audited — identify the simplification path to single-turn
+- [x] ~~Bird Legal MVP code located~~ — no `bird-legal` repo on disk; matter workspace will be built from scratch in `legalise/` against the existing matter primitive
+- [x] Pre-Motion code located and audited — adversarial premortem app at `/Users/andy/Documents/New project/premotion/`. Full FastAPI + React with 4-stage pipeline (Optimistic Analyst, Evidence Inspector w/ 3 parallel sub-agents, Premortem Adversary w/ 4 parallel Opus sub-agents, Synthesiser). Plan: port wholesale into `legalise/backend/app/modules/pre_motion/` rather than rewrite the simplified Nash version originally scoped.
 - [ ] `claude-for-uk-legal` plugin invocation pattern from a FastAPI backend resolved (direct subprocess? MCP server? SDK call?)
 - [ ] Ollama installed locally, one local model pulled for privilege-mode testing (`llama3.1:70b` or `qwen2.5:72b`)
 - [ ] Domain `legalise.dev` pointed (Vercel or CF for the live demo deploy)
@@ -70,17 +70,22 @@ Before Day 1:
 
 ## Week 2 — Hero workflow
 
-### Day 6–7 — Pre-Motion
+### Day 6–7 — Pre-Motion (port from existing app)
+- Source: `/Users/andy/Documents/New project/premotion/` — existing adversarial premortem pipeline. Port wholesale into `legalise/backend/app/modules/pre_motion/`.
 - Backend: `modules/pre_motion/`
-  - Endpoint: `POST /matters/{slug}/pre-motion` with inputs (V, P_l, P_q, C_C, C_D, risk tolerance for each side)
-  - Compute BATNA per side, ZOPA, Nash midpoint, sensitivity table (±20% on P_l, costs ±50%)
-  - Translate to recommended Part 36 / Calderbank offer with deadline timing logic
+  - Endpoint: `POST /matters/{slug}/pre-motion/run` with inputs (matter facts, evidence pointers, optimistic baseline, optional counter-defence, depth flag)
+  - Pipeline: OptimisticAnalyst → EvidenceInspector (3 parallel sub-agents — document review, cross-reference, chronology) → PremortemAdversary (4 parallel Opus sub-agents — procedural, substantive, evidentiary, strategic) → Synthesiser
+  - Two parallel `asyncio.gather` blocks for Stages 2 and 3
+  - SSE stream of stage status to frontend
+  - All seven LLM calls routed through `app.core.api.model_gateway` and logged to audit
 - Frontend: `modules/pre_motion/`
-  - Two-column form (claimant inputs / defendant inputs)
-  - Output: ZOPA visualisation (range chart), Nash point highlighted, sensitivity table, recommended offer card
+  - Input form pre-fills from matter context (facts, evidence references, claim heads)
+  - Live pipeline view: four stages visualised, current stage highlighted, parallel sub-agent progress visible
+  - Output: verdict card (Steelman / Borderline / Strawman), the one brutal sentence as a callout, ranked failure scenarios per category (Procedural / Substantive / Evidentiary / Strategic), evidence inconsistencies, blind spots, mitigations
   - Export as PDF (Gotenberg) for client memo
-- One full worked example seeded — unfair dismissal claim, mid-value, both sides at 60% confidence — renders end-to-end
-- **Done state:** Pre-Motion runs against a real matter, output looks shareable on X.
+- Day 6 evening: Pre-Motion runs against the unfair-dismissal sample matter end-to-end in ~2-3 minutes
+- Day 7: polish, sub-agent progress UI, output formatting, .pdf export
+- **Done state:** Pre-Motion runs against the sample matter, the brief output looks shareable on X. The four-stage architecture is visible in the UI, not hidden.
 
 ### Day 8 — CPR-letter bridge surface
 - Backend: `modules/letters/`
@@ -146,22 +151,30 @@ Before Day 1:
 - README block explaining the eval approach
 - Evals are not gating in v1 but they exist and are documented
 
-### Day 17 — README + launch assets
+### Day 17 — Plain-English module (SDK proof point) + README + launch assets
+
+**Morning — Plain-English module.** Built strictly on the documented `app.core.api` surface — same constraints any third-party contributor faces. Time-box: 2 hours.
+- Backend: `modules/plain_english/` — single endpoint that takes any text (clause, draft letter output, chronology entry) and returns the plain-English version. Wraps the existing `plain-english` Claude Code skill via the model gateway.
+- Frontend: `modules/plain_english/` — tab with "paste text / select from matter" input plus plain-English output panel. Also exposes a `usePlainEnglish` hook other modules can call when they re-introduce contract review and similar surfaces in v0.2.
+- Write up: a launch-post draft documenting how the module was built in two hours using the SDK. This becomes the platform proof point.
+
+**Afternoon — README + launch assets.**
 - Top-level README with:
   - Hero one-liner and demo link
   - Architecture diagram (mermaid)
   - Primary sample matter walkthrough with screenshots
   - Plugin-and-workspace relationship explained
+  - Module SDK pointer — "added plain-english in two hours; do the same for your tab" with link to `docs/MODULE_DEVELOPMENT.md`
   - Stack rationale (one paragraph)
   - Quickstart (Docker Compose)
-  - Self-host vs cloud demo
+  - Self-host vs Cloudflare deploy
   - Status: v0.1.0, demo not production
   - Roadmap
   - Contributing
   - License
-- One animated GIF of Pre-Motion (input → ZOPA → Nash → offer)
-- Screenshots for matter workspace, Pre-Motion, audit/privilege, and letter bridge
-- Mermaid diagrams in README: matter lifecycle, plugin bridge, audit-log flow
+- One animated GIF of Pre-Motion end-to-end (matter context → four-stage adversarial pipeline running with parallel sub-agents → final brief with the one brutal sentence)
+- Screenshots for matter workspace, Pre-Motion brief, audit/privilege posture, letter bridge, plain-English tab
+- Mermaid diagrams in README: matter lifecycle, plugin bridge, audit-log flow, Pre-Motion adversarial pipeline
 
 ### Day 18 — Launch
 - Show HN Tuesday morning UK time

@@ -7,10 +7,11 @@
 v0.1 is a demo with substance, not a complete five-module workspace. The release should prove one coherent matter workflow end-to-end:
 
 1. Matter workspace (CRUD, documents, audit log tab, privilege posture toggle, local-model toggle)
-2. Pre-Motion (settlement analysis — BATNA, ZOPA, Nash, Part 36 / Calderbank translation)
+2. Pre-Motion (adversarial premortem — OptimisticAnalyst → EvidenceInspector (3 parallel sub-agents) → PremortemAdversary (4 parallel Opus sub-agents) → Synthesiser; returns ranked failure scenarios and the one brutal one-sentence verdict; ported from the existing premotion app)
 3. CPR-letter drafter as the plugin-bridge proof (matter-aware autofill on top of the existing `cpr-letter-drafter` plugin)
 4. Chronology as a seeded/read-only demo surface showing the CPR 31.22 gate and privilege filtering shape
 5. Contract review as a credible roadmap tab, not an end-to-end v0.1 workflow
+6. Plain English (launch-week SDK proof point — built on the documented `app.core.api`, demonstrates that any contributor can plug in a tab in hours rather than weeks)
 
 The primary demo is one seeded sample matter that threads facts → Pre-Motion → audit entries visibly accumulating → privilege posture change → letter generation. Breadth exists in navigation, but the launch commitment is one excellent workflow.
 
