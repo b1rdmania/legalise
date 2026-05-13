@@ -16,6 +16,11 @@ RUN pip install --upgrade pip && pip install -e .
 
 COPY . .
 
+# entrypoint.sh is COPYed in by `COPY . .` above. Some hosts strip the
+# executable bit on bind-mount paths, so set it explicitly here.
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Entrypoint runs alembic migrations, then execs uvicorn.
+ENTRYPOINT ["/app/entrypoint.sh"]
