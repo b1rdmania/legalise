@@ -3,949 +3,917 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Khan v Acme Trading Ltd — Legalise</title>
+  <title>khan-v-acme-trading-2026 — oxide-legal</title>
 
+  <!-- Two families per DESIGN(1).md:
+       SuisseIntl  →  substitute Inter
+       GT America Mono  →  substitute Fira Code
+       Weight 400 only. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
 
   <style>
-    /* Tokens from docs/DESIGN.md — verbatim */
+    /* Tokens — verbatim from /Users/andy/Downloads/DESIGN(1).md ------------- */
     :root {
-      /* Surfaces */
-      --color-canvas: #faf8f3;
-      --color-surface: #ffffff;
-      --color-surface-subtle: #f5f1e8;
-      --color-surface-accent: #fbeae2;
+      /* Colors */
+      --color-carbon:         #0b0e12;
+      --color-graphite:       #1f2124;
+      --color-slate:          #303235;
+      --color-dim-gray:       #434547;
+      --color-steel-gray:     #5d5e61;
+      --color-ash-gray:       #818284;
+      --color-light-gray:     #a3a4a5;
+      --color-platinum:       #bababb;
+      --color-snow:           #dedede;
+      --color-terminal-green: #00d892;
+      --color-deep-teal:      #002923;
+      --color-emerald-shadow: #005441;
+      --color-scrim:          #292929;
+      --color-code-green:     #006d4a;
+      --color-code-violet:    #c58aff;
+      --color-code-red:       #ff6285;
+      --color-code-error:     #9f3f53;
+      --gradient-orbital-glow: radial-gradient(153.66% 69.56% at 50% 69.56%, oklch(0.483 0.0041 260) 0%, oklch(0.247 0.007 260) 100%);
 
-      /* Ink */
-      --color-ink: #171717;
-      --color-ink-secondary: #5a5a5a;
-      --color-ink-tertiary: #999999;
-      --color-ink-disabled: #c8c4ba;
-      --color-hairline: #e8e3d8;
-
-      /* Accent + Status */
-      --color-accent: #a3331f;
-      --color-accent-deep: #7a2415;
-      --color-status-success: #3a7d44;
-      --color-status-warn: #9c6f1a;
-      --color-status-error: #a13d3d;
-
-      /* Families */
-      --font-serif: "Source Serif 4", "Newsreader", Charter, Georgia, serif;
-      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-      --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      /* Fonts */
+      --font-suisseintl:      "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-gt-america-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
       /* Spacing */
-      --space-1: 4px;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 20px;
-      --space-6: 24px;
-      --space-8: 32px;
-      --space-10: 40px;
-      --space-12: 48px;
-      --space-16: 64px;
+      --spacing-4: 4px;  --spacing-8: 8px;   --spacing-12: 12px;  --spacing-16: 16px;
+      --spacing-20: 20px; --spacing-24: 24px; --spacing-32: 32px; --spacing-36: 36px;
+      --spacing-40: 40px; --spacing-48: 48px; --spacing-56: 56px; --spacing-60: 60px;
+      --spacing-64: 64px; --spacing-80: 80px; --spacing-128: 128px;
 
-      /* Radius */
-      --radius-0: 0px;
-      --radius-1: 2px;
-      --radius-2: 4px;
-      --radius-3: 6px;
-      --radius-4: 8px;
+      /* Radii (1px max per spec) */
+      --radius-cards:   1px;
+      --radius-buttons: 1px;
+      --radius-badges:  1px;
+      --radius-inputs:  1px;
+
+      /* Shadows */
+      --shadow-subtle:   oklab(0.77 -0.184187 0.0538599 / 0.15) 0px 0px 0px 1px inset;
+      --shadow-subtle-2: oklab(0.79 -0.000191013 -0.00108329 / 0.15) 0px 0px 0px 1px inset;
 
       /* Layout */
-      --page-max: 1280px;
-      --sidebar-width: 280px;
-      --topbar-height: 64px;
+      --section-gap: 56px;
+      --card-padding: 12px;
+      --element-gap: 12px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      background: var(--color-canvas);
-      color: var(--color-ink);
-      font-family: var(--font-sans);
-      font-size: 15px;
-      line-height: 1.6;
-      font-feature-settings: "kern", "liga";
+      background: var(--color-carbon);
+      color: var(--color-platinum);
+      font-family: var(--font-suisseintl);
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.4;
+      letter-spacing: 0.01em;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       min-height: 100vh;
     }
+    a { color: inherit; text-decoration: none; }
 
-    /* Numerals: tabular for tables/dates, old-style for prose */
-    .tnum { font-feature-settings: "tnum", "kern", "liga"; font-variant-numeric: tabular-nums; }
-    .onum { font-feature-settings: "onum", "kern", "liga"; font-variant-numeric: oldstyle-nums; }
-
-    /* Top bar */
+    /* ----------------------------------------------------------------------
+       TOP BAR — ghost nav links, mono workspace identifier
+       Navigation Link spec: Light Gray (#a3a4a5) text, Graphite top border,
+       0px border radius, 8px vertical / 6px horizontal padding, SuisseIntl 400.
+       --------------------------------------------------------------------*/
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 10;
-      height: var(--topbar-height);
-      background: var(--color-surface-subtle);
-      border-bottom: 1px solid var(--color-hairline);
-      display: grid;
-      grid-template-columns: var(--sidebar-width) 1fr auto;
+      z-index: 30;
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-12) var(--spacing-24);
+      background: var(--color-carbon);
+      border-bottom: 1px solid var(--color-graphite);
     }
     .brand {
-      padding: 0 var(--space-6);
-      font-family: var(--font-serif);
-      font-weight: 600;
-      font-size: 20px;
-      letter-spacing: -0.01em;
-      color: var(--color-ink);
-    }
-    .brand::after {
-      content: " ·";
-      color: var(--color-accent);
-      margin-left: 2px;
-    }
-    .breadcrumb {
       display: flex;
       align-items: center;
-      gap: var(--space-2);
-      font-size: 13px;
-      color: var(--color-ink-secondary);
-      padding: 0 var(--space-6);
+      gap: var(--spacing-12);
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      letter-spacing: 0.053em;
+      color: var(--color-platinum);
     }
-    .breadcrumb a {
-      color: var(--color-ink-secondary);
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-      padding-bottom: 1px;
-      transition: border-color 80ms ease;
-    }
-    .breadcrumb a:hover { border-color: var(--color-hairline); }
-    .breadcrumb .sep { color: var(--color-ink-tertiary); }
-    .breadcrumb .current { color: var(--color-ink); font-weight: 500; }
-
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding-right: var(--space-6);
-    }
-    .monogram {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--color-surface-accent);
-      border: 1px solid var(--color-hairline);
-      display: grid;
+    .brand .glyph {
+      display: inline-grid;
       place-items: center;
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--color-slate);
+      color: var(--color-terminal-green);
       font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      color: var(--color-accent-deep);
+      letter-spacing: 0.014em;
     }
-    .user-meta {
-      font-size: 12px;
-      color: var(--color-ink-tertiary);
-      letter-spacing: 0;
-    }
+    .brand .ws { color: var(--color-snow); }
+    .brand .sep { color: var(--color-dim-gray); }
+    .brand .path { color: var(--color-light-gray); }
 
-    /* Layout */
-    .app {
-      display: grid;
-      grid-template-columns: var(--sidebar-width) 1fr;
-      max-width: var(--page-max);
-      margin: 0 auto;
-      min-height: calc(100vh - var(--topbar-height));
-    }
-
-    /* Sidebar */
-    .sidebar {
-      position: sticky;
-      top: var(--topbar-height);
-      height: calc(100vh - var(--topbar-height));
-      background: var(--color-surface-subtle);
-      border-right: 1px solid var(--color-hairline);
-      padding: var(--space-6) var(--space-4);
-      overflow-y: auto;
-    }
-    .nav-label {
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--color-ink-tertiary);
-      padding: 0 var(--space-3);
-      margin-bottom: var(--space-3);
-    }
-    .matter-list {
-      list-style: none;
+    .nav {
       display: flex;
-      flex-direction: column;
-      gap: var(--space-2);
-      margin-bottom: var(--space-10);
+      align-items: center;
+      gap: 0;
     }
-    .matter-card {
-      display: block;
-      padding: var(--space-3) var(--space-4);
-      border-radius: var(--radius-3);
-      background: transparent;
-      border-left: 2px solid transparent;
-      text-decoration: none;
-      transition: background-color 80ms ease;
-    }
-    .matter-card:hover { background: var(--color-surface); }
-    .matter-card.current {
-      background: var(--color-surface-accent);
-      border-left-color: var(--color-accent);
-    }
-    .matter-card .title {
-      font-family: var(--font-serif);
-      font-size: 15px;
-      font-weight: 600;
-      line-height: 1.3;
-      color: var(--color-ink);
-      letter-spacing: -0.005em;
-    }
-    .matter-card .meta {
+    .navlink {
+      font-family: var(--font-suisseintl);
       font-size: 12px;
-      color: var(--color-ink-tertiary);
-      margin-top: 2px;
+      padding: 8px 6px;
+      color: var(--color-light-gray);
+      border-top: 1px solid var(--color-graphite);
+      border-radius: 0;
+      letter-spacing: 0.01em;
     }
-    .matter-card .status-dot {
+    .navlink:hover { color: var(--color-snow); border-top-color: var(--color-slate); }
+    .navlink.here { color: var(--color-snow); border-top-color: var(--color-terminal-green); }
+    .navlink + .navlink { margin-left: var(--spacing-20); }
+
+    .topbar-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-16);
+      font-family: var(--font-gt-america-mono);
+      font-size: 11px;
+      letter-spacing: 0.014em;
+      color: var(--color-steel-gray);
+    }
+    .topbar-meta .user { color: var(--color-light-gray); }
+    .topbar-meta .region { color: var(--color-terminal-green); }
+    .topbar-meta .pulse {
       display: inline-block;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      vertical-align: middle;
-      margin-right: var(--space-1);
+      width: 6px;
+      height: 6px;
+      background: var(--color-terminal-green);
+      box-shadow: var(--shadow-subtle);
+      margin-right: 6px;
+      animation: pulse 2s ease-in-out infinite;
     }
-    .status-dot.open { background: var(--color-status-success); }
-    .status-dot.settlement { background: var(--color-status-warn); }
-    .status-dot.closed { background: var(--color-ink-tertiary); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
 
-    .module-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+    /* ----------------------------------------------------------------------
+       PAGE LAYOUT — sidebar (matter index) + main column
+       --------------------------------------------------------------------*/
+    .shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: calc(100vh - 48px);
     }
-    .module-link {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--space-2) var(--space-3);
-      font-size: 13px;
-      color: var(--color-ink-secondary);
-      text-decoration: none;
-      border-radius: var(--radius-2);
-      transition: background-color 80ms ease;
+    .sidebar {
+      border-right: 1px solid var(--color-graphite);
+      padding: var(--spacing-24) 0 var(--spacing-48);
+      background: var(--color-carbon);
     }
-    .module-link:hover { background: var(--color-surface); color: var(--color-ink); }
-    .module-link.current { background: var(--color-surface); color: var(--color-ink); font-weight: 500; }
-    .module-link .pill {
-      font-family: var(--font-mono);
+    .side-label {
+      font-family: var(--font-gt-america-mono);
       font-size: 10px;
-      letter-spacing: 0.04em;
-      color: var(--color-ink-tertiary);
-      padding: 1px var(--space-1);
-      border: 1px solid var(--color-hairline);
-      border-radius: var(--radius-1);
+      letter-spacing: 0.014em;
+      color: var(--color-dim-gray);
+      padding: 0 var(--spacing-16) var(--spacing-12);
       text-transform: uppercase;
     }
-
-    /* Main column */
-    .main {
-      padding: var(--space-10) var(--space-12) var(--space-16);
-      max-width: 960px;
-    }
-
-    /* Matter header */
-    .matter-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: var(--space-6);
-      padding-bottom: var(--space-5);
-      border-bottom: 1px solid var(--color-hairline);
-      margin-bottom: var(--space-8);
-    }
-    .matter-title {
-      font-family: var(--font-serif);
-      font-size: 28px;
-      font-weight: 600;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-      color: var(--color-ink);
-    }
-    .matter-meta {
-      font-size: 13px;
-      color: var(--color-ink-tertiary);
-      margin-top: var(--space-2);
-      letter-spacing: 0;
-    }
-    .matter-meta .sep { color: var(--color-hairline); margin: 0 var(--space-2); }
-
-    /* Privilege badge */
-    .badge {
-      display: inline-flex;
+    .matter-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      gap: var(--space-1);
-      padding: 4px 10px;
-      border-radius: var(--radius-1);
-      background: var(--color-surface-subtle);
-      font-family: var(--font-sans);
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      gap: var(--spacing-8);
+      padding: var(--spacing-8) var(--spacing-16);
+      border-left: 1px solid transparent;
+      color: var(--color-light-gray);
+    }
+    .matter-row:hover { background: var(--color-graphite); }
+    .matter-row.current {
+      border-left-color: var(--color-terminal-green);
+      background: var(--color-graphite);
+      color: var(--color-snow);
+    }
+    .matter-row .id {
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      letter-spacing: 0.053em;
+      color: inherit;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .badge.mixed {
-      border: 1px solid var(--color-status-warn);
-      color: var(--color-status-warn);
+    .matter-row .stamp {
+      font-family: var(--font-gt-america-mono);
+      font-size: 10px;
+      letter-spacing: 0.014em;
+      color: var(--color-dim-gray);
     }
-    .badge.cleared {
-      border: 1px solid var(--color-status-success);
-      color: var(--color-status-success);
-    }
-    .badge.paused {
-      border: 1px solid var(--color-status-error);
-      color: var(--color-status-error);
-    }
-    .badge.disclosure {
-      border: 1px solid var(--color-status-error);
-      color: var(--color-status-error);
-    }
-    .badge.draft {
-      border: 1px solid var(--color-status-warn);
-      color: var(--color-status-warn);
-    }
-    .badge.cleared-doc {
-      border: 1px solid var(--color-status-success);
-      color: var(--color-status-success);
+    .matter-row.current .stamp { color: var(--color-terminal-green); }
+    .matter-row .meta {
+      grid-column: 1 / -1;
+      font-family: var(--font-suisseintl);
+      font-size: 11px;
+      color: var(--color-steel-gray);
+      letter-spacing: 0.01em;
     }
 
-    /* Section */
-    .section { margin-bottom: var(--space-12); }
-    .section-header {
+    .module-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-8) var(--spacing-16);
+      font-family: var(--font-suisseintl);
+      font-size: 12px;
+      color: var(--color-light-gray);
+      border-left: 1px solid transparent;
+    }
+    .module-row:hover { color: var(--color-snow); }
+    .module-row.current { color: var(--color-snow); border-left-color: var(--color-terminal-green); }
+    .module-row .v {
+      font-family: var(--font-gt-america-mono);
+      font-size: 10px;
+      letter-spacing: 0.014em;
+      color: var(--color-dim-gray);
+    }
+
+    /* ----------------------------------------------------------------------
+       MAIN COLUMN
+       --------------------------------------------------------------------*/
+    .main {
+      padding: var(--spacing-48) var(--spacing-64) var(--spacing-128);
+      max-width: 1200px;
+    }
+
+    /* HERO ------------------------------------------------------------------
+       Carbon background with Orbital Glow gradient overlay. Display headline
+       SuisseIntl 65px Snow, letter-spacing -0.05em. A real terminal prompt
+       sits above it. */
+    .hero {
+      position: relative;
+      margin-bottom: var(--spacing-56);
+      padding: var(--spacing-32) 0 var(--spacing-48);
+      isolation: isolate;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -40px -40px 0 -40px;
+      background: var(--gradient-orbital-glow);
+      opacity: 0.35;
+      z-index: -1;
+    }
+
+    /* Terminal Line — Code Block Terminal Line spec: GT America Mono 400,
+       12px, 1.25 line-height, 0.053em letter-spacing, transparent bg,
+       Terminal Green for output, Platinum for input. */
+    .term {
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      line-height: 1.25;
+      letter-spacing: 0.053em;
+      color: var(--color-platinum);
+      margin-bottom: var(--spacing-32);
       display: flex;
       align-items: baseline;
-      justify-content: space-between;
-      padding-bottom: var(--space-3);
-      border-bottom: 1px solid var(--color-hairline);
-      margin-bottom: var(--space-5);
-    }
-    .section-title {
-      font-family: var(--font-serif);
-      font-size: 20px;
-      font-weight: 600;
-      line-height: 1.35;
-      letter-spacing: -0.01em;
-      color: var(--color-ink);
-    }
-    .section-meta {
-      font-size: 12px;
-      color: var(--color-ink-tertiary);
-    }
-
-    /* Case theory body */
-    .body-prose {
-      font-size: 15px;
-      line-height: 1.65;
-      color: var(--color-ink);
-      max-width: 70ch;
-      font-feature-settings: "kern", "liga", "onum";
-    }
-    .body-prose p + p { margin-top: var(--space-3); }
-
-    /* Key dates */
-    .key-dates {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr) auto;
-      gap: 0;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: var(--radius-3);
-      overflow: hidden;
-    }
-    .date-cell {
-      padding: var(--space-5) var(--space-5);
-      border-right: 1px solid var(--color-hairline);
-    }
-    .date-cell:last-child { border-right: none; }
-    .date-label {
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--color-ink-tertiary);
-      margin-bottom: var(--space-2);
-    }
-    .date-value {
-      font-family: var(--font-serif);
-      font-size: 20px;
-      font-weight: 400;
-      letter-spacing: -0.005em;
-      color: var(--color-ink);
-      font-feature-settings: "tnum";
-    }
-    .date-sub {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.02em;
-      color: var(--color-ink-tertiary);
-      margin-top: 4px;
-    }
-    .date-cell.limit {
-      background: var(--color-surface-accent);
-    }
-    .date-cell.limit .date-label {
-      color: var(--color-accent-deep);
-    }
-    .date-cell.limit .date-value {
-      color: var(--color-accent);
-      font-weight: 600;
-    }
-    .date-cell.limit .date-sub {
-      color: var(--color-accent-deep);
-    }
-
-    /* Audit trail */
-    .audit-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: var(--radius-3);
-      overflow: hidden;
-    }
-    .audit-table th {
-      text-align: left;
-      padding: var(--space-3) var(--space-4);
-      background: var(--color-surface-subtle);
-      border-bottom: 1px solid var(--color-hairline);
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--color-ink-tertiary);
-    }
-    .audit-table td {
-      padding: var(--space-3) var(--space-4);
-      border-bottom: 1px solid var(--color-hairline);
-      font-size: 13px;
-      vertical-align: top;
-    }
-    .audit-table tr:last-child td { border-bottom: none; }
-    .audit-table .ts {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.02em;
-      color: var(--color-ink-tertiary);
-      white-space: nowrap;
-    }
-    .audit-table .actor {
-      font-weight: 500;
-      color: var(--color-ink);
-      white-space: nowrap;
-    }
-    .audit-table .action {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      letter-spacing: 0.02em;
-      color: var(--color-ink-secondary);
-      white-space: nowrap;
-    }
-    .audit-table .resource {
-      color: var(--color-ink-secondary);
-    }
-    .audit-table .hash {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.02em;
-      color: var(--color-ink-tertiary);
-    }
-    .audit-empty {
-      font-size: 13px;
-      color: var(--color-ink-tertiary);
-      text-align: center;
-      padding: var(--space-6);
-    }
-
-    /* Documents */
-    .documents {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: var(--space-4);
-    }
-    .doc-card {
-      display: flex;
-      gap: var(--space-4);
-      padding: var(--space-4);
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: var(--radius-3);
-      align-items: flex-start;
-      transition: border-color 80ms ease;
-    }
-    .doc-card:hover { border-color: var(--color-ink-tertiary); }
-    .doc-thumb {
-      width: 80px;
-      height: 80px;
-      flex-shrink: 0;
-      background: var(--color-surface-subtle);
-      border: 1px solid var(--color-hairline);
-      border-radius: var(--radius-2);
-      display: grid;
-      place-items: center;
-      color: var(--color-ink-tertiary);
-    }
-    .doc-thumb.pdf::before {
-      content: "PDF";
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--color-ink-tertiary);
-    }
-    .doc-thumb.docx::before {
-      content: "DOCX";
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--color-ink-tertiary);
-    }
-    .doc-info {
-      flex: 1;
-      min-width: 0;
-    }
-    .doc-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--color-ink);
-      line-height: 1.3;
-      margin-bottom: var(--space-1);
-      word-break: break-word;
-    }
-    .doc-meta {
-      font-size: 12px;
-      color: var(--color-ink-tertiary);
-      font-family: var(--font-mono);
-      letter-spacing: 0.02em;
-      margin-bottom: var(--space-3);
-    }
-    .doc-tags {
-      display: flex;
-      gap: var(--space-1);
       flex-wrap: wrap;
+      gap: var(--spacing-8);
+    }
+    .term .prompt { color: var(--color-terminal-green); }
+    .term .cmd { color: var(--color-platinum); }
+    .term .arg { color: var(--color-light-gray); }
+    .term .out { color: var(--color-terminal-green); }
+    .term .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--color-emerald-shadow);
+      vertical-align: text-bottom;
+      animation: blink 1.1s steps(2, start) infinite;
+    }
+    @keyframes blink { to { visibility: hidden; } }
+
+    .display {
+      font-family: var(--font-suisseintl);
+      font-weight: 400;
+      font-size: 65px;
+      line-height: 1.1;
+      letter-spacing: -0.05px;
+      color: var(--color-snow);
+      margin-bottom: var(--spacing-20);
+    }
+    .display .v-mark { color: var(--color-terminal-green); }
+
+    .hero-meta {
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: 0.053em;
+      color: var(--color-ash-gray);
+    }
+    .hero-meta .k { color: var(--color-dim-gray); }
+    .hero-meta .v { color: var(--color-platinum); }
+
+    /* BADGE STRIP -----------------------------------------------------------
+       Active Badge: Deep Teal bg, Terminal Green text, 1px radius,
+       1px vert / 2px horiz padding, inset shadow.
+       Inactive Badge: Graphite bg, Platinum text, 1px radius, inset shadow-2. */
+    .badge-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-8);
+      margin-top: var(--spacing-24);
+    }
+    .badge {
+      font-family: var(--font-gt-america-mono);
+      font-size: 11px;
+      letter-spacing: 0.053em;
+      padding: 1px 6px;
+      border-radius: var(--radius-badges);
+      line-height: 1.45;
+    }
+    .badge.active {
+      background: var(--color-deep-teal);
+      color: var(--color-terminal-green);
+      box-shadow: var(--shadow-subtle);
+    }
+    .badge.inactive {
+      background: var(--color-graphite);
+      color: var(--color-platinum);
+      box-shadow: var(--shadow-subtle-2);
+    }
+    .badge.violet {
+      background: var(--color-graphite);
+      color: var(--color-code-violet);
+      box-shadow: var(--shadow-subtle-2);
     }
 
-    /* Module quick actions */
-    .actions {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-4);
+    /* SECTION ---------------------------------------------------------------
+       Section gap 56px. Section heading SuisseIntl 18px Snow + mono
+       caption above it. */
+    section { margin-bottom: var(--section-gap); }
+    .sec-label {
+      font-family: var(--font-gt-america-mono);
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.014em;
+      color: var(--color-dim-gray);
+      margin-bottom: var(--spacing-8);
     }
-    .action-card {
-      padding: var(--space-5);
-      background: var(--color-surface);
-      border: 1px solid var(--color-hairline);
-      border-radius: var(--radius-3);
+    .sec-label .id { color: var(--color-terminal-green); margin-right: var(--spacing-8); }
+    .sec-title {
+      font-family: var(--font-suisseintl);
+      font-size: 25px;
+      line-height: 1.3;
+      color: var(--color-snow);
+      margin-bottom: var(--spacing-20);
+      letter-spacing: 0;
+    }
+    .sec-title .accent { color: var(--color-terminal-green); }
+
+    /* THEORY — body prose SuisseIntl 16px Ash Gray, max 70ch */
+    .prose {
+      font-family: var(--font-suisseintl);
+      font-size: 16px;
+      line-height: 1.45;
+      color: var(--color-ash-gray);
+      max-width: 70ch;
+      letter-spacing: 0.01em;
+    }
+    .prose p + p { margin-top: var(--spacing-16); }
+    .prose .platinum { color: var(--color-platinum); }
+    .prose code {
+      font-family: var(--font-gt-america-mono);
+      font-size: 13px;
+      letter-spacing: 0.014em;
+      color: var(--color-code-violet);
+    }
+    .prose .ref {
+      color: var(--color-code-violet);
+    }
+
+    /* KEY DATES — tabular grid, mono, deadline highlighted Terminal Green */
+    .kv-table {
+      border: 1px solid var(--color-graphite);
+      border-radius: var(--radius-cards);
+      overflow: hidden;
+      max-width: 880px;
+    }
+    .kv-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 220px;
+      align-items: stretch;
+      border-bottom: 1px solid var(--color-graphite);
+    }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-row.deadline { background: rgba(0, 41, 35, 0.35); }
+    .kv-cell {
+      padding: var(--spacing-12);
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      line-height: 1.25;
+      letter-spacing: 0.053em;
+      border-right: 1px solid var(--color-graphite);
+    }
+    .kv-cell:last-child { border-right: none; }
+    .kv-row .k { color: var(--color-dim-gray); }
+    .kv-row .v { color: var(--color-platinum); }
+    .kv-row .formula { color: var(--color-steel-gray); }
+    .kv-row.deadline .k { color: var(--color-terminal-green); }
+    .kv-row.deadline .v { color: var(--color-terminal-green); }
+    .kv-row.deadline .formula { color: var(--color-emerald-shadow); }
+
+    /* AUDIT — literal log lines (terminal output) */
+    .log {
+      border: 1px solid var(--color-graphite);
+      border-radius: var(--radius-cards);
+      background: var(--color-carbon);
+      max-width: none;
+    }
+    .log-head, .log-row {
+      display: grid;
+      grid-template-columns: 180px 120px 220px 1fr 96px;
+      align-items: center;
+      column-gap: var(--spacing-16);
+      padding: var(--spacing-8) var(--spacing-12);
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      letter-spacing: 0.053em;
+      line-height: 1.25;
+    }
+    .log-head {
+      background: var(--color-graphite);
+      color: var(--color-dim-gray);
+      font-size: 10px;
+      letter-spacing: 0.014em;
+      border-bottom: 1px solid var(--color-slate);
+    }
+    .log-row { border-bottom: 1px solid var(--color-graphite); color: var(--color-platinum); }
+    .log-row:last-child { border-bottom: none; }
+    .log-row:hover { background: rgba(31, 33, 36, 0.5); }
+    .log-row .ts { color: var(--color-steel-gray); }
+    .log-row .actor { color: var(--color-snow); }
+    .log-row .action { color: var(--color-terminal-green); }
+    .log-row .resource { color: var(--color-light-gray); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-row .hash { color: var(--color-dim-gray); text-align: right; }
+
+    /* DOCS — listed like `ls -lh` output */
+    .ls {
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      letter-spacing: 0.053em;
+      color: var(--color-platinum);
+    }
+    .ls-row {
+      display: grid;
+      grid-template-columns: 120px 100px 80px 140px 1fr 100px;
+      column-gap: var(--spacing-16);
+      padding: var(--spacing-8) 0;
+      border-bottom: 1px dashed var(--color-graphite);
+      align-items: center;
+    }
+    .ls-row:last-child { border-bottom: none; }
+    .ls-row .mode { color: var(--color-dim-gray); }
+    .ls-row .owner { color: var(--color-light-gray); }
+    .ls-row .size { color: var(--color-steel-gray); text-align: right; }
+    .ls-row .date { color: var(--color-steel-gray); }
+    .ls-row .name { color: var(--color-snow); }
+    .ls-row .name .ext { color: var(--color-code-violet); }
+    .ls-row .tag { justify-self: end; }
+
+    /* MODULES — three cards, each a CLI command + Primary Filled Button */
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--spacing-16);
+    }
+    .module {
+      border: 1px solid var(--color-graphite);
+      border-radius: var(--radius-cards);
+      padding: var(--spacing-20);
       display: flex;
       flex-direction: column;
-      gap: var(--space-3);
+      gap: var(--spacing-16);
+      background: var(--color-carbon);
     }
-    .action-card .module-name {
-      font-family: var(--font-serif);
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
-      color: var(--color-ink);
+    .module .id {
+      font-family: var(--font-gt-america-mono);
+      font-size: 10px;
+      letter-spacing: 0.014em;
+      color: var(--color-dim-gray);
     }
-    .action-card .module-desc {
-      font-size: 13px;
-      color: var(--color-ink-secondary);
-      line-height: 1.5;
+    .module .id .num { color: var(--color-terminal-green); }
+    .module .name {
+      font-family: var(--font-suisseintl);
+      font-size: 25px;
+      line-height: 1.33;
+      color: var(--color-snow);
+    }
+    .module .invocation {
+      font-family: var(--font-gt-america-mono);
+      font-size: 12px;
+      letter-spacing: 0.053em;
+      color: var(--color-light-gray);
+      padding: var(--spacing-8) var(--spacing-12);
+      border: 1px solid var(--color-graphite);
+      border-radius: var(--radius-cards);
+      background: rgba(31, 33, 36, 0.4);
+    }
+    .module .invocation .p { color: var(--color-terminal-green); }
+    .module .desc {
+      font-family: var(--font-suisseintl);
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--color-ash-gray);
       flex: 1;
     }
 
-    /* Buttons */
-    .btn {
+    /* BUTTONS ---------------------------------------------------------------
+       Primary Filled Button (spec): Deep Teal fill, Terminal Green text,
+       GT America Mono 400, 1px radius, 0 vertical / 12px horizontal padding.
+       Ghost Button (spec): Platinum text, Slate top border, SuisseIntl 400,
+       1px radius, 8px vertical / 12px horizontal padding. */
+    .btn-primary {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: var(--space-2);
-      padding: 10px 16px;
-      font-family: var(--font-sans);
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0;
-      border-radius: var(--radius-2);
-      border: 1px solid transparent;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background-color 80ms ease, border-color 80ms ease;
-    }
-    .btn-primary {
-      background: var(--color-accent);
-      color: var(--color-canvas);
-      border-color: var(--color-accent);
-    }
-    .btn-primary:hover {
-      background: var(--color-accent-deep);
-      border-color: var(--color-accent-deep);
-    }
-    .btn-secondary {
-      background: var(--color-surface);
-      color: var(--color-ink);
-      border-color: var(--color-hairline);
-    }
-    .btn-secondary:hover {
-      background: var(--color-surface-subtle);
-      border-color: var(--color-ink-tertiary);
-    }
-    .btn .ic { width: 14px; height: 14px; flex-shrink: 0; }
-
-    /* Footer note */
-    .footer-note {
-      margin-top: var(--space-16);
-      padding-top: var(--space-6);
-      border-top: 1px solid var(--color-hairline);
+      gap: var(--spacing-8);
+      padding: 0 var(--spacing-12);
+      height: 28px;
+      background: var(--color-deep-teal);
+      color: var(--color-terminal-green);
+      border: none;
+      border-radius: var(--radius-buttons);
+      font-family: var(--font-gt-america-mono);
       font-size: 12px;
-      color: var(--color-ink-tertiary);
-      font-family: var(--font-mono);
-      letter-spacing: 0.02em;
-      display: flex;
-      justify-content: space-between;
+      letter-spacing: 0.053em;
+      cursor: pointer;
+      box-shadow: var(--shadow-subtle);
+      align-self: flex-start;
+    }
+    .btn-primary:hover { background: var(--color-emerald-shadow); }
+    .btn-primary .arrow { color: var(--color-terminal-green); }
+
+    .btn-ghost {
+      display: inline-flex;
       align-items: center;
+      gap: var(--spacing-8);
+      padding: 8px var(--spacing-12);
+      background: transparent;
+      color: var(--color-platinum);
+      border: none;
+      border-top: 1px solid var(--color-slate);
+      border-radius: var(--radius-buttons);
+      font-family: var(--font-suisseintl);
+      font-size: 12px;
+      cursor: pointer;
+      align-self: flex-start;
+    }
+    .btn-ghost:hover { color: var(--color-snow); border-top-color: var(--color-terminal-green); }
+
+    /* COLOPHON --------------------------------------------------------------*/
+    .colophon {
+      margin-top: var(--spacing-80);
+      padding-top: var(--spacing-20);
+      border-top: 1px solid var(--color-graphite);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--spacing-16);
+      font-family: var(--font-gt-america-mono);
+      font-size: 10px;
+      letter-spacing: 0.014em;
+      color: var(--color-dim-gray);
+    }
+    .colophon .k { color: var(--color-dim-gray); display: block; margin-bottom: var(--spacing-4); }
+    .colophon .v { color: var(--color-light-gray); }
+
+    @media (max-width: 1080px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: var(--spacing-32) var(--spacing-24) var(--spacing-80); }
+      .display { font-size: 50px; }
+      .kv-row { grid-template-columns: 1fr; }
+      .log-head, .log-row { grid-template-columns: 1fr; }
+      .ls-row { grid-template-columns: 1fr; }
+      .modules { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
+  <!-- TOP BAR -->
   <header class="topbar">
-    <div class="brand">Legalise</div>
-    <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="#">Matters</a>
+    <div class="brand">
+      <span class="glyph">▌</span>
+      <span class="ws">oxide-legal</span>
       <span class="sep">/</span>
-      <span class="current">Khan v Acme Trading Ltd</span>
+      <span class="path">matters</span>
+      <span class="sep">/</span>
+      <span style="color:var(--color-platinum)">khan-v-acme-trading-2026</span>
+    </div>
+    <nav class="nav" aria-label="Primary">
+      <a class="navlink" href="#">Matters</a>
+      <a class="navlink here" href="#">Workspace</a>
+      <a class="navlink" href="#">Modules</a>
+      <a class="navlink" href="#">Audit</a>
+      <a class="navlink" href="#">Settings</a>
     </nav>
-    <div class="user-chip">
-      <span class="user-meta">jasmine.solicitor@birdlegal.co.uk</span>
-      <div class="monogram" aria-hidden="true">JK</div>
+    <div class="topbar-meta">
+      <span><span class="pulse" aria-hidden="true"></span><span class="region">lhr1</span></span>
+      <span class="user">jasmine.k</span>
     </div>
   </header>
 
-  <div class="app">
+  <div class="shell">
 
-    <aside class="sidebar" aria-label="Workspace navigation">
-      <div class="nav-label">Matters</div>
-      <ul class="matter-list">
-        <li>
-          <a class="matter-card current" href="#" aria-current="page">
-            <div class="title">Khan v Acme Trading Ltd</div>
-            <div class="meta tnum">
-              <span class="status-dot open"></span>Open · ET · employment
-            </div>
-          </a>
-        </li>
-        <li>
-          <a class="matter-card" href="#">
-            <div class="title">Patel v Greenshore LLP</div>
-            <div class="meta tnum">
-              <span class="status-dot open"></span>Open · prof. neg.
-            </div>
-          </a>
-        </li>
-        <li>
-          <a class="matter-card" href="#">
-            <div class="title">Smith v Smith</div>
-            <div class="meta tnum">
-              <span class="status-dot settlement"></span>Settlement
-            </div>
-          </a>
-        </li>
-        <li>
-          <a class="matter-card" href="#">
-            <div class="title">Jones v HMRC</div>
-            <div class="meta tnum">
-              <span class="status-dot closed"></span>Closed
-            </div>
-          </a>
-        </li>
-        <li>
-          <a class="matter-card" href="#">
-            <div class="title">Devereux Holdings — debt claim</div>
-            <div class="meta tnum">
-              <span class="status-dot open"></span>Open · debt protocol
-            </div>
-          </a>
-        </li>
-      </ul>
+    <!-- SIDEBAR — matter index and modules nav -->
+    <aside class="sidebar" aria-label="Matter index">
+      <div class="side-label">matters</div>
+      <a class="matter-row current" href="#" aria-current="page">
+        <span class="id">khan-v-acme-trading-2026</span>
+        <span class="stamp">OPEN</span>
+        <span class="meta">Unfair dismissal · ET</span>
+      </a>
+      <a class="matter-row" href="#">
+        <span class="id">patel-v-greenshore-2026</span>
+        <span class="stamp">OPEN</span>
+        <span class="meta">Prof. negligence</span>
+      </a>
+      <a class="matter-row" href="#">
+        <span class="id">smith-v-smith-2025</span>
+        <span class="stamp">SETL</span>
+        <span class="meta">Family</span>
+      </a>
+      <a class="matter-row" href="#">
+        <span class="id">jones-v-hmrc-2024</span>
+        <span class="stamp">CLOSED</span>
+        <span class="meta">FTT Tax</span>
+      </a>
+      <a class="matter-row" href="#">
+        <span class="id">devereux-debt-2026</span>
+        <span class="stamp">OPEN</span>
+        <span class="meta">Debt protocol</span>
+      </a>
 
-      <div class="nav-label">Modules</div>
-      <ul class="module-list">
-        <li><a class="module-link current" href="#">Workspace</a></li>
-        <li><a class="module-link" href="#">Pre-Motion</a></li>
-        <li><a class="module-link" href="#">Chronology</a></li>
-        <li><a class="module-link" href="#">Letters</a></li>
-        <li><a class="module-link" href="#">Contract Review <span class="pill">v0.2</span></a></li>
-      </ul>
+      <div class="side-label" style="margin-top: var(--spacing-32);">modules</div>
+      <a class="module-row current" href="#"><span>workspace</span><span class="v">v0.1</span></a>
+      <a class="module-row" href="#"><span>pre-motion</span><span class="v">v0.1</span></a>
+      <a class="module-row" href="#"><span>chronology</span><span class="v">v0.1</span></a>
+      <a class="module-row" href="#"><span>letters</span><span class="v">v0.1</span></a>
+      <a class="module-row" href="#"><span>contract-review</span><span class="v">v0.2</span></a>
     </aside>
 
+    <!-- MAIN -->
     <main class="main">
 
-      <header class="matter-header">
-        <div>
-          <h1 class="matter-title">Khan v Acme Trading Ltd</h1>
-          <div class="matter-meta tnum">
-            Employment Tribunal
-            <span class="sep">·</span>
-            Khan (Claimant) v Acme Trading Ltd (Respondent)
-            <span class="sep">·</span>
-            Opened May 2026
-          </div>
+      <!-- HERO -->
+      <section class="hero">
+        <div class="term">
+          <span class="prompt">oxide-legal&nbsp;$</span>
+          <span class="cmd">matter inspect</span>
+          <span class="arg">khan-v-acme-trading-2026</span>
+          <span class="cursor" aria-hidden="true"></span>
         </div>
-        <div class="badge mixed" title="Privilege posture: B-mixed">
-          <svg class="ic" style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          B · Mixed
-        </div>
-      </header>
 
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">Case theory</h2>
-          <span class="section-meta">Updated 12 May 2026</span>
+        <h1 class="display">Khan <span class="v-mark">v</span> Acme Trading Ltd</h1>
+
+        <div class="hero-meta">
+          <span class="k">type:</span> <span class="v">employment_tribunal</span>
+          &nbsp;&nbsp;<span class="k">cause:</span> <span class="v">s.94_era_1996</span>
+          &nbsp;&nbsp;<span class="k">opened:</span> <span class="v">2026-05-12</span>
+          &nbsp;&nbsp;<span class="k">retention:</span> <span class="v">2032-07-03</span>
         </div>
-        <div class="body-prose">
-          <p>
-            Ms Khan was dismissed by Acme Trading Ltd on 12 March 2026 after three years and four
-            months of continuous service. The stated reason was conduct — a single alleged
-            breach of the company's social media policy — but the dismissal followed a documented
-            grievance Ms Khan had raised six weeks earlier concerning her line manager's pattern
-            of conduct toward female members of the warehouse team.
+
+        <div class="badge-strip">
+          <span class="badge active">OPEN</span>
+          <span class="badge inactive">EMPLOYMENT_TRIBUNAL</span>
+          <span class="badge inactive">B · MIXED PRIVILEGE</span>
+          <span class="badge violet">claude-opus-4-7</span>
+          <span class="badge inactive">REGION lhr1 / eu</span>
+        </div>
+      </section>
+
+      <!-- THEORY -->
+      <section>
+        <div class="sec-label"><span class="id">§01</span>theory_of_case</div>
+        <h2 class="sec-title">A conduct dismissal that <span class="accent">followed</span> a protected disclosure.</h2>
+        <div class="prose">
+          <p class="platinum">
+            Ms Khan was dismissed by Acme Trading Ltd on 2026-03-12, after three years and
+            four months of continuous service. The stated reason was conduct &mdash; a single
+            alleged breach of the company&rsquo;s social-media policy &mdash; but the dismissal
+            followed a documented grievance Ms Khan had raised six weeks earlier concerning
+            her line manager.
           </p>
           <p>
-            Our case is that the conduct reason is pretextual and that the real reason for
-            dismissal falls within s.103A ERA 1996 (protected disclosure) or, in the alternative,
-            constitutes victimisation under s.27 Equality Act 2010. The Burchell test fails on the
-            second and third limbs: the investigation was conducted by the manager who was the
-            subject of Ms Khan's prior grievance, and the dismissal sat outside the band of
-            reasonable responses given a clean disciplinary record and the proportionality
-            considerations under <em>Iceland Frozen Foods</em>.
+            Our case is that the conduct reason is pretextual. The real reason falls within
+            <span class="ref">s.103A ERA 1996</span> (protected disclosure) or, in the
+            alternative, constitutes victimisation under <span class="ref">s.27 EqA 2010</span>.
+            The <code>Burchell</code> test fails on the second and third limbs &mdash; the
+            investigator was the subject of the prior grievance &mdash; and the sanction sat
+            outside the band of reasonable responses given a clean disciplinary record and
+            <code>Iceland Frozen Foods</code> proportionality.
           </p>
           <p>
-            Pivot fact: the social-media post the Respondent treats as gross misconduct was a
-            private comment on a personal Instagram account, set to a closed audience of 47
+            Pivot fact: the social-media post the respondent treats as gross misconduct was
+            a private comment on a personal account, audience of <span class="platinum">47</span>
             followers, none of whom were customers, suppliers, or named in the post.
           </p>
         </div>
       </section>
 
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">Key dates</h2>
-          <span class="section-meta">s.111 ERA 1996 · s.207B "stop the clock"</span>
+      <!-- KEY DATES -->
+      <section>
+        <div class="sec-label"><span class="id">§02</span>time_limits · s.111_era_1996 · s.207B_stop_the_clock</div>
+        <h2 class="sec-title">Computed ET1 deadline.</h2>
+
+        <div class="kv-table">
+          <div class="kv-row">
+            <div class="kv-cell k">EDT (dismissal)</div>
+            <div class="kv-cell v">2026-03-12</div>
+            <div class="kv-cell formula">primary_limit = EDT + 3_months</div>
+          </div>
+          <div class="kv-row">
+            <div class="kv-cell k">ACAS day_A</div>
+            <div class="kv-cell v">2026-05-02</div>
+            <div class="kv-cell formula">EC_notification</div>
+          </div>
+          <div class="kv-row">
+            <div class="kv-cell k">ACAS day_B</div>
+            <div class="kv-cell v">2026-05-24</div>
+            <div class="kv-cell formula">EC_certificate_issued</div>
+          </div>
+          <div class="kv-row">
+            <div class="kv-cell k">clock_paused</div>
+            <div class="kv-cell v">22 days</div>
+            <div class="kv-cell formula">day_B - day_A</div>
+          </div>
+          <div class="kv-row deadline">
+            <div class="kv-cell k">latest_ET1</div>
+            <div class="kv-cell v">2026-07-03</div>
+            <div class="kv-cell formula">primary_limit + paused + 1_month_floor</div>
+          </div>
         </div>
-        <div class="key-dates">
-          <div class="date-cell">
-            <div class="date-label">Effective date of termination</div>
-            <div class="date-value tnum">12 March 2026</div>
-            <div class="date-sub">EDT · dismissal letter</div>
+      </section>
+
+      <!-- AUDIT LOG -->
+      <section>
+        <div class="sec-label"><span class="id">§03</span>audit_log · last_8_of_47</div>
+        <h2 class="sec-title">Provenance.</h2>
+
+        <div class="log" role="table" aria-label="Audit log">
+          <div class="log-head">
+            <span>timestamp_utc</span>
+            <span>actor</span>
+            <span>action</span>
+            <span>resource</span>
+            <span style="text-align:right">prompt_sha</span>
           </div>
-          <div class="date-cell">
-            <div class="date-label">ACAS Day A</div>
-            <div class="date-value tnum">2 May 2026</div>
-            <div class="date-sub">EC notification</div>
+          <div class="log-row">
+            <span class="ts">2026-05-13T14:32:18Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">model.call</span>
+            <span class="resource">pre-motion/stage-4/synthesiser</span>
+            <span class="hash">e7a2c91d</span>
           </div>
-          <div class="date-cell">
-            <div class="date-label">ACAS Day B</div>
-            <div class="date-value tnum">24 May 2026</div>
-            <div class="date-sub">EC certificate issued</div>
+          <div class="log-row">
+            <span class="ts">2026-05-13T14:31:55Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">model.call</span>
+            <span class="resource">pre-motion/stage-3/adversary[4]</span>
+            <span class="hash">4b8f213a</span>
           </div>
-          <div class="date-cell limit">
-            <div class="date-label">Time limit · ET1 by</div>
-            <div class="date-value tnum">3 July 2026</div>
-            <div class="date-sub">latest issue · s.207B</div>
+          <div class="log-row">
+            <span class="ts">2026-05-13T14:31:02Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">plugin.invoked</span>
+            <span class="resource">uk-litigation-legal:pre-motion</span>
+            <span class="hash">9c1e7d0b</span>
+          </div>
+          <div class="log-row">
+            <span class="ts">2026-05-13T11:22:45Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">chronology.gate.ok</span>
+            <span class="resource">khan-witness-statement.pdf</span>
+            <span class="hash">a052f8e1</span>
+          </div>
+          <div class="log-row">
+            <span class="ts">2026-05-12T16:08:11Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">document.upload</span>
+            <span class="resource">acas-ec-certificate.pdf</span>
+            <span class="hash">7f4d2b3c</span>
+          </div>
+          <div class="log-row">
+            <span class="ts">2026-05-12T16:05:33Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">document.upload</span>
+            <span class="resource">witness-statement-khan.docx</span>
+            <span class="hash">2d96a417</span>
+          </div>
+          <div class="log-row">
+            <span class="ts">2026-05-12T15:47:22Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">privilege.set</span>
+            <span class="resource">posture: A_cleared → B_mixed</span>
+            <span class="hash">—</span>
+          </div>
+          <div class="log-row">
+            <span class="ts">2026-05-12T15:45:08Z</span>
+            <span class="actor">jasmine.k</span>
+            <span class="action">matter.create</span>
+            <span class="resource">khan-v-acme-trading-2026</span>
+            <span class="hash">—</span>
           </div>
         </div>
       </section>
 
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">Audit trail</h2>
-          <span class="section-meta">Last 8 of 47 entries · <a href="#" style="color:var(--color-ink-secondary);text-decoration:underline;text-decoration-color:var(--color-hairline);text-underline-offset:3px">view all</a></span>
-        </div>
-        <table class="audit-table" role="table">
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Actor</th>
-              <th>Action</th>
-              <th>Resource</th>
-              <th style="text-align:right">Prompt hash</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="ts">2026-05-13 14:32:18</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">model.call</td>
-              <td class="resource">Pre-Motion · Stage 4 Synthesiser</td>
-              <td class="hash" style="text-align:right">e7a2c91d</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-13 14:31:55</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">model.call</td>
-              <td class="resource">Pre-Motion · Stage 3 Adversary × 4</td>
-              <td class="hash" style="text-align:right">4b8f213a</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-13 14:31:02</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">plugin.invoked</td>
-              <td class="resource">uk-litigation-legal:pre-motion</td>
-              <td class="hash" style="text-align:right">9c1e7d0b</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-13 11:22:45</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">chronology.gate.confirmed</td>
-              <td class="resource">Khan witness statement.pdf</td>
-              <td class="hash" style="text-align:right">a052f8e1</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-12 16:08:11</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">document.uploaded</td>
-              <td class="resource">ACAS EC certificate.pdf</td>
-              <td class="hash" style="text-align:right">7f4d2b3c</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-12 16:05:33</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">document.uploaded</td>
-              <td class="resource">Witness statement — Khan.docx</td>
-              <td class="hash" style="text-align:right">2d96a417</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-12 15:47:22</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">privilege.posture.set</td>
-              <td class="resource">B_mixed (from A_cleared)</td>
-              <td class="hash" style="text-align:right">—</td>
-            </tr>
-            <tr>
-              <td class="ts">2026-05-12 15:45:08</td>
-              <td class="actor">Jasmine K.</td>
-              <td class="action">matter.created</td>
-              <td class="resource">khan-v-acme-trading-2026</td>
-              <td class="hash" style="text-align:right">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+      <!-- DOCUMENTS -->
+      <section>
+        <div class="sec-label"><span class="id">§04</span>documents · matters/khan-v-acme-trading-2026/files/</div>
+        <h2 class="sec-title">Bundle.</h2>
 
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">Documents</h2>
-          <span class="section-meta">3 files · 1 from disclosure</span>
-        </div>
-        <div class="documents">
-
-          <div class="doc-card">
-            <div class="doc-thumb pdf" aria-hidden="true"></div>
-            <div class="doc-info">
-              <div class="doc-name">Khan dismissal letter.pdf</div>
-              <div class="doc-meta tnum">412 KB · 4 pages · uploaded 12 May</div>
-              <div class="doc-tags">
-                <span class="badge disclosure">Disclosure</span>
-              </div>
-            </div>
+        <div class="ls">
+          <div class="ls-row">
+            <span class="mode">-rw-r--r--</span>
+            <span class="owner">jasmine.k</span>
+            <span class="size">412K</span>
+            <span class="date">May 12 16:08</span>
+            <span class="name">khan-dismissal-letter<span class="ext">.pdf</span></span>
+            <span class="tag"><span class="badge inactive" style="color:var(--color-code-red)">DISCLOSURE</span></span>
           </div>
-
-          <div class="doc-card">
-            <div class="doc-thumb docx" aria-hidden="true"></div>
-            <div class="doc-info">
-              <div class="doc-name">Witness statement — Khan.docx</div>
-              <div class="doc-meta tnum">128 KB · 6 pages · uploaded 12 May</div>
-              <div class="doc-tags">
-                <span class="badge draft">Draft</span>
-              </div>
-            </div>
+          <div class="ls-row">
+            <span class="mode">-rw-r--r--</span>
+            <span class="owner">jasmine.k</span>
+            <span class="size">128K</span>
+            <span class="date">May 12 16:05</span>
+            <span class="name">witness-statement-khan<span class="ext">.docx</span></span>
+            <span class="tag"><span class="badge inactive">DRAFT</span></span>
           </div>
-
-          <div class="doc-card">
-            <div class="doc-thumb pdf" aria-hidden="true"></div>
-            <div class="doc-info">
-              <div class="doc-name">ACAS EC certificate.pdf</div>
-              <div class="doc-meta tnum">86 KB · 1 page · uploaded 12 May</div>
-              <div class="doc-tags">
-                <span class="badge cleared-doc">Cleared</span>
-              </div>
-            </div>
+          <div class="ls-row">
+            <span class="mode">-rw-r--r--</span>
+            <span class="owner">jasmine.k</span>
+            <span class="size">86K</span>
+            <span class="date">May 12 16:08</span>
+            <span class="name">acas-ec-certificate<span class="ext">.pdf</span></span>
+            <span class="tag"><span class="badge active">CLEARED</span></span>
           </div>
-
         </div>
       </section>
 
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">Modules</h2>
-          <span class="section-meta">Available on this matter</span>
-        </div>
-        <div class="actions">
+      <!-- MODULES -->
+      <section>
+        <div class="sec-label"><span class="id">§05</span>modules · available_on_matter</div>
+        <h2 class="sec-title">Next moves.</h2>
 
-          <div class="action-card">
-            <div class="module-name">Pre-Motion</div>
-            <p class="module-desc">
-              Adversarial premortem on the case as it currently stands. Four-stage pipeline:
-              Optimistic Analyst, Evidence Inspector, Premortem Adversary, Synthesiser.
+        <div class="modules">
+          <div class="module">
+            <div class="id"><span class="num">i.</span>uk-litigation-legal/pre-motion</div>
+            <div class="name">Pre-Motion</div>
+            <div class="invocation"><span class="p">$</span> oxide-legal run pre-motion --matter khan-v-acme</div>
+            <p class="desc">
+              Adversarial premortem on the case as it stands. Four stages: Optimistic
+              Analyst → Evidence Inspector → Premortem Adversary (×4) → Synthesiser.
               Returns ranked failure scenarios and one brutal sentence.
             </p>
-            <a class="btn btn-primary" href="#">
-              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Run adversarial premortem
-            </a>
+            <button class="btn-primary" type="button">RUN <span class="arrow">→</span></button>
           </div>
 
-          <div class="action-card">
-            <div class="module-name">Chronology</div>
-            <p class="module-desc">
-              Seeded chronology with CPR 31.22 implied-undertaking gate and Statement-of-Facts
-              variant. v0.1 surface — live extraction lands in v0.2.
+          <div class="module">
+            <div class="id"><span class="num">ii.</span>uk-litigation-legal/chronology</div>
+            <div class="name">Chronology</div>
+            <div class="invocation"><span class="p">$</span> oxide-legal open chronology --matter khan-v-acme</div>
+            <p class="desc">
+              Seeded chronology with CPR 31.22 implied-undertaking gate. v0.1 surface;
+              live extraction lands in v0.2.
             </p>
-            <a class="btn btn-secondary" href="#">
-              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Open seeded chronology
-            </a>
+            <button class="btn-ghost" type="button">OPEN →</button>
           </div>
 
-          <div class="action-card">
-            <div class="module-name">Letters</div>
-            <p class="module-desc">
-              CPR-compliant pre-action correspondence drafted via the
-              <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:0.02em;color:var(--color-ink-secondary)">cpr-letter-drafter</span>
-              plugin. Auto-fills parties, facts, and claim heads from this matter.
+          <div class="module">
+            <div class="id"><span class="num">iii.</span>uk-litigation-legal/cpr-letter-drafter</div>
+            <div class="name">Letters</div>
+            <div class="invocation"><span class="p">$</span> oxide-legal draft letter --matter khan-v-acme</div>
+            <p class="desc">
+              CPR-compliant pre-action correspondence. Pre-fills parties, facts, and
+              heads of claim from this matter.
             </p>
-            <a class="btn btn-secondary" href="#">
-              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
-              Draft new letter
-            </a>
+            <button class="btn-ghost" type="button">DRAFT →</button>
           </div>
-
         </div>
       </section>
 
-      <footer class="footer-note tnum">
-        <span>matter slug: khan-v-acme-trading-2026</span>
-        <span>retention until: 3 July 2032</span>
-        <span>model gateway: claude-opus-4-7</span>
-        <span>region: lhr · eu</span>
+      <!-- COLOPHON -->
+      <footer class="colophon">
+        <div><span class="k">matter_id</span><span class="v">khan-v-acme-trading-2026</span></div>
+        <div><span class="k">retention_until</span><span class="v">2032-07-03</span></div>
+        <div><span class="k">gateway</span><span class="v">claude-opus-4-7</span></div>
+        <div><span class="k">region</span><span class="v">lhr1 / eu</span></div>
       </footer>
 
     </main>
-
   </div>
 
 </body>
