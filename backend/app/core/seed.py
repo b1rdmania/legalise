@@ -10,14 +10,15 @@ ACAS dates, the s.207B "stop the clock" deadline, plus a seeded chronology.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import ensure_stub_user
-from app.core.matter_fs import materialise_matter, append_history
-from app.models import Matter, PRIVILEGE_MIXED, STATUS_OPEN
+from app.core.matter_fs import materialise_matter, append_history, record_document
+from app.models import Document, Event, Matter, PRIVILEGE_MIXED, STATUS_OPEN
 
 
 KHAN_SLUG = "khan-v-acme-trading-2026"
@@ -70,11 +71,125 @@ KHAN_PIVOT_FACT = (
 )
 
 
+def _sha(s: str) -> str:
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
+
+async def _seed_documents(session: AsyncSession, matter: Matter, user_id) -> dict[str, Document]:
+    """Seed two documents on the Khan matter:
+      - Dismissal letter, tagged from_disclosure=True (the chronology
+        relies on this to trip the CPR 31.22 gate)
+      - Witness statement, draft, not from disclosure
+    """
+    docs: dict[str, Document] = {}
+
+    dismissal = Document(
+        matter_id=matter.id,
+        filename="khan-dismissal-letter.pdf",
+        mime_type="application/pdf",
+        size_bytes=412_000,
+        sha256=_sha("khan-dismissal-letter:fixture"),
+        storage_uri=None,
+        tag="disclosure",
+        from_disclosure=True,
+        disclosure_proceedings_ref="ET case 2406432/2026",
+        uploaded_by_id=user_id,
+    )
+    session.add(dismissal)
+
+    witness = Document(
+        matter_id=matter.id,
+        filename="witness-statement-khan.docx",
+        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        size_bytes=128_000,
+        sha256=_sha("witness-statement-khan:fixture"),
+        storage_uri=None,
+        tag="draft",
+        from_disclosure=False,
+        uploaded_by_id=user_id,
+    )
+    session.add(witness)
+
+    await session.flush()
+    docs["dismissal"] = dismissal
+    docs["witness"] = witness
+
+    for d in (dismissal, witness):
+        record_document(matter.slug, str(d.id), d.filename, d.sha256, d.size_bytes, d.tag)
+
+    return docs
+
+
+async def _seed_chronology(
+    session: AsyncSession,
+    matter: Matter,
+    user_id,
+    docs: dict[str, Document],
+) -> None:
+    """Seed 7 chronology events for Khan. Significance 1-5. Some carry a
+    source_doc_id pointing at the dismissal letter — those are the
+    CPR 31.22-tainted entries that trip the gate.
+    """
+    dismissal_id = docs["dismissal"].id
+    witness_id = docs["witness"].id
+
+    fixtures = [
+        (date(2022, 11, 8), 3, "Ms Khan begins continuous service at Acme Trading Ltd.", [], False),
+        (
+            date(2026, 1, 29),
+            4,
+            "Ms Khan raises internal grievance re: line manager's conduct toward female warehouse staff.",
+            [witness_id],
+            False,
+        ),
+        (
+            date(2026, 2, 18),
+            3,
+            "Grievance acknowledged by HR; investigator appointed (same line manager subject of grievance).",
+            [],
+            False,
+        ),
+        (
+            date(2026, 3, 5),
+            3,
+            "Personal Instagram post made (private, audience 47, no customers / suppliers named).",
+            [],
+            False,
+        ),
+        (
+            date(2026, 3, 12),
+            5,
+            "Acme dismisses Ms Khan citing social-media policy breach. EDT.",
+            [dismissal_id],
+            False,
+        ),
+        (date(2026, 5, 2), 4, "ACAS Day A — EC notification submitted.", [], False),
+        (date(2026, 5, 24), 4, "ACAS Day B — EC certificate issued.", [], False),
+    ]
+
+    for event_date, sig, desc, sources, priv in fixtures:
+        session.add(
+            Event(
+                matter_id=matter.id,
+                event_date=event_date,
+                description=desc,
+                significance=sig,
+                source_doc_ids=sources,
+                priv_flag=priv,
+                created_by_id=user_id,
+            )
+        )
+
+    await session.flush()
+
+
 async def seed_demo_matter(session: AsyncSession) -> Matter:
-    """Create the Khan sample matter if it does not yet exist. Returns the row."""
+    """Create the Khan sample matter, its two seed documents, and its
+    seven chronology events. Idempotent: existing matter is left alone
+    (no duplicate docs/events) and re-materialised so disk reflects DB.
+    """
     existing = await session.scalar(select(Matter).where(Matter.slug == KHAN_SLUG))
     if existing is not None:
-        # Always re-materialise so disk reflects current DB state.
         materialise_matter(existing)
         return existing
 
@@ -98,8 +213,16 @@ async def seed_demo_matter(session: AsyncSession) -> Matter:
     session.add(matter)
     await session.flush()
 
+    docs = await _seed_documents(session, matter, user.id)
+    await _seed_chronology(session, matter, user.id, docs)
+
     materialise_matter(matter)
     append_history(matter.slug, "matter.seeded", "Khan v Acme demo matter inserted")
+    append_history(
+        matter.slug,
+        "chronology.seeded",
+        f"{2} documents + 7 events; 1 disclosure-tainted (dismissal letter)",
+    )
 
     await session.commit()
     await session.refresh(matter)

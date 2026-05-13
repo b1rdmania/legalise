@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
+  confirmGate,
   createMatter,
+  getChronology,
   getMatter,
   invokePlugin,
   listAudit,
@@ -10,6 +12,7 @@ import {
   setPrivilege,
   uploadDocument,
   type AuditEntry,
+  type ChronologyResponse,
   type Matter,
   type MatterDocument,
   type PluginInvokeResponse,
@@ -277,6 +280,8 @@ function MatterDetail({ slug }: { slug: string }) {
   const [premotion, setPremotion] = useState<PluginInvokeResponse | null>(null);
   const [premotionRunning, setPremotionRunning] = useState(false);
   const [premotionError, setPremotionError] = useState<string | null>(null);
+  const [chron, setChron] = useState<ChronologyResponse | null>(null);
+  const [showSoF, setShowSoF] = useState(false);
 
   const load = () => {
     getMatter(slug)
@@ -284,9 +289,23 @@ function MatterDetail({ slug }: { slug: string }) {
       .catch((e) => setError(String(e)));
     listDocuments(slug).then(setDocs).catch(() => undefined);
     listAudit(slug, 20).then(setAudit).catch(() => undefined);
+    getChronology(slug).then(setChron).catch(() => undefined);
   };
 
   useEffect(load, [slug]);
+
+  const onConfirmGate = async () => {
+    try {
+      await confirmGate(
+        slug,
+        "I confirm the CPR 31.22 implied undertaking — disclosed material is used only for these proceedings.",
+      );
+      getChronology(slug).then(setChron).catch(() => undefined);
+      listAudit(slug, 20).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
 
   const onRunPremotion = async () => {
     setPremotionRunning(true);
@@ -378,7 +397,7 @@ function MatterDetail({ slug }: { slug: string }) {
       {/* case theory ------------------------------------------- */}
       {(matter.case_theory || matter.pivot_fact) && (
         <section className="mb-14">
-          <SectionLabel id="§01" name="theory_of_case" />
+          <SectionLabel id="§theory" name="theory_of_case" />
           {matter.case_theory && (
             <p className="font-sans text-[16px] leading-[1.45] text-ash-gray max-w-[70ch] whitespace-pre-wrap mb-4">
               {matter.case_theory}
@@ -394,7 +413,7 @@ function MatterDetail({ slug }: { slug: string }) {
 
       {/* documents --------------------------------------------- */}
       <section className="mb-14">
-        <SectionLabel id="§04" name={`documents · matters/${matter.slug}/files/`} />
+        <SectionLabel id="§bundle" name={`documents · matters/${matter.slug}/files/`} />
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-sans text-[25px] text-snow">Bundle.</h2>
           <label className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow cursor-pointer">
@@ -430,7 +449,7 @@ function MatterDetail({ slug }: { slug: string }) {
 
       {/* pre-motion -------------------------------------------- */}
       <section className="mb-14">
-        <SectionLabel id="§02" name="modules · uk-litigation-legal/pre-motion" />
+        <SectionLabel id="§pre-motion" name="modules · uk-litigation-legal/pre-motion" />
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-sans text-[25px] text-snow">Pre-Motion.</h2>
           <button
@@ -467,9 +486,52 @@ function MatterDetail({ slug }: { slug: string }) {
         )}
       </section>
 
+      {/* chronology -------------------------------------------- */}
+      <section className="mb-14">
+        <SectionLabel id="§chronology" name="chronology · seeded fixture · v0.2 lifts to live extraction" />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-sans text-[25px] text-snow">Chronology.</h2>
+          {chron && chron.events.length > 0 && (
+            <div className="flex items-center gap-3">
+              <ToggleButton active={!showSoF} onClick={() => setShowSoF(false)}>
+                FULL
+              </ToggleButton>
+              <ToggleButton active={showSoF} onClick={() => setShowSoF(true)}>
+                STMT OF FACTS
+              </ToggleButton>
+            </div>
+          )}
+        </div>
+
+        {!chron && <p className="font-mono text-[12px] text-dim-gray">loading chronology…</p>}
+
+        {chron && chron.gate.required && !chron.gate.confirmed && (
+          <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
+        )}
+
+        {chron && chron.events.length === 0 && (
+          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
+            no events seeded. live extraction lands v0.2.
+          </p>
+        )}
+
+        {chron && chron.events.length > 0 && (
+          <ChronologyTable
+            events={showSoF ? chron.statement_of_facts_variant : chron.events}
+            blurred={chron.gate.required && !chron.gate.confirmed}
+          />
+        )}
+
+        {chron && chron.gate.confirmed && chron.gate.confirmed_at && (
+          <p className="font-mono text-[11px] text-steel-gray mt-3">
+            cpr_31_22_acknowledged · {chron.gate.confirmed_at.slice(0, 19).replace("T", " ")}
+          </p>
+        )}
+      </section>
+
       {/* audit log --------------------------------------------- */}
       <section className="mb-14">
-        <SectionLabel id="§03" name={`audit_log · matters/${matter.slug}`} />
+        <SectionLabel id="§audit" name={`audit_log · matters/${matter.slug}`} />
         <h2 className="font-sans text-[25px] text-snow mb-3">Provenance.</h2>
         {!audit && <p className="font-mono text-[12px] text-dim-gray">loading audit…</p>}
         {audit && audit.length === 0 && (
@@ -552,6 +614,105 @@ function StatusBadge({ status }: { status: string }) {
     <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
       {status.toUpperCase()}
     </span>
+  );
+}
+
+function ToggleButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        active
+          ? "font-mono text-[11px] tracking-[0.053em] uppercase bg-deep-teal text-terminal-green px-1.5 py-px shadow-subtle"
+          : "font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2 hover:text-snow"
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: () => void }) {
+  return (
+    <div className="border border-code-error mb-4 p-4">
+      <div className="font-mono text-[10px] tracking-[0.014em] uppercase text-code-red mb-2">
+        CPR 31.22 — IMPLIED UNDERTAKING · ACTION REQUIRED
+      </div>
+      <p className="font-sans text-[14px] leading-[1.5] text-platinum max-w-[70ch] mb-4">
+        {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents
+        obtained under disclosure. CPR 31.22(1) restricts use of disclosed material to
+        the proceedings in which it was disclosed. Acknowledge the implied undertaking
+        before this chronology renders.
+      </p>
+      <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[70ch] mb-4">
+        Acknowledgement is recorded in the audit trail (action:{" "}
+        <code className="font-mono text-[12px] text-terminal-green">chronology.gate.confirmed</code>)
+        and scoped to this matter and user. This is a forcing function for the rule,
+        not legal advice.
+      </p>
+      <button
+        onClick={onConfirm}
+        className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow"
+      >
+        I CONFIRM →
+      </button>
+    </div>
+  );
+}
+
+function ChronologyTable({
+  events,
+  blurred,
+}: {
+  events: import("./lib/api").ChronologyEvent[];
+  blurred: boolean;
+}) {
+  return (
+    <div className={"border border-graphite " + (blurred ? "opacity-30 pointer-events-none select-none" : "")}>
+      <div className="grid grid-cols-[130px_60px_1fr_220px] gap-4 px-3 py-2 bg-graphite text-dim-gray font-mono text-[10px] tracking-[0.014em] uppercase border-b border-slate">
+        <span>date</span>
+        <span>sig</span>
+        <span>event</span>
+        <span>source · flags</span>
+      </div>
+      {events.map((e) => (
+        <div
+          key={e.id}
+          className="grid grid-cols-[130px_60px_1fr_220px] gap-4 px-3 py-2 border-b border-graphite last:border-b-0 items-baseline"
+        >
+          <span className="font-mono text-[12px] tracking-[0.053em] text-steel-gray">{e.event_date}</span>
+          <span
+            className={
+              e.significance >= 4
+                ? "font-mono text-[12px] tracking-[0.053em] text-terminal-green"
+                : "font-mono text-[12px] tracking-[0.053em] text-dim-gray"
+            }
+          >
+            {e.significance >= 4 ? `★ ${e.significance}` : `· ${e.significance}`}
+          </span>
+          <span className="font-sans text-[14px] leading-[1.45] text-platinum">{e.description}</span>
+          <span className="font-mono text-[11px] tracking-[0.04em] text-light-gray flex flex-wrap items-baseline gap-2">
+            {e.source_doc_filenames.map((fn) => (
+              <span key={fn} className="text-ash-gray truncate">
+                → {fn}
+              </span>
+            ))}
+            {e.from_disclosure && (
+              <span className="text-code-red ml-1">[DISCLOSURE 31.22]</span>
+            )}
+            {e.priv_flag && <span className="text-code-violet ml-1">[PRIV]</span>}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -122,3 +122,40 @@ export const invokePlugin = (slug: string, plugin: string, skill: string, inputs
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ plugin, skill, inputs }),
   }).then((r) => jsonOrThrow<PluginInvokeResponse>(r));
+
+export interface ChronologyEvent {
+  id: string;
+  event_date: string;
+  description: string;
+  significance: number;
+  source_doc_ids: string[];
+  source_doc_filenames: string[];
+  priv_flag: boolean;
+  from_disclosure: boolean;
+  proceedings_refs: string[];
+  created_at: string;
+}
+
+export interface GateState {
+  required: boolean;
+  confirmed: boolean;
+  confirmed_at: string | null;
+  tainted_event_count: number;
+}
+
+export interface ChronologyResponse {
+  matter_slug: string;
+  events: ChronologyEvent[];
+  gate: GateState;
+  statement_of_facts_variant: ChronologyEvent[];
+}
+
+export const getChronology = (slug: string) =>
+  fetch(`${API}/matters/${slug}/chronology`).then((r) => jsonOrThrow<ChronologyResponse>(r));
+
+export const confirmGate = (slug: string, acknowledgement: string) =>
+  fetch(`${API}/matters/${slug}/chronology/gate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ acknowledgement }),
+  }).then((r) => jsonOrThrow<GateState>(r));
