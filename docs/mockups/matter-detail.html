@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Khan v Acme Trading Ltd — Legalise</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* Tokens from docs/DESIGN.md — verbatim */
+    :root {
+      /* Surfaces */
+      --color-canvas: #faf8f3;
+      --color-surface: #ffffff;
+      --color-surface-subtle: #f5f1e8;
+      --color-surface-accent: #fbeae2;
+
+      /* Ink */
+      --color-ink: #171717;
+      --color-ink-secondary: #5a5a5a;
+      --color-ink-tertiary: #999999;
+      --color-ink-disabled: #c8c4ba;
+      --color-hairline: #e8e3d8;
+
+      /* Accent + Status */
+      --color-accent: #a3331f;
+      --color-accent-deep: #7a2415;
+      --color-status-success: #3a7d44;
+      --color-status-warn: #9c6f1a;
+      --color-status-error: #a13d3d;
+
+      /* Families */
+      --font-serif: "Source Serif 4", "Newsreader", Charter, Georgia, serif;
+      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+      /* Spacing */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      --space-16: 64px;
+
+      /* Radius */
+      --radius-0: 0px;
+      --radius-1: 2px;
+      --radius-2: 4px;
+      --radius-3: 6px;
+      --radius-4: 8px;
+
+      /* Layout */
+      --page-max: 1280px;
+      --sidebar-width: 280px;
+      --topbar-height: 64px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--color-canvas);
+      color: var(--color-ink);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.6;
+      font-feature-settings: "kern", "liga";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+
+    /* Numerals: tabular for tables/dates, old-style for prose */
+    .tnum { font-feature-settings: "tnum", "kern", "liga"; font-variant-numeric: tabular-nums; }
+    .onum { font-feature-settings: "onum", "kern", "liga"; font-variant-numeric: oldstyle-nums; }
+
+    /* Top bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      height: var(--topbar-height);
+      background: var(--color-surface-subtle);
+      border-bottom: 1px solid var(--color-hairline);
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr auto;
+      align-items: center;
+    }
+    .brand {
+      padding: 0 var(--space-6);
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      color: var(--color-ink);
+    }
+    .brand::after {
+      content: " ·";
+      color: var(--color-accent);
+      margin-left: 2px;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 13px;
+      color: var(--color-ink-secondary);
+      padding: 0 var(--space-6);
+    }
+    .breadcrumb a {
+      color: var(--color-ink-secondary);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 1px;
+      transition: border-color 80ms ease;
+    }
+    .breadcrumb a:hover { border-color: var(--color-hairline); }
+    .breadcrumb .sep { color: var(--color-ink-tertiary); }
+    .breadcrumb .current { color: var(--color-ink); font-weight: 500; }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding-right: var(--space-6);
+    }
+    .monogram {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-surface-accent);
+      border: 1px solid var(--color-hairline);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--color-accent-deep);
+    }
+    .user-meta {
+      font-size: 12px;
+      color: var(--color-ink-tertiary);
+      letter-spacing: 0;
+    }
+
+    /* Layout */
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+      max-width: var(--page-max);
+      margin: 0 auto;
+      min-height: calc(100vh - var(--topbar-height));
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: sticky;
+      top: var(--topbar-height);
+      height: calc(100vh - var(--topbar-height));
+      background: var(--color-surface-subtle);
+      border-right: 1px solid var(--color-hairline);
+      padding: var(--space-6) var(--space-4);
+      overflow-y: auto;
+    }
+    .nav-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-ink-tertiary);
+      padding: 0 var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .matter-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-bottom: var(--space-10);
+    }
+    .matter-card {
+      display: block;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-3);
+      background: transparent;
+      border-left: 2px solid transparent;
+      text-decoration: none;
+      transition: background-color 80ms ease;
+    }
+    .matter-card:hover { background: var(--color-surface); }
+    .matter-card.current {
+      background: var(--color-surface-accent);
+      border-left-color: var(--color-accent);
+    }
+    .matter-card .title {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--color-ink);
+      letter-spacing: -0.005em;
+    }
+    .matter-card .meta {
+      font-size: 12px;
+      color: var(--color-ink-tertiary);
+      margin-top: 2px;
+    }
+    .matter-card .status-dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: var(--space-1);
+    }
+    .status-dot.open { background: var(--color-status-success); }
+    .status-dot.settlement { background: var(--color-status-warn); }
+    .status-dot.closed { background: var(--color-ink-tertiary); }
+
+    .module-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .module-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-2) var(--space-3);
+      font-size: 13px;
+      color: var(--color-ink-secondary);
+      text-decoration: none;
+      border-radius: var(--radius-2);
+      transition: background-color 80ms ease;
+    }
+    .module-link:hover { background: var(--color-surface); color: var(--color-ink); }
+    .module-link.current { background: var(--color-surface); color: var(--color-ink); font-weight: 500; }
+    .module-link .pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      color: var(--color-ink-tertiary);
+      padding: 1px var(--space-1);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-1);
+      text-transform: uppercase;
+    }
+
+    /* Main column */
+    .main {
+      padding: var(--space-10) var(--space-12) var(--space-16);
+      max-width: 960px;
+    }
+
+    /* Matter header */
+    .matter-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-6);
+      padding-bottom: var(--space-5);
+      border-bottom: 1px solid var(--color-hairline);
+      margin-bottom: var(--space-8);
+    }
+    .matter-title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      color: var(--color-ink);
+    }
+    .matter-meta {
+      font-size: 13px;
+      color: var(--color-ink-tertiary);
+      margin-top: var(--space-2);
+      letter-spacing: 0;
+    }
+    .matter-meta .sep { color: var(--color-hairline); margin: 0 var(--space-2); }
+
+    /* Privilege badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 4px 10px;
+      border-radius: var(--radius-1);
+      background: var(--color-surface-subtle);
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .badge.mixed {
+      border: 1px solid var(--color-status-warn);
+      color: var(--color-status-warn);
+    }
+    .badge.cleared {
+      border: 1px solid var(--color-status-success);
+      color: var(--color-status-success);
+    }
+    .badge.paused {
+      border: 1px solid var(--color-status-error);
+      color: var(--color-status-error);
+    }
+    .badge.disclosure {
+      border: 1px solid var(--color-status-error);
+      color: var(--color-status-error);
+    }
+    .badge.draft {
+      border: 1px solid var(--color-status-warn);
+      color: var(--color-status-warn);
+    }
+    .badge.cleared-doc {
+      border: 1px solid var(--color-status-success);
+      color: var(--color-status-success);
+    }
+
+    /* Section */
+    .section { margin-bottom: var(--space-12); }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--color-hairline);
+      margin-bottom: var(--space-5);
+    }
+    .section-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+      color: var(--color-ink);
+    }
+    .section-meta {
+      font-size: 12px;
+      color: var(--color-ink-tertiary);
+    }
+
+    /* Case theory body */
+    .body-prose {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--color-ink);
+      max-width: 70ch;
+      font-feature-settings: "kern", "liga", "onum";
+    }
+    .body-prose p + p { margin-top: var(--space-3); }
+
+    /* Key dates */
+    .key-dates {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) auto;
+      gap: 0;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-3);
+      overflow: hidden;
+    }
+    .date-cell {
+      padding: var(--space-5) var(--space-5);
+      border-right: 1px solid var(--color-hairline);
+    }
+    .date-cell:last-child { border-right: none; }
+    .date-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-ink-tertiary);
+      margin-bottom: var(--space-2);
+    }
+    .date-value {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      color: var(--color-ink);
+      font-feature-settings: "tnum";
+    }
+    .date-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-tertiary);
+      margin-top: 4px;
+    }
+    .date-cell.limit {
+      background: var(--color-surface-accent);
+    }
+    .date-cell.limit .date-label {
+      color: var(--color-accent-deep);
+    }
+    .date-cell.limit .date-value {
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+    .date-cell.limit .date-sub {
+      color: var(--color-accent-deep);
+    }
+
+    /* Audit trail */
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-3);
+      overflow: hidden;
+    }
+    .audit-table th {
+      text-align: left;
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-surface-subtle);
+      border-bottom: 1px solid var(--color-hairline);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-ink-tertiary);
+    }
+    .audit-table td {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-hairline);
+      font-size: 13px;
+      vertical-align: top;
+    }
+    .audit-table tr:last-child td { border-bottom: none; }
+    .audit-table .ts {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-tertiary);
+      white-space: nowrap;
+    }
+    .audit-table .actor {
+      font-weight: 500;
+      color: var(--color-ink);
+      white-space: nowrap;
+    }
+    .audit-table .action {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-secondary);
+      white-space: nowrap;
+    }
+    .audit-table .resource {
+      color: var(--color-ink-secondary);
+    }
+    .audit-table .hash {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      color: var(--color-ink-tertiary);
+    }
+    .audit-empty {
+      font-size: 13px;
+      color: var(--color-ink-tertiary);
+      text-align: center;
+      padding: var(--space-6);
+    }
+
+    /* Documents */
+    .documents {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-4);
+    }
+    .doc-card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-3);
+      align-items: flex-start;
+      transition: border-color 80ms ease;
+    }
+    .doc-card:hover { border-color: var(--color-ink-tertiary); }
+    .doc-thumb {
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-2);
+      display: grid;
+      place-items: center;
+      color: var(--color-ink-tertiary);
+    }
+    .doc-thumb.pdf::before {
+      content: "PDF";
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--color-ink-tertiary);
+    }
+    .doc-thumb.docx::before {
+      content: "DOCX";
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--color-ink-tertiary);
+    }
+    .doc-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .doc-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-ink);
+      line-height: 1.3;
+      margin-bottom: var(--space-1);
+      word-break: break-word;
+    }
+    .doc-meta {
+      font-size: 12px;
+      color: var(--color-ink-tertiary);
+      font-family: var(--font-mono);
+      letter-spacing: 0.02em;
+      margin-bottom: var(--space-3);
+    }
+    .doc-tags {
+      display: flex;
+      gap: var(--space-1);
+      flex-wrap: wrap;
+    }
+
+    /* Module quick actions */
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-4);
+    }
+    .action-card {
+      padding: var(--space-5);
+      background: var(--color-surface);
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .action-card .module-name {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--color-ink);
+    }
+    .action-card .module-desc {
+      font-size: 13px;
+      color: var(--color-ink-secondary);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: 10px 16px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0;
+      border-radius: var(--radius-2);
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 80ms ease, border-color 80ms ease;
+    }
+    .btn-primary {
+      background: var(--color-accent);
+      color: var(--color-canvas);
+      border-color: var(--color-accent);
+    }
+    .btn-primary:hover {
+      background: var(--color-accent-deep);
+      border-color: var(--color-accent-deep);
+    }
+    .btn-secondary {
+      background: var(--color-surface);
+      color: var(--color-ink);
+      border-color: var(--color-hairline);
+    }
+    .btn-secondary:hover {
+      background: var(--color-surface-subtle);
+      border-color: var(--color-ink-tertiary);
+    }
+    .btn .ic { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* Footer note */
+    .footer-note {
+      margin-top: var(--space-16);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--color-hairline);
+      font-size: 12px;
+      color: var(--color-ink-tertiary);
+      font-family: var(--font-mono);
+      letter-spacing: 0.02em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">Legalise</div>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="#">Matters</a>
+      <span class="sep">/</span>
+      <span class="current">Khan v Acme Trading Ltd</span>
+    </nav>
+    <div class="user-chip">
+      <span class="user-meta">jasmine.solicitor@birdlegal.co.uk</span>
+      <div class="monogram" aria-hidden="true">JK</div>
+    </div>
+  </header>
+
+  <div class="app">
+
+    <aside class="sidebar" aria-label="Workspace navigation">
+      <div class="nav-label">Matters</div>
+      <ul class="matter-list">
+        <li>
+          <a class="matter-card current" href="#" aria-current="page">
+            <div class="title">Khan v Acme Trading Ltd</div>
+            <div class="meta tnum">
+              <span class="status-dot open"></span>Open · ET · employment
+            </div>
+          </a>
+        </li>
+        <li>
+          <a class="matter-card" href="#">
+            <div class="title">Patel v Greenshore LLP</div>
+            <div class="meta tnum">
+              <span class="status-dot open"></span>Open · prof. neg.
+            </div>
+          </a>
+        </li>
+        <li>
+          <a class="matter-card" href="#">
+            <div class="title">Smith v Smith</div>
+            <div class="meta tnum">
+              <span class="status-dot settlement"></span>Settlement
+            </div>
+          </a>
+        </li>
+        <li>
+          <a class="matter-card" href="#">
+            <div class="title">Jones v HMRC</div>
+            <div class="meta tnum">
+              <span class="status-dot closed"></span>Closed
+            </div>
+          </a>
+        </li>
+        <li>
+          <a class="matter-card" href="#">
+            <div class="title">Devereux Holdings — debt claim</div>
+            <div class="meta tnum">
+              <span class="status-dot open"></span>Open · debt protocol
+            </div>
+          </a>
+        </li>
+      </ul>
+
+      <div class="nav-label">Modules</div>
+      <ul class="module-list">
+        <li><a class="module-link current" href="#">Workspace</a></li>
+        <li><a class="module-link" href="#">Pre-Motion</a></li>
+        <li><a class="module-link" href="#">Chronology</a></li>
+        <li><a class="module-link" href="#">Letters</a></li>
+        <li><a class="module-link" href="#">Contract Review <span class="pill">v0.2</span></a></li>
+      </ul>
+    </aside>
+
+    <main class="main">
+
+      <header class="matter-header">
+        <div>
+          <h1 class="matter-title">Khan v Acme Trading Ltd</h1>
+          <div class="matter-meta tnum">
+            Employment Tribunal
+            <span class="sep">·</span>
+            Khan (Claimant) v Acme Trading Ltd (Respondent)
+            <span class="sep">·</span>
+            Opened May 2026
+          </div>
+        </div>
+        <div class="badge mixed" title="Privilege posture: B-mixed">
+          <svg class="ic" style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          B · Mixed
+        </div>
+      </header>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Case theory</h2>
+          <span class="section-meta">Updated 12 May 2026</span>
+        </div>
+        <div class="body-prose">
+          <p>
+            Ms Khan was dismissed by Acme Trading Ltd on 12 March 2026 after three years and four
+            months of continuous service. The stated reason was conduct — a single alleged
+            breach of the company's social media policy — but the dismissal followed a documented
+            grievance Ms Khan had raised six weeks earlier concerning her line manager's pattern
+            of conduct toward female members of the warehouse team.
+          </p>
+          <p>
+            Our case is that the conduct reason is pretextual and that the real reason for
+            dismissal falls within s.103A ERA 1996 (protected disclosure) or, in the alternative,
+            constitutes victimisation under s.27 Equality Act 2010. The Burchell test fails on the
+            second and third limbs: the investigation was conducted by the manager who was the
+            subject of Ms Khan's prior grievance, and the dismissal sat outside the band of
+            reasonable responses given a clean disciplinary record and the proportionality
+            considerations under <em>Iceland Frozen Foods</em>.
+          </p>
+          <p>
+            Pivot fact: the social-media post the Respondent treats as gross misconduct was a
+            private comment on a personal Instagram account, set to a closed audience of 47
+            followers, none of whom were customers, suppliers, or named in the post.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Key dates</h2>
+          <span class="section-meta">s.111 ERA 1996 · s.207B "stop the clock"</span>
+        </div>
+        <div class="key-dates">
+          <div class="date-cell">
+            <div class="date-label">Effective date of termination</div>
+            <div class="date-value tnum">12 March 2026</div>
+            <div class="date-sub">EDT · dismissal letter</div>
+          </div>
+          <div class="date-cell">
+            <div class="date-label">ACAS Day A</div>
+            <div class="date-value tnum">2 May 2026</div>
+            <div class="date-sub">EC notification</div>
+          </div>
+          <div class="date-cell">
+            <div class="date-label">ACAS Day B</div>
+            <div class="date-value tnum">24 May 2026</div>
+            <div class="date-sub">EC certificate issued</div>
+          </div>
+          <div class="date-cell limit">
+            <div class="date-label">Time limit · ET1 by</div>
+            <div class="date-value tnum">3 July 2026</div>
+            <div class="date-sub">latest issue · s.207B</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Audit trail</h2>
+          <span class="section-meta">Last 8 of 47 entries · <a href="#" style="color:var(--color-ink-secondary);text-decoration:underline;text-decoration-color:var(--color-hairline);text-underline-offset:3px">view all</a></span>
+        </div>
+        <table class="audit-table" role="table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Resource</th>
+              <th style="text-align:right">Prompt hash</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ts">2026-05-13 14:32:18</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">model.call</td>
+              <td class="resource">Pre-Motion · Stage 4 Synthesiser</td>
+              <td class="hash" style="text-align:right">e7a2c91d</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-13 14:31:55</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">model.call</td>
+              <td class="resource">Pre-Motion · Stage 3 Adversary × 4</td>
+              <td class="hash" style="text-align:right">4b8f213a</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-13 14:31:02</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">plugin.invoked</td>
+              <td class="resource">uk-litigation-legal:pre-motion</td>
+              <td class="hash" style="text-align:right">9c1e7d0b</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-13 11:22:45</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">chronology.gate.confirmed</td>
+              <td class="resource">Khan witness statement.pdf</td>
+              <td class="hash" style="text-align:right">a052f8e1</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-12 16:08:11</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">document.uploaded</td>
+              <td class="resource">ACAS EC certificate.pdf</td>
+              <td class="hash" style="text-align:right">7f4d2b3c</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-12 16:05:33</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">document.uploaded</td>
+              <td class="resource">Witness statement — Khan.docx</td>
+              <td class="hash" style="text-align:right">2d96a417</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-12 15:47:22</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">privilege.posture.set</td>
+              <td class="resource">B_mixed (from A_cleared)</td>
+              <td class="hash" style="text-align:right">—</td>
+            </tr>
+            <tr>
+              <td class="ts">2026-05-12 15:45:08</td>
+              <td class="actor">Jasmine K.</td>
+              <td class="action">matter.created</td>
+              <td class="resource">khan-v-acme-trading-2026</td>
+              <td class="hash" style="text-align:right">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Documents</h2>
+          <span class="section-meta">3 files · 1 from disclosure</span>
+        </div>
+        <div class="documents">
+
+          <div class="doc-card">
+            <div class="doc-thumb pdf" aria-hidden="true"></div>
+            <div class="doc-info">
+              <div class="doc-name">Khan dismissal letter.pdf</div>
+              <div class="doc-meta tnum">412 KB · 4 pages · uploaded 12 May</div>
+              <div class="doc-tags">
+                <span class="badge disclosure">Disclosure</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-thumb docx" aria-hidden="true"></div>
+            <div class="doc-info">
+              <div class="doc-name">Witness statement — Khan.docx</div>
+              <div class="doc-meta tnum">128 KB · 6 pages · uploaded 12 May</div>
+              <div class="doc-tags">
+                <span class="badge draft">Draft</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-thumb pdf" aria-hidden="true"></div>
+            <div class="doc-info">
+              <div class="doc-name">ACAS EC certificate.pdf</div>
+              <div class="doc-meta tnum">86 KB · 1 page · uploaded 12 May</div>
+              <div class="doc-tags">
+                <span class="badge cleared-doc">Cleared</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Modules</h2>
+          <span class="section-meta">Available on this matter</span>
+        </div>
+        <div class="actions">
+
+          <div class="action-card">
+            <div class="module-name">Pre-Motion</div>
+            <p class="module-desc">
+              Adversarial premortem on the case as it currently stands. Four-stage pipeline:
+              Optimistic Analyst, Evidence Inspector, Premortem Adversary, Synthesiser.
+              Returns ranked failure scenarios and one brutal sentence.
+            </p>
+            <a class="btn btn-primary" href="#">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run adversarial premortem
+            </a>
+          </div>
+
+          <div class="action-card">
+            <div class="module-name">Chronology</div>
+            <p class="module-desc">
+              Seeded chronology with CPR 31.22 implied-undertaking gate and Statement-of-Facts
+              variant. v0.1 surface — live extraction lands in v0.2.
+            </p>
+            <a class="btn btn-secondary" href="#">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Open seeded chronology
+            </a>
+          </div>
+
+          <div class="action-card">
+            <div class="module-name">Letters</div>
+            <p class="module-desc">
+              CPR-compliant pre-action correspondence drafted via the
+              <span style="font-family:var(--font-mono);font-size:12px;letter-spacing:0.02em;color:var(--color-ink-secondary)">cpr-letter-drafter</span>
+              plugin. Auto-fills parties, facts, and claim heads from this matter.
+            </p>
+            <a class="btn btn-secondary" href="#">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+              Draft new letter
+            </a>
+          </div>
+
+        </div>
+      </section>
+
+      <footer class="footer-note tnum">
+        <span>matter slug: khan-v-acme-trading-2026</span>
+        <span>retention until: 3 July 2032</span>
+        <span>model gateway: claude-opus-4-7</span>
+        <span>region: lhr · eu</span>
+      </footer>
+
+    </main>
+
+  </div>
+
+</body>
+</html>
