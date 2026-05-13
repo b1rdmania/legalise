@@ -24,8 +24,8 @@
 | Multi-agent | `app/agents/` — BaseAgent + Orchestrator | Async, streaming, tool-call-aware. Same pattern as Bird Legal MVP. |
 | Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
-| Hosting (live demo) | Azure UK South or AWS eu-west-2 | UK data residency. Azure preferred for M365 integration story; AWS for startup ecosystem familiarity. |
-| Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. |
+| Hosting (live demo) | Cloudflare: Pages (frontend) + Containers or Fly.io UK (backend) + Neon Postgres (London) + R2 (storage) | UK data residency, free egress on R2, DDoS / WAF at the edge. See `infra/deploy/cloudflare.md`. |
+| Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. Operators can deploy anywhere — Cloudflare is the maintainer's choice, not a requirement. |
 
 ## Module shape
 
@@ -47,7 +47,45 @@ frontend/src/modules/<module>/
   types.ts           # shared types with backend (codegen from OpenAPI)
 ```
 
-Modules share the matter primitive but are otherwise loosely coupled. Adding a new module is a self-contained PR.
+Modules share the matter primitive but are otherwise loosely coupled. Adding a new module is a self-contained PR — or a fork-local addition if a firm wants private modules.
+
+## Module SDK
+
+Legalise is a platform. Tabs are modules. New modules (a plain-english tab, a time-recording tab, a conflicts-check tab, a firm-specific workflow) plug into the matter spine using the same primitives the built-in modules use.
+
+The contract:
+
+- Every module ships a `module.json` validated against `/schemas/module.json` — declares name, version, nav entry, routes, plugin/env/MCP dependencies, permissions.
+- Every module imports only from `app.core.api` — the documented stable surface. Internals (`app.core.config`, `app.core.audit`, etc.) are not stable across patches.
+- Every module gets matter context, audit logging, model gateway access, plugin bridge access, and storage for free. No module re-implements those primitives.
+- Every module respects the matter's privilege posture and the audit log. These are not optional.
+
+Modules **cannot** in v0.1: bring their own database tables, define their own auth, bypass audit, ignore privilege. Items 1 and 2 relax in v0.2; items 3 and 4 are permanent.
+
+A minimal worked example lives at `examples/modules/example-tab/`. Full developer guide at `docs/MODULE_DEVELOPMENT.md`.
+
+### Module registration (v0.1)
+
+Manual, two places:
+
+1. `backend/app/main.py` — `app.include_router(module_router, prefix=...)`
+2. `frontend/src/lib/modules.ts` — registry array with the module slug and manifest
+
+v0.2 introduces auto-discovery — modules drop in, the platform finds them at boot, no manual edits.
+
+### Module migrations (v0.1)
+
+Modules cannot bring database tables in v0.1. Per-module data lives in `Matter.metadata` (JSONB) or in the materialised matter folder.
+
+v0.2 introduces per-module alembic version directories so modules can own tables. Until then, the matter spine is the only authoritative database surface.
+
+### Module sandboxing
+
+Out of scope for v0.1 (single-tenant demo). Multi-tenant isolation and module permission enforcement land with the broader multi-tenancy work in v0.5+.
+
+### Private (firm-internal) modules
+
+An internal firm dev team can fork the repo and add modules under `backend/app/modules/firm_specific/` and `frontend/src/modules/firm_specific/`. Because modules use `app.core.api` rather than internals, upstream `master` changes rarely break them. Maintenance is `git pull upstream master` periodically.
 
 ## Data model
 

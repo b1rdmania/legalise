@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalise.dev/schemas/module.json",
+  "title": "Module Manifest",
+  "description": "Manifest for a Legalise workspace module. Every module ships one of these at the root of its backend directory.",
+  "type": "object",
+  "required": ["name", "version", "description", "nav", "routes"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+      "description": "Kebab-case public identifier. Used in routes, navigation, and discovery."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$",
+      "description": "Semantic version of the module itself, independent of Legalise core."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "One sentence on what this module does for a matter."
+    },
+    "author": {
+      "type": "string",
+      "description": "GitHub handle, name, or organisation."
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX identifier. Apache-2.0 recommended for upstream contributions."
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri"
+    },
+    "nav": {
+      "type": "object",
+      "required": ["label", "order"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Text shown in the matter sidebar."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional icon reference (lucide:icon-name or a custom URL)."
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999,
+          "description": "Sort order in the navigation. 10-50 reserved for built-in tabs. Third-party defaults to 60+."
+        }
+      },
+      "additionalProperties": false
+    },
+    "routes": {
+      "type": "object",
+      "required": ["backend_prefix", "frontend_route"],
+      "properties": {
+        "backend_prefix": {
+          "type": "string",
+          "pattern": "^/api/modules/[a-z][a-z0-9-]*[a-z0-9]$",
+          "description": "Path prefix for the module's FastAPI router."
+        },
+        "frontend_route": {
+          "type": "string",
+          "description": "TanStack Router route pattern. Use $slug for the matter slug placeholder."
+        }
+      },
+      "additionalProperties": false
+    },
+    "requires": {
+      "type": "object",
+      "properties": {
+        "plugins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Plugin slug from the claude-for-uk-legal marketplace (e.g. 'uk-litigation-legal:pre-motion')."
+          }
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Required environment variable name."
+          }
+        },
+        "mcp_servers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Required MCP server. Module fails to load if not configured."
+          }
+        },
+        "core_version": {
+          "type": "string",
+          "description": "SemVer range of Legalise core this module is compatible with. Defaults to caret of current minor."
+        }
+      },
+      "additionalProperties": false
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "matter.read",
+          "matter.write",
+          "documents.read",
+          "documents.write",
+          "audit.read",
+          "audit.write",
+          "model.call",
+          "plugins.invoke"
+        ]
+      },
+      "description": "Permissions the module requires. Audit and model-call permissions are granted by default to all modules; explicit declaration is preferred."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Free-form module-specific metadata.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

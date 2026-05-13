@@ -1,0 +1,22 @@
+{
+  "name": "example-tab",
+  "version": "0.1.0",
+  "description": "Minimal example tab — copy this folder to scaffold your own module.",
+  "author": "b1rdmania",
+  "license": "Apache-2.0",
+  "nav": {
+    "label": "Example",
+    "icon": "lucide:sparkles",
+    "order": 90
+  },
+  "routes": {
+    "backend_prefix": "/api/modules/example-tab",
+    "frontend_route": "/matters/$slug/example-tab"
+  },
+  "requires": {
+    "plugins": [],
+    "env": [],
+    "mcp_servers": []
+  },
+  "permissions": ["matter.read", "model.call"]
+}

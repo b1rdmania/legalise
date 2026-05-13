@@ -1,6 +1,8 @@
 # Legalise
 
-UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preserving. Built on top of the [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) plugin suite.
+UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preserving. Open-source platform — built to be extended.
+
+Built on top of the [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) plugin suite. New tabs plug into the matter spine via a documented module SDK — see [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md).
 
 > **Pre-build scaffold.** This repo currently contains the plan and skeleton only — the v0.1 build kicks off shortly. See [`EXECUTIVE_SUMMARY.md`](./EXECUTIVE_SUMMARY.md), [`BUILD_PLAN.md`](./BUILD_PLAN.md), [`ARCHITECTURE.md`](./ARCHITECTURE.md), [`SCOPE.md`](./SCOPE.md), [`ROADMAP.md`](./ROADMAP.md), and [`REGULATORY_PLUMBING.md`](./REGULATORY_PLUMBING.md) for the full plan. Reviewers welcome.
 
@@ -90,6 +92,19 @@ Legalise composes plugins from the [`claude-for-uk-legal`](https://github.com/b1
 - A production legal tool. v0.1 is a demo with substance, not something a regulated practice runs live matters on.
 - Legal advice software. Every output is a draft for solicitor review.
 - US, Scotland, or NI workflows.
+
+## Extending
+
+Legalise is a platform. The five v0.1 modules are the starting set — anyone can add their own.
+
+A module is a self-contained backend + frontend pair that plugs into the matter spine. Reads matter context, calls the model gateway with audit logging built in, invokes plugin skills, renders output in the matter view. Internal law firm forks can add private modules without ever pushing upstream.
+
+| Resource | What it is |
+|---|---|
+| [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md) | Five steps to ship a module |
+| [`schemas/module.json`](./schemas/module.json) | Manifest JSON Schema |
+| [`examples/modules/example-tab/`](./examples/modules/example-tab) | Minimal copy-paste starter |
+| [`backend/app/core/api.py`](./backend/app/core/api.py) | Stable public surface modules import |
 
 ## Reviewers
 
