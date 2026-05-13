@@ -1,0 +1,59 @@
+[project]
+name = "legalise-backend"
+version = "0.1.0a0"
+description = "Legalise — UK legal AI workspace backend"
+readme = "../README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "b1rdmania" }
+]
+dependencies = [
+  "fastapi[standard]>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+  "sqlalchemy>=2.0.36",
+  "alembic>=1.14.0",
+  "asyncpg>=0.30.0",
+  "psycopg[binary]>=3.2.3",
+  "pgvector>=0.3.6",
+  "pydantic>=2.10.0",
+  "pydantic-settings>=2.7.0",
+  "python-multipart>=0.0.19",
+  "anthropic>=0.40.0",
+  "openai>=1.57.0",
+  "httpx>=0.28.0",
+  "redis>=5.2.0",
+  "boto3>=1.35.0",
+  "python-docx>=1.1.2",
+  "pypdf>=5.1.0",
+  "structlog>=24.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.8.0",
+  "mypy>=1.13.0",
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "httpx>=0.28.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]

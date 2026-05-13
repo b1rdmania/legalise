@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalise.dev/schemas/audit-entry.json",
+  "title": "AuditEntry",
+  "type": "object",
+  "required": ["id", "actor_id", "action", "timestamp"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "actor_id": { "type": "string", "format": "uuid" },
+    "matter_id": { "type": ["string", "null"], "format": "uuid" },
+    "action": {
+      "type": "string",
+      "description": "Verb.noun form, e.g. 'matter.created', 'document.uploaded', 'model.called', 'chronology.built', 'plugin.invoked'."
+    },
+    "resource_type": { "type": ["string", "null"] },
+    "resource_id": { "type": ["string", "null"] },
+    "prompt_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of the LLM prompt. Populated only for model.called entries."
+    },
+    "response_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "model_used": { "type": ["string", "null"] },
+    "token_count": { "type": ["integer", "null"], "minimum": 0 },
+    "latency_ms": { "type": ["integer", "null"], "minimum": 0 },
+    "metadata": { "type": "object" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

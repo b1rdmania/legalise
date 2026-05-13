@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalise.dev/schemas/document.json",
+  "title": "Document",
+  "type": "object",
+  "required": ["id", "filename", "sha256"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "filename": { "type": "string" },
+    "mime_type": { "type": "string" },
+    "size_bytes": { "type": "integer", "minimum": 0 },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "storage_uri": { "type": "string", "format": "uri" },
+    "from_disclosure": {
+      "type": "boolean",
+      "description": "Document obtained through CPR 31 / PD 57AD disclosure. Triggers CPR 31.22 implied-undertaking handling."
+    },
+    "disclosure_proceedings_ref": {
+      "type": ["string", "null"],
+      "description": "Proceedings in which the document was disclosed. Use must remain within these proceedings absent permission, agreement, or open-court reference."
+    },
+    "uploaded_at": { "type": "string", "format": "date-time" },
+    "uploaded_by_id": { "type": "string", "format": "uuid" }
+  },
+  "additionalProperties": false
+}
