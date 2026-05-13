@@ -28,11 +28,15 @@ from app.core.auth import STUB_USER_EMAIL
 from app.models import AuditEntry, Matter, User
 
 
-_MATTER_PATH = re.compile(r"^/api/matters/(?P<slug>[^/]+)(?P<rest>/.*)?$")
+# Collection (`/api/matters` and `/api/matters/`) and resource paths
+# (`/api/matters/{slug}` and `/api/matters/{slug}/{rest…}`) are both
+# audited. The collection match keeps the slug group empty.
+_MATTER_PATH = re.compile(r"^/api/matters(?:/(?P<slug>[^/]+)(?P<rest>/.*)?)?/?$")
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
-    """Records mutations on `/api/matters/*` to the audit log."""
+    """Records every mutation on `/api/matters/*` — including failed
+    attempts at the collection level — to the audit log."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
         start = time.perf_counter()
@@ -44,7 +48,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
         if not m:
             return response
 
-        slug = m.group("slug")
+        slug = m.group("slug")          # may be None for /api/matters
         rest = m.group("rest") or ""
 
         factory = getattr(request.app.state, "session_factory", None)
@@ -58,13 +62,25 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
             actor_id = await session.scalar(select(User.id).where(User.email == STUB_USER_EMAIL))
 
+            # Resource type — for the collection endpoint, the resource
+            # is the matter collection itself (no slug yet).
+            if slug is None:
+                resource_type = "matter_collection"
+                resource_id = None
+            elif rest:
+                resource_type = rest.strip("/").split("/")[0] or "matter"
+                resource_id = slug
+            else:
+                resource_type = "matter"
+                resource_id = slug
+
             session.add(
                 AuditEntry(
                     actor_id=actor_id,
                     matter_id=matter_id,
                     action=f"http.{request.method.lower()}",
-                    resource_type=(rest.strip("/").split("/")[0] if rest else "matter") or "matter",
-                    resource_id=slug,
+                    resource_type=resource_type,
+                    resource_id=resource_id,
                     latency_ms=int((time.perf_counter() - start) * 1000),
                     payload={
                         "path": request.url.path,

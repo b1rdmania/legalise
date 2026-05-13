@@ -176,17 +176,45 @@ def append_history(slug: str, event: str, detail: str | None = None) -> None:
         f.write(line)
 
 
-def record_document(slug: str, filename: str, sha256: str, size: int, tag: str | None) -> None:
-    """Record a document arrival in the matter history and write a stub
-    placeholder file under `documents/` so the folder structure mirrors the
-    domain even when the binary store hasn't landed yet."""
+def record_document(
+    slug: str,
+    document_id: str,
+    filename: str,
+    sha256: str,
+    size: int,
+    tag: str | None,
+) -> None:
+    """Record a document arrival in the matter history and write a metadata
+    placeholder under `documents/` so the folder structure mirrors the
+    domain even when the binary store hasn't landed yet.
+
+    The metadata file is named by the document's primary key — never by the
+    user-supplied filename — so attacker-controlled filenames cannot escape
+    the matter's documents directory or overwrite siblings. The original
+    filename is preserved inside the file.
+    """
     d = matter_dir(slug)
-    placeholder = d / "documents" / f"{filename}.meta"
+    docs_dir = (d / "documents").resolve()
+    # `document_id` is a UUID we generated; safe by construction. Still
+    # bound-check the resolved path stays under documents_dir as a
+    # belt-and-braces guard against future ID-format changes.
+    placeholder = (docs_dir / f"{document_id}.meta").resolve()
+    if not str(placeholder).startswith(str(docs_dir) + os.sep):
+        raise ValueError(f"refusing to write document meta outside matter dir: {placeholder}")
+
     placeholder.write_text(
-        f"filename: {filename}\nsha256: {sha256}\nsize_bytes: {size}\ntag: {tag or ''}\n",
+        f"document_id: {document_id}\n"
+        f"filename: {filename}\n"
+        f"sha256: {sha256}\n"
+        f"size_bytes: {size}\n"
+        f"tag: {tag or ''}\n",
         encoding="utf-8",
     )
-    append_history(slug, "document.registered", f"{filename}  sha256={sha256[:12]}  size={size}")
+    append_history(
+        slug,
+        "document.registered",
+        f"{filename}  id={document_id}  sha256={sha256[:12]}  size={size}",
+    )
 
 
 __all__ = ["matter_dir", "materialise_matter", "append_history", "record_document"]

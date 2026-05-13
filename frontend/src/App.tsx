@@ -445,10 +445,12 @@ function MatterDetail({ slug }: { slug: string }) {
         )}
       </section>
 
-      {/* meta / colophon --------------------------------------- */}
-      <footer className="border-t border-graphite pt-5 grid grid-cols-4 gap-4 font-mono text-[10px] tracking-[0.014em] text-dim-gray">
+      {/* meta / colophon — retention_until is intentionally not surfaced
+          here until enforcement lands (v0.2). Showing a date the system
+          does not actively enforce would mislead users into thinking the
+          policy is live. */}
+      <footer className="border-t border-graphite pt-5 grid grid-cols-3 gap-4 font-mono text-[10px] tracking-[0.014em] text-dim-gray">
         <Cell k="matter_id" v={matter.slug} />
-        <Cell k="retention_until" v={matter.retention_until ?? "—"} />
         <Cell k="default_model" v={matter.default_model_id} />
         <Cell k="privilege" v={matter.privilege_posture} />
       </footer>

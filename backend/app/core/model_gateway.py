@@ -23,10 +23,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models import AuditEntry
+from app.models import AuditEntry, Matter
 
 
 class PrivilegePosture(str, Enum):
@@ -107,20 +108,38 @@ class ModelGateway:
         actor_id: uuid.UUID | None,
         prompt: str,
         model: str | None = None,
-        posture: PrivilegePosture = PrivilegePosture.B_MIXED,
+        posture: PrivilegePosture | None = None,
         system: str | None = None,
         resource_type: str | None = None,
         resource_id: str | None = None,
         payload: dict | None = None,
     ) -> ModelResult:
-        if posture is PrivilegePosture.C_PAUSED:
+        # Privilege posture is authoritative from the matter row in this
+        # session, never from a caller-supplied argument. This closes the
+        # TOCTOU window where a caller reads posture as B_mixed, an
+        # administrator changes it to C_paused, and the caller dispatches
+        # using the stale value. The `posture` parameter is accepted for
+        # tooling/tests when matter_id is None; if both are provided, the
+        # DB-derived value wins.
+        effective_posture: PrivilegePosture
+        if matter_id is not None:
+            row = await session.scalar(select(Matter.privilege_posture).where(Matter.id == matter_id))
+            if row is None:
+                raise PrivilegePaused(f"matter not found for matter_id={matter_id}")
+            effective_posture = PrivilegePosture(row)
+        elif posture is not None:
+            effective_posture = posture
+        else:
+            effective_posture = PrivilegePosture.B_MIXED
+
+        if effective_posture is PrivilegePosture.C_PAUSED:
             raise PrivilegePaused(
                 "Matter privilege posture is C_paused — LLM calls are blocked. "
                 "Change posture to A_cleared or B_mixed to proceed."
             )
 
         requested = model or settings.default_model_id
-        provider = self._select_provider(requested, posture)
+        provider = self._select_provider(requested, effective_posture)
 
         start = time.perf_counter()
         response_text, tokens = await provider.call(prompt, system=system)
@@ -150,7 +169,7 @@ class ModelGateway:
                 latency_ms=result.latency_ms,
                 payload={
                     "requested_model": requested,
-                    "posture": posture.value,
+                    "posture": effective_posture.value,
                     **(payload or {}),
                 },
             )

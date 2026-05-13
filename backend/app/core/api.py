@@ -1,8 +1,8 @@
 """Public API surface for modules.
 
-This is the **stable** surface that workspace modules import. The names exposed
-here keep their signatures across `0.1.x`; internals under `app.core.*` are not
-stable across patch versions.
+This is the **stable** surface that workspace modules import. The names
+exposed here keep their signatures across `0.1.x`; internals under
+`app.core.*` are not stable across patch versions.
 
 Modules should import only from this file:
 
@@ -18,72 +18,101 @@ Modules should import only from this file:
 If a primitive you need isn't here, open an issue rather than reaching into
 internals. The contract is part of the platform.
 
-Real implementations land during the v0.1 build window (see BUILD_PLAN.md).
-This file is the public-surface placeholder.
+Status (R3, Day 4):
+- `model_gateway`  — wired to the real ModelGateway singleton.
+- `audit`          — wired to a thin helper that writes AuditEntry rows.
+- `get_matter`     — wired to a slug-based lookup.
+- `require_matter` — placeholder; FastAPI dependency lands when modules
+                     get their own routers (Day 5).
+- `plugin_bridge`  — placeholder; lands Day 5 with the first plugin invoke.
+- `storage`        — placeholder; lands with MinIO/R2 wiring (Day 5+).
 """
 
 from __future__ import annotations
 
+import uuid
+from dataclasses import dataclass
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.model_gateway import gateway as _gateway
+from app.models import AuditEntry, Matter
+
+
 # Matter context
 # --------------
-# `require_matter` is a FastAPI dependency that resolves the matter from the
-# request path (`/matters/{slug}/...`) and yields the Matter ORM object.
-# `get_matter` is the async helper for direct fetch by slug.
-#
-# def require_matter() -> Matter: ...
-# async def get_matter(slug: str) -> Matter | None: ...
+
+async def get_matter(session: AsyncSession, slug: str) -> Matter | None:
+    """Fetch a matter by slug, or None if absent."""
+    return await session.scalar(select(Matter).where(Matter.slug == slug))
+
+
+# `require_matter` is a FastAPI dependency. It lands Day 5 alongside the
+# first module router; placeholder until then so an import doesn't blow up
+# but a call site does.
 require_matter = None  # type: ignore[assignment]
-get_matter = None  # type: ignore[assignment]
 
 
 # Audit log
 # ---------
-# `audit.log(action, matter_id=..., metadata=...)` writes an AuditEntry row and
-# also emits the daily JSONL audit shard in the matter's filesystem mirror.
-#
-# class _AuditAPI:
-#     async def log(self, action: str, *, matter_id: str | None = None,
-#                   resource_type: str | None = None, resource_id: str | None = None,
-#                   metadata: dict | None = None) -> None: ...
-audit = None  # type: ignore[assignment]
+
+@dataclass
+class _AuditAPI:
+    """Thin helper that writes one AuditEntry per call.
+
+    The session is the caller's responsibility — `log` adds the row, but
+    does not commit. That keeps the audit row in the same transaction as
+    the work it audits, so a rollback rolls both back together.
+    """
+
+    async def log(
+        self,
+        session: AsyncSession,
+        action: str,
+        *,
+        actor_id: uuid.UUID | None = None,
+        matter_id: uuid.UUID | None = None,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        payload: dict | None = None,
+    ) -> None:
+        session.add(
+            AuditEntry(
+                actor_id=actor_id,
+                matter_id=matter_id,
+                action=action,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                payload=payload or {},
+            )
+        )
+
+
+audit = _AuditAPI()
 
 
 # AI gateway
 # ----------
-# `model_gateway.call(matter_id, prompt, ...)` runs the prompt through the
-# matter's resolved model with privilege-posture routing. Returns the response
-# string. Audit logging is automatic.
-#
-# class _ModelGatewayAPI:
-#     async def call(self, *, matter_id: str, prompt: str,
-#                    system: str | None = None,
-#                    model: str | None = None,
-#                    posture: str | None = None,
-#                    **kwargs) -> str: ...
-model_gateway = None  # type: ignore[assignment]
+# Re-exports the module-level singleton from app.core.model_gateway.
+# Callers should treat this as the stable name; the implementation may
+# swap behind it without breaking modules.
+model_gateway = _gateway
 
 
 # Plugin bridge
 # -------------
 # `plugin_bridge.invoke(plugin, skill, matter_id, inputs)` calls a
-# `claude-for-uk-legal` skill with the matter as context. Returns the structured
-# result dict.
-#
-# class _PluginBridgeAPI:
-#     async def invoke(self, *, plugin: str, skill: str,
-#                      matter_id: str, inputs: dict) -> dict: ...
+# `claude-for-uk-legal` skill with the matter as context. Lands Day 5
+# alongside the first end-to-end module invocation.
 plugin_bridge = None  # type: ignore[assignment]
 
 
 # Storage
 # -------
-# S3-compatible blob storage (MinIO in dev, R2 / S3 / Azure Blob in cloud).
-# Modules should use this rather than reaching into boto3 directly.
-#
-# class _StorageAPI:
-#     async def put(self, path: str, data: bytes, *, content_type: str | None = None) -> str: ...
-#     async def get(self, path: str) -> bytes: ...
-#     async def signed_url(self, path: str, *, expires_in: int = 3600) -> str: ...
+# S3-compatible blob storage (MinIO in dev, R2 in cloud). Lands when
+# binary document uploads switch from metadata-only to real storage
+# (Week 1 Day 5+).
 storage = None  # type: ignore[assignment]
 
 

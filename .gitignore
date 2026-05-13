@@ -1,4 +1,6 @@
-# Python
+# Python — venv / build artefacts.
+# DO NOT add a bare `lib/` here. That pattern matches every `lib` folder
+# in the tree, including frontend/src/lib/, and silently drops real source.
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,21 +8,19 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
-var/
 wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 .venv/
 venv/
+venv/lib/
+venv/lib64/
 env/
 
 # Node

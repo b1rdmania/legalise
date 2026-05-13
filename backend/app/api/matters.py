@@ -270,7 +270,7 @@ async def upload_document(
     )
     await session.commit()
     await session.refresh(doc)
-    record_document(matter.slug, doc.filename, doc.sha256, doc.size_bytes, doc.tag)
+    record_document(matter.slug, str(doc.id), doc.filename, doc.sha256, doc.size_bytes, doc.tag)
     return doc
 
 
