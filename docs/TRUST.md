@@ -30,12 +30,44 @@ suite. Solicitors author and review; the system drafts and records.
   obligations under MLR 2017. Those remain the firm's responsibility.
 - Not a court-filing platform. ET1 / N1 PDF rendering is on the v0.3 roadmap
   but does not file.
-- **Not currently enforcing matter-level retention.** `retention_until` is a
-  recorded field, not an active sweep. Retention enforcement lands v0.2.
+- **Not certified** against any framework today. No SOC 2, no ISO 27001, no
+  Cyber Essentials. See Section 4 for the planned sequencing.
+
+## 3. What v0.1 does not yet do (read this first)
+
+We list gaps at the top, not the bottom. Anyone considering a procurement
+conversation about v0.1 should see them before reading the architecture.
+
+- **Single hardcoded solicitor user.** No real authentication. Do not run
+  v0.1 in front of real client data on a public URL.
+- **Retention is recorded, not enforced.** Every matter has a
+  `retention_until` field; nothing actively sweeps and deletes when that
+  date passes.
+- **Audit log is append-only by convention, not by Postgres grant.** A
+  superuser with DB access could in principle alter rows. WORM grants
+  land v0.2.
+- **Application-layer encryption of stored prompts/responses is not yet
+  implemented.** We rely on Neon/Fly/R2 at-rest encryption defaults.
+- **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon
+  London) are in the UK. Cloudflare R2 placement is EU (Western Europe),
+  not UK-specific. Anthropic and OpenAI commercial APIs are US-served
+  under contractual no-training terms.
+- **Anthropic / OpenAI UK addenda are not yet signed by us.** The standard
+  commercial terms apply, which include the no-training-on-customer-data
+  posture, but the UK IDTA paperwork is an open action.
+- **DPIA is owed, not published.** A v0.2 deliverable.
+- **No published vulnerability disclosure programme yet.** See Section 11
+  for the interim channel.
+- **Solicitor PII insurance increasingly carries AI-use exclusions.** This
+  is the firm's policy, not ours, but it can block a pilot — firms must
+  check their cover. Legalise does not provide indemnity.
+
+If any of the above is a blocker for a given firm's procurement, the answer
+today is "we are not the right tool for you yet."
 
 ---
 
-## 3. Data flow
+## 4. Data flow
 
 ```
 solicitor ──▶ Legalise frontend (browser)
@@ -61,7 +93,7 @@ will be scoped to operational telemetry only (no prompts, no responses).
 
 ---
 
-## 4. Sub-processors
+## 5. Sub-processors
 
 | Sub-processor | Purpose | Region | UK transfer mechanism |
 |---|---|---|---|
@@ -84,7 +116,7 @@ visible in `git log`.
 
 ---
 
-## 5. Legal professional privilege (LPP)
+## 6. Legal professional privilege (LPP)
 
 LPP exists in two forms relevant to Legalise:
 
@@ -118,7 +150,7 @@ The change-of-posture event is itself audited.
 
 ---
 
-## 6. CPR 31.22 implied undertaking
+## 7. CPR 31.22 implied undertaking
 
 Documents obtained under disclosure (CPR Part 31) may only be used for the
 proceedings in which they were disclosed. Using them for any other purpose
@@ -148,7 +180,7 @@ acknowledgement.**
 
 ---
 
-## 7. Audit trail
+## 8. Audit trail
 
 Every mutation on `/api/matters/*` produces at least two audit rows:
 
@@ -169,7 +201,7 @@ enforcement (Postgres-level revocation of UPDATE/DELETE) lands v0.2.
 
 ---
 
-## 8. Authentication
+## 9. Authentication
 
 **v0.1 ships a single hardcoded solicitor user** for the demo deployment.
 This is not production-ready and is documented as such throughout the
@@ -181,7 +213,7 @@ Run it locally, in your firm's network, or behind a VPN you trust.
 
 ---
 
-## 9. Encryption
+## 10. Encryption
 
 - **In transit:** TLS 1.2+ for all external connections. Fly.io and Neon
   terminate TLS; their internal hop is also encrypted.
@@ -193,25 +225,29 @@ Run it locally, in your firm's network, or behind a VPN you trust.
 
 ---
 
-## 10. Compliance posture
+## 11. Compliance posture
 
 We do not claim certifications we do not hold. As of v0.1:
 
-| Framework | Status | Notes |
-|---|---|---|
-| **UK GDPR** | Compliant by design, DPIA owed | Per-matter scoping, processor agreements with all sub-processors, audit log of personal data processing. Public DPIA summary is a v0.2 deliverable |
-| **SRA Code of Conduct** | Designed to support — does not certify | Audit trail supports solicitor accountability. Confidentiality (rule 6.3) supported via privilege posture. The user firm remains the regulated entity |
-| **Cyber Essentials Plus** | Not yet certified — v0.2 target | Realistic UK floor for firm procurement |
-| **ISO 27001** | Not certified — v0.3 target | The realistic ceiling for most UK firm procurement. Will pursue if/when revenue justifies the audit cost |
-| **SOC 2 Type II** | Not certified — v0.4+ | US framework. Pursued only on US-firm GTM or US-firm-owned UK customer demand |
-| **HIPAA** | Out of scope | Legalise is not designed for US healthcare workflows |
+**No certification has been awarded against any framework as of v0.1.**
+The table below is planned sequencing, not achieved assurance.
 
-The order — Cyber Essentials Plus → ISO 27001 → SOC 2 — reflects UK-first
-GTM. A US-first competitor would invert it.
+| Framework | Where we are | Planned next |
+|---|---|---|
+| **UK GDPR / DPA 2018** | Designed against the principles (per-matter scoping, processor agreements with sub-processors, audit log of personal-data processing). The DPIA is owed, not published. Records of processing (Art. 30) and a public DPIA summary are v0.2 deliverables. The firm using Legalise is the controller and remains accountable | Author DPIA; publish ROPA |
+| **SRA Code of Conduct** | Designed to support solicitor accountability (audit trail, confidentiality via privilege posture). Legalise is not the regulated entity — the firm is | No further action — this is a perpetual support obligation, not a target |
+| **Cyber Essentials Plus** | Not certified. **Planned start v0.2** | Engage assessor; remediation work; certificate |
+| **ISO 27001** | Not certified. Planned start v0.3 if revenue justifies the audit cost | Open ISMS scope; controls implementation |
+| **SOC 2 Type II** | Not certified. Considered only on US-firm GTM or US-firm-owned UK customer demand. Not on the v0.2/v0.3 timeline | n/a until trigger |
+| **HIPAA** | Out of scope. Legalise is not designed for US healthcare workflows | n/a |
+
+The Cyber Essentials Plus → ISO 27001 → SOC 2 order reflects UK-first GTM
+(firm floor → firm ceiling → US-firm gate). A US-first competitor would
+invert it. None of these have been started.
 
 ---
 
-## 11. Reporting a vulnerability
+## 12. Reporting a vulnerability
 
 Until we have a dedicated security@legalise.dev:
 
@@ -225,31 +261,12 @@ unless they prefer anonymity.
 
 ---
 
-## 12. Open questions / not yet resolved
-
-We track our own outstanding items here rather than letting them go
-unspoken:
-
-- **Anthropic API call locality.** Anthropic's commercial API is US-served.
-  We pass UK content into a US service contractually committed to no
-  training, but the actual processing is on US infrastructure. Firms with
-  data-residency policies that forbid US processing must run Ollama under
-  `B_mixed` or `C_paused` on those matters.
-- **R2 jurisdiction.** EU/Western Europe placement, not UK-specific. We
-  state this explicitly rather than implying UK residency.
-- **Retention enforcement.** Field exists, sweep does not. v0.2.
-- **WORM on audit log.** Convention-only in v0.1. Postgres grants
-  revoke UPDATE/DELETE in v0.2.
-- **Insurance.** Solicitor PII policies increasingly carry AI-use exclusions.
-  Firms must check their own cover. Legalise does not provide indemnity.
-
----
-
 ## 13. Change log
 
 | Date | Change |
 |---|---|
 | 2026-05-13 | First draft (v0.1 source of truth) |
+| 2026-05-13 | Sweep: "Compliant by design" → "Designed against principles"; gaps promoted to §3 (read this first); compliance table reframed as planned sequencing, not achieved assurance; insurance note added |
 
 This file changes when the architecture changes. `git log docs/TRUST.md`
 is the canonical history.

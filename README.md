@@ -23,7 +23,7 @@ graph TD
     B -.matter-schema-compatible.-> I[Stella]
 ```
 
-One coherent sample-matter workflow around a matter spine. v0.1 proves the workspace shape: matter context, audit logging, privilege awareness, local/cloud model routing, Pre-Motion settlement analysis, and one real `claude-for-uk-legal` plugin invocation. Chronology and contract review remain visible roadmap surfaces rather than launch commitments. Workspace runs locally via Docker Compose or live at `legalise.dev` (deployed in UK region for data residency).
+One coherent sample-matter workflow around a matter spine. v0.1 proves the workspace shape: matter context, audit logging, privilege awareness, local/cloud model routing, Pre-Motion settlement analysis, and one real `claude-for-uk-legal` plugin invocation. Chronology and contract review remain visible roadmap surfaces rather than launch commitments. Workspace runs locally via Docker Compose or live at `legalise.dev` (Fly.io `lhr` backend + Neon London Postgres + Cloudflare R2 in EU placement — **not** UK-residency end-to-end; see [`docs/TRUST.md`](./docs/TRUST.md)).
 
 ## Pre-build status (May 2026)
 
