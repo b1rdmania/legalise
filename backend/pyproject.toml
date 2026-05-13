@@ -2,7 +2,10 @@
 name = "legalise-backend"
 version = "0.1.0a0"
 description = "Legalise — UK legal AI workspace backend"
-readme = "../README.md"
+# No `readme` field: the canonical README lives at the repo root, which is
+# outside the backend Docker build context (`../backend`). Adding `readme`
+# would force a context bump or a duplicate file, and we don't publish the
+# backend to PyPI so the metadata isn't load-bearing.
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
 authors = [
