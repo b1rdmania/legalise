@@ -198,7 +198,7 @@ and tell me where they diverge.
 
 2. **Privilege gate correctness.** Two ways to bypass C_paused would be disastrous:
    - Calling a provider directly (skipping `gateway.call`). Grep for `Anthropic(`, `openai`, `ollama.` outside the gateway — none should exist.
-   - A posture race: matter is read at B_mixed, posture set to C_paused, original B_mixed view used to dispatch the call. The gateway currently trusts the `posture` parameter — the *caller* must re-read posture before calling. Is this the right division of labour, or should the gateway read it itself?
+   - A posture race: matter is read at B_mixed, posture set to C_paused, original B_mixed view used to dispatch the call. The gateway should re-read `Matter.privilege_posture` when `matter_id` is supplied and let the DB-derived value override any caller `posture` argument. **Closed in R3 (commit `74251b3`)** — `ModelGateway.call` now re-reads posture in the same session immediately before provider selection. Verify this remains true on future changes.
 
 3. **Filesystem materialiser idempotency.** Run `seed_demo_matter` twice and confirm: (a) no duplicate matter row, (b) `matter.md` regenerates without orphaned content, (c) `history.md` gains exactly one new `matter.materialised` line per run, (d) `chronology.md` is **not** overwritten if it has hand-edits (currently I only seed if absent — verify).
 
