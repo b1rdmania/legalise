@@ -96,7 +96,7 @@ If both happen, the workspace did its job. If neither, the GitHub trail still co
 
 ## What needs to be true for this scope to hold
 
-- Bird Legal MVP code is portable enough to seed v1 modules. (Confirmed — existing FastAPI + React code, multi-agent BaseAgent already written.)
+- Bird Legal MVP code (now located at `/Users/andy/counsel-mvp/`, original name "Counsel") provides pattern references and prompt seeds — multi-agent BaseAgent, matter-first router shape, drafting/timeline/scanner/advisor prompt designs. Used as reference and seed, not wholesale port; rebuilt on the new platform layer so MVP debt isn't carried forward.
 - Pre-Motion logic is extractable as a single-turn module. (Confirmed — already exists as a stateful tool; the simplified single-turn version is what ships in v1.)
 - The `claude-for-uk-legal` plugins are stable as the backend for letter drafting and research. (Confirmed — shipped May 2026.)
 - Andy ships solo for three weeks without major Lawhive/other distractions. (Risk — flagged in BUILD_PLAN.md.)

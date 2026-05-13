@@ -106,7 +106,8 @@ The primary demo is one seeded sample matter that threads facts â†’ Pre-Motion â
 
 | Decision | Choice | Alternative considered | Reason |
 |---|---|---|---|
-| Stack | Python + FastAPI + React | TypeScript + Bun + Next.js | Existing Bird Legal code, AI ecosystem maturity, talent pool, would be the choice for a real ABS backend |
+| Stack | Python + FastAPI + React | TypeScript + Bun + Next.js | Existing counsel-mvp (Bird Legal) code as pattern reference, AI ecosystem maturity, talent pool, would be the choice for a real ABS backend |
+| Counsel-mvp treatment | Pattern reference + prompt seeds | Wholesale port | Counsel-mvp was an MVP not a battle-tested product; carrying MVP debt forward would compromise the platform layer. Reuse what works (BaseAgent, matter-first routers, proven prompts); rebuild on `app.core.api` with audit + privilege + model gateway primitives. |
 | Database | Postgres + pgvector | SQLite + Pinecone | Production-ready from day one, one store for everything, audit-friendly |
 | Auth in v1 | Stub | Real (WorkOS) | Demo positioning; auth is v0.2 work |
 | Plugin bridge | Direct skill rendering | MCP servers | Faster to v1; MCP at v0.2 |

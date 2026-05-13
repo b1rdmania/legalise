@@ -10,7 +10,7 @@ Before Day 1:
 
 - [x] Repo scaffolded with directory structure
 - [x] Plan documents written and pushed for review
-- [x] ~~Bird Legal MVP code located~~ — no `bird-legal` repo on disk; matter workspace will be built from scratch in `legalise/` against the existing matter primitive
+- [x] Bird Legal MVP code located — at `/Users/andy/counsel-mvp/`. The MVP under its original name. Treated as **pattern reference**, not a wholesale port: takes the `BaseAgent` shape, the matter-first router pattern, the proven prompt designs for timeline / letter drafting / contract scanner / litigation advisor. Rebuilt against the new platform layer (audit, privilege posture, model gateway, module SDK) rather than dragging MVP debt forward. Useful seeds: `agents/base.py`, `agents/parser.py|analyst.py|redliner.py|summariser.py`, `routers/drafting.py`, `routers/timeline.py`, `routers/advisor.py`, `routers/documents.py`.
 - [x] Pre-Motion code located and audited — adversarial premortem app at `/Users/andy/Documents/New project/premotion/`. Full FastAPI + React with 4-stage pipeline (Optimistic Analyst, Evidence Inspector w/ 3 parallel sub-agents, Premortem Adversary w/ 4 parallel Opus sub-agents, Synthesiser). Plan: port wholesale into `legalise/backend/app/modules/pre_motion/` rather than rewrite the simplified Nash version originally scoped.
 - [ ] `claude-for-uk-legal` plugin invocation pattern from a FastAPI backend resolved (direct subprocess? MCP server? SDK call?)
 - [ ] Ollama installed locally, one local model pulled for privilege-mode testing (`llama3.1:70b` or `qwen2.5:72b`)
@@ -88,6 +88,7 @@ Before Day 1:
 - **Done state:** Pre-Motion runs against the sample matter, the brief output looks shareable on X. The four-stage architecture is visible in the UI, not hidden.
 
 ### Day 8 — CPR-letter bridge surface
+- Pattern reference: `counsel-mvp/backend/app/routers/drafting.py` for the proven letter-drafting prompt shape and CPR-compliance scaffolding. Rebuild on the platform — call the `cpr-letter-drafter` plugin through `app.core.api.plugin_bridge`, not direct Anthropic SDK.
 - Backend: `modules/letters/`
   - Endpoint that calls the `cpr-letter-drafter` plugin with matter context
   - Auto-fills parties, facts, claim heads from `matter.md`
@@ -99,6 +100,7 @@ Before Day 1:
 - **Done state:** from the sample matter, generate a draft letter in 30 seconds and show the plugin invocation in the audit trail.
 
 ### Day 9 — Chronology read-only demo + CPR 31.22 gate
+- Pattern reference: `counsel-mvp/backend/app/routers/timeline.py` for the date-extraction approach that proved out in the MVP. v0.1 doesn't run live extraction (scope discipline) but uses the same fixture shape so v0.2 graduation is a straight port.
 - Seed the sample chronology from fixture data, not live extraction
 - Show timeline/table view, significance tags, source documents, and privilege flags
 - Implement the CPR 31.22 gate at document/chronology boundary: disclosed documents with mismatched proceedings references are blocked or clearly flagged
@@ -106,7 +108,7 @@ Before Day 1:
 - **Done state:** chronology demonstrates the regulatory shape without promising v0.1 extraction.
 
 ### Day 10 — Roadmap module tabs
-- Contract review tab is visible but labelled v0.2
+- Contract review tab is visible but labelled v0.2. The four-agent pipeline (Parser → Analyst → Redliner → Summariser) lives proven in `counsel-mvp/backend/app/agents/` and `routers/documents.py` — graduates in v0.2 via straight port + platform-SDK wiring.
 - Chronology extraction/diff controls are labelled v0.2 if present
 - Copy is transparent: v0.1 proves the matter spine, Pre-Motion, audit, privilege posture, local model toggle, and plugin bridge
 - **Done state:** navigation shows ambition without pretending unfinished modules are done.
