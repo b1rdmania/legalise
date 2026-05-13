@@ -1,6 +1,8 @@
 # Legalise
 
-UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preserving. Open-source. Designed to be extended.
+UK legal practice has a missing middle layer between expensive BigLaw and gutted legal aid. Legalise is the open-source workspace built to help fill it — matter-first, privilege-preserving, England & Wales.
+
+What we believe and refuse to do is in [`MANIFESTO.md`](./MANIFESTO.md).
 
 Built on top of the [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) plugin suite. New tabs plug into the matter spine via a documented module SDK — see [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md). The SDK primitives (`app.core.api`, manifest schema, example module) are in place at the planning level; their concrete implementations land during the v0.1 build window.
 

@@ -1,5 +1,25 @@
 # Roadmap
 
+## What's open source forever
+
+The matter spine, audit log, privilege posture, module SDK, all v0.1 modules, the plugin bridge — Apache 2.0 in perpetuity. Self-host without limits. Fork without limits. Run any models, any storage, any deploy target. No core functionality is gated behind a commercial tier.
+
+## What may become enterprise tier later
+
+Items that require commercial economics to maintain at scale, all clearly distinct from the OSS core. None of these gate v0.1 functionality.
+
+- Hosted multi-tenant SaaS for firms that want managed operations.
+- E-signature, e-billing, and case-management connector contracts (DocuSign, Xero, Clio, LEAP, ActionStep).
+- Compliance certifications (SOC 2 Type II, ISO 27001, Cyber Essentials Plus).
+- Dedicated support, SLAs, and incident response.
+- Custom firm-specific module development services.
+- Hash-chain audit export with off-site immutable timestamping.
+- White-label deployment for legal-tech vendors building on Legalise.
+
+The OSS core is never gated. Enterprise tier exists for firms who want managed operations, not for paywalling functionality. Pattern reference: QuestDB.
+
+---
+
 ## v0.1 (May 2026) — demo launch
 
 One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v0.1 proves the matter spine, audit log, privilege posture, local/cloud model routing, Pre-Motion hero workflow, and one `claude-for-uk-legal` plugin invocation through the CPR-letter bridge. Chronology and contract review are visible roadmap surfaces, not end-to-end v0.1 commitments. Detailed in `BUILD_PLAN.md` and `SCOPE.md`.
