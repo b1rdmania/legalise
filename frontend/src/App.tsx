@@ -3,7 +3,9 @@ import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   confirmGate,
   createMatter,
+  draftLetter,
   getChronology,
+  getLetterCatalogue,
   getMatter,
   listAudit,
   listDocuments,
@@ -13,6 +15,8 @@ import {
   uploadDocument,
   type AuditEntry,
   type ChronologyResponse,
+  type LetterCatalogue,
+  type LetterDraft,
   type Matter,
   type MatterDocument,
   type PreMotionRunResult,
@@ -282,6 +286,11 @@ function MatterDetail({ slug }: { slug: string }) {
   const [premotionError, setPremotionError] = useState<string | null>(null);
   const [chron, setChron] = useState<ChronologyResponse | null>(null);
   const [showSoF, setShowSoF] = useState(false);
+  const [letterCat, setLetterCat] = useState<LetterCatalogue | null>(null);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [letterDraft, setLetterDraft] = useState<LetterDraft | null>(null);
+  const [letterDrafting, setLetterDrafting] = useState(false);
+  const [letterError, setLetterError] = useState<string | null>(null);
 
   const load = () => {
     getMatter(slug)
@@ -290,6 +299,12 @@ function MatterDetail({ slug }: { slug: string }) {
     listDocuments(slug).then(setDocs).catch(() => undefined);
     listAudit(slug, 20).then(setAudit).catch(() => undefined);
     getChronology(slug).then(setChron).catch(() => undefined);
+    getLetterCatalogue(slug)
+      .then((cat) => {
+        setLetterCat(cat);
+        setSelectedLetter((prev) => prev ?? cat.letter_types.find((lt) => lt.is_default)?.id ?? cat.letter_types[0]?.id ?? null);
+      })
+      .catch(() => undefined);
   };
 
   useEffect(load, [slug]);
@@ -319,6 +334,22 @@ function MatterDetail({ slug }: { slug: string }) {
       setPremotionError(String(err));
     } finally {
       setPremotionRunning(false);
+    }
+  };
+
+  const onDraftLetter = async () => {
+    if (!selectedLetter) return;
+    setLetterDrafting(true);
+    setLetterError(null);
+    setLetterDraft(null);
+    try {
+      const draft = await draftLetter(slug, selectedLetter);
+      setLetterDraft(draft);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setLetterError(String(err));
+    } finally {
+      setLetterDrafting(false);
     }
   };
 
@@ -475,6 +506,61 @@ function MatterDetail({ slug }: { slug: string }) {
           <PremotionRunning />
         )}
         {premotion && <PremotionResult result={premotion} />}
+      </section>
+
+      {/* letters ----------------------------------------------- */}
+      <section className="mb-14">
+        <SectionLabel
+          id="§letters"
+          name={`modules · letters · routed by matter_type=${matter.matter_type}`}
+        />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-sans text-[25px] text-snow">Letters.</h2>
+          <button
+            onClick={onDraftLetter}
+            disabled={
+              letterDrafting ||
+              matter.privilege_posture === "C_paused" ||
+              !selectedLetter ||
+              !letterCat ||
+              letterCat.letter_types.length === 0
+            }
+            className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+            title={matter.privilege_posture === "C_paused" ? "Privilege posture C_paused blocks LLM calls" : ""}
+          >
+            {letterDrafting ? "DRAFTING…" : "DRAFT LETTER →"}
+          </button>
+        </div>
+        <p className="font-sans text-[14px] text-ash-gray max-w-[70ch] mb-4">
+          Routed by matter type. ET matters surface{" "}
+          <span className="text-platinum">uk-employment-legal/lba-drafter</span> as default; civil
+          matters surface <span className="text-platinum">uk-litigation-legal/cpr-letter-drafter</span>.
+          Each draft writes <span className="text-platinum">plugin.invoked + model.call + http.post</span> to the audit log.
+        </p>
+
+        {!letterCat && <p className="font-mono text-[12px] text-dim-gray">loading catalogue…</p>}
+        {letterCat && letterCat.letter_types.length === 0 && (
+          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
+            no letter skills mapped for matter_type={letterCat.matter_type}. Add to
+            <span className="text-light-gray"> app/modules/letters/catalog.py</span>.
+          </p>
+        )}
+
+        {letterCat && letterCat.letter_types.length > 0 && (
+          <LetterSelector
+            catalogue={letterCat}
+            selected={selectedLetter}
+            onSelect={setSelectedLetter}
+          />
+        )}
+
+        {letterError && (
+          <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap mt-3 border border-code-error p-3">
+            {letterError}
+          </pre>
+        )}
+
+        {letterDraft && <LetterDraftView draft={letterDraft} />}
       </section>
 
       {/* chronology -------------------------------------------- */}
@@ -736,6 +822,71 @@ function PremotionResult({ result }: { result: PreMotionRunResult }) {
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function LetterSelector({
+  catalogue,
+  selected,
+  onSelect,
+}: {
+  catalogue: LetterCatalogue;
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="border border-graphite">
+      <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate">
+        letter_type · {catalogue.letter_types.length} eligible for matter_type={catalogue.matter_type}
+      </div>
+      {catalogue.letter_types.map((lt) => {
+        const active = selected === lt.id;
+        return (
+          <button
+            key={lt.id}
+            onClick={() => onSelect(lt.id)}
+            className={
+              "w-full text-left p-3 border-b border-graphite last:border-b-0 block " +
+              (active ? "bg-deep-teal" : "hover:bg-graphite")
+            }
+          >
+            <div className="flex items-center gap-3 mb-1 font-mono text-[11px] tracking-[0.053em]">
+              <span className={active ? "text-terminal-green uppercase" : "text-platinum uppercase"}>
+                {lt.label}
+              </span>
+              {lt.is_default && (
+                <span className="font-mono text-[10px] tracking-[0.014em] uppercase text-terminal-green">
+                  DEFAULT
+                </span>
+              )}
+              <span className="text-dim-gray ml-auto">
+                {lt.plugin}/{lt.skill}
+              </span>
+            </div>
+            <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[80ch]">
+              {lt.summary}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function LetterDraftView({ draft }: { draft: LetterDraft }) {
+  return (
+    <div className="mt-4 border border-graphite">
+      <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate flex items-center justify-between">
+        <span>
+          draft · {draft.plugin}/{draft.skill} · {draft.model_used} · {draft.token_count} tok ·{" "}
+          {(draft.latency_ms / 1000).toFixed(1)}s
+        </span>
+        <span className="text-terminal-green uppercase">{draft.letter_type}</span>
+      </div>
+      <pre className="p-4 font-sans text-[14px] leading-[1.55] text-snow whitespace-pre-wrap">
+        {draft.draft_markdown}
+      </pre>
     </div>
   );
 }

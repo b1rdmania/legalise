@@ -1,1 +1,1 @@
-"""Pre-build placeholder — real implementation lands during v0.1 build."""
+"""Letters module — matter-type-aware drafting over the plugin bridge."""

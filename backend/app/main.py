@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
 from app.modules.chronology.router import router as chronology_router
+from app.modules.letters.router import router as letters_router
 from app.modules.pre_motion.router import router as pre_motion_router
 from app.providers import register_providers
 
@@ -113,8 +114,8 @@ app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 # (and .../chronology/gate) so the audit middleware's matter-path matcher
 # picks them up without special-casing.
 app.include_router(chronology_router, prefix="/api/matters", tags=["chronology"])
+app.include_router(letters_router, prefix="/api/matters", tags=["letters"])
 app.include_router(pre_motion_router, prefix="/api/matters", tags=["pre-motion"])
 
 # Remaining module routers land later in the build window.
-# from app.modules.letters.router import router as letters_router
 # from app.modules.contract_review.router import router as contract_review_router

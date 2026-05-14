@@ -225,3 +225,41 @@ export const confirmGate = (slug: string, acknowledgement: string) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ acknowledgement }),
   }).then((r) => jsonOrThrow<GateState>(r));
+
+// ----- Letters -----
+
+export interface LetterType {
+  id: string;
+  label: string;
+  plugin: string;
+  skill: string;
+  summary: string;
+  is_default: boolean;
+}
+
+export interface LetterCatalogue {
+  matter_slug: string;
+  matter_type: string;
+  letter_types: LetterType[];
+}
+
+export interface LetterDraft {
+  matter_slug: string;
+  letter_type: string;
+  plugin: string;
+  skill: string;
+  draft_markdown: string;
+  model_used: string;
+  token_count: number;
+  latency_ms: number;
+}
+
+export const getLetterCatalogue = (slug: string) =>
+  fetch(`${API}/matters/${slug}/letters/catalog`).then((r) => jsonOrThrow<LetterCatalogue>(r));
+
+export const draftLetter = (slug: string, letterType: string, inputs: Record<string, string> = {}) =>
+  fetch(`${API}/matters/${slug}/letters/draft`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ letter_type: letterType, inputs }),
+  }).then((r) => jsonOrThrow<LetterDraft>(r));
