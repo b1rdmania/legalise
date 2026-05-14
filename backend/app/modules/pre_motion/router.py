@@ -23,6 +23,7 @@ from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused, PrivilegePosture
+from app.core.user_keys import ProviderKeyMissing
 from app.models import Matter, User
 
 from .pdf import render_pre_motion_pdf
@@ -66,6 +67,11 @@ async def run_pre_motion_endpoint(
         )
     except PrivilegePaused as exc:
         raise HTTPException(409, str(exc)) from exc
+    except ProviderKeyMissing as exc:
+        raise HTTPException(
+            422,
+            detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
+        ) from exc
 
 
 @router.post("/{slug}/pre-motion/run-stream")
@@ -142,6 +148,19 @@ async def run_pre_motion_stream(
                     )
                 except PrivilegePaused as exc:
                     await queue.put({"event": "error", "data": {"message": str(exc), "code": 409}})
+                    return
+                except ProviderKeyMissing as exc:
+                    await queue.put(
+                        {
+                            "event": "error",
+                            "data": {
+                                "message": str(exc),
+                                "code": 422,
+                                "error": "provider_key_missing",
+                                "provider": exc.provider,
+                            },
+                        }
+                    )
                     return
                 except Exception as exc:
                     await queue.put({"event": "error", "data": {"message": str(exc)}})

@@ -20,13 +20,17 @@ DEFAULT_MAX_TOKENS = 2048
 class OpenAIProvider:
     name = "openai"
 
-    def __init__(self, api_key: str, default_model: str = DEFAULT_MODEL):
-        self._client = AsyncOpenAI(api_key=api_key)
+    def __init__(self, api_key: str | None, default_model: str = DEFAULT_MODEL):
+        self._fallback_key = api_key
         self._default_model = default_model
 
     async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
         model = kwargs.get("model") or self._default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
+        api_key = kwargs.get("api_key") or self._fallback_key
+        if not api_key:
+            raise RuntimeError("openai: no api_key supplied")
+        client = AsyncOpenAI(api_key=api_key)
 
         messages: list[dict] = []
         if system:
@@ -34,7 +38,7 @@ class OpenAIProvider:
         messages.append({"role": "user", "content": prompt})
 
         try:
-            response = await self._client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=model,
                 max_tokens=max_tokens,
                 messages=messages,

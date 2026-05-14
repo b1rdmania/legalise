@@ -27,7 +27,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.user_keys import (
+    ProviderKeyMissing,
+    get_user_provider_key,
+    mark_user_key_used,
+)
 from app.models import AuditEntry, Matter
+
+# Providers that require a per-user (or server-fallback) API key. Ollama
+# and stub-echo run keyless; everything else routes through user_keys.
+_KEYED_PROVIDERS = {"anthropic", "openai"}
+_DEV_ENVIRONMENTS = {"development", "dev", "local"}
 
 
 class PrivilegePosture(str, Enum):
@@ -38,6 +48,10 @@ class PrivilegePosture(str, Enum):
 
 class PrivilegePaused(RuntimeError):
     """Raised when a model call is attempted on a C_paused matter."""
+
+
+# `ProviderKeyMissing` is re-exported so routers catch it via the same
+# import surface as `PrivilegePaused`. Defined in `app.core.user_keys`.
 
 
 @dataclass
@@ -141,9 +155,34 @@ class ModelGateway:
         requested = model or settings.default_model_id
         provider = self._select_provider(requested, effective_posture)
 
+        # Per-user key resolution for keyed providers (anthropic, openai).
+        # Ollama/stub-echo are keyless. If the user has no key and the
+        # dev-only server fallback isn't permitted, raise structured
+        # ProviderKeyMissing — routers translate to 422 with a UI nudge.
+        provider_kwargs: dict = {}
+        if provider.name in _KEYED_PROVIDERS:
+            user_key: str | None = None
+            if actor_id is not None:
+                user_key = await get_user_provider_key(session, actor_id, provider.name)
+
+            if user_key is None:
+                fallback_allowed = (
+                    settings.environment in _DEV_ENVIRONMENTS
+                    and settings.allow_server_key_fallback
+                )
+                if not fallback_allowed:
+                    raise ProviderKeyMissing(provider.name)
+                # Fall through with no api_key kwarg — provider uses its
+                # construct-time fallback. Dev only.
+            else:
+                provider_kwargs["api_key"] = user_key
+
         start = time.perf_counter()
-        response_text, tokens = await provider.call(prompt, system=system)
+        response_text, tokens = await provider.call(prompt, system=system, **provider_kwargs)
         latency_ms = int((time.perf_counter() - start) * 1000)
+
+        if provider.name in _KEYED_PROVIDERS and actor_id is not None and "api_key" in provider_kwargs:
+            await mark_user_key_used(session, actor_id, provider.name)
 
         result = ModelResult(
             text=response_text,

@@ -26,6 +26,7 @@ from app.adapters import plugin_bridge as plugin_bridge_module
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused
+from app.core.user_keys import ProviderKeyMissing
 from app.models import Matter, User
 
 from .catalog import catalogue_for_matter_type, resolve
@@ -105,6 +106,11 @@ async def draft_letter(
         raise HTTPException(404, str(exc)) from exc
     except PrivilegePaused as exc:
         raise HTTPException(409, str(exc)) from exc
+    except ProviderKeyMissing as exc:
+        raise HTTPException(
+            422,
+            detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
+        ) from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

@@ -64,13 +64,16 @@ async def register_providers(gateway: ModelGateway) -> list[str]:
     """
     registered: list[str] = ["stub-echo"]  # always available
 
-    if settings.anthropic_api_key:
-        gateway.register(AnthropicProvider(api_key=settings.anthropic_api_key))
-        registered.append("anthropic")
+    # Always register Anthropic + OpenAI providers — keys come from each
+    # user's settings at call time (BYO key). The server-level env vars
+    # are kept as a dev-only fallback used by the gateway only when
+    # ENVIRONMENT is dev/development/local AND LEGALISE_ALLOW_SERVER_KEY_FALLBACK
+    # is set (gateway enforces; production reads the flag as false).
+    gateway.register(AnthropicProvider(api_key=settings.anthropic_api_key))
+    registered.append("anthropic")
 
-    if settings.openai_api_key:
-        gateway.register(OpenAIProvider(api_key=settings.openai_api_key))
-        registered.append("openai")
+    gateway.register(OpenAIProvider(api_key=settings.openai_api_key))
+    registered.append("openai")
 
     if settings.ollama_url and await _probe_ollama(settings.ollama_url):
         gateway.register(OllamaProvider(base_url=settings.ollama_url))

@@ -26,16 +26,23 @@ DEFAULT_MAX_TOKENS = 2048
 class AnthropicProvider:
     name = "anthropic"
 
-    def __init__(self, api_key: str, default_model: str | None = None):
-        self._client = AsyncAnthropic(api_key=api_key)
+    def __init__(self, api_key: str | None, default_model: str | None = None):
+        # Optional fallback key — used only when LEGALISE_ALLOW_SERVER_KEY_FALLBACK
+        # is true in a dev environment. Production gateway refuses to fall
+        # back even if this is set.
+        self._fallback_key = api_key
         self._default_model = default_model or settings.default_model_id
 
     async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
         model = kwargs.get("model") or self._default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
+        api_key = kwargs.get("api_key") or self._fallback_key
+        if not api_key:
+            raise RuntimeError("anthropic: no api_key supplied")
+        client = AsyncAnthropic(api_key=api_key)
 
         try:
-            message = await self._client.messages.create(
+            message = await client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
                 system=system or "You are a UK legal AI assistant. Draft for solicitor review.",

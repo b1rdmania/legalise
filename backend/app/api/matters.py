@@ -32,6 +32,7 @@ from app.core.matter_fs import (
     record_document,
 )
 from app.core.model_gateway import PrivilegePaused
+from app.core.user_keys import ProviderKeyMissing
 from app.models import (
     AuditEntry,
     Document,
@@ -400,6 +401,11 @@ async def invoke_plugin(
         raise HTTPException(404, str(exc)) from exc
     except PrivilegePaused as exc:
         raise HTTPException(409, str(exc)) from exc
+    except ProviderKeyMissing as exc:
+        raise HTTPException(
+            422,
+            detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
+        ) from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

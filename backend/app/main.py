@@ -15,6 +15,7 @@ from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
 from app.api.auth import router as auth_router
 from app.api.modules import router as modules_router
+from app.api.settings import router as settings_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
 from app.core.encryption import assert_master_key_present
@@ -122,6 +123,7 @@ async def health() -> dict[str, Any]:
 
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 
