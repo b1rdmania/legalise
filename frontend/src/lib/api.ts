@@ -134,6 +134,38 @@ export const invokePlugin = (slug: string, plugin: string, skill: string, inputs
     body: JSON.stringify({ plugin, skill, inputs }),
   }).then((r) => jsonOrThrow<PluginInvokeResponse>(r));
 
+// ----- Installed skill catalogue -----
+
+export interface ModuleSkill {
+  plugin: string;
+  skill: string;
+  name: string;
+  description: string;
+  source_url: string | null;
+  argument_hint: string | null;
+}
+
+export interface ModulesResponse {
+  plugins_root: string;
+  source: {
+    repo: string | null;
+    ref: string | null;
+  };
+  skills: ModuleSkill[];
+}
+
+export const getModules = () =>
+  fetch(`${API}/modules`).then((r) => jsonOrThrow<ModulesResponse>(r));
+
+export const getSkillBody = (plugin: string, skill: string) =>
+  fetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
+    if (!r.ok) {
+      const text = await r.text();
+      throw new Error(`${r.status} ${r.statusText}: ${text}`);
+    }
+    return r.text();
+  });
+
 // ----- Pre-Motion -----
 
 export interface PreMotionStageStatus {

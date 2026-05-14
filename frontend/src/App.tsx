@@ -9,6 +9,8 @@ import {
   getChronology,
   getLetterCatalogue,
   getMatter,
+  getModules,
+  getSkillBody,
   listAudit,
   listDocuments,
   listMatters,
@@ -21,6 +23,8 @@ import {
   type LetterDraft,
   type Matter,
   type MatterDocument,
+  type ModuleSkill,
+  type ModulesResponse,
   type PreMotionRunResult,
 } from "./lib/api";
 
@@ -53,6 +57,7 @@ export default function App() {
       <TopBar health={health} route={route} />
       <main className="flex-1">
         {route.name === "landing" && <Landing />}
+        {route.name === "modules" && <Modules />}
         {route.name === "list" && <MatterList />}
         {route.name === "new" && <NewMatter />}
         {route.name === "detail" && <MatterDetail slug={route.slug} />}
@@ -66,6 +71,7 @@ export default function App() {
 function TopBar({ health, route }: { health: HealthResponse | null; route: Route }) {
   const dbOk = health?.database === "ok";
   const isLanding = route.name === "landing";
+  const isModules = route.name === "modules";
   const isList = route.name === "list";
   const isNew = route.name === "new";
   const isDetail = route.name === "detail";
@@ -73,13 +79,15 @@ function TopBar({ health, route }: { health: HealthResponse | null; route: Route
   // a path (legalise / matters / khan-…) rather than a fixed label.
   const tail = isLanding
     ? "home"
-    : isList
-      ? "matters"
-      : isNew
-        ? "matters / new"
-        : isDetail
-          ? `matters / ${route.slug}`
-          : "matters";
+    : isModules
+      ? "modules"
+      : isList
+        ? "matters"
+        : isNew
+          ? "matters / new"
+          : isDetail
+            ? `matters / ${route.slug}`
+            : "matters";
   return (
     <header className="border-b border-graphite px-6 py-3 flex items-center justify-between sticky top-0 bg-carbon z-30">
       <a
@@ -96,6 +104,9 @@ function TopBar({ health, route }: { health: HealthResponse | null; route: Route
       <nav className="flex items-center gap-5">
         <NavLink href="#/matters" active={isList || isDetail}>
           Matters
+        </NavLink>
+        <NavLink href="#/modules" active={isModules}>
+          Modules
         </NavLink>
         <NavLink href="#/matters/new" active={isNew}>
           New
@@ -165,16 +176,17 @@ function Landing() {
       </div>
 
       <h1 className="font-sans font-normal text-snow text-[65px] leading-[1.05] tracking-[-0.05px] mb-6 max-w-[20ch]">
-        Matter-first legal AI for England &amp; Wales.
+        The audited execution layer for Claude legal skills.
       </h1>
 
       <p className="font-sans text-[18px] leading-[1.45] text-ash-gray max-w-[62ch] mb-10">
-        Legalise is an open-source workspace counterpart to the
-        <span className="text-platinum"> claude-for-uk-legal</span> plugin suite. Matters
-        are addressable resources — every LLM call is audited, privilege posture is a
+        Legalise renders any catalogue of <span className="text-platinum">SKILL.md</span> files
+        into a matter-first workspace where every call is audited, privilege posture is a
         first-class property, and disclosure-tainted chronology entries are gated behind
-        a CPR 31.22 implied-undertaking acknowledgement at the API. Plug in any module
-        that respects those constraints.
+        a CPR 31.22 implied-undertaking acknowledgement at the API. Skills come from{" "}
+        <span className="text-platinum">claude-for-uk-legal</span> by default; fork the catalogue,
+        review the skills, point <span className="text-platinum">PLUGINS_ROOT</span> at your fork.
+        Approval is code review. Provenance is git history.
       </p>
 
       <div className="flex flex-wrap items-center gap-4 mb-16">
@@ -185,6 +197,12 @@ function Landing() {
         >
           {demoSlug ? "OPEN DEMO MATTER →" : "LOADING DEMO…"}
         </button>
+        <a
+          href="#/modules"
+          className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
+        >
+          installed skills →
+        </a>
         <a
           href="#/matters"
           className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
@@ -203,27 +221,34 @@ function Landing() {
 
       {error && <ErrorCallout message={error} />}
 
-      <SectionLabel id="§surfaces" name="modules · v0.1 surfaces" />
+      <SectionLabel id="§layers" name="execution layer · five parts" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
         <SurfaceCard
-          kbd="matter"
-          name="Matter spine"
-          body="CRUD, document register with SHA-256, privilege posture toggle (A_cleared / B_mixed / C_paused), filesystem materialisation to Stella-compatible matters/{slug}/ layout, audit trail on every mutation."
+          kbd="catalogue"
+          name="Catalogue"
+          body="Plain-text SKILL.md files. claude-for-uk-legal is the default catalogue: fork it, review changes by PR diff, pin an approved SHA."
         />
         <SurfaceCard
-          kbd="pre-motion"
-          name="Pre-Motion (hero)"
-          body="Adversarial premortem — Optimistic Analyst → Evidence Inspector × 3 → Premortem Adversary × 4 → Synthesiser. 9 model calls per run, all audited. SSE streaming, PDF export via Gotenberg."
+          kbd="bridge"
+          name="Bridge"
+          body="Loads SKILL.md, injects matter context, dispatches through the privilege-aware model gateway, and writes plugin.invoked + model.call audit rows."
         />
         <SurfaceCard
-          kbd="letters"
-          name="Letters"
-          body="Matter-type-aware drafting over the plugin bridge. Employment Tribunal routes to lba-drafter by default; civil claims route to cpr-letter-drafter. Six letter types in the seeded catalogue."
+          kbd="surfaces"
+          name="Surfaces"
+          body="Three proven render patterns: generic invoke, curated multi-skill selection in Letters, and bespoke hero orchestration in Pre-Motion."
         />
         <SurfaceCard
-          kbd="chronology"
-          name="Chronology + CPR 31.22 gate"
-          body="Seeded fixture demonstrating the regulatory shape. Disclosure-tainted entries are redacted at the API until the user acknowledges the implied undertaking. Live extraction graduates v0.2."
+          kbd="discovery"
+          name="Discovery"
+          body="The installed skills page shows what is present at PLUGINS_ROOT, grouped by plugin, with source links and prompt bodies for review."
+          href="#/modules"
+        />
+        <SurfaceCard
+          kbd="approval"
+          name="Install / approval"
+          body="Installation is Git: fork the catalogue, approve prompt changes in code review, pin PLUGINS_REPO_REF, deploy. No ratings, no marketplace database."
+          href="https://github.com/b1rdmania/legalise#installing-skills"
         />
       </div>
 
@@ -246,14 +271,173 @@ function Landing() {
   );
 }
 
-function SurfaceCard({ kbd, name, body }: { kbd: string; name: string; body: string }) {
-  return (
-    <div className="border border-graphite p-4">
+function SurfaceCard({ kbd, name, body, href }: { kbd: string; name: string; body: string; href?: string }) {
+  const inner = (
+    <>
       <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
         <span className="text-terminal-green">§{kbd}</span>
       </div>
       <h3 className="font-sans text-[20px] text-snow mb-2 leading-[1.2]">{name}</h3>
       <p className="font-sans text-[14px] leading-[1.5] text-ash-gray">{body}</p>
+    </>
+  );
+  if (href) {
+    return (
+      <a href={href} className="border border-graphite p-4 block hover:bg-graphite/30">
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <div className="border border-graphite p-4">
+      {inner}
+    </div>
+  );
+}
+
+// ---------- modules ---------------------------------------------------------
+
+function Modules() {
+  const [data, setData] = useState<ModulesResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [promptBody, setPromptBody] = useState<Record<string, string>>({});
+  const [promptError, setPromptError] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getModules()
+      .then(setData)
+      .catch((e) => setError(String(e)));
+  }, []);
+
+  const onTogglePrompt = async (skill: ModuleSkill) => {
+    const key = `${skill.plugin}/${skill.skill}`;
+    if (openKey === key) {
+      setOpenKey(null);
+      return;
+    }
+    setOpenKey(key);
+    if (promptBody[key] || promptError[key]) return;
+    try {
+      const body = await getSkillBody(skill.plugin, skill.skill);
+      setPromptBody((prev) => ({ ...prev, [key]: body }));
+    } catch (e) {
+      setPromptError((prev) => ({ ...prev, [key]: String(e) }));
+    }
+  };
+
+  const grouped = new Map<string, ModuleSkill[]>();
+  for (const skill of data?.skills ?? []) {
+    const rows = grouped.get(skill.plugin) ?? [];
+    rows.push(skill);
+    grouped.set(skill.plugin, rows);
+  }
+  const shortRef = data?.source.ref ? data.source.ref.slice(0, 7) : "unversioned";
+
+  return (
+    <div className="max-w-[1100px] mx-auto px-8 py-12">
+      <SectionLabel id="§modules" name="installed skill catalogue" />
+      <h1 className="font-sans font-normal text-snow text-[65px] leading-[1.05] tracking-[-0.05px] mb-4 max-w-[18ch]">
+        Installed skills.
+      </h1>
+      <p className="font-sans text-[16px] leading-[1.5] text-ash-gray max-w-[70ch] mb-6">
+        Read-only discovery over <span className="text-platinum">PLUGINS_ROOT</span>. This is the
+        scan view for the team approving a Git-distributed catalogue: source link, prompt body,
+        pinned SHA, and the plugin/skill id that appears in audit rows.
+      </p>
+
+      {data && (
+        <div className="font-mono text-[11px] tracking-[0.04em] text-dim-gray mb-8 grid grid-cols-1 md:grid-cols-3 gap-3 border border-graphite p-3">
+          <Cell k="plugins_root" v={data.plugins_root} />
+          <Cell k="source_repo" v={data.source.repo ?? "unset"} />
+          <Cell k="pinned_ref" v={shortRef} />
+        </div>
+      )}
+
+      {error && <ErrorCallout message={error} />}
+      {!data && !error && <LoadingLine label="loading installed skills" />}
+
+      {data && data.skills.length === 0 && (
+        <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
+          no SKILL.md files found under {data.plugins_root}
+        </p>
+      )}
+
+      {data && data.skills.length > 0 && (
+        <div className="space-y-8">
+          {Array.from(grouped.entries()).map(([plugin, skills]) => (
+            <section key={plugin}>
+              <div className="flex items-baseline justify-between mb-3">
+                <h2 className="font-sans text-[25px] text-snow">{plugin}</h2>
+                <span className="font-mono text-[11px] tracking-[0.053em] text-dim-gray">
+                  {skills.length} skill{skills.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="border border-graphite">
+                {skills.map((skill) => {
+                  const key = `${skill.plugin}/${skill.skill}`;
+                  const expanded = openKey === key;
+                  return (
+                    <div key={key} className="border-b border-graphite last:border-b-0">
+                      <div className="p-3 grid grid-cols-[1fr_auto] gap-4">
+                        <div>
+                          <div className="font-mono text-[11px] tracking-[0.053em] text-terminal-green uppercase mb-1">
+                            {skill.skill}
+                          </div>
+                          <h3 className="font-sans text-[18px] leading-[1.2] text-snow mb-1">
+                            {skill.name}
+                          </h3>
+                          <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[80ch]">
+                            {skill.description}
+                          </p>
+                          {skill.argument_hint && (
+                            <p className="font-mono text-[11px] tracking-[0.04em] text-dim-gray mt-2">
+                              args · <span className="text-light-gray">{skill.argument_hint}</span>
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {skill.source_url && (
+                            <a
+                              href={skill.source_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-mono text-[11px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-2 py-1"
+                            >
+                              view source →
+                            </a>
+                          )}
+                          <button
+                            onClick={() => onTogglePrompt(skill)}
+                            className="font-mono text-[11px] tracking-[0.053em] text-terminal-green bg-deep-teal px-2 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow"
+                          >
+                            {expanded ? "HIDE PROMPT ↑" : "VIEW PROMPT →"}
+                          </button>
+                        </div>
+                      </div>
+                      {expanded && (
+                        <div className="border-t border-graphite bg-carbon">
+                          {promptError[key] && <ErrorCallout message={promptError[key]} compact />}
+                          {!promptBody[key] && !promptError[key] && (
+                            <div className="p-3">
+                              <LoadingLine label={`loading ${key}`} />
+                            </div>
+                          )}
+                          {promptBody[key] && (
+                            <pre className="p-4 font-mono text-[12px] tracking-[0.014em] leading-[1.55] text-platinum whitespace-pre-wrap overflow-x-auto">
+                              {promptBody[key]}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

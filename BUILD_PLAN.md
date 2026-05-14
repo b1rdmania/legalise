@@ -159,22 +159,34 @@ Before Day 1:
 - README block explaining the eval approach
 - Evals are not gating in v1 but they exist and are documented
 
-### Day 17 — README + launch assets (Plain-English is stretch, not committed)
+### Day 17a — Module discovery + catalogue framing
 
-**Hard gate.** Plain-English is built only if the core sample-matter path is green at end of Day 16 — quickstart works, matter spine + audit + privilege posture are real, Pre-Motion runs end-to-end on the sample matter, the letter bridge invokes a plugin successfully, the chronology read-only demo shows the CPR 31.22 gate. If any of those is yellow or red, skip Plain-English entirely and ship the launch with `examples/modules/example-tab/` as the SDK example.
+Pivot batch from `HANDOVER_PIVOT.md`: ship the read-only Discovery layer and
+rewrite public framing around Legalise as the audited execution layer for a
+Git-distributed catalogue of Claude legal skills.
 
-**If green (stretch — ~2 hours, morning only).** Plain-English module built strictly on the documented `app.core.api` surface — same constraints any third-party contributor faces.
-- Backend: `modules/plain_english/` — single endpoint that takes any text (clause, draft letter output, chronology entry) and returns the plain-English version. Wraps the existing `plain-english` Claude Code skill via the model gateway.
-- Frontend: `modules/plain_english/` — tab with "paste text / select from matter" input plus plain-English output panel. Also exposes a `usePlainEnglish` hook other modules can call when they re-introduce contract review and similar surfaces in v0.2.
-- Write up: a launch-post draft documenting how the module was built in two hours using the SDK. This becomes the SDK proof point.
+- Backend: `GET /api/modules` scans `PLUGINS_ROOT` for installed `SKILL.md`
+  files; `GET /api/modules/{plugin}/{skill}` exposes the prompt body for
+  review.
+- Frontend: `#/modules` lists installed skills grouped by plugin, with source
+  links to the pinned catalogue SHA and inline prompt-body expansion.
+- README + landing: lead with the execution-layer claim and document the
+  Git-as-marketplace install/approval workflow.
+- Trust docs: add skill provenance and approval section.
 
-**Afternoon — README + launch assets (always).**
+This retires the earlier Plain-English stretch. The Discovery layer is the
+v0.1 SDK proof: it shows external skills on disk becoming audited workspace
+capability without pretending there is an install marketplace UI.
+
+### Day 17 — README + launch assets
+
 - Top-level README with:
   - Hero one-liner and demo link
   - Architecture diagram (mermaid)
   - Primary sample matter walkthrough with screenshots
   - Plugin-and-workspace relationship explained
-  - Module SDK pointer — "added plain-english in two hours; do the same for your tab" with link to `docs/MODULE_DEVELOPMENT.md`
+  - Installed skills / Git catalogue workflow with link to `#/modules`
+  - Module SDK pointer with link to `docs/MODULE_DEVELOPMENT.md`
   - Stack rationale (one paragraph)
   - Quickstart (Docker Compose)
   - Self-host vs Cloudflare deploy
@@ -187,7 +199,9 @@ Before Day 1:
 - Mermaid diagrams in README: matter lifecycle, plugin bridge, audit-log flow, Pre-Motion adversarial pipeline
 
 ### Day 18 — Launch
-- Show HN Tuesday morning UK time
+- Paired Show HN Tuesday morning UK time: Legalise + `claude-for-uk-legal`
+- Cross-link the two repos and launch posts. One launch motion, two products:
+  the skill catalogue and the audited execution layer that renders it.
 - X main post + reply with link
 - LinkedIn main post + replies for the sample matter, Pre-Motion, regulatory plumbing, and plugin bridge
 - Cross-link from `claude-for-uk-legal` README

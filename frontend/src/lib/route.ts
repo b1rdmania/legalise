@@ -3,6 +3,7 @@
 //
 // Routes:
 //   #/                          → landing
+//   #/modules                   → installed skill catalogue
 //   #/matters                   → matters list
 //   #/matters/new               → new matter form
 //   #/matters/{slug}            → matter detail
@@ -12,6 +13,7 @@ import { useEffect, useState } from "react";
 
 export type Route =
   | { name: "landing" }
+  | { name: "modules" }
   | { name: "list" }
   | { name: "new" }
   | { name: "detail"; slug: string; tab?: string };
@@ -19,6 +21,7 @@ export type Route =
 export function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, "").replace(/^\//, "");
   if (h === "") return { name: "landing" };
+  if (h === "modules") return { name: "modules" };
   if (h === "matters") return { name: "list" };
   if (h === "matters/new") return { name: "new" };
   const m = h.match(/^matters\/([^/]+)(?:\/(.+))?$/);

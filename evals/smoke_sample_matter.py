@@ -46,7 +46,7 @@ def _req(method: str, path: str, body: dict | None = None) -> tuple[int, dict | 
             return exc.code, raw
 
 
-def _audit(slug: str, limit: int = 100) -> list[dict]:
+def _audit(slug: str, limit: int = 1000) -> list[dict]:
     status, body = _req("GET", f"/matters/{slug}/audit?limit={limit}")
     assert status == 200, f"audit fetch failed: {status} {body}"
     assert isinstance(body, list)

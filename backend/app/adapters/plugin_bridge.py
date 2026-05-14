@@ -44,6 +44,7 @@ class SkillManifest:
 
     name: str
     description: str
+    argument_hint: str | None
     body: str  # the prompt template — everything after the frontmatter
 
 
@@ -72,6 +73,7 @@ def _parse_skill_md(text: str) -> SkillManifest:
 
     name = ""
     description = ""
+    argument_hint: str | None = None
     # Very narrow YAML reader: handles `key: value` and `key: "..."` for the
     # two fields we need. Anything more complex is ignored.
     for line in fm_block.splitlines():
@@ -79,11 +81,13 @@ def _parse_skill_md(text: str) -> SkillManifest:
             name = line.split(":", 1)[1].strip().strip("\"'")
         elif line.startswith("description:"):
             description = line.split(":", 1)[1].strip().strip("\"'")
+        elif line.startswith("argument-hint:"):
+            argument_hint = line.split(":", 1)[1].strip().strip("\"'")
 
     if not name:
         raise ValueError("SKILL.md frontmatter missing `name`")
 
-    return SkillManifest(name=name, description=description, body=body)
+    return SkillManifest(name=name, description=description, argument_hint=argument_hint, body=body)
 
 
 def _render_matter_block(matter: Matter) -> str:

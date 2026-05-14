@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     # claude-for-uk-legal plugin suite checkout. Bind-mounted into the
     # backend container in dev (see infra/docker-compose.yml).
     plugins_root: str = "/plugins"
+    plugins_repo: str | None = "https://github.com/b1rdmania/claude-for-uk-legal"
+    plugins_repo_ref: str | None = "3fb0ea86ad49f92d90fbd9dcfbee70f5947ba31c"
 
 
 @lru_cache

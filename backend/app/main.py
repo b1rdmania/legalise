@@ -13,6 +13,7 @@ from pathlib import Path
 
 from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
+from app.api.modules import router as modules_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
 from app.core.model_gateway import gateway as model_gateway
@@ -114,6 +115,7 @@ async def health() -> dict[str, Any]:
 
 
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
+app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 
 # Chronology module nests its routes under /api/matters/{slug}/chronology
 # (and .../chronology/gate) so the audit middleware's matter-path matcher

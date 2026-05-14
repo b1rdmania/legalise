@@ -28,6 +28,8 @@ primary_region = "lhr"
   MATTERS_ROOT = "/data/matters"
   # PLUGINS_ROOT is set by the Dockerfile clone — see backend/Dockerfile.
   PLUGINS_ROOT = "/plugins"
+  PLUGINS_REPO = "https://github.com/b1rdmania/claude-for-uk-legal"
+  PLUGINS_REPO_REF = "3fb0ea86ad49f92d90fbd9dcfbee70f5947ba31c"
 
 [http_service]
   internal_port = 8000

@@ -209,7 +209,32 @@ enforcement (Postgres-level revocation of UPDATE/DELETE) lands v0.2.
 
 ---
 
-## 9. Authentication
+## 9. Skill provenance and approval
+
+`SKILL.md` is the review unit. Every installed skill has plain-text
+frontmatter (`name`, `description`, optional `argument-hint`) and a prompt
+body. Legalise exposes both through the installed-skills discovery page so a
+firm's internal tech team can review what will run before solicitors use it.
+
+Git is the approval trail. Firms fork a catalogue such as
+`claude-for-uk-legal`, review prompt changes by PR diff, merge approved
+changes, and deploy Legalise against the approved SHA. `PLUGINS_REPO_REF`
+pins the catalogue version used by the live system; bumping it is visible in
+deploy configuration, image history, and `git log`.
+
+Runtime provenance is separate and audited. Every skill invocation records
+`plugin.invoked` plus the gateway's `model.call`. The `plugin.invoked`
+payload carries `plugin`, `skill`, `skill_name`, `inputs`, and
+`matter_slug`, so "which skills ran against which matters?" is answerable
+from the audit log.
+
+What v0.1 does **not** yet cover: prompt-injection scanning, automated
+`SKILL.md` linting, signed manifests, organisation-level skill allowlists,
+or per-workspace enable/disable policy. Those are v0.2 concerns.
+
+---
+
+## 10. Authentication
 
 **v0.1 ships a single hardcoded solicitor user** for the demo deployment.
 This is not production-ready and is documented as such throughout the
@@ -221,7 +246,7 @@ Run it locally, in your firm's network, or behind a VPN you trust.
 
 ---
 
-## 10. Encryption
+## 11. Encryption
 
 - **In transit:** TLS 1.2+ for all external connections. Fly.io and Neon
   terminate TLS; their internal hop is also encrypted.
@@ -233,7 +258,7 @@ Run it locally, in your firm's network, or behind a VPN you trust.
 
 ---
 
-## 11. Compliance posture
+## 12. Compliance posture
 
 We do not claim certifications we do not hold. As of v0.1:
 
@@ -255,7 +280,7 @@ invert it. None of these have been started.
 
 ---
 
-## 12. Reporting a vulnerability
+## 13. Reporting a vulnerability
 
 Until we have a dedicated security@legalise.dev:
 
@@ -269,12 +294,13 @@ unless they prefer anonymity.
 
 ---
 
-## 13. Change log
+## 14. Change log
 
 | Date | Change |
 |---|---|
 | 2026-05-13 | First draft (v0.1 source of truth) |
 | 2026-05-13 | Sweep: "Compliant by design" → "Designed against principles"; gaps promoted to §3 (read this first); compliance table reframed as planned sequencing, not achieved assurance; insurance note added |
+| 2026-05-14 | Added §9 skill provenance and approval: Git review as approval trail, `PLUGINS_REPO_REF` pinning, and `plugin.invoked` audit provenance |
 
 This file changes when the architecture changes. `git log docs/TRUST.md`
 is the canonical history.
