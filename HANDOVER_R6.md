@@ -249,9 +249,10 @@ other way.
   the experience is "broken-looking" until the backend recovers.
   Acceptable for v0.1 (the demo is a backend showcase, so a dead
   backend should look dead).
-- **Gotenberg cold-start adds 1–3s to first PDF export after idle.**
-  Documented as acceptable for a demo surface; revisit at v0.2 if PDF
-  becomes load-bearing.
+- ~~Gotenberg cold-start adds 1–3s to first PDF export after idle.~~
+  Removed in the R6 fix sweep — the always-on posture (no autostop)
+  has no cold start. Revisit at v0.2 by swapping to Flycast +
+  `[http_service]` + autostop if PDF cost or scale changes.
 - **Brand-crumb truncation** — at 40ch the matter slug
   `khan-v-acme-trading-2026` fits (24 chars). A slug longer than ~40
   chars truncates with no ellipsis tooltip. Edge case; revisit if it

@@ -95,7 +95,14 @@ The env var must carry both the backend origin **and** the `/api` path segment b
 
 The Pre-Motion PDF export route (`POST /api/matters/{slug}/pre-motion/pdf`) calls Gotenberg's Chromium converter. Self-host already gets this for free via `infra/docker-compose.yml`; the live demo needs a second Fly app in the same region so the backend can reach it over Fly's internal network.
 
-**Why sidecar Fly app and not a hosted PDF API.** Hosted converters (Browserless, Doppio, etc.) add another vendor relationship, another egress path for matter content, and a second residency story to defend. Gotenberg as a sidecar keeps the PDF render inside the same Fly organisation, same `lhr` region, and same operator control. Cost is roughly one shared-CPU-1x instance with auto-stop on idle — near-zero when nobody's exporting.
+**Why sidecar Fly app and not a hosted PDF API.** Hosted converters (Browserless, Doppio, etc.) add another vendor relationship, another egress path for matter content, and a second residency story to defend. Gotenberg as a sidecar keeps the PDF render inside the same Fly organisation, same `lhr` region, and same operator control. Cost is one always-on `shared-cpu-1x` machine — roughly $3/month.
+
+**Why always-on and not autostop.** Fly's autostop/autostart is a service-proxy feature — it's triggered by traffic arriving at a `[[services]]` or `[http_service]` block, which we deliberately don't have (zero public ingress, see below). Stopped machines are also excluded from `*.internal` DNS, so even an in-cluster `.internal` HTTP call cannot wake one. The two coherent shapes are:
+
+1. **Always-on, internal-only `.internal`** — what we ship for v0.1. One machine running 24/7, no public IP, reachable from the backend over 6PN. ~$3/month.
+2. **Flycast + autostop** — private `[http_service]` block with a Flycast IP. Fly's proxy wakes the machine on a backend call to `legalise-gotenberg.flycast`. More config, more Fly-specific knowledge, harder to swap to a different runtime later.
+
+We pick (1) for v0.1: simpler config, no cold-start latency on first PDF, trivial cost for a demo surface. If PDF becomes load-bearing in v0.2 and the cost matters, swap to (2).
 
 ```bash
 # Deploy Gotenberg as its own Fly app in lhr
@@ -108,31 +115,27 @@ primary_region = "lhr"
 [build]
   image = "gotenberg/gotenberg:8"
 
-# NOTE: NO [[services]] / [[http_service]] block. The Gotenberg app must
-# have ZERO public ingress — Fly's default is "no listener" without an
-# explicit services block, which is the posture we want. The backend
-# reaches the sidecar over Fly's *.internal 6PN network only. Adding a
-# services block here would expose an unauthenticated PDF converter that
-# accepts arbitrary HTML — that's a public abuse surface and a leak
-# vector for matter-derived markup.
+# NO [[services]] / [http_service] block. The Gotenberg app must have
+# ZERO public ingress — Fly's default with no services block is "no
+# listener", which is the posture we want. The backend reaches the
+# sidecar over Fly's *.internal 6PN network only. Adding a services
+# block would expose an unauthenticated PDF converter that accepts
+# arbitrary HTML — that's a public abuse surface and a leak vector for
+# matter-derived markup.
+#
+# Consequence: autostop/autostart do NOT apply (those are service-proxy
+# features). The machine runs 24/7. Use Flycast + [http_service] in v0.2
+# if cost or scale make that the wrong trade.
 
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
-
-# Auto-stop on idle keeps cost near-zero for a demo surface. Cold start
-# on the next request adds 1–3s to the first PDF. The autostop/autostart
-# pair applies to machines, not services, so it lives at the top level
-# without a services block.
-auto_stop_machines = "stop"
-auto_start_machines = true
-min_machines_running = 0
 TOML
 
 fly deploy --config /tmp/gotenberg.fly.toml
 ```
 
-The backend reaches it over Fly's `*.internal` 6PN network. The sidecar listens on port 3000 inside the machine and is addressable as `legalise-gotenberg.internal:3000` from any other Fly app in the same organisation — no DNS publication, no public IP. Set on the **legalise backend** app, not the Gotenberg app:
+The backend reaches it over Fly's `*.internal` 6PN network. The Gotenberg image listens on port 3000 inside the machine and is addressable as `legalise-gotenberg.internal:3000` from any other Fly app in the same organisation — no DNS publication, no public IP. The machine must be running for the `.internal` DNS lookup to resolve, which is why we hold the always-on posture above. Set on the **legalise backend** app, not the Gotenberg app:
 
 ```bash
 fly secrets set GOTENBERG_URL="http://legalise-gotenberg.internal:3000"
