@@ -33,7 +33,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
-from app.core.model_gateway import gateway as model_gateway
+from app.core.model_gateway import (
+    PrivilegePaused,
+    PrivilegePosture,
+    gateway as model_gateway,
+)
 from app.models import Document, Event, Matter
 
 from .agents import (
@@ -185,6 +189,29 @@ async def run_pre_motion(
     inputs: PreMotionRunInputs,
 ) -> PreMotionRunResult:
     """Run the four-stage adversarial premortem against `matter`."""
+    # Posture fast-fail BEFORE any audit row is written. The gateway
+    # would refuse each individual call, but the pipeline shape would
+    # still emit module.pre_motion.run.start + .complete, producing
+    # an audit trail that reads "run completed" for something
+    # regulatory posture blocked at the door. Refusing here keeps the
+    # semantic record honest: a blocked attempt produces only the
+    # middleware http.post status_code=409 row, identical in shape to
+    # how /invoke handles C_paused.
+    #
+    # Re-read posture from the DB in this session, matching the
+    # gateway's TOCTOU-closing pattern. Caller-supplied matter row
+    # may be stale.
+    posture_value = await session.scalar(
+        select(Matter.privilege_posture).where(Matter.id == matter.id)
+    )
+    if posture_value is None:
+        raise ValueError(f"matter vanished mid-request: {matter.id}")
+    if PrivilegePosture(posture_value) is PrivilegePosture.C_PAUSED:
+        raise PrivilegePaused(
+            "Matter privilege posture is C_paused — Pre-Motion blocked. "
+            "Change posture to A_cleared or B_mixed to run."
+        )
+
     started_at = datetime.now(timezone.utc)
     started_perf = time.perf_counter()
 
