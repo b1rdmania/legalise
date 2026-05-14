@@ -16,9 +16,34 @@ from datetime import date, datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import ensure_stub_user
 from app.core.matter_fs import materialise_matter, append_history, record_document
-from app.models import Document, Event, Matter, PRIVILEGE_MIXED, STATUS_OPEN
+from app.models import Document, Event, Matter, PRIVILEGE_MIXED, STATUS_OPEN, User
+
+
+DEMO_USER_EMAIL = "demo@legalise.dev"
+DEMO_USER_NAME = "Jasmine K. (demo)"
+# `!disabled` password hash matches the migration backfill marker — the demo
+# user can't sign in. Dev runs use it solely as the owner of the seeded
+# Khan matter. Real-user auto-copy on signup lands as Day D.
+DEMO_USER_PASSWORD_HASH = "!disabled"
+
+
+async def _ensure_demo_user(session: AsyncSession) -> User:
+    user = await session.scalar(select(User).where(User.email == DEMO_USER_EMAIL))
+    if user is not None:
+        return user
+    user = User(
+        email=DEMO_USER_EMAIL,
+        name=DEMO_USER_NAME,
+        role="solicitor",
+        hashed_password=DEMO_USER_PASSWORD_HASH,
+        is_active=False,  # cannot log in
+        is_verified=True,
+        is_superuser=False,
+    )
+    session.add(user)
+    await session.flush()
+    return user
 
 
 KHAN_SLUG = "khan-v-acme-trading-2026"
@@ -188,12 +213,13 @@ async def seed_demo_matter(session: AsyncSession) -> Matter:
     seven chronology events. Idempotent: existing matter is left alone
     (no duplicate docs/events) and re-materialised so disk reflects DB.
     """
-    existing = await session.scalar(select(Matter).where(Matter.slug == KHAN_SLUG))
+    user = await _ensure_demo_user(session)
+    existing = await session.scalar(
+        select(Matter).where(Matter.slug == KHAN_SLUG, Matter.created_by_id == user.id)
+    )
     if existing is not None:
         materialise_matter(existing)
         return existing
-
-    user = await ensure_stub_user(session)
 
     matter = Matter(
         slug=KHAN_SLUG,

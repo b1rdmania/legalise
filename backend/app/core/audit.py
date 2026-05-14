@@ -11,6 +11,12 @@ the full picture without duplicating semantic context.
 
 Failed requests (status >= 400) are logged too so the trail captures
 attempted operations, not just successful ones.
+
+Actor resolution: the session cookie is read from the request and the
+token is looked up in `access_token`. For unauthenticated traffic
+(missing/invalid cookie, expired token) `actor_id` is NULL — never the
+stub user. This keeps `http.*` rows consistent with the semantic rows
+written by the route handlers and the model gateway.
 """
 
 from __future__ import annotations
@@ -18,20 +24,48 @@ from __future__ import annotations
 import re
 import time
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.auth import STUB_USER_EMAIL
-from app.models import AuditEntry, Matter, User
+from app.core.config import settings
+from app.models import AccessToken, AuditEntry, Matter
 
 
 # Collection (`/api/matters` and `/api/matters/`) and resource paths
 # (`/api/matters/{slug}` and `/api/matters/{slug}/{rest…}`) are both
 # audited. The collection match keeps the slug group empty.
 _MATTER_PATH = re.compile(r"^/api/matters(?:/(?P<slug>[^/]+)(?P<rest>/.*)?)?/?$")
+
+
+async def _resolve_actor_id(request: Request, session) -> uuid.UUID | None:
+    """Return the user_id behind the request's session cookie, or None.
+
+    Pure middleware-level resolution: we can't use the fastapi-users
+    Depends() chain here because the middleware runs outside the
+    handler's dependency graph. We read the cookie value and look it up
+    against the access_token table directly.
+    """
+    token = request.cookies.get(settings.session_cookie_name)
+    if not token:
+        return None
+
+    row = await session.execute(
+        select(AccessToken.user_id, AccessToken.created_at).where(AccessToken.token == token)
+    )
+    record = row.first()
+    if record is None:
+        return None
+    user_id, created_at = record
+    # Mirror the DatabaseStrategy lifetime check.
+    if created_at is not None:
+        age = datetime.now(timezone.utc) - created_at
+        if age > timedelta(seconds=settings.session_lifetime_seconds):
+            return None
+    return user_id
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
@@ -56,11 +90,20 @@ class AuditMiddleware(BaseHTTPMiddleware):
             return response
 
         async with factory() as session:
+            actor_id = await _resolve_actor_id(request, session)
+
             matter_id: uuid.UUID | None = None
             if slug:
-                matter_id = await session.scalar(select(Matter.id).where(Matter.slug == slug))
-
-            actor_id = await session.scalar(select(User.id).where(User.email == STUB_USER_EMAIL))
+                # Slug is now per-owner unique — scope the lookup by actor.
+                # Anon traffic (actor_id None) doesn't resolve a matter_id,
+                # which is fine: the request was 401-ed by the handler and
+                # the http.* row records the attempt without a matter link.
+                if actor_id is not None:
+                    matter_id = await session.scalar(
+                        select(Matter.id).where(
+                            Matter.slug == slug, Matter.created_by_id == actor_id
+                        )
+                    )
 
             # Resource type — for the collection endpoint, the resource
             # is the matter collection itself (no slug yet).

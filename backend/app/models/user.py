@@ -1,6 +1,8 @@
-"""User model.
+"""User model — fastapi-users compatible.
 
-v0.1 stores the hardcoded solicitor user. Real auth lands v0.2 (WorkOS/Stytch).
+Extends the fastapi-users `SQLAlchemyBaseUserTableUUID` (id, email,
+hashed_password, is_active, is_superuser, is_verified) with project-
+specific columns: name, role, default model, default privilege posture.
 """
 
 from __future__ import annotations
@@ -8,21 +10,68 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, DateTime
+from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
+from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyBaseAccessTokenTableUUID
+from sqlalchemy import DateTime, ForeignKey, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
 
-class User(Base):
+class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="solicitor")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False)
+    default_model_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    default_privilege_posture: Mapped[str | None] = mapped_column(
+        String(16), nullable=True, default="B_mixed"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
+    )
 
     def __repr__(self) -> str:
         return f"<User {self.email} ({self.role})>"
+
+
+class AccessToken(SQLAlchemyBaseAccessTokenTableUUID, Base):
+    """fastapi-users DatabaseStrategy token table.
+
+    Cookie transport stores the token value in an httponly cookie; this
+    table is the server-side validator. Lifetime is enforced by the
+    strategy config, not a column.
+    """
+
+    __tablename__ = "access_token"
+
+
+class UserApiKey(Base):
+    """Per-user provider API key, encrypted at rest (AES-256-GCM).
+
+    `ciphertext` and `nonce` are the encryption output of
+    `app.core.encryption`. Plaintext lives only in-memory during a
+    request — never logged, never serialised to audit payloads.
+    """
+
+    __tablename__ = "user_api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserApiKey user={self.user_id} provider={self.provider}>"

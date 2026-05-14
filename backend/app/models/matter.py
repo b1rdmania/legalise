@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, date
 
-from sqlalchemy import String, DateTime, Date, ForeignKey, Text
+from sqlalchemy import String, DateTime, Date, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,9 +32,14 @@ STATUS_VALUES = {STATUS_OPEN, STATUS_SETTLEMENT, STATUS_CLOSED}
 
 class Matter(Base):
     __tablename__ = "matters"
+    __table_args__ = (UniqueConstraint("created_by_id", "slug", name="uq_matters_owner_slug"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    # Slug uniqueness is per-owner (composite with created_by_id) so two users
+    # can hold matters with the same human-readable slug without collision.
+    # Filesystem materialisation paths shard by user_id (matter_fs.py) to
+    # mirror the database invariant on disk.
+    slug: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
 
     matter_type: Mapped[str] = mapped_column(String(64), nullable=False, default="employment_tribunal")

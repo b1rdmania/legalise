@@ -21,7 +21,7 @@ See ARCHITECTURE.md for the full data model.
 """
 
 from app.models.base import Base
-from app.models.user import User
+from app.models.user import AccessToken, User, UserApiKey
 from app.models.matter import (
     Matter,
     PRIVILEGE_CLEARED,
@@ -40,6 +40,8 @@ from app.models.audit import AuditEntry
 __all__ = [
     "Base",
     "User",
+    "AccessToken",
+    "UserApiKey",
     "Matter",
     "Document",
     "Event",

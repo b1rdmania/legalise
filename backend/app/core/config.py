@@ -7,7 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
+    )
 
     # Core
     environment: str = "development"
@@ -35,8 +40,36 @@ class Settings(BaseSettings):
     ollama_url: str = "http://ollama:11434"
     default_model_id: str = "claude-opus-4-7"
 
-    # Auth (stub — v0.2 swaps for WorkOS/Stytch)
+    # Auth — fastapi-users with cookie transport + DatabaseStrategy.
+    # SESSION_SECRET signs short-lived JWTs for email-verify and
+    # password-reset flows (cookie sessions are validated against the
+    # `access_token` table, not via JWT). Override in production via Fly secret.
     session_secret: str = "change-me-in-deployment"
+    # Cookie session lifetime in seconds (default 7 days).
+    session_lifetime_seconds: int = 60 * 60 * 24 * 7
+    # Cookie name. Httponly + Secure + SameSite=Lax are enforced in code.
+    session_cookie_name: str = "legalise_session"
+    # Secure cookies are required in production; dev runs over plain http.
+    session_cookie_secure: bool = False
+
+    # API key encryption — master key for AES-256-GCM of user_api_keys.
+    # Must be 32 bytes hex-encoded (64 chars). In production, missing or
+    # empty value causes the app to refuse to boot. Dev gets a
+    # generated-on-boot key when missing.
+    key_encryption_secret: str | None = Field(default=None, alias="LEGALISE_KEY_ENCRYPTION_SECRET")
+    # Server-key fallback for the model gateway. When true *and* environment
+    # is dev/development/local, ModelGateway.call() may use the server-level
+    # provider key if the user hasn't added one. Production reads this as
+    # false regardless of value (enforced in gateway code).
+    allow_server_key_fallback: bool = Field(
+        default=False, alias="LEGALISE_ALLOW_SERVER_KEY_FALLBACK"
+    )
+
+    # Email — Resend transactional provider.
+    resend_api_key: str | None = None
+    email_from: str = "Legalise <no-reply@legalise.dev>"
+    email_verify_url_base: str = "http://localhost:5173/#/auth/verify"
+    password_reset_url_base: str = "http://localhost:5173/#/auth/reset"
 
     # CORS. Override with the CORS_ORIGINS env var as a JSON array, e.g.
     # CORS_ORIGINS='["https://legalise.dev","http://localhost:3000"]'.

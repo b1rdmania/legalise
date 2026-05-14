@@ -13,9 +13,11 @@ from pathlib import Path
 
 from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
+from app.api.auth import router as auth_router
 from app.api.modules import router as modules_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
+from app.core.encryption import assert_master_key_present
 from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
 from app.modules.chronology.router import router as chronology_router
@@ -29,6 +31,11 @@ logger = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown hooks. Verifies database connectivity at boot."""
+    # Refuse to boot in production if the encryption master key is missing —
+    # without it, every previously-stored user API key becomes unreadable
+    # after a restart. Dev gets a process-lifetime random key.
+    assert_master_key_present()
+
     engine = create_async_engine(settings.postgres_dsn, echo=False)
     app.state.engine = engine
     app.state.session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -114,6 +121,7 @@ async def health() -> dict[str, Any]:
     }
 
 
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 
