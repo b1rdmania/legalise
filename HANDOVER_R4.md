@@ -4,9 +4,13 @@ R3 covered Days 2-4 plus the cream→Oxide design switch. This round covers
 Days 5, 9 (pulled forward), 6, plus the trust documentation workstream.
 All of the above carry reviewer sign-off from the corresponding rounds.
 
-**Repo head:** `94dc281` on `master`. 24 commits total. 4,856 lines of
-application code across 44 source files (excluding generated, vendored,
-and config).
+**Repo head:** the latest commit on `master` is this handover doc itself.
+**Last smoked code head:** `94dc281` — that's the runtime state the
+audit-row counts, smoke results, and gap list below describe. Any later
+commit is documentation-only unless explicitly called out.
+
+24 commits total. 4,856 lines of application code across 44 source files
+(excluding generated, vendored, and config).
 
 ---
 
