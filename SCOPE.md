@@ -112,7 +112,7 @@ The primary demo is one seeded sample matter that threads facts â†’ Pre-Motion â
 | Database | Postgres + pgvector | SQLite + Pinecone | Production-ready from day one, one store for everything, audit-friendly |
 | Auth in v1 | Stub | Real (WorkOS) | Demo positioning; auth is v0.2 work |
 | Plugin bridge | Direct skill rendering | MCP servers | Faster to v1; MCP at v0.2 |
-| Hero module | Pre-Motion | Contract review | Most novel, most X-shareable, simplest to demo |
+| Demo headliner | Pre-Motion | Contract review | Most novel, most X-shareable, simplest to demo. (Post-pivot framing: Pre-Motion is the canonical demonstration of the bespoke-orchestration surface pattern, not the project's identity â€” the project is the audited execution layer for legal skills.) |
 | Module count | One coherent workflow, with roadmap tabs | 5 end-to-end modules / 12 full Bird Legal MVP surfaces | Quality > breadth at v1; v0.1 should tell one matter story rather than show five isolated demos |
 | Live demo | Yes | Self-host only | Investor / solicitor evaluation needs zero-friction click-through |
 | Interop with Stella | Data schema match | Stack match (rewrite to Bun) | Faster to ship; protocol-level interop is enough |
@@ -127,7 +127,7 @@ The primary demo is one seeded sample matter that threads facts â†’ Pre-Motion â
 - Docker quickstart works and opens a usable workspace
 - One seeded sample matter tells a coherent story from facts to Pre-Motion to audit trail to privilege posture change to letter generation
 - Matter workspace, audit log, privilege posture, and model routing are real, not static mockups
-- Pre-Motion runs end-to-end and is polished enough to be the hero screenshot/GIF
+- Pre-Motion runs end-to-end and is polished enough to be the headline demo screenshot/GIF
 - The CPR-letter drafter proves one real `claude-for-uk-legal` plugin invocation from the workspace
 - Audit log captures every LLM call and matter mutation
 - Privilege posture changes module behaviour visibly

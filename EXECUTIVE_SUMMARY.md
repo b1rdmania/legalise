@@ -49,10 +49,10 @@ England & Wales civil and employment law. Does not cover:
 
 ## v1 launch surface — one coherent sample-matter workflow
 
-Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the hero, and the plugin bridge.
+Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the canonical demonstrations, and the plugin bridge. (Post-pivot framing — see `README.md`. The project's identity is the audited execution layer for legal skills; the surfaces below are proof modules, not the project.)
 
 1. **Matter workspace** — the spine. Matter creation, document upload, audit trail, role stub, privilege posture toggle. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
-2. **Pre-Motion** — adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories, settlement-posture implications, and the one brutal one-sentence verdict: "if we lose this, this will be why." The hero module. Ported from the existing premotion app.
+2. **Pre-Motion** — adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories, settlement-posture implications, and the one brutal one-sentence verdict: "if we lose this, this will be why." The canonical demonstration of bespoke-orchestration surfaces. Ported from the existing premotion app.
 3. **CPR-letter drafter as plugin-bridge proof** — matter-aware autofill on top of the existing `cpr-letter-drafter` plugin. Proves one real plugin invocation from the workspace.
 4. **Chronology read-only demo** — seeded fixture, CPR 31.22 implied-undertaking gate, significance tagging, SoF variant filtering. Demonstrates the regulatory shape without v0.1 live extraction.
 5. **Contract review** — visible roadmap tab, clearly labelled v0.2. The proven 4-agent pipeline in counsel-mvp graduates as a port + SDK wiring in v0.2, not as a v0.1 commitment.
@@ -108,7 +108,7 @@ If both happen, the workspace did its job. If neither, the GitHub trail still co
 This document and the rest of `/docs` + the scaffolded skeleton are intended for review by another agent before build kickoff. The plan should be stress-tested against:
 
 - Stack choices (Python/FastAPI/React vs. TypeScript/Bun alternatives).
-- Module scope (five is the right number? Pre-Motion is the right hero?).
+- Module scope (the three surface patterns hold? Pre-Motion is the right canonical demonstration of the bespoke pattern?).
 - Regulatory plumbing visibility (is the demo-grade implementation defensible or theatrical?).
 - Stella interop strategy (data-schema match enough, or does it need code-level interop?).
 - Three-week timeline (achievable solo, or fantasy?).

@@ -424,7 +424,7 @@ function Modules() {
                             </div>
                           )}
                           {promptBody[key] && (
-                            <pre className="p-4 font-mono text-[12px] tracking-[0.014em] leading-[1.55] text-platinum whitespace-pre-wrap overflow-x-auto">
+                            <pre className="p-4 font-mono text-[12px] tracking-[0.014em] leading-[1.55] text-platinum whitespace-pre-wrap overflow-auto max-h-[60vh]">
                               {promptBody[key]}
                             </pre>
                           )}
@@ -1029,13 +1029,14 @@ function MatterDetail({ slug }: { slug: string }) {
           </span>
         </div>
         <p className="font-sans text-[14px] leading-[1.5] text-ash-gray max-w-[70ch] mb-4">
-          Four-agent contract pipeline —{" "}
-          <span className="text-platinum">Parser → Analyst → Redliner → Summariser</span> —
-          graduates from the Counsel MVP via straight port onto{" "}
-          <span className="text-platinum">app.core.api</span>. v0.1 ships the spine the pipeline
-          will plug into (matter, documents, audit, privilege posture, model gateway, plugin
-          bridge); the agents themselves land v0.2. Tab visible here so the roadmap is honest,
-          not hidden behind a feature flag.
+          Future workspace surface for contract review — four-agent orchestration over
+          uploaded contract documents:{" "}
+          <span className="text-platinum">Parser → Analyst → Redliner → Summariser</span>.
+          v0.1 ships the spine the surface plugs into (matter, documents, audit, privilege
+          posture, model gateway, installed-skill bridge). The four agents and their UI
+          land v0.2 — same shape as Pre-Motion's bespoke orchestration, applied to a
+          contract-review workflow. Surfaced here so the roadmap is honest, not hidden
+          behind a feature flag.
         </p>
         <div className="border border-graphite p-3 font-mono text-[12px] tracking-[0.053em] text-dim-gray space-y-1">
           <div>$ cat docs/ROADMAP.md | grep -A4 contract_review</div>

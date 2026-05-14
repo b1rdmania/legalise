@@ -1,8 +1,9 @@
 """Pre-Motion router — `POST /api/matters/{slug}/pre-motion/run`.
 
 The Day 5 generic `/invoke` endpoint stays in place for any other plugin
-skill; this dedicated route exists because Pre-Motion is the hero module
-and runs a four-stage in-process pipeline rather than a single skill
+skill; this dedicated route exists because Pre-Motion is the canonical
+demonstration of the bespoke-orchestration surface pattern — a four-stage
+in-process pipeline with parallel sub-agents — rather than a single skill
 invocation.
 """
 

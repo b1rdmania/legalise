@@ -22,7 +22,7 @@ The OSS core is never gated. Enterprise tier exists for firms who want managed o
 
 ## v0.1 (May 2026) — demo launch
 
-One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v0.1 proves the matter spine, audit log, privilege posture, local/cloud model routing, Pre-Motion hero workflow, and one `claude-for-uk-legal` plugin invocation through the CPR-letter bridge. Chronology and contract review are visible roadmap surfaces, not end-to-end v0.1 commitments. Detailed in `BUILD_PLAN.md` and `SCOPE.md`.
+One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v0.1 proves the matter spine, audit log, privilege posture, local/cloud model routing, Pre-Motion as the canonical demonstration of bespoke orchestration, and one `claude-for-uk-legal` plugin invocation through the CPR-letter bridge. Chronology and contract review are visible roadmap surfaces, not end-to-end v0.1 commitments. Detailed in `BUILD_PLAN.md` and `SCOPE.md`.
 
 ## v0.2 (target: July 2026)
 
@@ -40,6 +40,18 @@ Theme: **production-shaped infrastructure** + **trust posture published**. The w
 - E-signature integration stub (DocuSign API surface)
 - Settings UI for matter retention policies — and an actual retention sweep enforcing `retention_until`
 - Hardened privilege gates: refuse to start an LLM call if posture/data combination is invalid
+
+### Module lifecycle workstream (v0.2)
+
+v0.1 ships Discovery (read-only `#/modules` over `PLUGINS_ROOT`) and documents Install/approval as a Git workflow (fork, PR-review, pin SHA). The lifecycle gaps listed in the README's "What v0.1 does not yet do" block are picked up here:
+
+- **Install / enable toggles per workspace.** Skills under `PLUGINS_ROOT` are loadable today; v0.2 adds a per-workspace `enabled_skills` table and an enable/disable control on the `#/modules` page. The Git workflow stays the source of truth for *which* skills exist; this layer controls *which of those are surfaced*.
+- **Per-workspace module policy.** Allowlists by `matter_type`, jurisdiction tag, or privilege posture. The catalogue declares what a skill targets; the workspace policy declares what's allowed. Both written; matter-time enforcement reads the intersection.
+- **Module permissions.** SDK-level scoping — a module declares what it reads (matter, documents, audit) and writes (audit only, never directly to matter state). Today modules get the full `app.core.api` surface; v0.2 narrows to declared scope and refuses out-of-scope calls at the SDK boundary.
+- **UI contracts for modules.** Manifest extensions that constrain markup (no `<script>`, no external network), theme tokens (Oxide only), and layout primitives. v0.2 ships a `modules/host` boundary component that enforces these at render time. A hostile or sloppy module can't escape the workspace shell.
+- **Signed manifests / skill provenance attestation.** Manifest signatures (e.g. minisign or sigstore over the SKILL.md + manifest) so a firm can pin not just "this SHA in this repo" but "this skill signed by this author". Organisation-level trust roots — a firm allows skills signed by `b1rdmania` *or* its own internal signer. Today provenance is "the git SHA you pinned"; v0.2 adds cryptographic identity.
+
+These five are the half of the README "What v0.1 does not yet do" list that **isn't** auth / lint / retention / signed-audit-export — those four are picked up elsewhere in this v0.2 section.
 
 ### Trust & security workstream (v0.2)
 

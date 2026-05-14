@@ -68,9 +68,11 @@ Before Day 1:
 - UI polish on the matter detail page. Tailwind + Shadcn components. Solicitor-legible: clear hierarchy, real legal language, no AI-app aesthetic.
 - Risk check: are any Day 1–5 deliverables yellow/red? If yes, re-plan week 2 now.
 
-## Week 2 — Hero workflow
+## Week 2 — Pre-Motion as canonical demonstration
 
-**Hard gate before Day 6.** Pre-Motion port does **not** begin until the Day 1-5 path is green: quickstart works, matter CRUD + document upload work, audit log captures every action, privilege posture changes module behaviour visibly, one plugin invocation from the sample matter has succeeded. If Day 5 is yellow or red on any of these, slip Day 6 by a day. Pre-Motion is the hero, but a hero on a weak spine ships nothing.
+**Hard gate before Day 6.** Pre-Motion port does **not** begin until the Day 1-5 path is green: quickstart works, matter CRUD + document upload work, audit log captures every action, privilege posture changes module behaviour visibly, one plugin invocation from the sample matter has succeeded. If Day 5 is yellow or red on any of these, slip Day 6 by a day. Pre-Motion is the demo headliner, but it sits on the matter spine — a weak spine ships nothing.
+
+> **R7 framing note (post-pivot).** Earlier passes of this plan called Pre-Motion "the hero". Post-pivot framing: Pre-Motion is the canonical demonstration of the bespoke-orchestration surface pattern, not the project's identity. The project's identity is the audited execution layer for legal skills. Wording in Day 6–8 below is preserved as the sequencing record for the build week; current launch-facing copy in `README.md`, `Landing.tsx`, and `MANIFESTO.md` carries the post-pivot framing.
 
 ### Day 6 — Pre-Motion port (DONE at commit `94dc281`)
 - Source: `/Users/andy/Documents/New project/premotion/` — adversarial premortem pipeline ported wholesale into `legalise/backend/app/modules/pre_motion/`.
@@ -178,25 +180,24 @@ This retires the earlier Plain-English stretch. The Discovery layer is the
 v0.1 SDK proof: it shows external skills on disk becoming audited workspace
 capability without pretending there is an install marketplace UI.
 
-### Day 17 — README + launch assets
+### Day 17 — launch assets (README copy already shipped at Day 17a)
 
-- Top-level README with:
-  - Hero one-liner and demo link
-  - Architecture diagram (mermaid)
-  - Primary sample matter walkthrough with screenshots
-  - Plugin-and-workspace relationship explained
-  - Installed skills / Git catalogue workflow with link to `#/modules`
-  - Module SDK pointer with link to `docs/MODULE_DEVELOPMENT.md`
-  - Stack rationale (one paragraph)
-  - Quickstart (Docker Compose)
-  - Self-host vs Cloudflare deploy
-  - Status: v0.1.0, demo not production
-  - Roadmap
-  - Contributing
-  - License
-- One animated GIF of Pre-Motion end-to-end (matter context → four-stage adversarial pipeline running with parallel sub-agents → final brief with the one brutal sentence)
-- Screenshots for matter workspace, Pre-Motion brief, audit/privilege posture, letter bridge, plain-English tab
-- Mermaid diagrams in README: matter lifecycle, plugin bridge, audit-log flow, Pre-Motion adversarial pipeline
+Day 17a (`e02bd43` + `afdd710`) already shipped the README rewrite and the
+landing copy: load-bearing sentence, Module surfaces section, Installing
+skills workflow, "What v0.1 does not yet do" honesty block, mermaid
+architecture diagram, and the Discovery / Git-as-marketplace framing.
+Day 17 narrows to launch *assets* the post needs alongside the prose:
+
+- Animated GIF of Pre-Motion end-to-end (matter context → four-stage adversarial pipeline running with parallel sub-agents → final brief with the brutal one-sentence verdict)
+- Screenshots for: matter workspace, Pre-Motion brief, audit log with the privilege-posture row visible, letter bridge with the catalogue routing visible, `#/modules` Discovery page
+- Quickstart pass: clone + `docker compose up` end-to-end on a clean machine, capture any friction
+- Repo polish: top-level GitHub repo description (already set via `gh repo edit` in Day 17a), topics, social card image if Cloudflare time permits
+
+**Cut from earlier draft of this day:** the Plain-English screenshot.
+Plain-English-as-SDK-proof was retired by Day 17a — Discovery (`#/modules`
++ `/api/modules`) carries the SDK-extensibility story now. The README
+sample-matter walkthrough does not need a Plain-English tab to demonstrate
+that workspace capability comes from external skills on disk.
 
 ### Day 18 — Launch
 - Paired Show HN Tuesday morning UK time: Legalise + `claude-for-uk-legal`
@@ -241,7 +242,7 @@ into US or US-owned UK firms.
 | Plugin bridge takes longer than Day 5 | M | H — blocks the letter bridge | Fallback: direct skill rendering through the model gateway; if still blocked, use a deterministic demo provider but keep the audit shape honest |
 | Live deploy hits Azure/AWS quota or DNS issue | L | M — slips Day 15 | Have Vercel + Railway as backup deploy targets (Postgres on Neon, app on Railway, domain on CF) |
 | Solicitor-legible design takes longer than planned weekend | M | L — week 1 design slips into week 2 | Use a pre-built Shadcn theme and don't customise in v1 |
-| Pre-Motion output isn't visually compelling on launch | M | H — kills the hero shot | Day 6 morning: spike one chart library (Recharts/Visx), confirm it can render the ZOPA range cleanly before going deeper |
+| Pre-Motion output isn't visually compelling on launch | M | H — kills the headline demo shot | Day 6 morning: spike one chart library (Recharts/Visx), confirm it can render the ZOPA range cleanly before going deeper |
 | Retention UI looks like compliance theatre | M | M | Keep retention in schema/docs only until enforcement exists |
 | Procurement / SRA reviewers ask for trust documentation we don't have | M | M — slips first firm pilot | `docs/TRUST.md` is the v0.1 holding doc. Link to it from any procurement conversation. v0.2 publishes `legalise.dev/trust` and starts Cyber Essentials Plus. |
 | Eval framework eats Day 16 | L | L | Cap at sample-matter smoke tests; integrate module evals properly post-launch |
@@ -269,7 +270,7 @@ Cut in order:
 5. Live chronology extraction — keep seeded/read-only chronology
 6. Contract review implementation — keep roadmap tab only
 
-What does **not** get cut: Pre-Motion (hero), matter workspace (spine), audit log (regulatory plumbing visibility), privilege posture (regulatory plumbing visibility), one plugin invocation through the letter bridge, one working demo matter end-to-end.
+What does **not** get cut: Pre-Motion (canonical bespoke-orchestration demo), matter workspace (spine), audit log (regulatory plumbing visibility), privilege posture (regulatory plumbing visibility), one plugin invocation through the letter bridge, one working demo matter end-to-end.
 
 ## Week 4 stretch goals
 
