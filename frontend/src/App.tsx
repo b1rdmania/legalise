@@ -236,7 +236,7 @@ function Landing() {
         <SurfaceCard
           kbd="surfaces"
           name="Surfaces"
-          body="Three proven render patterns: generic invoke, curated multi-skill selection in Letters, and bespoke hero orchestration in Pre-Motion."
+          body="Three proven render patterns: generic invoke, curated multi-skill selection (Letters), and bespoke orchestration (Pre-Motion fans out across 4 stages, 9 calls). Surfaces are proof, not identity — new surfaces follow the same three patterns."
         />
         <SurfaceCard
           kbd="discovery"

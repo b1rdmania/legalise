@@ -1,12 +1,14 @@
 # Legalise
 
-**The audited execution layer for Claude legal skills.**
+**Legalise turns reviewable legal skills into audited matter workflows.**
 
-Legalise renders a Git-distributed catalogue of `SKILL.md` files into a
-matter-first workspace for England & Wales legal work. Every model call is
-audited, privilege posture is enforced at dispatch time, and
-disclosure-tainted chronology entries are gated behind a CPR 31.22
-acknowledgement.
+Legal AI work should be inspectable, composable, auditable, and run against
+matter-shaped context instead of loose chat prompts. Legalise is the
+execution substrate: a Git-distributed catalogue of `SKILL.md` files
+rendered into a matter-first workspace for England & Wales legal work.
+Every model call is audited, privilege posture is enforced at dispatch
+time, and disclosure-tainted chronology entries are gated behind a
+CPR 31.22 acknowledgement.
 
 Skills come from [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal)
 by default. Fork the catalogue, review skill changes by PR diff, point
@@ -27,7 +29,7 @@ graph TD
     B --> D[Privilege-aware model gateway]
     B --> E[Audit log]
     B --> F[Workspace surfaces]
-    F --> G[Pre-Motion<br/>bespoke hero]
+    F --> G[Pre-Motion<br/>bespoke pattern]
     F --> H[Letters<br/>curated multi-skill]
     F --> I[Chronology<br/>regulatory gate]
     B -.matter-schema-compatible.-> J[Stella]
@@ -97,16 +99,21 @@ shows the prompt body that an internal tech team would review.
 ## Module surfaces
 
 Skills are the executable units. Surfaces are how those skills show up in the
-workspace. v0.1 proves three patterns:
+workspace. v0.1 proves three patterns; Pre-Motion, Letters, and Chronology are
+the canonical demonstrations — not the project's identity.
 
-| Pattern | Example | What it proves |
+| Pattern | Canonical demonstration | What it proves |
 |---|---|---|
 | Generic invocation | `POST /api/matters/{slug}/invoke` | Any installed skill can run with matter context and audit rows |
 | Curated multi-skill | Letters | A workspace section can route among several skills by matter type |
-| Bespoke hero | Pre-Motion | A high-value module can orchestrate multiple calls while still using the same gateway and audit posture |
+| Bespoke orchestration | Pre-Motion | A surface can fan out across multiple calls (4 stages, 9 model calls) while still going through the same gateway and audit log |
 
 Chronology is a regulatory surface over seeded data. Contract Review is visible
 as a v0.2 roadmap surface only.
+
+The project is the execution substrate. The four surfaces are proof modules.
+New surfaces follow the same three patterns; nothing about a surface is
+load-bearing for the workspace shape.
 
 ## The plan in one page
 
@@ -155,6 +162,22 @@ Legalise composes skills from the [`claude-for-uk-legal`](https://github.com/b1r
 - Legal advice software. Every output is a draft for solicitor review.
 - US, Scotland, or NI workflows.
 
+## What v0.1 does not yet do
+
+The execution layer and the catalogue shape are real. The module *lifecycle*
+is not. v0.2 turns the discovery surface into a real lifecycle. None of the
+following exist in v0.1:
+
+- **Install / enable toggles per workspace.** Every skill under `PLUGINS_ROOT` is loadable. There is no on/off per workspace.
+- **Per-workspace module policy.** No "this skill is allowed on ET matters, blocked on civil" lever.
+- **Module permissions.** Modules cannot scope what they read or write — they get the full module-SDK surface.
+- **UI contracts for modules.** Module manifests describe nav and routes; they don't constrain markup, theme, or layout. A hostile module can render anything.
+- **Users and settings.** One hardcoded user (`jasmine.k`), no signup, no settings page, no role model. Auth lands v0.2 (WorkOS / Stytch).
+- **Signed manifests / skill provenance attestation.** Provenance today is "the git SHA of the catalogue fork you pinned". No author signatures, no organisation-level trust roots.
+- **Quality and lint gates for skills.** A SKILL.md can ship anything — prompt-injection, jailbreaks, sloppy markdown. No automated scan, no required schema beyond name + description.
+
+Each gap is intentional v0.1 restraint, not oversight. See [`ROADMAP.md`](./ROADMAP.md) for which v0.2 work picks each one up.
+
 ## Extending the workspace
 
 Legalise is an audited execution layer first. The app is also module-extensible:
@@ -196,7 +219,7 @@ If you're reviewing the plan, start with:
 The plan should be stress-tested against:
 
 - Stack choices (Python / FastAPI / React vs. TypeScript / Bun alternatives)
-- Module scope (five is the right number? Pre-Motion is the right hero?)
+- Module scope (the three surface patterns hold? Pre-Motion is the right canonical demonstration of the bespoke pattern?)
 - Regulatory plumbing visibility (is the demo-grade implementation defensible or theatrical?)
 - Stella interop strategy (data-schema match enough, or does it need code-level interop?)
 - Three-week timeline (achievable solo, or fantasy?)
