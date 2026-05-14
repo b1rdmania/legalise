@@ -132,7 +132,7 @@ function MatterList() {
         </a>
       </div>
 
-      {error && <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap mb-4">{error}</pre>}
+      {error && <ErrorCallout message={error} />}
 
       {matters && matters.length === 0 && (
         <div className="border border-graphite p-6 font-mono text-[12px] text-dim-gray">
@@ -263,7 +263,7 @@ function NewMatter() {
           </select>
         </Field>
 
-        {error && <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap">{error}</pre>}
+        {error && <ErrorCallout message={error} />}
 
         <div className="flex items-center gap-3 pt-2">
           <button
@@ -431,16 +431,18 @@ function MatterDetail({ slug }: { slug: string }) {
   if (error) {
     return (
       <div className="max-w-[1100px] mx-auto px-8 py-12">
-        <pre className="font-mono text-[12px] text-code-red">{error}</pre>
-        <a href="#/" className="font-sans text-[12px] text-light-gray hover:text-snow">← back to matters</a>
+        <ErrorCallout message={error} />
+        <a href="#/" className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow">
+          ← back to matters
+        </a>
       </div>
     );
   }
 
   if (!matter) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-12 font-mono text-[12px] text-dim-gray">
-        loading {slug}…
+      <div className="max-w-[1100px] mx-auto px-8 py-12">
+        <LoadingLine label={`loading matter ${slug}`} />
       </div>
     );
   }
@@ -517,7 +519,7 @@ function MatterDetail({ slug }: { slug: string }) {
           </label>
         </div>
 
-        {!docs && <p className="font-mono text-[12px] text-dim-gray">loading documents…</p>}
+        {!docs && <LoadingLine label="loading documents" />}
         {docs && docs.length === 0 && (
           <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
             no documents registered yet — use UPLOAD →
@@ -561,22 +563,13 @@ function MatterDetail({ slug }: { slug: string }) {
           Evidence Inspector × 3 parallel sub-agents → Premortem Adversary × 4 parallel
           sub-agents → Synthesiser.</span> 9 model calls per run, all audited.
         </p>
-        {premotionError && (
-          <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap mb-3 border border-code-error p-3">
-            {premotionError}
-          </pre>
-        )}
+        {premotionError && <ErrorCallout message={premotionError} compact />}
         {(premotionRunning || premotionStages.length > 0) && !premotion && (
           <PremotionStageStrip stages={premotionStages} />
         )}
         {premotion && (
           <>
-            <div className="flex items-center justify-end gap-3 mb-3">
-              {pdfError && (
-                <span className="font-mono text-[11px] text-code-red truncate max-w-[40ch]">
-                  {pdfError}
-                </span>
-              )}
+            <div className="flex items-center justify-end mb-3">
               <button
                 onClick={onExportPdf}
                 disabled={pdfBusy}
@@ -585,6 +578,7 @@ function MatterDetail({ slug }: { slug: string }) {
                 {pdfBusy ? "RENDERING…" : "EXPORT PDF →"}
               </button>
             </div>
+            {pdfError && <ErrorCallout message={pdfError} compact />}
             <PremotionResult result={premotion} />
           </>
         )}
@@ -620,7 +614,7 @@ function MatterDetail({ slug }: { slug: string }) {
           Each draft writes <span className="text-platinum">plugin.invoked + model.call + http.post</span> to the audit log.
         </p>
 
-        {!letterCat && <p className="font-mono text-[12px] text-dim-gray">loading catalogue…</p>}
+        {!letterCat && <LoadingLine label="loading catalogue" />}
         {letterCat && letterCat.letter_types.length === 0 && (
           <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
             no letter skills mapped for matter_type={letterCat.matter_type}. Add to
@@ -636,11 +630,7 @@ function MatterDetail({ slug }: { slug: string }) {
           />
         )}
 
-        {letterError && (
-          <pre className="font-mono text-[12px] text-code-red whitespace-pre-wrap mt-3 border border-code-error p-3">
-            {letterError}
-          </pre>
-        )}
+        {letterError && <ErrorCallout message={letterError} compact />}
 
         {letterDraft && <LetterDraftView draft={letterDraft} />}
       </section>
@@ -662,7 +652,7 @@ function MatterDetail({ slug }: { slug: string }) {
           )}
         </div>
 
-        {!chron && <p className="font-mono text-[12px] text-dim-gray">loading chronology…</p>}
+        {!chron && <LoadingLine label="loading chronology" />}
 
         {chron && chron.gate.required && !chron.gate.confirmed && (
           <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
@@ -719,7 +709,7 @@ function MatterDetail({ slug }: { slug: string }) {
       <section className="mb-14">
         <SectionLabel id="§audit" name={`audit_log · matters/${matter.slug}`} />
         <h2 className="font-sans text-[25px] text-snow mb-3">Provenance.</h2>
-        {!audit && <p className="font-mono text-[12px] text-dim-gray">loading audit…</p>}
+        {!audit && <LoadingLine label="loading audit" />}
         {audit && audit.length === 0 && (
           <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
             no entries yet — actions on this matter will appear here.
@@ -773,6 +763,54 @@ function SectionLabel({ id, name }: { id: string; name: string }) {
       <span className="text-terminal-green mr-2">{id}</span>
       {name}
     </div>
+  );
+}
+
+/**
+ * Parse a backend error into status + body. The api.ts wrapper throws
+ * `Error("<status> <statusText>: <body>")`; this regex pulls those out
+ * so we can show the status as a small chip and the body as plain prose.
+ * If the format doesn't match (e.g. network failure with a TypeError),
+ * we render the raw message as the body and leave status unset.
+ */
+function parseError(err: string): { status: string | null; body: string } {
+  const m = err.match(/^Error:\s*(\d{3})\s+([^:]+):\s*(.*)$/s);
+  if (!m) {
+    return { status: null, body: err.replace(/^Error:\s*/, "") };
+  }
+  const [, status, , raw] = m;
+  // The body is often JSON like {"detail": "..."} — unwrap if so.
+  let body = raw.trim();
+  try {
+    const parsed = JSON.parse(body);
+    if (parsed && typeof parsed.detail === "string") body = parsed.detail;
+  } catch {
+    // not JSON, leave as-is
+  }
+  return { status, body };
+}
+
+function ErrorCallout({ message, compact = false }: { message: string; compact?: boolean }) {
+  const { status, body } = parseError(message);
+  return (
+    <div className={`border border-code-error ${compact ? "p-3" : "p-4"} my-3`}>
+      <div className="flex items-center gap-3 mb-1 font-mono text-[10px] tracking-[0.014em] uppercase">
+        <span className="text-code-red">error</span>
+        {status && <span className="text-dim-gray">http {status}</span>}
+      </div>
+      <p className="font-sans text-[14px] leading-[1.45] text-snow max-w-[70ch] whitespace-pre-wrap">
+        {body}
+      </p>
+    </div>
+  );
+}
+
+function LoadingLine({ label }: { label: string }) {
+  return (
+    <p className="font-mono text-[12px] tracking-[0.053em] text-dim-gray">
+      <span className="text-terminal-green">⟳</span> {label}
+      <span className="inline-block w-1.5 h-3 bg-emerald-shadow ml-1 align-text-bottom animate-pulse" />
+    </p>
   );
 }
 

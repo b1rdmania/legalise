@@ -86,6 +86,52 @@ Connect the GitHub repo to Cloudflare Pages:
 - **Build output directory:** `frontend/dist`
 - **Environment variable:** `VITE_API_BASE_URL=https://api.legalise.dev`
 
+### 5b. Gotenberg sidecar — Fly.io `lhr`
+
+The Pre-Motion PDF export route (`POST /api/matters/{slug}/pre-motion/pdf`) calls Gotenberg's Chromium converter. Self-host already gets this for free via `infra/docker-compose.yml`; the live demo needs a second Fly app in the same region so the backend can reach it over Fly's internal network.
+
+**Why sidecar Fly app and not a hosted PDF API.** Hosted converters (Browserless, Doppio, etc.) add another vendor relationship, another egress path for matter content, and a second residency story to defend. Gotenberg as a sidecar keeps the PDF render inside the same Fly organisation, same `lhr` region, and same operator control. Cost is roughly one shared-CPU-1x instance with auto-stop on idle — near-zero when nobody's exporting.
+
+```bash
+# Deploy Gotenberg as its own Fly app in lhr
+fly apps create legalise-gotenberg --org <your-org>
+
+cat > /tmp/gotenberg.fly.toml <<'TOML'
+app = "legalise-gotenberg"
+primary_region = "lhr"
+
+[build]
+image = "gotenberg/gotenberg:8"
+
+[[services]]
+internal_port = 3000
+protocol = "tcp"
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+
+[[services.ports]]
+handlers = ["http"]
+port = 80
+
+[[vm]]
+size = "shared-cpu-1x"
+memory_mb = 512
+TOML
+
+fly deploy --config /tmp/gotenberg.fly.toml
+```
+
+The backend reaches it via Fly's `*.internal` 6PN network — no public ingress needed for the demo. Set on the **legalise backend** app, not the Gotenberg app:
+
+```bash
+fly secrets set GOTENBERG_URL="http://legalise-gotenberg.internal:3000"
+```
+
+`backend/app/core/config.py:gotenberg_url` reads this env var; no code change required. `auto_stop_machines = true` keeps cost near zero — Fly stops the machine when idle and cold-starts it on the next request (cold start adds a couple of seconds to the first PDF after idle, acceptable for a demo surface).
+
+**Fallback if sidecar is yellow on demo day.** Strip the EXPORT PDF button via a frontend feature flag and ship without PDF. PDF is an experience nicety, not a correctness gap — the Pre-Motion brief is already fully rendered in-page and forensically captured in the audit log.
+
 ### 6. DNS wiring
 
 - `legalise.dev` → Cloudflare Pages project
