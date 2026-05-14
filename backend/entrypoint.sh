@@ -14,5 +14,15 @@ set -e
 echo "[entrypoint] alembic upgrade head"
 alembic upgrade head
 
-echo "[entrypoint] exec uvicorn"
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# `--reload` is a dev-only setting — it spawns a file-watching parent
+# process and a child worker, which breaks Fly's SIGTERM forwarding to
+# the actual app. Gate it on ENVIRONMENT so prod deploys (Fly, anywhere
+# else) run a single uvicorn process with clean signal handling. Dev
+# compose sets ENVIRONMENT=development.
+if [ "${ENVIRONMENT:-production}" = "development" ] || [ "${ENVIRONMENT:-production}" = "dev" ] || [ "${ENVIRONMENT:-production}" = "local" ]; then
+    echo "[entrypoint] exec uvicorn (dev mode — --reload on)"
+    exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+else
+    echo "[entrypoint] exec uvicorn (production)"
+    exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+fi

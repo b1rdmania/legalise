@@ -39,6 +39,30 @@ This guide is for the maintainer; operators can deploy anywhere.
 
 **Marketing claim alignment.** With Fly.io `lhr` as backend + Neon London + R2 + Cloudflare Pages, the defensible claim is *"UK-region database and backend; edge CDN and object storage at EU / Western Europe placement."* Don't write "UK data residency end-to-end" — R2's `eu` jurisdiction does not guarantee UK, and Cloudflare Containers is only `WEUR`.
 
+## Preflight — verify before running any of the steps below
+
+```bash
+# 1. fly + wrangler CLIs installed and logged in.
+fly version && fly auth whoami
+wrangler --version && wrangler whoami
+
+# 2. Anthropic API key reachable from the shell that will run fly secrets set.
+echo "${ANTHROPIC_API_KEY:?missing}" | head -c 12 ; echo
+
+# 3. legalise.dev domain present in the Cloudflare account.
+wrangler domains list 2>/dev/null | grep -F legalise.dev || echo "MISSING — add legalise.dev to Cloudflare first"
+
+# 4. Neon project exists in the London region with pgvector installed.
+# (Manual — open the Neon dashboard, copy the connection string and rewrite
+# its postgres:// prefix to postgresql+psycopg:// before storing in your
+# password manager.)
+
+# 5. Frontend lockfile is committed. Reproducible builds need it.
+git ls-files frontend/package-lock.json | grep -q . && echo OK || echo "MISSING — commit frontend/package-lock.json"
+```
+
+If any of the above red, **stop** and fix it before continuing. The setup steps assume all five are green.
+
 ## Setup steps
 
 ### 1. Cloudflare account
@@ -60,22 +84,38 @@ This guide is for the maintainer; operators can deploy anywhere.
 
 ### 4. Backend deploy — Fly.io `lhr` (default)
 
+`backend/fly.toml` ships with the repo — `app = "legalise-backend"`, `primary_region = "lhr"`, public `http_service` on internal port 8000 with a 15s `/health` check, single shared-cpu-2x machine, `min_machines_running = 1`. Update `app` if you want a different Fly app name; everything else is dialled in for the demo.
+
 ```bash
-# From backend/
-fly launch --region lhr --no-deploy
+# From backend/. --copy-config picks up the committed fly.toml so the
+# interactive prompts don't override health-check / port / region.
+fly launch --no-deploy --copy-config
+
 fly secrets set \
-  POSTGRES_DSN="..." \
-  ANTHROPIC_API_KEY="..." \
-  S3_ENDPOINT="..." \
+  POSTGRES_DSN="postgresql+psycopg://user:pass@host.neon.tech/legalise?sslmode=require" \
+  ANTHROPIC_API_KEY="sk-ant-..." \
+  S3_ENDPOINT="https://<account>.r2.cloudflarestorage.com" \
   S3_ACCESS_KEY="..." \
   S3_SECRET_KEY="..." \
-  CORS_ORIGINS='["https://legalise.dev"]'
+  S3_BUCKET="legalise-docs" \
+  GOTENBERG_URL="http://legalise-gotenberg.internal:3000" \
+  CORS_ORIGINS='["https://legalise.dev"]' \
+  SESSION_SECRET="$(openssl rand -hex 32)"
+
 fly deploy
 ```
 
+**Neon DSN driver prefix is load-bearing.** Neon hands out `postgres://`; the backend uses `psycopg` async and requires `postgresql+psycopg://`. SQLAlchemy will error out at boot if the prefix is wrong. Append `?sslmode=require` — Neon refuses unencrypted connections.
+
 **CORS_ORIGINS is load-bearing on the split deploy.** Cloudflare Pages serves the frontend from `legalise.dev`; Fly serves the backend from `api.legalise.dev`. Every API call (including the SSE stream and the PDF POST) is cross-origin. The backend default already includes `https://legalise.dev` so the secret above is only required if you swap the demo origin. If the secret is unset and the default has been edited away, the browser will block the demo entirely — preflight 200, actual request blocked, no audit row.
 
+**SESSION_SECRET** must be set on the live deploy. The dev default `change-me-in-deployment` is a tripwire — auth-stub cookies signed with it are forgeable.
+
 UK region (`lhr` = London Heathrow). Single-region deployment for v0.1; HA / multi-region is v0.5+.
+
+**Plugin suite vendoring.** `backend/Dockerfile` clones `claude-for-uk-legal` at a pinned commit SHA into `/plugins` during the image build. Bump `PLUGINS_REPO_REF` in the Dockerfile when a new plugin release is needed; the build fails loudly if the ref doesn't exist. Dev compose still bind-mounts a sibling checkout — both paths land at `PLUGINS_ROOT=/plugins`.
+
+**Matter filesystem materialisation is ephemeral on Fly.** `MATTERS_ROOT=/data/matters` writes inside the machine; redeploys wipe it. The DB is the source of truth and the matter folders are derivable, so this is acceptable for the demo. If operators want the matter tree to survive redeploys, attach a Fly Volume and mount it at `/data/matters` — `fly volumes create matters_data --region lhr --size 1`.
 
 ### 4-alt. Backend deploy — Cloudflare Containers (experimental)
 
@@ -85,9 +125,11 @@ Only use this if you're comfortable with `WEUR` placement instead of UK-specific
 
 Connect the GitHub repo to Cloudflare Pages:
 
-- **Build command:** `cd frontend && npm install && npm run build`
+- **Build command:** `cd frontend && npm ci && npm run build`
 - **Build output directory:** `frontend/dist`
 - **Environment variable:** `VITE_API_BASE_URL=https://api.legalise.dev/api`
+
+`npm ci` (not `npm install`) is deliberate: it builds against the committed `frontend/package-lock.json` exactly, refusing to mutate it. This is the right shape for a reproducible deploy. If you see "missing lockfile" errors on Cloudflare Pages, the lockfile is not committed — `git status` to confirm and `git add frontend/package-lock.json`.
 
 The env var must carry both the backend origin **and** the `/api` path segment because backend routes are mounted under `/api/...` regardless of host. `frontend/src/lib/api.ts:API` reads this var at build time and falls back to the same-origin `/api` prefix when unset (which is what the local compose proxy and Vite dev server expect). The TopBar health probe derives the backend origin from `BACKEND_ROOT = API.replace(/\/api\/?$/, "")`, so `/health` lands on `https://api.legalise.dev/health` automatically — do NOT mount health under `/api` on the backend without updating that derivation.
 
@@ -162,9 +204,46 @@ If `fly ips list` shows any IP, the deploy picked up an unintended services bloc
 
 ### 7. Smoke test
 
-- `https://legalise.dev/health` → 200 OK
-- `https://api.legalise.dev/health` → `{"status":"ok","version":"0.1.0a0"}`
-- One sample matter loads end-to-end
+The deploy is only green when **every line below** returns the expected output. Run them top-to-bottom — earlier failures usually mean the next ones are noise.
+
+```bash
+# 1. Backend liveness + DB connectivity. Expect status=ok, database=ok.
+curl -s https://api.legalise.dev/health | jq .
+
+# 2. Plugin suite shipped in the image. Expect a non-empty array including
+# "lba-drafter" and "cpr-letter-drafter".
+fly ssh console --app legalise-backend -C 'ls /plugins/uk-employment-legal/skills /plugins/uk-litigation-legal/skills'
+
+# 3. Seeded Khan matter present. The committed fly.toml sets
+# ENVIRONMENT=demo, which runs the idempotent seed on every boot. Expect
+# one matter with slug "khan-v-acme-trading-2026".
+curl -s https://api.legalise.dev/api/matters | jq '.[].slug'
+
+# 4. Gotenberg sidecar has NO public IP. Expect empty output.
+fly ips list --app legalise-gotenberg
+
+# 5. Frontend serves and bundle inlines the right API base.
+curl -sI https://legalise.dev/ | head -1
+curl -s https://legalise.dev/ | grep -o 'index-[A-Za-z0-9_-]*\.js'
+# Then fetch that asset and grep for the API base — expect a match.
+ASSET=$(curl -s https://legalise.dev/ | grep -oE 'assets/index-[A-Za-z0-9_-]*\.js' | head -1)
+curl -s "https://legalise.dev/$ASSET" | grep -o 'https://api.legalise.dev/api'
+
+# 6. CORS preflight from the Pages origin. Expect 200 with
+# Access-Control-Allow-Origin: https://legalise.dev.
+curl -sI -X OPTIONS https://api.legalise.dev/api/matters \
+  -H "Origin: https://legalise.dev" \
+  -H "Access-Control-Request-Method: GET" | head -10
+```
+
+**Manual click-through after the curls pass:**
+- Visit `https://legalise.dev/`. Hero + four SurfaceCards render, TopBar shows `lhr1` green, `OPEN DEMO MATTER →` is enabled (assumes a seeded matter exists from step 3).
+- Click the demo CTA. Matter detail loads, audit log non-empty.
+- Click `RUN PREMORTEM →`. SSE stages tick through (4 stage strips, terminal-green "running" → platinum "done"). Final result card renders with verdict.
+- Click `EXPORT PDF →`. PDF downloads. Open it — verdict + summary + stages table + failure scenarios all rendered.
+- Open the Letters section. Catalogue lists 6 ET letter types (Khan is ET). Click `lba`, then `DRAFT LETTER →`. Draft renders.
+
+If any of the curl steps red, **do not proceed** — debug before the click-through wastes Anthropic tokens.
 
 ## Why this combination
 

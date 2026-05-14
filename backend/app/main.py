@@ -55,8 +55,13 @@ async def lifespan(app: FastAPI):
         exists=plugins_root.exists(),
     )
 
-    # Seed the demo matter in development so the workspace is never empty.
-    if settings.environment in {"development", "dev", "local"}:
+    # Seed the demo matter in any environment that wants the workspace to be
+    # non-empty on boot. The seed function is idempotent — existing Khan is
+    # returned unchanged — so re-runs are safe. `demo` is the prod-shaped
+    # alias for the live demo at legalise.dev where we want the seeded matter
+    # to exist without flipping ENVIRONMENT to "development" (which would
+    # also enable uvicorn --reload via entrypoint.sh).
+    if settings.environment in {"development", "dev", "local", "demo"}:
         try:
             async with app.state.session_factory() as session:
                 matter = await seed_demo_matter(session)
