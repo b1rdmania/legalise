@@ -32,7 +32,7 @@ type StageProgress = {
   token_count?: number;
   errors?: string[];
 };
-import { navigate, useRoute } from "./lib/route";
+import { navigate, useRoute, type Route } from "./lib/route";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
 
@@ -49,8 +49,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <TopBar health={health} />
+      <TopBar health={health} route={route} />
       <main className="flex-1">
+        {route.name === "landing" && <Landing />}
         {route.name === "list" && <MatterList />}
         {route.name === "new" && <NewMatter />}
         {route.name === "detail" && <MatterDetail slug={route.slug} />}
@@ -61,8 +62,23 @@ export default function App() {
 
 // ---------- top bar ---------------------------------------------------------
 
-function TopBar({ health }: { health: HealthResponse | null }) {
+function TopBar({ health, route }: { health: HealthResponse | null; route: Route }) {
   const dbOk = health?.database === "ok";
+  const isLanding = route.name === "landing";
+  const isList = route.name === "list";
+  const isNew = route.name === "new";
+  const isDetail = route.name === "detail";
+  // Breadcrumb tail reflects the current surface so the brand link reads as
+  // a path (legalise / matters / khan-…) rather than a fixed label.
+  const tail = isLanding
+    ? "home"
+    : isList
+      ? "matters"
+      : isNew
+        ? "matters / new"
+        : isDetail
+          ? `matters / ${route.slug}`
+          : "matters";
   return (
     <header className="border-b border-graphite px-6 py-3 flex items-center justify-between sticky top-0 bg-carbon z-30">
       <a
@@ -72,17 +88,17 @@ function TopBar({ health }: { health: HealthResponse | null }) {
         <span className="inline-grid place-items-center w-[18px] h-[18px] border border-slate text-terminal-green text-[11px]">
           ▌
         </span>
-        <span className="text-snow">oxide-legal</span>
+        <span className="text-snow">legalise</span>
         <span className="text-dim-gray">/</span>
-        <span className="text-light-gray">matters</span>
+        <span className="text-light-gray truncate max-w-[40ch]">{tail}</span>
       </a>
       <nav className="flex items-center gap-5">
-        <a href="#/" className="text-[12px] text-light-gray hover:text-snow border-t border-graphite px-1.5 pt-2 pb-2">
+        <NavLink href="#/matters" active={isList || isDetail}>
           Matters
-        </a>
-        <a href="#/matters/new" className="text-[12px] text-light-gray hover:text-snow border-t border-graphite px-1.5 pt-2 pb-2">
+        </NavLink>
+        <NavLink href="#/matters/new" active={isNew}>
           New
-        </a>
+        </NavLink>
       </nav>
       <div className="flex items-center gap-4 font-mono text-[11px] tracking-[0.014em] text-steel-gray">
         <span className="flex items-center gap-1.5">
@@ -98,6 +114,145 @@ function TopBar({ health }: { health: HealthResponse | null }) {
         <span className="text-light-gray">jasmine.k</span>
       </div>
     </header>
+  );
+}
+
+function NavLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+  return (
+    <a
+      href={href}
+      className={
+        "font-mono text-[12px] tracking-[0.053em] px-1.5 pt-2 pb-2 border-t " +
+        (active
+          ? "text-terminal-green border-terminal-green"
+          : "text-light-gray hover:text-snow border-graphite")
+      }
+    >
+      {children}
+    </a>
+  );
+}
+
+// ---------- landing ---------------------------------------------------------
+
+function Landing() {
+  const [demoSlug, setDemoSlug] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listMatters()
+      .then((rows) => {
+        // Pick the seeded Khan matter if present; otherwise fall back to the
+        // first matter in the workspace. Empty workspace renders the "no
+        // demo seeded yet" path below.
+        const khan = rows.find((m) => m.slug.startsWith("khan-v-acme"));
+        setDemoSlug((khan ?? rows[0])?.slug ?? null);
+      })
+      .catch((e) => setError(String(e)));
+  }, []);
+
+  const onOpenDemo = () => {
+    if (demoSlug) navigate(`/matters/${demoSlug}`);
+  };
+
+  return (
+    <div className="max-w-[1100px] mx-auto px-8 py-16">
+      <div className="font-mono text-[12px] tracking-[0.053em] text-platinum mb-6">
+        <span className="text-terminal-green">legalise&nbsp;$</span>{" "}
+        <span>workspace --help</span>
+        <span className="inline-block w-2 h-3.5 bg-emerald-shadow ml-2 align-text-bottom animate-pulse" />
+      </div>
+
+      <h1 className="font-sans font-normal text-snow text-[65px] leading-[1.05] tracking-[-0.05px] mb-6 max-w-[20ch]">
+        Matter-first legal AI for England &amp; Wales.
+      </h1>
+
+      <p className="font-sans text-[18px] leading-[1.45] text-ash-gray max-w-[62ch] mb-10">
+        Legalise is an open-source workspace counterpart to the
+        <span className="text-platinum"> claude-for-uk-legal</span> plugin suite. Matters
+        are addressable resources — every LLM call is audited, privilege posture is a
+        first-class property, and disclosed material is gated behind CPR 31.22 at the
+        API. Plug in any module that respects those constraints.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-4 mb-16">
+        <button
+          onClick={onOpenDemo}
+          disabled={!demoSlug}
+          className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-4 h-9 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {demoSlug ? "OPEN DEMO MATTER →" : "LOADING DEMO…"}
+        </button>
+        <a
+          href="#/matters"
+          className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
+        >
+          all matters →
+        </a>
+        <a
+          href="https://github.com/b1rdmania/legalise"
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
+        >
+          github →
+        </a>
+      </div>
+
+      {error && <ErrorCallout message={error} />}
+
+      <SectionLabel id="§surfaces" name="modules · v0.1 surfaces" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+        <SurfaceCard
+          kbd="matter"
+          name="Matter spine"
+          body="CRUD, document register with SHA-256, privilege posture toggle (A_cleared / B_mixed / C_paused), filesystem materialisation to Stella-compatible matters/{slug}/ layout, audit trail on every mutation."
+        />
+        <SurfaceCard
+          kbd="pre-motion"
+          name="Pre-Motion (hero)"
+          body="Adversarial premortem — Optimistic Analyst → Evidence Inspector × 3 → Premortem Adversary × 4 → Synthesiser. 9 model calls per run, all audited. SSE streaming, PDF export via Gotenberg."
+        />
+        <SurfaceCard
+          kbd="letters"
+          name="Letters"
+          body="Matter-type-aware drafting over the plugin bridge. Employment Tribunal routes to lba-drafter by default; civil claims route to cpr-letter-drafter. Six letter types in the seeded catalogue."
+        />
+        <SurfaceCard
+          kbd="chronology"
+          name="Chronology + CPR 31.22 gate"
+          body="Seeded fixture demonstrating the regulatory shape. Disclosure-tainted entries are redacted at the API until the user acknowledges the implied undertaking. Live extraction graduates v0.2."
+        />
+      </div>
+
+      <SectionLabel id="§trust" name="trust posture · honest about what v0.1 does not yet do" />
+      <p className="font-sans text-[14px] leading-[1.55] text-ash-gray max-w-[70ch] mb-2">
+        Single hardcoded user; retention recorded but not enforced; append-only audit
+        log by convention not by Postgres grant; UK-region database and backend, edge
+        CDN and object storage at EU / Western Europe placement.{" "}
+        <a
+          href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
+          target="_blank"
+          rel="noreferrer"
+          className="text-terminal-green hover:underline"
+        >
+          docs/TRUST.md
+        </a>{" "}
+        is the v0.1 source of truth.
+      </p>
+    </div>
+  );
+}
+
+function SurfaceCard({ kbd, name, body }: { kbd: string; name: string; body: string }) {
+  return (
+    <div className="border border-graphite p-4">
+      <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
+        <span className="text-terminal-green">§{kbd}</span>
+      </div>
+      <h3 className="font-sans text-[20px] text-snow mb-2 leading-[1.2]">{name}</h3>
+      <p className="font-sans text-[14px] leading-[1.5] text-ash-gray">{body}</p>
+    </div>
   );
 }
 
@@ -274,7 +429,7 @@ function NewMatter() {
             {submitting ? "CREATING…" : "CREATE →"}
           </button>
           <a
-            href="#/"
+            href="#/matters"
             className="font-sans text-[12px] text-platinum hover:text-snow border-t border-slate hover:border-terminal-green px-3 py-2"
           >
             cancel
@@ -432,7 +587,7 @@ function MatterDetail({ slug }: { slug: string }) {
     return (
       <div className="max-w-[1100px] mx-auto px-8 py-12">
         <ErrorCallout message={error} />
-        <a href="#/" className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow">
+        <a href="#/matters" className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow">
           ← back to matters
         </a>
       </div>

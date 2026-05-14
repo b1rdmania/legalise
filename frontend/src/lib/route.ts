@@ -2,7 +2,8 @@
 // routes to justify the file-based routing setup (week 1, day 6+).
 //
 // Routes:
-//   #/                          → matters list
+//   #/                          → landing
+//   #/matters                   → matters list
 //   #/matters/new               → new matter form
 //   #/matters/{slug}            → matter detail
 //   #/matters/{slug}/documents  → matter detail · documents tab
@@ -10,17 +11,19 @@
 import { useEffect, useState } from "react";
 
 export type Route =
+  | { name: "landing" }
   | { name: "list" }
   | { name: "new" }
   | { name: "detail"; slug: string; tab?: string };
 
 export function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, "").replace(/^\//, "");
-  if (h === "" || h === "matters") return { name: "list" };
+  if (h === "") return { name: "landing" };
+  if (h === "matters") return { name: "list" };
   if (h === "matters/new") return { name: "new" };
   const m = h.match(/^matters\/([^/]+)(?:\/(.+))?$/);
   if (m) return { name: "detail", slug: m[1], tab: m[2] };
-  return { name: "list" };
+  return { name: "landing" };
 }
 
 export function useRoute(): Route {
