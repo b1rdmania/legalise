@@ -38,8 +38,16 @@ class Settings(BaseSettings):
     # Auth (stub — v0.2 swaps for WorkOS/Stytch)
     session_secret: str = "change-me-in-deployment"
 
-    # CORS
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    # CORS. Override with the CORS_ORIGINS env var as a JSON array, e.g.
+    # CORS_ORIGINS='["https://legalise.dev","http://localhost:3000"]'.
+    # The live demo's frontend at legalise.dev calls the backend at
+    # api.legalise.dev, so the demo origin must be in this list for the
+    # cross-origin POST/SSE/fetch shapes to succeed. Self-host with both
+    # frontend and backend on the same origin (compose proxy) does not
+    # need the override.
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "https://legalise.dev"]
+    )
 
     # Matter filesystem materialisation
     matters_root: str = "/data/matters"

@@ -68,9 +68,12 @@ fly secrets set \
   ANTHROPIC_API_KEY="..." \
   S3_ENDPOINT="..." \
   S3_ACCESS_KEY="..." \
-  S3_SECRET_KEY="..."
+  S3_SECRET_KEY="..." \
+  CORS_ORIGINS='["https://legalise.dev"]'
 fly deploy
 ```
+
+**CORS_ORIGINS is load-bearing on the split deploy.** Cloudflare Pages serves the frontend from `legalise.dev`; Fly serves the backend from `api.legalise.dev`. Every API call (including the SSE stream and the PDF POST) is cross-origin. The backend default already includes `https://legalise.dev` so the secret above is only required if you swap the demo origin. If the secret is unset and the default has been edited away, the browser will block the demo entirely — preflight 200, actual request blocked, no audit row.
 
 UK region (`lhr` = London Heathrow). Single-region deployment for v0.1; HA / multi-region is v0.5+.
 
@@ -84,7 +87,9 @@ Connect the GitHub repo to Cloudflare Pages:
 
 - **Build command:** `cd frontend && npm install && npm run build`
 - **Build output directory:** `frontend/dist`
-- **Environment variable:** `VITE_API_BASE_URL=https://api.legalise.dev`
+- **Environment variable:** `VITE_API_BASE_URL=https://api.legalise.dev/api`
+
+The env var must carry both the backend origin **and** the `/api` path segment because backend routes are mounted under `/api/...` regardless of host. `frontend/src/lib/api.ts:API` reads this var at build time and falls back to the same-origin `/api` prefix when unset (which is what the local compose proxy and Vite dev server expect). The TopBar health probe derives the backend origin from `BACKEND_ROOT = API.replace(/\/api\/?$/, "")`, so `/health` lands on `https://api.legalise.dev/health` automatically — do NOT mount health under `/api` on the backend without updating that derivation.
 
 ### 5b. Gotenberg sidecar — Fly.io `lhr`
 
@@ -101,34 +106,48 @@ app = "legalise-gotenberg"
 primary_region = "lhr"
 
 [build]
-image = "gotenberg/gotenberg:8"
+  image = "gotenberg/gotenberg:8"
 
-[[services]]
-internal_port = 3000
-protocol = "tcp"
-auto_stop_machines = true
-auto_start_machines = true
-min_machines_running = 0
-
-[[services.ports]]
-handlers = ["http"]
-port = 80
+# NOTE: NO [[services]] / [[http_service]] block. The Gotenberg app must
+# have ZERO public ingress — Fly's default is "no listener" without an
+# explicit services block, which is the posture we want. The backend
+# reaches the sidecar over Fly's *.internal 6PN network only. Adding a
+# services block here would expose an unauthenticated PDF converter that
+# accepts arbitrary HTML — that's a public abuse surface and a leak
+# vector for matter-derived markup.
 
 [[vm]]
-size = "shared-cpu-1x"
-memory_mb = 512
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+# Auto-stop on idle keeps cost near-zero for a demo surface. Cold start
+# on the next request adds 1–3s to the first PDF. The autostop/autostart
+# pair applies to machines, not services, so it lives at the top level
+# without a services block.
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 0
 TOML
 
 fly deploy --config /tmp/gotenberg.fly.toml
 ```
 
-The backend reaches it via Fly's `*.internal` 6PN network — no public ingress needed for the demo. Set on the **legalise backend** app, not the Gotenberg app:
+The backend reaches it over Fly's `*.internal` 6PN network. The sidecar listens on port 3000 inside the machine and is addressable as `legalise-gotenberg.internal:3000` from any other Fly app in the same organisation — no DNS publication, no public IP. Set on the **legalise backend** app, not the Gotenberg app:
 
 ```bash
 fly secrets set GOTENBERG_URL="http://legalise-gotenberg.internal:3000"
 ```
 
-`backend/app/core/config.py:gotenberg_url` reads this env var; no code change required. `auto_stop_machines = true` keeps cost near zero — Fly stops the machine when idle and cold-starts it on the next request (cold start adds a couple of seconds to the first PDF after idle, acceptable for a demo surface).
+`backend/app/core/config.py:gotenberg_url` reads this env var; no code change required.
+
+**Verify no public ingress** after `fly deploy`:
+
+```bash
+fly ips list --app legalise-gotenberg   # expect: empty
+fly status --app legalise-gotenberg     # expect: no public IPs, no services
+```
+
+If `fly ips list` shows any IP, the deploy picked up an unintended services block — `fly ips release` and re-deploy with the config above.
 
 **Fallback if sidecar is yellow on demo day.** Strip the EXPORT PDF button via a frontend feature flag and ship without PDF. PDF is an experience nicety, not a correctness gap — the Pre-Motion brief is already fully rendered in-page and forensically captured in the audit log.
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
+  BACKEND_ROOT,
   confirmGate,
   createMatter,
   draftLetter,
@@ -41,7 +42,7 @@ export default function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
 
   useEffect(() => {
-    fetch("/health")
+    fetch(`${BACKEND_ROOT}/health`)
       .then((r) => r.json())
       .then((data: HealthResponse) => setHealth(data))
       .catch(() => setHealth(null));
@@ -171,8 +172,9 @@ function Landing() {
         Legalise is an open-source workspace counterpart to the
         <span className="text-platinum"> claude-for-uk-legal</span> plugin suite. Matters
         are addressable resources — every LLM call is audited, privilege posture is a
-        first-class property, and disclosed material is gated behind CPR 31.22 at the
-        API. Plug in any module that respects those constraints.
+        first-class property, and disclosure-tainted chronology entries are gated behind
+        a CPR 31.22 implied-undertaking acknowledgement at the API. Plug in any module
+        that respects those constraints.
       </p>
 
       <div className="flex flex-wrap items-center gap-4 mb-16">

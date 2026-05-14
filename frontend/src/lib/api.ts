@@ -44,7 +44,18 @@ export interface MatterCreate {
   retention_until?: string | null;
 }
 
-const API = "/api";
+// API prefix. In dev/self-host the Vite proxy or compose network resolves
+// `/api/...` to the backend. On a split live deploy (Cloudflare Pages +
+// Fly.io backend), set VITE_API_BASE_URL at build time to the absolute
+// API root including the `/api` segment — e.g.
+// `VITE_API_BASE_URL=https://api.legalise.dev/api`. Backend routes are
+// mounted under `/api/...` regardless of host, so the env var carries
+// both the origin and the `/api` segment.
+export const API = import.meta.env.VITE_API_BASE_URL || "/api";
+
+// Backend origin (no `/api` suffix). The health endpoint lives at the
+// backend root, not under /api, so it needs the origin alone.
+export const BACKEND_ROOT = API.replace(/\/api\/?$/, "") || "";
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
