@@ -319,44 +319,6 @@ launch is on the upper end. Don't pretend buffer doesn't exist.
 
 **Done state for the whole batch:** the v0.1.5 (post-auth) launch artifacts are ready; the launch playbook is consistent with the new shape; the deploy plan is updated with the new Fly secrets (`LEGALISE_KEY_ENCRYPTION_SECRET`, `RESEND_API_KEY`).
 
-### Day B — Per-user API keys + gateway integration
-
-- Encryption helpers in `app/core/encryption.py` (AES-GCM via `cryptography`)
-- `UserApiKey` model + CRUD endpoints (`POST/GET/DELETE /api/settings/keys`)
-- `ModelGateway.call()` extended to read the calling user's key (passed by FastAPI dependency); falls back to server-level env var only if `LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true` (off in production, on in dev for stub-echo testing)
-- New error path: model call refuses with a structured 422 if user has no key for the required provider — frontend renders this with a "Add an Anthropic key in settings →" prompt
-- Update the audit log row payload to **never** include the key
-
-**Done state:** Jasmine signs up, adds her Anthropic key, runs Pre-Motion, uses HER tokens — not the server's.
-
-### Day C — Settings UI (frontend)
-
-- New route `#/settings/profile`, `#/settings/keys`, `#/settings/preferences`
-- Forms for: name, email, password change, API keys (one per provider, masked display, last-used-at), default model, default privilege posture
-- Frontend API types + fetchers
-- Existing `NavLink`s extended; TopBar gains a profile-menu dropdown (mirrors the `legalise / matters` crumb pattern)
-
-**Done state:** clicking through the settings pages works end-to-end against the backend.
-
-### Day D — Onboarding flow + marketing rewrite
-
-- Signup flow that auto-copies the Khan demo matter into the new user's workspace (modify `seed_demo_matter` to take a `user_id` arg, call it from the post-confirm handler)
-- Landing page rewrite: hero stays, add "SIGN UP →" and "SIGN IN →" CTAs replacing or supplementing the existing "OPEN DEMO MATTER →" button
-- New auth pages: signup, signin, password-reset-request, password-reset-complete, email-verify-pending, email-verify-complete (six pages, all Oxide-token-styled)
-- Email templates (HTML + plain text) for verification + reset
-
-**Done state:** a fresh user lands on legalise.dev, signs up, confirms email, lands in a workspace with the Khan matter, can run Pre-Motion immediately (assuming they've added a key).
-
-### Day E — Polish + evals + launch playbook update
-
-- Extend `evals/smoke_sample_matter.py` with a negative test: User A signs up, creates a matter, User B signs up, hits User A's matter URL, expects 404 (not 403 — we don't want to leak "this matter exists")
-- README + Landing copy update: surface the BYO-key pattern; one paragraph in "What v0.1 does not yet do" gets removed (auth was on that list; now isn't)
-- HANDOVER_LAUNCH.md update: HN post bodies extend with "Sign up free, bring your own Anthropic/OpenAI/Gemini key; your matter data stays scoped to you in Postgres."
-- ROADMAP.md: auth moves from v0.2 to v0.1; v0.2 Module Lifecycle workstream and Trust workstream stay where they are
-- Documentation pass: add `docs/AUTH.md` describing the signup flow, key storage, encryption, and self-host considerations (master key generation)
-
-**Done state:** the v0.1.5 (post-auth) launch artifacts are ready; the launch playbook is consistent with the new shape.
-
 ---
 
 ## 6. Schema changes
@@ -457,6 +419,31 @@ exist yet). The build is not done until these hold:
 - **404-on-cross-user.** Every matter / document / audit endpoint
   returns 404 (not 403, not 401) when the slug exists but is owned by
   a different user. Avoid leaking existence.
+- **Cookie / CORS coherence (added R2).** Every authenticated
+  cross-origin call from the frontend (fetch, SSE, PDF POST) must use
+  `credentials: "include"`; backend CORS must keep
+  `allow_credentials=True` with an explicit origin allowlist (no
+  wildcards). On the split deploy, `CORS_ORIGINS` must contain
+  exactly the marketing origin (`https://legalise.dev`) and nothing
+  with `*`. Missing this combination breaks every authenticated
+  request silently — preflight 200, actual request blocked. The
+  R6-P1a CORS work already established the shape; the auth build
+  must not regress it.
+- **Public vs gated endpoint discipline (added R2).** Public-without-
+  auth: `/health`, `/api/modules` (catalogue Discovery), `/api/modules/{plugin}/{skill}`
+  (prompt body), and the marketing surface served at `/`. Everything
+  else (matters, documents, audit, letters, pre-motion, chronology,
+  settings, anything that exercises a model call or returns user data)
+  requires a valid session. The auth scaffolding lands with an
+  explicit allowlist for the public set; new endpoints default to
+  gated.
+- **Server-key fallback is dev-only (promoted from §5 to invariant after R2).**
+  `LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true` is honoured only when
+  `ENVIRONMENT in {development, dev, local}`. In production the env
+  var is read as `false` regardless of value — the gateway refuses
+  to fall back to a server-level key even if the flag is set. Document
+  this in `docs/AUTH.md` and assert it in a unit test so regressions
+  blow up at CI time.
 
 **The auth build adds scope and access-control discipline; it does not
 modify the R5/R6/R7-signed-off scope.**
@@ -474,67 +461,41 @@ modify the R5/R6/R7-signed-off scope.**
 
 ---
 
-## 9. Open decisions for reviewer agent (after R1 patch)
+## 9. Open decisions — closed at R2
 
-R1 closed the architecture-stack decisions. What's still open and needs
-a yes/no from R2:
+All R2 yes/nos signed off. Outcomes (do not relitigate):
 
-1. **Slug tenancy — option A vs option B** (§3e). Composite uniqueness
-   + path namespacing (right at scale, slightly more work) vs slug
-   suffix on auto-copy (faster, kicks consolidation to v0.2). R1
-   reviewer flagged this as the most consequential P1. Plan-author
-   recommends A.
-2. **Email-verify + password-reset in v0.1, or cut to v0.1.5?**
-   (§5). Keeping them = 7-8 day estimate. Cutting them = ~5 days but
-   we ship without a way for users to reset their password from the
-   UI (admin reset only). Plan-author recommends keeping; gut check
-   from reviewer.
-3. **`LEGALISE_ALLOW_SERVER_KEY_FALLBACK` env flag** (§5 Day B). For
-   dev / self-host smoke runs only — production refuses to read it
-   even if set. Is the flag worth shipping, or would documenting
-   "set a stub key in dev" be cleaner? Plan-author thinks the flag is
-   right because dev compose and CI need it.
-4. **Demo matter strategy** (§3e). Auto-copy on signup or shared
-   read-only Khan at a fixed URL? Plan-author recommends auto-copy
-   *after* the slug fix. Worth re-confirming after R1's flag.
+1. **Slug tenancy:** Option A — composite uniqueness `(created_by_id, slug)` + filesystem path namespacing. R2 verdict: "creates discipline exactly where auth/tenancy needs it."
+2. **Email-verify + password-reset:** retained in v0.1 — 7-8 day estimate is the cost of doing auth credibly. Public signup without reset is "a cheap hostile shot" (R2).
+3. **`LEGALISE_ALLOW_SERVER_KEY_FALLBACK`:** flag ships, but production refuses it as a hard invariant (now codified in §7).
+4. **Demo matter strategy:** auto-copy on signup *after* Option A lands. Read-only Khan is cleaner technically but worse for the first-click experience.
+5. **Estimate:** 7-8 days "tight but defensible". Days F-G are real buffer, not optional polish — builder must treat them as part of the estimate, not slack.
 
-These four are the new open list. The eight original yes/nos
-(§10 below) are revised to reflect R1's amendments.
+Build kicks off after this section becomes historical reference.
 
 ---
 
-## 10. What the reviewer agent is asked to sign off (R2 round)
+## 10. Review history
 
-R1 round closed 5 of 8 directional yes/nos. R2 round picks up the
-remaining four plus a sanity-check on the patches landed since.
-
-R1 outcomes (recorded — do not relitigate):
-
+**R1 outcomes (closed):**
 1. Auth in v0.1 scope — **yes** (with R1 amendments)
 2. fastapi-users + cookie + Postgres — **yes**, with `DatabaseStrategy`
-3. Per-user encrypted API keys + env master — **yes**, plus
-   startup-fail invariant on missing master in production (§3c)
+3. Per-user encrypted API keys + env master — **yes**, plus startup-fail invariant on missing master in production (§3c)
 4. Same-surface gated routing — **yes**
 5. Mike-feature triage — **mostly yes**; Gemini moved to "don't lift"
 
-R2 yes/nos still open:
+R1 added five new locked invariants (§7): slug tenancy, FS materialisation tenancy, audit middleware actor resolution, SSE auth + scoping, 404-on-cross-user.
 
-1. Slug tenancy fix (option A composite uniqueness vs option B
-   suffix) (§3e). Plan-author recommends A.
-2. Email-verify + password-reset retained in v0.1 (7-8 day estimate)
-   vs cut to v0.1.5 (~5 day estimate) (§5). Plan-author recommends
-   retain.
-3. Auto-copy demo matter on signup (after slug fix) vs shared
-   read-only Khan (§3e). Plan-author recommends auto-copy.
-4. Locked invariants list (§7) — R1 added five new ones (slug
-   tenancy, FS materialisation tenancy, audit middleware actor
-   resolution, SSE auth + scoping, 404-on-cross-user). R2 should
-   confirm the list is now complete, or name what's still missing.
+**R2 outcomes (closed):**
+1. Slug tenancy — **Option A** (composite uniqueness + path namespacing)
+2. Email-verify + password-reset in v0.1 — **retain** (the cost of doing auth credibly)
+3. Auto-copy Khan on signup — **yes**, after Option A lands
+4. Locked invariants list — **almost complete**; R2 added two more (cookie/CORS coherence, public-vs-gated endpoint discipline) and promoted the server-key-fallback decision from open question to hard invariant. §7 now has eight new invariants total above the R5/R6/R7 inherited set.
+5. 7-8 day estimate — **defensible** if Days F-G are treated as real buffer, not optional polish.
 
-Plus a sanity-check: 7-8 day estimate realistic, or still optimistic
-given the R1-flagged blast radius?
+R2 also flagged one editing artifact (duplicate Day B-E block at lines ~322-358) which has been removed.
 
-When R2 signs off with concrete changes (if any), we move to build.
+**Build status:** auth build cleared to start after this commit lands.
 
 ---
 
@@ -542,8 +503,8 @@ When R2 signs off with concrete changes (if any), we move to build.
 
 - Not a finished spec. Concrete API shapes, exact fastapi-users
   configuration, exact frontend route layout are TBD during the build.
-- Not a commitment to ship in 5 days. Reviewer may flag scope expansion
-  or under-scoping. Estimate revised post-review.
+- Not a commitment to ship in 5 days — 7-8 days is the R2-signed-off
+  estimate, with Days F-G as real buffer not optional polish.
 - Not a v0.2 plan. The Module Lifecycle workstream, team workspaces,
   matter sharing, paid tiers, signed manifests, lint gates — all
   remain v0.2+.
