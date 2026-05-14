@@ -72,7 +72,7 @@ Before Day 1:
 
 **Hard gate before Day 6.** Pre-Motion port does **not** begin until the Day 1-5 path is green: quickstart works, matter CRUD + document upload work, audit log captures every action, privilege posture changes module behaviour visibly, one plugin invocation from the sample matter has succeeded. If Day 5 is yellow or red on any of these, slip Day 6 by a day. Pre-Motion is the demo headliner, but it sits on the matter spine — a weak spine ships nothing.
 
-> **R7 framing note (post-pivot).** Earlier passes of this plan called Pre-Motion "the hero". Post-pivot framing: Pre-Motion is the canonical demonstration of the bespoke-orchestration surface pattern, not the project's identity. The project's identity is the audited execution layer for legal skills. Wording in Day 6–8 below is preserved as the sequencing record for the build week; current launch-facing copy in `README.md`, `Landing.tsx`, and `MANIFESTO.md` carries the post-pivot framing.
+> **R7 framing note (post-pivot).** Earlier passes of this plan called Pre-Motion "the hero". Post-pivot framing: Pre-Motion is the canonical demonstration of the bespoke-orchestration surface pattern, not the project's identity. The project's identity is the audited execution layer for legal skills. Wording in Day 6–8 below is preserved as the sequencing record for the build week; current launch-facing copy in `README.md`, `frontend/src/App.tsx`, and `MANIFESTO.md` carries the post-pivot framing.
 
 ### Day 6 — Pre-Motion port (DONE at commit `94dc281`)
 - Source: `/Users/andy/Documents/New project/premotion/` — adversarial premortem pipeline ported wholesale into `legalise/backend/app/modules/pre_motion/`.

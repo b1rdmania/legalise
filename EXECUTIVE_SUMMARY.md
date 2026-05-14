@@ -57,7 +57,7 @@ Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release co
 4. **Chronology read-only demo** — seeded fixture, CPR 31.22 implied-undertaking gate, significance tagging, SoF variant filtering. Demonstrates the regulatory shape without v0.1 live extraction.
 5. **Contract review** — visible roadmap tab, clearly labelled v0.2. The proven 4-agent pipeline in counsel-mvp graduates as a port + SDK wiring in v0.2, not as a v0.1 commitment.
 
-Plain-English ships as a **launch-week stretch** only if the core sample-matter path is green by Day 16. Documented as the SDK-extensibility proof point in the launch post.
+Post-pivot, the SDK-extensibility proof is `#/modules` Discovery over `PLUGINS_ROOT`, not a launch-week Plain-English tab. Plain-English is retired from v0.1 unless it returns as a normal v0.2 module.
 
 ## Stack
 

@@ -14,7 +14,7 @@ v0.1 is a demo with substance, not a complete five-module workspace. The release
 
 The primary demo is one seeded sample matter that threads facts → Pre-Motion → audit entries visibly accumulating → privilege posture change → letter generation. Breadth exists in navigation, but the launch commitment is one excellent workflow.
 
-**Plain-English is launch-week stretch, not a v0.1 surface.** Built on the documented `app.core.api` as an SDK-extensibility proof point. Ships only after the core path is green at end of Day 16. If skipped, the README still links `examples/modules/example-tab/` as the SDK example.
+**Plain-English is retired from v0.1.** The SDK-extensibility proof is `#/modules` Discovery over `PLUGINS_ROOT`, plus the documented Git catalogue workflow. Plain-English can return later as a normal v0.2 module, not as a launch-week stretch.
 
 ### Regulatory plumbing (demo-grade, visible in UI)
 
