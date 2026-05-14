@@ -28,8 +28,9 @@ commit is ~25 lines in `pre_motion/router.py`.
    - `POST /pre-motion/run-stream` — SSE variant, identical audit rows
      to `/run`. Sub-question: does the background-task pattern preserve
      the audit invariant under client disconnect?
-   - `POST /pre-motion/pdf` — single `module.pre_motion.pdf.exported`
-     row per export. No `model.call` row (no LLM call). One row total.
+   - `POST /pre-motion/pdf` — one semantic row
+     (`module.pre_motion.pdf.exported`) per export plus the middleware
+     `http.post` row — two rows total. No `model.call` row (no LLM call).
 2. **Two architectural deviations need explicit sign-off** before later
    surfaces lean on them — see §5.
 3. **Spot-check the letters catalogue routing** against the matter_type
