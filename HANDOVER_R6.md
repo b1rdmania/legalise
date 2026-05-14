@@ -47,7 +47,7 @@ documentation. No backend changes. No migrations.
 | Hash | Day (BUILD_PLAN) | Contents | Reviewer smoked |
 |---|---|---|---|
 | `05bbad0` | 10 | Contract Review v0.2 roadmap section on matter detail — visible-but-not-active, four-agent pipeline (Parser → Analyst → Redliner → Summariser) graduates from counsel-mvp onto `app.core.api` at v0.2 | not yet |
-| `7659514` | 11–12 | Integration polish — `ErrorCallout` parses backend error strings into status chip + plain-language body, replaces 6 raw `String(err)` `<pre>` dumps; `LoadingLine` replaces bare "loading…" text. Gotenberg-on-live-deploy decided: Fly sidecar app in `lhr` with auto-stop, documented in `infra/deploy/cloudflare.md` §5b | not yet |
+| `7659514` | 11–12 | Integration polish — `ErrorCallout` parses backend error strings into status chip + plain-language body, replaces 6 raw `String(err)` `<pre>` dumps; `LoadingLine` replaces bare "loading…" text. Gotenberg-on-live-deploy decided: Fly sidecar app in `lhr`, always-on internal-only `.internal` (no autostop — see R6 P1b second-pass note), documented in `infra/deploy/cloudflare.md` §5b | smoked through R6 P1b second pass |
 | `2724932` | 13–14 | Demo flow — `Landing` component at `#/` with hero copy + OPEN DEMO MATTER button resolving the Khan slug via `listMatters()` + four SurfaceCards summarising v0.1. `Route` gains "landing" variant. TopBar brand crumb contextual (`legalise / <surface>`); `NavLink` highlights active surface | not yet |
 
 All three commits AST-compile and the frontend typechecks clean
@@ -99,11 +99,14 @@ infra/deploy/cloudflare.md            (TOUCHED) — new §5b "Gotenberg
                                        sidecar — Fly.io lhr" documents
                                        the deploy pattern: second Fly
                                        app running gotenberg/gotenberg:8,
-                                       auto_stop_machines = true, reached
-                                       over Fly's *.internal 6PN network.
-                                       Includes fly.toml inline + the
-                                       backend's `fly secrets set
-                                       GOTENBERG_URL=...` command. No
+                                       always-on shared-cpu-1x (no
+                                       autostop — see R6 P1b second-pass
+                                       note for the Flycast v0.2 swap
+                                       path), reached over Fly's
+                                       *.internal 6PN network. Includes
+                                       fly.toml inline + the backend's
+                                       `fly secrets set GOTENBERG_URL=...`
+                                       command. No
                                        code change — backend already
                                        reads gotenberg_url from settings.
 
@@ -177,8 +180,20 @@ machine-readable error info (e.g. for retry logic on idempotent calls).
 R5 §6 surfaced Gotenberg as the deploy-blocker for Day 15. R6 documents
 the decision in `infra/deploy/cloudflare.md` §5b: **second Fly app in
 `lhr`** running the official `gotenberg/gotenberg:8` image, reached
-over Fly's `*.internal` 6PN network, with `auto_stop_machines = true`
-so the cost is near-zero when nobody's exporting.
+over Fly's `*.internal` 6PN network. **Always-on `shared-cpu-1x`** (no
+autostop), zero public ingress (no `[[services]]` / `[http_service]`
+block). Cost is roughly $3/month — trivial for a demo surface, removes
+the cold-start footgun entirely.
+
+**R6 P1b second-pass note (the autostop trap).** Initial draft had
+`auto_stop_machines = true` at the top level of the `fly.toml`.
+Reviewer caught: autostop/autostart are service-proxy features that
+require a `[[services]]` or `[http_service]` block to trigger, and
+stopped machines drop out of `*.internal` DNS so even an in-cluster
+`.internal` HTTP call cannot wake one. The two coherent shapes are
+(1) always-on `.internal`, no public ingress; or (2) Flycast +
+`[http_service]` + autostop. v0.1 ships (1); v0.2 swaps to (2) if PDF
+becomes load-bearing.
 
 **Three alternatives considered and rejected:**
 
@@ -195,10 +210,9 @@ so the cost is near-zero when nobody's exporting.
 
 **Trade-offs the sidecar carries:**
 
-- Cold-start latency on the first PDF after auto-stop (1–3s).
-  Acceptable for a demo surface; not acceptable for a high-throughput
-  product surface — v0.2 sets `min_machines_running` if PDF becomes
-  load-bearing.
+- One machine running 24/7 in `lhr`. No cold start, no autostop
+  complexity. v0.2 swaps to Flycast + `[http_service]` + autostop if
+  PDF cost or scale changes.
 - Inter-app traffic crosses Fly's internal network. No public ingress
   on the Gotenberg app, no auth wrapper. Threat model: anyone with Fly
   organisation access can reach Gotenberg. For v0.1 that's the same
