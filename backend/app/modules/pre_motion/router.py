@@ -9,6 +9,7 @@ invocation.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from typing import Any
 
@@ -20,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.db import get_session
-from app.core.model_gateway import PrivilegePaused
+from app.core.model_gateway import PrivilegePaused, PrivilegePosture
 from app.models import Matter, User
 
 from .pdf import render_pre_motion_pdf
@@ -83,15 +84,29 @@ async def run_pre_motion_stream(
     body = inputs or PreMotionRunInputs()
     factory = request.app.state.session_factory
 
-    # Cheap-validate the matter before kicking off the pipeline. A 404 in the
-    # SSE generator would surface as a half-formed stream — better to fail
-    # the HTTP request outright when the slug is wrong.
+    # Cheap-validate matter existence AND privilege posture before kicking off
+    # the pipeline. Both checks must happen before StreamingResponse opens so
+    # the HTTP status (and the middleware http.post audit row) reflects the
+    # outcome. If posture is checked inside the background task, the response
+    # has already returned 200 and the audit row reads "successful request"
+    # for what posture in fact blocked. The middleware http.post 409 row is
+    # the canonical "blocked attempt" provenance for /run as well — SSE must
+    # match.
     async with factory() as preflight_session:
-        matter_id = await preflight_session.scalar(
-            select(Matter.id).where(Matter.slug == slug)
-        )
-    if matter_id is None:
+        row = (
+            await preflight_session.execute(
+                select(Matter.id, Matter.privilege_posture).where(Matter.slug == slug)
+            )
+        ).first()
+    if row is None:
         raise HTTPException(404, f"matter not found: {slug}")
+    _, posture_value = row
+    if PrivilegePosture(posture_value) is PrivilegePosture.C_PAUSED:
+        raise HTTPException(
+            409,
+            "Matter privilege posture is C_paused — Pre-Motion blocked. "
+            "Change posture to A_cleared or B_mixed to run.",
+        )
 
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
@@ -185,6 +200,15 @@ async def export_pre_motion_pdf(
     except RuntimeError as exc:
         raise HTTPException(502, f"PDF render failed: {exc}") from exc
 
+    # Forensic provenance of *what* was rendered. Without a persisted runs
+    # table the envelope hash is the only durable handle on the document
+    # body — two exports of the same run share a hash; an export of a
+    # fabricated envelope is identifiable by its absence elsewhere in the
+    # audit log.
+    envelope_hash = hashlib.sha256(
+        result.model_dump_json(by_alias=False).encode("utf-8")
+    ).hexdigest()
+
     await audit_api.log(
         session,
         "module.pre_motion.pdf.exported",
@@ -196,6 +220,7 @@ async def export_pre_motion_pdf(
             "verdict": result.synthesis.verdict,
             "total_token_count": result.total_token_count,
             "byte_size": len(pdf_bytes),
+            "envelope_hash": envelope_hash,
         },
     )
     await session.commit()

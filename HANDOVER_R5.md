@@ -5,12 +5,20 @@ approved the Day 7/8 reorder. This round is the build that landed under
 that reorder: **Day 7 (Letters)** and **Day 8 (Pre-Motion polish — SSE
 streaming + PDF export).**
 
-**Repo head:** `c0956b2` on `master`. Both feature commits are pushed to
-`origin/master`. No documentation-only commits in this round.
+**Repo head:** the latest commit on `master` is this handover doc plus
+the R5 fix commit that addresses the reviewer's P1/P2 findings.
+**Last smoked code head (originally handed over):** `c0956b2` — that's
+the runtime state the audit-row counts and §3 endpoint matrix below
+describe. The fix commit on top adjusts the SSE C_paused row from
+`http.post 200` to `http.post 409` (P1) and adds `envelope_hash` to the
+PDF audit payload (P2). Any commit after `c0956b2` is either this
+handover, a follow-up fix, or further documentation unless explicitly
+called out.
 
-2 commits, ~1,070 lines of application code across 7 source files
-(1 backend module added, 1 backend module touched, 2 frontend files
-touched).
+2 feature commits + 1 fix commit. The original Day 7/8 build is ~1,070
+lines of application code across 7 source files (1 backend module
+added, 1 backend module touched, 2 frontend files touched). The fix
+commit is ~25 lines in `pre_motion/router.py`.
 
 ---
 
@@ -120,7 +128,7 @@ No migrations. No new tables. No schema changes.
 | `POST .../letters/draft` on C_paused matter | 409, 1 audit row (middleware http.post) — same shape as `/invoke` and `/pre-motion/run` under C_paused |
 | `POST .../pre-motion/run-stream` (A_cleared or B_mixed) | text/event-stream; frames in order `stage.start optimistic` → `stage.end optimistic` → `stage.start evidence` → `stage.end evidence` → `stage.start premortem` → `stage.end premortem` → `stage.start synthesis` → `stage.end synthesis` → `result` → stream closes. 12 audit rows identical to `/run`. |
 | `POST .../pre-motion/run-stream` then disconnect mid-stream | Pipeline keeps running, audit rows for completed model calls land, no error logged at server |
-| `POST .../pre-motion/run-stream` on C_paused | Stream opens, emits one `error` frame with `code: 409` and a message, then closes. **1 audit row** (middleware http.post). No `module.pre_motion.run.start` row — same posture-fast-fail invariant as `/run`. |
+| `POST .../pre-motion/run-stream` on C_paused (post-P1-fix) | HTTP returns 409 before the SSE channel opens — no stream frames. **1 audit row** (middleware `http.post 409`). No `module.pre_motion.run.start` row — matches `/run` exactly. (Pre-fix behaviour at `c0956b2`: 200 + SSE error frame, which produced an `http.post 200` row reading "successful request" for a blocked attempt.) |
 | `POST .../pre-motion/pdf` with valid envelope | 200, application/pdf body, 1 audit row `module.pre_motion.pdf.exported` |
 | `POST .../pre-motion/pdf` with mismatched matter_slug in body | 400 |
 | `POST .../pre-motion/pdf` with Gotenberg down | 502 |
@@ -151,8 +159,10 @@ The audit-row contract I'm holding for the new surfaces:
 
 **Blocked variants:**
 - Letters draft on C_paused → 1 row (http.post 409 from gateway raise)
-- SSE on C_paused → 1 row (http.post 409 fast-fail raised before any
-  semantic write — same as `/run`)
+- SSE on C_paused → 1 row (`http.post 409` raised in the route handler
+  preflight before `StreamingResponse` opens — semantically identical
+  to `/run` C_paused. Reviewer caught this in R5 as P1; fix landed in
+  the on-top commit.)
 - PDF — no posture gate (no LLM call). C_paused matters can still export
   a prior run's envelope. **Question for reviewer:** is this the right
   call? My read is yes — PDF is data-extraction over a result that was
@@ -215,9 +225,13 @@ memory from `/run` or the SSE `result` frame, so it can POST it back
 when the user clicks EXPORT.
 
 **Forensic visibility:** the `module.pre_motion.pdf.exported` audit
-row records matter, actor, byte size, verdict, total_token_count, and
+row records matter, actor, byte size, verdict, total_token_count,
+**envelope_hash (sha256 of the serialised result envelope)**, and
 timestamp. So "did anyone export this matter's brief?" is answerable
-from the audit log without a runs table.
+from the audit log without a runs table, and "was this PDF rendered
+from a real run envelope?" reduces to a hash comparison against runs
+that touched the model — same envelope hash means same logical run.
+(R5 P2: reviewer flagged the missing hash; fix in the on-top commit.)
 
 **Trade-off:** a user can synthesise a fake envelope and POST it for
 rendering. Since the renderer is read-only HTML→PDF over the envelope
