@@ -36,8 +36,21 @@ def _matters_root() -> Path:
     return root
 
 
-def matter_dir(slug: str) -> Path:
-    d = _matters_root() / slug
+def _user_shard(user_id) -> str:
+    """12-char hex prefix of the user UUID. Stable across runs; collision
+    space at v0.1 scale is irrelevant. Path namespacing per HANDOVER_AUTH
+    §3e Option A."""
+    return str(user_id).replace("-", "")[:12]
+
+
+def matter_dir(slug: str, user_id) -> Path:
+    """Per-owner sharded matter directory: `matters/{user-shard}/{slug}/`.
+
+    Slug uniqueness is per-owner (HANDOVER_AUTH §3e Option A) so two
+    users can each hold `khan-v-acme-trading-2026` without colliding on
+    disk.
+    """
+    d = _matters_root() / _user_shard(user_id) / slug
     d.mkdir(parents=True, exist_ok=True)
     (d / "documents").mkdir(exist_ok=True)
     return d
@@ -110,7 +123,7 @@ def materialise_matter(matter: Matter) -> Path:
 
     Returns the path to the matter directory.
     """
-    d = matter_dir(matter.slug)
+    d = matter_dir(matter.slug, matter.created_by_id)
 
     facts = matter.facts or {}
     key_dates = facts.get("key_dates", [])
@@ -145,7 +158,12 @@ def materialise_matter(matter: Matter) -> Path:
 
     (d / "matter.md").write_text("".join(body_parts), encoding="utf-8")
 
-    append_history(matter.slug, "matter.materialised", f"matter.md written ({len(facts)} fact keys)")
+    append_history(
+        matter.slug,
+        matter.created_by_id,
+        "matter.materialised",
+        f"matter.md written ({len(facts)} fact keys)",
+    )
 
     # Seed chronology placeholder if absent.
     chron = d / "chronology.md"
@@ -161,9 +179,9 @@ def materialise_matter(matter: Matter) -> Path:
     return d
 
 
-def append_history(slug: str, event: str, detail: str | None = None) -> None:
-    """Append a line to `matters/[slug]/history.md`. Creates file if absent."""
-    d = matter_dir(slug)
+def append_history(slug: str, user_id, event: str, detail: str | None = None) -> None:
+    """Append a line to `matters/{user-shard}/{slug}/history.md`. Creates file if absent."""
+    d = matter_dir(slug, user_id)
     line = f"- {datetime.utcnow().isoformat(timespec='seconds')}Z  {event}"
     if detail:
         line += f"  —  {detail}"
@@ -178,6 +196,7 @@ def append_history(slug: str, event: str, detail: str | None = None) -> None:
 
 def record_document(
     slug: str,
+    user_id,
     document_id: str,
     filename: str,
     sha256: str,
@@ -193,7 +212,7 @@ def record_document(
     the matter's documents directory or overwrite siblings. The original
     filename is preserved inside the file.
     """
-    d = matter_dir(slug)
+    d = matter_dir(slug, user_id)
     docs_dir = (d / "documents").resolve()
     # `document_id` is a UUID we generated; safe by construction. Still
     # bound-check the resolved path stays under documents_dir as a
@@ -212,6 +231,7 @@ def record_document(
     )
     append_history(
         slug,
+        user_id,
         "document.registered",
         f"{filename}  id={document_id}  sha256={sha256[:12]}  size={size}",
     )

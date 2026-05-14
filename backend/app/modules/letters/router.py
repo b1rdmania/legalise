@@ -44,9 +44,11 @@ router = APIRouter()
 async def letter_catalogue(
     slug: str,
     session: AsyncSession = Depends(get_session),
-    user: User = Depends(current_user),  # noqa: ARG001 — invoked for side effects
+    user: User = Depends(current_user),
 ) -> LetterCatalogueResponse:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -75,7 +77,9 @@ async def draft_letter(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> LetterDraftResponse:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 

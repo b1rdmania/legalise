@@ -140,7 +140,9 @@ async def _seed_documents(session: AsyncSession, matter: Matter, user_id) -> dic
     docs["witness"] = witness
 
     for d in (dismissal, witness):
-        record_document(matter.slug, str(d.id), d.filename, d.sha256, d.size_bytes, d.tag)
+        record_document(
+            matter.slug, matter.created_by_id, str(d.id), d.filename, d.sha256, d.size_bytes, d.tag
+        )
 
     return docs
 
@@ -243,9 +245,10 @@ async def seed_demo_matter(session: AsyncSession) -> Matter:
     await _seed_chronology(session, matter, user.id, docs)
 
     materialise_matter(matter)
-    append_history(matter.slug, "matter.seeded", "Khan v Acme demo matter inserted")
+    append_history(matter.slug, user.id, "matter.seeded", "Khan v Acme demo matter inserted")
     append_history(
         matter.slug,
+        user.id,
         "chronology.seeded",
         f"{2} documents + 7 events; 1 disclosure-tainted (dismissal letter)",
     )

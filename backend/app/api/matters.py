@@ -128,11 +128,17 @@ def slugify(title: str) -> str:
     return s[:100] or "matter"
 
 
-async def unique_slug(session: AsyncSession, base: str) -> str:
-    """Append `-2`, `-3`... if `base` already exists."""
+async def unique_slug(session: AsyncSession, base: str, user_id: uuid.UUID) -> str:
+    """Append `-2`, `-3`... if `base` already exists for this user.
+
+    Slug uniqueness is per-owner — two users can each hold a matter at
+    `khan-v-acme-trading-2026` without collision.
+    """
     candidate = base
     n = 2
-    while await session.scalar(select(Matter.id).where(Matter.slug == candidate)):
+    while await session.scalar(
+        select(Matter.id).where(Matter.slug == candidate, Matter.created_by_id == user_id)
+    ):
         candidate = f"{base}-{n}"
         n += 1
     return candidate
@@ -171,7 +177,7 @@ async def create_matter(
         raise HTTPException(400, f"privilege_posture must be one of {sorted(PRIVILEGE_VALUES)}")
 
     base = slugify(body.title)
-    slug = await unique_slug(session, base)
+    slug = await unique_slug(session, base, user.id)
 
     matter = Matter(
         slug=slug,
@@ -208,9 +214,13 @@ async def create_matter(
 @router.get("", response_model=list[MatterRead])
 async def list_matters(
     session: AsyncSession = Depends(get_session),
-    user: User = Depends(current_user),  # noqa: ARG001 — invoked for side effects
+    user: User = Depends(current_user),
 ) -> list[Matter]:
-    rows = await session.scalars(select(Matter).order_by(Matter.opened_at.desc()))
+    rows = await session.scalars(
+        select(Matter)
+        .where(Matter.created_by_id == user.id)
+        .order_by(Matter.opened_at.desc())
+    )
     return list(rows.all())
 
 
@@ -220,7 +230,9 @@ async def get_matter(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),  # noqa: ARG001
 ) -> Matter:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
     return matter
@@ -236,7 +248,9 @@ async def upload_document(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> Document:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -272,7 +286,9 @@ async def upload_document(
     )
     await session.commit()
     await session.refresh(doc)
-    record_document(matter.slug, str(doc.id), doc.filename, doc.sha256, doc.size_bytes, doc.tag)
+    record_document(
+        matter.slug, matter.created_by_id, str(doc.id), doc.filename, doc.sha256, doc.size_bytes, doc.tag
+    )
     return doc
 
 
@@ -282,7 +298,9 @@ async def list_documents(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),  # noqa: ARG001
 ) -> list[Document]:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
     rows = await session.scalars(
@@ -301,7 +319,9 @@ async def set_privilege_posture(
     if body.privilege_posture not in PRIVILEGE_VALUES:
         raise HTTPException(400, f"privilege_posture must be one of {sorted(PRIVILEGE_VALUES)}")
 
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -322,7 +342,7 @@ async def set_privilege_posture(
     )
     await session.commit()
     await session.refresh(matter)
-    append_history(matter.slug, "privilege.set", f"{previous} → {body.privilege_posture}")
+    append_history(matter.slug, matter.created_by_id, "privilege.set", f"{previous} → {body.privilege_posture}")
     materialise_matter(matter)
     return matter
 
@@ -357,7 +377,9 @@ async def invoke_plugin(
     and `model.call` (gateway). C_paused privilege posture blocks the
     call before any network traffic.
     """
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -400,7 +422,9 @@ async def list_audit(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),  # noqa: ARG001
 ) -> list[AuditEntry]:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
     limit = max(1, min(limit, 200))

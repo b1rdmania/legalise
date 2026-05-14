@@ -49,7 +49,9 @@ async def run_pre_motion_endpoint(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> PreMotionRunResult:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -96,7 +98,9 @@ async def run_pre_motion_stream(
     async with factory() as preflight_session:
         row = (
             await preflight_session.execute(
-                select(Matter.id, Matter.privilege_posture).where(Matter.slug == slug)
+                select(Matter.id, Matter.privilege_posture).where(
+                    Matter.slug == slug, Matter.created_by_id == user.id
+                )
             )
         ).first()
     if row is None:
@@ -121,7 +125,9 @@ async def run_pre_motion_stream(
         try:
             async with factory() as bg_session:
                 matter = await bg_session.scalar(
-                    select(Matter).where(Matter.slug == slug)
+                    select(Matter).where(
+                        Matter.slug == slug, Matter.created_by_id == user.id
+                    )
                 )
                 if matter is None:
                     await queue.put({"event": "error", "data": {"message": f"matter vanished: {slug}"}})
@@ -186,7 +192,9 @@ async def export_pre_motion_pdf(
     count + verdict + envelope hash) so the export is forensically visible
     without needing a persisted runs table.
     """
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 

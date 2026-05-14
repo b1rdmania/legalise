@@ -44,9 +44,18 @@ from app.models import AuditEntry, Matter
 # Matter context
 # --------------
 
-async def get_matter(session: AsyncSession, slug: str) -> Matter | None:
-    """Fetch a matter by slug, or None if absent."""
-    return await session.scalar(select(Matter).where(Matter.slug == slug))
+async def get_matter(
+    session: AsyncSession, slug: str, user_id: uuid.UUID
+) -> Matter | None:
+    """Fetch a matter by `(slug, user_id)`, or None if absent.
+
+    Slug uniqueness is composite per-owner (HANDOVER_AUTH.md §3e
+    Option A) — a global slug lookup would be ambiguous, so `user_id`
+    is required.
+    """
+    return await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)
+    )
 
 
 # `require_matter` is a FastAPI dependency. It lands Day 5 alongside the

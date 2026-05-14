@@ -200,7 +200,9 @@ async def get_chronology(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> ChronologyResponse:
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -242,7 +244,9 @@ async def confirm_gate(
     """Record this user's acknowledgement of CPR 31.22 implied undertaking
     for this matter. Idempotent — repeated confirmations write repeated
     audit rows (provenance over deduplication)."""
-    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
 
@@ -263,7 +267,9 @@ async def confirm_gate(
         )
     )
     await session.commit()
-    append_history(matter.slug, "chronology.gate.confirmed", body.acknowledgement.strip()[:120])
+    append_history(
+        matter.slug, matter.created_by_id, "chronology.gate.confirmed", body.acknowledgement.strip()[:120]
+    )
 
     # Recompute and return the new state.
     events, docs_by_id = await _load_chronology(session, matter)
