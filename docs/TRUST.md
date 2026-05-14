@@ -182,19 +182,27 @@ acknowledgement.**
 
 ## 8. Audit trail
 
-Every mutation on `/api/matters/*` produces at least two audit rows:
+The audit shape depends on whether the request reached its semantic
+work or was refused at the door:
 
-- A **semantic event** written by the router (`matter.create`,
-  `document.upload`, `privilege.set`, `chronology.gate.confirmed`,
-  `plugin.invoked`, `model.call`).
-- An **HTTP forensic row** written by the audit middleware
-  (`http.{method}` + path + status code).
-
-Plugin invocations produce three rows (semantic + model-call + HTTP). Model
-calls record `model_used`, `prompt_hash`, `response_hash`, `token_count`,
-and `latency_ms` — the prompt and response themselves are **not** stored in
-the audit row, only their SHA-256 hashes. Full content lives in the matter
-materialisation and the standard matter resources.
+- **Successful semantic mutations** produce a **semantic row** written
+  by the router (`matter.create`, `document.upload`, `privilege.set`,
+  `chronology.gate.confirmed`) plus an **HTTP forensic row** written
+  by the audit middleware (`http.{method}` + path + status code).
+- **Model-backed successful module runs** add `model.call` rows from
+  the gateway. Pre-Motion produces nine of them per run (one per
+  agent in the four-stage pipeline). Each `model.call` carries
+  `model_used`, `prompt_hash`, `response_hash`, `token_count`, and
+  `latency_ms`. The prompt and response themselves are **not** stored
+  in the audit row, only their SHA-256 hashes.
+- **Requests blocked before semantic work commits** — for example a
+  C_paused plugin invocation, a C_paused Pre-Motion run, or a
+  validation rejection at the router boundary — produce **only the
+  HTTP forensic row**, carrying the failure status (typically 409 or
+  400). Blocked attempts are still traceable via the path and
+  status, but they do not write a "started/blocked" semantic row.
+  The trade-off is transactional integrity: semantic rows commit
+  only when the semantic operation commits.
 
 The `audit_entries` table is append-only by convention in v0.1. WORM
 enforcement (Postgres-level revocation of UPDATE/DELETE) lands v0.2.

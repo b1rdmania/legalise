@@ -11,11 +11,15 @@ v0.2 will migrate to MCP server invocation against the plugin suite's
 hosted endpoints. The Python contract here stays stable — only the
 underlying transport changes.
 
-Single-call rendering by design. The full multi-stage adversarial pipeline
-(Optimistic Analyst → Evidence Inspector → Premortem Adversary → Synthesiser)
-lives at the standalone `premotion` repo and ports into legalise as a
-richer module in v0.2. v0.1 proves the plugin-bridge contract end-to-end
-with the simpler single-call shape.
+Single-call rendering by design. Pre-Motion's full four-stage
+adversarial pipeline (Optimistic Analyst → Evidence Inspector ×3
+parallel sub-agents → Premortem Adversary ×4 parallel sub-agents →
+Synthesiser) was ported to `app.modules.pre_motion` at Day 6 and has
+its own dedicated endpoint and orchestrator. The bridge here remains
+the single-call surface for every other plugin skill (e.g. letters,
+disclosure lists, settlement-helper) — modules that need richer
+multi-agent orchestration build their own pipeline against the
+gateway, as Pre-Motion does.
 """
 
 from __future__ import annotations

@@ -72,40 +72,43 @@ Before Day 1:
 
 **Hard gate before Day 6.** Pre-Motion port does **not** begin until the Day 1-5 path is green: quickstart works, matter CRUD + document upload work, audit log captures every action, privilege posture changes module behaviour visibly, one plugin invocation from the sample matter has succeeded. If Day 5 is yellow or red on any of these, slip Day 6 by a day. Pre-Motion is the hero, but a hero on a weak spine ships nothing.
 
-### Day 6–7 — Pre-Motion (port from existing app)
-- Source: `/Users/andy/Documents/New project/premotion/` — existing adversarial premortem pipeline. Port wholesale into `legalise/backend/app/modules/pre_motion/`.
-- Backend: `modules/pre_motion/`
-  - Endpoint: `POST /matters/{slug}/pre-motion/run` with inputs (matter facts, evidence pointers, optimistic baseline, optional counter-defence, depth flag)
-  - Pipeline: OptimisticAnalyst → EvidenceInspector (3 parallel sub-agents — document review, cross-reference, chronology) → PremortemAdversary (4 parallel Opus sub-agents — procedural, substantive, evidentiary, strategic) → Synthesiser
-  - Two parallel `asyncio.gather` blocks for Stages 2 and 3
-  - SSE stream of stage status to frontend
-  - All seven LLM calls routed through `app.core.api.model_gateway` and logged to audit
-- Frontend: `modules/pre_motion/`
-  - Input form pre-fills from matter context (facts, evidence references, claim heads)
-  - Live pipeline view: four stages visualised, current stage highlighted, parallel sub-agent progress visible
-  - Output: verdict card (Steelman / Borderline / Strawman), the one brutal sentence as a callout, ranked failure scenarios per category (Procedural / Substantive / Evidentiary / Strategic), evidence inconsistencies, blind spots, mitigations
-  - Export as PDF (Gotenberg) for client memo
-- Day 6 evening: Pre-Motion runs against the unfair-dismissal sample matter end-to-end in ~2-3 minutes
-- Day 7: polish, sub-agent progress UI, output formatting, .pdf export
-- **Done state:** Pre-Motion runs against the sample matter, the brief output looks shareable on X. The four-stage architecture is visible in the UI, not hidden.
+### Day 6 — Pre-Motion port (DONE at commit `94dc281`)
+- Source: `/Users/andy/Documents/New project/premotion/` — adversarial premortem pipeline ported wholesale into `legalise/backend/app/modules/pre_motion/`.
+- Backend shipped: pipeline (1 + 3 parallel + 4 parallel + 1 = 9 calls), four agent files, schemas, router. All routed through `app.core.api.model_gateway` with per-stage commit so model.call rows survive mid-pipeline crashes. `C_paused` fast-fail at the pipeline entry (no semantic rows for blocked attempts; middleware http.post 409 only).
+- Frontend shipped: matter-detail Pre-Motion section renders verdict card with brutal-sentence callout, 4-column stage status strip, grouped failure scenarios, blind spots, evidence inconsistencies.
+- **SSE streaming and PDF export deferred to Day 8** — see below for rationale.
+- **Done state:** Pre-Motion runs against Khan v Acme end-to-end. With Anthropic key: real synthesis. Without: stub-echo path returns the same 12 audit rows + a graceful "borderline" envelope explaining synthesis was unstructured.
 
-### Day 8 — CPR-letter bridge surface
+### Day 7 — Letters (CPR-letter bridge surface)
+- **Reorder approved R4 (`2774a3f`):** Letters moved up from Day 8 to Day 7. Rationale: breadth before depth — Pre-Motion already works end-to-end at Day 6; shipping a second module surface widens the workflow story before polishing the hero. SSE/PDF are experience polish with a natural fallback into the Day 11–12 polish window.
 - Pattern reference: `counsel-mvp/backend/app/routers/drafting.py` for the proven letter-drafting prompt shape and CPR-compliance scaffolding. Rebuild on the platform — call the `cpr-letter-drafter` plugin through `app.core.api.plugin_bridge`, not direct Anthropic SDK.
 - Backend: `modules/letters/`
-  - Endpoint that calls the `cpr-letter-drafter` plugin with matter context
+  - Endpoint `POST /api/matters/{slug}/letters/draft` that calls the `cpr-letter-drafter` plugin with matter context
   - Auto-fills parties, facts, claim heads from `matter.md`
   - Returns letter as markdown; .docx is stretch
 - Frontend: `modules/letters/`
-  - Simple letter type selector (one launch path only, e.g. ACAS/settlement correspondence or LBC depending on sample matter)
+  - Letter type selector (one launch path only, e.g. ACAS/settlement correspondence or LBC depending on sample matter)
   - Inputs pre-populated from matter; user edits where needed
-  - Output preview
-- **Done state:** from the sample matter, generate a draft letter in 30 seconds and show the plugin invocation in the audit trail.
+  - Output preview rendered in the matter-detail Oxide register
+- **Pre-Day-7 smoke action:** dry-run the `cpr-letter-drafter` prompt against Khan via the generic `/invoke` endpoint before building the wrapper — if the prompt needs a matter-context shim, that surfaces immediately rather than after the UI lands.
+- **Done state:** from the sample matter, generate a draft letter in 30 seconds and show the plugin invocation in the audit trail (`plugin.invoked` + `model.call` + `http.post` = 3 rows per draft).
 
-### Day 9 — Chronology read-only demo + CPR 31.22 gate
+### Day 8 — Pre-Motion polish (SSE streaming + PDF export)
+- **Was Day 7 in the original plan; moved down per R4 reorder.** Polish on a module that already works.
+- SSE stream of stage status to frontend:
+  - Server-Sent Events from the pipeline, one event per stage transition + one per sub-agent completion. EventSource on the client.
+  - Audit/cost reconciliation on disconnect: if the client drops, the pipeline keeps running and the audit rows still land — the SSE channel is UI-only, never load-bearing for audit.
+- PDF export via Gotenberg (already in `infra/docker-compose.yml`):
+  - Endpoint: `POST /api/matters/{slug}/pre-motion/runs/{run_id}/pdf`
+  - Renders the synthesis output to an HTML template in the Oxide register, pipes through Gotenberg, returns bytes
+- **Cut-rule:** if SSE costs more than half a day to land cleanly on Fly's HTTP/2 stack, PDF goes first (smaller surface, higher demo-share value) and SSE slips into Day 11–12 polish or v0.2.
+- **Done state:** Pre-Motion runs visibly stage-by-stage in the UI; the brief output exports as a clean PDF the solicitor can attach to a client email.
+
+### Day 9 — Chronology read-only demo + CPR 31.22 gate (DONE at commit `231c79c`, pulled forward)
 - Pattern reference: `counsel-mvp/backend/app/routers/timeline.py` for the date-extraction approach that proved out in the MVP. v0.1 doesn't run live extraction (scope discipline) but uses the same fixture shape so v0.2 graduation is a straight port.
-- Seed the sample chronology from fixture data, not live extraction
-- Show timeline/table view, significance tags, source documents, and privilege flags
-- Implement the CPR 31.22 gate at document/chronology boundary: disclosed documents with mismatched proceedings references are blocked or clearly flagged
+- Seeded the sample chronology from fixture data (seven Khan events; one disclosure-tainted via the seeded dismissal letter)
+- Timeline rendered with significance tags, source documents, and `[DISCLOSURE 31.22]` / `[PRIV]` flags
+- **CPR 31.22 gate is a server-side access boundary:** tainted events return with `description="[withheld pending CPR 31.22 acknowledgement]"`, empty source filenames, empty proceedings refs — until the user POSTs to `/api/matters/{slug}/chronology/gate`. Audit row `chronology.gate.confirmed` records the acknowledgement.
 - SoF variant filters flagged privileged entries from the seeded chronology
 - **Done state:** chronology demonstrates the regulatory shape without promising v0.1 extraction.
 
