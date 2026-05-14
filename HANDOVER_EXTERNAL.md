@@ -100,6 +100,12 @@ if you're forming a positioning view:
   matter-folder convention. Legalise borrows the matter-folder schema
   for compatibility. Different focus: Stella is workspace-first;
   Legalise is execution-layer-first.
+- **Mike** — open-source Harvey / Legora-style legal AI workspace with
+  auth, projects, document assistant, tabular review, workflows, a hosted
+  product shape, and strong OSS momentum. Legalise should not compete as a
+  broad "open-source legal AI workspace". The narrower wedge is UK
+  regulator-first execution of reviewable legal skills: matter context,
+  audit, privilege posture, CPR gates, and Git-pinned skill provenance.
 - **Commercial peers** — Spellbook (contracts), CaseText/Cocounsel
   (acquired by Thomson Reuters; research), Harvey (large-firm AI),
   Garden (matter-first AI workspace). Legalise is open-source +

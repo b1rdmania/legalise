@@ -15,13 +15,14 @@ It is the workspace that demonstrates what a UK-jurisdiction AI-assisted legal p
 
 ## Strategic position
 
-Three things are happening simultaneously in 2026:
+Four things are happening simultaneously in 2026:
 
 1. **Anthropic shipped `claude-for-legal` for US workflows.** April 2026. 1,100+ stars in three weeks. The plugin model for legal AI is now first-party.
 2. **Stella shipped an open-source legal workspace.** 87 stars in 10 days, US-shaped, Apache 2.0. Workspace primitives (matter, document, tabular review) now exist as community infrastructure.
-3. **No UK equivalent of either.** English & Welsh law differs from US law in every meaningful procedural and substantive way for these workflows. The UK gap is wide open.
+3. **Mike owns the broad open-source Harvey / Legora lane.** Auth, projects, document assistant, tabular review, workflows, hosted demo, and strong OSS momentum. Legalise should not compete as a generic "open-source legal AI workspace"; that fight is already better served elsewhere.
+4. **No UK regulator-first execution layer exists.** English & Welsh law differs from US law in every meaningful procedural and substantive way for these workflows. The UK gap is narrower than "workspace", but sharper: reviewable legal skills executed inside matter context with audit, privilege posture, CPR gates, and Git-pinned provenance.
 
-Legalise fills the UK gap. It is the **workspace counterpart** to `claude-for-uk-legal`'s **plugin counterpart** to Anthropic's `claude-for-legal`.
+Legalise fills the UK execution-layer gap. It is the **governed runtime** for `claude-for-uk-legal`'s **plugin counterpart** to Anthropic's `claude-for-legal`.
 
 The longer-term thesis (separate to this codebase) is that a regulated UK ABS — Bird Legal — eventually runs on this stack. The workspace is the credibility artefact for that thesis. The ABS is the moat. The plugins and workspace are the calling card.
 
