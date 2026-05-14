@@ -157,7 +157,7 @@ UK time, Tuesday morning. HN's UK-time peak is roughly 11:00–13:00 BST (06:00�
 - Confirm `legalise.dev` is up and stable. One last smoke run.
 - Confirm `claude-for-uk-legal` README is current and cross-links Legalise.
 - Pre-warm contacts: 5–10 people who'd star + comment. Personal DMs only. Template:
-  > Hey [name], shipping Legalise tomorrow morning UK time on HN — open-source legal AI workspace that runs Claude skills against matter context with full audit. If you find it interesting and feel like dropping a star + a thoughtful comment in the first hour, it makes a big difference to whether the post survives the new-page sort. No pressure. https://github.com/b1rdmania/legalise
+  > Hey [name], shipping Legalise tomorrow morning UK time on HN — open-source legal AI workspace that runs Claude skills against matter context, with an audit log on every LLM call and matter mutation. If you find it interesting and feel like dropping a star + a thoughtful comment in the first hour, it makes a big difference to whether the post survives the new-page sort. No pressure. https://github.com/b1rdmania/legalise
 - DM Stella maintainer separately:
   > Shipping Legalise tomorrow morning UK time. Matter schema is Stella-compatible — quick port path goes both ways. Worth a chat after launch?
 
@@ -185,7 +185,7 @@ Body — first comment from Andy (HN convention; do not put it in the post body)
 >
 > Mechanics:
 > - Skills are `SKILL.md` files in a Git catalogue ([`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) is the seed catalogue, 15 skills covering ET, civil litigation, research)
-> - The workspace renders that catalogue into matter-first surfaces (one matter per case, audit log per LLM call, privilege posture as a first-class property, CPR 31.22 implied-undertaking gate on disclosed material)
+> - The workspace renders that catalogue into matter-first surfaces (one matter per case, audit log per LLM call and matter mutation, privilege posture as a first-class property, CPR 31.22 implied-undertaking gate on chronology entries sourced from disclosed documents)
 > - Install is Git: fork the catalogue repo, review skills by PR diff, point Legalise at your fork — approval is code review, provenance is git history
 > - The four surfaces in v0.1 (matter spine, Pre-Motion, Letters, Chronology) are proof modules, not the project. The project is the execution substrate.
 >
@@ -228,7 +228,7 @@ Same for the X + LinkedIn posts.
 ```
 Open-sourced today: Legalise.
 
-Turns reviewable legal AI skills (SKILL.md files in a Git catalogue) into matter-first workflows with full audit, privilege posture as a first-class property, and CPR 31.22 gating on disclosed material.
+Turns reviewable legal AI skills (SKILL.md files in a Git catalogue) into matter-first workflows. Audit log on every LLM call and matter mutation, privilege posture as a first-class property, CPR 31.22 gate on chronology entries sourced from disclosed documents.
 
 🇬🇧 UK legal-tech.
 
@@ -252,7 +252,7 @@ What v0.1 ships:
 • Matter spine with document register, audit log, privilege posture
 • Pre-Motion: adversarial premortem pipeline (4 stages, 9 model calls, all audited)
 • Letters: matter-type-aware drafting (ET → LBA default, civil → LBC)
-• Chronology with CPR 31.22 implied-undertaking gate
+• Chronology with CPR 31.22 implied-undertaking gate on entries sourced from disclosed documents
 • Installed skill catalogue: 15 skills published as reviewable SKILL.md files
 • Install via Git: fork, review, pin SHA. Approval is code review.
 

@@ -1,31 +1,69 @@
 # Module Development
 
-Legalise is designed to be extended. New tabs (plain-english, time-recording, conflicts check, billing, custom-vertical workflows) live as modules. A module is a self-contained backend + frontend pair that plugs into the matter spine.
+> **This is an experimental extension guide for private forks, not a stable SDK
+> contract.** v0.1 ships the four module surfaces hardcoded in `App.tsx` (matter
+> spine, Pre-Motion, Letters, Chronology) plus a read-only Discovery view at
+> `#/modules`. The module *lifecycle* — install/enable toggles, scoped
+> permissions, signed manifests, UI contracts, auto-discovery — is v0.2 work.
+> See the "What v0.1 does not yet do" section of `README.md`.
+>
+> If you write a module against the primitives below today, you're doing it on
+> top of a surface that **will change** before v0.2 stabilises it. The shape of
+> `app.core.api` is the rough direction of travel, not a stability commitment.
+> Build for a private fork; expect to rework before any upstream stability
+> claim applies.
 
-This guide is for anyone — internal law firm dev team, contributor, fork maintainer — building a new tab.
+Legalise is designed to be extended. New surfaces (conflicts check, billing,
+time recording, vertical-specific workflows, contract review's eventual v0.2
+implementation) plug into the matter spine in the same shape Pre-Motion and
+Letters already use.
 
-## What you can build
+This guide is for anyone — internal law firm dev team, contributor, fork
+maintainer — exploring how a new surface might look against the current
+primitives.
 
-A module can:
+## What you can build today
 
-- Add a new tab in the workspace navigation, scoped to a matter.
+A module-shaped extension can:
+
+- Add a new section in the matter detail view.
 - Read matter context (parties, facts, documents, posture).
 - Call the model gateway with audit logging built in.
-- Invoke `claude-for-uk-legal` plugin skills via the plugin bridge.
+- Invoke `claude-for-uk-legal` skills via the plugin bridge.
 - Render output in the matter detail view.
-- Persist module-specific data in `Matter.metadata` JSONB or in the materialised matter folder.
+- Persist module-specific data in `Matter.metadata` JSONB or in the
+  materialised matter folder.
 
-A module **cannot** (v0.1):
+## What the trust model expects (not enforced in v0.1)
 
-- Bypass the audit log.
-- Ignore the matter's privilege posture.
-- Bring its own database tables (v0.2 introduces per-module migrations).
-- Define its own auth.
-- Access matters it isn't scoped to.
+To preserve the Legalise trust model — the thing that makes the workspace
+defensible to a UK regulator — a module **should**:
 
-The first three constraints are by design — they're what makes the platform regulator-aware. The fourth and fifth are v0.1 simplicity; both relax later.
+- Route every LLM call through `app.core.api.model_gateway` rather than calling
+  Anthropic/OpenAI SDKs directly. The gateway is where audit logging and
+  privilege-posture enforcement live.
+- Route every plugin skill invocation through `app.core.api.plugin_bridge`
+  rather than executing prompts inline. The bridge writes the `plugin.invoked`
+  audit row.
+- Read matter context from the documented helpers below rather than reaching
+  into `app.models.Matter` directly.
+- Refuse to operate on matters where `privilege_posture == "C_paused"`. The
+  gateway already refuses; modules should fail fast at their own entry point
+  too, before audit rows that imply work was attempted accumulate.
 
-## Five steps to ship a module
+**These are conventions, not enforced primitives.** v0.1 has no permission
+system, no scoped-access decorator, no UI contract enforcement. A poorly
+behaved module can call `anthropic.Anthropic().messages.create(...)` directly
+and the audit log will be silent about it. The v0.2 "Module lifecycle
+workstream" in `ROADMAP.md` picks this up — install/enable toggles,
+per-workspace policy, module permissions, UI contracts, signed manifests.
+
+If you want the trust posture today, you have to honour the conventions
+voluntarily. The reward is that everything you build inherits the audit log,
+privilege gating, and matter materialisation for free; the cost is that a
+malicious or sloppy module isn't blocked from misbehaving.
+
+## Five steps to scaffold an extension
 
 ### 1. Copy the starter
 
@@ -34,11 +72,15 @@ cp -r examples/modules/example-tab backend/app/modules/my_module
 cp -r examples/modules/example-tab/frontend frontend/src/modules/my_module
 ```
 
-Rename `example-tab` to your module name in both places. Module names are `snake_case` for Python, `kebab-case` for the public manifest.
+Rename `example-tab` to your module name in both places. Module names are
+`snake_case` for Python, `kebab-case` for the public manifest.
 
 ### 2. Fill in the manifest
 
-Every module has a `module.json` at the root of its backend directory. Validated against `schemas/module.json`.
+Every module has a `module.json` at the root of its backend directory.
+Validated against `schemas/module.json`. The manifest is declarative — nothing
+in the v0.1 backend reads it at runtime; it's the v0.2 hook point for
+auto-discovery and policy.
 
 ```json
 {
@@ -65,7 +107,9 @@ Every module has a `module.json` at the root of its backend directory. Validated
 }
 ```
 
-`nav.order` controls position in the workspace nav. Built-in tabs are 10–50; third-party defaults to 60+.
+`nav.order` controls position in the workspace nav. Built-in surfaces are
+10–50; third-party defaults to 60+. `permissions` is declarative for v0.1 —
+nothing reads it. v0.2 enforces.
 
 ### 3. Wire the backend
 
@@ -73,118 +117,117 @@ Every module has a `module.json` at the root of its backend directory. Validated
 
 ```python
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.api import audit, model_gateway, plugin_bridge, require_matter
+from app.core.api import audit, model_gateway, plugin_bridge
+from app.core.auth import current_user
+from app.core.db import get_session
+from app.models import Matter, User
 
 router = APIRouter()
 
 
-@router.post("/do-thing")
-async def do_thing(matter=Depends(require_matter)):
-    response = await model_gateway.call(
-        matter_id=matter.id,
-        prompt="...",
-        posture=matter.privilege_posture,
-    )
-    await audit.log("my-module.action", matter_id=matter.id, metadata={...})
-    return {"output": response}
+@router.post("/{slug}/my-module/run")
+async def do_thing(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+):
+    matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+    # ... call gateway, write audit, etc.
 ```
 
-`app.core.api` is the **stable public surface for modules** — see §Core API below.
+**Note on `app.core.api`.** Today `app.core.api` re-exports `audit`,
+`model_gateway`, and `plugin_bridge` — those are wired and usable.
+`require_matter` and `storage` exist as `None` placeholders awaiting the v0.2
+lifecycle work; don't import them in new code. Use FastAPI's normal
+`Depends(get_session)` + a `select(Matter)` query in the meantime, as the
+built-in surfaces do.
 
 ### 4. Wire the frontend
 
-`frontend/src/modules/my_module/index.tsx`:
+The matter-detail page renders sections inline (see `App.tsx::MatterDetail`).
+v0.1 doesn't have dynamic module loading; add your section directly to
+`App.tsx` in the same shape as Pre-Motion / Letters / Chronology / Contract
+Review v0.2 placeholder.
 
-```tsx
-import { useMatter, useAudit } from "@/shared/hooks";
-
-export default function MyModule() {
-  const matter = useMatter();
-  // render against matter context
-  return <div>...</div>;
-}
-```
+The Oxide design tokens in `docs/DESIGN.md` are the visual contract. Stick to
+them.
 
 ### 5. Register the module
 
-v0.1 module registration is **manual** in two places. Auto-discovery lands in v0.2.
-
-`backend/app/main.py`:
+v0.1 module registration is **manual** in `backend/app/main.py`:
 
 ```python
 from app.modules.my_module.router import router as my_module_router
-app.include_router(my_module_router, prefix="/api/modules/my-module", tags=["my-module"])
+app.include_router(my_module_router, prefix="/api/matters", tags=["my-module"])
 ```
 
-`frontend/src/lib/modules.ts`:
+Auto-discovery from `module.json` lands in v0.2.
 
-```ts
-export const modules = [
-  // ...
-  { slug: "my-module", manifest: () => import("@/modules/my_module/module.json") },
-];
-```
+## Core API today
 
-That's it. Boot the workspace, open a matter, the tab appears.
-
-## Core API
-
-`app/core/api.py` is the documented stable surface modules import. Use it. Don't reach into `app.core.*` internals — those are unstable between minor versions.
+`app/core/api.py` is the documented surface modules import. Use what's wired;
+avoid the placeholders.
 
 ```python
 from app.core.api import (
-    # Matter context
-    require_matter,        # FastAPI dependency that yields the current Matter
+    # Wired and usable today:
+    audit,                 # `await audit.log(action, matter_id=..., payload=...)`
+    model_gateway,         # `await model_gateway.call(matter_id, prompt, ...)`
+    plugin_bridge,         # `await plugin_bridge.invoke(plugin, skill, matter_id, inputs)`
     get_matter,            # async helper to fetch a Matter by slug
 
-    # Audit log
-    audit,                 # `await audit.log(action, matter_id=..., metadata=...)`
-
-    # AI gateway
-    model_gateway,         # `await model_gateway.call(matter_id, prompt, ...)`
-
-    # Plugin bridge
-    plugin_bridge,         # `await plugin_bridge.invoke(plugin, skill, matter_id, inputs)`
-
-    # Storage
-    storage,               # `await storage.put(path, bytes)`, `await storage.get(path)`
+    # Placeholders awaiting v0.2 lifecycle work — do NOT import yet:
+    # require_matter,      # will be the FastAPI dependency for matter-scoped access
+    # storage,             # will be the abstract storage handle for module data
 )
 ```
 
-These don't change shape inside `0.1.x`. Any module written against them today still works in `0.1.5`.
+The wired three (`audit`, `model_gateway`, `plugin_bridge`) are what
+Pre-Motion, Letters, and the modules endpoint already use. Their shape is
+unlikely to change drastically before v0.2, but **this is not a stability
+promise** — see the banner at the top.
 
 ## Frontend conventions
 
-- TanStack Query for server state.
-- Local component state for everything else.
-- Tailwind + Shadcn primitives. Don't introduce a new UI library.
-- Codegen types from the backend OpenAPI spec (`frontend/src/lib/api/`).
+- Local component state for everything in v0.1 (TanStack Query lands when
+  module surfaces get richer than the current shape).
+- Tailwind + the Oxide design tokens. Don't introduce a new UI library or
+  invent colours / fonts / radii outside `docs/DESIGN.md`.
+- Read existing module sections in `frontend/src/App.tsx` (Pre-Motion,
+  Letters) before designing yours — copy the shape rather than diverge.
 
 ## Running and debugging your module
 
 ```bash
 docker compose -f infra/docker-compose.yml up
-# open http://localhost:3000, open a matter, click your tab
+# open http://localhost:3000, open the seeded matter, scroll to your section
 ```
 
-Audit entries from your module appear in the audit-trail tab of the matter detail page. Every `model_gateway.call` and `plugin_bridge.invoke` is logged automatically.
+Audit entries from your module appear in the audit-trail section of the
+matter detail page. Every `model_gateway.call` and `plugin_bridge.invoke`
+writes a row automatically.
 
 ## What's stable, what isn't
 
-| Surface | Stability |
+| Surface | v0.1 status |
 |---|---|
-| `app.core.api.*` (matter, audit, model_gateway, plugin_bridge, storage) | Stable across 0.1.x |
-| `schemas/module.json` | Stable, additive only |
+| `app.core.api.audit` / `.model_gateway` / `.plugin_bridge` / `.get_matter` | Wired and usable; shape unlikely to break before v0.2 but no formal stability commitment |
+| `app.core.api.require_matter` / `.storage` | Placeholders — `None` — do not import |
+| `schemas/module.json` | Declarative only in v0.1; v0.2 reads it for discovery + policy |
 | `Matter`, `Document`, `Event`, `AuditEntry` model shapes | Stable, additive only |
-| `app.core.*` (internals) | Unstable |
-| `frontend/src/shared/*` hooks | Stable across 0.1.x |
-| `frontend/src/lib/*` | Stable across 0.1.x |
-| Internal module registration paths | Unstable until v0.2 auto-discovery |
+| `app.core.*` (internals) | Unstable; reach in at your own risk |
+| Internal module registration paths | Manual today; auto-discovery in v0.2 will move things |
 
 ## Running modules in production (private fork)
 
-Internal law firm use case: fork the repo, add your modules under `backend/app/modules/firm_specific/` and `frontend/src/modules/firm_specific/`, never push them upstream.
+The honest version: **don't run a private-fork module against this v0.1 in
+production yet.** Use it for internal exploration, prototypes, and PoCs.
+The shape will move in v0.2.
+
+If you do build a private-fork extension now:
 
 ```
 your-fork/
@@ -200,24 +243,33 @@ your-fork/
       time_recording/
 ```
 
-Maintain the fork by pulling upstream `master` periodically. Because modules use `app.core.api` rather than internals, upstream changes rarely break them.
+Pulling upstream `master` periodically is fine. Expect at least one rework
+when v0.2 lands the auto-discovery + policy enforcement.
 
-## What's coming in v0.2
+## What lands in v0.2
 
-- **Auto-discovery** — modules drop in, register themselves from `module.json` at boot. No manual `include_router` / `modules.ts` edits.
-- **Frontend dynamic loading** — third-party modules can ship as standalone bundles loaded at runtime.
-- **Per-module migrations** — modules with their own database tables run their own alembic versions.
-- **Theming hooks** — module-aware light/dark / branded theme overrides.
-- **MCP-based plugin bridge** — modules call plugins as MCP clients instead of subprocess invocation.
+The full picture is in `ROADMAP.md` under "Module lifecycle workstream
+(v0.2)". Short list:
 
-## What's coming in v0.5+
+- Install/enable toggles per workspace.
+- Per-workspace module policy (allowlists by matter type, jurisdiction tag,
+  privilege posture).
+- Module permissions (SDK-level scoping — modules declare reads/writes, the
+  SDK refuses out-of-scope calls).
+- UI contracts (markup, theme, layout enforced at render time).
+- Signed manifests + skill provenance attestation.
+- Auto-discovery from `module.json`.
+- Per-module migrations and theming hooks.
 
-- Module sandboxing and permissions enforcement (multi-tenant story).
-- Module marketplace and signed-publisher install flow.
+## What lands in v0.5+
+
+- Module sandboxing for multi-tenant deployments.
+- Module marketplace / signed-publisher install flow over and above the
+  Git-as-marketplace pattern.
 - Module deprecation and versioning policy.
 
 ## Help
 
 - Issue tracker on GitHub for bugs, questions, design proposals.
-- See `examples/modules/example-tab/` for a runnable minimal module.
+- See `examples/modules/example-tab/` for a runnable minimal module shape.
 - See `ARCHITECTURE.md` for the wider system shape.
