@@ -685,6 +685,36 @@ function MatterDetail({ slug }: { slug: string }) {
         )}
       </section>
 
+      {/* contract review (v0.2 roadmap) ------------------------ */}
+      <section className="mb-14">
+        <SectionLabel
+          id="§contract-review"
+          name="modules · contract_review · v0.2 — visible, not yet active"
+        />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-sans text-[25px] text-snow">Contract Review.</h2>
+          <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
+            v0.2
+          </span>
+        </div>
+        <p className="font-sans text-[14px] leading-[1.5] text-ash-gray max-w-[70ch] mb-4">
+          Four-agent contract pipeline —{" "}
+          <span className="text-platinum">Parser → Analyst → Redliner → Summariser</span> —
+          graduates from the Counsel MVP via straight port onto{" "}
+          <span className="text-platinum">app.core.api</span>. v0.1 ships the spine the pipeline
+          will plug into (matter, documents, audit, privilege posture, model gateway, plugin
+          bridge); the agents themselves land v0.2. Tab visible here so the roadmap is honest,
+          not hidden behind a feature flag.
+        </p>
+        <div className="border border-graphite p-3 font-mono text-[12px] tracking-[0.053em] text-dim-gray space-y-1">
+          <div>$ cat docs/ROADMAP.md | grep -A4 contract_review</div>
+          <div className="text-steel-gray">  v0.2 · Parser    — clause segmentation + structural extraction</div>
+          <div className="text-steel-gray">  v0.2 · Analyst   — issue spotting against matter facts + posture</div>
+          <div className="text-steel-gray">  v0.2 · Redliner  — proposed edits with rationale + risk-bucket</div>
+          <div className="text-steel-gray">  v0.2 · Summariser — solicitor-facing brief + executive summary</div>
+        </div>
+      </section>
+
       {/* audit log --------------------------------------------- */}
       <section className="mb-14">
         <SectionLabel id="§audit" name={`audit_log · matters/${matter.slug}`} />
