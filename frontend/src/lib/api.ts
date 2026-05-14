@@ -188,6 +188,82 @@ export const runPreMotion = (slug: string, inputs: { depth?: "fast" | "thorough"
     body: JSON.stringify(inputs),
   }).then((r) => jsonOrThrow<PreMotionRunResult>(r));
 
+export type PreMotionStreamEvent =
+  | { event: "stage.start"; data: { stage: string; index: number; sub_agent_count: number } }
+  | {
+      event: "stage.end";
+      data: {
+        stage: string;
+        index: number;
+        name: string;
+        sub_agent_count: number;
+        duration_ms: number;
+        token_count: number;
+        errors: string[];
+      };
+    }
+  | { event: "run.complete"; data: { verdict: string; total_duration_ms: number; total_token_count: number } }
+  | { event: "result"; data: PreMotionRunResult }
+  | { event: "error"; data: { message: string; code?: number } };
+
+/**
+ * Run Pre-Motion as an SSE stream. Returns an async iterator over typed
+ * events. The pipeline keeps running server-side even if the iterator is
+ * abandoned — audit rows always land.
+ */
+export async function* runPreMotionStream(
+  slug: string,
+  inputs: { depth?: "fast" | "thorough" } = {},
+  signal?: AbortSignal,
+): AsyncIterableIterator<PreMotionStreamEvent> {
+  const resp = await fetch(`${API}/matters/${slug}/pre-motion/run-stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inputs),
+    signal,
+  });
+  if (!resp.ok || !resp.body) {
+    const text = await resp.text();
+    throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    buffer += decoder.decode(value, { stream: true });
+    // SSE frames are separated by a blank line.
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) >= 0) {
+      const frame = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      let event = "message";
+      const dataLines: string[] = [];
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+      }
+      if (dataLines.length === 0) continue;
+      const data = JSON.parse(dataLines.join("\n"));
+      yield { event, data } as PreMotionStreamEvent;
+    }
+  }
+}
+
+export async function exportPreMotionPdf(slug: string, result: PreMotionRunResult): Promise<Blob> {
+  const resp = await fetch(`${API}/matters/${slug}/pre-motion/pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(result),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
+  }
+  return resp.blob();
+}
+
 export interface ChronologyEvent {
   id: string;
   event_date: string;

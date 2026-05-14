@@ -4,13 +4,14 @@ import {
   confirmGate,
   createMatter,
   draftLetter,
+  exportPreMotionPdf,
   getChronology,
   getLetterCatalogue,
   getMatter,
   listAudit,
   listDocuments,
   listMatters,
-  runPreMotion,
+  runPreMotionStream,
   setPrivilege,
   uploadDocument,
   type AuditEntry,
@@ -21,6 +22,16 @@ import {
   type MatterDocument,
   type PreMotionRunResult,
 } from "./lib/api";
+
+type StageProgress = {
+  index: number;
+  stage: string;
+  sub_agent_count: number;
+  status: "running" | "done" | "error";
+  duration_ms?: number;
+  token_count?: number;
+  errors?: string[];
+};
 import { navigate, useRoute } from "./lib/route";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
@@ -284,6 +295,9 @@ function MatterDetail({ slug }: { slug: string }) {
   const [premotion, setPremotion] = useState<PreMotionRunResult | null>(null);
   const [premotionRunning, setPremotionRunning] = useState(false);
   const [premotionError, setPremotionError] = useState<string | null>(null);
+  const [premotionStages, setPremotionStages] = useState<StageProgress[]>([]);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [chron, setChron] = useState<ChronologyResponse | null>(null);
   const [showSoF, setShowSoF] = useState(false);
   const [letterCat, setLetterCat] = useState<LetterCatalogue | null>(null);
@@ -326,14 +340,64 @@ function MatterDetail({ slug }: { slug: string }) {
     setPremotionRunning(true);
     setPremotionError(null);
     setPremotion(null);
+    setPremotionStages([]);
     try {
-      const result = await runPreMotion(slug, { depth: "thorough" });
-      setPremotion(result);
+      for await (const ev of runPreMotionStream(slug, { depth: "thorough" })) {
+        if (ev.event === "stage.start") {
+          setPremotionStages((prev) => [
+            ...prev.filter((s) => s.index !== ev.data.index),
+            {
+              index: ev.data.index,
+              stage: ev.data.stage,
+              sub_agent_count: ev.data.sub_agent_count,
+              status: "running",
+            },
+          ]);
+        } else if (ev.event === "stage.end") {
+          setPremotionStages((prev) =>
+            prev.map((s) =>
+              s.index === ev.data.index
+                ? {
+                    ...s,
+                    status: ev.data.errors?.length ? "error" : "done",
+                    duration_ms: ev.data.duration_ms,
+                    token_count: ev.data.token_count,
+                    errors: ev.data.errors,
+                  }
+                : s,
+            ),
+          );
+        } else if (ev.event === "result") {
+          setPremotion(ev.data);
+        } else if (ev.event === "error") {
+          setPremotionError(ev.data.message);
+        }
+      }
       listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
       setPremotionError(String(err));
     } finally {
       setPremotionRunning(false);
+    }
+  };
+
+  const onExportPdf = async () => {
+    if (!premotion) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const blob = await exportPreMotionPdf(slug, premotion);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pre-motion-${slug}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setPdfError(String(err));
+    } finally {
+      setPdfBusy(false);
     }
   };
 
@@ -502,10 +566,28 @@ function MatterDetail({ slug }: { slug: string }) {
             {premotionError}
           </pre>
         )}
-        {premotionRunning && !premotion && (
-          <PremotionRunning />
+        {(premotionRunning || premotionStages.length > 0) && !premotion && (
+          <PremotionStageStrip stages={premotionStages} />
         )}
-        {premotion && <PremotionResult result={premotion} />}
+        {premotion && (
+          <>
+            <div className="flex items-center justify-end gap-3 mb-3">
+              {pdfError && (
+                <span className="font-mono text-[11px] text-code-red truncate max-w-[40ch]">
+                  {pdfError}
+                </span>
+              )}
+              <button
+                onClick={onExportPdf}
+                disabled={pdfBusy}
+                className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {pdfBusy ? "RENDERING…" : "EXPORT PDF →"}
+              </button>
+            </div>
+            <PremotionResult result={premotion} />
+          </>
+        )}
       </section>
 
       {/* letters ----------------------------------------------- */}
@@ -691,11 +773,59 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function PremotionRunning() {
+function PremotionStageStrip({ stages }: { stages: StageProgress[] }) {
+  // Render the four stages in fixed order so the strip layout is stable
+  // as events arrive — stages.start fills "running", stages.end fills
+  // duration/tokens/status.
+  const expected = [
+    { index: 1, stage: "optimistic", sub_agent_count: 1 },
+    { index: 2, stage: "evidence", sub_agent_count: 3 },
+    { index: 3, stage: "premortem", sub_agent_count: 4 },
+    { index: 4, stage: "synthesis", sub_agent_count: 1 },
+  ];
+  const byIndex = new Map(stages.map((s) => [s.index, s]));
   return (
-    <div className="border border-graphite p-4 font-mono text-[12px] tracking-[0.053em] text-ash-gray">
-      <span className="text-terminal-green">running…</span> stage 1 → stage 2 (×3 parallel) →
-      stage 3 (×4 parallel) → stage 4. Takes 30–180s depending on provider.
+    <div className="border border-graphite">
+      <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate">
+        pipeline · streaming · 9 model calls total
+      </div>
+      <div className="grid grid-cols-4">
+        {expected.map((e) => {
+          const s = byIndex.get(e.index);
+          const status = s?.status ?? "pending";
+          const colour =
+            status === "running"
+              ? "text-terminal-green"
+              : status === "done"
+                ? "text-platinum"
+                : status === "error"
+                  ? "text-code-red"
+                  : "text-dim-gray";
+          return (
+            <div
+              key={e.index}
+              className="border-r border-graphite last:border-r-0 p-3 font-mono text-[11px] tracking-[0.04em]"
+            >
+              <div className="text-dim-gray uppercase mb-1">{e.stage}</div>
+              <div className={`${colour} uppercase`}>
+                {status === "running" && (
+                  <span>
+                    running…<span className="inline-block w-1.5 h-3 bg-emerald-shadow ml-1 align-text-bottom animate-pulse" />
+                  </span>
+                )}
+                {status === "done" && (
+                  <span>
+                    {s!.sub_agent_count} call{s!.sub_agent_count === 1 ? "" : "s"} ·{" "}
+                    {((s!.duration_ms ?? 0) / 1000).toFixed(1)}s · {s!.token_count ?? 0}t
+                  </span>
+                )}
+                {status === "error" && <span>error · {s!.errors?.length ?? 1}</span>}
+                {status === "pending" && <span>pending</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -27,7 +27,9 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -181,14 +183,37 @@ def _safe_inconsistency(raw: dict) -> bool:
         return False
 
 
+EventCallback = Callable[[str, dict[str, Any]], Awaitable[None]]
+
+
+async def _noop_event(_name: str, _payload: dict[str, Any]) -> None:
+    return None
+
+
 async def run_pre_motion(
     *,
     session: AsyncSession,
     matter: Matter,
     actor_id: uuid.UUID | None,
     inputs: PreMotionRunInputs,
+    on_event: EventCallback | None = None,
 ) -> PreMotionRunResult:
-    """Run the four-stage adversarial premortem against `matter`."""
+    """Run the four-stage adversarial premortem against `matter`.
+
+    `on_event` is an optional async callback the SSE endpoint subscribes to.
+    It fires at stage boundaries — `stage.start` before each stage runs,
+    `stage.end` after it commits, and `run.complete` after the envelope is
+    assembled. The callback is UI-only: audit rows are the canonical record
+    and never depend on a subscriber being attached. Errors from the
+    callback are swallowed so a dropped client cannot abort the pipeline.
+    """
+    emit = on_event or _noop_event
+
+    async def _safe_emit(name: str, payload: dict[str, Any]) -> None:
+        try:
+            await emit(name, payload)
+        except Exception:
+            pass
     # Posture fast-fail BEFORE any audit row is written. The gateway
     # would refuse each individual call, but the pipeline shape would
     # still emit module.pre_motion.run.start + .complete, producing
@@ -238,13 +263,18 @@ async def run_pre_motion(
     await session.commit()
 
     # ----- Stage 1: optimistic ---------------------------------------------
+    await _safe_emit("stage.start", {"stage": "optimistic", "index": 1, "sub_agent_count": 1})
     optimistic_call = await OptimisticAnalyst().run(
         ctx=ctx, session=session, gateway=model_gateway, actor_id=actor_id
     )
     optimistic_case = _to_optimistic_case(optimistic_call.parsed)
     await session.commit()
+    await _safe_emit("stage.end", {"stage": "optimistic", "index": 1,
+                                    **_stage_status("optimistic", [optimistic_call]).model_dump()})
 
     # ----- Stage 2: evidence inspector × 3 ---------------------------------
+    await _safe_emit("stage.start", {"stage": "evidence", "index": 2,
+                                      "sub_agent_count": len(EVIDENCE_SUB_AGENTS)})
     evidence_calls = await asyncio.gather(
         *[
             cls().run(ctx=ctx, session=session, gateway=model_gateway, actor_id=actor_id)
@@ -253,8 +283,12 @@ async def run_pre_motion(
     )
     evidence_flags = _merge_evidence_flags(evidence_calls)
     await session.commit()
+    await _safe_emit("stage.end", {"stage": "evidence", "index": 2,
+                                    **_stage_status("evidence", evidence_calls).model_dump()})
 
     # ----- Stage 3: premortem adversary × 4 --------------------------------
+    await _safe_emit("stage.start", {"stage": "premortem", "index": 3,
+                                      "sub_agent_count": len(PREMORTEM_SUB_AGENTS)})
     extra_for_premortem = {
         "evidence_flags": [f.model_dump() for f in evidence_flags],
         "optimistic_case": optimistic_case.model_dump(),
@@ -273,8 +307,11 @@ async def run_pre_motion(
     )
     failure_scenarios = _merge_failure_scenarios(premortem_calls)
     await session.commit()
+    await _safe_emit("stage.end", {"stage": "premortem", "index": 3,
+                                    **_stage_status("premortem", premortem_calls).model_dump()})
 
     # ----- Stage 4: synthesiser --------------------------------------------
+    await _safe_emit("stage.start", {"stage": "synthesis", "index": 4, "sub_agent_count": 1})
     extra_for_synth = {
         "optimistic_case": optimistic_case.model_dump(),
         "evidence_flags": [f.model_dump() for f in evidence_flags],
@@ -288,6 +325,8 @@ async def run_pre_motion(
         extra=extra_for_synth,
     )
     await session.commit()
+    await _safe_emit("stage.end", {"stage": "synthesis", "index": 4,
+                                    **_stage_status("synthesis", [synthesis_call]).model_dump()})
 
     upstream_errors = [
         c.error
@@ -344,6 +383,11 @@ async def run_pre_motion(
     )
 
     await session.commit()
+    await _safe_emit("run.complete", {
+        "verdict": synthesis.verdict,
+        "total_duration_ms": total_ms,
+        "total_token_count": total_tokens,
+    })
     return result
 
 
