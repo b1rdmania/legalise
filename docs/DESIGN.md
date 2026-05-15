@@ -825,6 +825,8 @@ backdrop tap close it.
 
 The em-dash row is a literal `<div className="my-2 border-t border-rule" />` between primary and secondary blocks. Active item gets the `border-l-2 border-ink` treatment from the JSX above — same active-state language as P9.
 
+**v0.1 routing note.** "Open demo matter" in the marketing state routes to `#/auth/signup`, not directly to the demo matter slug, because `/api/matters/{slug}` and friends are auth-gated. Day D copies the Khan demo into the new user's workspace on signup; from that point the link in workspace drawers resolves to the user's own copy. The visible label stays "Open demo matter" — the route is the only implementation detail that shifts. "Sign out" is a button (not an anchor) that calls `signout()` then navigates to `#/`.
+
 **Dense-data exception.** On Pre-Motion run streaming, Audit log, Module body, and Chronology table routes, replace the hamburger with `← back to matter` and one or two contextual actions. Drawer is one tap away via that back link. Reference: Yahoo Finance, Binance, Attio data screens drop the nav chrome entirely on data surfaces to maximise content. Apply this only on routes where content density would lose more from chrome than the user would gain from immediate nav.
 
 ```jsx

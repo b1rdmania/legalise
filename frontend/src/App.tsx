@@ -14,6 +14,7 @@ import {
   listAudit,
   listDocuments,
   listMatters,
+  signout,
   runPreMotionStream,
   setPrivilege,
   uploadDocument,
@@ -54,9 +55,16 @@ const TABS: { key: TabKey; label: string }[] = [
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
 
-// Seeded matter slug from backend/app/core/seed.py — hardcoded so the public
-// landing CTA does not depend on the auth-gated /api/matters endpoint.
+// Seeded matter slug from backend/app/core/seed.py. Authenticated users land
+// here directly; unauthenticated visitors are routed to signup first because
+// /api/matters/{slug} and friends are auth-gated. Day D will copy Khan into
+// each user's workspace on signup.
 const DEMO_SLUG = "khan-v-acme-trading-2026";
+// Authed CTA target lands in Day C once useAuth is wired (this constant is
+// referenced by the future authed branch). Day D ships the post-signup Khan
+// copy, at which point this becomes the matter under the user's own scope.
+export const DEMO_HREF_AUTHED = `#/matters/${DEMO_SLUG}`;
+const DEMO_HREF_UNAUTHED = "#/auth/signup";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
 
@@ -260,7 +268,7 @@ function TopBar({
               Matters
             </a>
             <a
-              href={`#/matters/${DEMO_SLUG}`}
+              href={DEMO_HREF_UNAUTHED}
               className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
             >
               Open demo matter
@@ -313,10 +321,27 @@ function Drawer({
   const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list" || route.name === "new";
+  const isSettings = route.name === "settings";
   const close = () => setNavOpen(false);
 
+  const onSignOut = async () => {
+    try {
+      await signout();
+    } catch {
+      // even if the call fails (already signed out, network), get back to landing
+    }
+    setNavOpen(false);
+    navigate("/");
+  };
+
   // P18 drawer item sets — match docs/DESIGN.md §P18 §"Drawer items by state".
-  type Item = { href: string; label: string; active?: boolean; external?: boolean };
+  type Item = {
+    href?: string;
+    label: string;
+    active?: boolean;
+    external?: boolean;
+    onClick?: () => void;
+  };
   let primary: Item[] = [];
   let secondary: Item[] = [];
 
@@ -331,27 +356,29 @@ function Drawer({
     secondary = [
       { href: "#/modules", label: "Modules" },
       { href: "#/settings/profile", label: "Settings" },
-      { href: "#/auth/signout", label: "Sign out" },
+      { label: "Sign out", onClick: onSignOut },
     ];
-  } else if (isModules || isList) {
+  } else if (isModules || isList || isSettings) {
     // Workspace no matter: Matters · Modules · — · Settings · Sign out
     primary = [
       { href: "#/matters", label: "Matters", active: isList },
       { href: "#/modules", label: "Modules", active: isModules },
     ];
     secondary = [
-      { href: "#/settings/profile", label: "Settings" },
-      { href: "#/auth/signout", label: "Sign out" },
+      { href: "#/settings/profile", label: "Settings", active: isSettings },
+      { label: "Sign out", onClick: onSignOut },
     ];
   } else {
     // Marketing: Modules · Docs · GitHub · — · Open demo matter · Sign in
+    // "Open demo matter" routes to signup until Day D lands the post-signup
+    // Khan copy. Visible label preserved per DESIGN.md.
     primary = [
       { href: "#/modules", label: "Modules" },
       { href: GITHUB_DOCS, label: "Docs", external: true },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: `#/matters/${DEMO_SLUG}`, label: "Open demo matter" },
+      { href: DEMO_HREF_UNAUTHED, label: "Open demo matter" },
       { href: "#/auth/signin", label: "Sign in" },
     ];
   }
@@ -393,21 +420,12 @@ function Drawer({
 
         <nav className="flex flex-col py-2">
           {primary.map((item) => (
-            <a
-              key={item.href + item.label}
-              href={item.href}
-              target={item.external ? "_blank" : undefined}
-              rel={item.external ? "noreferrer" : undefined}
-              onClick={() => setNavOpen(false)}
-              className={
-                "px-4 py-3 text-[16px] flex items-center gap-3 " +
-                (item.active
-                  ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
-                  : "text-ink hover:bg-wash")
-              }
-            >
-              <span>{item.label}</span>
-            </a>
+            <DrawerItem
+              key={(item.href ?? "btn") + item.label}
+              item={item}
+              tone="primary"
+              onNavigate={() => setNavOpen(false)}
+            />
           ))}
         </nav>
 
@@ -416,16 +434,12 @@ function Drawer({
             <div className="my-2 border-t border-rule" />
             <nav className="flex flex-col py-2">
               {secondary.map((item) => (
-                <a
-                  key={item.href + item.label}
-                  href={item.href}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noreferrer" : undefined}
-                  onClick={() => setNavOpen(false)}
-                  className="px-4 py-3 text-[16px] text-muted hover:text-ink hover:bg-wash"
-                >
-                  {item.label}
-                </a>
+                <DrawerItem
+                  key={(item.href ?? "btn") + item.label}
+                  item={item}
+                  tone="secondary"
+                  onNavigate={() => setNavOpen(false)}
+                />
               ))}
             </nav>
           </>
@@ -443,10 +457,66 @@ function Drawer({
   );
 }
 
+function DrawerItem({
+  item,
+  tone,
+  onNavigate,
+}: {
+  item: {
+    href?: string;
+    label: string;
+    active?: boolean;
+    external?: boolean;
+    onClick?: () => void;
+  };
+  tone: "primary" | "secondary";
+  onNavigate: () => void;
+}) {
+  const primaryCls =
+    "px-4 py-3 text-[16px] flex items-center gap-3 text-left " +
+    (item.active
+      ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
+      : "text-ink hover:bg-wash");
+  const secondaryCls =
+    "px-4 py-3 text-[16px] text-left " +
+    (item.active
+      ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
+      : "text-muted hover:text-ink hover:bg-wash");
+  const cls = tone === "primary" ? primaryCls : secondaryCls;
+
+  if (item.onClick) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          item.onClick!();
+        }}
+        className={cls}
+      >
+        <span>{item.label}</span>
+      </button>
+    );
+  }
+  return (
+    <a
+      href={item.href}
+      target={item.external ? "_blank" : undefined}
+      rel={item.external ? "noreferrer" : undefined}
+      onClick={onNavigate}
+      className={cls}
+    >
+      <span>{item.label}</span>
+    </a>
+  );
+}
+
 // -- Landing ----------------------------------------------------------------
 
 function Landing() {
-  const onOpenDemo = () => navigate(`/matters/${DEMO_SLUG}`);
+  // Unauthenticated CTA — Day D will copy Khan into the new user's workspace
+  // on signup. Authenticated users using the drawer / TopBar still get routed
+  // to the matter directly once useAuth lands in Day C.
+  const onOpenDemo = () => navigate("/auth/signup");
 
   const parts: { name: string; body: string }[] = [
     {
