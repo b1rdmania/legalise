@@ -27,6 +27,7 @@ gradients, never font properties.**
 | **Memo** (`memo-app-eta-tawny.vercel.app`) | Token system, custom utilities, header geometry, page max-widths, eyebrow + tight2 + prose-p patterns, mobile touch-target discipline | All surfaces — this is the base |
 | **Warp Engine whitepaper** (`design-24211ed9...html`) | Sidebar TOC with scroll-spy, prose body with bordered code blocks, metadata strip (Author / Topic / Status), inline blockquote with thick left border, paragraph-as-em-dash list pattern | Landing, Modules catalogue, About, docs surfaces |
 | **HyperTrade Terminal** (`design-81588719...html`) | Panel header strip (instrument + price + 24h change + funding), tab-bar with `border-b-2` active state, dense data rows with absolute background overlays, mono uppercase column headers at 9-10px, status colour semantics, sidebar order-entry form | Matter Detail header, Audit log, Chronology, Pre-Motion stage strip, Settings tabs |
+| **Mobbin pass — Clover / ClickUp / Otter / Yahoo Finance** (May 2026) | Hamburger → left drawer skeleton (workspace pill at top, sectioned items, settings cog at bottom), dense-data top-bar exception (back ← + contextual label, no nav chrome) | P18 mobile nav across every surface |
 
 If you are converting a component from one of these references, the
 rule is: **paste exactly, change only framework syntax**. Do not round
@@ -550,6 +551,14 @@ The 22px row height is dense — five rows fit in 110px. The optional
 absolute bar is for variable-weight rows (token count proportional,
 significance, audit row latency).
 
+**Domain rule for the overlay bar.** Only render the bar when the
+value being shown is a percentage or naturally bounded against a
+known maximum (e.g. significance 0–100, latency vs. a p99 ceiling,
+token count vs. the model's context limit). For unbounded values
+(absolute counts, dates, raw IDs), the row is plain text — no bar.
+Otherwise the bar drifts from "weight" to decoration and the order-
+book lineage breaks.
+
 ## P11 — Eyebrow + value stack
 
 Source: Warp metadata + HyperTrade stat columns.
@@ -703,11 +712,153 @@ Source: Warp whitepaper.
 </footer>
 ```
 
+## P18 — Mobile nav (hamburger → left drawer)
+
+Source: Clover, ClickUp, Otter (Mobbin, May 2026 pass). Clover is the
+closest token-coherent match — light bg, sectioned, borders not
+shadows, chevron expand. Lifted skeleton; values, spacing, and
+chrome stay paper-ink.
+
+**Trigger.** P1 TopBar at `< md` swaps the right-side nav for a
+hamburger button. The brand wordmark on the left stays. No bottom
+tab bar anywhere — workspace/doc tools in the reference set
+uniformly use a drawer, and bottom tab fights the "law clerk's
+workbench" register.
+
+```jsx
+{/* P1 TopBar additions for mobile */}
+<button
+  type="button"
+  onClick={() => setNavOpen(true)}
+  aria-label="Open menu"
+  aria-expanded={navOpen}
+  className="md:hidden min-h-[44px] min-w-[44px] -mr-2 flex items-center
+             justify-center text-ink"
+>
+  {/* Inline SVG hamburger, 20×20, currentColor */}
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+</button>
+```
+
+**Drawer.** Full-height, slides in from the left, `bg-paper` with a
+`border-r border-rule`. Width `min(320px, 86vw)`. Backdrop is
+`bg-ink/40` (no blur). Body-scroll-lock when open. `Esc` and
+backdrop tap close it.
+
+```jsx
+{navOpen && (
+  <>
+    <div
+      onClick={() => setNavOpen(false)}
+      className="md:hidden fixed inset-0 z-40 bg-ink/40"
+      aria-hidden="true"
+    />
+    <aside
+      role="dialog"
+      aria-modal="true"
+      aria-label="Navigation"
+      className="md:hidden fixed inset-y-0 left-0 z-50 w-[min(320px,86vw)]
+                 bg-paper border-r border-rule flex flex-col overflow-y-auto"
+    >
+      {/* Header strip — mirrors TopBar height so brand sits steady */}
+      <div className="h-[64px] px-4 flex items-center justify-between border-b border-rule">
+        <span className="font-bold text-lg tracking-tight2 text-ink">LEGALISE</span>
+        <button
+          type="button"
+          onClick={() => setNavOpen(false)}
+          aria-label="Close menu"
+          className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center text-muted"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Optional context pill — matter slug + posture (workspace state only) */}
+      {matter && (
+        <div className="px-4 py-3 border-b border-rule">
+          <div className="eyebrow-sm mb-1">Matter</div>
+          <div className="text-[16px] font-semibold text-ink truncate">{matter.slug}</div>
+          <div className="text-xs text-muted mt-1">posture {matter.posture}</div>
+        </div>
+      )}
+
+      {/* Primary nav */}
+      <nav className="flex flex-col py-2">
+        {items.map(item => (
+          <a key={item.href} href={item.href}
+             onClick={() => setNavOpen(false)}
+             className={`px-4 py-3 text-[16px] flex items-center gap-3
+               ${item.active
+                 ? 'bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]'
+                 : 'text-ink hover:bg-wash'}`}>
+            {item.icon}
+            <span>{item.label}</span>
+          </a>
+        ))}
+      </nav>
+
+      {/* Section break + secondary items */}
+      <div className="mt-auto border-t border-rule py-2">
+        <a href="#/settings" className="px-4 py-3 text-[16px] text-muted hover:text-ink block">
+          Settings
+        </a>
+        <a href="#/auth/signout" className="px-4 py-3 text-[16px] text-muted hover:text-ink block">
+          Sign out
+        </a>
+      </div>
+    </aside>
+  </>
+)}
+```
+
+**Drawer items by state.** Same chrome, different items:
+
+| State | Items |
+|---|---|
+| **Marketing** (`#/`, unauthenticated) | Modules · Docs · GitHub · — · Open demo matter · Sign in |
+| **Workspace** (authenticated, matter in scope) | Matter context pill · Overview · Documents · Chronology · Pre-Motion · Letters · Audit · — · Modules · Settings · Sign out |
+| **Workspace** (authenticated, no matter) | Matters · Modules · — · Settings · Sign out |
+
+The em-dash row is a literal `<div className="my-2 border-t border-rule" />` between primary and secondary blocks. Active item gets the `border-l-2 border-ink` treatment from the JSX above — same active-state language as P9.
+
+**Dense-data exception.** On Pre-Motion run streaming, Audit log, Module body, and Chronology table routes, replace the hamburger with `← back to matter` and one or two contextual actions. Drawer is one tap away via that back link. Reference: Yahoo Finance, Binance, Attio data screens drop the nav chrome entirely on data surfaces to maximise content. Apply this only on routes where content density would lose more from chrome than the user would gain from immediate nav.
+
+```jsx
+{/* Dense-data variant of P1 — used inside matter sub-routes */}
+<header className="fixed inset-x-0 top-0 z-50 bg-paper border-b border-rule md:hidden">
+  <div className="px-4 h-[64px] flex items-center justify-between">
+    <a href={`#/matters/${matter.slug}`} className="flex items-center gap-2 text-ink min-h-[44px]">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10 4l-4 4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
+      </svg>
+      <span className="text-[16px] font-medium truncate max-w-[180px]">{matter.slug}</span>
+    </a>
+    <span className="eyebrow-sm">{surfaceLabel /* "Audit", "Pre-Motion" */}</span>
+  </div>
+</header>
+```
+
+**Hard rules.**
+- No `rounded-*` on the drawer, the backdrop, the items, or the close button. Square corners hold.
+- No `shadow-*`. The `border-r` carries depth.
+- No transition longer than 150ms on the slide-in. Workspace tools are quick; this is not a marketing animation.
+- Drawer is the only mobile nav surface — no bottom tab, no secondary sheet, no swipe-from-edge gesture (gesture-only nav fails accessibility).
+- All primary items are `min-h-[44px]` and `text-[16px]` to satisfy HIG touch targets + iOS-no-zoom.
+- The drawer never contains form inputs. If a setting needs a form, the drawer link routes to `#/settings` and the form lives there.
+
+**Why this resolves the open reservation.** `legalise-design.md` listed three candidates (hamburger drawer, bottom tab, profile-only top bar). The Mobbin pass surfaced one dominant precedent across workspace/doc tools and a sharp split for dense-data screens. Net pattern is one drawer + one contextual exception, not three patterns. Marketing and workspace share the same chrome to keep the design language from forking.
+
 ---
 
 # Surface map
 
 Which patterns compose which surface.
+
+**Mobile inheritance.** At `< md`, every surface below inherits P18: the hamburger replaces the P1 right-side nav, and the drawer renders in marketing or workspace state per the table in P18. Matter sub-routes (Pre-Motion run streaming, Audit, Chronology, Module body) use the P18 dense-data exception instead of the hamburger.
 
 | Surface | Patterns |
 |---|---|
