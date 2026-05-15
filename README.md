@@ -1,233 +1,110 @@
 # Legalise
 
-**Legalise turns reviewable legal skills into audited matter workflows.**
+UK legal AI workspace. Open source, matter-first, privilege-posture-aware, audit-logged. England & Wales only.
 
-Legal AI work should be inspectable, composable, auditable, and run against
-matter-shaped context instead of loose chat prompts. Legalise is the
-execution substrate: a Git-distributed catalogue of `SKILL.md` files
-rendered into a matter-first workspace for England & Wales legal work.
-Every model call is audited, privilege posture is enforced at dispatch
-time, and disclosure-tainted chronology entries are gated behind a
-CPR 31.22 acknowledgement.
+Legalise is a workspace, not a chatbot. Every piece of model work happens inside a matter — a slug, the parties, the documents, the audit trail. The matter is the unit of work; the model is a commodity behind a gateway. Solicitors review every output. Nothing is autonomous.
 
-Skills come from [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal)
-by default. Fork the catalogue, review skill changes by PR diff, point
-Legalise at the approved SHA. Approval is code review. Provenance is git
-history.
+This repo is `v0.1`. It runs locally on Docker Compose, or live at the demo URL with the Khan v Acme sample matter seeded on signup. Apache-2.0.
 
-What we believe and refuse to do is in [`MANIFESTO.md`](./MANIFESTO.md).
+## What it does
 
-Live demo target: [`legalise.dev`](https://legalise.dev). Installed skills
-view: [`legalise.dev/#/modules`](https://legalise.dev/#/modules).
+Four modules sit inside the matter workspace. Each one is a surface a UK solicitor recognises.
 
-## What this is
+- **Pre-Motion** — adversarial premortem of a draft pleading or position. Four agent stages (steelman / weakest-link / counter-pleading / synthesiser), nine model calls, one audited run. Useful before issuing or before a CMC.
+- **Contract Review** — parser / analyst / redliner / summariser pipeline over an uploaded contract. Returns clause-level issues, a redline, and a summary memo. Streams stage events so you can watch it work.
+- **Letters** — drafts an LBA or other matter-shaped letter from the matter context. LBA exports through a Word template; other letter types fall through a procedural generator.
+- **Anonymisation** — Presidio-based PII detection over a document with a deterministic token map. Detokenise round-trips byte-identical. Built so external counsel review or training-data exports go out clean.
 
-```mermaid
-graph TD
-    A[Git skill catalogue<br/>SKILL.md files] --> B[Legalise bridge]
-    B --> C[Matter context injection]
-    B --> D[Privilege-aware model gateway]
-    B --> E[Audit log]
-    B --> F[Workspace surfaces]
-    F --> G[Pre-Motion<br/>bespoke pattern]
-    F --> H[Letters<br/>curated multi-skill]
-    F --> I[Chronology<br/>regulatory gate]
-    B -.matter-schema-compatible.-> J[Stella]
-```
+All four route through one privilege-aware model gateway and write to one audit log.
 
-v0.1 proves the execution layer and one coherent sample-matter workflow:
-matter context, audit logging, privilege posture, local/cloud model routing,
-Pre-Motion, Letters, chronology with CPR 31.22 gating, and a read-only
-installed-skills catalogue.
+## How privilege posture works
 
-It runs locally via Docker Compose or live at `legalise.dev` (Fly.io `lhr`
-backend + Neon London Postgres + Cloudflare R2 in EU placement — **not**
-UK-residency end-to-end; see [`docs/TRUST.md`](./docs/TRUST.md)).
+Every matter carries a posture flag that picks which providers can serve calls for that matter.
 
-## Status (May 2026)
+- **A_cleared** — privileged material excluded or cleared. Cloud providers permitted.
+- **B_mixed** — mixed posture. Cloud providers permitted only where the matter explicitly opts each one in.
+- **C_paused** — privileged material present or unresolved. Local-model only (Ollama). Cloud calls refused at the gateway.
 
-Shipped in the repo:
+The gateway audits the posture decision on every call. Chronology entries sourced from disclosed documents are gated behind a CPR 31.22 implied-undertaking acknowledgement, enforced server-side.
 
-- FastAPI backend with Postgres, audit middleware, privilege-aware model gateway, plugin bridge, and module endpoints
-- React 19 + Vite frontend with landing, matter workspace, module surfaces, and installed-skills discovery
-- Docker Compose stack: Postgres + pgvector, MinIO, Redis, Gotenberg, Ollama profile, backend, frontend
-- `claude-for-uk-legal` skill catalogue vendored into the Fly image at a pinned SHA
-- Evals for sample-matter audit shape and letter catalogue routing
-- Honest trust documentation in [`docs/TRUST.md`](./docs/TRUST.md)
+Module enable/disable is enforced at the `(plugin, skill)` layer. Declared capabilities in each `module.json` are schema-validated and displayed in the Modules page for review. Runtime per-capability enforcement is v0.2 doctrine — see [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
-## Stack
-
-- Backend: Python 3.12 + FastAPI, SQLAlchemy 2 + Alembic, async Anthropic SDK
-- Database: PostgreSQL 16 + pgvector
-- Frontend: React 19 + Vite + TanStack Router, Tailwind + Shadcn primitives
-- AI: model gateway abstracting Anthropic, OpenAI, Ollama (per-matter privilege posture selects provider)
-- Storage: MinIO (S3 API), Gotenberg (HTML→PDF), LibreOffice headless (DOCX)
-- Hosting (live): Cloudflare Pages + Fly.io `lhr` + Neon London + Cloudflare R2. UK-region database and backend; edge CDN and storage at EU / Western Europe placement. See [`infra/deploy/cloudflare.md`](./infra/deploy/cloudflare.md).
-- Hosting (self): Docker Compose
-
-Stack rationale in `ARCHITECTURE.md`.
-
-## Installing skills
-
-Legalise treats Git as the marketplace. Firms approve prompt changes the way
-they approve code: fork, review, merge, pin, deploy.
+## Quick start
 
 ```bash
-# Fork claude-for-uk-legal, or any catalogue of SKILL.md files.
-gh repo fork b1rdmania/claude-for-uk-legal
+git clone https://github.com/b1rdmania/legalise
+cd legalise
+cp .env.example .env             # edit ANTHROPIC_API_KEY if you have one; stub-echo works without
+docker compose -f infra/docker-compose.yml up --build
+```
 
-# Review skills by PR diff. Approve through the firm's normal process.
-# ...internal code review...
+That brings up Postgres + pgvector, MinIO, Redis, Gotenberg, the FastAPI backend, and the React frontend. Open `http://localhost:5173`, sign up, and the Khan v Acme sample matter seeds automatically. Walk the four modules from there.
 
-# Point Legalise at the approved catalogue version.
+To point at a forked skills catalogue:
+
+```bash
 export PLUGINS_REPO=https://github.com/<your-org>/claude-for-uk-legal
 export PLUGINS_REPO_REF=<your-approved-sha>
-
-# Self-host
-export PLUGINS_HOST_PATH=/path/to/your/approved/catalogue
-docker compose -f infra/docker-compose.yml up --build
-
-# Live demo / Fly image path
-cd backend
-fly deploy
 ```
 
-The installed catalogue is visible at `#/modules` in the app. The page reads
-`PLUGINS_ROOT`, groups skills by plugin, links to the pinned source blob, and
-shows the prompt body that an internal tech team would review.
+The installed catalogue is visible at `#/modules`. Skills come from [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) by default. Fork it, review changes by PR diff, pin the SHA. Approval is code review.
 
-## Module surfaces
+## Status
 
-Skills are the executable units. Surfaces are how those skills show up in the
-workspace. v0.1 proves three patterns; Pre-Motion, Letters, and Chronology are
-the canonical demonstrations — not the project's identity.
+This is `v0.1`. Honest about what's in and what's not.
 
-| Pattern | Canonical demonstration | What it proves |
-|---|---|---|
-| Generic invocation | `POST /api/matters/{slug}/invoke` | Any installed skill can run with matter context and audit rows |
-| Curated multi-skill | Letters | A workspace section can route among several skills by matter type |
-| Bespoke orchestration | Pre-Motion | A surface can fan out across multiple calls (4 stages, 9 model calls) while still going through the same gateway and audit log |
+In v0.1:
 
-Chronology is a regulatory surface over seeded data. Contract Review is visible
-as a v0.2 roadmap surface only.
+- FastAPI + Postgres + pgvector backend with audit middleware and privilege-aware model gateway
+- React 19 + Vite frontend, hash router, Tailwind + Shadcn primitives
+- Four modules listed above, all wired end-to-end against the Khan sample matter
+- Tracked-changes document editing with accept/reject and version timeline
+- Tabular review across multiple documents
+- `.docx` export (LBA via Word template; other types via procedural generator)
+- Matter export / import in two modes — `full_internal` (no redaction, same posture only) and `shareable` (privilege-aware redaction matrix applied)
+- Public module submission flow that opens a draft PR against `claude-for-uk-legal`
+- fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
+- Five smoke evals covering audit-row contract, posture routing, redline anchors, NDA parse, matter portability round-trip
 
-The project is the execution substrate. The four surfaces are proof modules.
-New surfaces follow the same three patterns; nothing about a surface is
-load-bearing for the workspace shape.
+Not in v0.1, on the v0.2 list:
 
-## The plan in one page
+- Runtime per-capability enforcement at the call site (v0.1 ships declarations + module enable/disable enforcement)
+- Job runner — direction locked as `arq` + Redis + `jobs` table; long runs still use router-local `asyncio.create_task` for now
+- TanStack Router / Query migration
+- Provider-native structured output / tool calling
+- Docx templates for Pre-Motion and Contract Review (LBA only ships in v0.1)
+- Signed module manifests
+- GitHub App for the submission flow (PAT-based in v0.1)
+- Multi-instance Redis-backed rate limiter
 
-```mermaid
-gantt
-    title v0.1 Build — 3 weeks
-    dateFormat YYYY-MM-DD
-    axisFormat %d %b
+Full picture: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
-    section Week 1
-    Skeleton boots          :w1d1, 2026-05-14, 1d
-    Matter CRUD             :w1d2, after w1d1, 1d
-    Audit + privilege       :w1d3, after w1d2, 1d
-    Sample matter           :w1d4, after w1d3, 1d
-    Plugin bridge proof     :w1d5, after w1d4, 1d
+## Peers
 
-    section Week 2
-    Pre-Motion              :w2pm, after w1d5, 2d
-    Letter bridge           :w2lt, after w2pm, 1d
-    Seeded chronology       :w2ch, after w2lt, 1d
-    Roadmap tabs            :w2rt, after w2ch, 1d
-    Integration polish      :w2ip, after w2rt, 2d
+Three open-source UK / European legal AI workspaces are shipping in parallel in mid-2026. We are one of them. The other two:
 
-    section Week 3
-    Demo polish             :w3d, after w2ip, 2d
-    Live deploy             :w3dep, after w3d, 1d
-    Evals                   :w3ev, after w3dep, 1d
-    README + assets         :w3rm, after w3ev, 1d
-    Launch                  :w3lc, after w3rm, 1d
-```
+- **Mike** — Will Chen, [`willchen96/mike`](https://github.com/willchen96/mike), AGPL-3.0. Jurisdiction-agnostic, drafting-baseline-first, the cleanest tracked-changes UX in the open-source legal AI space.
+- **Stella** — Jan Kubica, [`stella/stella`](https://github.com/stella/stella), Apache-2.0. Jurisdiction-pluralist, Magic Circle scale, mature anonymisation pipeline and tabular review.
 
-## Skills-and-workspace relationship
+These are independent builds tackling the same wedge from different angles. Legalise's wedge is **regulator shape** — audit by default, privilege posture, CPR 31.22 gate, retention as a first-class field, England & Wales only. Stella ships more polish in anonymisation. Mike ships more drafting surface. The matter wire-format RFC at [`schemas/matter.json`](./schemas/matter.json) is open so matters can move between any of the three.
 
-Legalise composes skills from the [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) suite. The skills ship as a standalone repo so they can be used independently with Claude Code. The workspace adds matter context, audit logging, privilege awareness, document handling, discovery, and a UI.
+Full credit and honest divergence map: [`docs/PEERS.md`](./docs/PEERS.md).
 
-| Layer | What it is | Where |
-|---|---|---|
-| Catalogue | Markdown `SKILL.md` files — pure legal logic, no UI | `claude-for-uk-legal` repo or your fork |
-| Workspace | FastAPI + React, matter-first, audit + privilege + local-model scaffolding | `legalise` repo (this one) |
-| Bridge | Adapter that invokes skills with matter context | `backend/app/adapters/plugin_bridge.py` |
-| Discovery | Read-only installed-skills view over `PLUGINS_ROOT` | `GET /api/modules`, `#/modules` |
+## Why this exists
 
-## What this isn't
+Post-Heppner, the regulatory shape of legal AI in the UK matters. The thesis, the bet, and the constraints are written down in [`docs/MANIFESTO.md`](./docs/MANIFESTO.md).
 
-- A production legal tool. v0.1 is a demo with substance, not something a regulated practice runs live matters on.
-- Legal advice software. Every output is a draft for solicitor review.
-- US, Scotland, or NI workflows.
+## Architecture and design
 
-## What v0.1 does not yet do
-
-The execution layer and the catalogue shape are real. The module *lifecycle*
-is not. v0.2 turns the discovery surface into a real lifecycle. None of the
-following exist in v0.1:
-
-- **Install / enable toggles per workspace.** Every skill under `PLUGINS_ROOT` is loadable. There is no on/off per workspace.
-- **Per-workspace module policy.** No "this skill is allowed on ET matters, blocked on civil" lever.
-- **Module permissions.** Modules cannot scope what they read or write — they get the full module-SDK surface.
-- **UI contracts for modules.** Module manifests describe nav and routes; they don't constrain markup, theme, or layout. A hostile module can render anything.
-- **Signed manifests / skill provenance attestation.** Provenance today is "the git SHA of the catalogue fork you pinned". No author signatures, no organisation-level trust roots.
-- **Quality and lint gates for skills.** A SKILL.md can ship anything — prompt-injection, jailbreaks, sloppy markdown. No automated scan, no required schema beyond name + description.
-
-Each gap is intentional v0.1 restraint, not oversight. See [`ROADMAP.md`](./ROADMAP.md) for which v0.2 work picks each one up.
-
-## Extending the workspace
-
-Legalise is an audited execution layer first. The app is also module-extensible:
-teams can add new workspace surfaces that read matter context, call the model
-gateway, invoke installed skills, and render output in the matter view.
-
-A module is a self-contained backend + frontend pair that plugs into the
-matter spine. Internal law firm forks can add private surfaces without pushing
-upstream. That is separate from installing skills, which is Git catalogue
-management via `PLUGINS_ROOT`.
-
-| Resource | What it is |
-|---|---|
-| [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md) | Five steps to ship a module |
-| [`schemas/module.json`](./schemas/module.json) | Manifest JSON Schema |
-| [`examples/modules/example-tab/`](./examples/modules/example-tab) | Minimal copy-paste starter |
-| [`backend/app/core/api.py`](./backend/app/core/api.py) | Stable public surface modules import |
-
-## Trust & security
-
-The regulatory shape of a UK legal AI workspace — privilege architecture,
-CPR 31.22 gate, sub-processor list, audit posture, compliance order
-(Cyber Essentials Plus → ISO 27001 → SOC 2) — is documented in
-[`docs/TRUST.md`](./docs/TRUST.md). It is the v0.1 source of truth and
-gets published as `legalise.dev/trust` in v0.2. Open questions and gaps
-are listed honestly there rather than papered over.
-
-## Reviewers
-
-If you're reviewing the plan, start with:
-
-1. [`EXECUTIVE_SUMMARY.md`](./EXECUTIVE_SUMMARY.md) — what this is and why
-2. [`SCOPE.md`](./SCOPE.md) — in / out / decision log
-3. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — technical decisions
-4. [`BUILD_PLAN.md`](./BUILD_PLAN.md) — week-by-week
-5. [`REGULATORY_PLUMBING.md`](./REGULATORY_PLUMBING.md) — UK-specific design choices
-6. [`ROADMAP.md`](./ROADMAP.md) — v0.2 → v0.5+
-
-The plan should be stress-tested against:
-
-- Stack choices (Python / FastAPI / React vs. TypeScript / Bun alternatives)
-- Module scope (the three surface patterns hold? Pre-Motion is the right canonical demonstration of the bespoke pattern?)
-- Regulatory plumbing visibility (is the demo-grade implementation defensible or theatrical?)
-- Stella interop strategy (data-schema match enough, or does it need code-level interop?)
-- Three-week timeline (achievable solo, or fantasy?)
-
-Critique is the point. Sycophancy not useful.
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — stack rationale and decisions
+- [`docs/AUTH.md`](./docs/AUTH.md) — auth + provider-key model
+- [`docs/TRUST.md`](./docs/TRUST.md) — privilege architecture, sub-processor list, compliance order, open gaps
+- [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md) — write a new module
+- [`docs/ATTRIBUTIONS.md`](./docs/ATTRIBUTIONS.md) — library credits and licence notes
 
 ## Disclaimer
 
-This repository will provide software tools that may assist in the production of legal work-product. It does not provide legal services or legal advice. The workspace and plugins are designed to be used by qualified lawyers under their professional supervision. Use by non-lawyers in a regulated legal context may breach the Legal Services Act 2007 and the SRA Standards and Regulations.
+This repository provides software tools that may assist in the production of legal work-product. It does not provide legal services or legal advice. The workspace and skills are designed to be used by qualified solicitors under their professional supervision. Use by non-lawyers in a regulated legal context may breach the Legal Services Act 2007 and the SRA Standards and Regulations.
 
 ## Licence
 
