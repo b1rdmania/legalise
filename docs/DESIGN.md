@@ -869,11 +869,12 @@ Which patterns compose which surface.
 | **Modules catalogue** (`#/modules`) | P1 TopBar · P2 Sidebar TOC (skill list) · P3 Hero (catalogue intro) · P4 Prose body (selected skill SKILL.md rendered) · P17 Footer |
 | **Matters list** (`#/matters`) | P1 TopBar · P3 Hero (small variant — just title + meta strip) · P16 Data table |
 | **New matter** (`#/matters/new`) | P1 TopBar · centered narrow form (max-w-2xl) · P13 Inputs · P12 Primary button |
-| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · P8 Panel header strip (slug + posture + status + model + type) · P9 Tab bar (Overview / Documents / Chronology / Pre-Motion / Audit) · main panel `flex-1` · contents vary by tab |
+| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · P8 Panel header strip (slug + posture + status + model + type) · P9 Tab bar (Overview / Documents / Chronology / Pre-Motion / Letters / Audit) · main panel `flex-1` · contents vary by tab |
 | **Matter · Overview tab** | P11 Eyebrow stacks (case theory, pivot fact, ACAS dates) · P5 Blockquote pull (the case theory itself, if present) |
 | **Matter · Documents tab** | P16 Data table (filename / SHA / size / tag / from_disclosure) · upload P13 form at top |
 | **Matter · Chronology tab** | P10 Dense data row with overlay bar (variable weight = significance) · P14 Yellow warning callout when CPR 31.22 gate pending · P13 Input for acknowledgement |
 | **Matter · Pre-Motion tab** | P9 Tab bar (stages 0–3 + Result + Export) · streaming stage strip uses P10 dense rows · synthesis output uses P4 Prose + P15 Status pill for verdict colour |
+| **Matter · Letters tab** | LetterSelector with P18-style active row (`bg-wash text-ink border-l-2 border-ink`) · LetterDraftView in bordered panel with P8-style eyebrow header strip · P12 ink-fill button for draft / re-draft |
 | **Matter · Audit tab** | P16 Data table (timestamp / action / model / tokens / latency / payload preview) |
 | **Settings** (`#/settings/{tab}`) | P1 TopBar · P2 Sidebar (Profile / Keys / Preferences) · main `flex-1 max-w-2xl p-10` · P13 Inputs per tab |
 | **Settings · Keys tab** | List of P10 dense rows (provider · last_used · created) · P13 form to add new |

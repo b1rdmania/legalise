@@ -54,6 +54,12 @@ const TABS: { key: TabKey; label: string }[] = [
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
 
+// Seeded matter slug from backend/app/core/seed.py — hardcoded so the public
+// landing CTA does not depend on the auth-gated /api/matters endpoint.
+const DEMO_SLUG = "khan-v-acme-trading-2026";
+const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
+const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
+
 // -- app shell ---------------------------------------------------------------
 
 export default function App() {
@@ -118,6 +124,55 @@ export default function App() {
             onTabChange={setDrawerTab}
           />
         )}
+        {route.name === "signin" && (
+          <StubSurface
+            eyebrow="AUTH — SIGN IN"
+            heading="Sign in"
+            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
+          />
+        )}
+        {route.name === "signup" && (
+          <StubSurface
+            eyebrow="AUTH — SIGN UP"
+            heading="Sign up"
+            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
+          />
+        )}
+        {route.name === "forgot" && (
+          <StubSurface
+            eyebrow="AUTH — FORGOT PASSWORD"
+            heading="Forgot password"
+            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
+          />
+        )}
+        {route.name === "reset" && (
+          <StubSurface
+            eyebrow="AUTH — RESET PASSWORD"
+            heading="Reset password"
+            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
+          />
+        )}
+        {route.name === "verifyPending" && (
+          <StubSurface
+            eyebrow="AUTH — VERIFY EMAIL"
+            heading="Check your email"
+            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
+          />
+        )}
+        {route.name === "verify" && (
+          <StubSurface
+            eyebrow="AUTH — VERIFY EMAIL"
+            heading="Verify email"
+            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
+          />
+        )}
+        {route.name === "settings" && (
+          <StubSurface
+            eyebrow={`SETTINGS — ${route.tab.toUpperCase()}`}
+            heading={`Settings · ${route.tab}`}
+            body="Settings tabs (Profile / API keys / Preferences) land in Day C alongside the auth surfaces."
+          />
+        )}
       </main>
     </div>
   );
@@ -138,24 +193,11 @@ function TopBar({
   drawerMatter: Matter | null;
   drawerTab: TabKey;
 }) {
-  const [demoSlug, setDemoSlug] = useState<string | null>(null);
-  useEffect(() => {
-    listMatters()
-      .then((rows) => {
-        const khan = rows.find((m) => m.slug.startsWith("khan-v-acme"));
-        setDemoSlug((khan ?? rows[0])?.slug ?? null);
-      })
-      .catch(() => undefined);
-  }, []);
-
+  // DEMO_SLUG is the seed matter slug — hardcoded so the public landing CTA
+  // works without hitting the auth-gated /api/matters endpoint.
   const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list";
-
-  const onOpenDemo = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (demoSlug) navigate(`/matters/${demoSlug}`);
-  };
 
   const surfaceLabel = TABS.find((t) => t.key === drawerTab)?.label ?? "";
 
@@ -204,7 +246,7 @@ function TopBar({
             <a
               href="#/modules"
               className={
-                "hover:text-muted transition-colors " + (isModules ? "text-ink" : "text-ink")
+                "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-muted")
               }
             >
               Modules
@@ -212,20 +254,16 @@ function TopBar({
             <a
               href="#/matters"
               className={
-                "hover:text-muted transition-colors " + (isList ? "text-ink" : "text-ink")
+                "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-muted")
               }
             >
               Matters
             </a>
             <a
-              href={demoSlug ? `#/matters/${demoSlug}` : "#"}
-              onClick={demoSlug ? onOpenDemo : undefined}
-              className={
-                "bg-ink text-paper px-4 py-2 hover:bg-black transition-colors " +
-                (!demoSlug ? "opacity-40 pointer-events-none" : "")
-              }
+              href={`#/matters/${DEMO_SLUG}`}
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
             >
-              {demoSlug ? "Open demo matter" : "Loading…"}
+              Open demo matter
             </a>
           </nav>
           <button
@@ -273,14 +311,17 @@ function Drawer({
   if (!navOpen) return null;
 
   const isDetail = route.name === "detail";
+  const isModules = route.name === "modules";
+  const isList = route.name === "list" || route.name === "new";
   const close = () => setNavOpen(false);
 
-  // build sections based on state
-  type Item = { href: string; label: string; active?: boolean; primary?: boolean };
+  // P18 drawer item sets — match docs/DESIGN.md §P18 §"Drawer items by state".
+  type Item = { href: string; label: string; active?: boolean; external?: boolean };
   let primary: Item[] = [];
   let secondary: Item[] = [];
 
   if (isDetail && matter) {
+    // Workspace + matter in scope: tabs · — · Modules · Settings · Sign out
     const currentTab = (route.name === "detail" ? route.tab : undefined) ?? "overview";
     primary = TABS.map((t) => ({
       href: `#/matters/${matter.slug}${t.key === "overview" ? "" : `/${t.key}`}`,
@@ -289,21 +330,29 @@ function Drawer({
     }));
     secondary = [
       { href: "#/modules", label: "Modules" },
-      { href: "#/matters", label: "Matters" },
+      { href: "#/settings/profile", label: "Settings" },
+      { href: "#/auth/signout", label: "Sign out" },
     ];
-  } else if (route.name === "modules" || route.name === "list" || route.name === "new") {
+  } else if (isModules || isList) {
+    // Workspace no matter: Matters · Modules · — · Settings · Sign out
     primary = [
-      { href: "#/matters", label: "Matters", active: route.name === "list" || route.name === "new" },
-      { href: "#/modules", label: "Modules", active: route.name === "modules" },
+      { href: "#/matters", label: "Matters", active: isList },
+      { href: "#/modules", label: "Modules", active: isModules },
+    ];
+    secondary = [
+      { href: "#/settings/profile", label: "Settings" },
+      { href: "#/auth/signout", label: "Sign out" },
     ];
   } else {
+    // Marketing: Modules · Docs · GitHub · — · Open demo matter · Sign in
     primary = [
       { href: "#/modules", label: "Modules" },
-      { href: "#/matters", label: "Matters" },
-      {
-        href: "https://github.com/b1rdmania/legalise",
-        label: "GitHub",
-      },
+      { href: GITHUB_DOCS, label: "Docs", external: true },
+      { href: GITHUB_REPO, label: "GitHub", external: true },
+    ];
+    secondary = [
+      { href: `#/matters/${DEMO_SLUG}`, label: "Open demo matter" },
+      { href: "#/auth/signin", label: "Sign in" },
     ];
   }
 
@@ -347,8 +396,8 @@ function Drawer({
             <a
               key={item.href + item.label}
               href={item.href}
-              target={item.href.startsWith("http") ? "_blank" : undefined}
-              rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+              target={item.external ? "_blank" : undefined}
+              rel={item.external ? "noreferrer" : undefined}
               onClick={() => setNavOpen(false)}
               className={
                 "px-4 py-3 text-[16px] flex items-center gap-3 " +
@@ -370,8 +419,10 @@ function Drawer({
                 <a
                   key={item.href + item.label}
                   href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noreferrer" : undefined}
                   onClick={() => setNavOpen(false)}
-                  className="px-4 py-3 text-[16px] text-ink hover:bg-wash"
+                  className="px-4 py-3 text-[16px] text-muted hover:text-ink hover:bg-wash"
                 >
                   {item.label}
                 </a>
@@ -380,22 +431,13 @@ function Drawer({
           </>
         )}
 
-        <div className="mt-auto border-t border-rule py-2">
-          <a
-            href="https://github.com/b1rdmania/legalise"
-            target="_blank"
-            rel="noreferrer"
-            className="px-4 py-3 text-[16px] text-muted hover:text-ink block"
-            onClick={() => setNavOpen(false)}
-          >
-            GitHub
-          </a>
-          {health && (
-            <div className="text-xs text-muted px-4 py-2">
+        {health && (
+          <div className="mt-auto border-t border-rule">
+            <div className="text-xs text-muted px-4 py-3">
               {health.database === "ok" ? "lhr1" : "unreachable"} · v{health.version}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </aside>
     </>
   );
@@ -404,21 +446,7 @@ function Drawer({
 // -- Landing ----------------------------------------------------------------
 
 function Landing() {
-  const [demoSlug, setDemoSlug] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    listMatters()
-      .then((rows) => {
-        const khan = rows.find((m) => m.slug.startsWith("khan-v-acme"));
-        setDemoSlug((khan ?? rows[0])?.slug ?? null);
-      })
-      .catch((e) => setError(String(e)));
-  }, []);
-
-  const onOpenDemo = () => {
-    if (demoSlug) navigate(`/matters/${demoSlug}`);
-  };
+  const onOpenDemo = () => navigate(`/matters/${DEMO_SLUG}`);
 
   const parts: { name: string; body: string }[] = [
     {
@@ -486,10 +514,9 @@ function Landing() {
           <div className="flex flex-wrap items-center gap-4 mt-8">
             <button
               onClick={onOpenDemo}
-              disabled={!demoSlug}
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
             >
-              {demoSlug ? "Open demo matter" : "Loading demo…"}
+              Open demo matter
             </button>
             <a
               href="#/modules"
@@ -513,11 +540,6 @@ function Landing() {
             </a>
           </div>
 
-          {error && (
-            <div className="mt-6">
-              <ErrorCallout message={error} />
-            </div>
-          )}
         </div>
 
         {/* Five parts — P7 em-dash list */}
@@ -857,27 +879,29 @@ function MatterList() {
       )}
 
       {matters && matters.length > 0 && (
-        <div className="border-t border-rule">
-          <div className="grid grid-cols-[1fr_180px_120px_140px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-            <span>Slug</span>
-            <span>Type</span>
-            <span>Status</span>
-            <span>Opened</span>
+        <div className="border-t border-rule overflow-x-auto">
+          <div className="min-w-[640px]">
+            <div className="grid grid-cols-[1fr_180px_120px_140px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+              <span>Slug</span>
+              <span>Type</span>
+              <span>Status</span>
+              <span>Opened</span>
+            </div>
+            {matters.map((m) => (
+              <a
+                key={m.id}
+                href={`#/matters/${m.slug}`}
+                className="grid grid-cols-[1fr_180px_120px_140px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px]"
+              >
+                <span className="text-ink font-bold truncate">{m.slug}</span>
+                <span className="text-prose truncate">{m.matter_type}</span>
+                <span>
+                  <StatusBadge status={m.status} />
+                </span>
+                <span className="text-ink">{m.opened_at.slice(0, 10)}</span>
+              </a>
+            ))}
           </div>
-          {matters.map((m) => (
-            <a
-              key={m.id}
-              href={`#/matters/${m.slug}`}
-              className="grid grid-cols-[1fr_180px_120px_140px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px]"
-            >
-              <span className="text-ink font-bold truncate">{m.slug}</span>
-              <span className="text-prose truncate">{m.matter_type}</span>
-              <span>
-                <StatusBadge status={m.status} />
-              </span>
-              <span className="text-ink">{m.opened_at.slice(0, 10)}</span>
-            </a>
-          ))}
         </div>
       )}
     </div>
@@ -1470,26 +1494,28 @@ function DocumentsTab({
         </div>
       )}
       {docs && docs.length > 0 && (
-        <div className="border-t border-rule">
-          <div className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-            <span>SHA</span>
-            <span>Filename</span>
-            <span>Size</span>
-            <span>Tag</span>
-            <span>Disclosure</span>
-          </div>
-          {docs.map((d) => (
-            <div
-              key={d.id}
-              className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
-            >
-              <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
-              <span className="text-ink truncate">{d.filename}</span>
-              <span className="text-ink">{formatBytes(d.size_bytes)}</span>
-              <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
-              <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+        <div className="border-t border-rule overflow-x-auto">
+          <div className="min-w-[720px]">
+            <div className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+              <span>SHA</span>
+              <span>Filename</span>
+              <span>Size</span>
+              <span>Tag</span>
+              <span>Disclosure</span>
             </div>
-          ))}
+            {docs.map((d) => (
+              <div
+                key={d.id}
+                className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
+              >
+                <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
+                <span className="text-ink truncate">{d.filename}</span>
+                <span className="text-ink">{formatBytes(d.size_bytes)}</span>
+                <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
+                <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -1553,14 +1579,15 @@ function ChronologyTable({
   events: import("./lib/api").ChronologyEvent[];
 }) {
   return (
-    <div className="border-t border-rule">
-      <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-        <span>Date</span>
-        <span>Sig</span>
-        <span>Event</span>
-        <span>Source · flags</span>
-      </div>
-      {events.map((e) => {
+    <div className="border-t border-rule overflow-x-auto">
+      <div className="min-w-[720px]">
+        <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+          <span>Date</span>
+          <span>Sig</span>
+          <span>Event</span>
+          <span>Source · flags</span>
+        </div>
+        {events.map((e) => {
         const sigBarWidth = `${Math.max(0, Math.min(100, (e.significance / 5) * 100))}%`;
         return (
           <div
@@ -1596,6 +1623,7 @@ function ChronologyTable({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -1984,28 +2012,30 @@ function AuditTab({ audit }: { audit: AuditEntry[] | null }) {
     );
 
   return (
-    <div className="border-t border-rule">
-      <div className="grid grid-cols-[180px_180px_140px_80px_80px_1fr] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-        <span>Timestamp</span>
-        <span>Action</span>
-        <span>Model</span>
-        <span>Tokens</span>
-        <span>Latency</span>
-        <span>Payload</span>
-      </div>
-      {audit.map((e) => (
-        <div
-          key={e.id}
-          className="grid grid-cols-[180px_180px_140px_80px_80px_1fr] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
-        >
-          <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
-          <span className="text-ink font-bold truncate">{e.action}</span>
-          <span className="text-prose truncate">{e.model_used ?? "—"}</span>
-          <span className="text-ink">{e.token_count ?? "—"}</span>
-          <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "—"}</span>
-          <span className="text-muted truncate">{(e.prompt_hash ?? "—").slice(0, 8)}</span>
+    <div className="border-t border-rule overflow-x-auto">
+      <div className="min-w-[920px]">
+        <div className="grid grid-cols-[180px_180px_140px_80px_80px_1fr] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+          <span>Timestamp</span>
+          <span>Action</span>
+          <span>Model</span>
+          <span>Tokens</span>
+          <span>Latency</span>
+          <span>Payload</span>
         </div>
-      ))}
+        {audit.map((e) => (
+          <div
+            key={e.id}
+            className="grid grid-cols-[180px_180px_140px_80px_80px_1fr] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
+          >
+            <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
+            <span className="text-ink font-bold truncate">{e.action}</span>
+            <span className="text-prose truncate">{e.model_used ?? "—"}</span>
+            <span className="text-ink">{e.token_count ?? "—"}</span>
+            <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "—"}</span>
+            <span className="text-muted truncate">{(e.prompt_hash ?? "—").slice(0, 8)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -2231,6 +2261,34 @@ function Footer() {
         </a>
       </div>
     </footer>
+  );
+}
+
+// -- StubSurface — placeholder for routes whose pages land in Day C ----------
+
+function StubSurface({
+  eyebrow,
+  heading,
+  body,
+}: {
+  eyebrow: string;
+  heading: string;
+  body: string;
+}) {
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+      <div className="eyebrow font-mono text-muted mb-4">{eyebrow}</div>
+      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink mb-6 leading-[1.1]">
+        {heading}
+      </h1>
+      <p className="prose-p">{body}</p>
+      <a
+        href="#/"
+        className="inline-flex items-center text-sm text-muted hover:text-ink transition-colors mt-4"
+      >
+        Back to landing
+      </a>
+    </div>
   );
 }
 
