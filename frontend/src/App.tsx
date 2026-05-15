@@ -1,25 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   BACKEND_ROOT,
   confirmGate,
   createMatter,
+  deleteApiKey,
   draftLetter,
   exportPreMotionPdf,
+  forgotPassword,
   getChronology,
+  getCurrentUser,
   getLetterCatalogue,
   getMatter,
   getModules,
   getSkillBody,
+  listApiKeys,
   listAudit,
   listDocuments,
   listMatters,
-  signout,
+  requestVerifyToken,
+  resetPassword,
   runPreMotionStream,
   setPrivilege,
+  signin,
+  signout,
+  signup,
+  updateProfile,
   uploadDocument,
+  upsertApiKey,
+  verifyEmail,
   type AuditEntry,
   type ChronologyResponse,
+  type CurrentUser,
   type LetterCatalogue,
   type LetterDraft,
   type Matter,
@@ -27,6 +39,7 @@ import {
   type ModuleSkill,
   type ModulesResponse,
   type PreMotionRunResult,
+  type UserApiKeyRead,
 } from "./lib/api";
 import { navigate, useRoute, type Route } from "./lib/route";
 
@@ -68,10 +81,103 @@ const DEMO_HREF_UNAUTHED = "#/auth/signup";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
 
+// -- auth context ------------------------------------------------------------
+
+type AuthState = {
+  user: CurrentUser | null;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<void>;
+};
+
+const AuthContext = createContext<AuthState | null>(null);
+
+function useAuth(): AuthState {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+}
+
+function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const u = await getCurrentUser();
+      setUser(u);
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const doSignIn = useCallback(
+    async (email: string, password: string) => {
+      await signin(email, password);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const doSignOut = useCallback(async () => {
+    try {
+      await signout();
+    } catch {
+      // ignore — clear local state regardless
+    }
+    setUser(null);
+  }, []);
+
+  const doSignUp = useCallback(
+    async (email: string, password: string, name = "") => {
+      await signup(email, password, name);
+      // Backend may auto-login on register (cookie set). Either way refresh.
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const value: AuthState = {
+    user,
+    loading,
+    error,
+    refresh,
+    signIn: doSignIn,
+    signOut: doSignOut,
+    signUp: doSignUp,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
 // -- app shell ---------------------------------------------------------------
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
+  );
+}
+
+const PROTECTED_ROUTE_NAMES = new Set<Route["name"]>(["list", "new", "detail", "settings"]);
+
+function AppInner() {
   const route = useRoute();
+  const auth = useAuth();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [drawerMatter, setDrawerMatter] = useState<Matter | null>(null);
@@ -83,6 +189,15 @@ export default function App() {
       .then((data: HealthResponse) => setHealth(data))
       .catch(() => setHealth(null));
   }, []);
+
+  // Protected-route redirect: once auth has resolved and the user is null,
+  // bounce protected routes to /auth/signin. Lets unauthed visitors browse
+  // landing + modules + auth pages without flicker.
+  useEffect(() => {
+    if (auth.loading) return;
+    if (auth.user) return;
+    if (PROTECTED_ROUTE_NAMES.has(route.name)) navigate("/auth/signin");
+  }, [auth.loading, auth.user, route.name]);
 
   // body-scroll-lock + esc to close
   useEffect(() => {
@@ -132,55 +247,13 @@ export default function App() {
             onTabChange={setDrawerTab}
           />
         )}
-        {route.name === "signin" && (
-          <StubSurface
-            eyebrow="AUTH — SIGN IN"
-            heading="Sign in"
-            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
-          />
-        )}
-        {route.name === "signup" && (
-          <StubSurface
-            eyebrow="AUTH — SIGN UP"
-            heading="Sign up"
-            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
-          />
-        )}
-        {route.name === "forgot" && (
-          <StubSurface
-            eyebrow="AUTH — FORGOT PASSWORD"
-            heading="Forgot password"
-            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
-          />
-        )}
-        {route.name === "reset" && (
-          <StubSurface
-            eyebrow="AUTH — RESET PASSWORD"
-            heading="Reset password"
-            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
-          />
-        )}
-        {route.name === "verifyPending" && (
-          <StubSurface
-            eyebrow="AUTH — VERIFY EMAIL"
-            heading="Check your email"
-            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
-          />
-        )}
-        {route.name === "verify" && (
-          <StubSurface
-            eyebrow="AUTH — VERIFY EMAIL"
-            heading="Verify email"
-            body="Auth pages land in Day C. Day A and B (backend) are signed off; Day C ships the React surfaces on top."
-          />
-        )}
-        {route.name === "settings" && (
-          <StubSurface
-            eyebrow={`SETTINGS — ${route.tab.toUpperCase()}`}
-            heading={`Settings · ${route.tab}`}
-            body="Settings tabs (Profile / API keys / Preferences) land in Day C alongside the auth surfaces."
-          />
-        )}
+        {route.name === "signin" && <SignIn />}
+        {route.name === "signup" && <SignUp />}
+        {route.name === "forgot" && <ForgotPassword />}
+        {route.name === "reset" && <ResetPassword token={route.token} />}
+        {route.name === "verifyPending" && <VerifyPending />}
+        {route.name === "verify" && <Verify token={route.token} />}
+        {route.name === "settings" && <Settings tab={route.tab} />}
       </main>
     </div>
   );
@@ -201,8 +274,7 @@ function TopBar({
   drawerMatter: Matter | null;
   drawerTab: TabKey;
 }) {
-  // DEMO_SLUG is the seed matter slug — hardcoded so the public landing CTA
-  // works without hitting the auth-gated /api/matters endpoint.
+  const auth = useAuth();
   const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list";
@@ -267,12 +339,24 @@ function TopBar({
             >
               Matters
             </a>
-            <a
-              href={DEMO_HREF_UNAUTHED}
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
-            >
-              Open demo matter
-            </a>
+            {auth.user ? (
+              <ProfileChip user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+            ) : (
+              <>
+                <a
+                  href="#/auth/signin"
+                  className="text-ink hover:text-muted transition-colors"
+                >
+                  Sign in
+                </a>
+                <a
+                  href={DEMO_HREF_UNAUTHED}
+                  className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
+                >
+                  Open demo matter
+                </a>
+              </>
+            )}
           </nav>
           <button
             type="button"
@@ -324,12 +408,9 @@ function Drawer({
   const isSettings = route.name === "settings";
   const close = () => setNavOpen(false);
 
+  const auth = useAuth();
   const onSignOut = async () => {
-    try {
-      await signout();
-    } catch {
-      // even if the call fails (already signed out, network), get back to landing
-    }
+    await auth.signOut();
     setNavOpen(false);
     navigate("/");
   };
@@ -378,8 +459,10 @@ function Drawer({
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: DEMO_HREF_UNAUTHED, label: "Open demo matter" },
-      { href: "#/auth/signin", label: "Sign in" },
+      { href: auth.user ? DEMO_HREF_AUTHED : DEMO_HREF_UNAUTHED, label: "Open demo matter" },
+      auth.user
+        ? { label: "Sign out", onClick: onSignOut }
+        : { href: "#/auth/signin", label: "Sign in" },
     ];
   }
 
@@ -513,10 +596,11 @@ function DrawerItem({
 // -- Landing ----------------------------------------------------------------
 
 function Landing() {
-  // Unauthenticated CTA — Day D will copy Khan into the new user's workspace
-  // on signup. Authenticated users using the drawer / TopBar still get routed
-  // to the matter directly once useAuth lands in Day C.
-  const onOpenDemo = () => navigate("/auth/signup");
+  const auth = useAuth();
+  // Day D will copy Khan into the new user's workspace on signup. Until then,
+  // authed users see the demo matter directly; unauth users sign up first.
+  const onOpenDemo = () =>
+    navigate(auth.user ? `/matters/${DEMO_SLUG}` : "/auth/signup");
 
   const parts: { name: string; body: string }[] = [
     {
@@ -2334,30 +2418,838 @@ function Footer() {
   );
 }
 
-// -- StubSurface — placeholder for routes whose pages land in Day C ----------
+// -- ProfileChip (TopBar, desktop, authed) ----------------------------------
 
-function StubSurface({
+function ProfileChip({
+  user,
+  onSignOut,
+}: {
+  user: CurrentUser;
+  onSignOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  // close on outside click / Esc
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-profile-chip]")) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const initial = (user.name || user.email).slice(0, 1).toUpperCase();
+  const label = user.name || user.email;
+
+  return (
+    <div className="relative" data-profile-chip>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 text-ink hover:bg-wash min-h-[44px] px-2 transition-colors"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <span className="w-8 h-8 bg-ink text-paper flex items-center justify-center font-mono text-sm font-semibold">
+          {initial}
+        </span>
+        <span className="text-sm truncate max-w-[180px]">{label}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-1 w-56 bg-paper border border-rule flex flex-col text-sm"
+        >
+          <div className="px-4 py-3 border-b border-rule">
+            <div className="eyebrow-sm mb-1">Signed in as</div>
+            <div className="text-ink truncate">{user.email}</div>
+          </div>
+          <a
+            href="#/settings/profile"
+            onClick={() => setOpen(false)}
+            className="px-4 py-3 text-ink hover:bg-wash"
+            role="menuitem"
+          >
+            Settings
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onSignOut();
+            }}
+            className="px-4 py-3 text-left text-muted hover:text-ink hover:bg-wash border-t border-rule"
+            role="menuitem"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -- AuthCard wrapper (chrome for the six auth surfaces) --------------------
+
+function AuthCard({
   eyebrow,
   heading,
-  body,
+  intro,
+  children,
 }: {
   eyebrow: string;
   heading: string;
-  body: string;
+  intro?: ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+    <div className="max-w-md mx-auto px-4 sm:px-6 py-16">
       <div className="eyebrow font-mono text-muted mb-4">{eyebrow}</div>
-      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink mb-6 leading-[1.1]">
+      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink mb-4 leading-[1.1]">
         {heading}
       </h1>
-      <p className="prose-p">{body}</p>
-      <a
-        href="#/"
-        className="inline-flex items-center text-sm text-muted hover:text-ink transition-colors mt-4"
+      {intro && <p className="prose-p mb-8">{intro}</p>}
+      <div className="border border-rule p-6 sm:p-8">{children}</div>
+    </div>
+  );
+}
+
+const inputCls =
+  "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
+
+const primaryBtn =
+  "bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
+
+// -- SignIn -----------------------------------------------------------------
+
+function SignIn() {
+  const auth = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // If already authed, bounce to matters.
+  useEffect(() => {
+    if (auth.user) navigate("/matters");
+  }, [auth.user]);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await auth.signIn(email, password);
+      navigate("/matters");
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AuthCard eyebrow="AUTH — SIGN IN" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
+      <form className="flex flex-col gap-6" onSubmit={submit}>
+        <Field label="Email">
+          <input
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Password">
+          <input
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        {error && <ErrorCallout message={error} />}
+        <div className="flex items-center justify-between gap-4">
+          <button type="submit" disabled={busy} className={primaryBtn}>
+            {busy ? "Signing in…" : "Sign in"}
+          </button>
+          <a href="#/auth/forgot" className="text-sm text-muted hover:text-ink">
+            Forgot password?
+          </a>
+        </div>
+      </form>
+      <p className="text-sm text-muted mt-6">
+        No account?{" "}
+        <a href="#/auth/signup" className="text-ink hover:text-muted underline">
+          Sign up
+        </a>
+        .
+      </p>
+    </AuthCard>
+  );
+}
+
+// -- SignUp -----------------------------------------------------------------
+
+function SignUp() {
+  const auth = useAuth();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (auth.user) navigate("/matters");
+  }, [auth.user]);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await auth.signUp(email, password, name);
+      // After register, backend may require verification — route to pending.
+      navigate("/auth/verify-pending");
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AuthCard
+      eyebrow="AUTH — SIGN UP"
+      heading="Sign up"
+      intro="Create a workspace. You'll add an Anthropic or OpenAI key after email verification."
+    >
+      <form className="flex flex-col gap-6" onSubmit={submit}>
+        <Field label="Name" hint="optional — shown in audit rows">
+          <input
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Email">
+          <input
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Password" hint="at least 8 characters">
+          <input
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        {error && <ErrorCallout message={error} />}
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          {busy ? "Creating account…" : "Create account"}
+        </button>
+      </form>
+      <p className="text-sm text-muted mt-6">
+        Already have an account?{" "}
+        <a href="#/auth/signin" className="text-ink hover:text-muted underline">
+          Sign in
+        </a>
+        .
+      </p>
+    </AuthCard>
+  );
+}
+
+// -- ForgotPassword ---------------------------------------------------------
+
+function ForgotPassword() {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await forgotPassword(email);
+      setSent(true);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <AuthCard
+        eyebrow="AUTH — FORGOT PASSWORD"
+        heading="Check your email"
+        intro="If an account exists for that address, a reset link is on its way."
       >
-        Back to landing
-      </a>
+        <a href="#/auth/signin" className="text-sm text-muted hover:text-ink">
+          Back to sign in
+        </a>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard
+      eyebrow="AUTH — FORGOT PASSWORD"
+      heading="Reset your password"
+      intro="Enter your account email. We'll send a one-time reset link."
+    >
+      <form className="flex flex-col gap-6" onSubmit={submit}>
+        <Field label="Email">
+          <input
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        {error && <ErrorCallout message={error} />}
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          {busy ? "Sending…" : "Send reset link"}
+        </button>
+      </form>
+      <p className="text-sm text-muted mt-6">
+        <a href="#/auth/signin" className="hover:text-ink underline">
+          Back to sign in
+        </a>
+      </p>
+    </AuthCard>
+  );
+}
+
+// -- ResetPassword ----------------------------------------------------------
+
+function ResetPassword({ token }: { token: string | null }) {
+  const [password, setPassword] = useState("");
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!token) {
+      setError("Missing reset token. Use the link from your email.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await resetPassword(token, password);
+      setDone(true);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!token) {
+    return (
+      <AuthCard
+        eyebrow="AUTH — RESET PASSWORD"
+        heading="Missing token"
+        intro="This page expects a one-time token from the reset email link."
+      >
+        <a href="#/auth/forgot" className="text-sm text-muted hover:text-ink">
+          Request a new reset link
+        </a>
+      </AuthCard>
+    );
+  }
+
+  if (done) {
+    return (
+      <AuthCard
+        eyebrow="AUTH — RESET PASSWORD"
+        heading="Password updated"
+        intro="Your new password is set. Sign in to continue."
+      >
+        <a href="#/auth/signin" className={primaryBtn + " inline-block"}>
+          Sign in
+        </a>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard
+      eyebrow="AUTH — RESET PASSWORD"
+      heading="Choose a new password"
+      intro="At least 8 characters. The reset link expires soon, so finish here."
+    >
+      <form className="flex flex-col gap-6" onSubmit={submit}>
+        <Field label="New password">
+          <input
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        {error && <ErrorCallout message={error} />}
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          {busy ? "Updating…" : "Update password"}
+        </button>
+      </form>
+    </AuthCard>
+  );
+}
+
+// -- VerifyPending ----------------------------------------------------------
+
+function VerifyPending() {
+  const auth = useAuth();
+  const [email, setEmail] = useState(auth.user?.email ?? "");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const resend = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await requestVerifyToken(email);
+      setSent(true);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AuthCard
+      eyebrow="AUTH — VERIFY EMAIL"
+      heading="Check your inbox"
+      intro="We sent a verification link to your email. Click it to activate your account."
+    >
+      {sent ? (
+        <p className="prose-p mb-0">A new link is on its way.</p>
+      ) : (
+        <form className="flex flex-col gap-6" onSubmit={resend}>
+          <Field label="Email" hint="resend the link if needed">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              className={inputCls}
+            />
+          </Field>
+          {error && <ErrorCallout message={error} />}
+          <button type="submit" disabled={busy || !email} className={primaryBtn}>
+            {busy ? "Sending…" : "Resend link"}
+          </button>
+        </form>
+      )}
+      <p className="text-sm text-muted mt-6">
+        <a href="#/auth/signin" className="hover:text-ink underline">
+          Back to sign in
+        </a>
+      </p>
+    </AuthCard>
+  );
+}
+
+// -- Verify -----------------------------------------------------------------
+
+function Verify({ token }: { token: string | null }) {
+  const auth = useAuth();
+  const [status, setStatus] = useState<"pending" | "ok" | "error">("pending");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setStatus("error");
+      setError("Missing verification token. Use the link from your email.");
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        await verifyEmail(token);
+        if (!cancelled) {
+          setStatus("ok");
+          await auth.refresh();
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setStatus("error");
+          setError(String(err));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, auth]);
+
+  if (status === "pending") {
+    return (
+      <AuthCard eyebrow="AUTH — VERIFY EMAIL" heading="Verifying…">
+        <LoadingLine label="checking your token" />
+      </AuthCard>
+    );
+  }
+
+  if (status === "ok") {
+    return (
+      <AuthCard
+        eyebrow="AUTH — VERIFY EMAIL"
+        heading="Email verified"
+        intro="Your account is active. Open your workspace to get started."
+      >
+        <a href="#/matters" className={primaryBtn + " inline-block"}>
+          Open workspace
+        </a>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard eyebrow="AUTH — VERIFY EMAIL" heading="Verification failed">
+      {error && <ErrorCallout message={error} />}
+      <p className="text-sm text-muted mt-6">
+        <a href="#/auth/verify-pending" className="hover:text-ink underline">
+          Request a new link
+        </a>
+      </p>
+    </AuthCard>
+  );
+}
+
+// -- Settings shell + tabs --------------------------------------------------
+
+type SettingsTab = "profile" | "keys" | "preferences";
+
+function Settings({ tab }: { tab: SettingsTab }) {
+  const auth = useAuth();
+
+  // Protect: bounce to signin if unauthenticated (after loading completes).
+  useEffect(() => {
+    if (!auth.loading && !auth.user) navigate("/auth/signin");
+  }, [auth.loading, auth.user]);
+
+  if (auth.loading || !auth.user) {
+    return (
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+        <LoadingLine label="loading account" />
+      </div>
+    );
+  }
+
+  const sidebarItems: { key: SettingsTab; label: string }[] = [
+    { key: "profile", label: "Profile" },
+    { key: "keys", label: "API keys" },
+    { key: "preferences", label: "Preferences" },
+  ];
+
+  return (
+    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+      <div className="mb-10">
+        <div className="eyebrow font-mono text-muted mb-4">SETTINGS</div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
+          Account
+        </h1>
+      </div>
+      <div className="flex flex-col lg:flex-row gap-10">
+        <aside className="lg:w-64 shrink-0 lg:border-r lg:border-rule lg:pr-6">
+          <nav className="flex lg:flex-col gap-1 border-b lg:border-b-0 border-rule lg:border-0">
+            {sidebarItems.map((item) => (
+              <a
+                key={item.key}
+                href={`#/settings/${item.key}`}
+                className={
+                  "py-2 lg:py-2 px-3 lg:px-4 text-sm transition-colors lg:border-l-2 -mb-px lg:-ml-px " +
+                  (tab === item.key
+                    ? "text-ink font-semibold lg:border-ink lg:bg-wash"
+                    : "text-muted hover:text-ink lg:border-transparent")
+                }
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
+        <main className="flex-1 min-w-0 max-w-2xl">
+          {tab === "profile" && <SettingsProfile user={auth.user} onUpdated={() => void auth.refresh()} />}
+          {tab === "keys" && <SettingsKeys />}
+          {tab === "preferences" && <SettingsPreferences />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function SettingsProfile({
+  user,
+  onUpdated,
+}: {
+  user: CurrentUser;
+  onUpdated: () => void;
+}) {
+  const [name, setName] = useState(user.name ?? "");
+  const [password, setPassword] = useState("");
+  const [defaultModel, setDefaultModel] = useState(user.default_model_id ?? "");
+  const [defaultPosture, setDefaultPosture] = useState(user.default_privilege_posture ?? "B_mixed");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const patch: import("./lib/api").UserProfileUpdate = {
+        name,
+        default_model_id: defaultModel || null,
+        default_privilege_posture: defaultPosture || null,
+      };
+      if (password) patch.password = password;
+      await updateProfile(patch);
+      setPassword("");
+      setSavedAt(Date.now());
+      onUpdated();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="flex flex-col gap-8" onSubmit={submit}>
+      <div>
+        <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Profile</h2>
+        <p className="prose-p mb-0">Visible in audit rows. Email and verification status read-only.</p>
+      </div>
+      <Field label="Email" hint={user.is_verified ? "verified" : "unverified — check your inbox"}>
+        <input type="email" value={user.email} disabled className={inputCls + " opacity-60 cursor-not-allowed"} />
+      </Field>
+      <Field label="Name">
+        <input
+          type="text"
+          value={name}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+          className={inputCls}
+        />
+      </Field>
+      <Field label="New password" hint="leave blank to keep current">
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+          className={inputCls}
+        />
+      </Field>
+      <Field label="Default model" hint="model id used for new matters when none specified">
+        <input
+          type="text"
+          value={defaultModel}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
+          placeholder="claude-opus-4-7"
+          className={inputCls + " font-mono"}
+        />
+      </Field>
+      <Field label="Default privilege posture">
+        <select
+          value={defaultPosture}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => setDefaultPosture(e.target.value)}
+          className={inputCls}
+        >
+          <option value="A_cleared">A · cleared</option>
+          <option value="B_mixed">B · mixed</option>
+          <option value="C_paused">C · paused</option>
+        </select>
+      </Field>
+      {error && <ErrorCallout message={error} />}
+      <div className="flex items-center gap-4">
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          {busy ? "Saving…" : "Save changes"}
+        </button>
+        {savedAt && <span className="text-sm text-muted">Saved.</span>}
+      </div>
+    </form>
+  );
+}
+
+function SettingsKeys() {
+  const [keys, setKeys] = useState<UserApiKeyRead[] | null>(null);
+  const [provider, setProvider] = useState<"anthropic" | "openai">("anthropic");
+  const [apiKey, setApiKey] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    try {
+      const rows = await listApiKeys();
+      setKeys(rows);
+    } catch (err) {
+      setError(String(err));
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!apiKey) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await upsertApiKey(provider, apiKey);
+      setApiKey("");
+      await refresh();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (p: string) => {
+    setError(null);
+    try {
+      await deleteApiKey(p);
+      await refresh();
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">API keys</h2>
+        <p className="prose-p mb-0">
+          Bring your own provider key. Stored encrypted server-side and used by the privilege-aware
+          model gateway for every call on your matters.
+        </p>
+      </div>
+
+      {!keys && <LoadingLine label="loading keys" />}
+      {keys && keys.length === 0 && (
+        <div className="border border-rule p-6 text-sm text-muted">No keys yet. Add one below.</div>
+      )}
+      {keys && keys.length > 0 && (
+        <div className="border border-rule overflow-x-auto">
+          <div className="min-w-[480px]">
+            <div className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+              <span>Provider</span>
+              <span>Created</span>
+              <span>Last used</span>
+              <span></span>
+            </div>
+            {keys.map((k) => (
+              <div
+                key={k.provider}
+                className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 border-b border-rule font-mono text-[11px] items-center"
+              >
+                <span className="text-ink font-bold uppercase">{k.provider}</span>
+                <span className="text-muted">{k.created_at.slice(0, 10)}</span>
+                <span className="text-muted">
+                  {k.last_used_at ? k.last_used_at.slice(0, 16).replace("T", " ") : "—"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => remove(k.provider)}
+                  className="text-[#D9304F] text-xs hover:underline justify-self-end"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <form className="flex flex-col gap-6 border-t border-rule pt-8" onSubmit={submit}>
+        <h3 className="text-lg font-semibold text-ink">Add or replace a key</h3>
+        <Field label="Provider">
+          <select
+            value={provider}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setProvider(e.target.value as "anthropic" | "openai")}
+            className={inputCls}
+          >
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+          </select>
+        </Field>
+        <Field label="API key" hint="stored encrypted; the full key is never shown after submission">
+          <input
+            type="password"
+            autoComplete="off"
+            value={apiKey}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setApiKey(e.target.value)}
+            placeholder="sk-..."
+            className={inputCls + " font-mono"}
+          />
+        </Field>
+        {error && <ErrorCallout message={error} />}
+        <button type="submit" disabled={busy || !apiKey} className={primaryBtn + " self-start"}>
+          {busy ? "Saving…" : "Save key"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function SettingsPreferences() {
+  return (
+    <div className="flex flex-col gap-6">
+      <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Preferences</h2>
+      <div className="bg-wash p-6 border-l-4 border-ink">
+        <div className="eyebrow-sm mb-2">ROADMAP — v0.2</div>
+        <p className="prose-p mb-0">
+          Per-user defaults (timezone, locale, retention reminders) land in v0.2 alongside the
+          Module Lifecycle work. v0.1 ships with system defaults applied uniformly.
+        </p>
+      </div>
     </div>
   );
 }
