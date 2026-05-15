@@ -20,8 +20,6 @@ without an API key.
 from __future__ import annotations
 
 import hashlib
-import json
-import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -31,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit
 from app.core.model_gateway import ModelGateway
+from app.core.structured_output import StructuredOutputError, parse_model_json
 from app.models import (
     Document,
     DocumentBody,
@@ -42,6 +41,7 @@ from app.models.document_body import BODY_KIND_EXTRACTED
 from app.models.document_version import VERSION_KIND_ASSISTANT_EDIT
 from app.models.document_edit import EDIT_STATUS_PENDING
 from app.modules.document_edit.prompts import EDIT_MODES, mode_system_prompt
+from app.modules.document_edit.schemas import ChangesEnvelope
 
 
 # Hard cap on document body bytes sent to the model. ~32k chars covers
@@ -72,32 +72,19 @@ def _truncate(text: str) -> tuple[str, bool]:
     return head + "\n\n[... truncated for context window ...]", True
 
 
-_JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
+def _parse_envelope(raw: str) -> tuple[ChangesEnvelope, bool]:
+    """Validate the model's JSON envelope via the central helper.
 
-
-def _parse_envelope(raw: str) -> tuple[dict, bool]:
-    """Tolerant parse of the model's JSON envelope.
-
-    Returns (envelope_dict, parsed_ok). On parse failure returns a
-    synthetic empty envelope so the caller can still persist a version.
+    Returns (envelope, parsed_ok). On parse failure returns an empty
+    envelope with a `model_notes` echo of the raw head so the caller
+    can still persist a version row.
     """
-    text = raw.strip()
-    # Strip common markdown fences.
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\n", "", text)
-        text = re.sub(r"\n```\s*$", "", text)
     try:
-        return json.loads(text), True
-    except json.JSONDecodeError:
-        pass
-    # Fallback: find the first {...} block and try again.
-    match = _JSON_OBJECT_RE.search(text)
-    if match:
-        try:
-            return json.loads(match.group(0)), True
-        except json.JSONDecodeError:
-            pass
-    return {"changes": [], "model_notes": f"unparseable response: {raw[:240]}"}, False
+        envelope = parse_model_json(raw, ChangesEnvelope)
+        return envelope, True
+    except StructuredOutputError as exc:
+        head = (exc.raw_text or "")[:240]
+        return ChangesEnvelope(changes=[], model_notes=f"unparseable response: {head}"), False
 
 
 async def _next_version_number(session: AsyncSession, document_id: uuid.UUID) -> int:
@@ -171,12 +158,8 @@ async def propose_edits(
     )
 
     envelope, parse_ok = _parse_envelope(result.text)
-    changes = envelope.get("changes") if isinstance(envelope, dict) else None
-    if not isinstance(changes, list):
-        changes = []
-    model_notes = envelope.get("model_notes") if isinstance(envelope, dict) else None
-    if not isinstance(model_notes, str):
-        model_notes = ""
+    changes = [entry.model_dump() for entry in (envelope.changes or [])]
+    model_notes = envelope.model_notes or ""
 
     version_number = await _next_version_number(session, doc.id)
     version = DocumentVersion(

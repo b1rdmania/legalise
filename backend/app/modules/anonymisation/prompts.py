@@ -9,9 +9,10 @@ structured output.
 
 from __future__ import annotations
 
-import json
-import re
 from typing import Any
+
+from app.core.structured_output import StructuredOutputError, parse_model_json
+from app.modules.anonymisation.schemas import AnonymisationEnvelope
 
 CLAUDE_ANON_SYSTEM_PROMPT = """You are a UK legal-data anonymisation assistant.
 
@@ -53,35 +54,19 @@ identifiers.
 """
 
 
-_JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
-
-
 def parse_claude_envelope(raw: str) -> dict[str, Any]:
-    """Tolerant parse: strip fences, then fall back to first {...} block.
+    """Validate the Claude fallback JSON envelope via the central helper.
 
-    Always returns a dict shaped like the system prompt promises, but
-    callers should treat the fields as best-effort and validate them
-    before using them.
+    Always returns a dict shaped like the system prompt promises;
+    `_spans_from_claude` re-validates each entry defensively before
+    use. Unparseable responses yield the empty-envelope default,
+    matching the previous tolerant behaviour.
     """
-    text = (raw or "").strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\n", "", text)
-        text = re.sub(r"\n```\s*$", "", text)
     try:
-        obj = json.loads(text)
-        if isinstance(obj, dict):
-            return obj
-    except json.JSONDecodeError:
-        pass
-    match = _JSON_OBJECT_RE.search(text)
-    if match:
-        try:
-            obj = json.loads(match.group(0))
-            if isinstance(obj, dict):
-                return obj
-        except json.JSONDecodeError:
-            pass
-    return {"tokens": [], "spans": []}
+        envelope = parse_model_json(raw, AnonymisationEnvelope)
+        return envelope.model_dump()
+    except StructuredOutputError:
+        return {"tokens": [], "spans": []}
 
 
 __all__ = ["CLAUDE_ANON_SYSTEM_PROMPT", "parse_claude_envelope"]

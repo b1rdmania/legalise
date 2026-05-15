@@ -6,9 +6,40 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 EngineChoice = Literal["presidio", "claude", "auto"]
+
+
+class _TokenEntry(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    original: str = ""
+    entity_type: str = "PERSON"
+
+
+class _SpanEntry(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    start: int | str | None = None
+    end: int | str | None = None
+    original: str = ""
+    entity_type: str = "PERSON"
+
+
+class AnonymisationEnvelope(BaseModel):
+    """Wire shape for the Claude anonymisation fallback response.
+
+    `_spans_from_claude` re-validates each entry defensively, so this
+    schema only confirms the top-level keys and lets extra fields ride
+    through. Missing or null top-level keys default to empty lists,
+    matching the previous tolerant parser.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    tokens: list[_TokenEntry] | None = Field(default_factory=list)
+    spans: list[_SpanEntry] | None = Field(default_factory=list)
 
 
 class AnonymiseRequest(BaseModel):
