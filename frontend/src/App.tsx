@@ -4,6 +4,7 @@ import { EditPanel } from "./modules/document_edit/EditPanel";
 import { ReviewsTab } from "./modules/tabular_review/ReviewsTab";
 import { ResearchTab } from "./modules/case_law/ResearchTab";
 import { ContractReviewTab } from "./modules/contract_review/ContractReviewTab";
+import { AnonymiseButton } from "./modules/anonymisation/AnonymiseButton";
 import {
   BACKEND_ROOT,
   confirmGate,
@@ -11,6 +12,9 @@ import {
   deleteApiKey,
   draftLetter,
   exportPreMotionPdf,
+  exportPreMotionDocx,
+  exportLetterDocx,
+  downloadGeneratedDocx,
   forgotPassword,
   getChronology,
   getCurrentUser,
@@ -1279,6 +1283,10 @@ function MatterDetail({
   const [premotionStages, setPremotionStages] = useState<StageProgress[]>([]);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [docxBusy, setDocxBusy] = useState(false);
+  const [docxError, setDocxError] = useState<string | null>(null);
+  const [letterDocxBusy, setLetterDocxBusy] = useState(false);
+  const [letterDocxError, setLetterDocxError] = useState<string | null>(null);
   const [chron, setChron] = useState<ChronologyResponse | null>(null);
   const [showSoF, setShowSoF] = useState(false);
   const [letterCat, setLetterCat] = useState<LetterCatalogue | null>(null);
@@ -1393,6 +1401,52 @@ function MatterDetail({
     }
   };
 
+  const onExportDocx = async () => {
+    if (!premotion) return;
+    setDocxBusy(true);
+    setDocxError(null);
+    try {
+      const { file_uuid } = await exportPreMotionDocx(slug, premotion);
+      const blob = await downloadGeneratedDocx(file_uuid);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pre-motion-${slug}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setDocxError(String(err));
+    } finally {
+      setDocxBusy(false);
+    }
+  };
+
+  const onDownloadLetterDocx = async () => {
+    if (!letterDraft) return;
+    setLetterDocxBusy(true);
+    setLetterDocxError(null);
+    try {
+      const { file_uuid } = await exportLetterDocx(slug, {
+        letter_type: letterDraft.letter_type,
+        title: `${letterDraft.letter_type.toUpperCase()} — ${matter?.title || slug}`,
+        draft_markdown: letterDraft.draft_markdown,
+      });
+      const blob = await downloadGeneratedDocx(file_uuid);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${letterDraft.letter_type}-${slug}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setLetterDocxError(String(err));
+    } finally {
+      setLetterDocxBusy(false);
+    }
+  };
+
   const onDraftLetter = async () => {
     if (!selectedLetter) return;
     setLetterDrafting(true);
@@ -1486,6 +1540,9 @@ function MatterDetail({
             pdfBusy={pdfBusy}
             pdfError={pdfError}
             onExportPdf={onExportPdf}
+            docxBusy={docxBusy}
+            docxError={docxError}
+            onExportDocx={onExportDocx}
           />
         )}
         {tab === "letters" && (
@@ -1498,6 +1555,9 @@ function MatterDetail({
             error={letterError}
             draft={letterDraft}
             onDraft={onDraftLetter}
+            docxBusy={letterDocxBusy}
+            docxError={letterDocxError}
+            onDownloadDocx={onDownloadLetterDocx}
           />
         )}
         {tab === "contract-review" && matter && docs && (
@@ -1732,11 +1792,26 @@ function DocumentsTab({
                   </span>
                 </div>
                 {editingId === d.id && (
-                  <EditPanel
-                    documentId={d.id}
-                    filename={d.filename}
-                    onClose={() => setEditingId(null)}
-                  />
+                  <>
+                    <EditPanel
+                      documentId={d.id}
+                      filename={d.filename}
+                      onClose={() => setEditingId(null)}
+                    />
+                    <div className="border-t border-rule bg-paper p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
+                          Anonymise · {d.filename}
+                        </div>
+                        <AnonymiseButton documentId={d.id} />
+                      </div>
+                      <div className="text-[11px] text-muted">
+                        Generates a redacted body with [PARTY_n] / [ORG_n] / [ADDRESS_n] /
+                        [DATE_n] tokens. Original document stays unchanged. Side-by-side
+                        toggle UI lands with the routed Document detail view.
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             ))}
@@ -1865,6 +1940,9 @@ function PremotionTab({
   pdfBusy,
   pdfError,
   onExportPdf,
+  docxBusy,
+  docxError,
+  onExportDocx,
 }: {
   matter: Matter;
   running: boolean;
@@ -1875,6 +1953,9 @@ function PremotionTab({
   pdfBusy: boolean;
   pdfError: string | null;
   onExportPdf: () => void;
+  docxBusy: boolean;
+  docxError: string | null;
+  onExportDocx: () => void;
 }) {
   const blocked = matter.privilege_posture === "C_paused";
 
@@ -1920,10 +2001,22 @@ function PremotionTab({
             >
               {pdfBusy ? "Rendering PDF…" : "Export PDF"}
             </button>
+            <button
+              onClick={onExportDocx}
+              disabled={docxBusy}
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40"
+            >
+              {docxBusy ? "Rendering .docx…" : "Download .docx"}
+            </button>
           </div>
           {pdfError && (
             <div className="mt-4">
               <ErrorCallout message={pdfError} compact />
+            </div>
+          )}
+          {docxError && (
+            <div className="mt-4">
+              <ErrorCallout message={docxError} compact />
             </div>
           )}
         </>
@@ -2127,6 +2220,9 @@ function LettersTab({
   error,
   draft,
   onDraft,
+  docxBusy,
+  docxError,
+  onDownloadDocx,
 }: {
   matter: Matter;
   catalogue: LetterCatalogue | null;
@@ -2136,6 +2232,9 @@ function LettersTab({
   error: string | null;
   draft: LetterDraft | null;
   onDraft: () => void;
+  docxBusy: boolean;
+  docxError: string | null;
+  onDownloadDocx: () => void;
 }) {
   const blocked = matter.privilege_posture === "C_paused";
 
@@ -2209,14 +2308,28 @@ function LettersTab({
                   <span className="eyebrow">Draft</span>
                   <span className="font-mono text-xs text-ink">{draft.letter_type}</span>
                 </div>
-                <span className="font-mono text-xs text-muted">
-                  {draft.model_used} · {draft.token_count} tok ·{" "}
-                  {(draft.latency_ms / 1000).toFixed(1)}s
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-xs text-muted">
+                    {draft.model_used} · {draft.token_count} tok ·{" "}
+                    {(draft.latency_ms / 1000).toFixed(1)}s
+                  </span>
+                  <button
+                    onClick={onDownloadDocx}
+                    disabled={docxBusy}
+                    className="border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40"
+                  >
+                    {docxBusy ? "Rendering…" : "Download .docx"}
+                  </button>
+                </div>
               </div>
               <pre className="p-6 font-sans text-base leading-[1.7] text-ink whitespace-pre-wrap">
                 {draft.draft_markdown}
               </pre>
+              {docxError && (
+                <div className="border-t border-rule p-4">
+                  <ErrorCallout message={docxError} compact />
+                </div>
+              )}
             </div>
           )}
         </>
