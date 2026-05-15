@@ -1,0 +1,433 @@
+import { useEffect, useState } from "react";
+import {
+  confirmGate,
+  downloadGeneratedDocx,
+  draftLetter,
+  exportLetterDocx,
+  exportPreMotionDocx,
+  exportPreMotionPdf,
+  getChronology,
+  getLetterCatalogue,
+  getMatter,
+  listAudit,
+  listDocuments,
+  runPreMotionStream,
+  setPrivilege,
+  uploadDocument,
+  type AuditEntry,
+  type ChronologyResponse,
+  type LetterCatalogue,
+  type LetterDraft,
+  type Matter,
+  type MatterDocument,
+  type PreMotionRunResult,
+} from "../lib/api";
+import { navigate, useRoute } from "../lib/route";
+import { ErrorCallout, LoadingLine, StatusBadge } from "../ui/primitives";
+import { PrivilegeControl } from "./PrivilegeControl";
+import { isTabKey, TABS, type StageProgress, type TabKey } from "./tabs/types";
+import { OverviewTab } from "./tabs/OverviewTab";
+import { DocumentsTab } from "./tabs/DocumentsTab";
+import { ReviewsTab } from "./tabs/ReviewsTab";
+import { ResearchTab } from "./tabs/ResearchTab";
+import { ChronologyTab } from "./tabs/ChronologyTab";
+import { PreMotionTab } from "./tabs/PreMotionTab";
+import { LettersTab } from "./tabs/LettersTab";
+import { ContractReviewTab } from "./tabs/ContractReviewTab";
+import { AuditTab } from "./tabs/AuditTab";
+
+export function MatterDetail({
+  slug,
+  onMatterLoaded,
+  onTabChange,
+}: {
+  slug: string;
+  onMatterLoaded: (m: Matter | null) => void;
+  onTabChange: (t: TabKey) => void;
+}) {
+  const route = useRoute();
+  const initialTab: TabKey =
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "overview";
+  const [tab, setTab] = useState<TabKey>(initialTab);
+
+  // sync tab → drawer label
+  useEffect(() => {
+    onTabChange(tab);
+  }, [tab, onTabChange]);
+
+  // sync tab from hash when it changes (back/forward)
+  useEffect(() => {
+    if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
+      setTab(route.tab);
+    } else if (route.name === "detail" && !route.tab) {
+      setTab("overview");
+    }
+  }, [route]);
+
+  const setTabAndHash = (next: TabKey) => {
+    setTab(next);
+    const target =
+      next === "overview" ? `/matters/${slug}` : `/matters/${slug}/${next}`;
+    if (`#${target}` !== window.location.hash) navigate(target);
+  };
+
+  const [matter, setMatter] = useState<Matter | null>(null);
+  const [docs, setDocs] = useState<MatterDocument[] | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [premotion, setPremotion] = useState<PreMotionRunResult | null>(null);
+  const [premotionRunning, setPremotionRunning] = useState(false);
+  const [premotionError, setPremotionError] = useState<string | null>(null);
+  const [premotionStages, setPremotionStages] = useState<StageProgress[]>([]);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [docxBusy, setDocxBusy] = useState(false);
+  const [docxError, setDocxError] = useState<string | null>(null);
+  const [letterDocxBusy, setLetterDocxBusy] = useState(false);
+  const [letterDocxError, setLetterDocxError] = useState<string | null>(null);
+  const [chron, setChron] = useState<ChronologyResponse | null>(null);
+  const [showSoF, setShowSoF] = useState(false);
+  const [letterCat, setLetterCat] = useState<LetterCatalogue | null>(null);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [letterDraft, setLetterDraft] = useState<LetterDraft | null>(null);
+  const [letterDrafting, setLetterDrafting] = useState(false);
+  const [letterError, setLetterError] = useState<string | null>(null);
+
+  const load = () => {
+    getMatter(slug)
+      .then((m) => {
+        setMatter(m);
+        onMatterLoaded(m);
+      })
+      .catch((e) => setError(String(e)));
+    listDocuments(slug).then(setDocs).catch(() => undefined);
+    listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    getChronology(slug).then(setChron).catch(() => undefined);
+    getLetterCatalogue(slug)
+      .then((cat) => {
+        setLetterCat(cat);
+        setSelectedLetter(
+          (prev) =>
+            prev ?? cat.letter_types.find((lt) => lt.is_default)?.id ?? cat.letter_types[0]?.id ?? null,
+        );
+      })
+      .catch(() => undefined);
+  };
+
+  useEffect(load, [slug]);
+
+  // clear drawer matter on unmount
+  useEffect(() => {
+    return () => onMatterLoaded(null);
+  }, [onMatterLoaded]);
+
+  const onConfirmGate = async () => {
+    try {
+      await confirmGate(
+        slug,
+        "I confirm the CPR 31.22 implied undertaking — disclosed material is used only for these proceedings.",
+      );
+      getChronology(slug).then(setChron).catch(() => undefined);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  const onRunPremotion = async () => {
+    setPremotionRunning(true);
+    setPremotionError(null);
+    setPremotion(null);
+    setPremotionStages([]);
+    try {
+      for await (const ev of runPreMotionStream(slug, { depth: "thorough" })) {
+        if (ev.event === "stage.start") {
+          setPremotionStages((prev) => [
+            ...prev.filter((s) => s.index !== ev.data.index),
+            {
+              index: ev.data.index,
+              stage: ev.data.stage,
+              sub_agent_count: ev.data.sub_agent_count,
+              status: "running",
+            },
+          ]);
+        } else if (ev.event === "stage.end") {
+          setPremotionStages((prev) =>
+            prev.map((s) =>
+              s.index === ev.data.index
+                ? {
+                    ...s,
+                    status: ev.data.errors?.length ? "error" : "done",
+                    duration_ms: ev.data.duration_ms,
+                    token_count: ev.data.token_count,
+                    errors: ev.data.errors,
+                  }
+                : s,
+            ),
+          );
+        } else if (ev.event === "result") {
+          setPremotion(ev.data);
+        } else if (ev.event === "error") {
+          setPremotionError(ev.data.message);
+        }
+      }
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setPremotionError(String(err));
+    } finally {
+      setPremotionRunning(false);
+    }
+  };
+
+  const onExportPdf = async () => {
+    if (!premotion) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const blob = await exportPreMotionPdf(slug, premotion);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pre-motion-${slug}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setPdfError(String(err));
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
+  const onExportDocx = async () => {
+    if (!premotion) return;
+    setDocxBusy(true);
+    setDocxError(null);
+    try {
+      const { file_uuid } = await exportPreMotionDocx(slug, premotion);
+      const blob = await downloadGeneratedDocx(file_uuid);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pre-motion-${slug}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setDocxError(String(err));
+    } finally {
+      setDocxBusy(false);
+    }
+  };
+
+  const onDownloadLetterDocx = async () => {
+    if (!letterDraft) return;
+    setLetterDocxBusy(true);
+    setLetterDocxError(null);
+    try {
+      const { file_uuid } = await exportLetterDocx(slug, {
+        letter_type: letterDraft.letter_type,
+        title: `${letterDraft.letter_type.toUpperCase()} — ${matter?.title || slug}`,
+        draft_markdown: letterDraft.draft_markdown,
+      });
+      const blob = await downloadGeneratedDocx(file_uuid);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${letterDraft.letter_type}-${slug}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setLetterDocxError(String(err));
+    } finally {
+      setLetterDocxBusy(false);
+    }
+  };
+
+  const onDraftLetter = async () => {
+    if (!selectedLetter) return;
+    setLetterDrafting(true);
+    setLetterError(null);
+    setLetterDraft(null);
+    try {
+      const draft = await draftLetter(slug, selectedLetter);
+      setLetterDraft(draft);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setLetterError(String(err));
+    } finally {
+      setLetterDrafting(false);
+    }
+  };
+
+  const onPostureChange = async (next: string) => {
+    if (!matter || matter.privilege_posture === next) return;
+    try {
+      const updated = await setPrivilege(slug, next);
+      setMatter(updated);
+      onMatterLoaded(updated);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  if (error && !matter) {
+    return (
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+        <ErrorCallout message={error} />
+        <a
+          href="#/matters"
+          className="text-sm text-muted hover:text-ink transition-colors"
+        >
+          Back to matters
+        </a>
+      </div>
+    );
+  }
+
+  if (!matter) {
+    return (
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+        <LoadingLine label={`loading matter ${slug}`} />
+      </div>
+    );
+  }
+
+  const onUpload = async (file: File, tag?: string, fromDisclosure?: boolean) => {
+    try {
+      await uploadDocument(slug, file, tag, fromDisclosure);
+      load();
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  return (
+    <div className="max-w-page mx-auto">
+      {/* P8 panel header */}
+      <PanelHeader matter={matter} onPostureChange={onPostureChange} />
+      {/* P9 tab bar */}
+      <TabBar tab={tab} onChange={setTabAndHash} />
+
+      <div className="px-4 sm:px-6 lg:px-10 py-8">
+        {error && matter && <ErrorCallout message={error} compact />}
+        {tab === "overview" && <OverviewTab matter={matter} />}
+        {tab === "documents" && (
+          <DocumentsTab docs={docs} onUpload={onUpload} />
+        )}
+        {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
+        {tab === "research" && matter && <ResearchTab matter={matter} />}
+        {tab === "chronology" && (
+          <ChronologyTab
+            chron={chron}
+            showSoF={showSoF}
+            setShowSoF={setShowSoF}
+            onConfirmGate={onConfirmGate}
+          />
+        )}
+        {tab === "premotion" && (
+          <PreMotionTab
+            matter={matter}
+            running={premotionRunning}
+            error={premotionError}
+            stages={premotionStages}
+            result={premotion}
+            onRun={onRunPremotion}
+            pdfBusy={pdfBusy}
+            pdfError={pdfError}
+            onExportPdf={onExportPdf}
+            docxBusy={docxBusy}
+            docxError={docxError}
+            onExportDocx={onExportDocx}
+          />
+        )}
+        {tab === "letters" && (
+          <LettersTab
+            matter={matter}
+            catalogue={letterCat}
+            selected={selectedLetter}
+            onSelect={setSelectedLetter}
+            drafting={letterDrafting}
+            error={letterError}
+            draft={letterDraft}
+            onDraft={onDraftLetter}
+            docxBusy={letterDocxBusy}
+            docxError={letterDocxError}
+            onDownloadDocx={onDownloadLetterDocx}
+          />
+        )}
+        {tab === "contract-review" && matter && docs && (
+          <ContractReviewTab matter={matter} docs={docs} />
+        )}
+        {tab === "audit" && <AuditTab audit={audit} />}
+      </div>
+    </div>
+  );
+}
+
+// -- PanelHeader (P8) -------------------------------------------------------
+
+function PanelHeader({
+  matter,
+  onPostureChange,
+}: {
+  matter: Matter;
+  onPostureChange: (next: string) => void;
+}) {
+  return (
+    <div className="border-b border-rule px-4 sm:px-6 lg:px-10 py-4 flex flex-wrap items-center gap-x-8 gap-y-4 bg-paper">
+      <div className="flex flex-col">
+        <span className="text-xl font-mono font-bold tracking-tight text-ink">
+          {matter.slug}
+        </span>
+        <span className="text-sm text-prose">{matter.title}</span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Matter type</span>
+        <span className="text-ink font-mono text-xs font-bold">{matter.matter_type}</span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Status</span>
+        <span className="text-xs font-bold">
+          <StatusBadge status={matter.status} />
+        </span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Model</span>
+        <span className="text-ink font-mono text-xs font-bold">{matter.default_model_id}</span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Posture</span>
+        <PrivilegeControl value={matter.privilege_posture} onChange={onPostureChange} />
+      </div>
+    </div>
+  );
+}
+
+// -- TabBar (P9) ------------------------------------------------------------
+
+function TabBar({ tab, onChange }: { tab: TabKey; onChange: (t: TabKey) => void }) {
+  return (
+    <div className="border-b border-rule px-4 sm:px-6 lg:px-10 flex gap-8 overflow-x-auto bg-paper">
+      {TABS.map((t) => {
+        const active = t.key === tab;
+        return (
+          <button
+            key={t.key}
+            onClick={() => onChange(t.key)}
+            className={
+              "min-h-[44px] -mb-px border-b-2 px-1 text-sm font-medium transition-colors whitespace-nowrap " +
+              (active
+                ? "border-ink text-ink"
+                : "border-transparent text-muted hover:text-ink")
+            }
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

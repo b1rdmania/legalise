@@ -1,0 +1,121 @@
+import { useState } from "react";
+import type { ChangeEvent } from "react";
+import { EditPanel } from "../../modules/document_edit/EditPanel";
+import { AnonymiseButton } from "../../modules/anonymisation/AnonymiseButton";
+import type { MatterDocument } from "../../lib/api";
+import { Badge, Field, LoadingLine } from "../../ui/primitives";
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)}K`;
+  return `${(n / 1024 / 1024).toFixed(1)}M`;
+}
+
+export function DocumentsTab({
+  docs,
+  onUpload,
+}: {
+  docs: MatterDocument[] | null;
+  onUpload: (file: File, tag?: string, fromDisclosure?: boolean) => void;
+}) {
+  const [tag, setTag] = useState("");
+  const [fromDisclosure, setFromDisclosure] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    onUpload(file, tag || undefined, fromDisclosure || undefined);
+    e.target.value = "";
+  };
+
+  const inputCls =
+    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
+
+  return (
+    <div>
+      <form className="mb-10 flex flex-wrap items-end gap-4">
+        <Field label="Tag" hint="optional — e.g. pleadings, disclosure">
+          <input
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            className={inputCls}
+            placeholder="pleadings"
+          />
+        </Field>
+        <label className="flex items-center gap-2 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={fromDisclosure}
+            onChange={(e) => setFromDisclosure(e.target.checked)}
+          />
+          <span className="text-sm text-ink">From disclosure (CPR 31)</span>
+        </label>
+        <label className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center cursor-pointer">
+          Upload document
+          <input type="file" className="hidden" onChange={onFile} />
+        </label>
+      </form>
+
+      {!docs && <LoadingLine label="loading documents" />}
+      {docs && docs.length === 0 && (
+        <div className="border border-rule p-6 text-sm text-muted">
+          No documents registered yet.
+        </div>
+      )}
+      {docs && docs.length > 0 && (
+        <div className="border-t border-rule overflow-x-auto">
+          <div className="min-w-[720px]">
+            <div className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+              <span>SHA</span>
+              <span>Filename</span>
+              <span>Size</span>
+              <span>Tag</span>
+              <span>Disclosure</span>
+              <span className="text-right">Action</span>
+            </div>
+            {docs.map((d) => (
+              <div key={d.id} className="border-b border-rule">
+                <div
+                  className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 hover:bg-wash transition-colors font-mono text-[11px] items-center cursor-pointer"
+                  onClick={() => setEditingId(editingId === d.id ? null : d.id)}
+                >
+                  <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
+                  <span className="text-ink truncate">{d.filename}</span>
+                  <span className="text-ink">{formatBytes(d.size_bytes)}</span>
+                  <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
+                  <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+                  <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
+                    {editingId === d.id ? "Close" : "Edit"}
+                  </span>
+                </div>
+                {editingId === d.id && (
+                  <>
+                    <EditPanel
+                      documentId={d.id}
+                      filename={d.filename}
+                      onClose={() => setEditingId(null)}
+                    />
+                    <div className="border-t border-rule bg-paper p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
+                          Anonymise · {d.filename}
+                        </div>
+                        <AnonymiseButton documentId={d.id} />
+                      </div>
+                      <div className="text-[11px] text-muted">
+                        Generates a redacted body with [PARTY_n] / [ORG_n] / [ADDRESS_n] /
+                        [DATE_n] tokens. Original document stays unchanged. Side-by-side
+                        toggle UI lands with the routed Document detail view.
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
