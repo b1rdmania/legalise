@@ -122,6 +122,96 @@ I, Jasmine Khan, of [address], will say as follows:
 """
 
 
+KHAN_NDA_BODY = """[Draft Mutual NDA — synthetic fixture for Legalise demo]
+
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Agreement is entered into as of 1 May 2026 between:
+
+(1) ACME TRADING LTD, a company incorporated in England & Wales
+    (company number 09384721), whose registered office is at
+    Warehouse 4, Lockwood Industrial Estate, Bradford, BD12 9XX
+    ("Acme"); and
+
+(2) NORTH MILL CONSULTING LIMITED, a company incorporated in
+    England & Wales (company number 12992014), whose registered
+    office is at 7 Croft Street, Leeds, LS2 7BL ("North Mill"),
+
+(each a "Party" and together the "Parties").
+
+1. PURPOSE
+
+1.1 The Parties wish to exchange confidential information in
+    connection with North Mill providing advisory services to
+    Acme in relation to a contemplated commercial arrangement
+    (the "Purpose").
+
+2. CONFIDENTIAL INFORMATION
+
+2.1 "Confidential Information" means any and all information
+    disclosed by one Party (the "Disclosing Party") to the other
+    (the "Receiving Party"), whether orally, in writing, or in
+    any other form, that is identified as confidential or that
+    a reasonable person would understand to be confidential.
+
+2.2 Confidential Information does NOT include information that
+    is or becomes publicly available through no fault of the
+    Receiving Party, was already known to the Receiving Party,
+    or is required to be disclosed by law.
+
+3. OBLIGATIONS
+
+3.1 The Receiving Party shall use the Confidential Information
+    solely for the Purpose and shall not disclose it to any
+    third party without the prior written consent of the
+    Disclosing Party.
+
+3.2 The Receiving Party shall take all reasonable steps to
+    protect the Confidential Information.
+
+4. DATA PROTECTION
+
+4.1 To the extent that the exchange of Confidential Information
+    involves personal data, each Party shall comply with
+    applicable data protection laws and shall handle such
+    personal data in a careful and appropriate manner.
+
+5. INDEMNITY
+
+5.1 The Receiving Party shall indemnify the Disclosing Party
+    against all losses, damages, costs, expenses and liabilities
+    of whatever nature arising from any breach of this Agreement
+    by the Receiving Party, its employees, agents or
+    sub-contractors.
+
+6. TERM
+
+6.1 This Agreement shall commence on the date hereof and shall
+    continue in force for a period of three (3) years.
+
+6.2 The obligations of confidentiality shall survive termination
+    of this Agreement and shall continue indefinitely.
+
+7. ENTIRE AGREEMENT
+
+7.1 This Agreement constitutes the entire agreement between the
+    Parties in relation to its subject matter and supersedes all
+    prior negotiations, representations and agreements.
+
+8. NOTICES
+
+8.1 All notices under this Agreement shall be in writing and
+    shall be delivered by hand or sent by first-class post to
+    the registered office of the relevant Party.
+
+IN WITNESS WHEREOF the Parties have executed this Agreement on
+the date first above written.
+
+For ACME TRADING LTD: ____________________
+For NORTH MILL CONSULTING LIMITED: ____________________
+"""
+
+
 async def _ensure_body(session: AsyncSession, document: Document, text: str) -> None:
     """Idempotent insert of a passthrough extracted-body row for a seed doc."""
     existing = await session.scalar(
@@ -289,17 +379,36 @@ async def _seed_documents(session: AsyncSession, matter: Matter, user_id) -> dic
     )
     session.add(witness)
 
+    # Synthetic mutual NDA — third Khan document, ships unmodified for
+    # contract-review demo. Deliberately weak governing-law / indemnity /
+    # UK GDPR Art 28 framing so the Analyst stage has something to flag.
+    nda = Document(
+        matter_id=matter.id,
+        filename="synthetic-mutual-nda.docx",
+        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        size_bytes=len(KHAN_NDA_BODY) * 2,
+        sha256=_sha("synthetic-mutual-nda:fixture"),
+        storage_uri=None,
+        tag="contract",
+        from_disclosure=False,
+        uploaded_by_id=user_id,
+    )
+    session.add(nda)
+
     await session.flush()
     docs["dismissal"] = dismissal
     docs["witness"] = witness
+    docs["nda"] = nda
 
     await _ensure_body(session, dismissal, KHAN_DISMISSAL_BODY)
     await _ensure_body(session, witness, KHAN_WITNESS_BODY)
+    await _ensure_body(session, nda, KHAN_NDA_BODY)
     await _ensure_initial_version(session, dismissal, user_id)
     await _ensure_initial_version(session, witness, user_id)
+    await _ensure_initial_version(session, nda, user_id)
     await session.flush()
 
-    for d in (dismissal, witness):
+    for d in (dismissal, witness, nda):
         record_document(
             matter.slug, matter.created_by_id, str(d.id), d.filename, d.sha256, d.size_bytes, d.tag
         )
@@ -382,15 +491,51 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
     )
     if existing is not None:
         # Backfill body rows on previously-seeded matters (idempotent).
-        existing_docs = await session.scalars(
-            select(Document).where(Document.matter_id == existing.id)
+        existing_docs_list = list(
+            (
+                await session.scalars(
+                    select(Document).where(Document.matter_id == existing.id)
+                )
+            ).all()
         )
-        for d in existing_docs.all():
+        for d in existing_docs_list:
             if d.filename == "khan-dismissal-letter.pdf":
                 await _ensure_body(session, d, KHAN_DISMISSAL_BODY)
             elif d.filename == "witness-statement-khan.docx":
                 await _ensure_body(session, d, KHAN_WITNESS_BODY)
+            elif d.filename == "synthetic-mutual-nda.docx":
+                await _ensure_body(session, d, KHAN_NDA_BODY)
             await _ensure_initial_version(session, d, existing.created_by_id)
+
+        # Backfill the synthetic NDA on matters seeded before W3 landed.
+        has_nda = any(d.filename == "synthetic-mutual-nda.docx" for d in existing_docs_list)
+        if not has_nda:
+            nda = Document(
+                matter_id=existing.id,
+                filename="synthetic-mutual-nda.docx",
+                mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                size_bytes=len(KHAN_NDA_BODY) * 2,
+                sha256=_sha("synthetic-mutual-nda:fixture"),
+                storage_uri=None,
+                tag="contract",
+                from_disclosure=False,
+                uploaded_by_id=existing.created_by_id,
+            )
+            session.add(nda)
+            await session.flush()
+            await _ensure_body(session, nda, KHAN_NDA_BODY)
+            await _ensure_initial_version(session, nda, existing.created_by_id)
+            await session.flush()
+            record_document(
+                existing.slug,
+                existing.created_by_id,
+                str(nda.id),
+                nda.filename,
+                nda.sha256,
+                nda.size_bytes,
+                nda.tag,
+            )
+
         await session.commit()
         materialise_matter(existing)
         return existing
@@ -422,7 +567,7 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
         matter.slug,
         user.id,
         "chronology.seeded",
-        f"{2} documents + 7 events; 1 disclosure-tainted (dismissal letter)",
+        f"{3} documents + 7 events; 1 disclosure-tainted (dismissal letter)",
     )
 
     await session.commit()

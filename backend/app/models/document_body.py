@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import String, DateTime, ForeignKey, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -43,6 +43,15 @@ class DocumentBody(Base):
     char_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Phase C / W2 — populated only for kind="redacted" bodies. `mapping`
+    # carries {tokens: {...}, spans: [...]}; `engine` is the producer
+    # ("presidio" or "claude"); `anonymised_at` is the run timestamp.
+    mapping: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    engine: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    anonymised_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     def __repr__(self) -> str:
         return f"<DocumentBody {self.document_id} kind={self.kind} method={self.extraction_method}>"

@@ -25,6 +25,7 @@ class MatterCitation(Base):
     citation_text: Mapped[str] = mapped_column(Text, nullable=False)
     case_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
     citation_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     added_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )

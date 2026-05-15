@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { EditPanel } from "./modules/document_edit/EditPanel";
 import { ReviewsTab } from "./modules/tabular_review/ReviewsTab";
+import { ResearchTab } from "./modules/case_law/ResearchTab";
+import { ContractReviewTab } from "./modules/contract_review/ContractReviewTab";
 import {
   BACKEND_ROOT,
   confirmGate,
@@ -57,15 +59,17 @@ type StageProgress = {
   errors?: string[];
 };
 
-type TabKey = "overview" | "documents" | "reviews" | "chronology" | "premotion" | "letters" | "audit";
+type TabKey = "overview" | "documents" | "reviews" | "research" | "chronology" | "premotion" | "letters" | "contract-review" | "audit";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "documents", label: "Documents" },
   { key: "reviews", label: "Reviews" },
+  { key: "research", label: "Research" },
   { key: "chronology", label: "Chronology" },
   { key: "premotion", label: "Pre-Motion" },
   { key: "letters", label: "Letters" },
+  { key: "contract-review", label: "Contract review" },
   { key: "audit", label: "Audit" },
 ];
 
@@ -1462,6 +1466,7 @@ function MatterDetail({
           <DocumentsTab docs={docs} onUpload={onUpload} />
         )}
         {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
+        {tab === "research" && matter && <ResearchTab matter={matter} />}
         {tab === "chronology" && (
           <ChronologyTab
             chron={chron}
@@ -1495,6 +1500,9 @@ function MatterDetail({
             onDraft={onDraftLetter}
           />
         )}
+        {tab === "contract-review" && matter && docs && (
+          <ContractReviewTab matter={matter} docs={docs} />
+        )}
         {tab === "audit" && <AuditTab audit={audit} />}
       </div>
     </div>
@@ -1502,7 +1510,7 @@ function MatterDetail({
 }
 
 function isTabKey(v: string): v is TabKey {
-  return ["overview", "documents", "reviews", "chronology", "premotion", "letters", "audit"].includes(v);
+  return ["overview", "documents", "reviews", "research", "chronology", "premotion", "letters", "contract-review", "audit"].includes(v);
 }
 
 // -- PanelHeader (P8) -------------------------------------------------------
