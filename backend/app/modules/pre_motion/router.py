@@ -21,25 +21,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
 from app.core.auth import current_user
-from app.core.db import get_session
-from app.core.model_gateway import PrivilegePaused, PrivilegePosture
 from app.core.config import settings
+from app.core.db import get_session
+from app.core.model_gateway import PrivilegePaused, PrivilegePosture, provider_for_model
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
-
-
-def _provider_for_model(model_id: str | None) -> str | None:
-    """Return the provider name that would handle `model_id`, or None if
-    keyless (stub-echo, ollama). Mirrors `ModelGateway._select_provider`
-    enough for an SSE preflight."""
-    if not model_id:
-        return None
-    if model_id.startswith("claude-"):
-        return "anthropic"
-    if model_id.startswith("gpt-"):
-        return "openai"
-    if model_id in {"anthropic", "openai"}:
-        return model_id
-    return None
 from app.models import Matter, User
 
 from .pdf import render_pre_motion_pdf
@@ -140,7 +125,7 @@ async def run_pre_motion_stream(
         # so the middleware http.post row carries the right status. If
         # the route's gone past this point, audit reads 200 even when
         # the SSE error frame is 422.
-        provider_name = _provider_for_model(default_model_id)
+        provider_name = provider_for_model(default_model_id)
         if provider_name is not None:
             user_key = await get_user_provider_key(
                 preflight_session, user.id, provider_name

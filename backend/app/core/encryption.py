@@ -23,15 +23,18 @@ DEFAULT_SESSION_SECRET = "change-me-in-deployment"
 
 
 def assert_auth_secrets_present() -> None:
-    """Production startup invariant for session security.
+    """Production startup invariant for session security and email delivery.
 
-    Refuses to boot in non-dev environments when:
+    Refuses to boot in non-dev environments when any of:
     - SESSION_SECRET is missing or the placeholder default
     - session_cookie_secure is False (cookies would ride unencrypted)
+    - RESEND_API_KEY is missing (verification + reset emails would
+      silently fail, leaving unverified accounts that can't log in)
 
-    Dev environments are exempt — local http and the placeholder secret
-    are acceptable for development. Production deploys MUST set both
-    `SESSION_SECRET` (any non-default value) and `SESSION_COOKIE_SECURE=true`.
+    Dev environments are exempt — local http, the placeholder secret,
+    and the dev-log email fallback are acceptable for development.
+    Production deploys MUST set `SESSION_SECRET` (non-default),
+    `SESSION_COOKIE_SECURE=true`, and `RESEND_API_KEY`.
     """
     if settings.environment in _DEV_ENVIRONMENTS:
         return
@@ -40,6 +43,8 @@ def assert_auth_secrets_present() -> None:
         bad.append("SESSION_SECRET must be set to a non-default value in production")
     if not settings.session_cookie_secure:
         bad.append("SESSION_COOKIE_SECURE must be true in production")
+    if not settings.resend_api_key:
+        bad.append("RESEND_API_KEY must be set in production for verify + reset emails")
     if bad:
         raise RuntimeError(
             "Production startup blocked — fix the following and redeploy:\n  - "

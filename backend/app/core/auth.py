@@ -73,10 +73,15 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             await self.user_db.update(user, {"is_verified": True})
             logger.info("auth.dev_autoverify", user_id=str(user.id))
             return
-        try:
-            await self.request_verify(user, request)
-        except Exception as exc:
-            logger.warning("auth.verify.request_failed", error=str(exc))
+        # Send verification email. We intentionally do NOT swallow
+        # exceptions here. With requires_verification=True, a silent
+        # email failure creates an unverified user who can register but
+        # never log in. Bubbling the error means register fails with a
+        # 5xx the operator can see — and assert_auth_secrets_present
+        # already refuses to boot in production without RESEND_API_KEY,
+        # so the only path that can hit this is a transient provider
+        # outage, which is the right thing to surface.
+        await self.request_verify(user, request)
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None

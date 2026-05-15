@@ -92,18 +92,33 @@ If any of the above red, **stop** and fix it before continuing. The setup steps 
 fly launch --no-deploy --copy-config
 
 fly secrets set \
+  ENVIRONMENT="demo" \
   POSTGRES_DSN="postgresql+psycopg://user:pass@host.neon.tech/legalise?sslmode=require" \
-  ANTHROPIC_API_KEY="sk-ant-..." \
   S3_ENDPOINT="https://<account>.r2.cloudflarestorage.com" \
   S3_ACCESS_KEY="..." \
   S3_SECRET_KEY="..." \
   S3_BUCKET="legalise-docs" \
   GOTENBERG_URL="http://legalise-gotenberg.internal:3000" \
   CORS_ORIGINS='["https://legalise.dev"]' \
-  SESSION_SECRET="$(openssl rand -hex 32)"
+  SESSION_SECRET="$(openssl rand -hex 32)" \
+  SESSION_COOKIE_SECURE="true" \
+  LEGALISE_KEY_ENCRYPTION_SECRET="$(openssl rand -hex 32)" \
+  RESEND_API_KEY="re_..." \
+  EMAIL_FROM="Legalise <no-reply@legalise.dev>" \
+  EMAIL_VERIFY_URL_BASE="https://legalise.dev/#/auth/verify" \
+  PASSWORD_RESET_URL_BASE="https://legalise.dev/#/auth/reset"
 
 fly deploy
 ```
+
+**Startup invariants will refuse to boot otherwise.** `main.lifespan` calls `assert_master_key_present` and `assert_auth_secrets_present` before binding the HTTP listener. In any non-dev `ENVIRONMENT`, the following are mandatory:
+
+- `LEGALISE_KEY_ENCRYPTION_SECRET` — 32-byte hex; encrypts `user_api_keys` at rest. Generate once, store forever; rotation is a v0.2 ops task.
+- `SESSION_SECRET` — must not be `change-me-in-deployment`. Signs verify + reset JWTs.
+- `SESSION_COOKIE_SECURE=true` — session cookies ride only over HTTPS.
+- `RESEND_API_KEY` — without it, signup creates an unverified account that can never log in; the boot guard refuses this configuration so registration never silently no-ops.
+
+`ANTHROPIC_API_KEY` is deliberately absent. The gateway resolves Anthropic / OpenAI keys per-user from `user_api_keys` (BYO key). The server-key fallback is dev-only and refuses to fire in production even with `LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true`.
 
 **Neon DSN driver prefix is load-bearing.** Neon hands out `postgres://`; the backend uses `psycopg` async and requires `postgresql+psycopg://`. SQLAlchemy will error out at boot if the prefix is wrong. Append `?sslmode=require` — Neon refuses unencrypted connections.
 

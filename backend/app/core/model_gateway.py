@@ -40,6 +40,26 @@ _KEYED_PROVIDERS = {"anthropic", "openai"}
 _DEV_ENVIRONMENTS = {"development", "dev", "local"}
 
 
+def provider_for_model(model_id: str | None) -> str | None:
+    """Map a model id to the provider name registered with the gateway.
+
+    Returns None for keyless models (`stub-echo`, ollama-served local
+    models, anything else). Shared between `_select_provider` and the
+    SSE preflight in `pre_motion/router.py` so a model-id rename can't
+    let the two drift.
+    """
+    if not model_id:
+        return None
+    if model_id.startswith("claude-"):
+        return "anthropic"
+    if model_id.startswith("gpt-"):
+        return "openai"
+    # Allow direct provider-name passthrough for tests and explicit calls.
+    if model_id in _KEYED_PROVIDERS or model_id in {"ollama", "stub-echo"}:
+        return model_id if model_id in _KEYED_PROVIDERS else None
+    return None
+
+
 class PrivilegePosture(str, Enum):
     A_CLEARED = "A_cleared"
     B_MIXED = "B_mixed"
@@ -112,6 +132,13 @@ class ModelGateway:
             local = self._providers.get("ollama")
             if local is not None and requested.startswith(("claude-", "gpt-")):
                 return local
+        # Map a model id (e.g. claude-opus-4-7) onto a provider name
+        # (anthropic). Without this, a Claude model id falls through to
+        # stub-echo because the gateway only stores `anthropic`/`openai`
+        # under their provider-name keys.
+        provider_name = provider_for_model(requested)
+        if provider_name is not None and provider_name in self._providers:
+            return self._providers[provider_name]
         return self._providers.get(requested) or self._providers["stub-echo"]
 
     async def call(
