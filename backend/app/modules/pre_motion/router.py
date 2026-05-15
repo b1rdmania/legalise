@@ -27,7 +27,6 @@ from app.core.model_gateway import (
     PrivilegePaused,
     PrivilegePosture,
     gateway as model_gateway,
-    provider_for_model,
 )
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import AuditEntry, Matter, User
@@ -130,10 +129,17 @@ async def run_pre_motion_stream(
         # so the middleware http.post row carries the right status. If
         # the route's gone past this point, audit reads 200 even when
         # the SSE error frame is 422.
-        provider_name = provider_for_model(default_model_id)
-        if provider_name is not None:
+        #
+        # Codex R3 follow-up: defer to gateway.select_provider_name so
+        # a B_mixed matter with Ollama registered runs keylessly rather
+        # than 422'ing for an Anthropic key it doesn't need. Mirrors the
+        # R2 fix applied to tabular_review and contract_review.
+        selected_provider = model_gateway.select_provider_name(
+            default_model_id, PrivilegePosture(posture_value)
+        )
+        if model_gateway.is_keyed_provider(selected_provider):
             user_key = await get_user_provider_key(
-                preflight_session, user.id, provider_name
+                preflight_session, user.id, selected_provider
             )
             fallback_allowed = (
                 settings.environment in {"development", "dev", "local"}
@@ -144,9 +150,9 @@ async def run_pre_motion_stream(
                     422,
                     detail={
                         "error": "provider_key_missing",
-                        "provider": provider_name,
+                        "provider": selected_provider,
                         "message": (
-                            f"Add a {provider_name} API key in Settings → API Keys to run Pre-Motion."
+                            f"Add a {selected_provider} API key in Settings → API Keys to run Pre-Motion."
                         ),
                     },
                 )
