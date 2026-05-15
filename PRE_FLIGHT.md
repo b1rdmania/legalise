@@ -250,14 +250,14 @@ fly secrets set \
   SESSION_SECRET="..." \
   SESSION_COOKIE_SECURE=true \
   LEGALISE_KEY_ENCRYPTION_SECRET="..." \
-  DATABASE_URL="postgresql+psycopg://..." \
+  POSTGRES_DSN="postgresql+psycopg://..." \
   EMAIL_FROM="legalise@mail.legalise.dev" \
   EMAIL_VERIFY_URL_BASE="https://legalise.dev/#/auth/verify" \
   PASSWORD_RESET_URL_BASE="https://legalise.dev/#/auth/reset" \
-  R2_ACCESS_KEY_ID="..." \
-  R2_SECRET_ACCESS_KEY="..." \
-  R2_BUCKET="legalise-prod-matters" \
-  R2_ENDPOINT_URL="https://<account-id>.r2.cloudflarestorage.com" \
+  S3_ACCESS_KEY="..." \
+  S3_SECRET_KEY="..." \
+  S3_BUCKET="legalise-prod-matters" \
+  S3_ENDPOINT="https://<account-id>.r2.cloudflarestorage.com" \
   ENVIRONMENT=production \
   --app legalise
 
@@ -268,6 +268,56 @@ fly secrets set \
 - `fly secrets list --app legalise` shows all 13 secrets above
 - Plaintext values exist only in 1Password
 - Local shell history sanitised (`history -c` if you pasted in clear)
+
+### 5f. Phase D W3 secrets — public module submission flow
+
+The public submission endpoint (`POST /api/submissions`) opens a draft PR
+against `b1rdmania/claude-for-uk-legal` and is bot-gated by Cloudflare
+Turnstile. These secrets are required only if `submission_enabled=true` —
+the feature ships behind a config gate. If the gate is off at Day 15,
+provision them anyway so the flag flip is one command, not a re-deploy.
+
+| Env var | Source | Notes |
+|---|---|---|
+| `GITHUB_SUBMISSION_TOKEN` | GitHub → Settings → Developer settings → Fine-grained PAT | **`b1rdmania`-scoped only. Not `ziggythebot`.** Repo access: `b1rdmania/claude-for-uk-legal` only. Permissions: `contents:write` + `pull_requests:write`. Expiry: 90 days; set a calendar reminder. |
+| `TURNSTILE_SITE_KEY` | Cloudflare dashboard → Turnstile → widgets → site key | Public — also injected into the frontend build as `VITE_TURNSTILE_SITE_KEY`. |
+| `TURNSTILE_SECRET_KEY` | Cloudflare dashboard → Turnstile → widgets → secret | Backend-only; never exposed to the browser. |
+
+```bash
+fly secrets set \
+  GITHUB_SUBMISSION_TOKEN="github_pat_..." \
+  TURNSTILE_SITE_KEY="0x4AAA..." \
+  TURNSTILE_SECRET_KEY="0x4AAA..." \
+  --app legalise
+```
+
+The Cloudflare Pages build also needs `VITE_TURNSTILE_SITE_KEY` set on the
+Pages project (Settings → Environment variables). Same value as the
+backend's `TURNSTILE_SITE_KEY`.
+
+### 5g. Phase C anonymisation — spaCy NER model
+
+Not an env var. The Presidio pipeline needs the `en_core_web_sm` spaCy
+model installed in the image. `backend/Dockerfile` already runs
+`python -m spacy download en_core_web_sm` after `pip install`; verify
+the line is still present before image build:
+
+```bash
+grep -n "spacy download" backend/Dockerfile
+# expect: a single line referencing en_core_web_sm
+```
+
+Without it, the first `POST /api/documents/{id}/anonymise` returns 503
+with install guidance.
+
+### 5h. Dev-only — server-key fallback
+
+`LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true` lets the model gateway fall
+back to the server-level `ANTHROPIC_API_KEY` when a user hasn't added
+their own key. Honoured only when `ENVIRONMENT` is `development` /
+`dev` / `local`; production reads this as false regardless of value,
+enforced in `backend/app/core/model_gateway.py`. Do not set this on the
+Fly app.
 
 ---
 

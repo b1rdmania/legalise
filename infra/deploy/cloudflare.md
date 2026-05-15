@@ -106,7 +106,10 @@ fly secrets set \
   RESEND_API_KEY="re_..." \
   EMAIL_FROM="Legalise <no-reply@legalise.dev>" \
   EMAIL_VERIFY_URL_BASE="https://legalise.dev/#/auth/verify" \
-  PASSWORD_RESET_URL_BASE="https://legalise.dev/#/auth/reset"
+  PASSWORD_RESET_URL_BASE="https://legalise.dev/#/auth/reset" \
+  GITHUB_SUBMISSION_TOKEN="github_pat_..." \
+  TURNSTILE_SITE_KEY="0x4AAA..." \
+  TURNSTILE_SECRET_KEY="0x4AAA..."
 
 fly deploy
 ```
@@ -126,6 +129,10 @@ fly deploy
 
 **SESSION_SECRET** must be set on the live deploy. The dev default `change-me-in-deployment` is a tripwire — auth-stub cookies signed with it are forgeable.
 
+**`GITHUB_SUBMISSION_TOKEN` token-owner is load-bearing.** The PAT must be issued from `b1rdmania` — not `ziggythebot`. Fine-grained, scoped to `b1rdmania/claude-for-uk-legal` only, with `contents:write` + `pull_requests:write`. 90-day expiry; calendar the rotation. If the wrong owner is used the draft PR opens against the wrong account namespace and the audit trail becomes inconsistent with `PEERS.md` peer framing.
+
+**Turnstile keys** are required only when `submission_enabled=true`. Provision them now so the flag flip is one config change, not a re-deploy. `VITE_TURNSTILE_SITE_KEY` on the Pages project must match the backend's `TURNSTILE_SITE_KEY` exactly.
+
 UK region (`lhr` = London Heathrow). Single-region deployment for v0.1; HA / multi-region is v0.5+.
 
 **Plugin suite vendoring.** `backend/Dockerfile` clones `claude-for-uk-legal` at a pinned commit SHA into `/plugins` during the image build. Bump `PLUGINS_REPO_REF` in the Dockerfile when a new plugin release is needed; the build fails loudly if the ref doesn't exist. Dev compose still bind-mounts a sibling checkout — both paths land at `PLUGINS_ROOT=/plugins`.
@@ -142,7 +149,9 @@ Connect the GitHub repo to Cloudflare Pages:
 
 - **Build command:** `cd frontend && npm ci && npm run build`
 - **Build output directory:** `frontend/dist`
-- **Environment variable:** `VITE_API_BASE_URL=https://api.legalise.dev/api`
+- **Environment variables:**
+  - `VITE_API_BASE_URL=https://api.legalise.dev/api`
+  - `VITE_TURNSTILE_SITE_KEY=<same value as TURNSTILE_SITE_KEY on the backend>` — required for the public module submission flow widget. If `submission_enabled=false` at launch, the page never renders the widget and this var is unused; provision it anyway so the flag flip is a config change, not a Pages re-deploy.
 
 `npm ci` (not `npm install`) is deliberate: it builds against the committed `frontend/package-lock.json` exactly, refusing to mutate it. This is the right shape for a reproducible deploy. If you see "missing lockfile" errors on Cloudflare Pages, the lockfile is not committed — `git status` to confirm and `git add frontend/package-lock.json`.
 
@@ -250,6 +259,54 @@ curl -sI -X OPTIONS https://api.legalise.dev/api/matters \
   -H "Origin: https://legalise.dev" \
   -H "Access-Control-Request-Method: GET" | head -10
 ```
+
+#### 7a. SSE-disconnect-during-Contract-Review smoke
+
+The Contract Review pipeline streams stage frames over SSE and runs the
+work as a `BackgroundTask` on the same request. v0.1 has no `arq` / Redis
+job runner (locked for v0.2 per `backend/PHASE_INFRA_DELTA.md` §5). This
+smoke step exists to surface job-runner brittleness — orphaned tasks,
+leaked DB sessions, half-written audit rows — before launch instead of
+during it.
+
+Run against the seeded Khan matter:
+
+```bash
+# 1. Kick off a Contract Review SSE stream. Capture the first stage frame,
+# then disconnect immediately (curl --max-time 5 hangs up after 5s).
+curl --max-time 5 -N -s \
+  -H "Accept: text/event-stream" \
+  -X POST \
+  https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/contract-review/run-stream \
+  | head -20
+
+# 2. Wait ~30s for the background task to either finish or wedge.
+sleep 30
+
+# 3. Tail the backend logs for the matter slug. Expect to see a terminal
+# audit row (action ending in `run.completed` or `run.failed`) AND no
+# 'asyncio Task was destroyed but it is pending' warnings.
+fly logs --app legalise-backend | grep -E "khan-v-acme-trading-2026|asyncio|Task was destroyed" | tail -40
+
+# 4. Verify the audit log via the API. Expect at least one terminal row
+# for the contract_review module for this matter.
+curl -s https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/audit \
+  | jq '[.[] | select(.module == "contract_review")] | .[-3:]'
+```
+
+**Green state — all four must hold:**
+- The background task reached a terminal audit row (`...run.completed` or
+  `...run.failed`). A missing terminal row means the task was cancelled
+  with the client disconnect — a v0.1 launch blocker.
+- No `asyncio Task was destroyed but it is pending` warning in logs.
+- No `SQLAlchemy DBAPIError` or `connection already closed` in logs
+  (the DB session must close cleanly even though the response stream
+  was severed).
+- Re-running the smoke from step 1 succeeds with a fresh SSE stream.
+
+**If any of the above fail, do not promote to launch.** This is the
+signal that `arq` + Redis (the locked v0.2 doctrine) needs to land before
+v0.1 ships, not after. Surface to Andy.
 
 **Manual click-through after the curls pass:**
 - Visit `https://legalise.dev/`. Hero + four SurfaceCards render, TopBar shows `lhr1` green, `OPEN DEMO MATTER →` is enabled (assumes a seeded matter exists from step 3).
