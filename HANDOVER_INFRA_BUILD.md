@@ -91,11 +91,11 @@ Once the App.tsx split lands, frontend ownership is sharded by directory, making
 - **v0.1 launch-copy guard:** Modules page must say declared capabilities are *under review / displayed*, **not** "capability-gated." Reviewer should grep the diff for the phrase "capability-gated" and reject if present in user-facing strings.
 - Acceptance: §3.3 of `PHASE_INFRA_DELTA.md` bars; disabled-pill renders; audit-tab filter by `module` column works; three deferred buttons fire end-to-end.
 
-**Agent 8 — LBA docx template.**
-- Owns: new `backend/app/templates/docx/lba.docx` (binary; built in Word by Andy or via `python-docx` scaffold + manual polish), `backend/app/modules/letters/router.py` (one branch `if letter_type == "lba"`).
-- Adds dep: `docxtpl>=0.16` in `pyproject.toml`.
-- **Boundary:** audit row shape unchanged; `module.letters.docx.exported` payload gains `"template_name": "lba"`. Other letter types fall through to existing `generate_docx` path — no regression.
-- Acceptance: Khan-LBA renders via template; `pytest` audit-shape eval green.
+**Agent 8 — LBA docx template (revised 2026-05-15; no `docxtpl`).**
+- Path A (recommended): **drop unit #8 entirely for v0.1.** LBA stays on the existing procedural `generate_docx` path. `docxtpl` LGPL-2.1 not worth the launch-copy friction on an Apache-2.0 clean-room launch (per reviewer decision; see `PHASE_INFRA_DELTA.md` §4 decision 4).
+- Path B (only if visual LBA polish proves launch-critical): Andy authors `backend/app/templates/docx/lba.docx` in Word with `{{placeholders}}`; agent wires a tiny `backend/app/modules/letters/lba_template.py` using `python-docx` (already a runtime dep, MIT) to walk runs/cells and substitute. ~60 LoC. No new deps.
+- **Boundary in Path B:** audit row shape unchanged; `module.letters.docx.exported` payload gains `"template_name": "lba"`. Other letter types fall through to existing `generate_docx` path — no regression.
+- Acceptance (Path B): Khan-LBA renders via internal helper; `pytest` audit-shape eval green.
 
 **Agent 9 — docs rewrite (Phase E W1).**
 - Owns: `README.md`, `docs/PEERS.md`, `docs/MANIFESTO.md`, `docs/ROADMAP.md`, `docs/ATTRIBUTIONS.md`.
@@ -169,7 +169,7 @@ Andy-coordinated launch posture. Agent drafts only — `HANDOVER_LAUNCH.md`, Wil
 | #3 | Modules page renders capabilities + trust posture as **declarations**; three deferred buttons land; module-local `api.ts` shims consolidated |
 | #5 | Both export modes ship (`full_internal` + `shareable`); round-trip Khan matter → fresh DB → audit replay for `full_internal`, redaction-matrix verified for `shareable`; slug-collision 409; `Draft202012Validator` + JSON pointer 422 body verified. **If redaction matrix cannot ship, cut the whole surface from v0.1.** |
 | #6 | Draft PR opens against `b1rdmania/claude-for-uk-legal` via `b1rdmania` PAT; Turnstile rejects synthetic submission; config gate works |
-| #8 | Khan-LBA renders via `docxtpl` template; audit row payload includes `template_name: "lba"`; non-LBA letter types fall through unchanged |
+| #8 | **Path A (recommended): skip — LBA stays procedural.** Path B: Khan-LBA renders via internal `python-docx` placeholder helper; audit row payload includes `template_name: "lba"`; non-LBA letter types fall through unchanged. No `docxtpl`. |
 | #9 | Cold solicitor reader: 60-second README → intent to clone; PEERS/MANIFESTO/ROADMAP/ATTRIBUTIONS cross-link cleanly |
 | #10a | Four existing-surface evals (audit-row, posture-routing, redline-anchor, NDA-parse) green against the integrated tree |
 | #10b | Matter-portability round-trip eval green; covers both export modes. Spawned only if #5 ships. |
@@ -221,6 +221,9 @@ Plus the eternal v0.1 guards:
 - **`e7d730c` — Agent 1B (unit #1a) landed with partial coverage.** `structured_output.py` published (119 LoC). Swapped: `contract_review/agents.py`, `pre_motion/agents.py` (Optimistic + Synthesis stages). NOT swapped: `document_edit/pipeline.py` (no `ChangesEnvelope` Pydantic class exists) and `anonymisation/prompts.py` (no `{tokens, spans}` envelope class exists). Agent honoured the "do not invent a class" guard.
   - **Follow-up unit needed before launch:** `#1a-tail` — define `document_edit/schemas.py::ChangesEnvelope` and `anonymisation/schemas.py::AnonymisationEnvelope` (additive only, mirror existing wire shape), then complete the two swaps. ~60 LoC. Andy's call on whether to do this pre-launch or v0.2 — the current state ships fine; gateway/parser boundary is intact for the two swapped sites.
 - **Agents 2 (App.tsx split) and 9 (docs rewrite) running in parallel as of `e7d730c`.**
+- **`9e7012d` — Agent 2 (unit #2) landed.** App.tsx split into `app/ + auth/ + landing/ + matter/{tabs/} + modules-page/ + ui/`. App.tsx is now a 2-line re-export shim. Build green, 343.51 kB gzipped.
+- **`780238c` — Agent 9 (unit #9) landed.** README + PEERS + MANIFESTO + ROADMAP + ATTRIBUTIONS rewritten under `docs/`. Root `MANIFESTO.md` + `ROADMAP.md` initially left untouched; **2026-05-15 follow-up:** root files replaced with pointer stubs to canonical `docs/` versions per Andy's call; `docs/MODULE_DEVELOPMENT.md` cross-refs updated.
+- **2026-05-15 Andy decision — `docxtpl` rejected for v0.1.** LBA path is now Path A (procedural, recommended) or Path B (internal `python-docx` placeholder helper). `docs/ATTRIBUTIONS.md` Licence note removed. Delta §4 decision 4 + §3.5 unit #8 spec revised.
 
 ## 7. Files this handover touches
 

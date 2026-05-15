@@ -217,17 +217,19 @@ W3 submission flow (`backend/app/api/submissions.py`):
 
 ### 3.5 Batch-5 partial — LBA template (work unit #8)
 
-**Backend deps:** `docxtpl>=0.16` added to `backend/pyproject.toml`.
+**Backend deps:** none (revised 2026-05-15 — `docxtpl` LGPL-2.1 rejected per §4 decision 4).
 
-**New:** `backend/app/templates/docx/lba.docx` (Word template; merge fields enumerated above). Authored by hand in Word; checked in as binary.
+**Path A (recommended):** drop unit #8 entirely for v0.1. LBA ships on the procedural `generate_docx` path that already serves the other letter types. No new code. Templating-library decision returns to v0.2.
 
-**Modify:** `backend/app/modules/letters/router.py::POST /{slug}/letters/draft/docx`
-- When `letter_type == "lba"`: render via `docxtpl.DocxTemplate("templates/docx/lba.docx").render(context)`. Persist to the same `matter_files/generated/{slug}/` path; audit row identical shape with `payload["template_name"] = "lba"`.
-- All other `letter_type` values fall through to existing `gateway.invoke_tool("generate_docx", ...)` path. No regression on letter types not yet templated.
+**Path B (if visual LBA polish proves load-bearing for launch screenshots):**
+- New `backend/app/templates/docx/lba.docx` (Word template authored by Andy in Word; uses `{{ matter_title }}` / `{{ counterparty }}` / `{{ effective_date }}` / `{{ body_paragraphs }}` / etc.; checked in as binary).
+- New `backend/app/modules/letters/lba_template.py` — small internal helper using `python-docx` directly (already a runtime dep) to walk the template's runs/cells and substitute `{{placeholders}}`. ~60 LoC. No LGPL dep.
+- Modify `backend/app/modules/letters/router.py::POST /{slug}/letters/draft/docx`: when `letter_type == "lba"` render via the internal helper; all other `letter_type` values fall through to existing `gateway.invoke_tool("generate_docx", ...)` path.
+- Audit row unchanged: `module.letters.docx.exported`, module=`letters`, payload gains `template_name="lba"`.
 
-**Constraint:** the audit shape is unchanged (`module.letters.docx.exported`, module=`letters`). The `/generated/{file_uuid}` download endpoint authorisation chain (Phase B W1 gotcha 1) keeps working unchanged.
+**Constraint:** the audit shape is unchanged. The `/generated/{file_uuid}` download endpoint authorisation chain (Phase B W1 gotcha 1) keeps working unchanged.
 
-**LoC:** ~80 backend + 1 binary template (~30KB).
+**LoC:** 0 (Path A) or ~60 backend + 1 binary template (Path B).
 
 ---
 
@@ -241,7 +243,7 @@ These are doctrine, not launch compromises. Launch compromises are called out ex
 
 3. **Capability enforcement — v0.1 declarations only; enable/disable enforced.** v0.1 launch copy must say "module enable/disable is enforced; declared capabilities are schema-validated and displayed for review." Doctrine for v3.x: manifest capabilities become enforceable policy at the call site. Do not let launch copy imply enforcement exists yet.
 
-4. **Docx templates — LBA only for v0.1.** Doctrine: solicitor-facing **final** documents become template-driven. Procedural exports remain acceptable for **analysis artefacts** until replaced. Pre-Motion + Contract Review templates are v0.2.
+4. **Docx templates — LBA only for v0.1; no `docxtpl` (LGPL-2.1).** Doctrine: solicitor-facing **final** documents become template-driven. Procedural exports remain acceptable for **analysis artefacts** until replaced. Pre-Motion + Contract Review templates are v0.2. **Reviewer decision 2026-05-15:** do NOT add `docxtpl` for v0.1 — the LGPL-2.1 surface is not worth the licence-explanation friction on an Apache-2.0 clean-room launch. Two acceptable v0.1 paths: (a) keep LBA on the existing procedural `generate_docx` path — recommendation; (b) if a template-like LBA is still wanted, use `python-docx` directly with a tiny internal placeholder-replacement helper over an Andy-authored `.docx` containing `{{placeholders}}`. Templating-library decision returns to the v0.2 backlog if document polish becomes more important than licence simplicity.
 
 5. **App.tsx split now; TanStack v0.2.** Durable direction: TanStack Router + Query is the frontend architecture. v0.1 defers; v0.2 does not reopen the choice. Installed deps stay unused-but-installed.
 
@@ -275,7 +277,7 @@ These are doctrine, not launch compromises. Launch compromises are called out ex
 ### Dependencies summary
 
 **Added in this delta:**
-- Backend: `pyyaml`, `python-frontmatter`, `jsonschema`, `docxtpl` (4 new — all boring, well-maintained, MIT/BSD-compatible).
+- Backend: `pyyaml`, `python-frontmatter`, `jsonschema` (3 new — all MIT/BSD/Apache). `docxtpl` removed per §4 decision 4 (LGPL-2.1 not worth the launch-copy friction).
 - Frontend: none.
 
 **Already added in Phase C, document in pre-flight:**

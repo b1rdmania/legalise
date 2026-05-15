@@ -55,7 +55,7 @@ defensible to a UK regulator — a module **should**:
 system, no scoped-access decorator, no UI contract enforcement. A poorly
 behaved module can call `anthropic.Anthropic().messages.create(...)` directly
 and the audit log will be silent about it. The v0.2 "Module lifecycle
-workstream" in `ROADMAP.md` picks this up — install/enable toggles,
+workstream" in [docs/ROADMAP.md](./ROADMAP.md) picks this up — install/enable toggles,
 per-workspace policy, module permissions, UI contracts, signed manifests.
 
 If you want the trust posture today, you have to honour the conventions
@@ -248,7 +248,7 @@ when v0.2 lands the auto-discovery + policy enforcement.
 
 ## What lands in v0.2
 
-The full picture is in `ROADMAP.md` under "Module lifecycle workstream
+The full picture is in [docs/ROADMAP.md](./ROADMAP.md) under "Module lifecycle workstream
 (v0.2)". Short list:
 
 - Install/enable toggles per workspace.

@@ -56,7 +56,6 @@ inherit their own licences.
 | `pyyaml` | MIT | YAML for `matter.md` frontmatter |
 | `python-frontmatter` | MIT | Frontmatter parsing for SKILL.md and matter.md |
 | `jsonschema` | MIT | Schema validation for `module.json` and `matter.json` imports |
-| `docxtpl` | LGPL-2.1 | Word-template-driven `.docx` export for LBA (see Licence note below) |
 
 ### Frontend runtime dependencies
 
@@ -85,30 +84,6 @@ MIT-licensed and not bundled into the runtime artifact.
 - **Anthropic, OpenAI, Ollama models** — proprietary terms apply per
   provider; access via the gateway respects per-matter privilege
   posture.
-
-## Licence note
-
-`docxtpl` is LGPL-2.1-licensed. Legalise is Apache-2.0. The LGPL-2.1 →
-Apache-2.0 boundary is compatible for use as a runtime library because
-`docxtpl` is consumed as an unmodified pip package and is dynamically
-imported by `backend/app/modules/letters/router.py`. Legalise does not
-modify `docxtpl` source or statically link against it.
-
-Operators packaging Legalise for redistribution should:
-
-1. Preserve the `docxtpl` package as a separately-installable pip dep
-   (do not bundle modified source into the Legalise wheel).
-2. Carry the upstream `docxtpl` LICENSE file with any redistribution.
-3. If `docxtpl` source modification is ever needed, fork it
-   separately under LGPL-2.1 — do not vendor modifications into
-   Legalise.
-
-If LGPL-2.1 is unacceptable for a specific deployment context, the
-LBA template path can be replaced with the procedural `generate_docx`
-fallback that the other letter types already use, and `docxtpl`
-removed from `pyproject.toml`. The LBA Word template (`backend/app/templates/docx/lba.docx`)
-is Andy-authored content under Apache-2.0 alongside the rest of the
-repo.
 
 ## What Legalise contributes back
 
