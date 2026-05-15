@@ -34,7 +34,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway, PrivilegePosture
-from app.models import Matter
+from app.models import Matter, WorkspaceDisabledSkill
 
 logger = structlog.get_logger()
 
@@ -47,6 +47,16 @@ class SkillManifest:
     description: str
     argument_hint: str | None
     body: str  # the prompt template — everything after the frontmatter
+
+
+class SkillDisabled(Exception):
+    """Raised when a user invokes a `(plugin, skill)` pair they have
+    disabled in their workspace. Routers map this to HTTP 403."""
+
+    def __init__(self, plugin: str, skill: str):
+        self.plugin = plugin
+        self.skill = skill
+        super().__init__(f"skill disabled for this workspace: {plugin}/{skill}")
 
 
 @dataclass
@@ -154,6 +164,20 @@ class PluginBridge:
                 f"skill not found: {plugin}/{skill} (looked at {path}). "
                 f"Set PLUGINS_ROOT to the claude-for-uk-legal checkout."
             )
+
+        # Workspace lifecycle check — absence in `workspace_disabled_skills`
+        # means enabled (default). The Modules page toggle writes/removes
+        # rows here; this is the call-site enforcement.
+        if actor_id is not None:
+            disabled = await session.scalar(
+                select(WorkspaceDisabledSkill).where(
+                    WorkspaceDisabledSkill.user_id == actor_id,
+                    WorkspaceDisabledSkill.plugin == plugin,
+                    WorkspaceDisabledSkill.skill == skill,
+                )
+            )
+            if disabled is not None:
+                raise SkillDisabled(plugin, skill)
 
         manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
 

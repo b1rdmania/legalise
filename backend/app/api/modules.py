@@ -11,13 +11,18 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.plugin_bridge import _parse_skill_md
+from app.core.auth import current_user
 from app.core.config import settings
+from app.core.db import get_session
+from app.models import User, WorkspaceDisabledSkill
 
 
 router = APIRouter()
@@ -67,6 +72,7 @@ class ModuleSkill(BaseModel):
     argument_hint: str | None
     capabilities: list[str] = []
     trust_posture: str | None = None
+    enabled: bool = True
 
 
 class BrokenManifest(BaseModel):
@@ -118,7 +124,10 @@ def _module_json_for(skill_md_path: Path) -> Path:
 
 
 @router.get("", response_model=ModulesResponse)
-async def list_modules() -> ModulesResponse:
+async def list_modules(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ModulesResponse:
     """Return every installed SKILL.md discovered under PLUGINS_ROOT.
 
     Each discovered skill is paired with the plugin's `module.json`,
@@ -129,6 +138,12 @@ async def list_modules() -> ModulesResponse:
     skills: list[ModuleSkill] = []
     broken: list[BrokenManifest] = []
     root = _plugins_root()
+
+    # Per-user disabled set (absence = enabled, presence = disabled).
+    disabled_rows = await session.scalars(
+        select(WorkspaceDisabledSkill).where(WorkspaceDisabledSkill.user_id == user.id)
+    )
+    disabled: set[tuple[str, str]] = {(r.plugin, r.skill) for r in disabled_rows.all()}
 
     # Cache per-plugin manifest validation across multiple skills in the
     # same plugin so we only read + validate the manifest once per request.
@@ -188,6 +203,7 @@ async def list_modules() -> ModulesResponse:
                 argument_hint=manifest.argument_hint,
                 capabilities=capabilities,
                 trust_posture=trust_posture,
+                enabled=(plugin, skill) not in disabled,
             )
         )
 

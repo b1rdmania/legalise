@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  disableSkill,
+  enableSkill,
   getModules,
   getSkillBody,
   type ModuleSkill,
@@ -13,6 +15,8 @@ export function Modules() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [promptBody, setPromptBody] = useState<Record<string, string>>({});
   const [promptError, setPromptError] = useState<Record<string, string>>({});
+  const [toggling, setToggling] = useState<Record<string, boolean>>({});
+  const [toggleError, setToggleError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getModules()
@@ -26,7 +30,6 @@ export function Modules() {
       .catch((e) => setError(String(e)));
   }, []);
 
-  // load prompt body when selection changes
   useEffect(() => {
     if (!selectedKey || !data) return;
     if (promptBody[selectedKey] || promptError[selectedKey]) return;
@@ -53,12 +56,76 @@ export function Modules() {
 
   const shortRef = data?.source.ref ? data.source.ref.slice(0, 7) : "unversioned";
 
+  const onToggle = async (skill: ModuleSkill) => {
+    const key = `${skill.plugin}/${skill.skill}`;
+    setToggling((p) => ({ ...p, [key]: true }));
+    setToggleError((p) => {
+      const { [key]: _drop, ...rest } = p;
+      return rest;
+    });
+    try {
+      if (skill.enabled) {
+        await disableSkill(skill.plugin, skill.skill);
+      } else {
+        await enableSkill(skill.plugin, skill.skill);
+      }
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              skills: prev.skills.map((s) =>
+                s.plugin === skill.plugin && s.skill === skill.skill
+                  ? { ...s, enabled: !skill.enabled }
+                  : s,
+              ),
+            }
+          : prev,
+      );
+    } catch (e) {
+      setToggleError((p) => ({ ...p, [key]: String(e) }));
+    } finally {
+      setToggling((p) => {
+        const { [key]: _drop, ...rest } = p;
+        return rest;
+      });
+    }
+  };
+
   return (
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+      <div className="mb-10">
+        <div className="eyebrow font-mono text-muted mb-3">INSTALLED MODULES</div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1] mb-3">
+          Modules
+        </h1>
+        <p className="text-sm text-prose max-w-2xl">
+          Module enable/disable is enforced per workspace. Declared capabilities and
+          trust posture are schema-validated from each module manifest and shown below
+          as declarations under review — no runtime per-capability check yet.
+        </p>
+      </div>
+
       {error && <ErrorCallout message={error} />}
       {!data && !error && <LoadingLine label="loading installed skills" />}
 
-      {data && data.skills.length === 0 && (
+      {data && data.broken.length > 0 && (
+        <div className="mb-10 border border-rule bg-yellow-100 p-4">
+          <div className="eyebrow mb-2">Broken manifests</div>
+          <ul className="text-sm text-ink space-y-2">
+            {data.broken.map((b, i) => (
+              <li key={`${b.plugin}-${b.skill}-${i}`} title={b.errors.map((e) => `${e.path} ${e.message}`).join("\n")}>
+                <span className="font-mono text-xs">{b.plugin}/{b.skill}</span>{" "}
+                — {b.errors[0]?.message ?? "manifest invalid"}
+                {b.errors.length > 1 && (
+                  <span className="text-muted"> (+{b.errors.length - 1} more)</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data && data.skills.length === 0 && data.broken.length === 0 && (
         <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm">
           No SKILL.md files found under {data.plugins_root}.
         </div>
@@ -66,7 +133,6 @@ export function Modules() {
 
       {data && data.skills.length > 0 && (
         <div className="flex gap-12">
-          {/* P2 sidebar TOC */}
           <aside className="hidden lg:block w-80 sticky top-[88px] h-[calc(100vh-100px)] border-r border-rule pr-8 overflow-y-auto">
             <div className="eyebrow-sm mb-8">Installed skills</div>
             {Array.from(grouped.entries()).map(([plugin, skills]) => (
@@ -81,13 +147,18 @@ export function Modules() {
                         key={key}
                         onClick={() => setSelectedKey(key)}
                         className={
-                          "py-2 border-l-2 pl-4 text-sm transition-all text-left " +
+                          "py-2 border-l-2 pl-4 text-sm transition-all text-left flex items-center justify-between gap-2 " +
                           (active
                             ? "border-ink text-ink font-semibold"
                             : "border-transparent text-muted hover:text-ink")
                         }
                       >
-                        {s.name}
+                        <span className="truncate">{s.name}</span>
+                        {!s.enabled && (
+                          <span className="text-[9px] font-mono uppercase tracking-track2 text-muted border border-rule px-1 py-0.5">
+                            Disabled
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -115,9 +186,7 @@ export function Modules() {
             </div>
           </aside>
 
-          {/* Main column */}
           <main className="flex-1 min-w-0">
-            {/* Mobile fallback — stacked list */}
             <div className="lg:hidden space-y-12">
               {Array.from(grouped.entries()).map(([plugin, skills]) => (
                 <section key={plugin}>
@@ -132,6 +201,9 @@ export function Modules() {
                           error={promptError[key]}
                           onLoad={() => setSelectedKey(key)}
                           isLoaded={!!promptBody[key] || !!promptError[key]}
+                          toggling={!!toggling[key]}
+                          toggleError={toggleError[key]}
+                          onToggle={() => onToggle(s)}
                         />
                       </article>
                     );
@@ -140,7 +212,6 @@ export function Modules() {
               ))}
             </div>
 
-            {/* Desktop — single selected skill */}
             <div className="hidden lg:block">
               {selectedSkill && (
                 <SkillBlock
@@ -149,6 +220,9 @@ export function Modules() {
                   error={promptError[selectedKey!]}
                   onLoad={() => undefined}
                   isLoaded={!!promptBody[selectedKey!] || !!promptError[selectedKey!]}
+                  toggling={!!toggling[selectedKey!]}
+                  toggleError={toggleError[selectedKey!]}
+                  onToggle={() => onToggle(selectedSkill)}
                 />
               )}
             </div>
@@ -159,29 +233,57 @@ export function Modules() {
   );
 }
 
+function trustPostureClasses(posture: string | null): string {
+  // Subtle, boring borders. No emoji. The posture is a declaration — not
+  // an enforcement claim.
+  switch (posture) {
+    case "trusted":
+      return "border-[#00A35C] text-[#00A35C]";
+    case "third_party":
+      return "border-[#0066CC] text-[#0066CC]";
+    case "experimental":
+      return "border-[#E67E22] text-[#E67E22]";
+    default:
+      return "border-rule text-muted";
+  }
+}
+
 function SkillBlock({
   skill,
   body,
   error,
   onLoad,
   isLoaded,
+  toggling,
+  toggleError,
+  onToggle,
 }: {
   skill: ModuleSkill;
   body: string | undefined;
   error: string | undefined;
   onLoad: () => void;
   isLoaded: boolean;
+  toggling: boolean;
+  toggleError: string | undefined;
+  onToggle: () => void;
 }) {
   useEffect(() => {
     if (!isLoaded) onLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const postureLabel = skill.trust_posture ?? "unset";
+
   return (
     <>
       <div className="mb-8">
-        <div className="eyebrow font-mono text-muted mb-4">
-          INSTALLED SKILL — {skill.plugin}
+        <div className="eyebrow font-mono text-muted mb-4 flex items-center gap-3 flex-wrap">
+          <span>INSTALLED SKILL — {skill.plugin}</span>
+          {!skill.enabled && (
+            <span className="text-[10px] uppercase tracking-track2 text-muted border border-rule px-2 py-0.5">
+              Disabled
+            </span>
+          )}
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1] mb-4">
           {skill.name}
@@ -189,7 +291,7 @@ function SkillBlock({
         <p className="text-xl text-muted leading-relaxed max-w-2xl">{skill.description}</p>
       </div>
 
-      <div className="flex flex-wrap gap-x-10 gap-y-4 mb-10 pb-10 border-b border-rule">
+      <div className="flex flex-wrap gap-x-10 gap-y-4 mb-8">
         <div>
           <div className="eyebrow mb-1.5">Plugin</div>
           <div className="text-sm font-semibold font-mono">{skill.plugin}</div>
@@ -217,6 +319,65 @@ function SkillBlock({
             </a>
           </div>
         )}
+      </div>
+
+      <div className="mb-10 pb-10 border-b border-rule space-y-5">
+        <div>
+          <div className="eyebrow mb-2">Trust posture (declared)</div>
+          <span
+            className={
+              "inline-flex items-center text-[10px] uppercase tracking-track2 font-mono font-bold border px-2 py-0.5 " +
+              trustPostureClasses(skill.trust_posture)
+            }
+          >
+            {postureLabel}
+          </span>
+        </div>
+        <div>
+          <div className="eyebrow mb-2">Capabilities (declared)</div>
+          {skill.capabilities.length === 0 ? (
+            <span className="text-xs text-muted font-mono">none declared</span>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {skill.capabilities.map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center text-[11px] font-mono text-ink border border-rule bg-wash px-2 py-0.5"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div>
+          <div className="eyebrow mb-2">Lifecycle</div>
+          <div className="flex items-center gap-4 flex-wrap">
+            <button
+              onClick={onToggle}
+              disabled={toggling}
+              className="border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40"
+            >
+              {toggling
+                ? skill.enabled
+                  ? "Disabling…"
+                  : "Enabling…"
+                : skill.enabled
+                  ? "Disable skill"
+                  : "Enable skill"}
+            </button>
+            <span className="text-xs text-muted">
+              {skill.enabled
+                ? "Enabled — invocations allowed for this workspace."
+                : "Disabled — invocations blocked for this workspace."}
+            </span>
+          </div>
+          {toggleError && (
+            <div className="mt-3">
+              <ErrorCallout message={toggleError} compact />
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <ErrorCallout message={error} compact />}

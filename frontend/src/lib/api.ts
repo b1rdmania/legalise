@@ -151,6 +151,9 @@ export interface ModuleSkill {
   description: string;
   source_url: string | null;
   argument_hint: string | null;
+  capabilities: string[];
+  trust_posture: string | null;
+  enabled: boolean;
 }
 
 export interface ModulesResponse {
@@ -160,6 +163,11 @@ export interface ModulesResponse {
     ref: string | null;
   };
   skills: ModuleSkill[];
+  broken: {
+    plugin: string;
+    skill: string;
+    errors: { path: string; message: string }[];
+  }[];
 }
 
 export const getModules = () =>
@@ -703,3 +711,578 @@ export const deleteApiKey = (provider: string) =>
       throw new Error(`${r.status} ${r.statusText}: ${text}`);
     }
   });
+
+// ----- Installed-skill catalogue extensions (Phase D W1) -----------------
+
+export interface BrokenManifest {
+  plugin: string;
+  skill: string;
+  errors: { path: string; message: string }[];
+}
+
+export const disableSkill = (plugin: string, skill: string) =>
+  apiFetch(
+    `${API}/workspace/skills/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}/disable`,
+    { method: "POST" },
+  ).then((r) => jsonOrThrow<{ plugin: string; skill: string; enabled: boolean }>(r));
+
+export const enableSkill = (plugin: string, skill: string) =>
+  apiFetch(
+    `${API}/workspace/skills/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}/enable`,
+    { method: "POST" },
+  ).then((r) => jsonOrThrow<{ plugin: string; skill: string; enabled: boolean }>(r));
+
+// ----- Anonymisation (folded from modules/anonymisation/api.ts) ----------
+
+export type AnonymisationEngine = "presidio" | "claude" | "auto";
+
+export interface AnonymiseRequestPayload {
+  engine?: AnonymisationEngine;
+  entity_types?: string[] | null;
+  threshold?: number;
+}
+
+export interface TokenMapping {
+  token: string;
+  entity_type: string;
+  original: string;
+  occurrences: number;
+}
+
+export interface AnonymisationResult {
+  document_id: string;
+  redacted_text: string;
+  engine: string;
+  anonymised_at: string;
+  char_count: number;
+  entity_count: number;
+  tokens: TokenMapping[];
+}
+
+export interface AnonymisationSpan {
+  start: number;
+  end: number;
+  token: string;
+  original: string;
+  entity_type: string;
+}
+
+export interface MappingRead {
+  document_id: string;
+  tokens: TokenMapping[];
+  spans: AnonymisationSpan[];
+}
+
+async function anonymisationJsonOrThrow<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const body = await res.json();
+      detail = typeof body?.detail === "string" ? body.detail : JSON.stringify(body);
+    } catch {
+      detail = await res.text();
+    }
+    throw new Error(`${res.status} ${res.statusText}: ${detail}`.trim());
+  }
+  return (await res.json()) as T;
+}
+
+export const anonymiseDocument = (
+  documentId: string,
+  body: AnonymiseRequestPayload = {},
+): Promise<AnonymisationResult> =>
+  apiFetch(`${API}/documents/${documentId}/anonymise`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ engine: "auto", threshold: 0.4, ...body }),
+  }).then((r) => anonymisationJsonOrThrow<AnonymisationResult>(r));
+
+export const getAnonymisation = (documentId: string): Promise<AnonymisationResult> =>
+  apiFetch(`${API}/documents/${documentId}/anonymise`).then((r) =>
+    anonymisationJsonOrThrow<AnonymisationResult>(r),
+  );
+
+export const getAnonymisationMapping = (documentId: string): Promise<MappingRead> =>
+  apiFetch(`${API}/documents/${documentId}/anonymise/mapping`).then((r) =>
+    anonymisationJsonOrThrow<MappingRead>(r),
+  );
+
+export const deleteAnonymisation = async (documentId: string): Promise<void> => {
+  const res = await apiFetch(`${API}/documents/${documentId}/anonymise`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`${res.status} ${res.statusText}`);
+  }
+};
+
+// ----- Tabular review (folded from modules/tabular_review/api.ts) --------
+
+export type ColumnType = "text" | "date" | "yesno" | "number";
+
+export interface ColumnSpec {
+  key: string;
+  label: string;
+  prompt: string;
+  type: ColumnType;
+}
+
+export interface ReviewRowRead {
+  document_id: string;
+  document_filename: string;
+  extracted_values: Record<string, unknown>;
+  last_run_at: string | null;
+}
+
+export interface ReviewRead {
+  id: string;
+  matter_slug: string;
+  title: string;
+  columns_config: ColumnSpec[];
+  rows: ReviewRowRead[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewSummary {
+  id: string;
+  title: string;
+  column_count: number;
+  row_count: number;
+  last_run_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewCreateRequest {
+  title: string;
+  columns_config: ColumnSpec[];
+}
+
+export interface ReviewUpdateRequest {
+  title?: string;
+  columns_config?: ColumnSpec[];
+}
+
+export interface RunRequest {
+  document_ids?: string[];
+  column_keys?: string[];
+  confirm_above_50?: boolean;
+}
+
+export interface RunEstimate {
+  total_calls: number;
+  est_input_tokens: number;
+  est_output_tokens: number;
+  est_cost_pence_lower: number;
+  est_cost_pence_upper: number;
+  requires_confirm: boolean;
+  provider: string | null;
+  model_id: string | null;
+}
+
+export interface RunErrorRow {
+  document_id: string;
+  column_key: string;
+  error_message: string;
+}
+
+export interface RunReport {
+  cells_run: number;
+  cells_failed: number;
+  errors: RunErrorRow[];
+  duration_ms: number;
+}
+
+export interface ExportResponse {
+  file_uuid: string;
+  download_url: string;
+  byte_count: number;
+}
+
+const reviewsBase = (slug: string) => `${API}/matters/${slug}/reviews`;
+
+export const listReviews = (slug: string) =>
+  apiFetch(reviewsBase(slug)).then((r) => jsonOrThrow<ReviewSummary[]>(r));
+
+export const createReview = (slug: string, body: ReviewCreateRequest) =>
+  apiFetch(reviewsBase(slug), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<ReviewRead>(r));
+
+export const getReview = (slug: string, reviewId: string) =>
+  apiFetch(`${reviewsBase(slug)}/${reviewId}`).then((r) => jsonOrThrow<ReviewRead>(r));
+
+export const updateReview = (
+  slug: string,
+  reviewId: string,
+  body: ReviewUpdateRequest,
+) =>
+  apiFetch(`${reviewsBase(slug)}/${reviewId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<ReviewRead>(r));
+
+export const deleteReview = (slug: string, reviewId: string) =>
+  apiFetch(`${reviewsBase(slug)}/${reviewId}`, { method: "DELETE" }).then((r) => {
+    if (!r.ok && r.status !== 204) {
+      throw new Error(`${r.status} ${r.statusText}`);
+    }
+  });
+
+export const estimateReview = (slug: string, reviewId: string, body: RunRequest = {}) =>
+  apiFetch(`${reviewsBase(slug)}/${reviewId}/estimate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<RunEstimate>(r));
+
+export const runReview = (slug: string, reviewId: string, body: RunRequest) =>
+  apiFetch(`${reviewsBase(slug)}/${reviewId}/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<RunReport>(r));
+
+export const exportReviewDocx = (slug: string, reviewId: string) =>
+  apiFetch(`${reviewsBase(slug)}/${reviewId}/export.docx`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<ExportResponse>(r));
+
+// Backend-relative URL → fully qualified download URL.
+export const generatedDocxUrl = (downloadUrl: string) =>
+  `${BACKEND_ROOT}${downloadUrl}`;
+
+// ----- Case law (folded from modules/case_law/api.ts) --------------------
+
+export interface CaseLawSearchRequest {
+  query: string;
+  court?: string | null;
+  year?: number | null;
+}
+
+export interface CaseLawResult {
+  case_name: string;
+  citation_ref: string;
+  court: string | null;
+  judgment_date: string | null;
+  parties: string | null;
+  summary: string | null;
+  source_url: string | null;
+  relevance_score: number | null;
+}
+
+export interface CaseLawSearchResponse {
+  query: string;
+  results: CaseLawResult[];
+  truncated: boolean;
+  raw_response_excerpt: string | null;
+  model_used: string;
+  latency_ms: number;
+}
+
+export interface CitationCreateRequest {
+  case_name: string;
+  citation_ref: string;
+  citation_text: string;
+  source_url?: string | null;
+}
+
+export interface MatterCitationRead {
+  id: string;
+  matter_id: string;
+  case_name: string | null;
+  citation_ref: string | null;
+  citation_text: string;
+  source_url: string | null;
+  added_by_id: string;
+  added_at: string;
+}
+
+const caseLawBase = (slug: string) => `${API}/matters/${slug}`;
+
+export const searchCaseLaw = (slug: string, body: CaseLawSearchRequest) =>
+  apiFetch(`${caseLawBase(slug)}/case-law/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<CaseLawSearchResponse>(r));
+
+export const createCitation = (slug: string, body: CitationCreateRequest) =>
+  apiFetch(`${caseLawBase(slug)}/citations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<MatterCitationRead>(r));
+
+export const listCitations = (slug: string) =>
+  apiFetch(`${caseLawBase(slug)}/citations`).then((r) =>
+    jsonOrThrow<MatterCitationRead[]>(r),
+  );
+
+export const deleteCitation = (slug: string, citationId: string) =>
+  apiFetch(`${caseLawBase(slug)}/citations/${citationId}`, { method: "DELETE" }).then(
+    (r) => {
+      if (!r.ok && r.status !== 204) {
+        throw new Error(`${r.status} ${r.statusText}`);
+      }
+    },
+  );
+
+// ----- Contract Review (folded from modules/contract_review/api.ts) ------
+
+export type Posture = "buyer" | "seller" | "balanced";
+export type ContractKind =
+  | "nda"
+  | "saas"
+  | "msa"
+  | "dpa"
+  | "consultancy"
+  | "employment"
+  | "settlement"
+  | "other";
+
+export interface ContractReviewInputs {
+  document_id: string;
+  posture?: Posture;
+  contract_type?: ContractKind;
+  counterparty_name?: string | null;
+  deal_value?: string | null;
+}
+
+export type ClauseType =
+  | "definitions"
+  | "scope"
+  | "term"
+  | "payment"
+  | "ip"
+  | "confidentiality"
+  | "data_protection"
+  | "warranties"
+  | "indemnity"
+  | "liability"
+  | "termination"
+  | "governing_law"
+  | "jurisdiction"
+  | "arbitration"
+  | "boilerplate"
+  | "other";
+
+export interface Clause {
+  id: string;
+  section: string;
+  title: string;
+  type: ClauseType;
+  text: string;
+  defined_terms_used: string[];
+  cross_references: string[];
+}
+
+export interface ParsedContract {
+  title: string;
+  parties: string[];
+  document_type: ContractKind;
+  governing_law_stated: string | null;
+  clauses: Clause[];
+}
+
+export type UkIssueCategory =
+  | "ucta_s2_s3"
+  | "cra_s62"
+  | "uk_gdpr_art28"
+  | "governing_law"
+  | "jurisdiction"
+  | "arbitration"
+  | "liability_cap"
+  | "indemnity"
+  | "ip_assignment"
+  | "termination"
+  | "boilerplate"
+  | "other";
+
+export type RiskSeverity = "high" | "medium" | "low";
+
+export interface UkIssue {
+  category: UkIssueCategory;
+  statute_ref: string;
+  description: string;
+  severity: RiskSeverity;
+}
+
+export interface ClauseAnalysis {
+  clause_id: string;
+  risk_score: number;
+  summary: string;
+  uk_issues: UkIssue[];
+  posture_note: string;
+}
+
+export type RedlinePriority = "must" | "suggested" | "nice_to_have";
+
+export interface Redline {
+  clause_id: string;
+  original_text: string;
+  suggested_text: string;
+  explanation: string;
+  priority: RedlinePriority;
+}
+
+export interface ContractSummary {
+  executive_summary: string;
+  key_terms: string[];
+  risk_overview: string;
+  uk_specific_callouts: string[];
+  recommendation: string;
+}
+
+export type StageState = "pending" | "running" | "done" | "error" | "skipped";
+
+export interface StageStatus {
+  name: string;
+  status: StageState;
+  sub_agent_count: number;
+  duration_ms: number;
+  token_count: number;
+  errors: string[];
+}
+
+export interface ContractReviewResult {
+  matter_slug: string;
+  document_id: string;
+  document_filename: string;
+  started_at: string;
+  completed_at: string;
+  total_duration_ms: number;
+  total_token_count: number;
+  model_used: string;
+  stages: StageStatus[];
+  parsed: ParsedContract;
+  analyses: ClauseAnalysis[];
+  redlines: Redline[];
+  summary: ContractSummary;
+  posture: Posture;
+  contract_type: ContractKind;
+}
+
+export const runContractReview = (
+  slug: string,
+  inputs: ContractReviewInputs,
+): Promise<ContractReviewResult> =>
+  apiFetch(`${API}/matters/${slug}/contract-review/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inputs),
+  }).then((r) => jsonOrThrow<ContractReviewResult>(r));
+
+export type ContractReviewStreamEvent =
+  | { event: "stage.start"; data: { stage: string } }
+  | {
+      event: "stage.end";
+      data: {
+        stage: string;
+        duration_ms: number;
+        token_count: number;
+        status: "ok" | "error" | "skipped";
+        error?: string;
+      };
+    }
+  | { event: "result"; data: ContractReviewResult }
+  | {
+      event: "error";
+      data: {
+        message: string;
+        code?: number;
+        error?: string;
+        provider?: string;
+      };
+    };
+
+export class StreamPreflightError extends Error {
+  status: number;
+  body: unknown;
+  constructor(status: number, body: unknown, message: string) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
+export async function* runContractReviewStream(
+  slug: string,
+  inputs: ContractReviewInputs,
+  signal?: AbortSignal,
+): AsyncIterableIterator<ContractReviewStreamEvent> {
+  const resp = await apiFetch(
+    `${API}/matters/${slug}/contract-review/run-stream`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(inputs),
+      signal,
+    },
+  );
+  if (!resp.ok || !resp.body) {
+    const text = await resp.text();
+    let parsed: unknown = text;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      /* leave as text */
+    }
+    let message = `${resp.status} ${resp.statusText}`;
+    if (parsed && typeof parsed === "object") {
+      const detail = (parsed as { detail?: unknown }).detail;
+      if (typeof detail === "string") message = detail;
+      else if (detail && typeof detail === "object") {
+        const m = (detail as { message?: unknown }).message;
+        if (typeof m === "string") message = m;
+      }
+    } else if (typeof parsed === "string" && parsed) {
+      message = parsed;
+    }
+    throw new StreamPreflightError(resp.status, parsed, message);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    buffer += decoder.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) >= 0) {
+      const frame = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      let event = "message";
+      const dataLines: string[] = [];
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:"))
+          dataLines.push(line.slice(5).trim());
+      }
+      if (dataLines.length === 0) continue;
+      const data = JSON.parse(dataLines.join("\n"));
+      yield { event, data } as ContractReviewStreamEvent;
+    }
+  }
+}
+
+export interface DocxExportResult {
+  file_uuid: string;
+  storage_uri: string;
+  byte_count: number;
+  download_url: string;
+}
+
+export const exportContractReviewDocx = (
+  slug: string,
+  result: ContractReviewResult,
+): Promise<DocxExportResult> =>
+  apiFetch(`${API}/matters/${slug}/contract-review/docx`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(result),
+  }).then((r) => jsonOrThrow<DocxExportResult>(r));
