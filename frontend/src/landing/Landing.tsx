@@ -95,6 +95,12 @@ export function Landing() {
                 Installed skills
               </a>
               <a
+                href="#/modules/submit"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                Submit a skill
+              </a>
+              <a
                 href="https://github.com/b1rdmania/legalise"
                 target="_blank"
                 rel="noreferrer"
@@ -122,6 +128,12 @@ export function Landing() {
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
                 Installed skills
+              </a>
+              <a
+                href="#/modules/submit"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                Submit a skill
               </a>
               <a
                 href="https://github.com/b1rdmania/legalise"

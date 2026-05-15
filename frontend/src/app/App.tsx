@@ -10,6 +10,7 @@ import { VerifyPending } from "../auth/VerifyPending";
 import { Verify } from "../auth/Verify";
 import { Settings } from "../auth/Settings";
 import { Landing } from "../landing/Landing";
+import { SubmitModule } from "../landing/SubmitModule";
 import { Modules } from "../modules-page/Modules";
 import { MatterList } from "../matter/MatterList";
 import { NewMatter } from "../matter/NewMatter";
@@ -103,6 +104,7 @@ function AppInner() {
       <main className="flex-1">
         {route.name === "landing" && <Landing />}
         {route.name === "modules" && <Modules />}
+        {route.name === "submitModule" && <SubmitModule />}
         {route.name === "list" && <MatterList />}
         {route.name === "new" && <NewMatter />}
         {route.name === "detail" && (

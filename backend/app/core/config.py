@@ -91,6 +91,22 @@ class Settings(BaseSettings):
     plugins_repo: str | None = "https://github.com/b1rdmania/claude-for-uk-legal"
     plugins_repo_ref: str | None = "3fb0ea86ad49f92d90fbd9dcfbee70f5947ba31c"
 
+    # Public module submission flow (Phase D W3). Opens a draft PR on
+    # `b1rdmania/claude-for-uk-legal` via a fine-grained PAT scoped to that
+    # repo only. PAT owner MUST be `b1rdmania` — NOT `ziggythebot`. The
+    # endpoint degrades to 503 when the token is unset so the surface
+    # cannot accidentally hit GitHub without a configured PAT. Turnstile
+    # site/secret keys gate the unauthenticated POST against bots; in-memory
+    # token bucket adds defense in depth on a single Fly instance (Redis
+    # rate-limiter is v0.2 per PHASE_INFRA_DELTA §5).
+    submission_enabled: bool = True
+    github_submission_token: str | None = None
+    github_submission_repo: str = "b1rdmania/claude-for-uk-legal"
+    github_submission_base_branch: str = "main"
+    turnstile_site_key: str | None = None
+    turnstile_secret_key: str | None = None
+    submission_rate_limit_per_hour: int = 5
+
 
 @lru_cache
 def get_settings() -> Settings:

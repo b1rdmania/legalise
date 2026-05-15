@@ -29,6 +29,7 @@ export type Route =
   | { name: "verifyPending" }
   | { name: "verify"; token: string | null }
   | { name: "modules" }
+  | { name: "submitModule" }
   | { name: "list" }
   | { name: "new" }
   | { name: "detail"; slug: string; tab?: string }
@@ -58,6 +59,7 @@ export function parseHash(hash: string): Route {
   if (h === "auth/verify-pending") return { name: "verifyPending" };
   if (h === "auth/verify") return { name: "verify", token: query.get("token") };
   if (h === "modules") return { name: "modules" };
+  if (h === "modules/submit") return { name: "submitModule" };
   if (h === "matters") return { name: "list" };
   if (h === "matters/new") return { name: "new" };
   if (h === "settings" || h === "settings/profile") return { name: "settings", tab: "profile" };
@@ -94,6 +96,7 @@ export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "verifyPending",
   "verify",
   "modules", // catalogue is public per HANDOVER_AUTH §7 allowlist
+  "submitModule", // pre-login surface; Turnstile + IP rate-limit gate it
 ]);
 
 export const isPublicRoute = (route: Route): boolean =>

@@ -1286,3 +1286,82 @@ export const exportContractReviewDocx = (
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(result),
   }).then((r) => jsonOrThrow<DocxExportResult>(r));
+
+// Public module submission flow (Phase D W3). The submitter never
+// supplies frontmatter — the backend synthesises the SKILL.md
+// authoritatively via `frontmatter.dump`. Frontend preview is a UX
+// aid, not a wire contract.
+export const SUBMISSION_TRUST_POSTURES = [
+  "trusted",
+  "third_party",
+  "experimental",
+] as const;
+export type SubmissionTrustPosture = (typeof SUBMISSION_TRUST_POSTURES)[number];
+
+// Closed capability set — mirrors backend `ALLOWED_CAPABILITIES`
+// (PHASE_INFRA_DELTA §4 decision 2). Keep in sync.
+export const SUBMISSION_CAPABILITIES = [
+  "matter.read",
+  "document.body.read",
+  "document.generated.write",
+  "model.invoke",
+  "chronology.read",
+  "chronology.write",
+  "citation.write",
+  "audit.emit",
+] as const;
+export type SubmissionCapability = (typeof SUBMISSION_CAPABILITIES)[number];
+
+export interface ModuleSubmissionRequest {
+  plugin_name: string;
+  skill_name: string;
+  description: string;
+  body_markdown: string;
+  capabilities: SubmissionCapability[];
+  trust_posture: SubmissionTrustPosture;
+  submitter_handle: string;
+  submitter_contact: string;
+  turnstile_token: string;
+}
+
+export interface ModuleSubmissionResponse {
+  submission_id: string;
+  pull_request_url: string;
+  branch_name: string;
+}
+
+export interface SubmissionConfig {
+  submission_enabled: boolean;
+  turnstile_site_key: string | null;
+}
+
+export const getSubmissionConfig = () =>
+  apiFetch(`${API}/modules/submissions/config`).then((r) =>
+    jsonOrThrow<SubmissionConfig>(r),
+  );
+
+// `submitModule` returns the parsed body on success and throws an
+// `Error` whose `.message` carries the JSON error envelope from the
+// backend on failure so the UI can branch on status.
+export async function submitModule(
+  body: ModuleSubmissionRequest,
+): Promise<ModuleSubmissionResponse> {
+  const res = await apiFetch(`${API}/modules/submissions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail: unknown = null;
+    try {
+      detail = await res.json();
+    } catch {
+      detail = await res.text();
+    }
+    const err = new Error(`submission failed (${res.status})`);
+    (err as Error & { status?: number; detail?: unknown }).status = res.status;
+    (err as Error & { status?: number; detail?: unknown }).detail = detail;
+    throw err;
+  }
+  return (await res.json()) as ModuleSubmissionResponse;
+}
