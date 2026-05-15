@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import { EditPanel } from "./modules/document_edit/EditPanel";
 import {
   BACKEND_ROOT,
   confirmGate,
@@ -1650,6 +1651,7 @@ function DocumentsTab({
 }) {
   const [tag, setTag] = useState("");
   const [fromDisclosure, setFromDisclosure] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1695,23 +1697,36 @@ function DocumentsTab({
       {docs && docs.length > 0 && (
         <div className="border-t border-rule overflow-x-auto">
           <div className="min-w-[720px]">
-            <div className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
               <span>SHA</span>
               <span>Filename</span>
               <span>Size</span>
               <span>Tag</span>
               <span>Disclosure</span>
+              <span className="text-right">Action</span>
             </div>
             {docs.map((d) => (
-              <div
-                key={d.id}
-                className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
-              >
-                <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
-                <span className="text-ink truncate">{d.filename}</span>
-                <span className="text-ink">{formatBytes(d.size_bytes)}</span>
-                <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
-                <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+              <div key={d.id} className="border-b border-rule">
+                <div
+                  className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 hover:bg-wash transition-colors font-mono text-[11px] items-center cursor-pointer"
+                  onClick={() => setEditingId(editingId === d.id ? null : d.id)}
+                >
+                  <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
+                  <span className="text-ink truncate">{d.filename}</span>
+                  <span className="text-ink">{formatBytes(d.size_bytes)}</span>
+                  <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
+                  <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+                  <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
+                    {editingId === d.id ? "Close" : "Edit"}
+                  </span>
+                </div>
+                {editingId === d.id && (
+                  <EditPanel
+                    documentId={d.id}
+                    filename={d.filename}
+                    onClose={() => setEditingId(null)}
+                  />
+                )}
               </div>
             ))}
           </div>

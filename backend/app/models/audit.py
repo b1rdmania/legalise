@@ -27,6 +27,9 @@ class AuditEntry(Base):
     matter_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("matters.id"), nullable=True, index=True)
 
     action: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    # `module` namespaces the action for the matter audit log UI
+    # (e.g. "document_edit", "pre_motion", "letters"). Nullable for legacy rows.
+    module: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     resource_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     resource_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

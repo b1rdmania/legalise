@@ -104,6 +104,7 @@ export interface AuditEntry {
   actor_id: string | null;
   matter_id: string | null;
   action: string;
+  module: string | null;
   resource_type: string | null;
   resource_id: string | null;
   model_used: string | null;
@@ -389,6 +390,76 @@ export const draftLetter = (slug: string, letterType: string, inputs: Record<str
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ letter_type: letterType, inputs }),
   }).then((r) => jsonOrThrow<LetterDraft>(r));
+
+// ----- Document body + edit instructions (Phase A) -----------------------
+
+export interface DocumentBody {
+  document_id: string;
+  kind: string;
+  extracted_text: string;
+  extraction_method: string;
+  extracted_at: string;
+  char_count: number;
+  page_count: number | null;
+  error_reason: string | null;
+}
+
+export type EditMode =
+  | "tighten"
+  | "rewrite"
+  | "summarise"
+  | "free-text"
+  | "uk-jurisdiction-sweep";
+
+export interface DocumentVersionRead {
+  id: string;
+  document_id: string;
+  version_number: number;
+  kind: string;
+  created_by_id: string;
+  created_at: string;
+  storage_uri: string | null;
+  notes: string | null;
+}
+
+export interface DocumentEditRead {
+  id: string;
+  document_version_id: string;
+  change_id: string;
+  correlation_id: string | null;
+  deleted_text: string;
+  inserted_text: string;
+  context_before: string;
+  context_after: string;
+  rationale: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface EditInstructionResponse {
+  version: DocumentVersionRead;
+  pending_edits: DocumentEditRead[];
+  model_used: string;
+  model_notes: string;
+  instruction_hash: string;
+  parse_ok: boolean;
+}
+
+export const getDocumentBody = (documentId: string) =>
+  apiFetch(`${API}/documents/${documentId}/body`).then((r) =>
+    jsonOrThrow<DocumentBody>(r),
+  );
+
+export const postEditInstruction = (
+  documentId: string,
+  instruction: string,
+  mode: EditMode,
+) =>
+  apiFetch(`${API}/documents/${documentId}/edit-instructions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ instruction, mode }),
+  }).then((r) => jsonOrThrow<EditInstructionResponse>(r));
 
 // ----- Auth + user --------------------------------------------------------
 

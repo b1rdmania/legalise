@@ -28,6 +28,150 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.matter_fs import materialise_matter, append_history, record_document
 from app.models import Document, Event, Matter, PRIVILEGE_MIXED, STATUS_OPEN, User
+from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
+from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
+
+
+KHAN_DISMISSAL_BODY = """Acme Trading Ltd
+Warehouse 4, Lockwood Industrial Estate
+Bradford, BD12 9XX
+
+12 March 2026
+
+Ms Jasmine Khan
+[address redacted]
+
+Dear Ms Khan,
+
+Re: Termination of Employment
+
+Further to the disciplinary hearing held on 10 March 2026, we write to
+confirm that your employment with Acme Trading Ltd is terminated with
+immediate effect on grounds of gross misconduct.
+
+The conduct found by the panel concerns a social-media post made on
+your personal Instagram account on 5 March 2026. The panel concluded
+that the post breached clause 7.3 of the Acme Social Media Policy
+(October 2024) and brought the company into disrepute, notwithstanding
+the post being made outside working hours and from a personal device.
+
+You will be paid in lieu of notice for the four-week notice period
+required under your contract of employment. Accrued but untaken
+holiday will be paid alongside your final salary in the next pay run.
+
+You have the right to appeal this decision. Any appeal must be lodged
+in writing within five working days of the date of this letter and
+addressed to Mr R. Holland, Operations Director.
+
+Yours sincerely,
+
+M. Whitford
+HR Manager
+Acme Trading Ltd
+"""
+
+
+KHAN_WITNESS_BODY = """IN THE EMPLOYMENT TRIBUNAL
+BETWEEN:
+              JASMINE KHAN                              Claimant
+                  - and -
+        ACME TRADING LTD                              Respondent
+
+WITNESS STATEMENT OF JASMINE KHAN (DRAFT)
+
+I, Jasmine Khan, of [address], will say as follows:
+
+1. I am the Claimant in this matter. I make this statement from
+   my own knowledge save where otherwise indicated.
+
+2. I commenced employment with the Respondent as a Warehouse
+   Supervisor on 8 November 2022. I worked at the Bradford depot
+   until my dismissal on 12 March 2026, a period of three years
+   and four months of continuous service. Throughout that time
+   I had no disciplinary record.
+
+3. On 29 January 2026 I raised a formal grievance with HR
+   concerning the conduct of my line manager, Mr D. Caldwell,
+   toward several female members of the warehouse team. The
+   grievance described a pattern of comments and physical
+   gestures over the preceding six months. Two of the colleagues
+   referenced have indicated they would give evidence if asked.
+
+4. The grievance was acknowledged by HR on 18 February 2026.
+   I was informed that the investigator appointed would be Mr
+   Caldwell himself, in his capacity as senior warehouse manager.
+   I objected to this in writing on 19 February but received no
+   response.
+
+5. On 5 March 2026 I posted on my personal Instagram account, set
+   to a closed audience of 47 followers, a single sentence
+   expressing frustration with how the grievance was being handled.
+   The post did not name any colleague, customer, supplier, or
+   the Respondent.
+
+6. On 10 March 2026 I was called to a disciplinary hearing chaired
+   by Mr Caldwell. The hearing addressed the Instagram post. I
+   was not given prior sight of the screenshots relied on. The
+   panel's decision was communicated by letter on 12 March 2026
+   (the dismissal letter at exhibit JK1).
+
+7. I will give further evidence at hearing as to the surrounding
+   facts and the impact of the dismissal.
+
+[draft — for review with solicitor before signature]
+"""
+
+
+async def _ensure_body(session: AsyncSession, document: Document, text: str) -> None:
+    """Idempotent insert of a passthrough extracted-body row for a seed doc."""
+    existing = await session.scalar(
+        select(DocumentBody).where(
+            DocumentBody.document_id == document.id,
+            DocumentBody.kind == BODY_KIND_EXTRACTED,
+        )
+    )
+    if existing is not None:
+        return
+    session.add(
+        DocumentBody(
+            document_id=document.id,
+            kind=BODY_KIND_EXTRACTED,
+            extracted_text=text,
+            extraction_method="passthrough",
+            char_count=len(text),
+            page_count=1,
+        )
+    )
+
+
+async def _ensure_initial_version(
+    session: AsyncSession, document: Document, owner_id
+) -> None:
+    """Idempotent insert of the v1 `upload` DocumentVersion for a seed doc.
+
+    Phase A invariant: every Document has a v1 DocumentVersion of
+    kind=upload. Edit-instruction + replicate_document derive new version
+    numbers from `max(version_number)+1`, so missing v1 produces incorrect
+    numbering on the first model-assisted edit.
+    """
+    existing = await session.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.document_id == document.id,
+            DocumentVersion.version_number == 1,
+        )
+    )
+    if existing is not None:
+        return
+    session.add(
+        DocumentVersion(
+            document_id=document.id,
+            version_number=1,
+            kind=VERSION_KIND_UPLOAD,
+            created_by_id=owner_id,
+            storage_uri=None,
+            notes=None,
+        )
+    )
 
 
 DEMO_USER_EMAIL = "demo@legalise.dev"
@@ -149,6 +293,12 @@ async def _seed_documents(session: AsyncSession, matter: Matter, user_id) -> dic
     docs["dismissal"] = dismissal
     docs["witness"] = witness
 
+    await _ensure_body(session, dismissal, KHAN_DISMISSAL_BODY)
+    await _ensure_body(session, witness, KHAN_WITNESS_BODY)
+    await _ensure_initial_version(session, dismissal, user_id)
+    await _ensure_initial_version(session, witness, user_id)
+    await session.flush()
+
     for d in (dismissal, witness):
         record_document(
             matter.slug, matter.created_by_id, str(d.id), d.filename, d.sha256, d.size_bytes, d.tag
@@ -231,6 +381,17 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
         select(Matter).where(Matter.slug == KHAN_SLUG, Matter.created_by_id == user.id)
     )
     if existing is not None:
+        # Backfill body rows on previously-seeded matters (idempotent).
+        existing_docs = await session.scalars(
+            select(Document).where(Document.matter_id == existing.id)
+        )
+        for d in existing_docs.all():
+            if d.filename == "khan-dismissal-letter.pdf":
+                await _ensure_body(session, d, KHAN_DISMISSAL_BODY)
+            elif d.filename == "witness-statement-khan.docx":
+                await _ensure_body(session, d, KHAN_WITNESS_BODY)
+            await _ensure_initial_version(session, d, existing.created_by_id)
+        await session.commit()
         materialise_matter(existing)
         return existing
 

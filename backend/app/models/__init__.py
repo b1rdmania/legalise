@@ -36,6 +36,12 @@ from app.models.matter import (
 from app.models.document import Document, TAG_VALUES
 from app.models.event import Event
 from app.models.audit import AuditEntry
+from app.models.document_body import DocumentBody, BODY_KIND_VALUES, EXTRACTION_METHOD_VALUES
+from app.models.document_version import DocumentVersion, VERSION_KIND_VALUES
+from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
+from app.models.tabular_review import TabularReview, TabularReviewRow
+from app.models.workspace_skill import WorkspaceDisabledSkill
+from app.models.matter_citation import MatterCitation
 
 __all__ = [
     "Base",
@@ -46,6 +52,13 @@ __all__ = [
     "Document",
     "Event",
     "AuditEntry",
+    "DocumentBody",
+    "DocumentVersion",
+    "DocumentEdit",
+    "TabularReview",
+    "TabularReviewRow",
+    "WorkspaceDisabledSkill",
+    "MatterCitation",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",
     "PRIVILEGE_PAUSED",
@@ -55,4 +68,8 @@ __all__ = [
     "STATUS_CLOSED",
     "STATUS_VALUES",
     "TAG_VALUES",
+    "BODY_KIND_VALUES",
+    "EXTRACTION_METHOD_VALUES",
+    "VERSION_KIND_VALUES",
+    "EDIT_STATUS_VALUES",
 ]

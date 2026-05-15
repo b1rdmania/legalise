@@ -21,8 +21,9 @@ import time
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol
+from typing import Any, Awaitable, Callable, Protocol
 
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,6 +69,35 @@ class PrivilegePosture(str, Enum):
 
 class PrivilegePaused(RuntimeError):
     """Raised when a model call is attempted on a C_paused matter."""
+
+
+class ToolNotFound(RuntimeError):
+    """Raised when `invoke_tool` is asked for a name that isn't registered."""
+
+
+class ToolValidationError(ValueError):
+    """Raised when tool input or output fails its Pydantic model."""
+
+
+@dataclass
+class GatewayTool:
+    """A registered tool callable through `ModelGateway.invoke_tool`.
+
+    `input_model` and `output_model` are Pydantic models; their
+    `model_json_schema()` is the wire-format JSON Schema (no separate
+    `jsonschema` lib dep — design call G4.1).
+
+    `handler` is `async def handler(inputs, *, session, actor_id, matter_id)`;
+    return value is validated against `output_model` before the gateway
+    returns the dict to the caller.
+    """
+
+    name: str
+    description: str
+    input_model: type[BaseModel]
+    output_model: type[BaseModel]
+    handler: Callable[..., Awaitable[Any]]
+    posture_gated: bool = True
 
 
 # `ProviderKeyMissing` is re-exported so routers catch it via the same
@@ -120,9 +150,99 @@ class ModelGateway:
         self._providers: dict[str, ModelProvider] = providers or {}
         # Always-available dev fallback.
         self._providers.setdefault("stub-echo", StubProvider())
+        # Tool registry — populated at lifespan startup by
+        # `app.core.tools.register_phase_a_tools(gateway)`.
+        self._tools: dict[str, GatewayTool] = {}
 
     def register(self, provider: ModelProvider) -> None:
         self._providers[provider.name] = provider
+
+    # ------------------------------------------------------------------
+    # Tool registry
+    # ------------------------------------------------------------------
+
+    def register_tool(self, tool: GatewayTool) -> None:
+        """Register (or overwrite) a tool by name."""
+        self._tools[tool.name] = tool
+
+    def get_tool(self, name: str) -> GatewayTool | None:
+        return self._tools.get(name)
+
+    def clear_tools(self) -> None:
+        """Drop all registered tools. Intended for tests."""
+        self._tools.clear()
+
+    def list_tools(self) -> list[GatewayTool]:
+        return list(self._tools.values())
+
+    async def invoke_tool(
+        self,
+        name: str,
+        *,
+        session: AsyncSession,
+        actor_id: uuid.UUID,
+        matter_id: uuid.UUID | None,
+        inputs: dict,
+    ) -> dict:
+        """Invoke a registered tool by name.
+
+        Validates `inputs` against the tool's `input_model`. If the tool
+        is posture-gated, `matter_id` is REQUIRED and the matter's
+        `privilege_posture` is read authoritatively from the DB; C_paused
+        raises `PrivilegePaused`. Runs the handler, validates the result
+        against `output_model`, and returns `model_dump()`.
+
+        Tools that legitimately operate without a matter (admin / system
+        scope) must be registered with `posture_gated=False`.
+        """
+        tool = self._tools.get(name)
+        if tool is None:
+            raise ToolNotFound(f"tool not registered: {name}")
+
+        try:
+            validated_inputs = tool.input_model.model_validate(inputs)
+        except ValidationError as exc:
+            raise ToolValidationError(f"input validation failed for {name}: {exc}") from exc
+
+        if tool.posture_gated:
+            if matter_id is None:
+                # Refuse: posture-gated tools must be scoped to a matter so
+                # the C_paused gate cannot be bypassed by omitting matter_id.
+                # Tools that legitimately need to run without a matter must
+                # be registered with posture_gated=False explicitly.
+                raise PrivilegePaused(
+                    f"tool {name!r} is posture-gated; matter_id is required"
+                )
+            posture_row = await session.scalar(
+                select(Matter.privilege_posture).where(Matter.id == matter_id)
+            )
+            if posture_row is None:
+                raise PrivilegePaused(f"matter not found for matter_id={matter_id}")
+            if PrivilegePosture(posture_row) is PrivilegePosture.C_PAUSED:
+                raise PrivilegePaused(
+                    "Matter privilege posture is C_paused — tool invocation is blocked. "
+                    "Change posture to A_cleared or B_mixed to proceed."
+                )
+
+        result = await tool.handler(
+            validated_inputs,
+            session=session,
+            actor_id=actor_id,
+            matter_id=matter_id,
+        )
+
+        # Handlers may return either a Pydantic model instance or a dict.
+        if isinstance(result, tool.output_model):
+            validated_output = result
+        else:
+            try:
+                validated_output = tool.output_model.model_validate(result)
+            except ValidationError as exc:
+                raise ToolValidationError(
+                    f"output validation failed for {name}: {exc}"
+                ) from exc
+
+        return validated_output.model_dump(mode="json")
 
     def _select_provider(self, requested: str, posture: PrivilegePosture) -> ModelProvider:
         if posture is PrivilegePosture.B_MIXED:

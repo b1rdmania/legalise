@@ -32,6 +32,7 @@ from app.core.matter_fs import (
     record_document,
 )
 from app.core.model_gateway import PrivilegePaused
+from app.core.text_extraction import extract as extract_text
 from app.core.user_keys import ProviderKeyMissing
 from app.models import (
     AuditEntry,
@@ -44,6 +45,8 @@ from app.models import (
     STATUS_OPEN,
     TAG_VALUES,
 )
+from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
+from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
 
 router = APIRouter()
 
@@ -92,6 +95,7 @@ class AuditEntryRead(BaseModel):
     actor_id: uuid.UUID | None
     matter_id: uuid.UUID | None
     action: str
+    module: str | None
     resource_type: str | None
     resource_id: str | None
     model_used: str | None
@@ -151,6 +155,7 @@ async def _write_audit(
     actor: User,
     matter: Matter | None,
     action: str,
+    module: str | None = None,
     resource_type: str | None = None,
     resource_id: str | None = None,
     payload: dict | None = None,
@@ -159,6 +164,7 @@ async def _write_audit(
         actor_id=actor.id,
         matter_id=matter.id if matter else None,
         action=action,
+        module=module,
         resource_type=resource_type,
         resource_id=resource_id,
         payload=payload or {},
@@ -276,6 +282,22 @@ async def upload_document(
     session.add(doc)
     await session.flush()
 
+    # Establish the v1 `upload` version row immediately. Downstream
+    # surfaces (edit-instruction, replicate_document) use
+    # `max(version_number)+1`, which requires v1 to exist or assistant
+    # edits would land as version 1 themselves. Phase A invariant: every
+    # Document has a corresponding v1 DocumentVersion of kind=upload.
+    session.add(
+        DocumentVersion(
+            document_id=doc.id,
+            version_number=1,
+            kind=VERSION_KIND_UPLOAD,
+            created_by_id=user.id,
+            storage_uri=None,
+            notes=None,
+        )
+    )
+
     await _write_audit(
         session,
         actor=user,
@@ -285,6 +307,51 @@ async def upload_document(
         resource_id=str(doc.id),
         payload={"filename": doc.filename, "sha256": sha, "tag": tag, "from_disclosure": from_disclosure},
     )
+
+    # Text extraction (synchronous; see PHASE_A_DELTA G1.5).
+    extract_result = extract_text(contents, doc.mime_type, doc.filename)
+    session.add(
+        DocumentBody(
+            document_id=doc.id,
+            kind=BODY_KIND_EXTRACTED,
+            extracted_text=extract_result.extracted_text,
+            extraction_method=extract_result.extraction_method,
+            char_count=extract_result.char_count,
+            page_count=extract_result.page_count,
+            error_reason=extract_result.error_reason,
+        )
+    )
+    if extract_result.extraction_method == "failed":
+        await _write_audit(
+            session,
+            actor=user,
+            matter=matter,
+            action="document.text_extraction_failed",
+            module="document_ingestion",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "reason": extract_result.error_reason,
+                "mime_type": doc.mime_type,
+            },
+        )
+    else:
+        await _write_audit(
+            session,
+            actor=user,
+            matter=matter,
+            action="document.text_extracted",
+            module="document_ingestion",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "method": extract_result.extraction_method,
+                "char_count": extract_result.char_count,
+                "page_count": extract_result.page_count,
+                "mime_type": doc.mime_type,
+            },
+        )
+
     await session.commit()
     await session.refresh(doc)
     record_document(

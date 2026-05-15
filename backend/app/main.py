@@ -14,6 +14,7 @@ from pathlib import Path
 from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
 from app.api.auth import router as auth_router
+from app.api.documents import router as documents_router
 from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
 from app.core.audit import AuditMiddleware
@@ -21,6 +22,7 @@ from app.core.config import settings
 from app.core.encryption import assert_auth_secrets_present, assert_master_key_present
 from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
+from app.core.tools import register_phase_a_tools
 from app.modules.chronology.router import router as chronology_router
 from app.modules.letters.router import router as letters_router
 from app.modules.pre_motion.router import router as pre_motion_router
@@ -55,6 +57,12 @@ async def lifespan(app: FastAPI):
     # without keys. Ollama is probed before registration so a missing
     # `local-models` compose profile doesn't poison B_mixed routing.
     await register_providers(model_gateway)
+
+    # Register Phase A model-callable tools (generate_docx, edit_document,
+    # replicate_document). Each goes through the same posture/audit rails
+    # as `gateway.call()`. Pydantic input/output models per tool; JSON Schema
+    # derived on demand via `model_json_schema()`.
+    register_phase_a_tools(model_gateway)
 
     # Wire the plugin bridge with the gateway and the plugins root.
     plugins_root = Path(settings.plugins_root)
@@ -126,6 +134,7 @@ async def health() -> dict[str, Any]:
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
+app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 
 # Chronology module nests its routes under /api/matters/{slug}/chronology
