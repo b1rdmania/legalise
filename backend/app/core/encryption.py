@@ -18,6 +18,33 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from app.core.config import settings
 
 _DEV_ENVIRONMENTS = {"development", "dev", "local"}
+
+DEFAULT_SESSION_SECRET = "change-me-in-deployment"
+
+
+def assert_auth_secrets_present() -> None:
+    """Production startup invariant for session security.
+
+    Refuses to boot in non-dev environments when:
+    - SESSION_SECRET is missing or the placeholder default
+    - session_cookie_secure is False (cookies would ride unencrypted)
+
+    Dev environments are exempt — local http and the placeholder secret
+    are acceptable for development. Production deploys MUST set both
+    `SESSION_SECRET` (any non-default value) and `SESSION_COOKIE_SECURE=true`.
+    """
+    if settings.environment in _DEV_ENVIRONMENTS:
+        return
+    bad: list[str] = []
+    if not settings.session_secret or settings.session_secret == DEFAULT_SESSION_SECRET:
+        bad.append("SESSION_SECRET must be set to a non-default value in production")
+    if not settings.session_cookie_secure:
+        bad.append("SESSION_COOKIE_SECURE must be true in production")
+    if bad:
+        raise RuntimeError(
+            "Production startup blocked — fix the following and redeploy:\n  - "
+            + "\n  - ".join(bad)
+        )
 _NONCE_BYTES = 12  # 96-bit GCM nonce
 _KEY_BYTES = 32  # AES-256
 

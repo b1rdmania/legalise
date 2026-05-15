@@ -18,7 +18,7 @@ from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
 from app.core.audit import AuditMiddleware
 from app.core.config import settings
-from app.core.encryption import assert_master_key_present
+from app.core.encryption import assert_auth_secrets_present, assert_master_key_present
 from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
 from app.modules.chronology.router import router as chronology_router
@@ -36,6 +36,7 @@ async def lifespan(app: FastAPI):
     # without it, every previously-stored user API key becomes unreadable
     # after a restart. Dev gets a process-lifetime random key.
     assert_master_key_present()
+    assert_auth_secrets_present()
 
     engine = create_async_engine(settings.postgres_dsn, echo=False)
     app.state.engine = engine

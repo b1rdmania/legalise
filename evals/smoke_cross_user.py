@@ -4,8 +4,9 @@
 Asserts the §7 invariant from HANDOVER_AUTH.md: a matter slug owned by
 User A returns 404 (not 403) when accessed via User B's session. The
 eval covers every load-bearing endpoint that resolves a matter by slug:
-matter detail, audit, documents, privilege, chronology, letters
-catalogue, Pre-Motion run, Pre-Motion run-stream.
+matter detail, audit, chronology, letters catalogue, letters draft,
+Pre-Motion run, Pre-Motion run-stream, Pre-Motion PDF, documents GET,
+documents POST (multipart), privilege PATCH.
 
 The slug invariant is per-owner unique (HANDOVER_AUTH.md §3e Option A),
 so both users can hold a matter named `eval-cross-user-{n}` without
@@ -35,8 +36,18 @@ def _opener() -> request.OpenerDirector:
     return request.build_opener(request.HTTPCookieProcessor(jar))
 
 
-def _req(opener, method: str, url: str, body: dict | None = None, form: bool = False):
-    if body is None:
+def _req(
+    opener,
+    method: str,
+    url: str,
+    body=None,
+    form: bool = False,
+    raw_body: bytes | None = None,
+    extra_headers: dict | None = None,
+):
+    if raw_body is not None:
+        data, headers = raw_body, dict(extra_headers or {})
+    elif body is None:
         data, headers = None, {}
     elif form:
         from urllib.parse import urlencode
@@ -105,12 +116,13 @@ def main() -> int:
     })
     assert status == 201, f"B same-slug create failed (Option A regression): {status} {body}"
 
-    # 2. B GETs A's matter URL -> 404, not 403, not 200.
+    # 2. B GETs A's matter URL -> 404 across every load-bearing read endpoint.
     paths_b_must_404 = [
         f"/matters/{slug_a}",
         f"/matters/{slug_a}/audit",
         f"/matters/{slug_a}/chronology",
         f"/matters/{slug_a}/letters/catalog",
+        f"/matters/{slug_a}/documents",
     ]
     for p in paths_b_must_404:
         status, body = _req(b, "GET", f"{API}{p}")
@@ -120,19 +132,75 @@ def main() -> int:
     status, body = _req(b, "POST", f"{API}/matters/{slug_a}/pre-motion/run", {})
     assert status == 404, f"POST pre-motion/run as B expected 404, got {status} {body}"
 
-    # 4. B POSTs Letters draft on A's slug -> 404 (not 400, not 503).
+    # 4. B POSTs Pre-Motion run-stream on A's slug -> 404 in the
+    #    preflight, BEFORE StreamingResponse opens. Middleware http.post
+    #    audit row must read 404 for this attempt, not 200.
+    status, body = _req(b, "POST", f"{API}/matters/{slug_a}/pre-motion/run-stream", {})
+    assert status == 404, f"POST pre-motion/run-stream as B expected 404, got {status} {body}"
+
+    # 5. B POSTs Pre-Motion PDF on A's slug -> 404 (no envelope leak).
+    status, body = _req(b, "POST", f"{API}/matters/{slug_a}/pre-motion/pdf", {
+        "matter_slug": slug_a,
+        "started_at": "2026-01-01T00:00:00+00:00",
+        "completed_at": "2026-01-01T00:00:01+00:00",
+        "total_duration_ms": 1,
+        "total_token_count": 0,
+        "model_used": "stub-echo",
+        "stages": [],
+        "optimistic": {
+            "key_arguments": [],
+            "supporting_evidence": [],
+            "expected_counterarguments": [],
+            "optimistic_outcome": "",
+        },
+        "evidence_flags": [],
+        "synthesis": {
+            "verdict": "borderline",
+            "verdict_reasoning": "",
+            "summary": "",
+            "failure_scenarios": [],
+            "evidence_inconsistencies": [],
+            "blind_spots": [],
+            "if_we_lose_this_will_be_why": "",
+        },
+    })
+    assert status == 404, f"POST pre-motion/pdf as B expected 404, got {status} {body}"
+
+    # 6. B POSTs Letters draft on A's slug -> 404 (not 400, not 503).
     status, body = _req(b, "POST", f"{API}/matters/{slug_a}/letters/draft", {
         "letter_type": "etb-grievance-letter",
         "inputs": {},
     })
     assert status == 404, f"POST letters/draft as B expected 404, got {status} {body}"
 
-    # 5. Anonymous GET -> 401 (current_user dependency enforces).
+    # 7. B PATCHes A's privilege posture -> 404.
+    status, body = _req(b, "PATCH", f"{API}/matters/{slug_a}/privilege", {
+        "privilege_posture": "C_paused",
+    })
+    assert status == 404, f"PATCH privilege as B expected 404, got {status} {body}"
+
+    # 8. B uploads a document to A's matter -> 404. Multipart form.
+    boundary = "----eval-boundary-" + suffix
+    multipart = (
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="file"; filename="evil.txt"\r\n'
+        f"Content-Type: text/plain\r\n\r\n"
+        f"hostile upload\r\n"
+        f"--{boundary}--\r\n"
+    ).encode()
+    status, body = _req(
+        b, "POST", f"{API}/matters/{slug_a}/documents",
+        raw_body=multipart,
+        extra_headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    assert status == 404, f"POST documents (upload) as B expected 404, got {status} {body}"
+
+    # 9. Anonymous GET -> 401 (current_user dependency enforces).
     anon = _opener()
     status, body = _req(anon, "GET", f"{API}/matters/{slug_a}")
     assert status == 401, f"anonymous GET expected 401, got {status} {body}"
 
-    print("OK — cross-user negative checks passed")
+    print("OK — cross-user negative checks passed (11 endpoints)")
     return 0
 
 

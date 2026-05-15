@@ -60,10 +60,19 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_secret = settings.session_secret
 
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
-        logger.info("auth.user.registered", user_id=str(user.id), email=user.email)
-        # Trigger verification email flow on every fresh registration.
-        # fastapi-users' request_verify generates a token + calls
-        # on_after_request_verify which we use to dispatch the actual email.
+        # Never log raw email — PII per HANDOVER_AUTH §4 "Mike weaknesses".
+        # user_id is the durable handle; admins join via the users table.
+        logger.info("auth.user.registered", user_id=str(user.id))
+        # Dev-only escape hatch: skip the email loop and mark verified on
+        # register. Otherwise local signup→login is impossible without
+        # standing up Resend just to test. Production environments always
+        # require the real verification flow.
+        from app.core.config import settings as _settings
+        if _settings.environment in {"development", "dev", "local"}:
+            user.is_verified = True
+            await self.user_db.update(user, {"is_verified": True})
+            logger.info("auth.dev_autoverify", user_id=str(user.id))
+            return
         try:
             await self.request_verify(user, request)
         except Exception as exc:
@@ -126,10 +135,14 @@ auth_backend = AuthenticationBackend(
 
 fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
 
-# `current_user` — hard dependency: 401 if no valid session.
-current_user = fastapi_users.current_user(active=True)
+# `current_user` — hard dependency: 401 if no valid session, 403 if the
+# session belongs to an unverified user. Workspace routes require email
+# verification per HANDOVER_AUTH §5 / R-review enforcement decision.
+current_user = fastapi_users.current_user(active=True, verified=True)
 # `optional_current_user` — soft dependency: returns None for anon traffic.
-# Used by audit middleware so http.* rows resolve to NULL on anon, not stub.
+# Used by audit middleware so http.* rows resolve to NULL on anon, not
+# stub. Verified flag is intentionally NOT enforced here — the middleware
+# logs forensic provenance for unverified attempts too.
 optional_current_user = fastapi_users.current_user(active=True, optional=True)
 
 

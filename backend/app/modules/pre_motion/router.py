@@ -23,7 +23,23 @@ from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused, PrivilegePosture
-from app.core.user_keys import ProviderKeyMissing
+from app.core.config import settings
+from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
+
+
+def _provider_for_model(model_id: str | None) -> str | None:
+    """Return the provider name that would handle `model_id`, or None if
+    keyless (stub-echo, ollama). Mirrors `ModelGateway._select_provider`
+    enough for an SSE preflight."""
+    if not model_id:
+        return None
+    if model_id.startswith("claude-"):
+        return "anthropic"
+    if model_id.startswith("gpt-"):
+        return "openai"
+    if model_id in {"anthropic", "openai"}:
+        return model_id
+    return None
 from app.models import Matter, User
 
 from .pdf import render_pre_motion_pdf
@@ -104,20 +120,46 @@ async def run_pre_motion_stream(
     async with factory() as preflight_session:
         row = (
             await preflight_session.execute(
-                select(Matter.id, Matter.privilege_posture).where(
+                select(
+                    Matter.id, Matter.privilege_posture, Matter.default_model_id
+                ).where(
                     Matter.slug == slug, Matter.created_by_id == user.id
                 )
             )
         ).first()
-    if row is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-    _, posture_value = row
-    if PrivilegePosture(posture_value) is PrivilegePosture.C_PAUSED:
-        raise HTTPException(
-            409,
-            "Matter privilege posture is C_paused — Pre-Motion blocked. "
-            "Change posture to A_cleared or B_mixed to run.",
-        )
+        if row is None:
+            raise HTTPException(404, f"matter not found: {slug}")
+        _, posture_value, default_model_id = row
+        if PrivilegePosture(posture_value) is PrivilegePosture.C_PAUSED:
+            raise HTTPException(
+                409,
+                "Matter privilege posture is C_paused — Pre-Motion blocked. "
+                "Change posture to A_cleared or B_mixed to run.",
+            )
+        # Provider-key preflight — fail BEFORE StreamingResponse opens
+        # so the middleware http.post row carries the right status. If
+        # the route's gone past this point, audit reads 200 even when
+        # the SSE error frame is 422.
+        provider_name = _provider_for_model(default_model_id)
+        if provider_name is not None:
+            user_key = await get_user_provider_key(
+                preflight_session, user.id, provider_name
+            )
+            fallback_allowed = (
+                settings.environment in {"development", "dev", "local"}
+                and settings.allow_server_key_fallback
+            )
+            if user_key is None and not fallback_allowed:
+                raise HTTPException(
+                    422,
+                    detail={
+                        "error": "provider_key_missing",
+                        "provider": provider_name,
+                        "message": (
+                            f"Add a {provider_name} API key in Settings → API Keys to run Pre-Motion."
+                        ),
+                    },
+                )
 
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
