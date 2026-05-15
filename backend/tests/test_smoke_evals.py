@@ -35,6 +35,7 @@ from app.core.model_gateway import (
     StubProvider,
 )
 from app.core.seed import KHAN_NDA_BODY
+from app.adapters.plugin_bridge import PluginBridge, SkillDisabled
 from app.models import AuditEntry
 from app.models.document_edit import DocumentEdit
 from app.modules.contract_review.agents import ParserAgent, RedlinerAgent
@@ -418,3 +419,36 @@ class TestNdaClauseParse:
         redlines = call.parsed.get("redlines") or []
         assert len(redlines) >= 1
         assert redlines[0]["clause_id"] == "c2"
+
+
+class TestSkillDisabledShortCircuit:
+    """Disabled `(plugin, skill)` raises before the gateway is touched."""
+
+    @pytest.mark.asyncio
+    async def test_disable_row_blocks_invocation(self, tmp_path) -> None:
+        skill_dir = tmp_path / "letters" / "skills" / "default-lba"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: default-lba\ndescription: stub\n---\nbody\n",
+            encoding="utf-8",
+        )
+
+        gateway = _FakeGateway({})
+        bridge = PluginBridge(plugins_root=tmp_path, gateway=gateway)
+
+        class _DisabledSession(_CapturingSession):
+            async def scalar(self, *args: Any, **kwargs: Any):
+                return object()
+
+        with pytest.raises(SkillDisabled) as info:
+            await bridge.invoke(
+                session=_DisabledSession(),
+                matter_id=uuid.uuid4(),
+                actor_id=uuid.uuid4(),
+                plugin="letters",
+                skill="default-lba",
+                inputs={},
+            )
+        assert info.value.plugin == "letters"
+        assert info.value.skill == "default-lba"
+        assert gateway.calls == []

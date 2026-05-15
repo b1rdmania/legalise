@@ -15,7 +15,7 @@ Shipped surfaces:
 - Audit middleware over every model call and matter mutation
 - Pre-Motion (adversarial premortem, four stages, nine model calls)
 - Contract Review (parser / analyst / redliner / summariser pipeline, SSE-streamed)
-- Letters (LBA via Word template; other types via procedural generator)
+- Letters (procedural `.docx` generator across all letter types in v0.1; template-driven LBA returns in v0.2)
 - Anonymisation (Presidio detection + deterministic token map + detokenise round-trip)
 - Tracked-changes document editing with accept / reject and version timeline
 - Tabular review across multiple documents

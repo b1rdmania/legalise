@@ -1,8 +1,10 @@
 # HANDOVER — Review of Rounds 1–3 (infra + Phase D W1 + partial Phase E)
 
-**Repo:** `github.com/b1rdmania/legalise` · **HEAD:** `188d401` on `master`
+**Repo:** `github.com/b1rdmania/legalise` · **HEAD:** updated post-reviewer fixes (one commit beyond `cefb108`)
 **Base before this batch:** `2b039c0`
-**Range to review:** `git log --oneline 2b039c0..188d401` (8 commits, ~5,300 LoC net)
+**Range to review:** `git log --oneline 2b039c0..HEAD` (10 commits, ~5,300 LoC net)
+
+> **Update 2026-05-15:** reviewer adjudicated this brief and flagged 1×P1 + 3×P2 (disabled-skill 500s, prompt-body auth gap, silent missing-manifest, stale LBA-template wording in launch copy). All four fixed in a follow-up commit. Open flags A–G adjudicated; see `HANDOVER_INFRA_BUILD.md` §6.5 for the per-flag decision log.
 **Read these first (decision authority):**
 1. `backend/PHASE_INFRA_DELTA.md` — locked decisions (§4) + deferred doctrine (§5). Updated 2026-05-15 with reviewer amendments + docxtpl rejection.
 2. `HANDOVER_INFRA_BUILD.md` — the build plan + reviewer-locked sequencing (§6). §6.5 has the in-flight execution log.

@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters import plugin_bridge as plugin_bridge_module
+from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
@@ -107,6 +108,8 @@ async def draft_letter(
         )
     except FileNotFoundError as exc:
         raise HTTPException(404, str(exc)) from exc
+    except SkillDisabled as exc:
+        raise HTTPException(403, str(exc)) from exc
     except PrivilegePaused as exc:
         raise HTTPException(409, str(exc)) from exc
     except ProviderKeyMissing as exc:

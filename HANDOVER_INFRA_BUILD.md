@@ -224,6 +224,23 @@ Plus the eternal v0.1 guards:
 - **`9e7012d` — Agent 2 (unit #2) landed.** App.tsx split into `app/ + auth/ + landing/ + matter/{tabs/} + modules-page/ + ui/`. App.tsx is now a 2-line re-export shim. Build green, 343.51 kB gzipped.
 - **`780238c` — Agent 9 (unit #9) landed.** README + PEERS + MANIFESTO + ROADMAP + ATTRIBUTIONS rewritten under `docs/`. Root `MANIFESTO.md` + `ROADMAP.md` initially left untouched; **2026-05-15 follow-up:** root files replaced with pointer stubs to canonical `docs/` versions per Andy's call; `docs/MODULE_DEVELOPMENT.md` cross-refs updated.
 - **2026-05-15 Andy decision — `docxtpl` rejected for v0.1.** LBA path is now Path A (procedural, recommended) or Path B (internal `python-docx` placeholder helper). `docs/ATTRIBUTIONS.md` Licence note removed. Delta §4 decision 4 + §3.5 unit #8 spec revised.
+- **2026-05-15 Reviewer adjudications on Rounds 1–3 (post `188d401`):**
+  - **P1 fix landed:** `SkillDisabled → HTTP 403` mapped at the three bridge call-sites (`api/matters.py`, `letters/router.py`, `case_law/router.py`) + new disable-short-circuit eval (`test_smoke_evals.py::TestSkillDisabledShortCircuit`). 38/38 tests green.
+  - **P2 fix landed:** `GET /api/modules/{plugin}/{skill}` now requires `current_user`. Disabled skills remain inspectable for review-before-re-enable.
+  - **P2 fix landed:** missing `module.json` now surfaces in `broken[]` with `"manifest missing"` rather than rendering as a normal skill with empty capabilities.
+  - **P2 fix landed:** README + `docs/ROADMAP.md` LBA wording corrected to "procedural .docx generator in v0.1; template-driven LBA returns in v0.2" (3 sites).
+  - **Open flag A — `#1a-tail`:** reviewer says finish pre-launch. Spawn a small agent to add `document_edit/schemas.py::ChangesEnvelope` + `anonymisation/schemas.py::AnonymisationEnvelope` and complete the two parser swaps.
+  - **Open flag B — resolver "first wins":** reviewer says do NOT make this v3.x doctrine. Ambiguous anchor should become conflict/no-op in v0.2 redline-integrity work. Logged as v0.2 item below.
+  - **Open flag C — Eval 4 bypassing full orchestrator:** acceptable for this batch; add one full `/contract-review/run` eval pre-launch as part of `#10b` or Phase E W2 polish.
+  - **Open flag D — audit module set:** code is authoritative (`tabular_review` in; `document_generation` was a typo for an action suffix under `document_edit`). Handover/docs already match code.
+  - **Open flag E — Anonymise button:** caption-fallback accepted; inline toggle is v0.2.
+  - **Open flag F — `docxtpl`:** rejected (already done).
+  - **Open flag G — `module.skill.disabled/enabled` taxonomy:** accepted; this is the canonical pair that goes into the required-v0.2 `audit_actions.py` constants module.
+
+## 5.5. v0.2 backlog additions (logged from reviewer adjudication)
+
+- **Redline-integrity (anchor-ambiguity)**: `apply_anchor_substitution` should distinguish between unique-anchor success, no-anchor (already signalled as `skipped_no_anchor`), and ambiguous-anchor (currently silent first-match). v0.2 should make ambiguity a conflict/no-op signal — never a silent first match. Owner: document_edit module.
+- **Full orchestrator eval**: end-to-end `/contract-review/run` against Khan-NDA with mocked gateway. Currently #10a covers the agent-level path via `ParserAgent.run` + `RedlinerAgent.run` directly. Pre-launch polish, not blocker.
 
 ## 7. Files this handover touches
 

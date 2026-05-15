@@ -12,7 +12,7 @@ Four modules sit inside the matter workspace. Each one is a surface a UK solicit
 
 - **Pre-Motion** — adversarial premortem of a draft pleading or position. Four agent stages (steelman / weakest-link / counter-pleading / synthesiser), nine model calls, one audited run. Useful before issuing or before a CMC.
 - **Contract Review** — parser / analyst / redliner / summariser pipeline over an uploaded contract. Returns clause-level issues, a redline, and a summary memo. Streams stage events so you can watch it work.
-- **Letters** — drafts an LBA or other matter-shaped letter from the matter context. LBA exports through a Word template; other letter types fall through a procedural generator.
+- **Letters** — drafts an LBA or other matter-shaped letter from the matter context. All letter types export through the procedural `.docx` generator in v0.1 (template-driven LBA returns in v0.2).
 - **Anonymisation** — Presidio-based PII detection over a document with a deterministic token map. Detokenise round-trips byte-identical. Built so external counsel review or training-data exports go out clean.
 
 All four route through one privilege-aware model gateway and write to one audit log.
@@ -60,7 +60,7 @@ In v0.1:
 - Four modules listed above, all wired end-to-end against the Khan sample matter
 - Tracked-changes document editing with accept/reject and version timeline
 - Tabular review across multiple documents
-- `.docx` export (LBA via Word template; other types via procedural generator)
+- `.docx` export for letters, Pre-Motion, and Contract Review (procedural generator across all letter types in v0.1)
 - Matter export / import in two modes — `full_internal` (no redaction, same posture only) and `shareable` (privilege-aware redaction matrix applied)
 - Public module submission flow that opens a draft PR against `claude-for-uk-legal`
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
