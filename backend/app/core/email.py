@@ -162,7 +162,7 @@ async def send_verification(to: str, link: str) -> None:
         "Khan v Acme demo matter.",
     ]
     footer_lines = [
-        "If you didn't sign up, ignore this message — no account will be created without confirmation.",
+        "If you didn't sign up, ignore this message — no one can sign in to the account without confirming this email first.",
         "This link expires shortly after issue.",
     ]
     html = _render_html(

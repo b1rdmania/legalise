@@ -150,15 +150,21 @@ function AuthProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
-  const value: AuthState = {
-    user,
-    loading,
-    error,
-    refresh,
-    signIn: doSignIn,
-    signOut: doSignOut,
-    signUp: doSignUp,
-  };
+  // Memoise so consumers depending on `auth` (the whole object) in their
+  // effect deps don't see a new identity on every parent render. Identity
+  // only changes when user / loading / error actually change.
+  const value = useMemo<AuthState>(
+    () => ({
+      user,
+      loading,
+      error,
+      refresh,
+      signIn: doSignIn,
+      signOut: doSignOut,
+      signUp: doSignUp,
+    }),
+    [user, loading, error, refresh, doSignIn, doSignOut, doSignUp],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -2933,7 +2939,10 @@ function VerifyPending() {
 // -- Verify -----------------------------------------------------------------
 
 function Verify({ token }: { token: string | null }) {
-  const auth = useAuth();
+  // Destructure refresh so the effect depends on a stable useCallback ref,
+  // not the whole auth object (which changes identity on every refresh and
+  // would otherwise re-submit the one-time token).
+  const { refresh } = useAuth();
   const [status, setStatus] = useState<"pending" | "ok" | "error">("pending");
   const [error, setError] = useState<string | null>(null);
 
@@ -2949,7 +2958,7 @@ function Verify({ token }: { token: string | null }) {
         await verifyEmail(token);
         if (!cancelled) {
           setStatus("ok");
-          await auth.refresh();
+          await refresh();
         }
       } catch (err) {
         if (!cancelled) {
@@ -2961,7 +2970,7 @@ function Verify({ token }: { token: string | null }) {
     return () => {
       cancelled = true;
     };
-  }, [token, auth]);
+  }, [token, refresh]);
 
   if (status === "pending") {
     return (
