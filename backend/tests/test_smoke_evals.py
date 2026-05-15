@@ -38,7 +38,8 @@ from app.core.seed import KHAN_NDA_BODY
 from app.adapters.plugin_bridge import PluginBridge, SkillDisabled
 from app.models import AuditEntry
 from app.models.document_edit import DocumentEdit
-from app.modules.contract_review.agents import ParserAgent, RedlinerAgent
+from app.modules.contract_review import agents as cr_agents
+from app.modules.contract_review.agents import AgentCall, ParserAgent, RedlinerAgent
 from app.modules.contract_review.schemas import ParsedContract
 from app.modules.document_edit.resolver import apply_anchor_substitution
 
@@ -452,3 +453,221 @@ class TestSkillDisabledShortCircuit:
         assert info.value.plugin == "letters"
         assert info.value.skill == "default-lba"
         assert gateway.calls == []
+
+
+# ---------------------------------------------------------------------------
+# Eval 5 — Contract Review orchestrator end-to-end through the HTTP surface
+# ---------------------------------------------------------------------------
+
+
+def _canned_analyst_envelope() -> dict[str, Any]:
+    return {
+        "clause_analyses": [
+            {
+                "clause_id": "c2",
+                "risk_score": 4,
+                "summary": "Confidentiality obligation is too loose.",
+                "uk_issues": [
+                    {
+                        "category": "uk_gdpr_art28",
+                        "statute_ref": "UK GDPR Art 28(3)",
+                        "description": "Processor terms missing.",
+                        "severity": "high",
+                    }
+                ],
+                "posture_note": "balanced",
+            }
+        ]
+    }
+
+
+def _canned_summary_envelope() -> dict[str, Any]:
+    return {
+        "executive_summary": "Mutual NDA, balanced posture, one must-fix.",
+        "key_terms": ["Confidential Information", "Purpose"],
+        "risk_overview": "One high-severity UK GDPR gap.",
+        "uk_specific_callouts": ["UK GDPR Art 28(3) processor obligations missing"],
+        "recommendation": "Negotiate must-have redlines before signing.",
+    }
+
+
+class _DocumentStub:
+    def __init__(self, matter_id: uuid.UUID) -> None:
+        self.id = uuid.uuid4()
+        self.matter_id = matter_id
+        self.filename = "khan-nda.pdf"
+
+
+class _DocumentBodyStub:
+    def __init__(self, document_id: uuid.UUID) -> None:
+        self.document_id = document_id
+        self.kind = "extracted"
+        self.extracted_text = KHAN_NDA_BODY
+        self.extraction_method = "test"
+
+
+class _RoutingSession:
+    """Async-session stand-in that routes `scalar` by select entity name."""
+
+    def __init__(self, matter: Any) -> None:
+        self.added: list[Any] = []
+        self.matter = matter
+        self.document = _DocumentStub(matter.id)
+        self.body = _DocumentBodyStub(self.document.id)
+
+    def add(self, obj: Any) -> None:
+        self.added.append(obj)
+
+    async def scalar(self, stmt: Any, *args: Any, **kwargs: Any):
+        try:
+            name = stmt.column_descriptions[0]["name"]
+        except Exception:
+            return None
+        if name == "Matter":
+            return self.matter
+        if name == "privilege_posture":
+            return self.matter.privilege_posture
+        if name == "Document":
+            return self.document
+        if name == "DocumentBody":
+            return self.body
+        return None
+
+    async def execute(self, *args: Any, **kwargs: Any):
+        class _Row:
+            def first(self_inner):
+                return None
+
+        return _Row()
+
+    async def commit(self) -> None:
+        return None
+
+    async def flush(self) -> None:
+        return None
+
+
+class _UserStub:
+    def __init__(self) -> None:
+        self.id = uuid.uuid4()
+        self.email = "test@example.com"
+        self.is_active = True
+        self.is_verified = True
+        self.is_superuser = False
+
+
+def _agent_call(stage: str, parsed: dict[str, Any]) -> AgentCall:
+    return AgentCall(
+        stage=stage,
+        raw_text=json.dumps(parsed),
+        parsed=parsed,
+        token_count=12,
+        latency_ms=5,
+        model_used="stub-echo",
+        error=None,
+    )
+
+
+class TestContractReviewOrchestratorE2E:
+    """`POST /api/matters/{slug}/contract-review/run` against canned agents."""
+
+    def _build_client(self, matter: _MatterStub) -> tuple[Any, _RoutingSession, _UserStub]:
+        from fastapi.testclient import TestClient
+
+        from app.core.auth import current_user
+        from app.core.db import get_session
+        from app.main import app
+
+        session = _RoutingSession(matter)
+        user = _UserStub()
+
+        async def _override_session():
+            yield session
+
+        async def _override_user():
+            return user
+
+        app.dependency_overrides[current_user] = _override_user
+        app.dependency_overrides[get_session] = _override_session
+        return TestClient(app), session, user
+
+    def _clear_overrides(self) -> None:
+        from app.main import app
+
+        app.dependency_overrides.clear()
+
+    @pytest.mark.asyncio
+    async def test_run_endpoint_returns_envelope_against_khan_nda(self) -> None:
+        matter = _MatterStub()
+        matter.slug = "khan-v-acme"
+        matter.privilege_posture = "B_mixed"
+
+        client, session, _user = self._build_client(matter)
+
+        async def _parser_run(self_inner, **_kw):
+            return _agent_call("parser", _canned_parsed_envelope())
+
+        async def _analyst_run(self_inner, **_kw):
+            return _agent_call("analyst", _canned_analyst_envelope())
+
+        async def _redliner_run(self_inner, **_kw):
+            return _agent_call("redliner", _canned_redline_envelope())
+
+        async def _summariser_run(self_inner, **_kw):
+            return _agent_call("summariser", _canned_summary_envelope())
+
+        try:
+            with patch.object(cr_agents.ParserAgent, "run", _parser_run), patch.object(
+                cr_agents.AnalystAgent, "run", _analyst_run
+            ), patch.object(
+                cr_agents.RedlinerAgent, "run", _redliner_run
+            ), patch.object(
+                cr_agents.SummariserAgent, "run", _summariser_run
+            ):
+                resp = client.post(
+                    "/api/matters/khan-v-acme/contract-review/run",
+                    json={
+                        "document_id": str(session.document.id),
+                        "posture": "balanced",
+                        "contract_type": "nda",
+                        "counterparty_name": "Acme Ltd",
+                    },
+                )
+        finally:
+            self._clear_overrides()
+
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["matter_slug"] == "khan-v-acme"
+        assert body["document_id"] == str(session.document.id)
+        assert len(body["parsed"]["clauses"]) >= 1
+        assert len(body["redlines"]) >= 1
+        assert body["summary"]["executive_summary"].strip() != ""
+        assert body["total_token_count"] >= 0
+        assert any(
+            isinstance(row, AuditEntry) and row.module == "contract_review"
+            for row in session.added
+        )
+
+    @pytest.mark.asyncio
+    async def test_run_endpoint_returns_409_on_c_paused(self) -> None:
+        matter = _MatterStub()
+        matter.slug = "khan-v-acme"
+        matter.privilege_posture = "C_paused"
+
+        client, _session, _user = self._build_client(matter)
+        try:
+            resp = client.post(
+                "/api/matters/khan-v-acme/contract-review/run",
+                json={
+                    "document_id": str(uuid.uuid4()),
+                    "posture": "balanced",
+                    "contract_type": "nda",
+                },
+            )
+        finally:
+            self._clear_overrides()
+
+        assert resp.status_code == 409
+        detail = resp.json().get("detail", "")
+        assert "C_paused" in detail or "paused" in detail.lower()

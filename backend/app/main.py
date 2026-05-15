@@ -140,11 +140,14 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
-app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
-# Submission router is an unauthenticated pre-login surface. The router
-# itself is the auth boundary (Turnstile + per-IP token bucket). Mounted
-# under /api so the routes live at /api/modules/submissions(/config).
+# Submissions router MUST mount BEFORE the modules router. Both share
+# the `/api/modules` prefix; the modules router has a catch-all
+# `GET /{plugin}/{skill}` that is auth-gated and will shadow the
+# public `GET /submissions/config` if order is reversed. The
+# submissions router is an unauthenticated pre-login surface — the
+# router itself is the auth boundary (Turnstile + per-IP token bucket).
 app.include_router(submissions_router, prefix="/api/modules", tags=["submissions"])
+app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
 
 # Chronology module nests its routes under /api/matters/{slug}/chronology

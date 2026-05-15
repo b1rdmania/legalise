@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,12 +74,16 @@ async def upsert_key(
     return row
 
 
-@router.delete("/keys/{provider}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/keys/{provider}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
 async def delete_key(
     provider: str,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
-) -> None:
+) -> Response:
     if provider not in SUPPORTED_PROVIDERS:
         raise HTTPException(400, f"provider must be one of {SUPPORTED_PROVIDERS}")
     result = await session.execute(
@@ -90,3 +94,4 @@ async def delete_key(
     if result.rowcount == 0:
         raise HTTPException(404, f"no key found for provider: {provider}")
     await session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
