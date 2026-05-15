@@ -15,11 +15,11 @@ The cold-readable workflow: `create / sign in → open matter → upload / read 
 
 ## 1. Locked decisions
 
-1. **Assistant becomes the matter homepage.** New first tab `assistant`, default landing when opening a matter. `overview` remains as second tab; its content can also collapse into a right-side context strip inside the Assistant tab (agent's call — pick whichever reads cleaner).
+1. **Assistant is a sibling tab. Overview stays as the matter homepage / default landing.** Add `assistant` as a new tab in the existing tab bar — position is the agent's call (recommend: last tab, so the existing tab order isn't disrupted). Do NOT change `initialTab` defaulting. Solicitor opens a matter → lands on Overview, exactly as today. They click `Assistant` when they want to ask something. (Andy 2026-05-15: "Overview should be the default landing. We just have this assistant as a new tab. Tab's fine for now.")
 
 2. **Non-streaming for v0.1.** `POST /api/matters/{slug}/assistant/messages` is a request/response cycle. SSE variant is v0.2 polish (mirror the Contract Review pattern). Ship fast wins over Harvey-feel parity.
 
-3. **Built-in prompt, not a SKILL.md.** The assistant IS the orchestration surface — it doesn't fit the domain-specific skill abstraction the other modules use. Hard-code the system prompt and prompt-assembly logic in `backend/app/modules/assistant/pipeline.py`. v0.2 may move it to a skill if firms want to fork it.
+3. **Built-in prompt, not a SKILL.md.** The assistant IS the orchestration surface — it doesn't fit the domain-specific skill abstraction the other modules use. Hard-code the system prompt and prompt-assembly logic in `backend/app/modules/assistant/pipeline.py`. The §2 step-3 placeholder is serviceable for v0.1; Andy will refine the prompt in a follow-up pass. v0.2 may move it to a skill if firms want to fork it.
 
 4. **Action chips schema:** `{type: "run_pre_motion" | "draft_letter" | "review_contract" | "view_document" | "view_audit" | ..., label: str, params: dict}`. Clicking a chip navigates to the relevant tab and (where possible) pre-populates inputs via URL params or a `useState` ref handoff.
 
@@ -200,11 +200,11 @@ export const postAssistantMessage = (slug: string, body: { content: string; sele
 
 ### Tab key wiring — `frontend/src/matter/tabs/types.ts`
 
-Add `"assistant"` to `TabKey` union. Add `{ key: "assistant", label: "Assistant" }` as the FIRST entry in `TABS` array. Update `isTabKey` guard.
+Add `"assistant"` to `TabKey` union. Append `{ key: "assistant", label: "Assistant" }` to the end of the `TABS` array (recommend last position; do NOT insert ahead of Overview). Update `isTabKey` guard.
 
 ### Default landing — `frontend/src/matter/MatterDetail.tsx`
 
-Change `initialTab` default from `"overview"` to `"assistant"`. The "open matter" experience now opens to chat.
+**No change.** `initialTab` stays `"overview"`. Solicitors open a matter → land on Overview as today. They click the Assistant tab when they want to chat.
 
 ### Demo snapshot — `frontend/src/demo/snapshot.ts`
 
@@ -232,7 +232,7 @@ No required changes, but consider tightening the "See it in action" CTA copy to 
 1. `cd backend && python3.12 -m pytest -x` — 65/65 (was 60; +5 assistant tests).
 2. `cd backend && python3.12 -m compileall app` clean.
 3. `cd frontend && npm run build` — `tsc -b` clean, Vite builds.
-4. Open `localhost:3000`, sign up, open Khan v Acme — **lands on the Assistant tab**. Send a message. Get a real reply. Suggested-action chip click navigates to the right tab.
+4. Open `localhost:3000`, sign up, open Khan v Acme — **lands on Overview** as today. Click the Assistant tab, send a message, get a real reply. Suggested-action chip click navigates to the right tab.
 5. Stop the backend, open `localhost:3000/#/demo` — assistant tab renders the canned conversation. Action chips navigate inside the demo's snapshot. Textarea disabled with sign-up placeholder.
 6. Posture=C_paused matter: send a message → frontend shows the 409 inline as an error message, never the raw exception.
 7. `grep -rn "claude-for-uk-legal\|source_repo\|skills_fired" frontend/src/matter/tabs/AssistantTab.tsx` — empty. The assistant surface stays workspace-positioned, not architecture-positioned. Citations show document titles + chronology event descriptions, never plugin/skill identifiers.
