@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import {
   BACKEND_ROOT,
@@ -27,6 +27,9 @@ import {
   type ModulesResponse,
   type PreMotionRunResult,
 } from "./lib/api";
+import { navigate, useRoute, type Route } from "./lib/route";
+
+// -- types -------------------------------------------------------------------
 
 type StageProgress = {
   index: number;
@@ -37,13 +40,28 @@ type StageProgress = {
   token_count?: number;
   errors?: string[];
 };
-import { navigate, useRoute, type Route } from "./lib/route";
+
+type TabKey = "overview" | "documents" | "chronology" | "premotion" | "letters" | "audit";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "documents", label: "Documents" },
+  { key: "chronology", label: "Chronology" },
+  { key: "premotion", label: "Pre-Motion" },
+  { key: "letters", label: "Letters" },
+  { key: "audit", label: "Audit" },
+];
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
+
+// -- app shell ---------------------------------------------------------------
 
 export default function App() {
   const route = useRoute();
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const [drawerMatter, setDrawerMatter] = useState<Matter | null>(null);
+  const [drawerTab, setDrawerTab] = useState<TabKey>("overview");
 
   useEffect(() => {
     fetch(`${BACKEND_ROOT}/health`)
@@ -52,100 +70,338 @@ export default function App() {
       .catch(() => setHealth(null));
   }, []);
 
+  // body-scroll-lock + esc to close
+  useEffect(() => {
+    if (!navOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [navOpen]);
+
+  // reset drawer matter scope when leaving a detail route
+  useEffect(() => {
+    if (route.name !== "detail") setDrawerMatter(null);
+  }, [route]);
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <TopBar health={health} route={route} />
+    <div className="min-h-screen flex flex-col bg-paper text-ink pt-[64px] sm:pt-[80px]">
+      <TopBar
+        route={route}
+        navOpen={navOpen}
+        setNavOpen={setNavOpen}
+        drawerMatter={drawerMatter}
+        drawerTab={drawerTab}
+      />
+      <Drawer
+        route={route}
+        navOpen={navOpen}
+        setNavOpen={setNavOpen}
+        matter={drawerMatter}
+        health={health}
+      />
       <main className="flex-1">
         {route.name === "landing" && <Landing />}
         {route.name === "modules" && <Modules />}
         {route.name === "list" && <MatterList />}
         {route.name === "new" && <NewMatter />}
-        {route.name === "detail" && <MatterDetail slug={route.slug} />}
+        {route.name === "detail" && (
+          <MatterDetail
+            slug={route.slug}
+            onMatterLoaded={setDrawerMatter}
+            onTabChange={setDrawerTab}
+          />
+        )}
       </main>
     </div>
   );
 }
 
-// ---------- top bar ---------------------------------------------------------
+// -- TopBar (P1) + dense-data variant (P18) ---------------------------------
 
-function TopBar({ health, route }: { health: HealthResponse | null; route: Route }) {
-  const dbOk = health?.database === "ok";
-  const isLanding = route.name === "landing";
+function TopBar({
+  route,
+  navOpen,
+  setNavOpen,
+  drawerMatter,
+  drawerTab,
+}: {
+  route: Route;
+  navOpen: boolean;
+  setNavOpen: (v: boolean) => void;
+  drawerMatter: Matter | null;
+  drawerTab: TabKey;
+}) {
+  const [demoSlug, setDemoSlug] = useState<string | null>(null);
+  useEffect(() => {
+    listMatters()
+      .then((rows) => {
+        const khan = rows.find((m) => m.slug.startsWith("khan-v-acme"));
+        setDemoSlug((khan ?? rows[0])?.slug ?? null);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list";
-  const isNew = route.name === "new";
-  const isDetail = route.name === "detail";
-  // Breadcrumb tail reflects the current surface so the brand link reads as
-  // a path (legalise / matters / khan-…) rather than a fixed label.
-  const tail = isLanding
-    ? "home"
-    : isModules
-      ? "modules"
-      : isList
-        ? "matters"
-        : isNew
-          ? "matters / new"
-          : isDetail
-            ? `matters / ${route.slug}`
-            : "matters";
+
+  const onOpenDemo = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (demoSlug) navigate(`/matters/${demoSlug}`);
+  };
+
+  const surfaceLabel = TABS.find((t) => t.key === drawerTab)?.label ?? "";
+
   return (
-    <header className="border-b border-graphite px-6 py-3 flex items-center justify-between sticky top-0 bg-carbon z-30">
-      <a
-        href="#/"
-        className="font-mono text-[12px] tracking-[0.053em] text-platinum flex items-center gap-3 hover:text-snow"
+    <>
+      {/* Dense-data variant — mobile, on matter detail */}
+      {isDetail && drawerMatter && (
+        <header className="fixed inset-x-0 top-0 z-40 bg-paper border-b border-rule md:hidden">
+          <div className="px-4 h-[64px] flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setNavOpen(true)}
+              className="flex items-center gap-2 text-ink min-h-[44px]"
+              aria-label="Open menu"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path
+                  d="M10 4l-4 4 4 4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="square"
+                />
+              </svg>
+              <span className="text-[16px] font-medium truncate max-w-[180px]">
+                {drawerMatter.slug}
+              </span>
+            </button>
+            <span className="eyebrow-sm">{surfaceLabel}</span>
+          </div>
+        </header>
+      )}
+
+      {/* Default P1 header */}
+      <header
+        className={
+          "fixed inset-x-0 top-0 z-50 bg-paper border-b border-rule " +
+          (isDetail && drawerMatter ? "hidden md:block" : "")
+        }
       >
-        <span className="inline-grid place-items-center w-[18px] h-[18px] border border-slate text-terminal-green text-[11px]">
-          ▌
-        </span>
-        <span className="text-snow">legalise</span>
-        <span className="text-dim-gray">/</span>
-        <span className="text-light-gray truncate max-w-[40ch]">{tail}</span>
-      </a>
-      <nav className="flex items-center gap-5">
-        <NavLink href="#/matters" active={isList || isDetail}>
-          Matters
-        </NavLink>
-        <NavLink href="#/modules" active={isModules}>
-          Modules
-        </NavLink>
-        <NavLink href="#/matters/new" active={isNew}>
-          New
-        </NavLink>
-      </nav>
-      <div className="flex items-center gap-4 font-mono text-[11px] tracking-[0.014em] text-steel-gray">
-        <span className="flex items-center gap-1.5">
-          <span
-            className={`inline-block w-1.5 h-1.5 ${dbOk ? "bg-terminal-green" : "bg-code-red"}`}
-            aria-hidden
-          />
-          <span className={dbOk ? "text-terminal-green" : "text-code-red"}>
-            {dbOk ? "lhr1" : "unreachable"}
-          </span>
-        </span>
-        {health && <span className="text-dim-gray">v{health.version}</span>}
-        <span className="text-light-gray">jasmine.k</span>
-      </div>
-    </header>
+        <div className="max-w-page mx-auto px-4 sm:px-6 h-[64px] sm:h-[80px] flex items-center justify-between">
+          <a href="#/" className="flex items-center gap-3 group outline-none">
+            <BrandMark />
+            <span className="font-bold text-lg tracking-tight2 text-ink mt-0.5">LEGALISE</span>
+          </a>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink">
+            <a
+              href="#/modules"
+              className={
+                "hover:text-muted transition-colors " + (isModules ? "text-ink" : "text-ink")
+              }
+            >
+              Modules
+            </a>
+            <a
+              href="#/matters"
+              className={
+                "hover:text-muted transition-colors " + (isList ? "text-ink" : "text-ink")
+              }
+            >
+              Matters
+            </a>
+            <a
+              href={demoSlug ? `#/matters/${demoSlug}` : "#"}
+              onClick={demoSlug ? onOpenDemo : undefined}
+              className={
+                "bg-ink text-paper px-4 py-2 hover:bg-black transition-colors " +
+                (!demoSlug ? "opacity-40 pointer-events-none" : "")
+              }
+            >
+              {demoSlug ? "Open demo matter" : "Loading…"}
+            </a>
+          </nav>
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={navOpen}
+            className="md:hidden min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center text-ink"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </div>
+      </header>
+    </>
   );
 }
 
-function NavLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+function BrandMark() {
+  // simple 24×24 ink-on-paper mark — block "M" so brand stamp reads as a workmark
   return (
-    <a
-      href={href}
-      className={
-        "font-mono text-[12px] tracking-[0.053em] px-1.5 pt-2 pb-2 border-t " +
-        (active
-          ? "text-terminal-green border-terminal-green"
-          : "text-light-gray hover:text-snow border-graphite")
-      }
-    >
-      {children}
-    </a>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" stroke="currentColor" strokeWidth="2" />
+      <path d="M7 17V7l5 6 5-6v10" stroke="currentColor" strokeWidth="2" strokeLinejoin="miter" />
+    </svg>
   );
 }
 
-// ---------- landing ---------------------------------------------------------
+// -- Drawer (P18) -----------------------------------------------------------
+
+function Drawer({
+  route,
+  navOpen,
+  setNavOpen,
+  matter,
+  health,
+}: {
+  route: Route;
+  navOpen: boolean;
+  setNavOpen: (v: boolean) => void;
+  matter: Matter | null;
+  health: HealthResponse | null;
+}) {
+  if (!navOpen) return null;
+
+  const isDetail = route.name === "detail";
+  const close = () => setNavOpen(false);
+
+  // build sections based on state
+  type Item = { href: string; label: string; active?: boolean; primary?: boolean };
+  let primary: Item[] = [];
+  let secondary: Item[] = [];
+
+  if (isDetail && matter) {
+    const currentTab = (route.name === "detail" ? route.tab : undefined) ?? "overview";
+    primary = TABS.map((t) => ({
+      href: `#/matters/${matter.slug}${t.key === "overview" ? "" : `/${t.key}`}`,
+      label: t.label,
+      active: currentTab === t.key,
+    }));
+    secondary = [
+      { href: "#/modules", label: "Modules" },
+      { href: "#/matters", label: "Matters" },
+    ];
+  } else if (route.name === "modules" || route.name === "list" || route.name === "new") {
+    primary = [
+      { href: "#/matters", label: "Matters", active: route.name === "list" || route.name === "new" },
+      { href: "#/modules", label: "Modules", active: route.name === "modules" },
+    ];
+  } else {
+    primary = [
+      { href: "#/modules", label: "Modules" },
+      { href: "#/matters", label: "Matters" },
+      {
+        href: "https://github.com/b1rdmania/legalise",
+        label: "GitHub",
+      },
+    ];
+  }
+
+  return (
+    <>
+      <div
+        onClick={close}
+        className="md:hidden fixed inset-0 z-50 bg-ink/40"
+        aria-hidden="true"
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation"
+        className="md:hidden fixed inset-y-0 left-0 z-50 w-[min(320px,86vw)] bg-paper border-r border-rule flex flex-col overflow-y-auto"
+      >
+        <div className="h-[64px] px-4 flex items-center justify-between border-b border-rule">
+          <span className="font-bold text-lg tracking-tight2 text-ink">LEGALISE</span>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close menu"
+            className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center text-muted"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </div>
+
+        {isDetail && matter && (
+          <div className="px-4 py-3 border-b border-rule">
+            <div className="eyebrow-sm mb-1">Matter</div>
+            <div className="text-[16px] font-semibold text-ink truncate">{matter.slug}</div>
+            <div className="text-xs text-muted mt-1">posture {matter.privilege_posture}</div>
+          </div>
+        )}
+
+        <nav className="flex flex-col py-2">
+          {primary.map((item) => (
+            <a
+              key={item.href + item.label}
+              href={item.href}
+              target={item.href.startsWith("http") ? "_blank" : undefined}
+              rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+              onClick={() => setNavOpen(false)}
+              className={
+                "px-4 py-3 text-[16px] flex items-center gap-3 " +
+                (item.active
+                  ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
+                  : "text-ink hover:bg-wash")
+              }
+            >
+              <span>{item.label}</span>
+            </a>
+          ))}
+        </nav>
+
+        {secondary.length > 0 && (
+          <>
+            <div className="my-2 border-t border-rule" />
+            <nav className="flex flex-col py-2">
+              {secondary.map((item) => (
+                <a
+                  key={item.href + item.label}
+                  href={item.href}
+                  onClick={() => setNavOpen(false)}
+                  className="px-4 py-3 text-[16px] text-ink hover:bg-wash"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          </>
+        )}
+
+        <div className="mt-auto border-t border-rule py-2">
+          <a
+            href="https://github.com/b1rdmania/legalise"
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-3 text-[16px] text-muted hover:text-ink block"
+            onClick={() => setNavOpen(false)}
+          >
+            GitHub
+          </a>
+          {health && (
+            <div className="text-xs text-muted px-4 py-2">
+              {health.database === "ok" ? "lhr1" : "unreachable"} · v{health.version}
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
+
+// -- Landing ----------------------------------------------------------------
 
 function Landing() {
   const [demoSlug, setDemoSlug] = useState<string | null>(null);
@@ -154,9 +410,6 @@ function Landing() {
   useEffect(() => {
     listMatters()
       .then((rows) => {
-        // Pick the seeded Khan matter if present; otherwise fall back to the
-        // first matter in the workspace. Empty workspace renders the "no
-        // demo seeded yet" path below.
         const khan = rows.find((m) => m.slug.startsWith("khan-v-acme"));
         setDemoSlug((khan ?? rows[0])?.slug ?? null);
       })
@@ -167,282 +420,394 @@ function Landing() {
     if (demoSlug) navigate(`/matters/${demoSlug}`);
   };
 
+  const parts: { name: string; body: string }[] = [
+    {
+      name: "Catalogue",
+      body: "Plain-text SKILL.md files. claude-for-uk-legal is the default catalogue: fork it, review changes by PR diff, pin an approved SHA.",
+    },
+    {
+      name: "Bridge",
+      body: "Loads SKILL.md, injects matter context, dispatches through the privilege-aware model gateway, and writes plugin.invoked + model.call audit rows.",
+    },
+    {
+      name: "Surfaces",
+      body: "Three proven render patterns: generic invoke, curated multi-skill selection (Letters), and bespoke orchestration (Pre-Motion fans out across 4 stages, 9 calls). Surfaces are proof, not identity.",
+    },
+    {
+      name: "Discovery",
+      body: "The installed skills page shows what is present at PLUGINS_ROOT, grouped by plugin, with source links and prompt bodies for review.",
+    },
+    {
+      name: "Install / approval",
+      body: "Installation is Git: fork the catalogue, approve prompt changes in code review, pin PLUGINS_REPO_REF, deploy. No ratings, no marketplace database.",
+    },
+  ];
+
+  const trust: string[] = [
+    "Audit log per LLM call and per matter mutation, append-only by convention in v0.1.",
+    "Privilege posture is a first-class matter property — A_cleared / B_mixed / C_paused — read by the gateway before any model call.",
+    "CPR 31.22 gate on chronology entries sourced from disclosed documents — server-side, not UI.",
+    "Local-model toggle in self-host: point the gateway at Ollama or vLLM, keep frontier models for A_cleared only.",
+  ];
+
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-16">
-      <div className="font-mono text-[12px] tracking-[0.053em] text-platinum mb-6">
-        <span className="text-terminal-green">legalise&nbsp;$</span>{" "}
-        <span>workspace --help</span>
-        <span className="inline-block w-2 h-3.5 bg-emerald-shadow ml-2 align-text-bottom animate-pulse" />
+    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-16">
+      <div className="max-w-4xl">
+        {/* P3 hero */}
+        <div className="mb-16">
+          <div className="eyebrow font-mono text-muted mb-4">VERSION 0.1 — MAY 2026</div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
+            Legalise turns reviewable legal skills into audited matter workflows.
+          </h1>
+          <p className="text-xl text-muted leading-relaxed max-w-2xl">
+            Open-source UK legal AI workspace. SKILL.md files, matter context, audit log per LLM
+            call, CPR 31.22 gate on disclosed material. Skills come from{" "}
+            <span className="text-ink">claude-for-uk-legal</span> by default; fork the catalogue,
+            review the skills, point <span className="text-ink">PLUGINS_ROOT</span> at your fork.
+            Approval is code review. Provenance is git history.
+          </p>
+
+          <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
+            <div>
+              <div className="eyebrow mb-1.5">Author</div>
+              <div className="text-sm font-semibold">Andy Bird</div>
+            </div>
+            <div>
+              <div className="eyebrow mb-1.5">License</div>
+              <div className="text-sm font-semibold">Apache 2.0</div>
+            </div>
+            <div>
+              <div className="eyebrow mb-1.5">Status</div>
+              <div className="text-sm font-semibold text-[#00A35C]">v0.1 demo</div>
+            </div>
+          </div>
+
+          {/* P12 buttons */}
+          <div className="flex flex-wrap items-center gap-4 mt-8">
+            <button
+              onClick={onOpenDemo}
+              disabled={!demoSlug}
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {demoSlug ? "Open demo matter" : "Loading demo…"}
+            </button>
+            <a
+              href="#/modules"
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            >
+              Installed skills
+            </a>
+            <a
+              href="#/matters"
+              className="text-sm text-muted hover:text-ink transition-colors"
+            >
+              All matters
+            </a>
+            <a
+              href="https://github.com/b1rdmania/legalise"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-muted hover:text-ink transition-colors"
+            >
+              GitHub
+            </a>
+          </div>
+
+          {error && (
+            <div className="mt-6">
+              <ErrorCallout message={error} />
+            </div>
+          )}
+        </div>
+
+        {/* Five parts — P7 em-dash list */}
+        <section className="mb-24">
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            01. Execution layer — five parts
+          </h2>
+          <p className="prose-p">
+            The execution layer is a small, named set of moving parts. Each is replaceable; none
+            is a marketplace.
+          </p>
+          <ul className="list-none space-y-6 text-prose pl-0">
+            {parts.map((p) => (
+              <li key={p.name} className="flex items-start gap-4">
+                <span className="text-ink font-bold">—</span>
+                <span>
+                  <strong className="text-ink font-semibold">{p.name}.</strong> {p.body}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Trust posture */}
+        <section className="mb-24">
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            02. Trust posture
+          </h2>
+          <div className="bg-wash p-8 border-l-4 border-ink my-8">
+            <p className="text-sm font-medium italic m-0">
+              "If a matter has disclosure-tainted entries, the user must acknowledge the implied
+              undertaking before those entries become readable. This is enforced server-side,
+              not in the UI."
+            </p>
+          </div>
+          <ul className="list-none space-y-4 text-prose text-sm pl-0">
+            {trust.map((t, i) => (
+              <li key={i} className="flex items-start gap-4">
+                <span className="font-bold text-ink">—</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="prose-p mt-8">
+            Honest about v0.1 limits: single hardcoded user; retention recorded but not enforced;
+            append-only audit log by convention not by Postgres grant. See{" "}
+            <a
+              href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#0066CC] hover:underline"
+            >
+              docs/TRUST.md
+            </a>
+            .
+          </p>
+        </section>
+
+        <Footer />
       </div>
-
-      <h1 className="font-sans font-normal text-snow text-[65px] leading-[1.05] tracking-[-0.05px] mb-6 max-w-[20ch]">
-        The audited execution layer for Claude legal skills.
-      </h1>
-
-      <p className="font-sans text-[18px] leading-[1.45] text-ash-gray max-w-[62ch] mb-10">
-        Legalise renders any catalogue of <span className="text-platinum">SKILL.md</span> files
-        into a matter-first workspace where every call is audited, privilege posture is a
-        first-class property, and disclosure-tainted chronology entries are gated behind
-        a CPR 31.22 implied-undertaking acknowledgement at the API. Skills come from{" "}
-        <span className="text-platinum">claude-for-uk-legal</span> by default; fork the catalogue,
-        review the skills, point <span className="text-platinum">PLUGINS_ROOT</span> at your fork.
-        Approval is code review. Provenance is git history.
-      </p>
-
-      <div className="flex flex-wrap items-center gap-4 mb-16">
-        <button
-          onClick={onOpenDemo}
-          disabled={!demoSlug}
-          className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-4 h-9 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {demoSlug ? "OPEN DEMO MATTER →" : "LOADING DEMO…"}
-        </button>
-        <a
-          href="#/modules"
-          className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
-        >
-          installed skills →
-        </a>
-        <a
-          href="#/matters"
-          className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
-        >
-          all matters →
-        </a>
-        <a
-          href="https://github.com/b1rdmania/legalise"
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-3 h-9 inline-flex items-center"
-        >
-          github →
-        </a>
-      </div>
-
-      {error && <ErrorCallout message={error} />}
-
-      <SectionLabel id="§layers" name="execution layer · five parts" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-        <SurfaceCard
-          kbd="catalogue"
-          name="Catalogue"
-          body="Plain-text SKILL.md files. claude-for-uk-legal is the default catalogue: fork it, review changes by PR diff, pin an approved SHA."
-        />
-        <SurfaceCard
-          kbd="bridge"
-          name="Bridge"
-          body="Loads SKILL.md, injects matter context, dispatches through the privilege-aware model gateway, and writes plugin.invoked + model.call audit rows."
-        />
-        <SurfaceCard
-          kbd="surfaces"
-          name="Surfaces"
-          body="Three proven render patterns: generic invoke, curated multi-skill selection (Letters), and bespoke orchestration (Pre-Motion fans out across 4 stages, 9 calls). Surfaces are proof, not identity — new surfaces follow the same three patterns."
-        />
-        <SurfaceCard
-          kbd="discovery"
-          name="Discovery"
-          body="The installed skills page shows what is present at PLUGINS_ROOT, grouped by plugin, with source links and prompt bodies for review."
-          href="#/modules"
-        />
-        <SurfaceCard
-          kbd="approval"
-          name="Install / approval"
-          body="Installation is Git: fork the catalogue, approve prompt changes in code review, pin PLUGINS_REPO_REF, deploy. No ratings, no marketplace database."
-          href="https://github.com/b1rdmania/legalise#installing-skills"
-        />
-      </div>
-
-      <SectionLabel id="§trust" name="trust posture · honest about what v0.1 does not yet do" />
-      <p className="font-sans text-[14px] leading-[1.55] text-ash-gray max-w-[70ch] mb-2">
-        Single hardcoded user; retention recorded but not enforced; append-only audit
-        log by convention not by Postgres grant; UK-region database and backend, edge
-        CDN and object storage at EU / Western Europe placement.{" "}
-        <a
-          href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
-          target="_blank"
-          rel="noreferrer"
-          className="text-terminal-green hover:underline"
-        >
-          docs/TRUST.md
-        </a>{" "}
-        is the v0.1 source of truth.
-      </p>
     </div>
   );
 }
 
-function SurfaceCard({ kbd, name, body, href }: { kbd: string; name: string; body: string; href?: string }) {
-  const inner = (
-    <>
-      <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
-        <span className="text-terminal-green">§{kbd}</span>
-      </div>
-      <h3 className="font-sans text-[20px] text-snow mb-2 leading-[1.2]">{name}</h3>
-      <p className="font-sans text-[14px] leading-[1.5] text-ash-gray">{body}</p>
-    </>
-  );
-  if (href) {
-    return (
-      <a href={href} className="border border-graphite p-4 block hover:bg-graphite/30">
-        {inner}
-      </a>
-    );
-  }
-  return (
-    <div className="border border-graphite p-4">
-      {inner}
-    </div>
-  );
-}
-
-// ---------- modules ---------------------------------------------------------
+// -- Modules ----------------------------------------------------------------
 
 function Modules() {
   const [data, setData] = useState<ModulesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [promptBody, setPromptBody] = useState<Record<string, string>>({});
   const [promptError, setPromptError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getModules()
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        if (d.skills.length > 0) {
+          const first = d.skills[0];
+          setSelectedKey(`${first.plugin}/${first.skill}`);
+        }
+      })
       .catch((e) => setError(String(e)));
   }, []);
 
-  const onTogglePrompt = async (skill: ModuleSkill) => {
-    const key = `${skill.plugin}/${skill.skill}`;
-    if (openKey === key) {
-      setOpenKey(null);
-      return;
-    }
-    setOpenKey(key);
-    if (promptBody[key] || promptError[key]) return;
-    try {
-      const body = await getSkillBody(skill.plugin, skill.skill);
-      setPromptBody((prev) => ({ ...prev, [key]: body }));
-    } catch (e) {
-      setPromptError((prev) => ({ ...prev, [key]: String(e) }));
-    }
-  };
+  // load prompt body when selection changes
+  useEffect(() => {
+    if (!selectedKey || !data) return;
+    if (promptBody[selectedKey] || promptError[selectedKey]) return;
+    const [plugin, skill] = selectedKey.split("/", 2);
+    getSkillBody(plugin, skill)
+      .then((body) => setPromptBody((prev) => ({ ...prev, [selectedKey]: body })))
+      .catch((e) => setPromptError((prev) => ({ ...prev, [selectedKey]: String(e) })));
+  }, [selectedKey, data, promptBody, promptError]);
 
-  const grouped = new Map<string, ModuleSkill[]>();
-  for (const skill of data?.skills ?? []) {
-    const rows = grouped.get(skill.plugin) ?? [];
-    rows.push(skill);
-    grouped.set(skill.plugin, rows);
-  }
+  const grouped = useMemo(() => {
+    const m = new Map<string, ModuleSkill[]>();
+    for (const skill of data?.skills ?? []) {
+      const rows = m.get(skill.plugin) ?? [];
+      rows.push(skill);
+      m.set(skill.plugin, rows);
+    }
+    return m;
+  }, [data]);
+
+  const selectedSkill = useMemo(() => {
+    if (!selectedKey || !data) return null;
+    return data.skills.find((s) => `${s.plugin}/${s.skill}` === selectedKey) ?? null;
+  }, [selectedKey, data]);
+
   const shortRef = data?.source.ref ? data.source.ref.slice(0, 7) : "unversioned";
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-12">
-      <SectionLabel id="§modules" name="installed skill catalogue" />
-      <h1 className="font-sans font-normal text-snow text-[65px] leading-[1.05] tracking-[-0.05px] mb-4 max-w-[18ch]">
-        Installed skills.
-      </h1>
-      <p className="font-sans text-[16px] leading-[1.5] text-ash-gray max-w-[70ch] mb-6">
-        Read-only discovery over <span className="text-platinum">PLUGINS_ROOT</span>. This is the
-        scan view for the team approving a Git-distributed catalogue: source link, prompt body,
-        pinned SHA, and the plugin/skill id that appears in audit rows.
-      </p>
-
-      {data && (
-        <div className="font-mono text-[11px] tracking-[0.04em] text-dim-gray mb-8 grid grid-cols-1 md:grid-cols-3 gap-3 border border-graphite p-3">
-          <Cell k="plugins_root" v={data.plugins_root} />
-          <Cell k="source_repo" v={data.source.repo ?? "unset"} />
-          <Cell k="pinned_ref" v={shortRef} />
-        </div>
-      )}
-
+    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
       {error && <ErrorCallout message={error} />}
       {!data && !error && <LoadingLine label="loading installed skills" />}
 
       {data && data.skills.length === 0 && (
-        <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
-          no SKILL.md files found under {data.plugins_root}
-        </p>
+        <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm">
+          No SKILL.md files found under {data.plugins_root}.
+        </div>
       )}
 
       {data && data.skills.length > 0 && (
-        <div className="space-y-8">
-          {Array.from(grouped.entries()).map(([plugin, skills]) => (
-            <section key={plugin}>
-              <div className="flex items-baseline justify-between mb-3">
-                <h2 className="font-sans text-[25px] text-snow">{plugin}</h2>
-                <span className="font-mono text-[11px] tracking-[0.053em] text-dim-gray">
-                  {skills.length} skill{skills.length === 1 ? "" : "s"}
-                </span>
+        <div className="flex gap-12">
+          {/* P2 sidebar TOC */}
+          <aside className="hidden lg:block w-80 sticky top-[88px] h-[calc(100vh-100px)] border-r border-rule pr-8 overflow-y-auto">
+            <div className="eyebrow-sm mb-8">Installed skills</div>
+            {Array.from(grouped.entries()).map(([plugin, skills]) => (
+              <div key={plugin} className="mb-8">
+                <div className="eyebrow-sm mb-4">{plugin}</div>
+                <nav className="flex flex-col gap-1">
+                  {skills.map((s) => {
+                    const key = `${s.plugin}/${s.skill}`;
+                    const active = selectedKey === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setSelectedKey(key)}
+                        className={
+                          "py-2 border-l-2 pl-4 text-sm transition-all text-left " +
+                          (active
+                            ? "border-ink text-ink font-semibold"
+                            : "border-transparent text-muted hover:text-ink")
+                        }
+                      >
+                        {s.name}
+                      </button>
+                    );
+                  })}
+                </nav>
               </div>
-              <div className="border border-graphite">
-                {skills.map((skill) => {
-                  const key = `${skill.plugin}/${skill.skill}`;
-                  const expanded = openKey === key;
-                  return (
-                    <div key={key} className="border-b border-graphite last:border-b-0">
-                      <div className="p-3 grid grid-cols-[1fr_auto] gap-4">
-                        <div>
-                          <div className="font-mono text-[11px] tracking-[0.053em] text-terminal-green uppercase mb-1">
-                            {skill.skill}
-                          </div>
-                          <h3 className="font-sans text-[18px] leading-[1.2] text-snow mb-1">
-                            {skill.name}
-                          </h3>
-                          <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[80ch]">
-                            {skill.description}
-                          </p>
-                          {skill.argument_hint && (
-                            <p className="font-mono text-[11px] tracking-[0.04em] text-dim-gray mt-2">
-                              args · <span className="text-light-gray">{skill.argument_hint}</span>
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          {skill.source_url && (
-                            <a
-                              href={skill.source_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-mono text-[11px] tracking-[0.053em] text-light-gray hover:text-snow border-t border-graphite hover:border-terminal-green px-2 py-1"
-                            >
-                              view source →
-                            </a>
-                          )}
-                          <button
-                            onClick={() => onTogglePrompt(skill)}
-                            className="font-mono text-[11px] tracking-[0.053em] text-terminal-green bg-deep-teal px-2 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow"
-                          >
-                            {expanded ? "HIDE PROMPT ↑" : "VIEW PROMPT →"}
-                          </button>
-                        </div>
-                      </div>
-                      {expanded && (
-                        <div className="border-t border-graphite bg-carbon">
-                          {promptError[key] && <ErrorCallout message={promptError[key]} compact />}
-                          {!promptBody[key] && !promptError[key] && (
-                            <div className="p-3">
-                              <LoadingLine label={`loading ${key}`} />
-                            </div>
-                          )}
-                          {promptBody[key] && (
-                            <pre className="p-4 font-mono text-[12px] tracking-[0.014em] leading-[1.55] text-platinum whitespace-pre-wrap overflow-auto max-h-[60vh]">
-                              {promptBody[key]}
-                            </pre>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+            ))}
+            <div className="mt-12 pt-8 border-t border-rule">
+              <div className="eyebrow-sm mb-4">Catalogue</div>
+              <ul className="flex flex-col gap-3 text-sm">
+                <li>
+                  <span className="text-muted">root</span>{" "}
+                  <span className="text-ink font-mono text-xs break-all">{data.plugins_root}</span>
+                </li>
+                <li>
+                  <span className="text-muted">repo</span>{" "}
+                  <span className="text-ink font-mono text-xs break-all">
+                    {data.source.repo ?? "unset"}
+                  </span>
+                </li>
+                <li>
+                  <span className="text-muted">ref</span>{" "}
+                  <span className="text-ink font-mono text-xs">{shortRef}</span>
+                </li>
+              </ul>
+            </div>
+          </aside>
+
+          {/* Main column */}
+          <main className="flex-1 min-w-0">
+            {/* Mobile fallback — stacked list */}
+            <div className="lg:hidden space-y-12">
+              {Array.from(grouped.entries()).map(([plugin, skills]) => (
+                <section key={plugin}>
+                  <div className="eyebrow-sm mb-4">{plugin}</div>
+                  {skills.map((s) => {
+                    const key = `${s.plugin}/${s.skill}`;
+                    return (
+                      <article key={key} className="mb-12 pb-12 border-b border-rule last:border-b-0">
+                        <SkillBlock
+                          skill={s}
+                          body={promptBody[key]}
+                          error={promptError[key]}
+                          onLoad={() => setSelectedKey(key)}
+                          isLoaded={!!promptBody[key] || !!promptError[key]}
+                        />
+                      </article>
+                    );
+                  })}
+                </section>
+              ))}
+            </div>
+
+            {/* Desktop — single selected skill */}
+            <div className="hidden lg:block">
+              {selectedSkill && (
+                <SkillBlock
+                  skill={selectedSkill}
+                  body={promptBody[selectedKey!]}
+                  error={promptError[selectedKey!]}
+                  onLoad={() => undefined}
+                  isLoaded={!!promptBody[selectedKey!] || !!promptError[selectedKey!]}
+                />
+              )}
+            </div>
+          </main>
         </div>
       )}
     </div>
   );
 }
 
-// ---------- matters list ----------------------------------------------------
+function SkillBlock({
+  skill,
+  body,
+  error,
+  onLoad,
+  isLoaded,
+}: {
+  skill: ModuleSkill;
+  body: string | undefined;
+  error: string | undefined;
+  onLoad: () => void;
+  isLoaded: boolean;
+}) {
+  useEffect(() => {
+    if (!isLoaded) onLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <>
+      <div className="mb-8">
+        <div className="eyebrow font-mono text-muted mb-4">
+          INSTALLED SKILL — {skill.plugin}
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1] mb-4">
+          {skill.name}
+        </h1>
+        <p className="text-xl text-muted leading-relaxed max-w-2xl">{skill.description}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-x-10 gap-y-4 mb-10 pb-10 border-b border-rule">
+        <div>
+          <div className="eyebrow mb-1.5">Plugin</div>
+          <div className="text-sm font-semibold font-mono">{skill.plugin}</div>
+        </div>
+        <div>
+          <div className="eyebrow mb-1.5">Skill</div>
+          <div className="text-sm font-semibold font-mono">{skill.skill}</div>
+        </div>
+        {skill.argument_hint && (
+          <div>
+            <div className="eyebrow mb-1.5">Arguments</div>
+            <div className="text-sm font-semibold font-mono">{skill.argument_hint}</div>
+          </div>
+        )}
+        {skill.source_url && (
+          <div>
+            <div className="eyebrow mb-1.5">Source</div>
+            <a
+              href={skill.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-semibold text-[#0066CC] hover:underline break-all"
+            >
+              view
+            </a>
+          </div>
+        )}
+      </div>
+
+      {error && <ErrorCallout message={error} compact />}
+      {!body && !error && <LoadingLine label="loading prompt body" />}
+      {body && (
+        <pre className="bg-wash border border-rule font-mono text-[13px] p-6 my-4 overflow-x-auto whitespace-pre max-h-[60vh]">
+          {body}
+        </pre>
+      )}
+    </>
+  );
+}
+
+// -- MatterList -------------------------------------------------------------
 
 function MatterList() {
   const [matters, setMatters] = useState<Matter[] | null>(null);
@@ -455,56 +820,62 @@ function MatterList() {
   }, []);
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-12">
-      <SectionLabel id="§index" name="matters" />
-      <h1 className="font-sans text-snow text-[50px] leading-[1.1] tracking-[-0.05px] mb-8">
-        All matters.
-      </h1>
-
-      <div className="flex items-center justify-between mb-6">
-        <p className="font-mono text-[12px] tracking-[0.053em] text-ash-gray">
-          {matters ? `${matters.length} record${matters.length === 1 ? "" : "s"}` : "loading…"}
-        </p>
+    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <div className="eyebrow font-mono text-muted mb-4">MATTERS</div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
+            All matters.
+          </h1>
+          {matters && (
+            <p className="text-sm text-muted mt-3">
+              {matters.length} record{matters.length === 1 ? "" : "s"}
+            </p>
+          )}
+        </div>
         <a
           href="#/matters/new"
-          className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow"
+          className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
         >
-          NEW MATTER →
+          New matter
         </a>
       </div>
 
       {error && <ErrorCallout message={error} />}
 
       {matters && matters.length === 0 && (
-        <div className="border border-graphite p-6 font-mono text-[12px] text-dim-gray">
-          no matters yet — create one with{" "}
-          <a href="#/matters/new" className="text-terminal-green hover:underline">
-            new matter
+        <div className="border border-rule p-6 text-sm text-muted">
+          No matters yet —{" "}
+          <a
+            href="#/matters/new"
+            className="text-ink underline hover:text-muted"
+          >
+            create one
           </a>
           .
         </div>
       )}
 
       {matters && matters.length > 0 && (
-        <div className="border border-graphite">
-          <div className="grid grid-cols-[1fr_140px_180px_120px] gap-4 px-3 py-2 bg-graphite text-dim-gray font-mono text-[10px] tracking-[0.014em] uppercase border-b border-slate">
-            <span>slug</span>
-            <span>type</span>
-            <span>opened</span>
-            <span className="text-right">status</span>
+        <div className="border-t border-rule">
+          <div className="grid grid-cols-[1fr_180px_120px_140px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <span>Slug</span>
+            <span>Type</span>
+            <span>Status</span>
+            <span>Opened</span>
           </div>
           {matters.map((m) => (
             <a
               key={m.id}
               href={`#/matters/${m.slug}`}
-              className="grid grid-cols-[1fr_140px_180px_120px] gap-4 px-3 py-2 font-mono text-[12px] tracking-[0.053em] border-b border-graphite last:border-b-0 hover:bg-graphite/50"
+              className="grid grid-cols-[1fr_180px_120px_140px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px]"
             >
-              <span className="text-snow truncate">{m.slug}</span>
-              <span className="text-light-gray truncate">{m.matter_type}</span>
-              <span className="text-steel-gray">{m.opened_at.slice(0, 10)}</span>
-              <span className="text-right">
+              <span className="text-ink font-bold truncate">{m.slug}</span>
+              <span className="text-prose truncate">{m.matter_type}</span>
+              <span>
                 <StatusBadge status={m.status} />
               </span>
+              <span className="text-ink">{m.opened_at.slice(0, 10)}</span>
             </a>
           ))}
         </div>
@@ -513,7 +884,7 @@ function MatterList() {
   );
 }
 
-// ---------- new matter ------------------------------------------------------
+// -- NewMatter --------------------------------------------------------------
 
 function NewMatter() {
   const [form, setForm] = useState({
@@ -534,91 +905,96 @@ function NewMatter() {
     try {
       const matter = await createMatter(form);
       navigate(`/matters/${matter.slug}`);
-    } catch (e) {
-      setError(String(e));
+    } catch (err) {
+      setError(String(err));
     } finally {
       setSubmitting(false);
     }
   };
 
+  const inputCls =
+    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
+
   return (
-    <div className="max-w-[820px] mx-auto px-8 py-12">
-      <SectionLabel id="§new" name="matter create" />
-      <h1 className="font-sans text-snow text-[50px] leading-[1.1] tracking-[-0.05px] mb-8">
-        New matter.
-      </h1>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
+      <div className="mb-10">
+        <div className="eyebrow font-mono text-muted mb-4">MATTERS — NEW</div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
+          New matter.
+        </h1>
+      </div>
 
       <form onSubmit={submit} className="space-y-6">
-        <Field label="title" hint="becomes the slug">
+        <Field label="Title" hint="becomes the slug">
           <input
             required
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Khan v Acme Trading Ltd"
-            className="w-full bg-transparent border-t border-slate text-platinum font-sans text-[16px] px-3 py-2 focus:outline-none focus:border-terminal-green"
+            className={inputCls}
           />
         </Field>
 
-        <Field label="matter_type">
+        <Field label="Matter type">
           <input
             value={form.matter_type}
             onChange={(e) => setForm({ ...form, matter_type: e.target.value })}
-            className="w-full bg-transparent border-t border-slate text-platinum font-mono text-[12px] tracking-[0.053em] px-3 py-2 focus:outline-none focus:border-terminal-green"
+            className={inputCls}
           />
         </Field>
 
-        <Field label="cause">
+        <Field label="Cause">
           <input
             value={form.cause}
             onChange={(e) => setForm({ ...form, cause: e.target.value })}
-            className="w-full bg-transparent border-t border-slate text-platinum font-sans text-[14px] px-3 py-2 focus:outline-none focus:border-terminal-green"
+            className={inputCls}
           />
         </Field>
 
-        <Field label="case_theory" hint="optional">
+        <Field label="Case theory" hint="optional">
           <textarea
             rows={4}
             value={form.case_theory}
             onChange={(e) => setForm({ ...form, case_theory: e.target.value })}
-            className="w-full bg-transparent border-t border-slate text-platinum font-sans text-[14px] px-3 py-2 focus:outline-none focus:border-terminal-green resize-y"
+            className={inputCls + " resize-y"}
           />
         </Field>
 
-        <Field label="pivot_fact" hint="optional">
+        <Field label="Pivot fact" hint="optional">
           <input
             value={form.pivot_fact}
             onChange={(e) => setForm({ ...form, pivot_fact: e.target.value })}
-            className="w-full bg-transparent border-t border-slate text-platinum font-sans text-[14px] px-3 py-2 focus:outline-none focus:border-terminal-green"
+            className={inputCls}
           />
         </Field>
 
-        <Field label="privilege_posture">
+        <Field label="Privilege posture">
           <select
             value={form.privilege_posture}
             onChange={(e) => setForm({ ...form, privilege_posture: e.target.value })}
-            className="w-full bg-transparent border-t border-slate text-platinum font-mono text-[12px] tracking-[0.053em] px-3 py-2 focus:outline-none focus:border-terminal-green"
+            className={inputCls}
           >
             <option value="A_cleared">A_cleared — frontier models allowed</option>
-            <option value="B_mixed">B_mixed — default · local preferred</option>
+            <option value="B_mixed">B_mixed — default, local preferred</option>
             <option value="C_paused">C_paused — LLM calls blocked</option>
           </select>
         </Field>
 
         {error && <ErrorCallout message={error} />}
 
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-4 pt-2">
           <button
             type="submit"
             disabled={submitting || !form.title}
-            className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40"
+            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {submitting ? "CREATING…" : "CREATE →"}
+            {submitting ? "Creating…" : "Create matter"}
           </button>
           <a
             href="#/matters"
-            className="font-sans text-[12px] text-platinum hover:text-snow border-t border-slate hover:border-terminal-green px-3 py-2"
+            className="text-sm text-muted hover:text-ink transition-colors"
           >
-            cancel
+            Cancel
           </a>
         </div>
       </form>
@@ -626,9 +1002,43 @@ function NewMatter() {
   );
 }
 
-// ---------- matter detail ---------------------------------------------------
+// -- MatterDetail -----------------------------------------------------------
 
-function MatterDetail({ slug }: { slug: string }) {
+function MatterDetail({
+  slug,
+  onMatterLoaded,
+  onTabChange,
+}: {
+  slug: string;
+  onMatterLoaded: (m: Matter | null) => void;
+  onTabChange: (t: TabKey) => void;
+}) {
+  const route = useRoute();
+  const initialTab: TabKey =
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "overview";
+  const [tab, setTab] = useState<TabKey>(initialTab);
+
+  // sync tab → drawer label
+  useEffect(() => {
+    onTabChange(tab);
+  }, [tab, onTabChange]);
+
+  // sync tab from hash when it changes (back/forward)
+  useEffect(() => {
+    if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
+      setTab(route.tab);
+    } else if (route.name === "detail" && !route.tab) {
+      setTab("overview");
+    }
+  }, [route]);
+
+  const setTabAndHash = (next: TabKey) => {
+    setTab(next);
+    const target =
+      next === "overview" ? `/matters/${slug}` : `/matters/${slug}/${next}`;
+    if (`#${target}` !== window.location.hash) navigate(target);
+  };
+
   const [matter, setMatter] = useState<Matter | null>(null);
   const [docs, setDocs] = useState<MatterDocument[] | null>(null);
   const [audit, setAudit] = useState<AuditEntry[] | null>(null);
@@ -649,20 +1059,31 @@ function MatterDetail({ slug }: { slug: string }) {
 
   const load = () => {
     getMatter(slug)
-      .then(setMatter)
+      .then((m) => {
+        setMatter(m);
+        onMatterLoaded(m);
+      })
       .catch((e) => setError(String(e)));
     listDocuments(slug).then(setDocs).catch(() => undefined);
-    listAudit(slug, 20).then(setAudit).catch(() => undefined);
+    listAudit(slug, 30).then(setAudit).catch(() => undefined);
     getChronology(slug).then(setChron).catch(() => undefined);
     getLetterCatalogue(slug)
       .then((cat) => {
         setLetterCat(cat);
-        setSelectedLetter((prev) => prev ?? cat.letter_types.find((lt) => lt.is_default)?.id ?? cat.letter_types[0]?.id ?? null);
+        setSelectedLetter(
+          (prev) =>
+            prev ?? cat.letter_types.find((lt) => lt.is_default)?.id ?? cat.letter_types[0]?.id ?? null,
+        );
       })
       .catch(() => undefined);
   };
 
   useEffect(load, [slug]);
+
+  // clear drawer matter on unmount
+  useEffect(() => {
+    return () => onMatterLoaded(null);
+  }, [onMatterLoaded]);
 
   const onConfirmGate = async () => {
     try {
@@ -671,7 +1092,7 @@ function MatterDetail({ slug }: { slug: string }) {
         "I confirm the CPR 31.22 implied undertaking — disclosed material is used only for these proceedings.",
       );
       getChronology(slug).then(setChron).catch(() => undefined);
-      listAudit(slug, 20).then(setAudit).catch(() => undefined);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
       setError(String(err));
     }
@@ -763,18 +1184,22 @@ function MatterDetail({ slug }: { slug: string }) {
     try {
       const updated = await setPrivilege(slug, next);
       setMatter(updated);
-      listAudit(slug, 20).then(setAudit).catch(() => undefined);
+      onMatterLoaded(updated);
+      listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
       setError(String(err));
     }
   };
 
-  if (error) {
+  if (error && !matter) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-12">
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <ErrorCallout message={error} />
-        <a href="#/matters" className="font-mono text-[12px] tracking-[0.053em] text-light-gray hover:text-snow">
-          ← back to matters
+        <a
+          href="#/matters"
+          className="text-sm text-muted hover:text-ink transition-colors"
+        >
+          Back to matters
         </a>
       </div>
     );
@@ -782,411 +1207,479 @@ function MatterDetail({ slug }: { slug: string }) {
 
   if (!matter) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-12">
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <LoadingLine label={`loading matter ${slug}`} />
       </div>
     );
   }
 
-  const onUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const onUpload = async (file: File, tag?: string, fromDisclosure?: boolean) => {
     try {
-      await uploadDocument(slug, file);
+      await uploadDocument(slug, file, tag, fromDisclosure);
       load();
     } catch (err) {
       setError(String(err));
-    } finally {
-      e.target.value = "";
     }
   };
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-12">
-      {/* hero -------------------------------------------------- */}
-      <div className="mb-12">
-        <div className="font-mono text-[12px] tracking-[0.053em] text-platinum mb-6">
-          <span className="text-terminal-green">oxide-legal&nbsp;$</span>{" "}
-          <span>matter inspect</span> <span className="text-light-gray">{matter.slug}</span>
-          <span className="inline-block w-2 h-3.5 bg-emerald-shadow ml-2 align-text-bottom animate-pulse" />
-        </div>
-        <h1 className="font-sans font-normal text-[65px] leading-[1.1] tracking-[-0.05px] text-snow mb-4">
-          {matter.title}
-        </h1>
-        <div className="font-mono text-[12px] tracking-[0.053em] text-ash-gray mb-6">
-          <span className="text-dim-gray">type:</span> <span className="text-platinum">{matter.matter_type}</span>
-          {matter.cause && (
-            <>
-              &nbsp;&nbsp;<span className="text-dim-gray">cause:</span>{" "}
-              <span className="text-platinum">{matter.cause}</span>
-            </>
-          )}
-          &nbsp;&nbsp;<span className="text-dim-gray">opened:</span>{" "}
-          <span className="text-platinum">{matter.opened_at.slice(0, 10)}</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge status={matter.status} />
-          <Badge>{matter.matter_type.toUpperCase()}</Badge>
-          <PrivilegeControl value={matter.privilege_posture} onChange={onPostureChange} />
-          <BadgeViolet>{matter.default_model_id}</BadgeViolet>
-        </div>
-      </div>
+    <div className="max-w-page mx-auto">
+      {/* P8 panel header */}
+      <PanelHeader matter={matter} onPostureChange={onPostureChange} />
+      {/* P9 tab bar */}
+      <TabBar tab={tab} onChange={setTabAndHash} />
 
-      {/* case theory ------------------------------------------- */}
-      {(matter.case_theory || matter.pivot_fact) && (
-        <section className="mb-14">
-          <SectionLabel id="§theory" name="theory_of_case" />
-          {matter.case_theory && (
-            <p className="font-sans text-[16px] leading-[1.45] text-ash-gray max-w-[70ch] whitespace-pre-wrap mb-4">
-              {matter.case_theory}
-            </p>
-          )}
-          {matter.pivot_fact && (
-            <p className="font-sans text-[16px] leading-[1.45] text-platinum max-w-[70ch] whitespace-pre-wrap">
-              <span className="text-terminal-green">pivot fact —</span> {matter.pivot_fact}
-            </p>
-          )}
-        </section>
-      )}
-
-      {/* documents --------------------------------------------- */}
-      <section className="mb-14">
-        <SectionLabel id="§bundle" name={`documents · matters/${matter.slug}/files/`} />
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-sans text-[25px] text-snow">Bundle.</h2>
-          <label className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow cursor-pointer">
-            UPLOAD →
-            <input type="file" className="hidden" onChange={onUpload} />
-          </label>
-        </div>
-
-        {!docs && <LoadingLine label="loading documents" />}
-        {docs && docs.length === 0 && (
-          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
-            no documents registered yet — use UPLOAD →
-          </p>
+      <div className="px-4 sm:px-6 lg:px-10 py-8">
+        {error && matter && <ErrorCallout message={error} compact />}
+        {tab === "overview" && <OverviewTab matter={matter} />}
+        {tab === "documents" && (
+          <DocumentsTab docs={docs} onUpload={onUpload} />
         )}
-        {docs && docs.length > 0 && (
-          <div className="font-mono text-[12px] tracking-[0.053em] leading-[1.6] text-platinum">
-            {docs.map((d) => (
-              <div
-                key={d.id}
-                className="grid grid-cols-[110px_100px_70px_140px_1fr_120px] gap-4 py-2 border-b border-dashed border-graphite last:border-b-0 items-center"
-              >
-                <span className="text-dim-gray">-rw-r--r--</span>
-                <span className="text-light-gray truncate">jasmine.k</span>
-                <span className="text-steel-gray text-right">{formatBytes(d.size_bytes)}</span>
-                <span className="text-steel-gray">{d.uploaded_at.slice(0, 16).replace("T", " ")}</span>
-                <span className="text-snow truncate">{d.filename}</span>
-                <span className="text-right">{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
-              </div>
-            ))}
-          </div>
+        {tab === "chronology" && (
+          <ChronologyTab
+            chron={chron}
+            showSoF={showSoF}
+            setShowSoF={setShowSoF}
+            onConfirmGate={onConfirmGate}
+          />
         )}
-      </section>
-
-      {/* pre-motion -------------------------------------------- */}
-      <section className="mb-14">
-        <SectionLabel id="§pre-motion" name="modules · uk-litigation-legal/pre-motion · 4-stage pipeline" />
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-sans text-[25px] text-snow">Pre-Motion.</h2>
-          <button
-            onClick={onRunPremotion}
-            disabled={premotionRunning || matter.privilege_posture === "C_paused"}
-            className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
-            title={matter.privilege_posture === "C_paused" ? "Privilege posture C_paused blocks LLM calls" : ""}
-          >
-            {premotionRunning ? "RUNNING…" : "RUN PREMORTEM →"}
-          </button>
-        </div>
-        <p className="font-sans text-[14px] text-ash-gray max-w-[70ch] mb-4">
-          Adversarial premortem: <span className="text-platinum">Optimistic Analyst →
-          Evidence Inspector × 3 parallel sub-agents → Premortem Adversary × 4 parallel
-          sub-agents → Synthesiser.</span> 9 model calls per run, all audited.
-        </p>
-        {premotionError && <ErrorCallout message={premotionError} compact />}
-        {(premotionRunning || premotionStages.length > 0) && !premotion && (
-          <PremotionStageStrip stages={premotionStages} />
+        {tab === "premotion" && (
+          <PremotionTab
+            matter={matter}
+            running={premotionRunning}
+            error={premotionError}
+            stages={premotionStages}
+            result={premotion}
+            onRun={onRunPremotion}
+            pdfBusy={pdfBusy}
+            pdfError={pdfError}
+            onExportPdf={onExportPdf}
+          />
         )}
-        {premotion && (
-          <>
-            <div className="flex items-center justify-end mb-3">
-              <button
-                onClick={onExportPdf}
-                disabled={pdfBusy}
-                className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {pdfBusy ? "RENDERING…" : "EXPORT PDF →"}
-              </button>
-            </div>
-            {pdfError && <ErrorCallout message={pdfError} compact />}
-            <PremotionResult result={premotion} />
-          </>
-        )}
-      </section>
-
-      {/* letters ----------------------------------------------- */}
-      <section className="mb-14">
-        <SectionLabel
-          id="§letters"
-          name={`modules · letters · routed by matter_type=${matter.matter_type}`}
-        />
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-sans text-[25px] text-snow">Letters.</h2>
-          <button
-            onClick={onDraftLetter}
-            disabled={
-              letterDrafting ||
-              matter.privilege_posture === "C_paused" ||
-              !selectedLetter ||
-              !letterCat ||
-              letterCat.letter_types.length === 0
-            }
-            className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow disabled:opacity-40 disabled:cursor-not-allowed"
-            title={matter.privilege_posture === "C_paused" ? "Privilege posture C_paused blocks LLM calls" : ""}
-          >
-            {letterDrafting ? "DRAFTING…" : "DRAFT LETTER →"}
-          </button>
-        </div>
-        <p className="font-sans text-[14px] text-ash-gray max-w-[70ch] mb-4">
-          Routed by matter type. ET matters surface{" "}
-          <span className="text-platinum">uk-employment-legal/lba-drafter</span> as default; civil
-          matters surface <span className="text-platinum">uk-litigation-legal/cpr-letter-drafter</span>.
-          Each draft writes <span className="text-platinum">plugin.invoked + model.call + http.post</span> to the audit log.
-        </p>
-
-        {!letterCat && <LoadingLine label="loading catalogue" />}
-        {letterCat && letterCat.letter_types.length === 0 && (
-          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
-            no letter skills mapped for matter_type={letterCat.matter_type}. Add to
-            <span className="text-light-gray"> app/modules/letters/catalog.py</span>.
-          </p>
-        )}
-
-        {letterCat && letterCat.letter_types.length > 0 && (
-          <LetterSelector
+        {tab === "letters" && (
+          <LettersTab
+            matter={matter}
             catalogue={letterCat}
             selected={selectedLetter}
             onSelect={setSelectedLetter}
+            drafting={letterDrafting}
+            error={letterError}
+            draft={letterDraft}
+            onDraft={onDraftLetter}
           />
         )}
+        {tab === "audit" && <AuditTab audit={audit} />}
+      </div>
+    </div>
+  );
+}
 
-        {letterError && <ErrorCallout message={letterError} compact />}
+function isTabKey(v: string): v is TabKey {
+  return ["overview", "documents", "chronology", "premotion", "letters", "audit"].includes(v);
+}
 
-        {letterDraft && <LetterDraftView draft={letterDraft} />}
-      </section>
+// -- PanelHeader (P8) -------------------------------------------------------
 
-      {/* chronology -------------------------------------------- */}
-      <section className="mb-14">
-        <SectionLabel id="§chronology" name="chronology · seeded fixture · v0.2 lifts to live extraction" />
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-sans text-[25px] text-snow">Chronology.</h2>
-          {chron && chron.events.length > 0 && (
-            <div className="flex items-center gap-3">
-              <ToggleButton active={!showSoF} onClick={() => setShowSoF(false)}>
-                FULL
-              </ToggleButton>
-              <ToggleButton active={showSoF} onClick={() => setShowSoF(true)}>
-                STMT OF FACTS
-              </ToggleButton>
+function PanelHeader({
+  matter,
+  onPostureChange,
+}: {
+  matter: Matter;
+  onPostureChange: (next: string) => void;
+}) {
+  return (
+    <div className="border-b border-rule px-4 sm:px-6 lg:px-10 py-4 flex flex-wrap items-center gap-x-8 gap-y-4 bg-paper">
+      <div className="flex flex-col">
+        <span className="text-xl font-mono font-bold tracking-tight text-ink">
+          {matter.slug}
+        </span>
+        <span className="text-sm text-prose">{matter.title}</span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Matter type</span>
+        <span className="text-ink font-mono text-xs font-bold">{matter.matter_type}</span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Status</span>
+        <span className="text-xs font-bold">
+          <StatusBadge status={matter.status} />
+        </span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Model</span>
+        <span className="text-ink font-mono text-xs font-bold">{matter.default_model_id}</span>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="eyebrow tracking-track2 mb-0.5">Posture</span>
+        <PrivilegeControl value={matter.privilege_posture} onChange={onPostureChange} />
+      </div>
+    </div>
+  );
+}
+
+// -- TabBar (P9) ------------------------------------------------------------
+
+function TabBar({ tab, onChange }: { tab: TabKey; onChange: (t: TabKey) => void }) {
+  return (
+    <div className="border-b border-rule px-4 sm:px-6 lg:px-10 flex gap-8 overflow-x-auto bg-paper">
+      {TABS.map((t) => {
+        const active = t.key === tab;
+        return (
+          <button
+            key={t.key}
+            onClick={() => onChange(t.key)}
+            className={
+              "min-h-[44px] -mb-px border-b-2 px-1 text-sm font-medium transition-colors whitespace-nowrap " +
+              (active
+                ? "border-ink text-ink"
+                : "border-transparent text-muted hover:text-ink")
+            }
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// -- OverviewTab ------------------------------------------------------------
+
+function OverviewTab({ matter }: { matter: Matter }) {
+  return (
+    <div className="max-w-4xl">
+      <div className="flex flex-wrap gap-x-10 gap-y-4 mb-10 pb-10 border-b border-rule">
+        <div>
+          <div className="eyebrow mb-1.5">Cause</div>
+          <div className="text-sm font-semibold text-ink">{matter.cause ?? "—"}</div>
+        </div>
+        <div>
+          <div className="eyebrow mb-1.5">Opened</div>
+          <div className="text-sm font-semibold text-ink">{matter.opened_at.slice(0, 10)}</div>
+        </div>
+        <div>
+          <div className="eyebrow mb-1.5">Retention</div>
+          <div className="text-sm font-semibold text-ink">
+            {matter.retention_until?.slice(0, 10) ?? "—"}
+          </div>
+        </div>
+        <div>
+          <div className="eyebrow mb-1.5">Status</div>
+          <div className="text-sm font-semibold text-ink">{matter.status}</div>
+        </div>
+      </div>
+
+      {matter.pivot_fact && (
+        <div className="bg-wash p-8 border-l-4 border-ink my-8">
+          <div className="eyebrow mb-3">Pivot fact</div>
+          <p className="text-sm font-medium italic m-0 text-ink whitespace-pre-wrap">
+            {matter.pivot_fact}
+          </p>
+        </div>
+      )}
+
+      {matter.case_theory && (
+        <section className="prose mb-12">
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            01. Theory of case
+          </h2>
+          <p className="prose-p whitespace-pre-wrap">{matter.case_theory}</p>
+        </section>
+      )}
+
+      {!matter.case_theory && !matter.pivot_fact && (
+        <p className="prose-p">
+          No case theory recorded yet. Theory and pivot fact set at matter creation feed downstream
+          Pre-Motion synthesis and letter drafting.
+        </p>
+      )}
+
+      {/* Contract Review v0.2 callout */}
+      <div className="bg-wash border-l-4 border-ink p-6 my-12">
+        <div className="eyebrow mb-3">ROADMAP — v0.2</div>
+        <p className="text-sm text-ink leading-relaxed">
+          Contract review graduates from counsel-mvp in v0.2. Four-agent orchestration over uploaded
+          contracts — Parser, Analyst, Redliner, Summariser — same shape as Pre-Motion's bespoke
+          pipeline. See{" "}
+          <a
+            href="https://github.com/b1rdmania/legalise/blob/master/docs/ROADMAP.md"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#0066CC] hover:underline"
+          >
+            docs/ROADMAP.md
+          </a>
+          .
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// -- DocumentsTab -----------------------------------------------------------
+
+function DocumentsTab({
+  docs,
+  onUpload,
+}: {
+  docs: MatterDocument[] | null;
+  onUpload: (file: File, tag?: string, fromDisclosure?: boolean) => void;
+}) {
+  const [tag, setTag] = useState("");
+  const [fromDisclosure, setFromDisclosure] = useState(false);
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    onUpload(file, tag || undefined, fromDisclosure || undefined);
+    e.target.value = "";
+  };
+
+  const inputCls =
+    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
+
+  return (
+    <div>
+      <form className="mb-10 flex flex-wrap items-end gap-4">
+        <Field label="Tag" hint="optional — e.g. pleadings, disclosure">
+          <input
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            className={inputCls}
+            placeholder="pleadings"
+          />
+        </Field>
+        <label className="flex items-center gap-2 min-h-[44px]">
+          <input
+            type="checkbox"
+            checked={fromDisclosure}
+            onChange={(e) => setFromDisclosure(e.target.checked)}
+          />
+          <span className="text-sm text-ink">From disclosure (CPR 31)</span>
+        </label>
+        <label className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center cursor-pointer">
+          Upload document
+          <input type="file" className="hidden" onChange={onFile} />
+        </label>
+      </form>
+
+      {!docs && <LoadingLine label="loading documents" />}
+      {docs && docs.length === 0 && (
+        <div className="border border-rule p-6 text-sm text-muted">
+          No documents registered yet.
+        </div>
+      )}
+      {docs && docs.length > 0 && (
+        <div className="border-t border-rule">
+          <div className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <span>SHA</span>
+            <span>Filename</span>
+            <span>Size</span>
+            <span>Tag</span>
+            <span>Disclosure</span>
+          </div>
+          {docs.map((d) => (
+            <div
+              key={d.id}
+              className="grid grid-cols-[110px_1fr_90px_120px_120px] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
+            >
+              <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
+              <span className="text-ink truncate">{d.filename}</span>
+              <span className="text-ink">{formatBytes(d.size_bytes)}</span>
+              <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
+              <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -- ChronologyTab ----------------------------------------------------------
+
+function ChronologyTab({
+  chron,
+  showSoF,
+  setShowSoF,
+  onConfirmGate,
+}: {
+  chron: ChronologyResponse | null;
+  showSoF: boolean;
+  setShowSoF: (v: boolean) => void;
+  onConfirmGate: () => void;
+}) {
+  if (!chron) return <LoadingLine label="loading chronology" />;
+
+  return (
+    <div>
+      {chron.gate.required && !chron.gate.confirmed && (
+        <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
+      )}
+
+      {chron.events.length === 0 && (
+        <div className="border border-rule p-6 text-sm text-muted">
+          No events seeded. Live extraction lands v0.2.
+        </div>
+      )}
+
+      {chron.events.length > 0 && (
+        <>
+          <div className="flex gap-4 border-b border-rule h-10 items-center mb-4">
+            <ToggleButton active={!showSoF} onClick={() => setShowSoF(false)}>
+              Full
+            </ToggleButton>
+            <ToggleButton active={showSoF} onClick={() => setShowSoF(true)}>
+              Statement of facts
+            </ToggleButton>
+          </div>
+          <ChronologyTable
+            events={showSoF ? chron.statement_of_facts_variant : chron.events}
+          />
+          {chron.gate.confirmed && chron.gate.confirmed_at && (
+            <p className="font-mono text-[11px] text-muted mt-4">
+              cpr_31_22_acknowledged · {chron.gate.confirmed_at.slice(0, 19).replace("T", " ")}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ChronologyTable({
+  events,
+}: {
+  events: import("./lib/api").ChronologyEvent[];
+}) {
+  return (
+    <div className="border-t border-rule">
+      <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+        <span>Date</span>
+        <span>Sig</span>
+        <span>Event</span>
+        <span>Source · flags</span>
+      </div>
+      {events.map((e) => {
+        const sigBarWidth = `${Math.max(0, Math.min(100, (e.significance / 5) * 100))}%`;
+        return (
+          <div
+            key={e.id}
+            className="relative h-[22px] grid grid-cols-[110px_50px_1fr_220px] gap-4 items-center px-4 hover:bg-wash transition-colors text-[11px] font-mono border-b border-rule"
+          >
+            <div
+              className="absolute right-0 top-0 bottom-0 bg-[#00A35C]/15 pointer-events-none"
+              style={{ width: sigBarWidth }}
+              aria-hidden="true"
+            />
+            <span className="text-ink z-10 font-bold">{e.event_date}</span>
+            <span className="text-muted z-10">{e.significance}</span>
+            {e.redacted ? (
+              <span className="text-[#D9304F] italic z-10 truncate">{e.description}</span>
+            ) : (
+              <span className="text-ink z-10 truncate">{e.description}</span>
+            )}
+            <span className="z-10 flex flex-wrap items-center gap-2 truncate">
+              {e.source_doc_filenames.map((fn) => (
+                <a
+                  key={fn}
+                  href="#"
+                  onClick={(ev) => ev.preventDefault()}
+                  className="text-muted hover:text-ink truncate max-w-[160px]"
+                >
+                  {fn}
+                </a>
+              ))}
+              {e.from_disclosure && <Badge>CPR 31.22</Badge>}
+              {e.priv_flag && <Badge>PRIV</Badge>}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// -- PremotionTab -----------------------------------------------------------
+
+function PremotionTab({
+  matter,
+  running,
+  error,
+  stages,
+  result,
+  onRun,
+  pdfBusy,
+  pdfError,
+  onExportPdf,
+}: {
+  matter: Matter;
+  running: boolean;
+  error: string | null;
+  stages: StageProgress[];
+  result: PreMotionRunResult | null;
+  onRun: () => void;
+  pdfBusy: boolean;
+  pdfError: string | null;
+  onExportPdf: () => void;
+}) {
+  const blocked = matter.privilege_posture === "C_paused";
+
+  return (
+    <div className="max-w-4xl">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-prose max-w-2xl">
+            Adversarial premortem. Optimistic Analyst → Evidence Inspector × 3 parallel sub-agents
+            → Premortem Adversary × 4 parallel sub-agents → Synthesiser. Nine model calls per run,
+            all audited.
+          </p>
+        </div>
+        <button
+          onClick={onRun}
+          disabled={running || blocked}
+          className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {running ? "Running…" : "Run premortem"}
+        </button>
+      </div>
+
+      {blocked && (
+        <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm mb-6">
+          <div className="font-semibold mb-1">Privilege posture C_paused</div>
+          LLM calls are blocked while the matter posture is paused. Change the posture in the
+          header strip to run a premortem.
+        </div>
+      )}
+
+      {error && <ErrorCallout message={error} compact />}
+
+      {(running || stages.length > 0) && !result && <PremotionStageStrip stages={stages} />}
+
+      {result && (
+        <>
+          <PremotionResult result={result} />
+          <div className="mt-6 flex items-center gap-4">
+            <button
+              onClick={onExportPdf}
+              disabled={pdfBusy}
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40"
+            >
+              {pdfBusy ? "Rendering PDF…" : "Export PDF"}
+            </button>
+          </div>
+          {pdfError && (
+            <div className="mt-4">
+              <ErrorCallout message={pdfError} compact />
             </div>
           )}
-        </div>
-
-        {!chron && <LoadingLine label="loading chronology" />}
-
-        {chron && chron.gate.required && !chron.gate.confirmed && (
-          <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
-        )}
-
-        {chron && chron.events.length === 0 && (
-          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
-            no events seeded. live extraction lands v0.2.
-          </p>
-        )}
-
-        {chron && chron.events.length > 0 && (
-          <ChronologyTable events={showSoF ? chron.statement_of_facts_variant : chron.events} />
-        )}
-
-        {chron && chron.gate.confirmed && chron.gate.confirmed_at && (
-          <p className="font-mono text-[11px] text-steel-gray mt-3">
-            cpr_31_22_acknowledged · {chron.gate.confirmed_at.slice(0, 19).replace("T", " ")}
-          </p>
-        )}
-      </section>
-
-      {/* contract review (v0.2 roadmap) ------------------------ */}
-      <section className="mb-14">
-        <SectionLabel
-          id="§contract-review"
-          name="modules · contract_review · v0.2 — visible, not yet active"
-        />
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-sans text-[25px] text-snow">Contract Review.</h2>
-          <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
-            v0.2
-          </span>
-        </div>
-        <p className="font-sans text-[14px] leading-[1.5] text-ash-gray max-w-[70ch] mb-4">
-          Future workspace surface for contract review — four-agent orchestration over
-          uploaded contract documents:{" "}
-          <span className="text-platinum">Parser → Analyst → Redliner → Summariser</span>.
-          v0.1 ships the spine the surface plugs into (matter, documents, audit, privilege
-          posture, model gateway, installed-skill bridge). The four agents and their UI
-          land v0.2 — same shape as Pre-Motion's bespoke orchestration, applied to a
-          contract-review workflow. Surfaced here so the roadmap is honest, not hidden
-          behind a feature flag.
-        </p>
-        <div className="border border-graphite p-3 font-mono text-[12px] tracking-[0.053em] text-dim-gray space-y-1">
-          <div>$ cat docs/ROADMAP.md | grep -A4 contract_review</div>
-          <div className="text-steel-gray">  v0.2 · Parser    — clause segmentation + structural extraction</div>
-          <div className="text-steel-gray">  v0.2 · Analyst   — issue spotting against matter facts + posture</div>
-          <div className="text-steel-gray">  v0.2 · Redliner  — proposed edits with rationale + risk-bucket</div>
-          <div className="text-steel-gray">  v0.2 · Summariser — solicitor-facing brief + executive summary</div>
-        </div>
-      </section>
-
-      {/* audit log --------------------------------------------- */}
-      <section className="mb-14">
-        <SectionLabel id="§audit" name={`audit_log · matters/${matter.slug}`} />
-        <h2 className="font-sans text-[25px] text-snow mb-3">Provenance.</h2>
-        {!audit && <LoadingLine label="loading audit" />}
-        {audit && audit.length === 0 && (
-          <p className="font-mono text-[12px] text-dim-gray border border-graphite p-4">
-            no entries yet — actions on this matter will appear here.
-          </p>
-        )}
-        {audit && audit.length > 0 && (
-          <div className="border border-graphite">
-            <div className="grid grid-cols-[170px_110px_180px_1fr_90px] gap-4 px-3 py-2 bg-graphite text-dim-gray font-mono text-[10px] tracking-[0.014em] uppercase border-b border-slate">
-              <span>timestamp_utc</span>
-              <span>actor</span>
-              <span>action</span>
-              <span>resource</span>
-              <span className="text-right">hash</span>
-            </div>
-            {audit.map((e) => (
-              <div
-                key={e.id}
-                className="grid grid-cols-[170px_110px_180px_1fr_90px] gap-4 px-3 py-2 font-mono text-[12px] tracking-[0.053em] border-b border-graphite last:border-b-0"
-              >
-                <span className="text-steel-gray">{e.timestamp.slice(0, 19).replace("T", " · ")}</span>
-                <span className="text-snow truncate">jasmine.k</span>
-                <span className="text-terminal-green truncate">{e.action}</span>
-                <span className="text-light-gray truncate">{e.resource_id ?? e.resource_type ?? "—"}</span>
-                <span className="text-dim-gray text-right">
-                  {(e.prompt_hash ?? "").slice(0, 8) || "—"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* meta / colophon — retention_until is intentionally not surfaced
-          here until enforcement lands (v0.2). Showing a date the system
-          does not actively enforce would mislead users into thinking the
-          policy is live. */}
-      <footer className="border-t border-graphite pt-5 grid grid-cols-3 gap-4 font-mono text-[10px] tracking-[0.014em] text-dim-gray">
-        <Cell k="matter_id" v={matter.slug} />
-        <Cell k="default_model" v={matter.default_model_id} />
-        <Cell k="privilege" v={matter.privilege_posture} />
-      </footer>
+        </>
+      )}
     </div>
-  );
-}
-
-// ---------- shared ----------------------------------------------------------
-
-function SectionLabel({ id, name }: { id: string; name: string }) {
-  return (
-    <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray mb-2 uppercase">
-      <span className="text-terminal-green mr-2">{id}</span>
-      {name}
-    </div>
-  );
-}
-
-/**
- * Parse a backend error into status + body. The api.ts wrapper throws
- * `Error("<status> <statusText>: <body>")`; this regex pulls those out
- * so we can show the status as a small chip and the body as plain prose.
- * If the format doesn't match (e.g. network failure with a TypeError),
- * we render the raw message as the body and leave status unset.
- */
-function parseError(err: string): { status: string | null; body: string } {
-  const m = err.match(/^Error:\s*(\d{3})\s+([^:]+):\s*(.*)$/s);
-  if (!m) {
-    return { status: null, body: err.replace(/^Error:\s*/, "") };
-  }
-  const [, status, , raw] = m;
-  // The body is often JSON like {"detail": "..."} — unwrap if so.
-  let body = raw.trim();
-  try {
-    const parsed = JSON.parse(body);
-    if (parsed && typeof parsed.detail === "string") body = parsed.detail;
-  } catch {
-    // not JSON, leave as-is
-  }
-  return { status, body };
-}
-
-function ErrorCallout({ message, compact = false }: { message: string; compact?: boolean }) {
-  const { status, body } = parseError(message);
-  return (
-    <div className={`border border-code-error ${compact ? "p-3" : "p-4"} my-3`}>
-      <div className="flex items-center gap-3 mb-1 font-mono text-[10px] tracking-[0.014em] uppercase">
-        <span className="text-code-red">error</span>
-        {status && <span className="text-dim-gray">http {status}</span>}
-      </div>
-      <p className="font-sans text-[14px] leading-[1.45] text-snow max-w-[70ch] whitespace-pre-wrap">
-        {body}
-      </p>
-    </div>
-  );
-}
-
-function LoadingLine({ label }: { label: string }) {
-  return (
-    <p className="font-mono text-[12px] tracking-[0.053em] text-dim-gray">
-      <span className="text-terminal-green">⟳</span> {label}
-      <span className="inline-block w-1.5 h-3 bg-emerald-shadow ml-1 align-text-bottom animate-pulse" />
-    </p>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <label className="block">
-      <span className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-1.5 inline-flex items-center gap-2">
-        {label}
-        {hint && <span className="text-steel-gray normal-case tracking-normal">({hint})</span>}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "open") {
-    return (
-      <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-deep-teal text-terminal-green px-1.5 py-px shadow-subtle">
-        OPEN
-      </span>
-    );
-  }
-  return (
-    <span className="font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
-      {status.toUpperCase()}
-    </span>
   );
 }
 
 function PremotionStageStrip({ stages }: { stages: StageProgress[] }) {
-  // Render the four stages in fixed order so the strip layout is stable
-  // as events arrive — stages.start fills "running", stages.end fills
-  // duration/tokens/status.
   const expected = [
     { index: 1, stage: "optimistic", sub_agent_count: 1 },
     { index: 2, stage: "evidence", sub_agent_count: 3 },
@@ -1195,32 +1688,30 @@ function PremotionStageStrip({ stages }: { stages: StageProgress[] }) {
   ];
   const byIndex = new Map(stages.map((s) => [s.index, s]));
   return (
-    <div className="border border-graphite">
-      <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate">
-        pipeline · streaming · 9 model calls total
-      </div>
-      <div className="grid grid-cols-4">
+    <div className="border border-rule mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4">
         {expected.map((e) => {
           const s = byIndex.get(e.index);
           const status = s?.status ?? "pending";
           const colour =
             status === "running"
-              ? "text-terminal-green"
+              ? "text-[#E67E22]"
               : status === "done"
-                ? "text-platinum"
+                ? "text-[#00A35C]"
                 : status === "error"
-                  ? "text-code-red"
-                  : "text-dim-gray";
+                  ? "text-[#D9304F]"
+                  : "text-muted";
           return (
             <div
               key={e.index}
-              className="border-r border-graphite last:border-r-0 p-3 font-mono text-[11px] tracking-[0.04em]"
+              className="border-r border-rule last:border-r-0 border-b md:border-b-0 p-4"
             >
-              <div className="text-dim-gray uppercase mb-1">{e.stage}</div>
-              <div className={`${colour} uppercase`}>
+              <div className="eyebrow mb-2">{e.stage}</div>
+              <div className={`text-xs font-mono font-bold ${colour}`}>
                 {status === "running" && (
-                  <span>
-                    running…<span className="inline-block w-1.5 h-3 bg-emerald-shadow ml-1 align-text-bottom animate-pulse" />
+                  <span className="flex items-center gap-2">
+                    <InlineSpinner />
+                    running
                   </span>
                 )}
                 {status === "done" && (
@@ -1243,193 +1734,313 @@ function PremotionStageStrip({ stages }: { stages: StageProgress[] }) {
 function PremotionResult({ result }: { result: PreMotionRunResult }) {
   const verdictColour =
     result.synthesis.verdict === "steelman"
-      ? "text-terminal-green"
+      ? "#00A35C"
       : result.synthesis.verdict === "strawman"
-        ? "text-code-red"
-        : "text-platinum";
+        ? "#D9304F"
+        : "#E67E22";
+
   return (
-    <div className="space-y-4">
-      {/* verdict + brutal sentence */}
-      <div className="border border-graphite">
-        <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate flex items-center justify-between">
-          <span>
-            verdict · {result.model_used} · {result.total_token_count} tok ·{" "}
+    <div className="space-y-8">
+      {/* verdict pill + meta */}
+      <div>
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <span
+            className="inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold"
+            style={{ borderColor: verdictColour, color: verdictColour }}
+          >
+            <span className="w-1.5 h-1.5" style={{ backgroundColor: verdictColour }} />
+            {result.synthesis.verdict}
+          </span>
+          <span className="font-mono text-xs text-muted">
+            {result.model_used} · {result.total_token_count} tok ·{" "}
             {(result.total_duration_ms / 1000).toFixed(1)}s
           </span>
-          <span className={`uppercase ${verdictColour}`}>{result.synthesis.verdict}</span>
         </div>
-        <div className="p-4 space-y-3">
-          <p className="font-sans text-[14px] leading-[1.5] text-ash-gray">
-            {result.synthesis.verdict_reasoning}
-          </p>
-          {result.synthesis.if_we_lose_this_will_be_why && (
-            <blockquote className="border-l-2 border-code-red pl-3 font-sans italic text-[16px] leading-[1.5] text-snow">
+        <p className="prose-p">{result.synthesis.verdict_reasoning}</p>
+        {result.synthesis.if_we_lose_this_will_be_why && (
+          <div className="bg-wash p-8 border-l-4 border-ink my-8">
+            <div className="eyebrow mb-3">If we lose, this will be why</div>
+            <p className="text-sm font-medium italic m-0 text-ink">
               {result.synthesis.if_we_lose_this_will_be_why}
-            </blockquote>
-          )}
-          {result.synthesis.summary && (
-            <p className="font-sans text-[14px] leading-[1.55] text-platinum whitespace-pre-wrap">
-              {result.synthesis.summary}
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* stage status strip */}
-      <div className="border border-graphite">
-        <div className="grid grid-cols-4">
-          {result.stages.map((s) => (
-            <div
-              key={s.name}
-              className="border-r border-graphite last:border-r-0 p-3 font-mono text-[11px] tracking-[0.04em]"
-            >
-              <div className="text-dim-gray uppercase mb-1">{s.name}</div>
-              <div className="text-platinum">
-                {s.sub_agent_count} call{s.sub_agent_count === 1 ? "" : "s"} ·{" "}
-                {(s.duration_ms / 1000).toFixed(1)}s · {s.token_count}t
-              </div>
-              {s.errors.length > 0 && (
-                <div className="text-code-red mt-1">{s.errors.length} err</div>
-              )}
-            </div>
-          ))}
-        </div>
+          </div>
+        )}
+        {result.synthesis.summary && (
+          <p className="prose-p whitespace-pre-wrap">{result.synthesis.summary}</p>
+        )}
       </div>
 
       {/* failure scenarios */}
       {result.synthesis.failure_scenarios.length > 0 && (
-        <div className="border border-graphite">
-          <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate">
-            failure_scenarios · synthesised across procedural / substantive / evidentiary / strategic
-          </div>
-          {result.synthesis.failure_scenarios.map((fs, i) => (
-            <div key={i} className="border-b border-graphite last:border-b-0 p-3">
-              <div className="flex items-center gap-3 mb-2 font-mono text-[11px] tracking-[0.053em]">
-                <span className="uppercase text-terminal-green">{fs.category}</span>
-                <span className="text-dim-gray">
-                  prob {fs.probability} · impact {fs.impact}
-                </span>
+        <section>
+          <h3 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            Failure scenarios
+          </h3>
+          <div className="border-t border-rule">
+            {result.synthesis.failure_scenarios.map((fs, i) => (
+              <div key={i} className="border-b border-rule py-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <Badge>{fs.category.toUpperCase()}</Badge>
+                  <span className="font-mono text-xs text-muted">
+                    prob {fs.probability} · impact {fs.impact}
+                  </span>
+                </div>
+                <p className="text-sm text-ink mb-2 leading-relaxed">{fs.scenario}</p>
+                {fs.mitigation && (
+                  <p className="text-sm text-prose leading-relaxed">
+                    <span className="text-ink font-semibold">Mitigation —</span> {fs.mitigation}
+                  </p>
+                )}
               </div>
-              <p className="font-sans text-[14px] leading-[1.5] text-snow mb-2">{fs.scenario}</p>
-              {fs.mitigation && (
-                <p className="font-sans text-[13px] leading-[1.5] text-ash-gray">
-                  <span className="text-terminal-green">mitigation —</span> {fs.mitigation}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* blind spots */}
       {result.synthesis.blind_spots.length > 0 && (
-        <div className="border border-graphite p-3">
-          <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
-            blind_spots
-          </div>
-          <ul className="space-y-1.5">
+        <section>
+          <h3 className="text-2xl font-bold tracking-tight2 text-ink mb-6">Blind spots</h3>
+          <ul className="list-none space-y-4 text-prose text-sm pl-0">
             {result.synthesis.blind_spots.map((bs, i) => (
-              <li key={i} className="font-sans text-[14px] leading-[1.5] text-platinum">
-                — {bs}
+              <li key={i} className="flex items-start gap-4">
+                <span className="font-bold text-ink">—</span>
+                <span>{bs}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {/* evidence inconsistencies */}
       {result.synthesis.evidence_inconsistencies.length > 0 && (
-        <div className="border border-graphite p-3">
-          <div className="font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase mb-2">
-            evidence_inconsistencies
-          </div>
-          <ul className="space-y-2">
+        <section>
+          <h3 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            Evidence inconsistencies
+          </h3>
+          <ul className="list-none space-y-4 text-prose text-sm pl-0">
             {result.synthesis.evidence_inconsistencies.map((ei, i) => (
-              <li key={i} className="font-sans text-[13px] leading-[1.5]">
-                <span
-                  className={
-                    ei.severity === "high"
-                      ? "text-code-red font-mono text-[10px] uppercase mr-2"
-                      : "text-dim-gray font-mono text-[10px] uppercase mr-2"
-                  }
-                >
-                  {ei.severity}
+              <li key={i} className="flex items-start gap-4">
+                <span className="font-bold text-ink">—</span>
+                <span>
+                  <Badge>{ei.severity.toUpperCase()}</Badge>{" "}
+                  <strong className="text-ink font-semibold">{ei.claim}</strong> — {ei.issue}
                 </span>
-                <span className="text-platinum">{ei.claim}</span> —{" "}
-                <span className="text-ash-gray">{ei.issue}</span>
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/* stage telemetry — dense rows */}
+      <section>
+        <h3 className="text-2xl font-bold tracking-tight2 text-ink mb-6">Stage telemetry</h3>
+        <div className="border-t border-rule">
+          <div className="grid grid-cols-[1fr_80px_100px_100px_80px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <span>Stage</span>
+            <span>Calls</span>
+            <span>Duration</span>
+            <span>Tokens</span>
+            <span>Errors</span>
+          </div>
+          {result.stages.map((s) => (
+            <div
+              key={s.name}
+              className="grid grid-cols-[1fr_80px_100px_100px_80px] gap-4 px-4 py-3 border-b border-rule font-mono text-[11px] items-center"
+            >
+              <span className="text-ink font-bold">{s.name}</span>
+              <span className="text-ink">{s.sub_agent_count}</span>
+              <span className="text-ink">{(s.duration_ms / 1000).toFixed(1)}s</span>
+              <span className="text-ink">{s.token_count}</span>
+              <span className={s.errors.length ? "text-[#D9304F]" : "text-muted"}>
+                {s.errors.length}
+              </span>
+            </div>
+          ))}
         </div>
+      </section>
+    </div>
+  );
+}
+
+// -- LettersTab -------------------------------------------------------------
+
+function LettersTab({
+  matter,
+  catalogue,
+  selected,
+  onSelect,
+  drafting,
+  error,
+  draft,
+  onDraft,
+}: {
+  matter: Matter;
+  catalogue: LetterCatalogue | null;
+  selected: string | null;
+  onSelect: (id: string) => void;
+  drafting: boolean;
+  error: string | null;
+  draft: LetterDraft | null;
+  onDraft: () => void;
+}) {
+  const blocked = matter.privilege_posture === "C_paused";
+
+  if (!catalogue) return <LoadingLine label="loading letter catalogue" />;
+
+  return (
+    <div className="max-w-4xl">
+      <p className="text-sm text-prose mb-6 max-w-2xl">
+        Routed by matter type. ET matters surface{" "}
+        <span className="text-ink font-mono text-xs">uk-employment-legal/lba-drafter</span> as
+        default; civil matters surface{" "}
+        <span className="text-ink font-mono text-xs">uk-litigation-legal/cpr-letter-drafter</span>.
+      </p>
+
+      {catalogue.letter_types.length === 0 && (
+        <div className="border border-rule p-6 text-sm text-muted">
+          No letter skills mapped for matter_type={catalogue.matter_type}.
+        </div>
+      )}
+
+      {catalogue.letter_types.length > 0 && (
+        <>
+          <div className="border-t border-rule mb-6">
+            {catalogue.letter_types.map((lt) => {
+              const active = selected === lt.id;
+              return (
+                <button
+                  key={lt.id}
+                  onClick={() => onSelect(lt.id)}
+                  className={
+                    "w-full text-left px-4 py-4 border-b border-rule last:border-b-0 block " +
+                    (active
+                      ? "bg-wash text-ink border-l-2 border-l-ink -ml-[2px] pl-[18px]"
+                      : "hover:bg-wash")
+                  }
+                >
+                  <div className="flex flex-wrap items-center gap-3 mb-1">
+                    <span className="text-sm font-semibold text-ink">{lt.label}</span>
+                    {lt.is_default && <Badge>DEFAULT</Badge>}
+                    <span className="font-mono text-xs text-muted ml-auto">
+                      {lt.plugin}/{lt.skill}
+                    </span>
+                  </div>
+                  <p className="text-sm text-prose leading-relaxed">{lt.summary}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-4 mb-6">
+            <button
+              onClick={onDraft}
+              disabled={drafting || blocked || !selected}
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {drafting ? "Drafting…" : draft ? "Re-draft letter" : "Draft letter"}
+            </button>
+            {blocked && (
+              <span className="text-sm text-muted">
+                Privilege posture C_paused blocks LLM calls.
+              </span>
+            )}
+          </div>
+
+          {error && <ErrorCallout message={error} compact />}
+
+          {draft && (
+            <div className="border border-rule">
+              <div className="border-b border-rule px-4 py-3 flex flex-wrap items-center justify-between gap-4 bg-paper">
+                <div className="flex items-center gap-4">
+                  <span className="eyebrow">Draft</span>
+                  <span className="font-mono text-xs text-ink">{draft.letter_type}</span>
+                </div>
+                <span className="font-mono text-xs text-muted">
+                  {draft.model_used} · {draft.token_count} tok ·{" "}
+                  {(draft.latency_ms / 1000).toFixed(1)}s
+                </span>
+              </div>
+              <pre className="p-6 font-sans text-base leading-[1.7] text-ink whitespace-pre-wrap">
+                {draft.draft_markdown}
+              </pre>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function LetterSelector({
-  catalogue,
-  selected,
-  onSelect,
-}: {
-  catalogue: LetterCatalogue;
-  selected: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="border border-graphite">
-      <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate">
-        letter_type · {catalogue.letter_types.length} eligible for matter_type={catalogue.matter_type}
+// -- AuditTab ---------------------------------------------------------------
+
+function AuditTab({ audit }: { audit: AuditEntry[] | null }) {
+  if (!audit) return <LoadingLine label="loading audit" />;
+  if (audit.length === 0)
+    return (
+      <div className="border border-rule p-6 text-sm text-muted">
+        No entries yet — actions on this matter will appear here.
       </div>
-      {catalogue.letter_types.map((lt) => {
-        const active = selected === lt.id;
-        return (
-          <button
-            key={lt.id}
-            onClick={() => onSelect(lt.id)}
-            className={
-              "w-full text-left p-3 border-b border-graphite last:border-b-0 block " +
-              (active ? "bg-deep-teal" : "hover:bg-graphite")
-            }
-          >
-            <div className="flex items-center gap-3 mb-1 font-mono text-[11px] tracking-[0.053em]">
-              <span className={active ? "text-terminal-green uppercase" : "text-platinum uppercase"}>
-                {lt.label}
-              </span>
-              {lt.is_default && (
-                <span className="font-mono text-[10px] tracking-[0.014em] uppercase text-terminal-green">
-                  DEFAULT
-                </span>
-              )}
-              <span className="text-dim-gray ml-auto">
-                {lt.plugin}/{lt.skill}
-              </span>
-            </div>
-            <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[80ch]">
-              {lt.summary}
-            </p>
-          </button>
-        );
-      })}
+    );
+
+  return (
+    <div className="border-t border-rule">
+      <div className="grid grid-cols-[180px_180px_140px_80px_80px_1fr] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+        <span>Timestamp</span>
+        <span>Action</span>
+        <span>Model</span>
+        <span>Tokens</span>
+        <span>Latency</span>
+        <span>Payload</span>
+      </div>
+      {audit.map((e) => (
+        <div
+          key={e.id}
+          className="grid grid-cols-[180px_180px_140px_80px_80px_1fr] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
+        >
+          <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
+          <span className="text-ink font-bold truncate">{e.action}</span>
+          <span className="text-prose truncate">{e.model_used ?? "—"}</span>
+          <span className="text-ink">{e.token_count ?? "—"}</span>
+          <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "—"}</span>
+          <span className="text-muted truncate">{(e.prompt_hash ?? "—").slice(0, 8)}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-function LetterDraftView({ draft }: { draft: LetterDraft }) {
+// -- CprGateBanner ----------------------------------------------------------
+
+function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: () => void }) {
   return (
-    <div className="mt-4 border border-graphite">
-      <div className="px-3 py-2 bg-graphite font-mono text-[10px] tracking-[0.014em] text-dim-gray uppercase border-b border-slate flex items-center justify-between">
-        <span>
-          draft · {draft.plugin}/{draft.skill} · {draft.model_used} · {draft.token_count} tok ·{" "}
-          {(draft.latency_ms / 1000).toFixed(1)}s
-        </span>
-        <span className="text-terminal-green uppercase">{draft.letter_type}</span>
+    <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm mb-6">
+      <div className="font-semibold mb-2">
+        CPR 31.22 — implied undertaking · action required
       </div>
-      <pre className="p-4 font-sans text-[14px] leading-[1.55] text-snow whitespace-pre-wrap">
-        {draft.draft_markdown}
-      </pre>
+      <p className="leading-relaxed mb-3">
+        {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents obtained
+        under disclosure. CPR 31.22(1) restricts use of disclosed material to the proceedings in
+        which it was disclosed. Until you acknowledge the implied undertaking, the server
+        withholds detail of those {count === 1 ? "entry" : "entries"} — the rows below show them
+        as redacted.
+      </p>
+      <p className="text-prose leading-relaxed mb-4">
+        Acknowledgement is recorded in the audit trail (action:{" "}
+        <span className="font-mono text-xs text-ink">chronology.gate.confirmed</span>) and scoped
+        to this matter and user.
+      </p>
+      <button
+        onClick={onConfirm}
+        className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
+      >
+        I confirm
+      </button>
     </div>
   );
 }
+
+// -- ToggleButton (P9 inline) -----------------------------------------------
 
 function ToggleButton({
   active,
@@ -1444,9 +2055,10 @@ function ToggleButton({
     <button
       onClick={onClick}
       className={
-        active
-          ? "font-mono text-[11px] tracking-[0.053em] uppercase bg-deep-teal text-terminal-green px-1.5 py-px shadow-subtle"
-          : "font-mono text-[11px] tracking-[0.053em] uppercase bg-graphite text-platinum px-1.5 py-px shadow-subtle-2 hover:text-snow"
+        "font-mono uppercase text-[11px] tracking-track2 font-bold border-b-2 h-full pt-1 -mb-px transition-colors " +
+        (active
+          ? "text-ink border-ink"
+          : "text-muted hover:text-ink border-transparent")
       }
     >
       {children}
@@ -1454,96 +2066,30 @@ function ToggleButton({
   );
 }
 
-function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: () => void }) {
-  return (
-    <div className="border border-code-error mb-4 p-4">
-      <div className="font-mono text-[10px] tracking-[0.014em] uppercase text-code-red mb-2">
-        CPR 31.22 — IMPLIED UNDERTAKING · ACTION REQUIRED
-      </div>
-      <p className="font-sans text-[14px] leading-[1.5] text-platinum max-w-[70ch] mb-4">
-        {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents
-        obtained under disclosure. CPR 31.22(1) restricts use of disclosed material to
-        the proceedings in which it was disclosed. Until you acknowledge the implied
-        undertaking, the server withholds detail of those {count === 1 ? "entry" : "entries"} —
-        the rows below show them as redacted.
-      </p>
-      <p className="font-sans text-[13px] leading-[1.5] text-ash-gray max-w-[70ch] mb-4">
-        Acknowledgement is recorded in the audit trail (action:{" "}
-        <code className="font-mono text-[12px] text-terminal-green">chronology.gate.confirmed</code>)
-        and scoped to this matter and user. This is a forcing function for the rule,
-        not legal advice.
-      </p>
-      <button
-        onClick={onConfirm}
-        className="font-mono text-[12px] tracking-[0.053em] text-terminal-green bg-deep-teal px-3 h-7 inline-flex items-center shadow-subtle hover:bg-emerald-shadow"
-      >
-        I CONFIRM →
-      </button>
-    </div>
-  );
-}
+// -- PrivilegeControl -------------------------------------------------------
 
-function ChronologyTable({ events }: { events: import("./lib/api").ChronologyEvent[] }) {
+function PrivilegeControl({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const colour =
+    value === "A_cleared"
+      ? "#00A35C"
+      : value === "B_mixed"
+        ? "#E67E22"
+        : value === "C_paused"
+          ? "#D9304F"
+          : "#181818";
   return (
-    <div className="border border-graphite">
-      <div className="grid grid-cols-[130px_60px_1fr_220px] gap-4 px-3 py-2 bg-graphite text-dim-gray font-mono text-[10px] tracking-[0.014em] uppercase border-b border-slate">
-        <span>date</span>
-        <span>sig</span>
-        <span>event</span>
-        <span>source · flags</span>
-      </div>
-      {events.map((e) => (
-        <div
-          key={e.id}
-          className="grid grid-cols-[130px_60px_1fr_220px] gap-4 px-3 py-2 border-b border-graphite last:border-b-0 items-baseline"
-        >
-          <span className="font-mono text-[12px] tracking-[0.053em] text-steel-gray">{e.event_date}</span>
-          <span
-            className={
-              e.significance >= 4
-                ? "font-mono text-[12px] tracking-[0.053em] text-terminal-green"
-                : "font-mono text-[12px] tracking-[0.053em] text-dim-gray"
-            }
-          >
-            {e.significance >= 4 ? `★ ${e.significance}` : `· ${e.significance}`}
-          </span>
-          {e.redacted ? (
-            <span className="font-mono text-[13px] tracking-[0.04em] text-code-red italic">
-              {e.description}
-            </span>
-          ) : (
-            <span className="font-sans text-[14px] leading-[1.45] text-platinum">{e.description}</span>
-          )}
-          <span className="font-mono text-[11px] tracking-[0.04em] text-light-gray flex flex-wrap items-baseline gap-2">
-            {e.source_doc_filenames.map((fn) => (
-              <span key={fn} className="text-ash-gray truncate">
-                → {fn}
-              </span>
-            ))}
-            {e.from_disclosure && (
-              <span className="text-code-red ml-1">[DISCLOSURE 31.22]</span>
-            )}
-            {e.priv_flag && <span className="text-code-violet ml-1">[PRIV]</span>}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PrivilegeControl({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  // Visible posture indicator + native select. Colour reflects posture severity:
-  // A_cleared (terminal-green) → B_mixed (platinum) → C_paused (code-red).
-  const isPaused = value === "C_paused";
-  const isCleared = value === "A_cleared";
-  const colour = isPaused
-    ? "text-code-red"
-    : isCleared
-      ? "text-terminal-green"
-      : "text-platinum";
-  return (
-    <label className={`relative font-mono text-[11px] tracking-[0.053em] bg-graphite ${colour} px-1.5 py-px shadow-subtle-2 cursor-pointer`}>
-      {value.replace("_", " · ").toUpperCase()}
+    <label
+      className="relative inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold cursor-pointer"
+      style={{ borderColor: colour, color: colour }}
+    >
+      <span className="w-1.5 h-1.5" style={{ backgroundColor: colour }} />
+      {value.replace("_", " ").toUpperCase()}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -1558,28 +2104,133 @@ function PrivilegeControl({ value, onChange }: { value: string; onChange: (v: st
   );
 }
 
+// -- Helpers ----------------------------------------------------------------
+
+function ErrorCallout({ message, compact = false }: { message: string; compact?: boolean }) {
+  const { status, body } = parseError(message);
+  return (
+    <div className={`bg-red-50 border border-red-700 ${compact ? "p-3" : "p-4"} text-red-700 text-sm my-3`}>
+      <div className="font-semibold mb-1">
+        Error{status ? ` · HTTP ${status}` : ""}
+      </div>
+      <p className="leading-relaxed whitespace-pre-wrap">{body}</p>
+    </div>
+  );
+}
+
+function parseError(err: string): { status: string | null; body: string } {
+  const m = err.match(/^Error:\s*(\d{3})\s+([^:]+):\s*(.*)$/s);
+  if (!m) {
+    return { status: null, body: err.replace(/^Error:\s*/, "") };
+  }
+  const [, status, , raw] = m;
+  let body = raw.trim();
+  try {
+    const parsed = JSON.parse(body);
+    if (parsed && typeof parsed.detail === "string") body = parsed.detail;
+  } catch {
+    // not JSON
+  }
+  return { status, body };
+}
+
+function LoadingLine({ label }: { label: string }) {
+  return (
+    <p className="font-mono text-xs text-muted flex items-center gap-2">
+      <InlineSpinner />
+      {label}
+    </p>
+  );
+}
+
+function InlineSpinner() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="animate-spin"
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="eyebrow-sm">
+        {label}
+        {hint && <span className="text-muted text-xs normal-case tracking-normal ml-2">({hint})</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const colour =
+    status === "open"
+      ? "#00A35C"
+      : status === "closed" || status === "paused"
+        ? "#D9304F"
+        : "#181818";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold"
+      style={{ borderColor: colour, color: colour }}
+    >
+      <span className="w-1.5 h-1.5" style={{ backgroundColor: colour }} />
+      {status.toUpperCase()}
+    </span>
+  );
+}
+
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="font-mono text-[11px] tracking-[0.053em] bg-graphite text-platinum px-1.5 py-px shadow-subtle-2">
+    <span className="border border-rule text-ink text-[10px] font-mono uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
       {children}
     </span>
   );
 }
 
-function BadgeViolet({ children }: { children: ReactNode }) {
+function Footer() {
   return (
-    <span className="font-mono text-[11px] tracking-[0.053em] bg-graphite text-code-violet px-1.5 py-px shadow-subtle-2">
-      {children}
-    </span>
-  );
-}
-
-function Cell({ k, v }: { k: string; v: string }) {
-  return (
-    <div>
-      <span className="block text-dim-gray uppercase">{k}</span>
-      <span className="text-light-gray break-all">{v}</span>
-    </div>
+    <footer className="mt-32 pt-12 border-t border-rule flex flex-wrap gap-y-4 justify-between items-center text-xs text-muted uppercase tracking-track2">
+      <span>© 2026 Legalise — Apache 2.0</span>
+      <div className="flex gap-6">
+        <a
+          href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-ink"
+        >
+          Trust
+        </a>
+        <a
+          href="https://github.com/b1rdmania/legalise"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-ink"
+        >
+          GitHub
+        </a>
+      </div>
+    </footer>
   );
 }
 

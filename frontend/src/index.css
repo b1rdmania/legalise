@@ -1,18 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Fira+Code:wght@400&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html, body, #root {
-    height: 100%;
-    background: #0b0e12;
-    color: #bababb;
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: #FFFFFF;
+    color: #181818;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-weight: 400;
-    letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip; /* iOS Safari fix — never `hidden` */
+  }
+
+  button,
+  a,
+  input[type='checkbox'],
+  label {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a {
+    touch-action: manipulation;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    body {
+      overscroll-behavior-y: none;
+    }
+  }
+}
+
+@layer components {
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #9CA3AF;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .eyebrow-sm {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9CA3AF;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .prose-p {
+    color: #4B5563;
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+  }
+
+  .prose-p:last-child {
+    margin-bottom: 0;
   }
 }
