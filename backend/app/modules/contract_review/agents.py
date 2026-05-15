@@ -5,9 +5,11 @@ because each downstream stage consumes the upstream output. The four-call
 shape is deliberately leaner than Pre-Motion's nine-call adversarial fan
 — contract review needs sequential dependence, not parallel deliberation.
 
-JSON envelopes are parsed tolerantly (fenced blocks, bare JSON,
-first-`{`..last-`}` fallback) — mirrors `document_edit.pipeline._parse_envelope`
-without re-importing it, because the contract-review schemas differ.
+JSON envelopes go through `app.core.structured_output.parse_model_json`,
+which strips fences/prose and validates against the stage's Pydantic
+schema. Validation failure returns `parsed=None` and the raw response is
+attached to `error` so the pipeline's None-fallback path (see
+`pipeline._coerce_*`) carries the model output forward for audit.
 
 Each agent that fails returns an `AgentCall` with `error` set; the pipeline
 decides whether to abort (Parser) or continue with empty output (Analyst,
@@ -16,48 +18,25 @@ Redliner, Summariser).
 
 from __future__ import annotations
 
-import json
-import re
 import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway, PrivilegePaused
+from app.core.structured_output import StructuredOutputError, parse_model_json
 from app.core.user_keys import ProviderKeyMissing
 from app.models import Matter
 
 from . import prompts
-
-
-# ----- Tolerant JSON envelope parse ---------------------------------------
-
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
-
-
-def parse_envelope(text: str) -> dict[str, Any] | None:
-    """Pull a JSON object from a model response. Returns None on failure."""
-    if not text:
-        return None
-    m = _JSON_FENCE_RE.search(text)
-    if m:
-        try:
-            return json.loads(m.group(1))
-        except json.JSONDecodeError:
-            pass
-    try:
-        return json.loads(text.strip())
-    except json.JSONDecodeError:
-        pass
-    first = text.find("{")
-    last = text.rfind("}")
-    if 0 <= first < last:
-        try:
-            return json.loads(text[first : last + 1])
-        except json.JSONDecodeError:
-            return None
-    return None
+from .schemas import (
+    AnalysisResult,
+    ContractSummary,
+    ParsedContract,
+    RedlineSet,
+)
 
 
 # ----- Agent call result --------------------------------------------------
@@ -80,10 +59,12 @@ class AgentCall:
 
 
 class BaseAgent:
-    """Lightweight agent base. Subclasses set `stage` + `_resource_label`
-    and implement `build_prompts(...)` returning `(system, user)`."""
+    """Lightweight agent base. Subclasses set `stage`, `result_model`,
+    and `_resource_label`, and implement `build_prompts(...)` returning
+    `(system, user)`."""
 
     stage: str = "unknown"
+    result_model: type[BaseModel] | None = None
     _resource_label: str = "contract-review"
 
     def build_prompts(self, **kwargs: Any) -> tuple[str, str]:
@@ -128,13 +109,27 @@ class BaseAgent:
                 model_used="",
                 error=f"{type(exc).__name__}: {exc}",
             )
+
+        parsed: dict[str, Any] | None = None
+        error: str | None = None
+        if self.result_model is not None:
+            try:
+                validated = parse_model_json(result.text, self.result_model)
+                parsed = validated.model_dump()
+            except StructuredOutputError as exc:
+                # Preserve the existing None-fallback path; `pipeline._coerce_*`
+                # routes a None `parsed` into the empty-shape default. The raw
+                # text rides on `error` so audit retains the unparseable body.
+                error = f"StructuredOutputError: {exc}"
+
         return AgentCall(
             stage=self.stage,
             raw_text=result.text,
-            parsed=parse_envelope(result.text),
+            parsed=parsed,
             token_count=result.token_count,
             latency_ms=result.latency_ms,
             model_used=result.model_used,
+            error=error,
         )
 
 
@@ -143,6 +138,7 @@ class BaseAgent:
 
 class ParserAgent(BaseAgent):
     stage = "parser"
+    result_model = ParsedContract
 
     def build_prompts(
         self,
@@ -166,6 +162,7 @@ class ParserAgent(BaseAgent):
 
 class AnalystAgent(BaseAgent):
     stage = "analyst"
+    result_model = AnalysisResult
 
     def build_prompts(
         self,
@@ -191,6 +188,7 @@ class AnalystAgent(BaseAgent):
 
 class RedlinerAgent(BaseAgent):
     stage = "redliner"
+    result_model = RedlineSet
 
     def build_prompts(
         self,
@@ -212,6 +210,7 @@ class RedlinerAgent(BaseAgent):
 
 class SummariserAgent(BaseAgent):
     stage = "summariser"
+    result_model = ContractSummary
 
     def build_prompts(
         self,

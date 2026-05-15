@@ -9,9 +9,13 @@ Sub-agent classes within a stage differ only in `agent_id`,
 `sub_agent_id`, and the system prompt. Their user-prompt shape is
 shared via the stage base.
 
-JSON parsing is best-effort: ```json``` fenced blocks are extracted;
-malformed responses are surfaced via `parsed=False` so the pipeline
-can record the error in the run envelope without crashing the matter.
+JSON parsing routes through `app.core.structured_output.parse_model_json`
+where the stage has a wrapper Pydantic model (Optimistic, Synthesis).
+Evidence and Premortem sub-agents emit list-wrapper envelopes
+(`{evidence_flags: [...]}`, `{failure_scenarios: [...]}`) that have no
+top-level wrapper model in `schemas.py` — per work-unit-#1a spec we do
+not invent one. Those stages keep an inline tolerant extractor scoped to
+this module.
 """
 
 from __future__ import annotations
@@ -22,10 +26,14 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway, PrivilegePosture
+from app.core.structured_output import StructuredOutputError, parse_model_json
 from app.models import Document, Event, Matter
+
+from .schemas import OptimisticCase, SynthesisOutput
 
 
 # ----- helpers -------------------------------------------------------------
@@ -34,8 +42,9 @@ _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
-    """Pull a JSON object from a model response. Handles fenced code
-    blocks and bare JSON. Returns None if nothing parses."""
+    """Tolerant JSON extractor for sub-agents whose envelopes are
+    list-wrappers without a top-level Pydantic schema (evidence flags,
+    failure scenarios). Returns None if nothing parses."""
     if not text:
         return None
     # Fenced block first.
@@ -129,12 +138,24 @@ class MatterContext:
 
 class PreMotionAgent:
     """Abstract per-call agent. Subclasses set `agent_id`, optionally
-    `sub_agent_id`, `stage`, and override `build_system_prompt` /
-    `build_user_prompt`."""
+    `sub_agent_id`, `stage`, `result_model`, and override
+    `build_system_prompt` / `build_user_prompt`.
+
+    `result_model` is a Pydantic class whose shape matches the agent's
+    JSON envelope. When set, the response is routed through
+    `parse_model_json` for fence/prose stripping + validation. On
+    `StructuredOutputError` we fall back to `_extract_json` so the
+    pipeline's existing degraded paths (`_to_optimistic_case`,
+    `_coerce_synthesis`) still receive a best-effort dict.
+
+    Evidence / Premortem sub-agents leave `result_model = None` because
+    their list-wrapper envelopes have no top-level Pydantic class — see
+    module docstring."""
 
     agent_id: str = "base"
     sub_agent_id: str | None = None
     stage: str = "unknown"
+    result_model: type[BaseModel] | None = None
 
     def build_system_prompt(self) -> str:
         raise NotImplementedError
@@ -185,7 +206,21 @@ class PreMotionAgent:
                 error=f"{type(exc).__name__}: {exc}",
             )
 
-        parsed = _extract_json(result.text)
+        parsed: dict[str, Any] | None
+        error: str | None = None
+        if self.result_model is not None:
+            try:
+                validated = parse_model_json(result.text, self.result_model)
+                parsed = validated.model_dump()
+            except StructuredOutputError as exc:
+                # Degraded path: pipeline._to_optimistic_case /
+                # _coerce_synthesis already tolerate partial dicts, so
+                # surface the best-effort extract rather than None.
+                parsed = _extract_json(result.text)
+                error = f"StructuredOutputError: {exc}"
+        else:
+            parsed = _extract_json(result.text)
+
         return AgentCall(
             agent_id=self.agent_id,
             sub_agent_id=self.sub_agent_id,
@@ -195,6 +230,7 @@ class PreMotionAgent:
             token_count=result.token_count,
             latency_ms=result.latency_ms,
             model_used=result.model_used,
+            error=error,
         )
 
 
@@ -203,6 +239,7 @@ class PreMotionAgent:
 class OptimisticAnalyst(PreMotionAgent):
     agent_id = "optimistic_analyst"
     stage = "optimistic"
+    result_model = OptimisticCase
 
     def build_system_prompt(self) -> str:
         return (
@@ -453,6 +490,7 @@ class StrategicSubAgent(_PremortemSubAgent):
 class Synthesiser(PreMotionAgent):
     agent_id = "synthesiser"
     stage = "synthesis"
+    result_model = SynthesisOutput
 
     def build_system_prompt(self) -> str:
         return (
