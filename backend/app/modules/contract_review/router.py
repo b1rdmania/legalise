@@ -28,7 +28,6 @@ from app.core.model_gateway import (
     PrivilegePaused,
     PrivilegePosture,
     gateway as model_gateway,
-    provider_for_model,
 )
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import AuditEntry, Matter, User
@@ -127,10 +126,15 @@ async def run_stream_endpoint(
                 "Matter privilege posture is C_paused — Contract review blocked. "
                 "Change posture to A_cleared or B_mixed to run.",
             )
-        provider_name = provider_for_model(default_model_id)
-        if provider_name is not None:
+        # Codex R2: defer to the gateway's own routing rather than
+        # demanding a key for `claude-*` outright — Ollama on a B_mixed
+        # matter should run keylessly.
+        selected_provider = model_gateway.select_provider_name(
+            default_model_id, PrivilegePosture(posture_value)
+        )
+        if model_gateway.is_keyed_provider(selected_provider):
             user_key = await get_user_provider_key(
-                preflight_session, user.id, provider_name
+                preflight_session, user.id, selected_provider
             )
             fallback_allowed = (
                 settings.environment in {"development", "dev", "local"}
@@ -141,9 +145,9 @@ async def run_stream_endpoint(
                     422,
                     detail={
                         "error": "provider_key_missing",
-                        "provider": provider_name,
+                        "provider": selected_provider,
                         "message": (
-                            f"Add a {provider_name} API key in Settings → API Keys to run Contract review."
+                            f"Add a {selected_provider} API key in Settings → API Keys to run Contract review."
                         ),
                     },
                 )

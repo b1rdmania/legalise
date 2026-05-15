@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
 from app.core.config import settings
-from app.core.model_gateway import ModelGateway, PrivilegePaused, provider_for_model
+from app.core.model_gateway import ModelGateway, PrivilegePosture, PrivilegePaused
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import Document, Matter
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
@@ -248,19 +248,22 @@ async def run_review(
     if not cols:
         return RunReport(cells_run=0, cells_failed=0, errors=[], duration_ms=0)
 
-    # Provider-key preflight. Mirror Pre-Motion's pattern — fail BEFORE
-    # holding the advisory lock + writing audit rows so the router
-    # surfaces 422 cleanly. Codex R1 finding: the previous per-cell
-    # generic-except swallowed ProviderKeyMissing into per-row errors.
-    provider_name = provider_for_model(matter.default_model_id)
-    if provider_name is not None:
-        user_key = await get_user_provider_key(session, actor_id, provider_name)
+    # Provider-key preflight. Fail BEFORE holding the advisory lock +
+    # writing audit rows so the router surfaces 422 cleanly. Codex R2
+    # finding: defer to the gateway's own routing — on a B_mixed matter
+    # with Ollama registered, the gateway would serve the call keylessly
+    # against the local model even if `claude-*` is requested. Don't
+    # demand an Anthropic key in that case.
+    posture = PrivilegePosture(matter.privilege_posture)
+    selected_provider = gateway.select_provider_name(matter.default_model_id, posture)
+    if gateway.is_keyed_provider(selected_provider):
+        user_key = await get_user_provider_key(session, actor_id, selected_provider)
         fallback_allowed = (
             settings.environment in {"development", "dev", "local"}
             and settings.allow_server_key_fallback
         )
         if user_key is None and not fallback_allowed:
-            raise ProviderKeyMissing(provider_name)
+            raise ProviderKeyMissing(selected_provider)
 
     # Advisory lock — per-review, transaction-scoped. Released on commit
     # or rollback. `pg_try_advisory_xact_lock` returns boolean; if false,

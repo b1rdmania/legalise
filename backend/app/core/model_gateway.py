@@ -261,6 +261,27 @@ class ModelGateway:
             return self._providers[provider_name]
         return self._providers.get(requested) or self._providers["stub-echo"]
 
+    def select_provider_name(
+        self, requested: str | None, posture: PrivilegePosture
+    ) -> str:
+        """Public peek at which provider would serve `(model, posture)`.
+
+        Returns the provider name (`"anthropic"`, `"openai"`, `"ollama"`,
+        `"stub-echo"`, …) the gateway would route to right now, given
+        the currently-registered provider set. Preflight callers use
+        this to decide whether to require a user-supplied API key —
+        avoids preflights being stricter than the gateway's own routing
+        (e.g. demanding an Anthropic key on a `B_mixed` matter where
+        Ollama is registered and would actually serve the request).
+        """
+        model = requested or settings.default_model_id
+        return self._select_provider(model, posture).name
+
+    @staticmethod
+    def is_keyed_provider(name: str) -> bool:
+        """True if the named provider requires a user-supplied API key."""
+        return name in _KEYED_PROVIDERS
+
     async def call(
         self,
         *,
