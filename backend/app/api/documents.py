@@ -7,23 +7,37 @@ can mount onto it without disturbing the wiring in `main.py`.
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
+from app.core.config import settings
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing
-from app.models import Document, Matter, User
+from app.models import AuditEntry, Document, DocumentEdit, DocumentVersion, Matter, User
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
+from app.models.document_edit import (
+    EDIT_STATUS_ACCEPTED,
+    EDIT_STATUS_PENDING,
+    EDIT_STATUS_REJECTED,
+)
 from app.modules.document_edit import EDIT_MODES, propose_edits
+from app.modules.document_edit.resolver import (
+    EditAlreadyResolved,
+    resolve_bulk,
+    resolve_edit,
+)
 
 router = APIRouter()
 
@@ -177,3 +191,255 @@ async def post_edit_instruction(
         instruction_hash=result.instruction_hash,
         parse_ok=result.parse_ok,
     )
+
+
+# -- Generated .docx download (Phase B W1) ---------------------------------
+
+
+_FILENAME_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _safe_filename(title: str | None, file_uuid: str) -> str:
+    """Derive a human-readable .docx filename from the audit `title` payload.
+
+    Falls back to `generated-{uuid8}.docx` when title is empty or sanitises
+    to nothing. The slugified title is bounded at 80 chars.
+    """
+    if title:
+        cleaned = _FILENAME_SAFE_RE.sub("-", title).strip("-._")
+        cleaned = cleaned[:80].rstrip("-._")
+        if cleaned:
+            return f"{cleaned}.docx"
+    return f"generated-{file_uuid[:8]}.docx"
+
+
+@router.get("/generated/{file_uuid}")
+async def download_generated_docx(
+    file_uuid: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> FileResponse:
+    """Stream a previously generated .docx.
+
+    Authorisation walks the audit trail: the canonical handle on a
+    generated file is the `document.generated` AuditEntry written by the
+    `generate_docx` tool. We resolve the most recent matching row, walk
+    to its `matter_id`, and 404 unless `matter.created_by_id == user.id`.
+    No row → 404. File missing on disk → 404 (treat as gone).
+    """
+    entry = await session.scalar(
+        select(AuditEntry)
+        .where(
+            AuditEntry.action == "document.generated",
+            AuditEntry.resource_id == str(file_uuid),
+        )
+        .order_by(AuditEntry.timestamp.desc())
+        .limit(1)
+    )
+    if entry is None or entry.matter_id is None:
+        raise HTTPException(404, "generated document not found")
+
+    matter = await session.scalar(
+        select(Matter).where(Matter.id == entry.matter_id)
+    )
+    if matter is None or matter.created_by_id != user.id:
+        raise HTTPException(404, "generated document not found")
+
+    storage_uri = (entry.payload or {}).get("storage_uri")
+    if not storage_uri:
+        raise HTTPException(404, "generated document not found")
+
+    target = Path(settings.matters_root) / storage_uri
+    if not target.is_file():
+        raise HTTPException(404, "generated document not found")
+
+    filename = _safe_filename((entry.payload or {}).get("title"), str(file_uuid))
+    return FileResponse(
+        path=str(target),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=filename,
+    )
+
+
+# -- Accept/reject + versions (Workstream 2) -------------------------------
+
+
+class EditResolutionResponse(BaseModel):
+    edit: DocumentEditRead
+    new_version: DocumentVersionRead | None = None
+    resolved_text: str | None = None
+
+
+class BulkResolutionResponse(BaseModel):
+    affected_count: int
+    new_version: DocumentVersionRead
+    resolved_text: str
+
+
+class DocumentVersionSummary(BaseModel):
+    version: DocumentVersionRead
+    pending_count: int
+    accepted_count: int
+    rejected_count: int
+
+
+async def _resolve_one(
+    document_id_unused: None,
+    edit_id: uuid.UUID,
+    action: Literal["accept", "reject"],
+    session: AsyncSession,
+    user: User,
+) -> EditResolutionResponse:
+    try:
+        updated, new_version, resolved_text = await resolve_edit(
+            session,
+            edit_id=edit_id,
+            actor_id=user.id,
+            action=action,
+        )
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except EditAlreadyResolved as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+    await session.commit()
+    return EditResolutionResponse(
+        edit=DocumentEditRead.model_validate(updated),
+        new_version=(
+            DocumentVersionRead.model_validate(new_version) if new_version else None
+        ),
+        resolved_text=resolved_text,
+    )
+
+
+@router.post("/edits/{edit_id}/accept", response_model=EditResolutionResponse)
+async def post_accept_edit(
+    edit_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> EditResolutionResponse:
+    """Accept a single pending edit. Returns 409 if already resolved."""
+    return await _resolve_one(None, edit_id, "accept", session, user)
+
+
+@router.post("/edits/{edit_id}/reject", response_model=EditResolutionResponse)
+async def post_reject_edit(
+    edit_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> EditResolutionResponse:
+    """Reject a single pending edit. Returns 409 if already resolved."""
+    return await _resolve_one(None, edit_id, "reject", session, user)
+
+
+async def _resolve_all(
+    version_id: uuid.UUID,
+    action: Literal["accept_all", "reject_all"],
+    session: AsyncSession,
+    user: User,
+) -> BulkResolutionResponse:
+    try:
+        affected, new_version, resolved_text = await resolve_bulk(
+            session,
+            version_id=version_id,
+            actor_id=user.id,
+            action=action,
+        )
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    await session.commit()
+    return BulkResolutionResponse(
+        affected_count=affected,
+        new_version=DocumentVersionRead.model_validate(new_version),
+        resolved_text=resolved_text,
+    )
+
+
+@router.post(
+    "/versions/{version_id}/accept-all", response_model=BulkResolutionResponse
+)
+async def post_accept_all(
+    version_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> BulkResolutionResponse:
+    """Accept every pending edit on this version in a single transaction."""
+    return await _resolve_all(version_id, "accept_all", session, user)
+
+
+@router.post(
+    "/versions/{version_id}/reject-all", response_model=BulkResolutionResponse
+)
+async def post_reject_all(
+    version_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> BulkResolutionResponse:
+    """Reject every pending edit on this version in a single transaction."""
+    return await _resolve_all(version_id, "reject_all", session, user)
+
+
+@router.get("/{document_id}/versions", response_model=list[DocumentVersionSummary])
+async def get_document_versions(
+    document_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> list[DocumentVersionSummary]:
+    """List versions for a document with per-version edit counts.
+
+    Returns versions ordered by `version_number` ascending. 404 if the
+    document isn't owned by the current user.
+    """
+    pair = (
+        await session.execute(
+            select(Document, Matter)
+            .join(Matter, Matter.id == Document.matter_id)
+            .where(Document.id == document_id)
+        )
+    ).first()
+    if pair is None:
+        raise HTTPException(404, "document not found")
+    _, matter = pair
+    if matter.created_by_id != user.id:
+        raise HTTPException(404, "document not found")
+
+    versions = (
+        await session.execute(
+            select(DocumentVersion)
+            .where(DocumentVersion.document_id == document_id)
+            .order_by(DocumentVersion.version_number.asc())
+        )
+    ).scalars().all()
+
+    if not versions:
+        return []
+
+    counts_rows = (
+        await session.execute(
+            select(
+                DocumentEdit.document_version_id,
+                DocumentEdit.status,
+                func.count(DocumentEdit.id),
+            )
+            .where(
+                DocumentEdit.document_version_id.in_([v.id for v in versions])
+            )
+            .group_by(DocumentEdit.document_version_id, DocumentEdit.status)
+        )
+    ).all()
+    counts: dict[uuid.UUID, dict[str, int]] = {}
+    for vid, status, n in counts_rows:
+        counts.setdefault(vid, {})[status] = int(n)
+
+    out: list[DocumentVersionSummary] = []
+    for v in versions:
+        c = counts.get(v.id, {})
+        out.append(
+            DocumentVersionSummary(
+                version=DocumentVersionRead.model_validate(v),
+                pending_count=c.get(EDIT_STATUS_PENDING, 0),
+                accepted_count=c.get(EDIT_STATUS_ACCEPTED, 0),
+                rejected_count=c.get(EDIT_STATUS_REJECTED, 0),
+            )
+        )
+    return out

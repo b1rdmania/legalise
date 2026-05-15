@@ -44,3 +44,21 @@ class LetterDraftResponse(BaseModel):
     model_used: str
     token_count: int
     latency_ms: int
+
+
+class LetterDraftDocxRequest(BaseModel):
+    """`draft_markdown` is the already-rendered draft from `/letters/draft`.
+    Re-using it (rather than re-invoking the plugin) avoids double-billing
+    the user for one document. `title` is the bold heading inside the
+    generated .docx (the matter-aware filename is derived elsewhere)."""
+
+    letter_type: str
+    title: str = Field(..., max_length=500)
+    draft_markdown: str = Field(..., max_length=500_000)
+
+
+class LetterDraftDocxResponse(BaseModel):
+    file_uuid: str
+    storage_uri: str
+    byte_count: int
+    download_url: str

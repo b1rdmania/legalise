@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 class GenerateDocxOptions(BaseModel):
     orientation: Literal["portrait", "landscape"] = "portrait"
     matter_id: uuid.UUID | None = None
+    matter_slug: str | None = Field(default=None, max_length=120)
 
 
 class GenerateDocxInput(BaseModel):

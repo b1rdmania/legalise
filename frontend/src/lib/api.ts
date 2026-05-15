@@ -461,6 +461,103 @@ export const postEditInstruction = (
     body: JSON.stringify({ instruction, mode }),
   }).then((r) => jsonOrThrow<EditInstructionResponse>(r));
 
+// ----- Generated .docx export (Phase B W1) ------------------------------
+
+export interface GeneratedDocxResponse {
+  file_uuid: string;
+  storage_uri: string;
+  byte_count: number;
+  download_url: string;
+}
+
+export const exportLetterDocx = (
+  slug: string,
+  payload: { letter_type: string; title: string; draft_markdown: string },
+) =>
+  apiFetch(`${API}/matters/${slug}/letters/draft/docx`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).then((r) => jsonOrThrow<GeneratedDocxResponse>(r));
+
+export const exportPreMotionDocx = (slug: string, result: PreMotionRunResult) =>
+  apiFetch(`${API}/matters/${slug}/pre-motion/docx`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(result),
+  }).then((r) => jsonOrThrow<GeneratedDocxResponse>(r));
+
+export async function downloadGeneratedDocx(fileUuid: string): Promise<Blob> {
+  const resp = await apiFetch(`${API}/documents/generated/${fileUuid}`);
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
+  }
+  return resp.blob();
+}
+
+// ----- Tracked changes accept/reject (Phase B W2) -----------------------
+
+export interface EditResolutionResponse {
+  edit: DocumentEditRead;
+  new_version: DocumentVersionRead | null;
+  resolved_text: string | null;
+}
+
+export interface BulkResolutionResponse {
+  affected_count: number;
+  new_version: DocumentVersionRead;
+  resolved_text: string;
+}
+
+export interface DocumentVersionSummary {
+  version: DocumentVersionRead;
+  pending_count: number;
+  accepted_count: number;
+  rejected_count: number;
+}
+
+export class ConflictError extends Error {
+  status = 409;
+}
+
+async function resolutionJsonOrThrow<T>(res: Response): Promise<T> {
+  if (res.status === 409) {
+    const text = await res.text();
+    throw new ConflictError(text || "edit already resolved");
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const acceptEdit = (editId: string) =>
+  apiFetch(`${API}/documents/edits/${editId}/accept`, { method: "POST" }).then(
+    (r) => resolutionJsonOrThrow<EditResolutionResponse>(r),
+  );
+
+export const rejectEdit = (editId: string) =>
+  apiFetch(`${API}/documents/edits/${editId}/reject`, { method: "POST" }).then(
+    (r) => resolutionJsonOrThrow<EditResolutionResponse>(r),
+  );
+
+export const acceptAll = (versionId: string) =>
+  apiFetch(`${API}/documents/versions/${versionId}/accept-all`, {
+    method: "POST",
+  }).then((r) => resolutionJsonOrThrow<BulkResolutionResponse>(r));
+
+export const rejectAll = (versionId: string) =>
+  apiFetch(`${API}/documents/versions/${versionId}/reject-all`, {
+    method: "POST",
+  }).then((r) => resolutionJsonOrThrow<BulkResolutionResponse>(r));
+
+export const getDocumentVersions = (documentId: string) =>
+  apiFetch(`${API}/documents/${documentId}/versions`).then((r) =>
+    resolutionJsonOrThrow<DocumentVersionSummary[]>(r),
+  );
+
 // ----- Auth + user --------------------------------------------------------
 
 // Auth endpoints sit at the backend origin, NOT under /api. See main.py:

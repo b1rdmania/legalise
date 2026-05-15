@@ -57,6 +57,7 @@ class DocumentVersion(Base):
     )
     storage_uri: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     def __repr__(self) -> str:
         return f"<DocumentVersion {self.document_id} v{self.version_number} kind={self.kind}>"

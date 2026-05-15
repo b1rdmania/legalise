@@ -23,9 +23,14 @@ from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
-from app.core.model_gateway import PrivilegePaused, PrivilegePosture, provider_for_model
+from app.core.model_gateway import (
+    PrivilegePaused,
+    PrivilegePosture,
+    gateway as model_gateway,
+    provider_for_model,
+)
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
-from app.models import Matter, User
+from app.models import AuditEntry, Matter, User
 
 from .pdf import render_pre_motion_pdf
 from .pipeline import run_pre_motion
@@ -286,3 +291,152 @@ async def export_pre_motion_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+def _render_synthesis_markdown(matter: Matter, result: PreMotionRunResult) -> str:
+    """Render a PreMotionRunResult to a Word-friendly markdown document.
+
+    Mirrors the section ordering of `pdf._render_html` so the .docx and
+    .pdf exports stay informationally equivalent. Heading sections only —
+    tables in the PDF collapse to inline run lines here because
+    `generate_docx` does not parse markdown tables.
+    """
+    s = result.synthesis
+    lines: list[str] = []
+    lines.append(f"matter: {matter.slug} | type: {matter.matter_type}")
+    lines.append(
+        f"model: {result.model_used} | tokens: {result.total_token_count} | "
+        f"duration: {result.total_duration_ms / 1000:.1f}s"
+    )
+    lines.append("")
+    lines.append("## Verdict")
+    lines.append("")
+    lines.append(f"**{s.verdict.upper()}** — {s.verdict_reasoning}")
+    if s.if_we_lose_this_will_be_why:
+        lines.append("")
+        lines.append(f"> {s.if_we_lose_this_will_be_why}")
+    lines.append("")
+    lines.append("## Summary")
+    lines.append("")
+    lines.append(s.summary)
+
+    if s.failure_scenarios:
+        lines.append("")
+        lines.append("## Failure scenarios")
+        lines.append("")
+        for fs in s.failure_scenarios:
+            line = (
+                f"- **{fs.category}** · prob {fs.probability} · impact {fs.impact} — "
+                f"{fs.scenario}"
+            )
+            if fs.mitigation:
+                line += f"\n  Mitigation: {fs.mitigation}"
+            lines.append(line)
+
+    if result.evidence_flags:
+        lines.append("")
+        lines.append("## Evidence flags")
+        lines.append("")
+        for ef in result.evidence_flags:
+            lines.append(f"- [{ef.severity}] {ef.flag}")
+
+    if s.evidence_inconsistencies:
+        lines.append("")
+        lines.append("## Evidence inconsistencies")
+        lines.append("")
+        for ei in s.evidence_inconsistencies:
+            lines.append(f"- [{ei.severity}] {ei.claim} — {ei.issue}")
+
+    if s.blind_spots:
+        lines.append("")
+        lines.append("## Blind spots")
+        lines.append("")
+        for bs in s.blind_spots:
+            lines.append(f"- {bs}")
+
+    lines.append("")
+    lines.append("## Pipeline stages")
+    lines.append("")
+    for st in result.stages:
+        lines.append(
+            f"- {st.name}: {st.sub_agent_count} calls · "
+            f"{st.duration_ms / 1000:.1f}s · {st.token_count} tok · "
+            f"{len(st.errors)} errors"
+        )
+    return "\n\n".join(lines)
+
+
+@router.post("/{slug}/pre-motion/docx")
+async def export_pre_motion_docx(
+    slug: str,
+    result: PreMotionRunResult,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> dict:
+    """Render a Pre-Motion run envelope to .docx via `generate_docx`.
+
+    Body is the same `PreMotionRunResult` envelope the PDF route accepts
+    — runs are not persisted, so the frontend POSTs back the envelope it
+    received from `/run`. Writes `module.pre_motion.docx.exported`.
+    """
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    if result.matter_slug != slug:
+        raise HTTPException(
+            400,
+            f"run envelope matter_slug={result.matter_slug} does not match url slug={slug}",
+        )
+
+    body_markdown = _render_synthesis_markdown(matter, result)
+    title = f"Pre-Motion — {matter.title}"
+
+    try:
+        tool_result = await model_gateway.invoke_tool(
+            "generate_docx",
+            session=session,
+            actor_id=user.id,
+            matter_id=matter.id,
+            inputs={
+                "title": title,
+                "body_markdown": body_markdown,
+                "options": {
+                    "matter_id": str(matter.id),
+                    "matter_slug": matter.slug,
+                },
+            },
+        )
+    except PrivilegePaused as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+    storage_uri: str = tool_result["storage_uri"]
+    byte_count: int = tool_result["byte_count"]
+    file_uuid = storage_uri.rsplit("/", 1)[-1].removesuffix(".docx")
+
+    session.add(
+        AuditEntry(
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="pre_motion",
+            action="module.pre_motion.docx.exported",
+            resource_type="pre-motion",
+            resource_id=file_uuid,
+            payload={
+                "verdict": result.synthesis.verdict,
+                "file_uuid": file_uuid,
+                "byte_count": byte_count,
+                "total_token_count": result.total_token_count,
+            },
+        )
+    )
+    await session.commit()
+
+    return {
+        "file_uuid": file_uuid,
+        "storage_uri": storage_uri,
+        "byte_count": byte_count,
+        "download_url": f"/api/documents/generated/{file_uuid}",
+    }

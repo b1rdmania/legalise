@@ -73,11 +73,24 @@ async def handle_generate_docx(
     _apply_orientation(document, orientation)
     _render_markdown(document, inputs.title, inputs.body_markdown)
 
-    # Path: matter_files/generated/{matter_id}/{uuid}.docx
-    # See module docstring for the deviation note.
-    matter_segment = str(inputs.options.matter_id) if (inputs.options and inputs.options.matter_id) else (
-        str(matter_id) if matter_id else "_orphan"
+    # Path: matter_files/generated/{matter_slug|matter_id}/{uuid}.docx.
+    # Phase B plumbs `matter_slug` through `GenerateDocxOptions` so callers
+    # that already know it can produce slug-shaped paths (matches
+    # matter_fs.matter_dir layout). Falls back to matter_id segment
+    # otherwise. See module docstring for Phase A deviation note.
+    matter_slug = (
+        inputs.options.matter_slug
+        if (inputs.options and inputs.options.matter_slug)
+        else None
     )
+    if matter_slug and matter_id is not None:
+        matter_segment = matter_slug
+    elif inputs.options and inputs.options.matter_id:
+        matter_segment = str(inputs.options.matter_id)
+    elif matter_id is not None:
+        matter_segment = str(matter_id)
+    else:
+        matter_segment = "_orphan"
     file_uuid = uuid.uuid4()
     relative = Path("generated") / matter_segment / f"{file_uuid}.docx"
     target = Path(settings.matters_root) / relative
@@ -102,6 +115,7 @@ async def handle_generate_docx(
                 "byte_count": byte_count,
                 "storage_uri": storage_uri,
                 "orientation": orientation,
+                "title": inputs.title,
             },
         )
     )

@@ -9,9 +9,10 @@ import { useState } from "react";
 import {
   EditMode,
   EditInstructionResponse,
-  DocumentEditRead,
   postEditInstruction,
 } from "../../lib/api";
+import { TrackedChangesView } from "./TrackedChangesView";
+import { VersionTimeline } from "./VersionTimeline";
 
 const PRESETS: { label: string; mode: EditMode; instruction: string }[] = [
   {
@@ -51,6 +52,7 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<EditInstructionResponse | null>(null);
+  const [timelineKey, setTimelineKey] = useState(0);
 
   const applyPreset = (p: (typeof PRESETS)[number]) => {
     setMode(p.mode);
@@ -63,6 +65,7 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
     try {
       const res = await postEditInstruction(documentId, instruction.trim(), mode);
       setResult(res);
+      setTimelineKey((k) => k + 1);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -141,87 +144,14 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
         </div>
       )}
 
-      {result && <PendingEditsList result={result} />}
-    </div>
-  );
-}
-
-function PendingEditsList({ result }: { result: EditInstructionResponse }) {
-  return (
-    <div className="mt-5 border-t border-rule pt-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
-          Version v{result.version.version_number} · {result.pending_edits.length}{" "}
-          pending edit{result.pending_edits.length === 1 ? "" : "s"} · model{" "}
-          {result.model_used}
-          {!result.parse_ok && " · parse failed"}
-        </div>
-      </div>
-
-      {result.model_notes && (
-        <div className="mb-3 text-[12px] text-muted italic">
-          {result.model_notes}
-        </div>
+      {result && (
+        <TrackedChangesView
+          result={result}
+          onResolved={() => setTimelineKey((k) => k + 1)}
+        />
       )}
 
-      {result.pending_edits.length === 0 && (
-        <div className="border border-rule bg-wash p-3 text-[12px] text-muted">
-          No edits proposed. Try a different instruction or mode.
-        </div>
-      )}
-
-      {result.pending_edits.length > 0 && (
-        <div className="space-y-3">
-          {result.pending_edits.map((e, i) => (
-            <PendingEditRow key={e.id} edit={e} index={i + 1} />
-          ))}
-        </div>
-      )}
-
-      <div className="mt-3 font-mono uppercase tracking-track2 text-[9px] text-muted">
-        Accept / reject UI lands in Phase B. Phase A surface is read-only.
-      </div>
-    </div>
-  );
-}
-
-function PendingEditRow({ edit, index }: { edit: DocumentEditRead; index: number }) {
-  return (
-    <div className="border border-rule p-3 text-[12px]">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="font-mono text-[10px] text-muted">#{index}</span>
-        <span className="font-mono uppercase tracking-track2 text-[9px] text-muted">
-          status · {edit.status}
-        </span>
-        {edit.correlation_id && (
-          <span className="font-mono uppercase tracking-track2 text-[9px] text-muted">
-            corr · {edit.correlation_id}
-          </span>
-        )}
-      </div>
-      {edit.deleted_text && (
-        <div className="mb-1">
-          <span className="font-mono uppercase tracking-track2 text-[9px] text-muted">
-            delete
-          </span>
-          <div className="border-l-2 border-rule pl-2 mt-1 line-through text-ink whitespace-pre-wrap">
-            {edit.deleted_text}
-          </div>
-        </div>
-      )}
-      {edit.inserted_text && (
-        <div className="mb-1">
-          <span className="font-mono uppercase tracking-track2 text-[9px] text-muted">
-            insert
-          </span>
-          <div className="border-l-2 border-ink pl-2 mt-1 text-ink whitespace-pre-wrap">
-            {edit.inserted_text}
-          </div>
-        </div>
-      )}
-      {edit.rationale && (
-        <div className="mt-2 text-muted italic">{edit.rationale}</div>
-      )}
+      <VersionTimeline documentId={documentId} refreshKey={timelineKey} />
     </div>
   );
 }

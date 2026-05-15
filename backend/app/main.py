@@ -26,6 +26,7 @@ from app.core.tools import register_phase_a_tools
 from app.modules.chronology.router import router as chronology_router
 from app.modules.letters.router import router as letters_router
 from app.modules.pre_motion.router import router as pre_motion_router
+from app.modules.tabular_review.router import router as tabular_review_router
 from app.providers import register_providers
 
 logger = structlog.get_logger()
@@ -143,6 +144,7 @@ app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 app.include_router(chronology_router, prefix="/api/matters", tags=["chronology"])
 app.include_router(letters_router, prefix="/api/matters", tags=["letters"])
 app.include_router(pre_motion_router, prefix="/api/matters", tags=["pre-motion"])
+app.include_router(tabular_review_router, prefix="/api/matters", tags=["tabular-review"])
 
 # Remaining module routers land later in the build window.
 # from app.modules.contract_review.router import router as contract_review_router

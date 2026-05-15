@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { EditPanel } from "./modules/document_edit/EditPanel";
+import { ReviewsTab } from "./modules/tabular_review/ReviewsTab";
 import {
   BACKEND_ROOT,
   confirmGate,
@@ -56,11 +57,12 @@ type StageProgress = {
   errors?: string[];
 };
 
-type TabKey = "overview" | "documents" | "chronology" | "premotion" | "letters" | "audit";
+type TabKey = "overview" | "documents" | "reviews" | "chronology" | "premotion" | "letters" | "audit";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "documents", label: "Documents" },
+  { key: "reviews", label: "Reviews" },
   { key: "chronology", label: "Chronology" },
   { key: "premotion", label: "Pre-Motion" },
   { key: "letters", label: "Letters" },
@@ -1459,6 +1461,7 @@ function MatterDetail({
         {tab === "documents" && (
           <DocumentsTab docs={docs} onUpload={onUpload} />
         )}
+        {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
         {tab === "chronology" && (
           <ChronologyTab
             chron={chron}
@@ -1499,7 +1502,7 @@ function MatterDetail({
 }
 
 function isTabKey(v: string): v is TabKey {
-  return ["overview", "documents", "chronology", "premotion", "letters", "audit"].includes(v);
+  return ["overview", "documents", "reviews", "chronology", "premotion", "letters", "audit"].includes(v);
 }
 
 // -- PanelHeader (P8) -------------------------------------------------------

@@ -25,13 +25,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters import plugin_bridge as plugin_bridge_module
 from app.core.auth import current_user
 from app.core.db import get_session
-from app.core.model_gateway import PrivilegePaused
+from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing
-from app.models import Matter, User
+from app.models import AuditEntry, Matter, User
 
 from .catalog import catalogue_for_matter_type, resolve
 from .schemas import (
     LetterCatalogueResponse,
+    LetterDraftDocxRequest,
+    LetterDraftDocxResponse,
     LetterDraftRequest,
     LetterDraftResponse,
     LetterTypeRead,
@@ -124,4 +126,75 @@ async def draft_letter(
         model_used=result.model_used,
         token_count=result.token_count,
         latency_ms=result.latency_ms,
+    )
+
+
+@router.post("/{slug}/letters/draft/docx", response_model=LetterDraftDocxResponse)
+async def draft_letter_docx(
+    slug: str,
+    body: LetterDraftDocxRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> LetterDraftDocxResponse:
+    """Render an existing letter draft to .docx.
+
+    Accepts the already-rendered markdown from the prior `/letters/draft`
+    call rather than re-invoking the plugin — the user has already paid
+    for one model call to get this text. Returns a download handle and
+    writes a `module.letters.docx.exported` audit row.
+    """
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    try:
+        result = await model_gateway.invoke_tool(
+            "generate_docx",
+            session=session,
+            actor_id=user.id,
+            matter_id=matter.id,
+            inputs={
+                "title": body.title,
+                "body_markdown": body.draft_markdown,
+                "options": {
+                    "matter_id": str(matter.id),
+                    "matter_slug": matter.slug,
+                },
+            },
+        )
+    except PrivilegePaused as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+    # Recover the file uuid from the storage path the tool wrote. The
+    # tool's `document.generated` audit row already records this — but
+    # the row's `id` is not surfaced via invoke_tool, so we re-derive
+    # from the storage URI shape `generated/{segment}/{uuid}.docx`.
+    storage_uri: str = result["storage_uri"]
+    byte_count: int = result["byte_count"]
+    file_uuid = storage_uri.rsplit("/", 1)[-1].removesuffix(".docx")
+
+    session.add(
+        AuditEntry(
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="letters",
+            action="module.letters.docx.exported",
+            resource_type="letter",
+            resource_id=file_uuid,
+            payload={
+                "letter_type": body.letter_type,
+                "file_uuid": file_uuid,
+                "byte_count": byte_count,
+            },
+        )
+    )
+    await session.commit()
+
+    return LetterDraftDocxResponse(
+        file_uuid=file_uuid,
+        storage_uri=storage_uri,
+        byte_count=byte_count,
+        download_url=f"/api/documents/generated/{file_uuid}",
     )
