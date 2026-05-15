@@ -9,9 +9,10 @@ This document is written so a fresh agent (or human) can pick it up cold, read
 it once, and execute. Strategic framing is up front so judgment calls in the
 build map back to intent. Concrete acceptance criteria per surface follow.
 
-**Current head:** `0670108` on `master` (Day E shipped; auth build complete in
-code; pre-flight checklist drafted; reviewer signed off `3baf9b6` on Day C+D,
-Day E awaiting yes/nos).
+**Base head for this plan:** `0670108` on `master` (Day E shipped; auth build
+complete in code; pre-flight checklist drafted; reviewer signed off `3baf9b6`
+on Day C+D, Day E awaiting yes/nos). The plan itself was committed at
+`adf154d`; this revision (Codex review patches) lands on top.
 
 **Repo:** `https://github.com/b1rdmania/legalise`
 **Local:** `/Users/andy/Cursor Projects 2026/legalise/`
@@ -73,7 +74,8 @@ documents, GitHub copy, or launch posts.
 - **Shape:** Production-grade TypeScript monorepo. Bun + Elysia + React/Vite + Turbo. Six apps (api, web, desktop, landing, docs, playground), 15 `@stll/*` packages including `anonymize-chat`, `case-law`, `docx-core`, `folio` (tabular review), `skills`, `template-conditions`.
 - **Built for:** Magic Circle scale (CLAUDE.md mandates SOC 2 + ISO 27001 posture from day one). European, jurisdiction-pluralist by construction. Czech maintainer; `infosoud` package suggests Czech court-data integration.
 - **Velocity:** Real product-company velocity. 752 commits from Jan, daily shipping, bot-augmented (`stella-lingo`, `stella-provenance-updater`, CLA bot).
-- **Active surfaces:** Matters, document storage with FTS + versioning, Folio (tabular review), `anonymize-chat` (document anonymisation shipped recently), case-law package.
+- **Active surfaces:** Matters, document storage with FTS + versioning, Folio (tabular review — active per README).
+- **Roadmapped / package-only surfaces (per public README, "coming soon"):** Document anonymisation (`@stll/anonymize-chat` package exists; flagged "coming soon" in the user-facing README), legal research (`@stll/case-law` package exists; same posture). Treat as design references for our independent implementation, not as evidence that Stella ships those surfaces today.
 - **Relationship:** Andy is in informal contact with Jan on X. Out-of-band only — nothing in repo confirms the contact yet.
 
 ### Mike
@@ -120,9 +122,100 @@ from their design system), credit + retain Apache notices.
 
 ## 4. Scope to build
 
-What ships on top of the current `master` (head `0670108`). Each item has a
-self-contained acceptance bar so the executing agent can mark them done
-without ambiguity.
+What ships on top of the base head. Each item has a self-contained acceptance
+bar so the executing agent can mark them done without ambiguity.
+
+### 4-pre-A. Foundation primitives (load-bearing — Phase A must complete these before B/C)
+
+Two primitives the original plan implied but did not specify. Surfaced as a
+result of Codex review on `adf154d`. **Phase A cannot complete without these
+two pieces**; every document-heavy surface in 4a–4f depends on them.
+
+#### Document body / text extraction layer
+
+Documents in Legalise today are metadata-only (filename, sha256, size, tag,
+from_disclosure). Every new document-heavy surface (tracked changes, tabular
+review, anonymisation, contract review) needs the document **text**.
+
+**Backend:**
+- New `document_bodies` table (or a `text` column on `documents` —
+  agent's call after the Plan-agent pass; bigger blob → separate table,
+  smaller → column with `TEXT` type): `document_id` PK, `extracted_text`
+  TEXT, `extraction_method` (enum: `pdfplumber | python-docx | passthrough | failed`), `extracted_at`, `char_count`, `page_count` (nullable).
+- Extraction pipeline triggered on `POST /matters/{slug}/documents` after
+  upload completes:
+  - PDF → `pdfplumber` (or `pypdf` for speed if pdfplumber struggles)
+  - DOCX → `python-docx`
+  - TXT / MD → passthrough
+  - Scanned PDFs (image-only) → **out of scope for v0.1**; flag with
+    `extraction_method=failed`, return user-facing notice "Text extraction
+    failed (scanned PDF) — re-upload an OCRed version." OCR via Tesseract
+    or hosted OCR is a v0.2 line item.
+- Audit row `document.text_extracted` on success / `document.text_extraction_failed` on failure.
+
+**Seeded fixtures:**
+- The two seeded Khan documents (`khan-dismissal-letter.pdf`,
+  `witness-statement-khan.docx`) currently exist in the seed only as
+  metadata + fake SHA. **Update `backend/app/core/seed.py`** to seed
+  actual content for the bodies — a paragraph or two of realistic
+  text per document so downstream features have something to operate
+  on. Without this every smoke eval has empty text.
+
+**Storage strategy decision (resolve in Phase A Plan agent):**
+- Option A: `documents.extracted_text` as a TEXT column. Simple, fewer
+  joins, Postgres handles ~1MB text fine, larger documents are rare in
+  ET / civil correspondence.
+- Option B: separate `document_bodies` table with a 1:1 relationship.
+  Cleaner schema; pays off if we add `original_text`, `redacted_text`,
+  `summary` columns later (anonymisation in §4d will want this).
+- **Recommendation: Option B.** Anonymisation explicitly needs a parallel
+  redacted body, and a separate table keeps the `documents` row cheap
+  to read in lists.
+
+**Acceptance:**
+- A user uploads `acme-correspondence.pdf` (3 pages, native PDF). Within
+  a few seconds, `GET /api/documents/{id}/body` returns
+  `{extracted_text: "...", char_count: ~6000, page_count: 3,
+  extraction_method: "pdfplumber"}`. Khan seed bodies are populated with
+  realistic placeholder content. A scanned PDF returns 422 with the
+  "OCR not supported in v0.1" message and writes the failure audit row.
+
+#### Edit-instruction surface (Phase B prerequisite, but **scope as Phase A** so 4a doesn't break)
+
+The original tracked-changes acceptance criterion assumed a general chat /
+project assistant loop (*"a user asks the assistant 'tighten the indemnity
+clause' via the chat surface"*) — but Legalise has module surfaces, not a
+free-form chat-with-document. Codex flagged this correctly; either we build
+the chat loop (large, out of v0.1 scope) or we scope tracked-changes to a
+**structured edit-instruction input**.
+
+**Decision: structured edit-instruction input for v0.1. General chat-with-document is v0.2.**
+
+**Backend:**
+- `POST /api/documents/{id}/edit-instructions` — accepts
+  `{instruction: string, mode: "tighten" | "rewrite" | "summarise" | "free-text"}`. Dispatches via gateway with a structured-output prompt that produces a `changes[]` array shaped for `document_edits`.
+- Returns the new `document_version` with `pending` edits attached.
+- Audit row `document.edit_instruction.invoked` per call, `module` field set to `document_edit` so it shows up in the matter audit log alongside Pre-Motion / Letters / etc.
+
+**Frontend:**
+- On the Document detail surface, add an **"Edit"** panel at the top: a textarea (the instruction), a mode dropdown (defaults to "free-text"), a submit button. Submission shows a pending-edits state, then renders the diff. UX shape is *"ask once, review diff, accept/reject, ask again"* — not a streaming conversation.
+- Quick presets above the textarea: `"Tighten this clause"`, `"Rewrite in plain English"`, `"Summarise to 3 sentences"`, `"UK-jurisdiction sweep"` (last one is the wedge — flags Scottish/NI quirks, governing-law inconsistencies, missing CPR 36 references for civil matters, etc.).
+
+**Acceptance:**
+- A user opens Khan's dismissal letter in the Document detail view, types
+  "Tighten the conduct rationale and remove ambiguous timing language" in
+  the Edit panel, submits. UI shows three pending edits with accept/reject.
+  User accepts two, rejects one. Final version saved as a new
+  `document_version` with `kind=user_accept`. Audit log shows the instruction row, the model call, three accept/reject rows.
+
+This shape is also what 4d (anonymisation) and 4f (contract review)
+hook into — they each get their own structured-input panel, not a chat
+loop. Consistent surface across all document-edit-shaped modules.
+
+**Why this is not "chat":** chat implies stateful conversation, message
+history, tool-calling loops, streaming partials. None of those are in v0.1.
+The edit-instruction surface is request → structured response → review →
+accept/reject. v0.2 can wrap this in a chat loop later if there's signal.
 
 ### 4a. Document tracked-changes editor
 
@@ -145,9 +238,9 @@ a hole.
 - Version timeline: list of versions with kind + author + timestamp.
 
 **Acceptance:**
-- A user can ask the assistant "tighten the indemnity clause" via the chat surface. Assistant calls `edit_document` with structured changes. UI renders pending diffs. User accepts two, rejects one, edits one manually. Final version has correct text, audit log shows accept/reject rows with `prompt_hash` and `model_used`.
+- A user opens a document, uses the **Edit-instruction surface** (see §4-pre-A) to issue "tighten the indemnity clause". Backend calls the structured-output prompt that produces a `changes[]` array, persists pending edits + a new `document_version`. UI renders pending diffs. User accepts two, rejects one, edits one manually via the same diff UI. Final version has correct text; audit log shows the instruction row, the model call, accept/reject rows with `prompt_hash` and `model_used`.
 
-**Note on shape:** Mike's `document_edits` schema is reasonable — see `backend/schema.sql` in their repo for the column shape. Read it for inspiration, do not copy.
+**Note on shape:** Mike's `document_edits` schema is reasonable — observe their `backend/schema.sql` for the column shape, do not copy. The structured edit-instruction surface (not chat) is the v0.1 product primitive — see §4-pre-A for why.
 
 ### 4b. Tabular review
 
@@ -253,8 +346,7 @@ it to a community proposal.
 
 **Doc:**
 - New file `docs/MATTER_SCHEMA_RFC.md` — explainer for the schema's design intent (portable across workspaces, Apache-licensed, minimal core + jurisdiction extensions).
-- Open a GitHub Discussion on the Legalise repo titled *"Community matter wire format — RFC for peer-builder workspaces"* linking the spec.
-- Open a corresponding Issue (not PR) on `stella/stella` and `willchen96/mike` repos: *"Cross-workspace matter portability — RFC at <link>. Welcoming counter-proposals."* Tag respectfully.
+- **Agent drafts the GitHub Discussion body + the cross-repo Issue text. Andy files them himself.** Public outreach to peer repos (`stella/stella`, `willchen96/mike`) is a relationship asset Andy owns; an agent must not file public issues or discussions on third-party repos under any circumstance. The executing agent's deliverable here is markdown drafts in `docs/outreach/matter-rfc-discussion.md` and `docs/outreach/matter-rfc-peer-issue.md`. Andy reads, edits, and files.
 
 **Code:**
 - Loosen `schemas/matter.json` `additionalProperties: false` → allow extension fields (jurisdiction packs). Document the extension mechanism in the RFC.
@@ -331,35 +423,52 @@ handover for Codex. Codex review rounds happen between phases. Phases can
 be ordered as below; deviating is allowed if the executing agent surfaces
 why.
 
-### Phase A — Foundation (~1-2 days)
+**On timeline estimates.** The original revision of this plan estimated 1-3
+days per phase at "current AI-pair-programming velocity." Codex review on
+`adf154d` flagged that as misleading for a handoff doc — surfaces have
+non-linear cost from schema work + UI + acceptance evals + reviewer rounds.
+Revised estimates below are **3-5 days per phase**, total **15-22 working
+days** for the build alone. Each surface is split into "thin proof" (the
+minimum that passes the acceptance bar) and "credible demo" (what a
+solicitor would actually look at without wincing). If a phase is overrunning,
+ship thin-proof and defer the credible-demo polish to a follow-up commit.
 
-Add the schema + tool plumbing that other surfaces depend on.
+### Phase A — Foundation (~3-4 days)
 
-- `document_versions` + `document_edits` tables + Alembic migration
-- `tabular_reviews` + `tabular_review_rows` tables
-- `workspace_enabled_skills` table
-- `matter_citations` table
-- Tool plumbing in `app/core/model_gateway.py`: register `generate_docx`, `edit_document`, `replicate_document` as gateway-known tools with structured-output schemas
+Add the schema + tool plumbing + document-ingestion + edit-instruction
+surface that other phases depend on. Phase A is now load-bearing — without
+its primitives, B/C/D have no documents to operate on.
 
-Handover at end of Phase A: `HANDOVER_BROADER_A.md`.
+- **Document body + text extraction layer** (§4-pre-A) — schema, extraction pipeline (pdfplumber + python-docx), seed-content backfill for Khan documents, audit rows.
+- **Edit-instruction surface** (§4-pre-A) — backend endpoint, frontend panel, structured-output prompt scaffolding.
+- `document_versions` + `document_edits` tables + Alembic migration.
+- `tabular_reviews` + `tabular_review_rows` tables.
+- `workspace_enabled_skills` table.
+- `matter_citations` table.
+- Tool plumbing in `app/core/model_gateway.py`: register `generate_docx`, `edit_document`, `replicate_document` as gateway-known tools with structured-output schemas.
 
-### Phase B — Mike-baseline surfaces (~2-3 days)
+Handover at end of Phase A: `HANDOVER_BROADER_A.md`. Codex reviews. The
+Plan-agent pass at start of Phase A should resolve the storage-strategy
+decision (TEXT column vs separate body table — recommendation Option B in
+§4-pre-A).
 
-- Tracked-changes editor (4a)
-- Tabular review (4b)
+### Phase B — Mike-baseline surfaces (~3-5 days)
+
+- Tracked-changes editor (4a) — depends on Phase A document bodies + edit-instruction surface
+- Tabular review (4b) — depends on Phase A document bodies
 - `generate_docx` UI wiring (4c)
 
 Handover: `HANDOVER_BROADER_B.md`.
 
-### Phase C — Stella-baseline + counsel-mvp port (~2-3 days)
+### Phase C — Stella-baseline + counsel-mvp port (~3-5 days)
 
-- Document anonymisation (4d)
+- Document anonymisation (4d) — depends on Phase A document bodies
 - Case-law lookup surface (4e)
-- Counsel-mvp redliner port (4f)
+- Counsel-mvp redliner port (4f) — depends on Phase A document bodies
 
 Handover: `HANDOVER_BROADER_C.md`.
 
-### Phase D — Marketplace + interop (~2 days)
+### Phase D — Marketplace + interop (~3-4 days)
 
 - Matter wire-format RFC + importer/exporter (4g)
 - Public module submission flow (4h)
@@ -367,7 +476,7 @@ Handover: `HANDOVER_BROADER_C.md`.
 
 Handover: `HANDOVER_BROADER_D.md`.
 
-### Phase E — Launch positioning + deploy (~1-2 days)
+### Phase E — Launch positioning + deploy (~2-3 days)
 
 - New evals (4j)
 - README + PEERS.md + ROADMAP.md + HANDOVER_LAUNCH.md rewrite (4j)
@@ -376,9 +485,21 @@ Handover: `HANDOVER_BROADER_D.md`.
 - Soft-pre-pitch to Will + Jan (Andy action — agent surfaces draft DM text)
 - Day 18-equivalent launch
 
-Total honest estimate at current velocity: **8-12 working days** for the
-build, plus pre-flight + deploy + launch around it. Launch realistically
-lands late May / early June 2026.
+Total honest estimate (revised post-Codex-review): **15-22 working days** for
+the build, plus pre-flight + deploy + launch around it. At current
+AI-pair-programming velocity that compresses calendar-wise, but the
+day-count is the right unit for planning reviewer cadence + Andy's other
+commitments. Launch realistically lands mid-June to early July 2026.
+
+The previous "8-12 days" estimate underweighted: (1) the new Phase A
+foundation primitives (document ingestion + edit-instruction surface),
+(2) reviewer round-trips between phases, (3) the non-trivial UX work in
+each surface beyond the schema.
+
+**Thin-proof vs credible-demo escape hatch.** If a phase is overrunning,
+ship the thin-proof acceptance bar and defer credible-demo polish to a
+follow-up commit. Codex signs off on thin-proof. Polish lands before the
+launch positioning phase.
 
 ---
 
@@ -416,7 +537,7 @@ direct about competitive positioning, since they don't ship publicly.
 
 4. **Tracked-changes diff library.** Hand-roll diff visualisation in React, or use `diff-match-patch` (Google's library, BSD-licensed)? Recommendation: diff-match-patch — battle-tested, small, BSD-compatible with Apache.
 
-5. **Outreach DM drafts to Will + Jan.** Should the agent draft these as part of Phase E, or does Andy want to write them himself? Recommendation: agent drafts, Andy edits + sends.
+5. **Outreach DM drafts to Will + Jan.** Agent drafts in `docs/outreach/` as part of Phase E. **Andy sends.** Same hard guard as §4g — no agent may send a DM, file a public issue, or post on a third-party repo on Andy's behalf. Recommendation already confirmed: agent drafts, Andy edits + sends.
 
 ---
 
