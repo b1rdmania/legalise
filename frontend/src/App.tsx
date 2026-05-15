@@ -597,10 +597,9 @@ function DrawerItem({
 
 function Landing() {
   const auth = useAuth();
-  // Day D will copy Khan into the new user's workspace on signup. Until then,
-  // authed users see the demo matter directly; unauth users sign up first.
-  const onOpenDemo = () =>
-    navigate(auth.user ? `/matters/${DEMO_SLUG}` : "/auth/signup");
+  // Authed users see the demo matter directly; unauth users sign up and the
+  // Day D on_after_verify hook copies Khan into their workspace.
+  const onOpenDemo = () => navigate(`/matters/${DEMO_SLUG}`);
 
   const parts: { name: string; body: string }[] = [
     {
@@ -629,6 +628,7 @@ function Landing() {
     "Audit log per LLM call and per matter mutation, append-only by convention in v0.1.",
     "Privilege posture is a first-class matter property — A_cleared / B_mixed / C_paused — read by the gateway before any model call.",
     "CPR 31.22 gate on chronology entries sourced from disclosed documents — server-side, not UI.",
+    "BYO provider keys, encrypted at rest. Your Anthropic or OpenAI key is the only thing the gateway uses on your matters; revoke at any time from Settings · API keys.",
     "Local-model toggle in self-host: point the gateway at Ollama or vLLM, keep frontier models for A_cleared only.",
   ];
 
@@ -665,35 +665,73 @@ function Landing() {
           </div>
 
           {/* P12 buttons */}
-          <div className="flex flex-wrap items-center gap-4 mt-8">
-            <button
-              onClick={onOpenDemo}
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
-            >
-              Open demo matter
-            </button>
-            <a
-              href="#/modules"
-              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
-            >
-              Installed skills
-            </a>
-            <a
-              href="#/matters"
-              className="text-sm text-muted hover:text-ink transition-colors"
-            >
-              All matters
-            </a>
-            <a
-              href="https://github.com/b1rdmania/legalise"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-muted hover:text-ink transition-colors"
-            >
-              GitHub
-            </a>
-          </div>
+          {auth.user ? (
+            <div className="flex flex-wrap items-center gap-4 mt-8">
+              <button
+                onClick={onOpenDemo}
+                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
+              >
+                Open demo matter
+              </button>
+              <a
+                href="#/matters"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                All matters
+              </a>
+              <a
+                href="#/modules"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                Installed skills
+              </a>
+              <a
+                href="https://github.com/b1rdmania/legalise"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                GitHub
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-4 mt-8">
+              <a
+                href="#/auth/signup"
+                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                Sign up — free, BYO key
+              </a>
+              <a
+                href="#/auth/signin"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                Sign in
+              </a>
+              <a
+                href="#/modules"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                Installed skills
+              </a>
+              <a
+                href="https://github.com/b1rdmania/legalise"
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                GitHub
+              </a>
+            </div>
+          )}
 
+          <p className="text-sm text-muted mt-6 max-w-2xl">
+            Signup is free. Bring your own Anthropic or OpenAI key after
+            verification — keys are stored encrypted server-side and used
+            only by the privilege-aware model gateway on your matters. The
+            seeded Khan v Acme demo matter is copied into your workspace on
+            confirm so the first sign-in lands on something live.
+          </p>
         </div>
 
         {/* Five parts — P7 em-dash list */}

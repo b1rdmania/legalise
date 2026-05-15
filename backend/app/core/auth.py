@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.email import send_password_reset, send_verification
+from app.core.seed import seed_demo_matter_for_user
 from app.models import AccessToken, User
 
 logger = structlog.get_logger()
@@ -72,6 +73,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             user.is_verified = True
             await self.user_db.update(user, {"is_verified": True})
             logger.info("auth.dev_autoverify", user_id=str(user.id))
+            # Dev autoverify bypasses on_after_verify, so run the same
+            # post-verify side effects here. Day D: seed Khan under the
+            # new user so the workspace is populated on first sign-in.
+            await self._post_verify(user)
             return
         # Send verification email. We intentionally do NOT swallow
         # exceptions here. With requires_verification=True, a silent
@@ -91,6 +96,29 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
     async def on_after_verify(self, user: User, request: Request | None = None) -> None:
         logger.info("auth.user.verified", user_id=str(user.id))
+        await self._post_verify(user)
+
+    async def _post_verify(self, user: User) -> None:
+        """Side effects shared between the dev autoverify path and the
+        real on_after_verify hook. Day D: copy the Khan demo matter into
+        the new user's workspace so their first sign-in lands in a
+        populated workspace, not an empty list.
+
+        Idempotent — seed_demo_matter_for_user returns the existing row
+        on re-run. Failures are logged and swallowed: a user who can't
+        get the demo seeded should still be able to sign in and create
+        their own matters.
+        """
+        try:
+            session = self.user_db.session  # SQLAlchemyUserDatabase exposes its session
+            matter = await seed_demo_matter_for_user(session, user)
+            logger.info("auth.user.demo_seeded", user_id=str(user.id), slug=matter.slug)
+        except Exception as exc:
+            logger.warning(
+                "auth.user.demo_seed_failed",
+                user_id=str(user.id),
+                error=str(exc),
+            )
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None

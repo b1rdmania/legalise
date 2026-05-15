@@ -1,7 +1,17 @@
 """Demo seed — the Khan v Acme Trading Ltd sample matter.
 
-Idempotent. Called from `main.lifespan` in development environments so the
-workspace is never empty on first boot.
+Idempotent. Two call paths:
+
+1. **Dev/demo boot** — `main.lifespan` calls `seed_demo_matter()` (no user
+   arg). The function provisions a locked-out `demo@legalise.dev` row and
+   seeds Khan under it so the workspace is never empty on first boot.
+
+2. **Per-user signup (Day D)** — `core.auth.UserManager.on_after_verify`
+   calls `seed_demo_matter_for_user(session, user)` so every newly verified
+   account lands in a workspace with a working Khan matter. Slug tenancy
+   is Option A (per Day A.5): `khan-v-acme-trading-2026` is shared across
+   users, scoped by `created_by_id`. Each user gets their own row +
+   filesystem materialisation.
 
 The matter narrates a single, coherent unfair-dismissal claim with all the
 fields the v0.1 modules need: case theory, pivot fact, parties, computed
@@ -210,12 +220,13 @@ async def _seed_chronology(
     await session.flush()
 
 
-async def seed_demo_matter(session: AsyncSession) -> Matter:
-    """Create the Khan sample matter, its two seed documents, and its
-    seven chronology events. Idempotent: existing matter is left alone
-    (no duplicate docs/events) and re-materialised so disk reflects DB.
+async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter:
+    """Create the Khan sample matter, two seed documents, and seven
+    chronology events under the given user's scope. Idempotent: an existing
+    Khan row for this user is returned unchanged and re-materialised so
+    disk reflects DB. Used by Day D signup auto-copy and by the dev-boot
+    seed (which passes the locked-out demo user).
     """
-    user = await _ensure_demo_user(session)
     existing = await session.scalar(
         select(Matter).where(Matter.slug == KHAN_SLUG, Matter.created_by_id == user.id)
     )
@@ -256,3 +267,15 @@ async def seed_demo_matter(session: AsyncSession) -> Matter:
     await session.commit()
     await session.refresh(matter)
     return matter
+
+
+async def seed_demo_matter(session: AsyncSession) -> Matter:
+    """Dev-boot wrapper. Provisions the locked-out demo user and seeds
+    Khan under it. Called by `main.lifespan` so the workspace is non-empty
+    on first boot in development / demo environments.
+
+    For per-user signup auto-copy (Day D), call
+    `seed_demo_matter_for_user(session, user)` directly with the real user.
+    """
+    user = await _ensure_demo_user(session)
+    return await seed_demo_matter_for_user(session, user)
