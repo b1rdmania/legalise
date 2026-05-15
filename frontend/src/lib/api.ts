@@ -65,28 +65,35 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Every authenticated cross-origin call MUST send the session cookie
+// (HANDOVER_AUTH §7 cookie/CORS coherence invariant). All app fetches
+// route through `apiFetch` so `credentials: "include"` is uniform.
+export function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(input, { credentials: "include", ...init });
+}
+
 export const listMatters = () =>
-  fetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
+  apiFetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
 
 export const getMatter = (slug: string) =>
-  fetch(`${API}/matters/${slug}`).then((r) => jsonOrThrow<Matter>(r));
+  apiFetch(`${API}/matters/${slug}`).then((r) => jsonOrThrow<Matter>(r));
 
 export const createMatter = (body: MatterCreate) =>
-  fetch(`${API}/matters`, {
+  apiFetch(`${API}/matters`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   }).then((r) => jsonOrThrow<Matter>(r));
 
 export const listDocuments = (slug: string) =>
-  fetch(`${API}/matters/${slug}/documents`).then((r) => jsonOrThrow<MatterDocument[]>(r));
+  apiFetch(`${API}/matters/${slug}/documents`).then((r) => jsonOrThrow<MatterDocument[]>(r));
 
 export const uploadDocument = (slug: string, file: File, tag?: string, fromDisclosure?: boolean) => {
   const fd = new FormData();
   fd.append("file", file);
   if (tag) fd.append("tag", tag);
   if (fromDisclosure) fd.append("from_disclosure", "true");
-  return fetch(`${API}/matters/${slug}/documents`, { method: "POST", body: fd }).then((r) =>
+  return apiFetch(`${API}/matters/${slug}/documents`, { method: "POST", body: fd }).then((r) =>
     jsonOrThrow<MatterDocument>(r),
   );
 };
@@ -108,10 +115,10 @@ export interface AuditEntry {
 }
 
 export const listAudit = (slug: string, limit = 50) =>
-  fetch(`${API}/matters/${slug}/audit?limit=${limit}`).then((r) => jsonOrThrow<AuditEntry[]>(r));
+  apiFetch(`${API}/matters/${slug}/audit?limit=${limit}`).then((r) => jsonOrThrow<AuditEntry[]>(r));
 
 export const setPrivilege = (slug: string, posture: string) =>
-  fetch(`${API}/matters/${slug}/privilege`, {
+  apiFetch(`${API}/matters/${slug}/privilege`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ privilege_posture: posture }),
@@ -128,7 +135,7 @@ export interface PluginInvokeResponse {
 }
 
 export const invokePlugin = (slug: string, plugin: string, skill: string, inputs: Record<string, unknown> = {}) =>
-  fetch(`${API}/matters/${slug}/invoke`, {
+  apiFetch(`${API}/matters/${slug}/invoke`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ plugin, skill, inputs }),
@@ -155,10 +162,10 @@ export interface ModulesResponse {
 }
 
 export const getModules = () =>
-  fetch(`${API}/modules`).then((r) => jsonOrThrow<ModulesResponse>(r));
+  apiFetch(`${API}/modules`).then((r) => jsonOrThrow<ModulesResponse>(r));
 
 export const getSkillBody = (plugin: string, skill: string) =>
-  fetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
+  apiFetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
     if (!r.ok) {
       const text = await r.text();
       throw new Error(`${r.status} ${r.statusText}: ${text}`);
@@ -225,7 +232,7 @@ export interface PreMotionRunResult {
 }
 
 export const runPreMotion = (slug: string, inputs: { depth?: "fast" | "thorough" } = {}) =>
-  fetch(`${API}/matters/${slug}/pre-motion/run`, {
+  apiFetch(`${API}/matters/${slug}/pre-motion/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(inputs),
@@ -259,7 +266,7 @@ export async function* runPreMotionStream(
   inputs: { depth?: "fast" | "thorough" } = {},
   signal?: AbortSignal,
 ): AsyncIterableIterator<PreMotionStreamEvent> {
-  const resp = await fetch(`${API}/matters/${slug}/pre-motion/run-stream`, {
+  const resp = await apiFetch(`${API}/matters/${slug}/pre-motion/run-stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(inputs),
@@ -295,7 +302,7 @@ export async function* runPreMotionStream(
 }
 
 export async function exportPreMotionPdf(slug: string, result: PreMotionRunResult): Promise<Blob> {
-  const resp = await fetch(`${API}/matters/${slug}/pre-motion/pdf`, {
+  const resp = await apiFetch(`${API}/matters/${slug}/pre-motion/pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(result),
@@ -336,10 +343,10 @@ export interface ChronologyResponse {
 }
 
 export const getChronology = (slug: string) =>
-  fetch(`${API}/matters/${slug}/chronology`).then((r) => jsonOrThrow<ChronologyResponse>(r));
+  apiFetch(`${API}/matters/${slug}/chronology`).then((r) => jsonOrThrow<ChronologyResponse>(r));
 
 export const confirmGate = (slug: string, acknowledgement: string) =>
-  fetch(`${API}/matters/${slug}/chronology/gate`, {
+  apiFetch(`${API}/matters/${slug}/chronology/gate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ acknowledgement }),
@@ -374,11 +381,157 @@ export interface LetterDraft {
 }
 
 export const getLetterCatalogue = (slug: string) =>
-  fetch(`${API}/matters/${slug}/letters/catalog`).then((r) => jsonOrThrow<LetterCatalogue>(r));
+  apiFetch(`${API}/matters/${slug}/letters/catalog`).then((r) => jsonOrThrow<LetterCatalogue>(r));
 
 export const draftLetter = (slug: string, letterType: string, inputs: Record<string, string> = {}) =>
-  fetch(`${API}/matters/${slug}/letters/draft`, {
+  apiFetch(`${API}/matters/${slug}/letters/draft`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ letter_type: letterType, inputs }),
   }).then((r) => jsonOrThrow<LetterDraft>(r));
+
+// ----- Auth + user --------------------------------------------------------
+
+// Auth endpoints sit at the backend origin, NOT under /api. See main.py:
+//   app.include_router(auth_router, prefix="/auth", ...)
+export const AUTH = BACKEND_ROOT ? `${BACKEND_ROOT}/auth` : "/auth";
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  default_model_id: string | null;
+  default_privilege_posture: string | null;
+  is_active: boolean;
+  is_verified: boolean;
+  is_superuser: boolean;
+}
+
+export interface AuthError extends Error {
+  status: number;
+  detail: unknown;
+}
+
+async function readDetail(res: Response): Promise<unknown> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function authJsonOrThrow<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const detail = await readDetail(res);
+    const err = new Error(
+      `${res.status} ${res.statusText}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`,
+    ) as AuthError;
+    err.status = res.status;
+    err.detail = detail;
+    throw err;
+  }
+  // Some endpoints (logout, verify) return 204 no body.
+  if (res.status === 204 || res.headers.get("Content-Length") === "0") {
+    return undefined as unknown as T;
+  }
+  const ct = res.headers.get("Content-Type") || "";
+  if (!ct.includes("application/json")) {
+    return undefined as unknown as T;
+  }
+  return res.json() as Promise<T>;
+}
+
+export const getCurrentUser = async (): Promise<CurrentUser | null> => {
+  const res = await apiFetch(`${AUTH}/users/me`);
+  if (res.status === 401) return null;
+  return authJsonOrThrow<CurrentUser>(res);
+};
+
+export const signin = (email: string, password: string) =>
+  apiFetch(`${AUTH}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ username: email, password }).toString(),
+  }).then((r) => authJsonOrThrow<unknown>(r));
+
+export const signout = () =>
+  apiFetch(`${AUTH}/logout`, { method: "POST" }).then((r) => authJsonOrThrow<unknown>(r));
+
+export const signup = (email: string, password: string, name: string = "") =>
+  apiFetch(`${AUTH}/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, name }),
+  }).then((r) => authJsonOrThrow<CurrentUser>(r));
+
+export const forgotPassword = (email: string) =>
+  apiFetch(`${AUTH}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  }).then((r) => authJsonOrThrow<unknown>(r));
+
+export const resetPassword = (token: string, password: string) =>
+  apiFetch(`${AUTH}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  }).then((r) => authJsonOrThrow<unknown>(r));
+
+export const verifyEmail = (token: string) =>
+  apiFetch(`${AUTH}/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  }).then((r) => authJsonOrThrow<CurrentUser>(r));
+
+export const requestVerifyToken = (email: string) =>
+  apiFetch(`${AUTH}/request-verify-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  }).then((r) => authJsonOrThrow<unknown>(r));
+
+export interface UserProfileUpdate {
+  name?: string;
+  default_model_id?: string | null;
+  default_privilege_posture?: string | null;
+  password?: string;
+}
+
+export const updateProfile = (body: UserProfileUpdate) =>
+  apiFetch(`${AUTH}/users/me`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => authJsonOrThrow<CurrentUser>(r));
+
+// ----- Settings: API keys ------------------------------------------------
+
+export interface UserApiKeyRead {
+  provider: string;
+  last_used_at: string | null;
+  created_at: string;
+}
+
+export const listApiKeys = () =>
+  apiFetch(`${API}/settings/keys`).then((r) => jsonOrThrow<UserApiKeyRead[]>(r));
+
+export const upsertApiKey = (provider: "anthropic" | "openai", apiKey: string) =>
+  apiFetch(`${API}/settings/keys`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, api_key: apiKey }),
+  }).then((r) => jsonOrThrow<UserApiKeyRead>(r));
+
+export const deleteApiKey = (provider: string) =>
+  apiFetch(`${API}/settings/keys/${encodeURIComponent(provider)}`, {
+    method: "DELETE",
+  }).then(async (r) => {
+    if (!r.ok && r.status !== 204) {
+      const text = await r.text();
+      throw new Error(`${r.status} ${r.statusText}: ${text}`);
+    }
+  });
