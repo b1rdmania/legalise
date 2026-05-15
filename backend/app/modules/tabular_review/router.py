@@ -199,6 +199,7 @@ async def create_review(
     await audit_api.log(
         session,
         "module.tabular_review.created",
+        module="tabular_review",
         actor_id=user.id,
         matter_id=matter.id,
         resource_type="tabular_review",
@@ -246,6 +247,7 @@ async def update_review(
         await audit_api.log(
             session,
             "module.tabular_review.updated",
+            module="tabular_review",
             actor_id=user.id,
             matter_id=matter.id,
             resource_type="tabular_review",
@@ -269,6 +271,7 @@ async def delete_review(
     await audit_api.log(
         session,
         "module.tabular_review.deleted",
+        module="tabular_review",
         actor_id=user.id,
         matter_id=matter.id,
         resource_type="tabular_review",

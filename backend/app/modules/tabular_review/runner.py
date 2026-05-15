@@ -25,7 +25,9 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
+from app.core.config import settings
 from app.core.model_gateway import ModelGateway, PrivilegePaused, provider_for_model
+from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import Document, Matter
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.tabular_review import TabularReview, TabularReviewRow
@@ -246,6 +248,20 @@ async def run_review(
     if not cols:
         return RunReport(cells_run=0, cells_failed=0, errors=[], duration_ms=0)
 
+    # Provider-key preflight. Mirror Pre-Motion's pattern — fail BEFORE
+    # holding the advisory lock + writing audit rows so the router
+    # surfaces 422 cleanly. Codex R1 finding: the previous per-cell
+    # generic-except swallowed ProviderKeyMissing into per-row errors.
+    provider_name = provider_for_model(matter.default_model_id)
+    if provider_name is not None:
+        user_key = await get_user_provider_key(session, actor_id, provider_name)
+        fallback_allowed = (
+            settings.environment in {"development", "dev", "local"}
+            and settings.allow_server_key_fallback
+        )
+        if user_key is None and not fallback_allowed:
+            raise ProviderKeyMissing(provider_name)
+
     # Advisory lock — per-review, transaction-scoped. Released on commit
     # or rollback. `pg_try_advisory_xact_lock` returns boolean; if false,
     # another run is in progress.
@@ -260,6 +276,7 @@ async def run_review(
     await audit_api.log(
         session,
         "module.tabular_review.run.started",
+        module="tabular_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="tabular_review",
@@ -284,71 +301,90 @@ async def run_review(
     errors: list[RunErrorRow] = []
     cells_run = 0
     cells_failed = 0
-    semaphore = asyncio.Semaphore(RUN_CONCURRENCY)
     from datetime import datetime, timezone
     now_ts = datetime.now(timezone.utc)
 
-    # Results are computed concurrently but writes happen serially after
-    # gather, because SQLAlchemy AsyncSession is not safe to use across
-    # tasks. The gateway is called concurrently (each call uses its own
-    # body of work); session writes are sequenced afterwards.
-    async def call_one(doc: Document, col: ColumnSpec) -> tuple[Document, ColumnSpec, str | None, str | None]:
-        body = body_cache.get(doc.id)
-        if body is None or body.extraction_method == "failed" or not body.extracted_text:
-            return doc, col, None, "body unavailable"
-        sys_prompt = system_prompt_for_type(col.type, col.prompt, body.extracted_text)
-        user_msg = user_prompt_for_cell(col.label)
-        async with semaphore:
-            try:
-                result = await gateway.call(
-                    session=session,
-                    matter_id=matter.id,
+    # Cells are processed serially. SQLAlchemy AsyncSession is not safe
+    # to use across concurrent tasks, and the gateway call writes the
+    # `model.call` audit row into the same session — so per-task
+    # sessions would mean ordering pain and partial-commit risk.
+    # ~50 cells max @ ~1-3s/cell = ~150s max, acceptable for v0.1.
+    # Codex R1 finding: shared-session gather was unsafe.
+    for doc in documents:
+        for col in cols:
+            body = body_cache.get(doc.id)
+            if body is None or body.extraction_method == "failed" or not body.extracted_text:
+                raw_text: str | None = None
+                err_msg: str | None = "body unavailable"
+            else:
+                sys_prompt = system_prompt_for_type(col.type, col.prompt, body.extracted_text)
+                user_msg = user_prompt_for_cell(col.label)
+                try:
+                    result = await gateway.call(
+                        session=session,
+                        matter_id=matter.id,
+                        actor_id=actor_id,
+                        prompt=user_msg,
+                        system=sys_prompt,
+                        resource_type="tabular_review",
+                        resource_id=str(review.id),
+                        payload={
+                            "module": "tabular_review",
+                            "review_id": str(review.id),
+                            "column_key": col.key,
+                            "document_id": str(doc.id),
+                        },
+                    )
+                except (PrivilegePaused, ProviderKeyMissing):
+                    # Policy failures propagate — preflight should have
+                    # caught key-missing, but keep the guard in case the
+                    # provider key was revoked mid-run.
+                    raise
+                except Exception as exc:  # noqa: BLE001
+                    raw_text, err_msg = None, f"{type(exc).__name__}: {exc}"
+                else:
+                    raw_text, err_msg = result.text, None
+
+            if err_msg is not None:
+                cells_failed += 1
+                errors.append(
+                    RunErrorRow(
+                        document_id=doc.id,
+                        column_key=col.key,
+                        error_message=err_msg,
+                    )
+                )
+                await audit_api.log(
+                    session,
+                    "module.tabular_review.column.run",
+                    module="tabular_review",
                     actor_id=actor_id,
-                    prompt=user_msg,
-                    system=sys_prompt,
+                    matter_id=matter.id,
                     resource_type="tabular_review",
                     resource_id=str(review.id),
                     payload={
-                        "module": "tabular_review",
                         "review_id": str(review.id),
                         "column_key": col.key,
                         "document_id": str(doc.id),
+                        "parse_ok": False,
+                        "error": err_msg,
                     },
                 )
-            except PrivilegePaused as exc:
-                # Propagate — privilege block is a whole-run condition.
-                raise
-            except Exception as exc:  # noqa: BLE001
-                return doc, col, None, f"{type(exc).__name__}: {exc}"
-        return doc, col, result.text, None
-
-    tasks = [call_one(d, c) for d in documents for c in cols]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    for item in results:
-        if isinstance(item, BaseException):
-            cells_failed += 1
-            errors.append(
-                RunErrorRow(
-                    document_id=uuid.UUID(int=0),
-                    column_key="*",
-                    error_message=f"{type(item).__name__}: {item}",
-                )
+                continue
+            value = _parse_response(raw_text or "", col.type)
+            await _upsert_cell(
+                session=session,
+                review_id=review.id,
+                document_id=doc.id,
+                column_key=col.key,
+                value=value,
+                now_ts=now_ts,
             )
-            continue
-        doc, col, raw_text, err_msg = item
-        if err_msg is not None:
-            cells_failed += 1
-            errors.append(
-                RunErrorRow(
-                    document_id=doc.id,
-                    column_key=col.key,
-                    error_message=err_msg,
-                )
-            )
+            cells_run += 1
             await audit_api.log(
                 session,
                 "module.tabular_review.column.run",
+                module="tabular_review",
                 actor_id=actor_id,
                 matter_id=matter.id,
                 resource_type="tabular_review",
@@ -357,36 +393,10 @@ async def run_review(
                     "review_id": str(review.id),
                     "column_key": col.key,
                     "document_id": str(doc.id),
-                    "parse_ok": False,
-                    "error": err_msg,
+                    "value_length": len(value),
+                    "parse_ok": True,
                 },
             )
-            continue
-        value = _parse_response(raw_text or "", col.type)
-        await _upsert_cell(
-            session=session,
-            review_id=review.id,
-            document_id=doc.id,
-            column_key=col.key,
-            value=value,
-            now_ts=now_ts,
-        )
-        cells_run += 1
-        await audit_api.log(
-            session,
-            "module.tabular_review.column.run",
-            actor_id=actor_id,
-            matter_id=matter.id,
-            resource_type="tabular_review",
-            resource_id=str(review.id),
-            payload={
-                "review_id": str(review.id),
-                "column_key": col.key,
-                "document_id": str(doc.id),
-                "value_length": len(value),
-                "parse_ok": True,
-            },
-        )
 
     duration_ms = int((time.perf_counter() - started_perf) * 1000)
     review.updated_at = now_ts
@@ -394,6 +404,7 @@ async def run_review(
     await audit_api.log(
         session,
         "module.tabular_review.run.completed",
+        module="tabular_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="tabular_review",

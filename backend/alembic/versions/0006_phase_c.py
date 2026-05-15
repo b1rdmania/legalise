@@ -50,8 +50,25 @@ def upgrade() -> None:
         sa.Column("anonymised_at", sa.DateTime(timezone=True), nullable=True),
     )
 
+    # W2 — extend the Phase A `extraction_method` CHECK constraint so the
+    # anonymisation pipeline can persist `presidio` / `claude` / `hybrid`
+    # alongside the original extractor enum. Without this drop+recreate,
+    # the first successful anonymisation save violates the constraint.
+    op.drop_constraint("ck_document_bodies_method", "document_bodies", type_="check")
+    op.create_check_constraint(
+        "ck_document_bodies_method",
+        "document_bodies",
+        "extraction_method IN ('pypdf','pdfplumber','python-docx','passthrough','failed','presidio','claude','hybrid')",
+    )
+
 
 def downgrade() -> None:
+    op.drop_constraint("ck_document_bodies_method", "document_bodies", type_="check")
+    op.create_check_constraint(
+        "ck_document_bodies_method",
+        "document_bodies",
+        "extraction_method IN ('pypdf','pdfplumber','python-docx','passthrough','failed')",
+    )
     op.drop_column("document_bodies", "anonymised_at")
     op.drop_column("document_bodies", "engine")
     op.drop_column("document_bodies", "mapping")

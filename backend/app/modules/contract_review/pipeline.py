@@ -236,6 +236,7 @@ async def run_contract_review(
     await audit_api.log(
         session,
         "module.contract_review.run.start",
+        module="contract_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="contract-review",
@@ -276,6 +277,7 @@ async def run_contract_review(
     await audit_api.log(
         session,
         "module.contract_review.stage.parser",
+        module="contract_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="contract-review",
@@ -352,6 +354,7 @@ async def run_contract_review(
     await audit_api.log(
         session,
         "module.contract_review.stage.analyst",
+        module="contract_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="contract-review",
@@ -408,6 +411,7 @@ async def run_contract_review(
         await audit_api.log(
             session,
             "module.contract_review.stage.redliner",
+            module="contract_review",
             actor_id=actor_id,
             matter_id=matter.id,
             resource_type="contract-review",
@@ -451,6 +455,7 @@ async def run_contract_review(
     await audit_api.log(
         session,
         "module.contract_review.stage.summariser",
+        module="contract_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="contract-review",
@@ -550,6 +555,7 @@ async def _finalise(
     await audit_api.log(
         session,
         "module.contract_review.run.complete",
+        module="contract_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="contract-review",

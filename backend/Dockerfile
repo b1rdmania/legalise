@@ -26,6 +26,14 @@ RUN git clone --filter=blob:none "$PLUGINS_REPO" /plugins \
 COPY pyproject.toml ./
 RUN pip install --upgrade pip && pip install -e .
 
+# spaCy NER model for the Phase C anonymisation pipeline (Presidio).
+# Distributed outside PyPI; install after the editable install above.
+# `en_core_web_sm` is ~12MB; the larger `_lg` model can be swapped in
+# at runtime via the PRESIDIO_MODEL env var if higher recall matters.
+# Without this step the first POST to /api/documents/{id}/anonymise
+# returns 503 with install guidance.
+RUN python -m spacy download en_core_web_sm
+
 COPY . .
 
 # entrypoint.sh is COPYed in by `COPY . .` above. Some hosts strip the

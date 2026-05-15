@@ -24,7 +24,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.model_gateway import ModelGateway
+from app.core.model_gateway import ModelGateway, PrivilegePaused
+from app.core.user_keys import ProviderKeyMissing
 from app.models import Matter
 
 from . import prompts
@@ -113,6 +114,10 @@ class BaseAgent:
                     "stage": self.stage,
                 },
             )
+        except (PrivilegePaused, ProviderKeyMissing):
+            # Policy failures must surface to the router as 409 / 422 —
+            # never swallow into a 200 fallback envelope. Codex R1 finding.
+            raise
         except Exception as exc:
             return AgentCall(
                 stage=self.stage,

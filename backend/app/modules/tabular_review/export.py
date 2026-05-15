@@ -151,6 +151,7 @@ async def export_review_docx(
     await audit_api.log(
         session,
         "document.generated",
+        module="document_generation",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="document",
@@ -160,12 +161,13 @@ async def export_review_docx(
             "byte_count": byte_count,
             "storage_uri": storage_uri,
             "title": title,
-            "module": "tabular_review",
+            "source_module": "tabular_review",
         },
     )
     await audit_api.log(
         session,
         "module.tabular_review.exported",
+        module="tabular_review",
         actor_id=actor_id,
         matter_id=matter.id,
         resource_type="document",
