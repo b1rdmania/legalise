@@ -48,9 +48,13 @@ Modules available to suggest:
 - review_contract: clause/redline analysis of an uploaded contract
 - anonymise_document: PII detection + redaction on a document
 
-Cite document content with [doc:<title>] inline markers. Cite
-chronology events with [chron:<event_id>]. Stay terse, factual,
-solicitor-cold-readable. No marketing tone, no AI tics.
+Cite document content with [doc:<document_id>] inline markers where
+<document_id> is the UUID from the Documents section below. Cite
+chronology events with [chron:<event_id>] where <event_id> is the
+UUID from the Chronology section. Use the IDs verbatim — never the
+title — so the workspace can resolve them to a clickable label.
+Stay terse, factual, solicitor-cold-readable. No marketing tone,
+no AI tics.
 
 Return JSON only, matching this shape:
 {"content": "<reply text>", "suggested_actions": [{"type": "...", "label": "...", "params": {}}]}
@@ -216,7 +220,9 @@ def _format_documents(snippets: list[tuple[Document, str]]) -> str:
     blocks: list[str] = []
     for doc, text in snippets:
         body = text if text else "(no extracted body)"
-        blocks.append(f"[doc:{doc.filename}]\n{body}")
+        blocks.append(
+            f"[doc:{doc.id}] {doc.filename}\n{body}"
+        )
     return "\n\n".join(blocks)
 
 
@@ -239,7 +245,12 @@ def _assemble_prompt(
     user_content: str,
     token_budget: int,
 ) -> str:
-    sections = [
+    # Context budget covers history + chronology + docs + modules + matter
+    # facts. The new user message and the JSON instruction are appended
+    # AFTER truncation so they survive even when the budget is exhausted.
+    # Matter facts are tiny and always kept verbatim. The truncation order
+    # below trims history/docs/chronology first if they overflow.
+    context_sections = [
         "## Matter",
         _format_matter_facts(matter),
         "",
@@ -254,17 +265,21 @@ def _assemble_prompt(
         "",
         "## Conversation so far",
         _format_history(history),
-        "",
-        "## New user message",
-        user_content,
-        "",
-        "Respond with JSON only matching the documented envelope.",
     ]
-    prompt = "\n".join(sections)
+    context = "\n".join(context_sections)
     char_budget = max(1, token_budget) * _CHARS_PER_TOKEN
-    if len(prompt) > char_budget:
-        prompt = prompt[:char_budget].rstrip() + "…"
-    return prompt
+    context = _truncate(context, char_budget)
+
+    tail = "\n".join(
+        [
+            "",
+            "## New user message",
+            user_content,
+            "",
+            "Respond with JSON only matching the documented envelope.",
+        ]
+    )
+    return context + tail
 
 
 async def run_assistant_turn(
@@ -317,14 +332,21 @@ async def run_assistant_turn(
         payload={"stage": "assistant", "module": "assistant"},
     )
 
+    parse_failed = False
     try:
         envelope = parse_model_json(result.text, AssistantResponseEnvelope)
         content_out = envelope.content
         actions: list[SuggestedAction] = list(envelope.suggested_actions)
     except StructuredOutputError:
-        # Surface the raw text rather than failing the turn — the audit
-        # row from the gateway already carries the response hash.
-        content_out = (result.text or "").strip() or "(model returned no content)"
+        # Show a controlled message in the chat thread. Raw provenance
+        # (response hash + token count) lives on the gateway's audit row.
+        # The module audit row gains `parse_failed: true` so this case is
+        # filterable.
+        parse_failed = True
+        content_out = (
+            "I couldn't structure that response. Try rephrasing your "
+            "message, or check the model settings on this matter."
+        )
         actions = []
 
     assistant_row = AssistantMessage(
@@ -354,6 +376,7 @@ async def run_assistant_turn(
             "history_message_count": len(history),
             "context_token_budget": context_token_budget,
             "selected_document_count": len(request.selected_document_ids),
+            "parse_failed": parse_failed,
         },
     )
     await session.commit()

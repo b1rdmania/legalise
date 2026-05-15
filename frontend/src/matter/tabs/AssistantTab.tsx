@@ -176,6 +176,8 @@ export function AssistantTab({
             <MessageBubble
               key={m.id}
               message={m}
+              docs={docs}
+              chronology={chronology}
               onDocChip={dispatchDocChip}
               onChronChip={dispatchChronChip}
               onAction={dispatchAction}
@@ -290,11 +292,15 @@ export function AssistantTab({
 
 function MessageBubble({
   message,
+  docs,
+  chronology,
   onDocChip,
   onChronChip,
   onAction,
 }: {
   message: AssistantMessage;
+  docs: MatterDocument[] | null;
+  chronology: ChronologyEvent[];
   onDocChip: () => void;
   onChronChip: () => void;
   onAction: (a: SuggestedAction) => void;
@@ -311,7 +317,7 @@ function MessageBubble({
               : "bg-wash text-ink border-rule")
           }
         >
-          {renderContent(message.content, onDocChip, onChronChip, isUser)}
+          {renderContent(message.content, docs, chronology, onDocChip, onChronChip, isUser)}
         </div>
         {!isUser && message.suggested_actions.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -333,21 +339,34 @@ function MessageBubble({
 
 // -- Citation parsing ------------------------------------------------------
 
-const CITATION_RE = /\[(doc|chron):([^\]]+)\]/g;
+// Citations carry the entity ID (UUID or kebab/dotted slug), never the title.
+// The character class is restricted so a closing bracket inside a document
+// title can't terminate the parser. Labels resolve via lookup below.
+const CITATION_RE = /\[(doc|chron):([A-Za-z0-9_.\-]+)\]/g;
 
 function renderContent(
   content: string,
+  docs: MatterDocument[] | null,
+  chronology: ChronologyEvent[],
   onDocChip: () => void,
   onChronChip: () => void,
   invert: boolean,
 ) {
-  const parts: Array<string | { kind: "doc" | "chron"; label: string }> = [];
+  const docLabel = new Map<string, string>();
+  for (const d of docs ?? []) docLabel.set(d.id, d.filename || d.id);
+  const chronLabel = new Map<string, string>();
+  for (const e of chronology) {
+    const date = e.event_date ? `${e.event_date}: ` : "";
+    chronLabel.set(e.id, date + (e.description || e.id));
+  }
+
+  const parts: Array<string | { kind: "doc" | "chron"; id: string }> = [];
   let last = 0;
   let m: RegExpExecArray | null;
   CITATION_RE.lastIndex = 0;
   while ((m = CITATION_RE.exec(content)) !== null) {
     if (m.index > last) parts.push(content.slice(last, m.index));
-    parts.push({ kind: m[1] as "doc" | "chron", label: m[2] });
+    parts.push({ kind: m[1] as "doc" | "chron", id: m[2] });
     last = m.index + m[0].length;
   }
   if (last < content.length) parts.push(content.slice(last));
@@ -355,12 +374,14 @@ function renderContent(
   return parts.map((p, i) => {
     if (typeof p === "string") return <span key={i}>{p}</span>;
     const onClick = p.kind === "doc" ? onDocChip : onChronChip;
+    const lookup = p.kind === "doc" ? docLabel.get(p.id) : chronLabel.get(p.id);
+    const label = lookup ?? `${p.kind === "doc" ? "document" : "event"} ${p.id.slice(0, 8)}`;
     const cls = invert
       ? "inline-flex items-center border border-paper/60 bg-paper/10 text-paper px-1.5 py-0.5 mx-0.5 text-[11px] font-mono align-baseline hover:bg-paper hover:text-ink transition-colors"
       : "inline-flex items-center border border-ink bg-paper text-ink px-1.5 py-0.5 mx-0.5 text-[11px] font-mono align-baseline hover:bg-ink hover:text-paper transition-colors";
     return (
-      <button key={i} type="button" onClick={onClick} className={cls}>
-        {p.kind === "doc" ? "doc" : "chron"}: {p.label}
+      <button key={i} type="button" onClick={onClick} className={cls} title={`${p.kind}:${p.id}`}>
+        {p.kind === "doc" ? "doc" : "chron"}: {label}
       </button>
     );
   });

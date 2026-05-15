@@ -83,15 +83,11 @@ Days are working-day estimates at AI-pair-programming velocity; the reviewer-rou
 
 **Rationale:** the split is the bridge. TanStack is the next bridge. Trying to ship both before launch would burn 4–6 days on plumbing the cold reader never sees.
 
-### 2.4 Batch-5 docx templates vs PHASE_E launch positioning — **partial fold, LBA template only**
+### 2.4 Batch-5 docx templates vs PHASE_E launch positioning — **superseded 2026-05-15**
 
-**Conflict:** Infra review P5 says template-driven `.docx` for solicitor-facing artifacts is necessary before they are "shown as polished solicitor-facing artefacts." PHASE_E W4 requires screenshots of the Letters draft + Pre-Motion + Contract Review for the launch post.
+**Original conflict (kept for the record):** Infra review P5 wanted template-driven `.docx` for solicitor-facing artefacts before launch screenshots. PHASE_E W4 wanted screenshots of Letters + Pre-Motion + Contract Review.
 
-**Resolution:** Ship **one** template-driven export — the LBA letter — folded into Phase E W1 (the screenshot day). Pre-Motion + Contract Review stay procedural for v0.1. Specifically:
-- Add `docxtpl` (or `python-docx-template`) as a backend dep.
-- Create `backend/app/templates/docx/lba.docx` (a real Word template with merge fields for `{{ matter_title }}`, `{{ counterparty }}`, `{{ effective_date }}`, `{{ body_paragraphs }}`, etc.).
-- `letters/router.py::POST /{slug}/letters/draft/docx` becomes template-aware when `letter_type == "lba"`; falls through to current `generate_docx` for other letter types.
-- Audit row shape unchanged (`module.letters.docx.exported` still emits with `template_name` added to payload).
+**Current resolution (supersedes the original):** see §4 decision 4 below. `docxtpl` rejected for v0.1 (LGPL-2.1 not worth the licence-explanation friction on an Apache-2.0 launch). LBA stays on the existing procedural `generate_docx` path. Templating library returns to the v0.2 backlog if document polish becomes more important than licence simplicity.
 
 **Rationale:** the LBA is the highest-frequency solicitor-cold-read artifact (it's the Khan demo's headline output). Procedural Word assembly for *one* document is the high-ROI swap; doing all three at launch is 1–3 days the launch path cannot absorb. Pre-Motion + Contract Review templates land in v0.2 once a real solicitor reviewer has signalled which one matters most.
 
@@ -333,7 +329,7 @@ Well inside the cumulative per-phase ~2,500 LoC envelope established across A �
 - `matter.md` frontmatter generated + parsed via PyYAML; SKILL.md via python-frontmatter.
 - App.tsx ≤ 350 lines; tabs / modules / auth / ui all live under their own folders.
 - Letters Download .docx + Pre-Motion Download .docx + Anonymise per-document button all wired (post-split moves them into the right tab files; Phase B's `2a082eb` shipped the JSX into the monolith).
-- LBA letter renders via `docxtpl` template; other letter types fall through to procedural path.
+- LBA letter renders via the procedural `generate_docx` path (Path A, recommendation locked 2026-05-15 — no `docxtpl`). Template-driven LBA returns in v0.2.
 - Phase D W1 + W2 + W3 acceptance bars (per `PHASE_D_DELTA.md`) green.
 - Phase E W1–W5 acceptance bars (per `PHASE_E_DELTA.md`) green.
 - Four smoke evals (Phase E W2) green against the integrated tree (matter-portability eval cut with #5 to v0.3).

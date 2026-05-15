@@ -1040,3 +1040,48 @@ class TestAssistantPipeline:
             app.dependency_overrides.clear()
 
         assert resp.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_user_message_survives_tight_context_budget(self) -> None:
+        """Reviewer P1 fix — `_assemble_prompt` truncates context first,
+        appends the new user message AFTER, so the user's question is
+        never lost to history/document overflow.
+        """
+        from app.modules.assistant.pipeline import _assemble_prompt
+
+        matter = _make_matter()
+        bulky_events: list[Event] = []
+        for _ in range(5):
+            event = _make_event(matter.id)
+            event.description = "X" * 4000
+            bulky_events.append(event)
+        # Long fake history to push the context well past the budget.
+        bulky_history = [
+            AssistantMessageRow(
+                id=uuid.uuid4(),
+                matter_id=matter.id,
+                actor_id=uuid.uuid4(),
+                role="user",
+                content="filler " * 500,
+                suggested_actions=[],
+            )
+            for _ in range(8)
+        ]
+        user_msg = "DISTINCT-USER-QUESTION-ABOUT-DISMISSAL"
+
+        prompt = _assemble_prompt(
+            matter=matter,
+            history=bulky_history,
+            events=bulky_events,
+            snippets=[],
+            modules=[],
+            user_content=user_msg,
+            token_budget=200,
+        )
+
+        # The user's question and the JSON-shape instruction both live
+        # outside the truncated context block.
+        assert user_msg in prompt
+        assert "Respond with JSON only" in prompt
+        # The context overflowed and got truncated.
+        assert "…" in prompt
