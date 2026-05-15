@@ -1,6 +1,6 @@
 # HANDOVER — Infra + Phase D + Phase E build plan to v0.1 launch
 
-**Base head:** `190a074` on `master` (Phases A + B + C committed + Codex R1/R2/R3 closed; Contract Review SSE UI lands P2.8; `PHASE_INFRA_DELTA.md` approved with Andy's amendments 2026-05-15).
+**Base heads:** Code base `be8af63`; planning docs `89c2390` (Phases A + B + C committed + Codex R1/R2/R3 closed; Contract Review SSE UI lands P2.8; `PHASE_INFRA_DELTA.md` approved with Andy's amendments 2026-05-15). Agents rebase from the code-base head; review against the planning-docs head.
 **Scope:** how the 14 work units in `backend/PHASE_INFRA_DELTA.md` §1 actually get built. Sequencing, file ownership per agent, acceptance per unit, hard guards.
 **Reviewer's job:** confirm the sequencing is right, the agent spawn boundaries do not collide, and the acceptance bars are tight enough to catch a regression before launch.
 
@@ -18,30 +18,33 @@ This is a build plan, not a product pivot. Doctrine and launch-compromise wordin
 
 ---
 
-## 1. Build order (14 units, 10.5–14 working days from `190a074`)
+## 1. Build order (14 units, 10.5–14 working days from `be8af63`)
 
 Days are working-day estimates at AI-pair-programming velocity. Reviewer round-trips absorbed in the build-plan §5 "15–22 days" envelope.
 
 | # | Unit | Days | Parallel safe? | Blocks |
 |---|---|---|---|---|
-| 1 | Batch-1 parser libs + audit centralisation | 1.0–1.5 | No (touches every module router) | 5 |
-| 1a | Structured-output helper (`structured_output.py`) | 0.25 | Yes — owns one new file + four call sites | 9, 10 |
+| 1 | Batch-1 parser libs + audit centralisation | 1.0–1.5 | No (touches every module router) | 5, 1a |
+| 1a | Structured-output helper (`structured_output.py`) | 0.25 | **Sequential after #1** (shares files in `contract_review/`, `document_edit/`) | 10a, 10b |
 | 2 | App.tsx split (Phase B W0) | 1.0 | No (mechanical move across ~25 files) | 3, 5, 6 |
 | 3 | Phase D W1 + deferred buttons + Batch-2 fold | 1.5–2.0 | Partially (backend + frontend split) | 5, 9 |
-| 5 | Phase D W2 — matter wire-format + import/export | 2.5–3.5 | No (RFC + endpoints + frontend integrated) | 9, 10 |
+| 10a | Phase E W2 — existing-surface evals (4 of 5: audit-row, posture-routing, redline-anchor, NDA-parse) | 0.75 | Yes (own `evals/` subtree) | 12 |
+| 5 | Phase D W2 — matter wire-format + import/export | 2.5–3.5 | No (RFC + endpoints + frontend integrated) | 9, 10b |
+| 10b | Phase E W2 — matter-portability round-trip eval (5 of 5) | 0.25 | Yes (own one file in `evals/`) | 12 |
 | 6 | Phase D W3 — public submission flow | 1.5–2.0 | Yes (own new endpoint + new page) | 12 |
 | 8 | LBA docx template (Batch-5 partial) | 0.5–1.0 | Yes (own new template + one router branch) | 9 |
 | 9 | Phase E W1 — README/PEERS/MANIFESTO/ROADMAP/ATTRIBUTIONS | 1.0 | Yes (docs only) | 12 |
-| 10 | Phase E W2 — five smoke evals | 1.0 | Yes (own `evals/` subtree) | 12 |
 | 11 | Phase E W3 — pre-flight + Day-15 deploy delta | 0.5 | Yes (docs + Dockerfile + env vars) | 12 |
 | 12 | Phase E W4 + W5 — launch posture + Day-18 coord | 1.0 | No (Andy-coordinated; agent drafts only) | — |
 | 13 | v0.2 backlog freeze | — | — | — |
 
 **Critical sequence constraints (re-stated for reviewer):**
 - #1 strictly before #5 (`jsonschema` is load-bearing on §4g import validation).
+- #1 strictly before #1a — **sequential, not parallel**. Audit sweep touches every module router (broad/mechanical); structured-output swap touches the same files semantically. Let #1 stabilise, then #1a edits.
 - #2 strictly before #3 (post-split tab files needed for deferred-button homing).
 - #4 is **folded** into #3, not parallel.
-- #1a can run alongside #1 (separate file, separate call sites) but commit after #1 to keep the audit sweep diff clean.
+- #10a (existing-surface evals) can ship before #5; #10b (matter-portability) ships strictly **after** #5.
+- **#5 ↔ #10b coupling (P1 doctrine):** matter portability is a trust feature. If #5 slips, cut the whole import/export surface from v0.1 — do not ship the endpoints without the round-trip eval, and do not ship the eval without the endpoints. Acceptable launch shape: 4 evals + no import/export surface. Unacceptable: import/export + no round-trip eval.
 - #11 strictly before Day-15 deploy.
 
 ---
@@ -50,20 +53,23 @@ Days are working-day estimates at AI-pair-programming velocity. Reviewer round-t
 
 Same pattern that worked across Phases A → C: agents own non-overlapping files; integration diffs into `App.tsx` / `lib/api.ts` / `main.py` return in summaries and I apply serially after agents return. Module-local `api.ts` shims used during parallel work, consolidated in unit #3.
 
-### Round 1 — units #1 + #1a in parallel
+### Round 1 — unit #1, then unit #1a (sequential)
 
-**Agent 1A — parser swap + audit sweep (`general-purpose`, foreground).**
+**Agent 1A — parser swap + audit sweep (`general-purpose`, foreground). Runs first.**
 - Owns: `backend/app/core/matter_fs.py`, `backend/app/adapters/plugin_bridge.py`, `backend/app/api/modules.py`, `schemas/module.json`, all 14 files in §3.1 audit sweep list.
 - Adds deps: `pyyaml>=6.0`, `python-frontmatter>=1.1`, `jsonschema>=4.21` in `backend/pyproject.toml`.
-- Acceptance: `grep -rn "AuditEntry(" backend/app/ --include="*.py"` returns only `audit.py` + `models/audit.py` + middleware. `python -m compileall backend/app` clean. Existing Phase A/B/C tests green.
+- Acceptance:
+  - `grep -rn "AuditEntry(" backend/app/ --include="*.py"` returns only the **four** permitted sites: `backend/app/core/audit.py` (helper layer), `backend/app/core/api.py` (where the `_AuditAPI.log` helper itself constructs `AuditEntry(...)`), `backend/app/models/audit.py` (model definition), and the audit middleware.
+  - All **module semantic rows** carry non-null `module`. Middleware `http.*` rows are allowed to remain `module=null` — they are infrastructure, not module activity.
+  - `python -m compileall backend/app` clean. Existing Phase A/B/C tests green.
 
-**Agent 1B — structured-output helper (`general-purpose`, foreground).**
+**Agent 1B — structured-output helper (`general-purpose`, foreground). Runs strictly after 1A commits.**
 - Owns: new `backend/app/core/structured_output.py`, and four call sites: `backend/app/modules/contract_review/agents.py`, `backend/app/modules/document_edit/pipeline.py`, `backend/app/modules/pre_motion/agents.py`, `backend/app/modules/anonymisation/prompts.py`.
 - Adds: `StructuredOutputError(Exception)` with `raw_text` attribute for audit; `parse_model_json(raw: str, model: type[BaseModel]) -> BaseModel` that strips ```json fences, takes first balanced `{...}`, validates against `model`.
 - **Must not** import from `model_gateway.py`. Gateway/parsing boundary is doctrine.
 - Acceptance: four ad-hoc regex sites retired. Smoke run of Contract Review pipeline against Khan-NDA seed still produces valid `ContractReviewResult`.
 
-**Conflict surface:** Agent 1A touches `contract_review/agents.py` and `document_edit/pipeline.py` for audit sweep; Agent 1B touches the same files for parsing swap. Resolution: Agent 1B blocks on Agent 1A's commit, then rebases. Run 1A foreground first; spawn 1B after 1A returns.
+**Sequencing rationale (reviewer-locked):** audit centralisation is broad and mechanical; structured-output is semantic. Stabilising the files via 1A first means 1B's diff stays small and reviewable. No thin pre-pass — full sequential.
 
 ### Round 2 — unit #2 (App.tsx split)
 
@@ -75,7 +81,7 @@ Same pattern that worked across Phases A → C: agents own non-overlapping files
 
 **No parallelism on this unit** — surgical move across the whole tree.
 
-### Round 3 — units #3 + #8 + #9 + #10 + #11 in parallel (after #2 lands)
+### Round 3 — units #3 + #8 + #9 + #10a + #11 in parallel (after #2 lands)
 
 Once the App.tsx split lands, frontend ownership is sharded by directory, making parallelism safe.
 
@@ -96,9 +102,9 @@ Once the App.tsx split lands, frontend ownership is sharded by directory, making
 - Hard guards: Will Chen (Mike, AGPL-3.0) and Jan Kubica (Stella, Apache-2.0) framed as **peers, not competitors**. Solicitor-first README. No agent files DMs/issues/discussions — drafts in `docs/outreach/` only.
 - Acceptance: cold reader (non-technical solicitor) can read README and form intent to clone within 60 seconds.
 
-**Agent 10 — five smoke evals (Phase E W2).**
-- Owns: `evals/` subtree (currently empty or thin). Five evals per `PHASE_E_DELTA.md` W2: matter portability round-trip, audit-row contract, posture-routing, redline anchor resolution, NDA-clause parse.
-- Depends on #5 endpoints — schedule **after** #5 lands. If #5 slips, ship #9 + #11 + #12 first and treat #10 as thin-proof escape per Phase E §"Thin-proof escape."
+**Agent 10a — existing-surface smoke evals (Phase E W2, four of five).**
+- Owns: `evals/` subtree (currently empty or thin). Four evals: audit-row contract, posture-routing, redline anchor resolution, NDA-clause parse. Matter-portability round-trip (the fifth) is **deferred to #10b in Round 4.5**, strictly after #5.
+- Acceptance: four evals green against the integrated tree.
 
 **Agent 11 — pre-flight runbook + Dockerfile (Phase E W3).**
 - Owns: `infra/PRE_FLIGHT.md`, `backend/Dockerfile`, `infra/deploy/cloudflare.md` (Day-15 deploy delta).
@@ -112,10 +118,17 @@ Once the App.tsx split lands, frontend ownership is sharded by directory, making
 - Owns: new `backend/app/api/exports.py`, new `backend/app/api/imports.py` (or one file), new `docs/MATTER_WIRE_FORMAT.md` (the RFC), new `schemas/matter.json`. Frontend: new "Export matter" + "Import matter" actions in matter settings.
 - Uses `Draft202012Validator(schema).iter_errors(payload)` + `error.absolute_path` → JSON pointer body. **Do not use `jsonschema.validate()`** — it raises on first error.
 - Uses `frontmatter.dump(post, handler=frontmatter.YAMLHandler())` for `matter.md` — no string-concat YAML.
-- Privilege-aware redaction: per `PHASE_D_DELTA.md` Gotcha 1 redaction matrix. Thin-proof: ship without; credible: ship with.
-- Acceptance: round-trip Khan matter export → import to a fresh DB → all audit rows replay; slug-collision returns 409 with conflict body.
+- **Privilege-aware redaction is mandatory** (reviewer-locked). Export modes are explicit from day one: `full_internal` (no redaction; same posture only) and `shareable` (redaction matrix per `PHASE_D_DELTA.md` Gotcha 1 applied). No thin-proof escape — matter portability is a trust feature, not a convenience feature. If the redaction matrix cannot ship in #5's budget, **cut the whole import/export surface from v0.1** (defer #5 and #10b together).
+- Acceptance: round-trip Khan matter export (both modes) → import to a fresh DB → all audit rows replay for `full_internal`; redacted fields stripped per matrix for `shareable`; slug-collision returns 409 with conflict body.
 
 Standalone because it touches the import/export surface across backend + frontend + docs simultaneously and the RFC needs a coherent voice.
+
+### Round 4.5 — unit #10b (after #5)
+
+**Agent 10b — matter-portability round-trip eval.**
+- Owns: one new file in `evals/` (e.g., `evals/matter_portability.py`).
+- Round-trips Khan matter through both export modes → fresh DB → asserts audit replay + redaction matrix correctness.
+- **Spawn rule:** if #5 has not landed (or has been cut from v0.1), do not spawn 10b. The eval and the surface ship together or not at all.
 
 ### Round 5 — unit #6 (Phase D W3) standalone
 
@@ -150,15 +163,16 @@ Andy-coordinated launch posture. Agent drafts only — `HANDOVER_LAUNCH.md`, Wil
 
 | Unit | Acceptance bar (binary) |
 |---|---|
-| #1 | `grep -rn "AuditEntry(" backend/app/` returns only 3 permitted sites; all audit rows non-null `module`; existing tests green |
+| #1 | `grep -rn "AuditEntry(" backend/app/` returns only 4 permitted sites (`core/audit.py`, `core/api.py` helper, `models/audit.py`, audit middleware); **module-semantic** audit rows non-null `module` (middleware `http.*` rows may be null); existing tests green |
 | #1a | Four regex sites retired; `structured_output.py` exports `parse_model_json`; gateway not imported into it; Contract Review against Khan-NDA round-trips |
 | #2 | `npm run build` green; `App.tsx ≤ 350 lines`; pixel-identical UI; no behaviour change |
 | #3 | Modules page renders capabilities + trust posture as **declarations**; three deferred buttons land; module-local `api.ts` shims consolidated |
-| #5 | Export tarball → import to fresh DB → audit rows replay; slug-collision 409; `Draft202012Validator` + JSON pointer 422 body verified |
+| #5 | Both export modes ship (`full_internal` + `shareable`); round-trip Khan matter → fresh DB → audit replay for `full_internal`, redaction-matrix verified for `shareable`; slug-collision 409; `Draft202012Validator` + JSON pointer 422 body verified. **If redaction matrix cannot ship, cut the whole surface from v0.1.** |
 | #6 | Draft PR opens against `b1rdmania/claude-for-uk-legal` via `b1rdmania` PAT; Turnstile rejects synthetic submission; config gate works |
 | #8 | Khan-LBA renders via `docxtpl` template; audit row payload includes `template_name: "lba"`; non-LBA letter types fall through unchanged |
 | #9 | Cold solicitor reader: 60-second README → intent to clone; PEERS/MANIFESTO/ROADMAP/ATTRIBUTIONS cross-link cleanly |
-| #10 | Five smoke evals green against integrated tree |
+| #10a | Four existing-surface evals (audit-row, posture-routing, redline-anchor, NDA-parse) green against the integrated tree |
+| #10b | Matter-portability round-trip eval green; covers both export modes. Spawned only if #5 ships. |
 | #11 | Pre-flight runbook lists every new env var; Dockerfile installs every new dep; Day-15 smoke includes SSE-disconnect-during-Contract-Review check |
 | #12 | HANDOVER_LAUNCH rewritten; Will/Jan DM drafts in `docs/outreach/`; HN/X/LinkedIn drafts; Andy files everything |
 
@@ -187,17 +201,17 @@ Plus the eternal v0.1 guards:
 
 ---
 
-## 6. Reviewer questions worth answering before round 1 spawns
+## 6. Reviewer decisions (locked, 2026-05-15)
 
-1. **Round 1 conflict surface (1A vs 1B on shared files):** is "1A foreground first, 1B after" right, or should 1B own a thin pre-pass that adds `structured_output.py` + StructuredOutputError, then 1A's audit sweep cleans up parsing call-site audit calls in the same pass?
+1. **Round 1:** run 1A first, then 1B. No thin pre-pass. Audit centralisation is broad/mechanical; structured-output is semantic — let 1A stabilise the files, then 1B edits.
 
-2. **Unit #5 thin-proof vs credible:** ship without privilege-aware redaction matrix (thin) and add v0.2, or fold the matrix in now (+0.5–1.0 day)? Recommendation: thin for launch, since the demo matter (Khan) doesn't exercise the multi-posture edge case that justifies the matrix.
+2. **Unit #5:** privilege-aware redaction matrix ships with #5, day one. Export modes are explicit: `full_internal` vs `shareable`. If the matrix cannot ship in budget, cut the entire import/export surface from v0.1 — not just the redaction.
 
-3. **Unit #8 template authoring:** Andy authors `lba.docx` in Word, or agent scaffolds via `python-docx` and Andy polishes? Recommendation: Andy authors directly — template editing is faster in Word than scripting it.
+3. **Unit #8:** Andy authors `lba.docx` in Word. Agent wires `docxtpl`, provides merge-field docs, and adds the smoke test. Visual Word polish is faster human-authored.
 
-4. **Unit #10 evals depending on #5:** if #5 slips past Day-12, do we ship Phase E without the matter-portability eval (5 → 4)? Recommendation: yes — thin-proof escape per `PHASE_E_DELTA.md`.
+4. **#5 ↔ #10b coupling:** matter-portability eval and matter-portability surface ship together or not at all. Acceptable launch shape: 4 evals + no import/export. Unacceptable: import/export + no round-trip eval.
 
-5. **Round 3 parallel safety:** Agent 3 touches `frontend/src/lib/api.ts` (consolidation) at the same time Agent 5 is adding new endpoints. Mitigation: Agent 5 lands its `lib/api.ts` additions as a module-local shim that Agent 3's consolidation absorbs after #5 returns. Confirm or propose alternative.
+5. **Round 3 ↔ #5 API conflict:** Agent 5 is standalone in Round 4, after Agent 3's consolidation completes. Agent 5 edits `frontend/src/lib/api.ts` directly. No module-local shim required.
 
 ---
 

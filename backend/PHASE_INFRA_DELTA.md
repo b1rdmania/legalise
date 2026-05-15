@@ -134,14 +134,14 @@ Touch every file in the `AuditEntry(` grep list and route through `audit.log()` 
 
 **Constraints (per infra-P6 + product lock):**
 - Action names + module names + actor IDs + resource_type + resource_id + payload shape are **unchanged**. The helper takes them as explicit kwargs.
-- Allowed direct `AuditEntry(...)` survivors: `backend/app/core/audit.py` itself (the helper layer); `backend/app/models/audit.py` (model definition); the audit middleware. Everything else routes through `audit.log(...)`.
+- Allowed direct `AuditEntry(...)` survivors (four): `backend/app/core/audit.py` (the helper layer); `backend/app/core/api.py` (the `_AuditAPI.log` helper constructs `AuditEntry(...)` here); `backend/app/models/audit.py` (model definition); the audit middleware. Everything else routes through `audit.log(...)`.
 - **Required v0.2 follow-on:** action-name constants module (`app/core/audit_actions.py` with `MODULE_LETTERS_DOCX_EXPORTED = "module.letters.docx.exported"` etc.) — call sites import. v0.1 keeps strings (launch-path churn budget); v0.2 is not negotiable.
 
 **Pydantic / type changes:** none. The helper signature already matches.
 
 **Acceptance:**
-- `grep -rn "AuditEntry(" backend/app/ --include="*.py"` returns only the three permitted sites.
-- Every module's audit row still has non-null `module` (the column added in Phase A; Codex R1 enforcement preserved).
+- `grep -rn "AuditEntry(" backend/app/ --include="*.py"` returns only the four permitted sites (`core/audit.py`, `core/api.py` helper, `models/audit.py`, audit middleware).
+- Every **module-semantic** audit row has non-null `module` (the column added in Phase A; Codex R1 enforcement preserved). Middleware `http.*` rows are allowed to remain `module=null` — they are infrastructure, not module activity.
 - `python -m compileall backend/app` clean.
 - Existing audit-row evals (Phase E W2) stay green when run after this batch.
 
@@ -321,7 +321,7 @@ Well inside the cumulative per-phase ~2,500 LoC envelope established across A �
 ## 8. Acceptance summary (v0.1 launch gate)
 
 - Cold reader of README → solicitor-first, peer-credited to Stella + Mike.
-- `grep -rn "AuditEntry(" backend/app/` returns only the three permitted helper/model/middleware sites.
+- `grep -rn "AuditEntry(" backend/app/` returns only the four permitted helper/model/middleware sites (`core/audit.py`, `core/api.py` helper, `models/audit.py`, audit middleware).
 - `module.json` schema-validated on discovery; broken manifests surface in Modules page.
 - `matter.md` frontmatter generated + parsed via PyYAML; SKILL.md via python-frontmatter.
 - App.tsx ≤ 350 lines; tabs / modules / auth / ui all live under their own folders.
