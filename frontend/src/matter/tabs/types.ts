@@ -1,4 +1,4 @@
-export type TabKey = "overview" | "documents" | "reviews" | "research" | "chronology" | "premotion" | "letters" | "contract-review" | "audit";
+export type TabKey = "overview" | "documents" | "reviews" | "research" | "chronology" | "premotion" | "letters" | "contract-review" | "audit" | "assistant";
 
 export const TABS: { key: TabKey; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -10,6 +10,7 @@ export const TABS: { key: TabKey; label: string }[] = [
   { key: "letters", label: "Letters" },
   { key: "contract-review", label: "Contract review" },
   { key: "audit", label: "Audit" },
+  { key: "assistant", label: "Assistant" },
 ];
 
 export type StageProgress = {
@@ -23,5 +24,5 @@ export type StageProgress = {
 };
 
 export function isTabKey(v: string): v is TabKey {
-  return ["overview", "documents", "reviews", "research", "chronology", "premotion", "letters", "contract-review", "audit"].includes(v);
+  return ["overview", "documents", "reviews", "research", "chronology", "premotion", "letters", "contract-review", "audit", "assistant"].includes(v);
 }

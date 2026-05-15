@@ -35,6 +35,7 @@ import { PreMotionTab } from "./tabs/PreMotionTab";
 import { LettersTab } from "./tabs/LettersTab";
 import { ContractReviewTab } from "./tabs/ContractReviewTab";
 import { AuditTab } from "./tabs/AuditTab";
+import { AssistantTab } from "./tabs/AssistantTab";
 
 export function MatterDetail({
   slug,
@@ -362,6 +363,14 @@ export function MatterDetail({
           <ContractReviewTab matter={matter} docs={docs} />
         )}
         {tab === "audit" && <AuditTab audit={audit} />}
+        {tab === "assistant" && (
+          <AssistantTab
+            matter={matter}
+            docs={docs}
+            chronology={chron?.events ?? []}
+            setTabAndHash={setTabAndHash}
+          />
+        )}
       </div>
     </div>
   );

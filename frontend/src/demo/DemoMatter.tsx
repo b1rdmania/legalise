@@ -14,6 +14,7 @@ import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { PreMotionTab } from "../matter/tabs/PreMotionTab";
 import { LettersTab } from "../matter/tabs/LettersTab";
 import { AuditTab } from "../matter/tabs/AuditTab";
+import { AssistantTab } from "../matter/tabs/AssistantTab";
 import { ReviewsTab } from "../modules/tabular_review/ReviewsTab";
 import { ResearchTab } from "../modules/case_law/ResearchTab";
 import { ContractReviewTab } from "../modules/contract_review/ContractReviewTab";
@@ -158,6 +159,17 @@ export function DemoMatter() {
           />
         )}
         {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} />}
+        {tab === "assistant" && (
+          <AssistantTab
+            matter={matter}
+            docs={documents}
+            chronology={DEMO_SNAPSHOT.chronology.events}
+            setTabAndHash={setTabAndHash}
+            initialMessages={DEMO_SNAPSHOT.assistantMessages}
+            disabled
+            disabledPlaceholder="Sign up to chat with the assistant on your own matter"
+          />
+        )}
       </div>
     </div>
   );

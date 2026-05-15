@@ -1023,6 +1023,35 @@ export const listCitations = (slug: string) =>
     jsonOrThrow<MatterCitationRead[]>(r),
   );
 
+// ----- Assistant ----------------------------------------------------------
+
+export interface SuggestedAction {
+  type: "run_pre_motion" | "draft_letter" | "review_contract"
+      | "view_document" | "view_audit" | "view_chronology"
+      | "anonymise_document";
+  label: string;
+  params: Record<string, string>;
+}
+
+export interface AssistantMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  suggested_actions: SuggestedAction[];
+  created_at: string;
+}
+
+export const listAssistantMessages = (slug: string) =>
+  apiFetch(`${API}/matters/${slug}/assistant/messages`)
+    .then((r) => jsonOrThrow<AssistantMessage[]>(r));
+
+export const postAssistantMessage = (slug: string, body: { content: string; selected_document_ids?: string[] }) =>
+  apiFetch(`${API}/matters/${slug}/assistant/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<{ user: AssistantMessage; assistant: AssistantMessage }>(r));
+
 export const deleteCitation = (slug: string, citationId: string) =>
   apiFetch(`${caseLawBase(slug)}/citations/${citationId}`, { method: "DELETE" }).then(
     (r) => {

@@ -9,6 +9,7 @@
 //   - backend/tests/test_smoke_evals.py (contract-review canned envelopes)
 
 import type {
+  AssistantMessage,
   AuditEntry,
   ChronologyResponse,
   ContractReviewResult,
@@ -1247,6 +1248,56 @@ const CITATIONS: MatterCitationRead[] = [
   },
 ];
 
+const ASSISTANT_MESSAGES: AssistantMessage[] = [
+  {
+    id: "asst-msg-01",
+    role: "user",
+    content: "summarise the NDA",
+    suggested_actions: [],
+    created_at: "2026-04-06T12:01:14Z",
+  },
+  {
+    id: "asst-msg-02",
+    role: "assistant",
+    content:
+      "The [doc:Mutual NDA — Khan & Acme] is a three-year mutual NDA between Acme Trading Ltd and North Mill Consulting Limited. Confidentiality obligations survive indefinitely. Three points stand out: an unlimited mutual indemnity that is unlikely to be enforceable under UCTA s.3, a data-protection clause that does not satisfy UK GDPR Art 28, and no governing law or jurisdiction clause.",
+    suggested_actions: [
+      {
+        type: "review_contract",
+        label: "Review this NDA for issues",
+        params: {},
+      },
+    ],
+    created_at: "2026-04-06T12:01:18Z",
+  },
+  {
+    id: "asst-msg-03",
+    role: "user",
+    content: "what was the dismissal date?",
+    suggested_actions: [],
+    created_at: "2026-04-06T12:02:41Z",
+  },
+  {
+    id: "asst-msg-04",
+    role: "assistant",
+    content:
+      "12 March 2026. Acme dismissed Ms Khan citing a social-media policy breach — see [chron:ev-05]. That date is the EDT for limitation purposes; ACAS Day A was filed on 2 May, so the s.207B extended ET1 deadline lands on 3 July 2026.",
+    suggested_actions: [
+      {
+        type: "view_chronology",
+        label: "Open the full chronology",
+        params: {},
+      },
+      {
+        type: "run_pre_motion",
+        label: "Run pre-motion on the dismissal claim",
+        params: {},
+      },
+    ],
+    created_at: "2026-04-06T12:02:46Z",
+  },
+];
+
 export const DEMO_SNAPSHOT = {
   matter: MATTER,
   documents: DOCUMENTS,
@@ -1258,6 +1309,7 @@ export const DEMO_SNAPSHOT = {
   contractReview: CONTRACT_REVIEW,
   reviews: REVIEWS,
   citations: CITATIONS,
+  assistantMessages: ASSISTANT_MESSAGES,
 };
 
 export type DemoSnapshot = typeof DEMO_SNAPSHOT;
