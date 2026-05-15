@@ -22,13 +22,14 @@ The OSS core is never gated. Enterprise tier exists for firms who want managed o
 
 ## v0.1 (May 2026) — demo launch
 
-One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v0.1 proves the matter spine, audit log, privilege posture, local/cloud model routing, Pre-Motion as the canonical demonstration of bespoke orchestration, and one `claude-for-uk-legal` plugin invocation through the CPR-letter bridge. Chronology and contract review are visible roadmap surfaces, not end-to-end v0.1 commitments. Detailed in `BUILD_PLAN.md` and `SCOPE.md`.
+One coherent sample-matter workflow, demo positioning, live at `legalise.dev`. v0.1 proves the matter spine, audit log, privilege posture, local/cloud model routing, Pre-Motion as the canonical demonstration of bespoke orchestration, one `claude-for-uk-legal` plugin invocation through the Letters bridge, and the auth surface: fastapi-users cookie sessions + email verification + per-user encrypted provider keys + signup-time Khan auto-seed. Chronology and contract review are visible roadmap surfaces, not end-to-end v0.1 commitments. Detailed in `BUILD_PLAN.md`, `SCOPE.md`, `HANDOVER_AUTH.md`, and `docs/AUTH.md`.
 
 ## v0.2 (target: July 2026)
 
-Theme: **production-shaped infrastructure** + **trust posture published**. The workspace stays demo but the foundation hardens and the regulatory story becomes a first-class product surface.
+Theme: **production-shaped infrastructure** + **trust posture published**. The workspace stays demo-class but the foundation hardens and the regulatory story becomes a first-class product surface.
 
-- Real auth via WorkOS or Stytch (Microsoft 365 SSO, SAML, audit logs)
+- **Enterprise SSO** via WorkOS or Stytch (Microsoft 365, Google Workspace, SAML, SCIM provisioning, org-level audit). v0.1's direct fastapi-users signup remains for sole practitioners; enterprise tenants land through SSO.
+- **Multi-provider model gateway**: Gemini provider alongside Anthropic + OpenAI, per-user defaults, model id allowlist per workspace.
 - MCP-based plugin bridge replacing direct skill rendering
 - Background job worker (Celery or RQ proper)
 - Observability stack (Sentry for errors, OpenTelemetry traces, structured logs) — scoped to operational telemetry, no prompts/responses
@@ -51,7 +52,7 @@ v0.1 ships Discovery (read-only `#/modules` over `PLUGINS_ROOT`) and documents I
 - **UI contracts for modules.** Manifest extensions that constrain markup (no `<script>`, no external network), theme tokens (Oxide only), and layout primitives. v0.2 ships a `modules/host` boundary component that enforces these at render time. A hostile or sloppy module can't escape the workspace shell.
 - **Signed manifests / skill provenance attestation.** Manifest signatures (e.g. minisign or sigstore over the SKILL.md + manifest) so a firm can pin not just "this SHA in this repo" but "this skill signed by this author". Organisation-level trust roots — a firm allows skills signed by `b1rdmania` *or* its own internal signer. Today provenance is "the git SHA you pinned"; v0.2 adds cryptographic identity.
 
-These five are the half of the README "What v0.1 does not yet do" list that **isn't** auth / lint / retention / signed-audit-export — those four are picked up elsewhere in this v0.2 section.
+These five are the half of the README "What v0.1 does not yet do" list that isn't lint / retention / signed-audit-export — those three are picked up elsewhere in this v0.2 section. (Auth itself moved to v0.1.)
 
 ### Trust & security workstream (v0.2)
 

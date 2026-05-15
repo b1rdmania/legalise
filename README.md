@@ -172,7 +172,6 @@ following exist in v0.1:
 - **Per-workspace module policy.** No "this skill is allowed on ET matters, blocked on civil" lever.
 - **Module permissions.** Modules cannot scope what they read or write — they get the full module-SDK surface.
 - **UI contracts for modules.** Module manifests describe nav and routes; they don't constrain markup, theme, or layout. A hostile module can render anything.
-- **Users and settings.** One hardcoded user (`jasmine.k`), no signup, no settings page, no role model. Auth lands v0.2 (WorkOS / Stytch).
 - **Signed manifests / skill provenance attestation.** Provenance today is "the git SHA of the catalogue fork you pinned". No author signatures, no organisation-level trust roots.
 - **Quality and lint gates for skills.** A SKILL.md can ship anything — prompt-injection, jailbreaks, sloppy markdown. No automated scan, no required schema beyond name + description.
 

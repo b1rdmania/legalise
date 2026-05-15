@@ -189,11 +189,13 @@ Body — first comment from Andy (HN convention; do not put it in the post body)
 > - Install is Git: fork the catalogue repo, review skills by PR diff, point Legalise at your fork — approval is code review, provenance is git history
 > - The four surfaces in v0.1 (matter spine, Pre-Motion, Letters, Chronology) are proof modules, not the project. The project is the execution substrate.
 >
-> What v0.1 doesn't do yet: install/enable toggles, per-workspace policy, module permissions, UI contracts, users + settings, signed manifests, lint gates for skills. README "What v0.1 does not yet do" section maps each gap to ROADMAP v0.2.
+> Sign up free, bring your own Anthropic or OpenAI key — keys are stored AES-256-GCM-encrypted and used only by the privilege-aware gateway on your matters. On email verify the Khan v Acme demo is copied into your workspace so the first sign-in lands on something live; slug tenancy is scoped per user, so cross-user reads return 404 (not 403).
+>
+> What v0.1 doesn't do yet: install/enable toggles, per-workspace policy, module permissions, UI contracts, signed manifests, lint gates for skills, enterprise SSO. README "What v0.1 does not yet do" section maps each gap to ROADMAP v0.2.
 >
 > Stack: Python 3.12 + FastAPI + SQLAlchemy 2 + Postgres + pgvector for the backend; React 19 + Vite + Tailwind on the front. Apache 2.0.
 >
-> Live demo: legalise.dev (seeded with an unfair-dismissal sample matter). Self-host: `docker compose up`.
+> Live demo: legalise.dev. Self-host: `docker compose up` — set `LEGALISE_KEY_ENCRYPTION_SECRET` (32-byte hex) and you own decrypting stored keys.
 >
 > Happy to answer anything. Particularly interested in feedback on the Git-as-marketplace pattern and whether the trust posture in `docs/TRUST.md` reads as honest.
 
@@ -239,6 +241,7 @@ Reply chain:
 - Repo: `https://github.com/b1rdmania/legalise`
 - Catalogue: `https://github.com/b1rdmania/claude-for-uk-legal`
 - Live demo with seeded Khan v Acme matter: `https://legalise.dev`
+- Sign up free, BYO Anthropic / OpenAI key — keys encrypted at rest, matter data scoped per user
 - HN: [link to HN post]
 
 ### 3f. LinkedIn main post

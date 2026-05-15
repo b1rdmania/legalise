@@ -11,6 +11,8 @@ sample-matter narrative end-to-end.
 |---|---|---|
 | `smoke_sample_matter.py` | Full demo path | Khan loads, 4 module surfaces respond, audit shape matches the per-action contract |
 | `smoke_letter_routing.py` | Letters catalogue | ET matter → 6 types incl. lba default; civil matter → 2 types incl. lbc default; cross-rejection 400s |
+| `smoke_cross_user.py` | Auth — access control (Day A.5) | Slug tenancy Option A: B can hold A's slug. B GETs A's URL → 404 on 11 endpoints. Anonymous GET → 401. |
+| `smoke_signup_auto_seed.py` | Auth — signup auto-seed (Day D) | Register → autoverify → Khan exists with 2 docs + 7 events + pending CPR 31.22 gate. Two users hold the shared slug independently; A's posture flip does not touch B's row. |
 
 Unit tests for the catalogue resolver logic (pure Python, no backend) live
 in `backend/tests/test_letter_catalog.py`. Run with `pytest backend/tests/`.
@@ -44,14 +46,20 @@ container (compose) or as a Fly secret (live demo) before running.
 # Against local compose
 EVAL_API_BASE=http://localhost:3000/api python evals/smoke_sample_matter.py
 EVAL_API_BASE=http://localhost:3000/api python evals/smoke_letter_routing.py
+EVAL_API_BASE=http://localhost:3000/api python evals/smoke_cross_user.py
+EVAL_API_BASE=http://localhost:3000/api python evals/smoke_signup_auto_seed.py
 
-# Against live demo
+# Against live demo (cross_user + signup_auto_seed write real rows — run on a non-prod env or accept that)
 EVAL_API_BASE=https://api.legalise.dev/api python evals/smoke_sample_matter.py
 EVAL_API_BASE=https://api.legalise.dev/api python evals/smoke_letter_routing.py
 
 # Catalogue unit tests (no backend needed)
 cd backend && pytest tests/test_letter_catalog.py -v
 ```
+
+The auth-shaped evals (`smoke_cross_user.py`, `smoke_signup_auto_seed.py`)
+require `ENVIRONMENT` in `{development, dev, local}` so the dev autoverify
+path fires — they can't drive a real email loop.
 
 Both scripts exit non-zero on the first failed assertion and print the
 audit row counts they observed alongside the expected counts. Re-running

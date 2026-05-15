@@ -38,8 +38,7 @@ suite. Solicitors author and review; the system drafts and records.
 We list gaps at the top, not the bottom. Anyone considering a procurement
 conversation about v0.1 should see them before reading the architecture.
 
-- **Single hardcoded solicitor user.** No real authentication. Do not run
-  v0.1 in front of real client data on a public URL.
+- **Self-hosted production use needs your own master encryption key.** v0.1 ships authentication (fastapi-users cookie sessions, email verification, AES-256-GCM per-user API key storage), but the self-host operator owns the master key. Lose it and stored provider keys become unrecoverable; share it and an operator can decrypt user keys offline.
 - **Retention is recorded, not enforced.** Every matter has a
   `retention_until` field; nothing actively sweeps and deletes when that
   date passes.
@@ -236,13 +235,30 @@ or per-workspace enable/disable policy. Those are v0.2 concerns.
 
 ## 10. Authentication
 
-**v0.1 ships a single hardcoded solicitor user** for the demo deployment.
-This is not production-ready and is documented as such throughout the
-codebase. Real authentication via WorkOS or Stytch (SSO with Microsoft 365,
-SAML, audit) is the v0.2 milestone.
+v0.1 ships **fastapi-users** with cookie sessions (HttpOnly, Secure,
+SameSite=Lax), email verification via Resend, and password reset via
+one-time token. Sessions are backed by a server-side `access_token`
+table — revocation is real, not just client-side.
 
-Until then: do not run v0.1 in front of real client data on a public URL.
-Run it locally, in your firm's network, or behind a VPN you trust.
+**Bring-your-own provider keys.** Each user adds their Anthropic or
+OpenAI key under Settings → API keys. The privilege-aware model gateway
+reads the user's key for every call on their matters. Server-side keys
+are stored AES-256-GCM-encrypted under a master key supplied to the
+backend via env var (`LEGALISE_KEY_ENCRYPTION_SECRET`, 32-byte hex);
+a key is decrypted only at call time and never logged.
+
+**Slug tenancy.** Matter slugs are unique per user, not globally.
+Two users can each hold a matter at `khan-v-acme-trading-2026` without
+collision. Cross-user reads return 404 (not 403) so user A cannot
+learn that user B holds a matter at a particular slug.
+
+**Signup auto-seed.** On email verification (or in dev, on register
+via the autoverify path), the new user's workspace is seeded with the
+Khan v Acme demo matter — same idempotent path as the dev-boot seed.
+
+WorkOS / Stytch SSO with Microsoft 365 / SAML / org-level audit is
+the v0.2 milestone for enterprise adoption. v0.1 covers the
+sole-practitioner and small-firm case via direct signup.
 
 ---
 
@@ -253,8 +269,9 @@ Run it locally, in your firm's network, or behind a VPN you trust.
 - **At rest:** Postgres-at-rest encryption (Neon default, AES-256). R2
   objects encrypted at rest by Cloudflare. Matter materialisation on the
   Fly volume relies on Fly's underlying storage encryption.
-- **Application-layer encryption** of stored prompts/responses is not yet
-  implemented. Tracked for v0.2.
+- **Application layer:** per-user provider API keys are stored
+  AES-256-GCM-encrypted (Section 10). Stored prompts/responses are
+  not yet application-layer encrypted — tracked for v0.2.
 
 ---
 

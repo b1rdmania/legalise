@@ -782,8 +782,9 @@ function Landing() {
             ))}
           </ul>
           <p className="prose-p mt-8">
-            Honest about v0.1 limits: single hardcoded user; retention recorded but not enforced;
-            append-only audit log by convention not by Postgres grant. See{" "}
+            Honest about v0.1 limits: retention recorded but not enforced; append-only audit
+            log by convention not by Postgres grant; module install / per-workspace policy is
+            v0.2 work. See{" "}
             <a
               href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
               target="_blank"
