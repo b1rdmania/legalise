@@ -29,8 +29,8 @@ Days are working-day estimates at AI-pair-programming velocity. Reviewer round-t
 | 2 | App.tsx split (Phase B W0) | 1.0 | No (mechanical move across ~25 files) | 3, 5, 6 |
 | 3 | Phase D W1 + deferred buttons + Batch-2 fold | 1.5–2.0 | Partially (backend + frontend split) | 5, 9 |
 | 10a | Phase E W2 — existing-surface evals (4 of 5: audit-row, posture-routing, redline-anchor, NDA-parse) | 0.75 | Yes (own `evals/` subtree) | 12 |
-| 5 | Phase D W2 — matter wire-format + import/export | 2.5–3.5 | No (RFC + endpoints + frontend integrated) | 9, 10b |
-| 10b | Phase E W2 — matter-portability round-trip eval (5 of 5) | 0.25 | Yes (own one file in `evals/`) | 12 |
+| 5 | ~~Phase D W2 — matter wire-format + import/export~~ **CUT to v0.3 (Andy 2026-05-15)** | — | — | — |
+| 10b | ~~Phase E W2 — matter-portability round-trip eval~~ **CUT with #5** | — | — | — |
 | 6 | Phase D W3 — public submission flow | 1.5–2.0 | Yes (own new endpoint + new page) | 12 |
 | 8 | LBA docx template (Batch-5 partial) | 0.5–1.0 | Yes (own new template + one router branch) | 9 |
 | 9 | Phase E W1 — README/PEERS/MANIFESTO/ROADMAP/ATTRIBUTIONS | 1.0 | Yes (docs only) | 12 |
@@ -224,6 +224,7 @@ Plus the eternal v0.1 guards:
 - **`9e7012d` — Agent 2 (unit #2) landed.** App.tsx split into `app/ + auth/ + landing/ + matter/{tabs/} + modules-page/ + ui/`. App.tsx is now a 2-line re-export shim. Build green, 343.51 kB gzipped.
 - **`780238c` — Agent 9 (unit #9) landed.** README + PEERS + MANIFESTO + ROADMAP + ATTRIBUTIONS rewritten under `docs/`. Root `MANIFESTO.md` + `ROADMAP.md` initially left untouched; **2026-05-15 follow-up:** root files replaced with pointer stubs to canonical `docs/` versions per Andy's call; `docs/MODULE_DEVELOPMENT.md` cross-refs updated.
 - **2026-05-15 Andy decision — `docxtpl` rejected for v0.1.** LBA path is now Path A (procedural, recommended) or Path B (internal `python-docx` placeholder helper). `docs/ATTRIBUTIONS.md` Licence note removed. Delta §4 decision 4 + §3.5 unit #8 spec revised.
+- **2026-05-15 Andy decision — units #5 + #10b cut to v0.3.** Matter export/import surface has no real second user or second matter to pressure-test at v0.1. Per reviewer's locked rule ("surface and eval ship together or not at all"), both cut as a pair. v0.3 doctrine recorded in `docs/ROADMAP.md` v0.3+ section with the explicit two-mode framing (`full_internal` vs `shareable`) for when it lands. README + ROADMAP updated to remove from v0.1 surface list and from the smoke-eval count (5 → 4). Round 4 + Round 4.5 dissolved. Round 5 (#6 submission flow) is next.
 - **2026-05-15 Reviewer adjudications on Rounds 1–3 (post `188d401`):**
   - **P1 fix landed:** `SkillDisabled → HTTP 403` mapped at the three bridge call-sites (`api/matters.py`, `letters/router.py`, `case_law/router.py`) + new disable-short-circuit eval (`test_smoke_evals.py::TestSkillDisabledShortCircuit`). 38/38 tests green.
   - **P2 fix landed:** `GET /api/modules/{plugin}/{skill}` now requires `current_user`. Disabled skills remain inspectable for review-before-re-enable.

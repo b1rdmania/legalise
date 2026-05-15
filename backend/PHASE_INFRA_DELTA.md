@@ -26,12 +26,12 @@ Days are working-day estimates at AI-pair-programming velocity; the reviewer-rou
 | 2 | **W0 — App.tsx split** (Phase B's deferred W0) | build-plan-phase-B W0 | 1.0 | bridge between Phase C and any further frontend work; unblocks PHASE_D W1 UI cleanly, unblocks deferred buttons (Letters/Pre-Motion `.docx`, Anonymise) without monolith collision | Binary (build green, pixel-identical, ~3,450 lines moved across ~25 files). No defer. |
 | 3 | **PHASE_D W1 — Workspace enable/disable lifecycle (§4i)** + **wire the three deferred buttons** (Letters .docx, Pre-Motion .docx, Anonymise) inside the post-split tabs | build-plan-phase-D + Phase B/C deferred UI | 1.5–2.0 | catalog filter relies on Batch-1 audit helper; deferred buttons need post-split DocumentsTab + LettersTab + PreMotionTab files | Thin: toggle endpoints + UI; deferred buttons land. Credible: disabled-pill on Modules tab + audit-tab `module` filter. |
 | 4 | **Batch-2 module manager v0.1 — folded into PHASE_D W1** (manifest discovery becomes load-bearing; declared capabilities are schema-validated and displayed for review; enable/disable enforced at the `(plugin, skill)` layer — runtime per-capability enforcement is v0.2 doctrine) | infra-batch-2 (folded) | +0.5–1.0 on top of #3 | matches Phase D W1 acceptance bar; reframes the bar from "skill toggle" to "schema-validated module manifest + enable/disable enforcement" | Thin: existing `(plugin, skill)` toggle + `module.json` schema validation displayed in UI. Credible: declared capabilities rendered as trust-posture badges per skill row. **Do not describe v0.1 as "capability-gated."** |
-| 5 | **PHASE_D W2 — Matter wire-format RFC + importer/exporter (§4g)** | build-plan-phase-D | 2.5–3.5 | RFC text + outreach drafts; tarball export/import; round-trip eval slot. Schema validation of imported `matter.json` uses Batch-1 `jsonschema`. | Thin: export tarball, import with slug-collision 409, no privilege-aware redaction yet. Credible: privilege-posture-gated redaction matrix from PHASE_D_DELTA Gotcha 1. |
+| 5 | ~~PHASE_D W2 — Matter wire-format RFC + importer/exporter (§4g)~~ **CUT to v0.3 (Andy 2026-05-15)** — no real second user / second matter to pressure-test the wire format at v0.1. Doctrine moves to `docs/ROADMAP.md` v0.3+ with the locked two-mode framing. | — | — | — |
 | 6 | **PHASE_D W3 — Public module submission flow (§4h)** | build-plan-phase-D | 1.5–2.0 | needs `GITHUB_SUBMISSION_TOKEN` (`b1rdmania`-scoped PAT, NOT `ziggythebot`) + Turnstile keys provisioned. Schema validation of submitted SKILL.md frontmatter uses Batch-1 `python-frontmatter`. | Thin: form + endpoint opens draft PR via PAT; IP rate-limit only. Credible: Turnstile + preview pane + submission_enabled config gate. |
 | 7 | **Batch-3 frontend state cleanup — DEFERRED to v0.2** (TanStack Router + Query migration) | infra-batch-3 (deferred) | 0 in v0.1 | n/a — see §2.3 below | n/a |
 | 8 | **Batch-5 docx templates — partial fold into PHASE_E W1** (template directory exists; LBA letter ships as the one template-driven export for solicitor-cold-read launch screenshots) | infra-batch-5 (partial) | 0.5–1.0 | depends on the Phase B `generate_docx` plumbing being stable; lands inside Phase E W1 screenshot polish day | Thin: LBA-only template; Pre-Motion + Contract Review stay procedural. Credible: all three solicitor-facing exports template-driven. Recommendation: thin-proof for v0.1. |
 | 9 | **PHASE_E W1 — Documentation rewrite** (README + PEERS + MANIFESTO sweep + ROADMAP + ATTRIBUTIONS) | build-plan-phase-E | 1.0 | foundation; all later launch artifacts cross-link here | Binary (solicitor-first README is launch-gate). |
-| 10 | **PHASE_E W2 — Five smoke evals** | build-plan-phase-E | 1.0 | depends on PHASE_D W2 endpoints (matter portability eval) | Thin-proof escape: ship W1 + W4 first, defer W2 polish per PHASE_E §"Thin-proof escape." |
+| 10 | **PHASE_E W2 — Four smoke evals** (matter-portability eval cut with #5 — Andy 2026-05-15) | build-plan-phase-E | 1.0 | none (#5 cut) | Existing-surface evals: audit-row, posture-routing, redline-anchor, NDA-parse. |
 | 11 | **PHASE_E W3 — Pre-flight + Day-15 deploy delta** (add `presidio-analyzer`, `spacy en_core_web_sm`, `GITHUB_SUBMISSION_TOKEN`, `TURNSTILE_*`, plus the new Batch-1 deps to Dockerfile) | build-plan-phase-E | 0.5 | Pre-flight runbook must surface new env vars + Python deps before Andy hits a 500 | Binary. |
 | 12 | **PHASE_E W4 + W5 — Launch posture + Day-18 coordination** (HANDOVER_LAUNCH rewrite + Will/Jan DM refines + HN/X/LinkedIn final drafts) | build-plan-phase-E | 1.0 | Andy files all DMs, issues, discussions. Agent refines drafts only. | Binary. |
 | 13 | **Batch-3 (TanStack), Batch-4 (jobs), Batch-5 remaining (Pre-Motion + Contract Review templates)** | v0.2 | — | Post-launch infra hardening. | — |
@@ -255,7 +255,12 @@ These are doctrine, not launch compromises. Launch compromises are called out ex
 
 ---
 
-## 5. Deliberately deferred to v0.2
+## 5. Deliberately deferred to v0.2 (and v0.3 for matter portability)
+
+**Cut to v0.3 (Andy 2026-05-15):**
+- **Matter export / import surface (PHASE_D W2 / units #5 + #10b).** No real second user or second matter at v0.1; building the wire format with zero real exports to pressure-test against is over-engineering for a trust signal. v0.3 ships with two explicit modes on the wire: `full_internal` (full audit + payloads + bodies; same-posture guard) and `shareable` (privilege-aware redaction matrix; audit payloads stripped, hashes retained; disclosed-document bodies replaced with placeholders; `cpr_31_22_locked` flag preserved). The eight matrix detail decisions (B_mixed cross-user, C_paused refused, schema_version 1.0 pinned, slug-collision 409 with suggested rename, etc.) deferred with the surface — landed when there's evidence of demand.
+
+**Deferred to v0.2:**
 
 - **TanStack Router + Query migration** (infra-batch-3). Post-split tree migrates piecemeal. Estimated 3–5 days; not on launch path.
 - **Redis-backed job runner** (infra-batch-4 / P2). **Direction locked:** `arq` + Redis + `jobs` table as source of truth (no Dramatiq/RQ branch left open). Per-module migration off router-local `asyncio.create_task`. Estimated 3–6 days; v0.2 unless Day-15 SSE-disconnect smoke proves brittle earlier.
@@ -331,7 +336,7 @@ Well inside the cumulative per-phase ~2,500 LoC envelope established across A �
 - LBA letter renders via `docxtpl` template; other letter types fall through to procedural path.
 - Phase D W1 + W2 + W3 acceptance bars (per `PHASE_D_DELTA.md`) green.
 - Phase E W1–W5 acceptance bars (per `PHASE_E_DELTA.md`) green.
-- Five smoke evals (Phase E W2) green against the integrated tree.
+- Four smoke evals (Phase E W2) green against the integrated tree (matter-portability eval cut with #5 to v0.3).
 - Day-15 deploy: every new env var (`GITHUB_SUBMISSION_TOKEN`, `TURNSTILE_*`, plus existing `ANTHROPIC_API_KEY` / Postgres / Presidio model) provisioned per PRE_FLIGHT.
 
 ---

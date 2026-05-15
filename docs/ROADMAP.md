@@ -19,13 +19,12 @@ Shipped surfaces:
 - Anonymisation (Presidio detection + deterministic token map + detokenise round-trip)
 - Tracked-changes document editing with accept / reject and version timeline
 - Tabular review across multiple documents
-- Matter export / import — `full_internal` (no redaction, same posture only) and `shareable` (privilege-aware redaction matrix applied)
 - Public module submission flow opens a draft PR against `claude-for-uk-legal`
 - Read-only installed-skills view at `#/modules` with declared capabilities + trust posture per skill
 - Module enable/disable enforcement at the `(plugin, skill)` layer
 - `module.json` schema validation surfaces broken manifests in the UI
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Five smoke evals: audit-row contract, posture routing, redline anchor resolution, NDA parse, matter portability round-trip
+- Four smoke evals: audit-row contract, posture routing, redline anchor resolution, NDA parse
 
 ## v0.2: locked direction
 
@@ -78,8 +77,15 @@ Other v0.2 work that was already on the roadmap:
 
 ## v0.3+
 
-Theme: signed identity and submission infrastructure.
+Theme: signed identity, submission infrastructure, and portability.
 
+- **Matter export / import.** Two explicit modes on the wire:
+  `full_internal` (full audit + payloads + bodies; same-posture guard)
+  and `shareable` (privilege-aware redaction matrix; audit payloads
+  stripped, hashes retained; disclosed-document bodies replaced with
+  placeholders; `cpr_31_22_locked` flags preserved). Deferred from v0.1
+  because at v0.1 there's no real second user or second matter to
+  pressure-test the wire format against.
 - **Signed module manifests.** Manifest signatures (minisign or
   sigstore over the SKILL.md + manifest). Firms allow skills signed
   by `b1rdmania` or by their own internal signer. Today provenance is

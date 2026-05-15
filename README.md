@@ -61,10 +61,9 @@ In v0.1:
 - Tracked-changes document editing with accept/reject and version timeline
 - Tabular review across multiple documents
 - `.docx` export for letters, Pre-Motion, and Contract Review (procedural generator across all letter types in v0.1)
-- Matter export / import in two modes — `full_internal` (no redaction, same posture only) and `shareable` (privilege-aware redaction matrix applied)
 - Public module submission flow that opens a draft PR against `claude-for-uk-legal`
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Five smoke evals covering audit-row contract, posture routing, redline anchors, NDA parse, matter portability round-trip
+- Four smoke evals covering audit-row contract, posture routing, redline anchors, NDA parse
 
 Not in v0.1, on the v0.2 list:
 
@@ -72,10 +71,16 @@ Not in v0.1, on the v0.2 list:
 - Job runner — direction locked as `arq` + Redis + `jobs` table; long runs still use router-local `asyncio.create_task` for now
 - TanStack Router / Query migration
 - Provider-native structured output / tool calling
-- Docx templates for Pre-Motion and Contract Review (LBA only ships in v0.1)
+- Template-driven LBA (procedural generator covers all letter types in v0.1)
+- Docx templates for Pre-Motion and Contract Review
 - Signed module manifests
 - GitHub App for the submission flow (PAT-based in v0.1)
 - Multi-instance Redis-backed rate limiter
+
+Further out (v0.3 and later):
+
+- Matter export / import with privilege-aware redaction matrix (deferred from v0.1 — no real second user or second matter yet to pressure-test the wire format)
+- Signed module manifests; GitHub-App-based submission flow
 
 Full picture: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
