@@ -12,10 +12,12 @@ import type { Matter, MatterDocument } from "../../lib/api";
 
 import {
   exportContractReviewDocx,
-  runContractReview,
+  runContractReviewStream,
+  StreamPreflightError,
   type ContractKind,
   type ContractReviewResult,
   type Posture,
+  type StageState,
   type StageStatus,
 } from "./api";
 import { ResultPanel } from "./ResultPanel";
@@ -94,6 +96,9 @@ export function ContractReviewTab({ matter, docs }: Props) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ContractReviewResult | null>(null);
+  const [liveStages, setLiveStages] = useState<
+    Record<string, Partial<StageStatus>>
+  >({});
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -113,20 +118,61 @@ export function ContractReviewTab({ matter, docs }: Props) {
     setRunning(true);
     setError(null);
     setResult(null);
+    setLiveStages({});
     setExportLink(null);
     setExportError(null);
     try {
-      const r = await runContractReview(matter.slug, {
+      const iter = runContractReviewStream(matter.slug, {
         document_id: documentId,
         posture,
         contract_type: contractType,
         counterparty_name: counterparty || null,
         deal_value: dealValue || null,
       });
-      setResult(r);
+      for await (const evt of iter) {
+        if (evt.event === "stage.start") {
+          const name = evt.data.stage;
+          setLiveStages((prev) => ({
+            ...prev,
+            [name]: { ...(prev[name] || {}), status: "running" },
+          }));
+        } else if (evt.event === "stage.end") {
+          const { stage, status, duration_ms, token_count, error: stageErr } =
+            evt.data;
+          const mapped: StageState =
+            status === "ok"
+              ? "done"
+              : status === "skipped"
+              ? "skipped"
+              : "error";
+          setLiveStages((prev) => ({
+            ...prev,
+            [stage]: {
+              status: mapped,
+              duration_ms,
+              token_count,
+              errors: stageErr ? [stageErr] : [],
+            },
+          }));
+          if (status === "error" && stageErr) {
+            setError(`${stage}: ${stageErr}`);
+          }
+        } else if (evt.event === "result") {
+          setResult(evt.data);
+          // Clear live overrides — the canonical stages array now drives UI.
+          setLiveStages({});
+        } else if (evt.event === "error") {
+          setError(evt.data.message || "Contract review failed.");
+        }
+      }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      if (e instanceof StreamPreflightError) {
+        // 422 (provider_key_missing) and 409 (privilege-paused) land here.
+        setError(e.message);
+      } else {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
+      }
     } finally {
       setRunning(false);
     }
@@ -250,7 +296,7 @@ export function ContractReviewTab({ matter, docs }: Props) {
           >
             {running ? "Running…" : "Run review"}
           </button>
-          <StageStrip stages={stages} />
+          <StageStrip stages={stages} liveOverrides={liveStages} />
         </div>
 
         {error && (

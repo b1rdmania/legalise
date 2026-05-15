@@ -160,6 +160,107 @@ export const runContractReview = (
     body: JSON.stringify(inputs),
   }).then((r) => jsonOrThrow<ContractReviewResult>(r));
 
+// ----- Streaming (SSE) ----------------------------------------------------
+
+export type ContractReviewStreamEvent =
+  | { event: "stage.start"; data: { stage: string } }
+  | {
+      event: "stage.end";
+      data: {
+        stage: string;
+        duration_ms: number;
+        token_count: number;
+        status: "ok" | "error" | "skipped";
+        error?: string;
+      };
+    }
+  | { event: "result"; data: ContractReviewResult }
+  | {
+      event: "error";
+      data: {
+        message: string;
+        code?: number;
+        error?: string;
+        provider?: string;
+      };
+    };
+
+/**
+ * StreamPreflightError — thrown when the SSE preflight fails (422/409)
+ * BEFORE the stream is opened. Carries status + parsed body so the caller
+ * can render provider_key_missing / privilege-paused messages inline.
+ */
+export class StreamPreflightError extends Error {
+  status: number;
+  body: unknown;
+  constructor(status: number, body: unknown, message: string) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
+export async function* runContractReviewStream(
+  slug: string,
+  inputs: ContractReviewInputs,
+  signal?: AbortSignal,
+): AsyncIterableIterator<ContractReviewStreamEvent> {
+  const resp = await apiFetch(
+    `${API}/matters/${slug}/contract-review/run-stream`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(inputs),
+      signal,
+    },
+  );
+  if (!resp.ok || !resp.body) {
+    const text = await resp.text();
+    let parsed: unknown = text;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      /* leave as text */
+    }
+    // Prefer FastAPI's `detail.message` if present, fall back to text.
+    let message = `${resp.status} ${resp.statusText}`;
+    if (parsed && typeof parsed === "object") {
+      const detail = (parsed as { detail?: unknown }).detail;
+      if (typeof detail === "string") message = detail;
+      else if (detail && typeof detail === "object") {
+        const m = (detail as { message?: unknown }).message;
+        if (typeof m === "string") message = m;
+      }
+    } else if (typeof parsed === "string" && parsed) {
+      message = parsed;
+    }
+    throw new StreamPreflightError(resp.status, parsed, message);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    buffer += decoder.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) >= 0) {
+      const frame = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      let event = "message";
+      const dataLines: string[] = [];
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:"))
+          dataLines.push(line.slice(5).trim());
+      }
+      if (dataLines.length === 0) continue;
+      const data = JSON.parse(dataLines.join("\n"));
+      yield { event, data } as ContractReviewStreamEvent;
+    }
+  }
+}
+
 export interface DocxExportResult {
   file_uuid: string;
   storage_uri: string;
