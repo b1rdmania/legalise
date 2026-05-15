@@ -144,22 +144,136 @@ review, anonymisation, contract review) needs the document **text**.
   TEXT, `extraction_method` (enum: `pdfplumber | python-docx | passthrough | failed`), `extracted_at`, `char_count`, `page_count` (nullable).
 - Extraction pipeline triggered on `POST /matters/{slug}/documents` after
   upload completes:
-  - PDF → `pdfplumber` (or `pypdf` for speed if pdfplumber struggles)
-  - DOCX → `python-docx`
-  - TXT / MD → passthrough
+  - PDF → `pypdf` (already in `backend/pyproject.toml` at `pypdf>=5.1.0`)
+    as the default fast path. Fall back to `pdfplumber` for documents
+    where `pypdf` returns < 100 chars on a > 50KB file (suggests
+    layout-sensitive extraction needed). **Add `pdfplumber>=0.11` to
+    `backend/pyproject.toml` `[project] dependencies`** as a new
+    line; pure-Python, no system deps, OK to add.
+  - DOCX → `python-docx` (already in `pyproject.toml` at
+    `python-docx>=1.1.2`).
+  - TXT / MD → passthrough (read bytes, decode utf-8, strip).
   - Scanned PDFs (image-only) → **out of scope for v0.1**; flag with
-    `extraction_method=failed`, return user-facing notice "Text extraction
-    failed (scanned PDF) — re-upload an OCRed version." OCR via Tesseract
-    or hosted OCR is a v0.2 line item.
+    `extraction_method=failed`, return user-facing notice "Text
+    extraction failed (scanned PDF) — re-upload an OCRed version." OCR
+    via Tesseract or hosted OCR is a v0.2 line item, tracked in
+    `ROADMAP.md`.
 - Audit row `document.text_extracted` on success / `document.text_extraction_failed` on failure.
 
 **Seeded fixtures:**
-- The two seeded Khan documents (`khan-dismissal-letter.pdf`,
-  `witness-statement-khan.docx`) currently exist in the seed only as
-  metadata + fake SHA. **Update `backend/app/core/seed.py`** to seed
-  actual content for the bodies — a paragraph or two of realistic
-  text per document so downstream features have something to operate
-  on. Without this every smoke eval has empty text.
+
+The two seeded Khan documents (`khan-dismissal-letter.pdf`,
+`witness-statement-khan.docx`) currently exist in the seed only as
+metadata + fake SHA. **Update `backend/app/core/seed.py`** to seed
+`document_bodies` rows with the placeholder content below for each.
+Without this every smoke eval has empty text and the tracked-changes /
+tabular-review / anonymisation surfaces have nothing to operate on.
+
+Paste these verbatim into the seed function (no need to reword — the
+content is calibrated to the chronology fixtures + pivot fact):
+
+`khan-dismissal-letter.pdf` body:
+
+```
+Acme Trading Ltd
+Warehouse 4, Lockwood Industrial Estate
+Bradford, BD12 9XX
+
+12 March 2026
+
+Ms Jasmine Khan
+[address redacted]
+
+Dear Ms Khan,
+
+Re: Termination of Employment
+
+Further to the disciplinary hearing held on 10 March 2026, we write to
+confirm that your employment with Acme Trading Ltd is terminated with
+immediate effect on grounds of gross misconduct.
+
+The conduct found by the panel concerns a social-media post made on
+your personal Instagram account on 5 March 2026. The panel concluded
+that the post breached clause 7.3 of the Acme Social Media Policy
+(October 2024) and brought the company into disrepute, notwithstanding
+the post being made outside working hours and from a personal device.
+
+You will be paid in lieu of notice for the four-week notice period
+required under your contract of employment. Accrued but untaken
+holiday will be paid alongside your final salary in the next pay run.
+
+You have the right to appeal this decision. Any appeal must be lodged
+in writing within five working days of the date of this letter and
+addressed to Mr R. Holland, Operations Director.
+
+Yours sincerely,
+
+M. Whitford
+HR Manager
+Acme Trading Ltd
+```
+
+`witness-statement-khan.docx` body:
+
+```
+IN THE EMPLOYMENT TRIBUNAL
+BETWEEN:
+              JASMINE KHAN                              Claimant
+                  - and -
+        ACME TRADING LTD                              Respondent
+
+WITNESS STATEMENT OF JASMINE KHAN (DRAFT)
+
+I, Jasmine Khan, of [address], will say as follows:
+
+1. I am the Claimant in this matter. I make this statement from
+   my own knowledge save where otherwise indicated.
+
+2. I commenced employment with the Respondent as a Warehouse
+   Supervisor on 8 November 2022. I worked at the Bradford depot
+   until my dismissal on 12 March 2026, a period of three years
+   and four months of continuous service. Throughout that time
+   I had no disciplinary record.
+
+3. On 29 January 2026 I raised a formal grievance with HR
+   concerning the conduct of my line manager, Mr D. Caldwell,
+   toward several female members of the warehouse team. The
+   grievance described a pattern of comments and physical
+   gestures over the preceding six months. Two of the colleagues
+   referenced have indicated they would give evidence if asked.
+
+4. The grievance was acknowledged by HR on 18 February 2026.
+   I was informed that the investigator appointed would be Mr
+   Caldwell himself, in his capacity as senior warehouse manager.
+   I objected to this in writing on 19 February but received no
+   response.
+
+5. On 5 March 2026 I posted on my personal Instagram account, set
+   to a closed audience of 47 followers, a single sentence
+   expressing frustration with how the grievance was being handled.
+   The post did not name any colleague, customer, supplier, or
+   the Respondent.
+
+6. On 10 March 2026 I was called to a disciplinary hearing chaired
+   by Mr Caldwell. The hearing addressed the Instagram post. I
+   was not given prior sight of the screenshots relied on. The
+   panel's decision was communicated by letter on 12 March 2026
+   (the dismissal letter at exhibit JK1).
+
+7. I will give further evidence at hearing as to the surrounding
+   facts and the impact of the dismissal.
+
+[draft — for review with solicitor before signature]
+```
+
+Both bodies are deliberately written so that: (a) the chronology's
+disclosure-tainted dismissal letter event has substance the CPR 31.22
+gate can meaningfully gate; (b) the pivot fact (private Instagram, 47
+followers, no customers/suppliers named) appears in the source
+document; (c) the redliner in 4f has clauses to redline; (d) the
+tabular-review eval can ask "does this letter cite the social-media
+policy?" and get yes; (e) the anonymisation eval has detectable PII
+(Jasmine Khan, Acme Trading Ltd, Bradford, dates).
 
 **Storage strategy decision (resolve in Phase A Plan agent):**
 - Option A: `documents.extracted_text` as a TEXT column. Simple, fewer
@@ -368,7 +482,7 @@ intact.
 - Preview + submit. On submit, the form serialises into a SKILL.md template and POSTs to the backend.
 
 **Backend:**
-- New endpoint `POST /api/modules/submissions`. Validates the SKILL.md shape, uses a service-account GitHub token (stored as a Fly secret `GITHUB_SUBMISSION_TOKEN`) to: fork `claude-for-uk-legal`, create a branch, commit the SKILL.md under the right plugin directory, open a draft PR titled `[submission] {name}` with the submitter's email in the body, return the PR URL.
+- New endpoint `POST /api/modules/submissions`. Validates the SKILL.md shape, uses a **`b1rdmania`-scoped fine-grained PAT** (stored as Fly secret `GITHUB_SUBMISSION_TOKEN`) to: branch off `b1rdmania/claude-for-uk-legal` `master`, commit the SKILL.md under the right plugin directory (`uk-employment-legal/` / `uk-litigation-legal/` / `uk-research-legal/`), open a draft PR titled `[submission] {name}` with the submitter's email in the body, return the PR URL. The PAT is scoped to `b1rdmania/claude-for-uk-legal` only with `contents:write` + `pull_requests:write` — minimum surface. **Do not use `ziggythebot`** for this; `ziggythebot` is a bot account for unrelated work and conflating the two muddles the audit trail when contributors look at the PR author.
 - Spam control: simple Cloudflare Turnstile or hCaptcha on the submission form. Rate-limit by IP.
 
 **Frontend confirmation:**
@@ -558,11 +672,130 @@ direct about competitive positioning, since they don't ship publicly.
 1. Read it once, end to end, in the order written. Strategic frame in §1 is load-bearing — every code decision in the build should reflect it.
 2. Read the current repo state: `README.md`, `MANIFESTO.md`, `ROADMAP.md`, `docs/TRUST.md`, `docs/AUTH.md`, `BUILD_PLAN.md`, `HANDOVER_LAUNCH.md`, `HANDOVER_DAY_E.md`, `frontend/src/App.tsx` skim, `backend/app/main.py`.
 3. Read Mike (`https://github.com/willchen96/mike`) and Stella (`https://github.com/stella/stella`) — README + schema + one or two surface files in each. **Do not copy their code.**
-4. Spawn a Plan agent for Phase A and produce a per-table / per-tool delta sheet before writing code.
-5. Execute Phase A. Build green at the end. Write `HANDOVER_BROADER_A.md` for Codex.
+4. Spawn a Plan agent for Phase A using the prompt in §10a below.
+5. Execute Phase A. Build green at the end. Write `HANDOVER_BROADER_A.md` for Codex using the template in §10c.
 6. Wait for reviewer signoff. Address findings.
 7. Move to Phase B. Repeat.
 8. Surface the open questions in §8 to Andy at the right phase boundary, not earlier — he's running multiple projects and doesn't need decision noise upfront.
+
+### 10a. Phase A Plan-agent prompt (paste verbatim)
+
+```
+You are scoping Phase A of BUILD_PLAN_BROADER.md (head: 2efc281 on
+master) for the Legalise repo at /Users/andy/Cursor Projects 2026/
+legalise/. Read the build plan top to bottom, then read the current
+codebase state. Do not write code. Produce a per-table, per-endpoint,
+per-tool delta sheet that the executing agent will paste against.
+
+Phase A scope (per §4-pre-A and §5):
+
+1. Document body / text extraction layer
+   - Schema decision: resolve TEXT column (Option A) vs separate
+     document_bodies table (Option B). Recommendation in the plan
+     is Option B; confirm or push back with rationale.
+   - Extraction pipeline: pypdf default → pdfplumber fallback,
+     python-docx for DOCX, passthrough for TXT/MD, fail-closed for
+     scanned PDFs with 422.
+   - Add pdfplumber>=0.11 to backend/pyproject.toml.
+   - Seed backfill: paste the two Khan body fixtures from §4-pre-A
+     into backend/app/core/seed.py.
+   - Audit rows: document.text_extracted and
+     document.text_extraction_failed.
+
+2. Edit-instruction surface
+   - POST /api/documents/{id}/edit-instructions endpoint.
+   - Structured-output prompt scaffolding (specify the JSON schema
+     the model is required to return for the changes[] array).
+   - Frontend Edit panel on the Document detail view: textarea +
+     mode dropdown + four preset buttons.
+   - Audit row module=document_edit, action=document.edit_instruction.invoked.
+
+3. New tables + Alembic migration:
+   - document_versions (id, document_id, version_number, kind enum,
+     created_by_id, created_at, storage_uri, notes)
+   - document_edits (id, document_version_id, change_id, deleted_text,
+     inserted_text, context_before, context_after, status enum,
+     created_at, resolved_at, resolved_by_id)
+   - tabular_reviews (id, matter_id, title, created_by_id,
+     columns_config JSONB, created_at, updated_at)
+   - tabular_review_rows (review_id, document_id, extracted_values
+     JSONB, last_run_at)
+   - workspace_enabled_skills (user_id, plugin, skill, enabled_at)
+   - matter_citations (id, matter_id, citation_text, case_name,
+     citation_ref, added_by_id, added_at)
+   - document_bodies (per the schema decision above)
+
+4. Tool plumbing in app/core/model_gateway.py:
+   - generate_docx(title, body_markdown, options) → returns
+     {storage_uri, byte_count, char_count}
+   - edit_document(version_id, changes[]) → returns pending_edits
+   - replicate_document(document_id) → returns new_version
+   Each tool gets a structured-output schema declaration the
+   gateway enforces.
+
+5. App.tsx frontend split — recommend whether to start splitting
+   into frontend/src/auth/, frontend/src/matter/, frontend/src/
+   landing/, frontend/src/modules/, frontend/src/settings/. The
+   file is currently 3261 lines; Phase B will add ~1000 more.
+   Recommendation expected: split now, before Phase B.
+
+For each of the five workstreams above, return:
+- Specific file paths to add or modify
+- Per-table SQL column list with types and constraints (for the
+  Alembic migration writer to consume)
+- Pydantic schema names per request/response
+- API endpoint paths + methods
+- Acceptance bar paraphrased from the build plan
+- Any gotchas the build plan didn't catch (you have license to
+  flag them, that's the whole point of this pass)
+- Estimated lines-of-code per workstream so the executing agent
+  can pace itself
+
+Output as a single markdown document. Save to
+backend/app/migrations/PHASE_A_DELTA.md (the executing agent will
+delete it after Phase A is done — it's working scratch, not part
+of the repo's long-lived docs).
+
+Read freely; do not write code; do not modify any files in the
+repo. Return delivery in < 20 minutes of agent work.
+```
+
+### 10b. Phase B / C / D / E Plan-agent prompts
+
+For each subsequent phase, copy the §10a prompt template and update:
+- The Phase number + scope summary
+- The specific §4 subsections in scope
+- The dependencies on prior-phase output (e.g. Phase B needs
+  document_bodies + edit-instruction surface from Phase A)
+- The delta-sheet target filename (`PHASE_B_DELTA.md`, etc.)
+
+Don't skip the Plan-agent pass for B/C/D/E; the discipline is what
+keeps the executing agent from drifting under load.
+
+### 10c. HANDOVER_BROADER_{phase}.md template
+
+Each phase handover follows the shape proven across Day A → Day E.
+Reference `HANDOVER_DAY_E.md` as the canonical model. Required sections:
+
+1. **Where we are** — commits in this phase, head SHA, scope summary
+2. **How to orient yourself in 15-20 minutes** — read order for the
+   reviewer (the new files first, then the touched files, then dev-
+   server click-through)
+3. **Yes/no signoffs** — three to five binary signoffs. Each one is
+   reviewable in <5 minutes. Frame as "do X and Y agree?" not "is X
+   correct?" — agreement-shaped checks ground better than judgement-
+   shaped ones.
+4. **Judgment calls** — explicit list of decisions the executing
+   agent made without re-asking. Push-back invited per item.
+5. **Smoke-test fragility** — surfaces you couldn't fully verify;
+   flag for the reviewer to eyeball.
+6. **What's NOT in this commit** — explicit list of deferred items
+   so the reviewer doesn't mark them as gaps.
+7. **What I'd do next after signoff** — single-sentence pointer to
+   the next phase's first move.
+
+Keep each handover under ~250 lines. The reviewer rounds happen fast;
+overlong handovers slow the cadence and dilute the yes/nos.
 
 ---
 
@@ -577,10 +810,11 @@ velocity (the kind of velocity where 18 days of solo work compresses to
 ~24 hours of agent-assisted work).
 
 The plan is broader than the original v0.1 but not slower in absolute
-terms — current velocity means ~8-12 working days of build, not weeks. The
-calling-card thesis means the bigger artifact is worth the extra days, even
-if launch traction is modest, because the repo lives forever as a firm-
-pitch exhibit.
+terms — current velocity means ~15-22 working days of build (revised
+post-Codex-review from the original 8-12), not weeks-of-traditional-
+solo-dev. The calling-card thesis means the bigger artifact is worth
+the extra days, even if launch traction is modest, because the repo
+lives forever as a firm-pitch exhibit.
 
 Mike and Stella are peers, not competitors. Treat the relationship that
 way at every level — in code (no AGPL contamination, peer-credited
