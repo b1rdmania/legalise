@@ -88,6 +88,7 @@ _CANONICAL_MODULES = {
     "tabular_review",
     "module_lifecycle",
     "plugin",
+    "assistant",
 }
 
 
@@ -105,6 +106,7 @@ _ACTIONS_BY_MODULE = {
     "tabular_review": "module.tabular_review.run.completed",
     "module_lifecycle": "module.lifecycle.enabled",
     "plugin": "plugin.invoked",
+    "assistant": "module.assistant.message",
 }
 
 
@@ -671,3 +673,370 @@ class TestContractReviewOrchestratorE2E:
         assert resp.status_code == 409
         detail = resp.json().get("detail", "")
         assert "C_paused" in detail or "paused" in detail.lower()
+
+
+# ---------------------------------------------------------------------------
+# Eval 6 — Assistant pipeline + router
+# ---------------------------------------------------------------------------
+
+
+from datetime import date, datetime, timezone
+
+from app.models import Event, Matter
+from app.models.assistant import AssistantMessage as AssistantMessageRow
+from app.modules.assistant import pipeline as assistant_pipeline
+from app.modules.assistant.pipeline import run_assistant_turn
+from app.modules.assistant.schemas import AssistantPostRequest
+
+
+def _canned_assistant_envelope(action_type: str = "run_pre_motion") -> dict[str, Any]:
+    return {
+        "content": "The NDA mutually obliges both parties to keep "
+        "[doc:Mutual NDA — Khan & Acme] confidential.",
+        "suggested_actions": [
+            {
+                "type": action_type,
+                "label": "Run a pre-motion premortem",
+                "params": {},
+            }
+        ],
+    }
+
+
+class _AssistantFakeGateway:
+    """Records the prompt + system passed in, returns a canned envelope."""
+
+    def __init__(self, envelope: dict[str, Any] | None = None) -> None:
+        self.envelope = envelope or _canned_assistant_envelope()
+        self.calls: list[dict[str, Any]] = []
+
+    async def call(
+        self,
+        *,
+        session,
+        matter_id,
+        actor_id,
+        prompt,
+        model=None,
+        posture=None,
+        system=None,
+        resource_type=None,
+        resource_id=None,
+        payload=None,
+    ) -> ModelResult:
+        self.calls.append(
+            {
+                "prompt": prompt,
+                "system": system,
+                "model": model,
+                "posture": posture,
+                "payload": payload or {},
+            }
+        )
+        return ModelResult(
+            text=json.dumps(self.envelope),
+            model_used="stub-echo",
+            prompt_hash="ph",
+            response_hash="rh",
+            token_count=42,
+            latency_ms=5,
+        )
+
+
+class _PausedFakeGateway:
+    async def call(self, **_kw) -> ModelResult:
+        raise PrivilegePaused("Matter privilege posture is C_paused — LLM calls are blocked.")
+
+
+class _Scalars:
+    def __init__(self, items: list[Any]) -> None:
+        self._items = items
+
+    def all(self) -> list[Any]:
+        return list(self._items)
+
+
+class _AssistantSession:
+    """Async-session stub that routes scalar/scalars by entity name."""
+
+    def __init__(
+        self,
+        matter: Matter,
+        *,
+        history: list[AssistantMessageRow] | None = None,
+        events: list[Event] | None = None,
+        documents: list[Any] | None = None,
+        bodies: dict[uuid.UUID, Any] | None = None,
+    ) -> None:
+        self.matter = matter
+        self.history = history or []
+        self.events = events or []
+        self.documents = documents or []
+        self.bodies = bodies or {}
+        self.added: list[Any] = []
+
+    def add(self, obj: Any) -> None:
+        if isinstance(obj, AssistantMessageRow) and obj.id is None:
+            obj.id = uuid.uuid4()
+        if isinstance(obj, AssistantMessageRow) and obj.created_at is None:
+            obj.created_at = datetime.now(timezone.utc)
+        self.added.append(obj)
+
+    def _entity_name(self, stmt: Any) -> str | None:
+        try:
+            return stmt.column_descriptions[0]["name"]
+        except Exception:
+            return None
+
+    async def scalar(self, stmt: Any, *args: Any, **kwargs: Any):
+        name = self._entity_name(stmt)
+        if name == "Matter":
+            return self.matter
+        if name == "privilege_posture":
+            return self.matter.privilege_posture
+        if name == "DocumentBody":
+            for doc in self.documents:
+                if str(doc.id) in str(stmt):
+                    return self.bodies.get(doc.id)
+            for doc_id, body in self.bodies.items():
+                return body
+            return None
+        return None
+
+    async def scalars(self, stmt: Any, *args: Any, **kwargs: Any):
+        name = self._entity_name(stmt)
+        if name == "AssistantMessage":
+            return _Scalars(self.history)
+        if name == "Event":
+            return _Scalars(self.events)
+        if name == "Document":
+            return _Scalars(self.documents)
+        if name == "WorkspaceDisabledSkill":
+            return _Scalars([])
+        return _Scalars([])
+
+    async def execute(self, *args: Any, **kwargs: Any):
+        class _Row:
+            def first(self_inner):
+                return None
+
+        return _Row()
+
+    async def commit(self) -> None:
+        return None
+
+    async def flush(self) -> None:
+        for obj in self.added:
+            if isinstance(obj, AssistantMessageRow):
+                if obj.id is None:
+                    obj.id = uuid.uuid4()
+                if obj.created_at is None:
+                    obj.created_at = datetime.now(timezone.utc)
+                if obj.suggested_actions is None:
+                    obj.suggested_actions = []
+
+    async def refresh(self, obj: Any) -> None:
+        return None
+
+
+def _make_matter(*, posture: str = "B_mixed") -> Matter:
+    matter = Matter(
+        id=uuid.uuid4(),
+        slug="khan-v-acme",
+        title="Khan v Acme",
+        matter_type="employment_tribunal",
+        status="open",
+        privilege_posture=posture,
+        default_model_id="claude-opus-4-7",
+        facts={"counterparty": "Acme Ltd"},
+        created_by_id=uuid.uuid4(),
+    )
+    matter.opened_at = datetime.now(timezone.utc)
+    return matter
+
+
+def _make_event(matter_id: uuid.UUID) -> Event:
+    event = Event(
+        id=uuid.uuid4(),
+        matter_id=matter_id,
+        event_date=date(2025, 6, 1),
+        description="Khan dismissed without notice",
+        significance=5,
+        source_doc_ids=[],
+        priv_flag=False,
+        created_by_id=uuid.uuid4(),
+    )
+    event.created_at = datetime.now(timezone.utc)
+    return event
+
+
+class TestAssistantPipeline:
+    """Assistant turn persists, audits, round-trips actions, gates posture."""
+
+    @pytest.mark.asyncio
+    async def test_message_persists_and_audits(self) -> None:
+        matter = _make_matter()
+        event = _make_event(matter.id)
+        session = _AssistantSession(matter, events=[event])
+        gateway = _AssistantFakeGateway()
+
+        user_row, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(content="What is the dismissal date?"),
+            gateway=gateway,
+        )
+
+        assistant_rows = [
+            o for o in session.added if isinstance(o, AssistantMessageRow)
+        ]
+        assert len(assistant_rows) == 2
+        assert {r.role for r in assistant_rows} == {"user", "assistant"}
+        assert user_row.content == "What is the dismissal date?"
+        assert assistant_row.role == "assistant"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert len(audit_rows) == 1
+        assert audit_rows[0].action == "module.assistant.message"
+
+    @pytest.mark.asyncio
+    async def test_suggested_actions_round_trip(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        gateway = _AssistantFakeGateway(
+            _canned_assistant_envelope("run_pre_motion")
+        )
+
+        _, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(content="Should I file a pre-motion?"),
+            gateway=gateway,
+        )
+
+        assert isinstance(assistant_row.suggested_actions, list)
+        assert len(assistant_row.suggested_actions) == 1
+        action = assistant_row.suggested_actions[0]
+        assert action["type"] == "run_pre_motion"
+        assert action["label"] == "Run a pre-motion premortem"
+
+    @pytest.mark.asyncio
+    async def test_prompt_includes_matter_chronology_and_modules(self) -> None:
+        matter = _make_matter()
+        event = _make_event(matter.id)
+        session = _AssistantSession(matter, events=[event])
+        gateway = _AssistantFakeGateway()
+
+        installed = [
+            ("letters", "default-lba", "Draft a letter before action"),
+            ("pre_motion", "default", "Adversarial premortem of a pleading"),
+        ]
+
+        with patch.object(
+            assistant_pipeline,
+            "_load_installed_modules",
+            return_value=installed,
+        ):
+            await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Summarise the matter."),
+                gateway=gateway,
+            )
+
+        assert len(gateway.calls) == 1
+        prompt = gateway.calls[0]["prompt"]
+        assert matter.title in prompt
+        assert "Khan dismissed without notice" in prompt
+        assert "letters/default-lba" in prompt or "pre_motion/default" in prompt
+
+    @pytest.mark.asyncio
+    async def test_c_paused_returns_409(self) -> None:
+        from fastapi.testclient import TestClient
+        from app.core.auth import current_user
+        from app.core.db import get_session
+        from app.main import app
+
+        matter = _make_matter(posture="C_paused")
+        session = _AssistantSession(matter)
+        user = _UserStub()
+        user.id = matter.created_by_id
+
+        async def _override_session():
+            yield session
+
+        async def _override_user():
+            return user
+
+        app.dependency_overrides[current_user] = _override_user
+        app.dependency_overrides[get_session] = _override_session
+
+        paused_gateway = _PausedFakeGateway()
+        try:
+            with patch.object(
+                assistant_pipeline, "model_gateway", paused_gateway
+            ):
+                client = TestClient(app)
+                resp = client.post(
+                    f"/api/matters/{matter.slug}/assistant/messages",
+                    json={"content": "hello"},
+                )
+        finally:
+            app.dependency_overrides.clear()
+
+        assert resp.status_code == 409
+        detail = resp.json().get("detail", "")
+        assert "paused" in detail.lower()
+
+    @pytest.mark.asyncio
+    async def test_only_owner_can_read(self) -> None:
+        from fastapi.testclient import TestClient
+        from app.core.auth import current_user
+        from app.core.db import get_session
+        from app.main import app
+
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        # Different user — owner of the matter is matter.created_by_id, but
+        # the request actor is fresh, so the slug lookup will miss.
+        other_user = _UserStub()
+
+        async def _override_session():
+            yield session
+
+        async def _override_user():
+            return other_user
+
+        # _AssistantSession.scalar returns the matter unconditionally for
+        # `Matter` selects, so simulate ownership failure by switching to
+        # a session that returns None for the matter lookup.
+        class _NoMatterSession(_AssistantSession):
+            async def scalar(self_inner, stmt, *a, **k):
+                name = self_inner._entity_name(stmt)
+                if name == "Matter":
+                    return None
+                return await super().scalar(stmt, *a, **k)
+
+        no_matter_session = _NoMatterSession(matter)
+
+        async def _override_no_matter_session():
+            yield no_matter_session
+
+        app.dependency_overrides[current_user] = _override_user
+        app.dependency_overrides[get_session] = _override_no_matter_session
+
+        try:
+            client = TestClient(app)
+            resp = client.get(
+                f"/api/matters/{matter.slug}/assistant/messages",
+            )
+        finally:
+            app.dependency_overrides.clear()
+
+        assert resp.status_code == 404

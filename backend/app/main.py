@@ -25,6 +25,7 @@ from app.core.encryption import assert_auth_secrets_present, assert_master_key_p
 from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
 from app.core.tools import register_phase_a_tools
+from app.modules.assistant.router import router as assistant_router
 from app.modules.chronology.router import router as chronology_router
 from app.modules.letters.router import router as letters_router
 from app.modules.case_law.router import router as case_law_router
@@ -159,6 +160,7 @@ app.include_router(pre_motion_router, prefix="/api/matters", tags=["pre-motion"]
 app.include_router(tabular_review_router, prefix="/api/matters", tags=["tabular-review"])
 app.include_router(case_law_router, prefix="/api/matters", tags=["case-law"])
 app.include_router(contract_review_router, prefix="/api/matters", tags=["contract-review"])
+app.include_router(assistant_router, prefix="/api/matters", tags=["assistant"])
 
 # Remaining module routers land later in the build window.
 # from app.modules.contract_review.router import router as contract_review_router

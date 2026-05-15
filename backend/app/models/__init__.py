@@ -42,6 +42,7 @@ from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
 from app.models.tabular_review import TabularReview, TabularReviewRow
 from app.models.workspace_skill import WorkspaceDisabledSkill
 from app.models.matter_citation import MatterCitation
+from app.models.assistant import AssistantMessage
 
 __all__ = [
     "Base",
@@ -59,6 +60,7 @@ __all__ = [
     "TabularReviewRow",
     "WorkspaceDisabledSkill",
     "MatterCitation",
+    "AssistantMessage",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",
     "PRIVILEGE_PAUSED",
