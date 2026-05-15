@@ -215,6 +215,13 @@ Plus the eternal v0.1 guards:
 
 ---
 
+## 6.5. Execution log (in-flight)
+
+- **`7efedad` — Agent 1A (unit #1) landed.** Parsers swapped; 14 module audit sites centralised through `audit.log()`; 4 permitted direct-constructor sites preserved; `schemas/module.json` published with closed capability set + trust_posture. Acceptance: `python -m compileall app` clean, 19 pytests green.
+- **`e7d730c` — Agent 1B (unit #1a) landed with partial coverage.** `structured_output.py` published (119 LoC). Swapped: `contract_review/agents.py`, `pre_motion/agents.py` (Optimistic + Synthesis stages). NOT swapped: `document_edit/pipeline.py` (no `ChangesEnvelope` Pydantic class exists) and `anonymisation/prompts.py` (no `{tokens, spans}` envelope class exists). Agent honoured the "do not invent a class" guard.
+  - **Follow-up unit needed before launch:** `#1a-tail` — define `document_edit/schemas.py::ChangesEnvelope` and `anonymisation/schemas.py::AnonymisationEnvelope` (additive only, mirror existing wire shape), then complete the two swaps. ~60 LoC. Andy's call on whether to do this pre-launch or v0.2 — the current state ships fine; gateway/parser boundary is intact for the two swapped sites.
+- **Agents 2 (App.tsx split) and 9 (docs rewrite) running in parallel as of `e7d730c`.**
+
 ## 7. Files this handover touches
 
 This file (`HANDOVER_INFRA_BUILD.md`) is reviewer-facing — not load-bearing on the build. The build is governed by `backend/PHASE_INFRA_DELTA.md` (decisions) and the per-phase deltas (scope). If reviewer flags inconsistency between this file and the delta, the delta wins; this file gets corrected.
