@@ -143,14 +143,13 @@ class ModuleSubmissionResponse(BaseModel):
 
 
 def _client_ip(request: Request) -> str:
-    # Cloudflare Tunnel sets `cf-connecting-ip`; behind generic proxies
-    # we accept `x-forwarded-for` (first hop). Falls back to socket peer.
+    # Trust only `CF-Connecting-IP` (set by Cloudflare for traffic that
+    # transited the tunnel/edge). `X-Forwarded-For` is rejected outright:
+    # if Fly is reachable directly an attacker can rotate the header to
+    # bypass the rate limit on this unauthenticated PR-opener.
     cf = request.headers.get("cf-connecting-ip")
     if cf:
         return cf.strip()
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
     if request.client:
         return request.client.host
     return "unknown"
@@ -326,45 +325,38 @@ async def _open_draft_pr(
         if skill_put.status_code not in (200, 201):
             raise HTTPException(status_code=502, detail=_sanitise_gh_error(skill_put))
 
-        # 4. PUT module.json — if the plugin already exists on the base
-        # branch, fetch its SHA so this becomes a non-clobbering update
-        # (we still preserve the existing file; the additive merge
-        # happens at PR-review time by Andy). If it does not exist, this
-        # is a fresh create.
+        # 4. Create module.json only when the plugin does not already
+        # exist on the base branch. The new branch inherits the file
+        # from main; re-PUTting identical content is rejected by the
+        # GitHub Contents API ("no changes detected"). Sibling skills
+        # under an existing plugin stay intact; Andy reconciles the
+        # additive merge at PR review.
         existing = await _gh_request(
             client,
             "GET",
             f"/repos/{repo}/contents/{module_json_path}?ref={base_branch}",
             token,
         )
-        module_put_body: dict = {
-            "message": f"submission: {req.plugin_name}/{req.skill_name} (module.json)",
-            "content": b64encode(
-                _build_module_json(
-                    req.plugin_name, req.skill_name, req.description
-                ).encode("utf-8")
-            ).decode("ascii"),
-            "branch": branch_name,
-        }
-        if existing.status_code == 200:
-            existing_json = existing.json()
-            module_put_body["sha"] = existing_json["sha"]
-            # Preserve existing manifest verbatim — keep the original
-            # content so other skills under the plugin aren't disturbed.
-            # Andy reconciles at PR review.
-            module_put_body["content"] = existing_json["content"].replace("\n", "")
-        elif existing.status_code != 404:
+        if existing.status_code == 404:
+            module_put = await _gh_request(
+                client,
+                "PUT",
+                f"/repos/{repo}/contents/{module_json_path}",
+                token,
+                json_body={
+                    "message": f"submission: {req.plugin_name}/{req.skill_name} (module.json)",
+                    "content": b64encode(
+                        _build_module_json(
+                            req.plugin_name, req.skill_name, req.description
+                        ).encode("utf-8")
+                    ).decode("ascii"),
+                    "branch": branch_name,
+                },
+            )
+            if module_put.status_code not in (200, 201):
+                raise HTTPException(status_code=502, detail=_sanitise_gh_error(module_put))
+        elif existing.status_code != 200:
             raise HTTPException(status_code=502, detail=_sanitise_gh_error(existing))
-
-        module_put = await _gh_request(
-            client,
-            "PUT",
-            f"/repos/{repo}/contents/{module_json_path}",
-            token,
-            json_body=module_put_body,
-        )
-        if module_put.status_code not in (200, 201):
-            raise HTTPException(status_code=502, detail=_sanitise_gh_error(module_put))
 
         # 5. Open the draft PR.
         pr_body = (

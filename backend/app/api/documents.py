@@ -14,7 +14,7 @@ from pathlib import Path
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -627,12 +627,16 @@ async def get_anonymise_mapping(
     return MappingRead(document_id=doc.id, tokens=tokens, spans=spans)
 
 
-@router.delete("/{document_id}/anonymise", status_code=204)
+@router.delete(
+    "/{document_id}/anonymise",
+    status_code=204,
+    response_class=Response,
+)
 async def delete_anonymise_document(
     document_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
-) -> None:
+) -> Response:
     """Delete the redacted DocumentBody so the next run starts cold."""
     doc, matter = await _load_owned_document(document_id, session, user)
     redacted = await session.scalar(
@@ -642,8 +646,7 @@ async def delete_anonymise_document(
         )
     )
     if redacted is None:
-        # Idempotent delete: no-op when the row never existed.
-        return None
+        return Response(status_code=204)
     await session.delete(redacted)
     await audit.log(
         session,
@@ -656,4 +659,4 @@ async def delete_anonymise_document(
         payload={"engine": redacted.engine},
     )
     await session.commit()
-    return None
+    return Response(status_code=204)

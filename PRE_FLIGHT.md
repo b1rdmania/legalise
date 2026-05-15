@@ -271,7 +271,7 @@ fly secrets set \
 
 ### 5f. Phase D W3 secrets — public module submission flow
 
-The public submission endpoint (`POST /api/submissions`) opens a draft PR
+The public submission endpoint (`POST /api/modules/submissions`) opens a draft PR
 against `b1rdmania/claude-for-uk-legal` and is bot-gated by Cloudflare
 Turnstile. These secrets are required only if `submission_enabled=true` —
 the feature ships behind a config gate. If the gate is off at Day 15,
