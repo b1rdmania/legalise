@@ -1,0 +1,753 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">HyperTrade Terminal</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="5"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web" vid="6"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet" vid="7">
+    <script vid="8">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        hl: {
+                            bg: '#f4f5f6', 
+                            panel: '#ffffff', 
+                            border: '#e5e7eb', 
+                            text: '#1a1a1a', 
+                            muted: '#8c8c8c', 
+                            green: '#00a35c', 
+                            red: '#d9304f', 
+                            hover: '#f9fafb', 
+                            blue: '#0066cc', 
+                            orange: '#e67e22' 
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style vid="9">
+        body {
+            background-color: #f4f5f6;
+            color: #1a1a1a;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f4f5f6;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        
+        .crosshair {
+            display: none;
+            pointer-events: none;
+        }
+        .chart-container:hover .crosshair {
+            display: block;
+        }
+        
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 0px;
+            background: #1a1a1a;
+            cursor: pointer;
+            margin-top: -6px;
+            border: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e5e7eb;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col font-sans antialiased text-sm select-none bg-hl-bg text-hl-text" vid="10">
+
+    
+    <header class="h-14 border-b border-hl-border bg-hl-panel flex items-center justify-between px-4 shrink-0 z-20 relative" vid="11">
+        <div class="flex items-center gap-6" vid="12">
+            <div class="flex items-center gap-3 cursor-pointer" vid="13">
+                <i class="ph-fill ph-hexagon text-2xl text-hl-text" vid="14"></i>
+                <span class="font-mono font-bold text-xl uppercase tracking-widest text-hl-text" vid="15">WARP ENGINE</span>
+            </div>
+            
+            <div class="h-6 w-px bg-hl-border mx-2" vid="16"></div>
+            
+            <nav class="flex items-center gap-1" vid="17">
+                <button class="px-3 py-1.5 font-mono uppercase tracking-widest text-[10px] bg-hl-bg border border-hl-border text-hl-text transition-colors" vid="18">Trade</button>
+                <button class="px-3 py-1.5 font-mono uppercase tracking-widest text-[10px] text-hl-muted hover:text-hl-text hover:bg-hl-hover transition-colors" vid="19">Vaults</button>
+                <button class="px-3 py-1.5 font-mono uppercase tracking-widest text-[10px] text-hl-muted hover:text-hl-text hover:bg-hl-hover transition-colors" vid="20">Portfolio</button>
+                <button class="px-3 py-1.5 font-mono uppercase tracking-widest text-[10px] text-hl-muted hover:text-hl-text hover:bg-hl-hover transition-colors" vid="21">Stake</button>
+            </nav>
+        </div>
+        
+        <div class="flex items-center gap-4" vid="22">
+            <div class="flex items-center gap-2 bg-hl-panel border border-hl-border px-3 py-1.5 cursor-pointer hover:bg-hl-hover transition-colors" vid="23">
+                <i class="ph ph-wallet text-hl-muted" vid="24"></i>
+                <span class="font-mono font-medium text-[11px]" vid="25">$50,432.50</span>
+            </div>
+            <button class="bg-[#e6f4ea] border border-[#ceead6] px-3 py-1.5 font-mono text-[#137333] hover:bg-[#ceead6] transition-colors flex items-center gap-2 text-[10px] uppercase tracking-widest" vid="26">
+                <div class="w-1.5 h-1.5 bg-[#137333]" vid="27"></div>
+                0x7A2...9B4E
+            </button>
+            <button class="text-hl-muted hover:text-hl-text transition-colors" vid="28">
+                <i class="ph ph-gear text-xl" vid="29"></i>
+            </button>
+        </div>
+    </header>
+
+    
+    <main class="flex-1 flex min-h-0 bg-hl-bg" vid="30">
+        
+        
+        <div class="flex-1 flex flex-col min-w-0 border-r border-hl-border" vid="31">
+            
+            
+            <div class="h-16 border-b border-hl-border flex items-center px-4 gap-8 shrink-0 bg-hl-panel" vid="32">
+                <button class="flex items-center gap-2 hover:bg-hl-hover px-2 py-1 transition-colors group" vid="33">
+                    <i class="ph ph-list text-hl-muted group-hover:text-hl-text" vid="34"></i>
+                    <span class="text-xl font-mono font-bold uppercase tracking-tight text-hl-text" vid="35">BTC-PERP</span>
+                    <i class="ph ph-caret-down text-hl-muted group-hover:text-hl-text text-xs" vid="36"></i>
+                </button>
+                
+                <div class="flex flex-col justify-center" vid="37">
+                    <span class="text-hl-green font-mono text-lg font-bold" vid="38">64,230.50</span>
+                    <span class="text-hl-muted text-[9px] font-mono uppercase tracking-widest mb-0.5" vid="39">$64,230.50</span>
+                </div>
+                
+                <div class="flex flex-col justify-center" vid="40">
+                    <span class="text-hl-muted text-[9px] font-mono uppercase tracking-widest mb-0.5" vid="41">24h Change</span>
+                    <span class="text-hl-green font-mono text-xs font-bold" vid="42">+2.45%</span>
+                </div>
+                
+                <div class="flex flex-col justify-center" vid="43">
+                    <span class="text-hl-muted text-[9px] font-mono uppercase tracking-widest mb-0.5" vid="44">24h High</span>
+                    <span class="text-hl-text font-mono text-xs font-bold" vid="45">65,100.00</span>
+                </div>
+                
+                <div class="flex flex-col justify-center" vid="46">
+                    <span class="text-hl-muted text-[9px] font-mono uppercase tracking-widest mb-0.5" vid="47">24h Low</span>
+                    <span class="text-hl-text font-mono text-xs font-bold" vid="48">62,800.00</span>
+                </div>
+                
+                <div class="flex flex-col justify-center" vid="49">
+                    <span class="text-hl-muted text-[9px] font-mono uppercase tracking-widest mb-0.5" vid="50">24h Vol (BTC)</span>
+                    <span class="text-hl-text font-mono text-xs font-bold" vid="51">14,234.5</span>
+                </div>
+
+                <div class="flex flex-col justify-center" vid="52">
+                    <span class="text-hl-muted text-[9px] font-mono uppercase tracking-widest mb-0.5" vid="53">Funding / Countdown</span>
+                    <span class="text-hl-orange font-mono text-xs font-bold" vid="54">0.0100% / 03:45:12</span>
+                </div>
+            </div>
+
+            
+            <div class="flex-1 flex min-h-0" vid="55">
+                
+                
+                <div class="flex-1 flex flex-col relative bg-hl-panel" vid="56">
+                    
+                    <div class="h-10 border-b border-hl-border flex items-center px-4 justify-between shrink-0 bg-hl-panel" vid="57">
+                        <div class="flex items-center gap-1" vid="58">
+                            <span class="text-hl-muted text-[10px] font-mono uppercase mr-2" vid="59">Time</span>
+                            <button class="px-2 py-1 text-[10px] font-mono uppercase text-hl-muted hover:text-hl-text" vid="60">1m</button>
+                            <button class="px-2 py-1 text-[10px] font-mono uppercase text-hl-muted hover:text-hl-text" vid="61">5m</button>
+                            <button class="px-2 py-1 text-[10px] font-mono uppercase bg-hl-bg border border-hl-border text-hl-text font-bold" vid="62">15m</button>
+                            <button class="px-2 py-1 text-[10px] font-mono uppercase text-hl-muted hover:text-hl-text" vid="63">1h</button>
+                            <button class="px-2 py-1 text-[10px] font-mono uppercase text-hl-muted hover:text-hl-text" vid="64">4h</button>
+                            <button class="px-2 py-1 text-[10px] font-mono uppercase text-hl-muted hover:text-hl-text" vid="65">1D</button>
+                            <div class="w-px h-4 bg-hl-border mx-2" vid="66"></div>
+                            <button class="flex items-center gap-1 px-2 py-1 text-[10px] font-mono uppercase text-hl-muted hover:text-hl-text" vid="67">
+                                <i class="ph ph-chart-line-up" vid="68"></i> Indicators
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3 text-[10px] font-mono" vid="69">
+                            <span class="text-hl-muted" vid="70">O<span class="text-hl-text ml-1" vid="71">64120.0</span></span>
+                            <span class="text-hl-muted" vid="72">H<span class="text-hl-text ml-1" vid="73">64280.5</span></span>
+                            <span class="text-hl-muted" vid="74">L<span class="text-hl-text ml-1" vid="75">64050.0</span></span>
+                            <span class="text-hl-muted" vid="76">C<span class="text-hl-green ml-1 font-bold" vid="77">64230.5</span></span>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="flex-1 relative chart-container overflow-hidden cursor-crosshair" vid="78">
+                        
+                        <div class="absolute right-0 top-0 bottom-0 w-[60px] border-l border-hl-border bg-hl-panel z-10" vid="79"></div>
+                        
+                        
+                        <div class="absolute left-0 right-[60px] bottom-0 h-[30px] border-t border-hl-border bg-hl-panel z-10 flex items-center text-[10px] text-hl-muted font-mono justify-between px-4" vid="80">
+                            <span vid="81">10:00</span>
+                            <span vid="82">11:00</span>
+                            <span vid="83">12:00</span>
+                            <span vid="84">13:00</span>
+                            <span vid="85">14:00</span>
+                            <span vid="86">15:00</span>
+                        </div>
+
+                        
+                        <svg width="100%" height="100%" class="absolute inset-0 z-0" style="padding-right: 60px; padding-bottom: 30px;" preserveAspectRatio="none" vid="87">
+                            <defs vid="88">
+                                <pattern id="grid" width="100" height="50" patternUnits="userSpaceOnUse" vid="89">
+                                    <path d="M 100 0 L 0 0 0 50" fill="none" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2,2" vid="90"></path>
+                                </pattern>
+                            </defs>
+                            
+                            
+                            <rect width="100%" height="100%" fill="#ffffff" vid="91"></rect>
+                            <rect width="100%" height="100%" fill="url(#grid)" vid="92"></rect>
+
+                            
+                            <g class="orders" vid="93">
+                                
+                                <line x1="0" y1="20%" x2="100%" y2="20%" stroke="#e67e22" stroke-width="1" stroke-dasharray="2,2" vid="94"></line>
+                                <rect x="10" y="calc(20% - 20px)" width="100" height="18" fill="#e67e22" fill-opacity="0.1" stroke="#e67e22" stroke-width="1" vid="95"></rect>
+                                <text x="15" y="calc(20% - 7px)" fill="#e67e22" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="1" vid="96">SELL: 1.5 BTC</text>
+
+                                
+                                <line x1="0" y1="80%" x2="100%" y2="80%" stroke="#0066cc" stroke-width="1" stroke-dasharray="2,2" vid="97"></line>
+                                <rect x="10" y="calc(80% + 2px)" width="100" height="18" fill="#0066cc" fill-opacity="0.1" stroke="#0066cc" stroke-width="1" vid="98"></rect>
+                                <text x="15" y="calc(80% + 14px)" fill="#0066cc" font-family="JetBrains Mono" font-size="9" font-weight="700" letter-spacing="1" vid="99">BUY: 2.0 BTC</text>
+                            </g>
+
+                            
+                            
+                            <g transform="translate(20, 0)" vid="100">
+                                
+                                <line x1="10" y1="60%" x2="10" y2="70%" stroke="#d9304f" stroke-width="1.5" vid="101"></line>
+                                <rect x="6" y="62%" width="8" height="6%" fill="#d9304f" vid="102"></rect>
+                                
+                                
+                                <line x1="30" y1="68%" x2="30" y2="55%" stroke="#00a35c" stroke-width="1.5" vid="103"></line>
+                                <rect x="26" y="58%" width="8" height="8%" fill="#00a35c" vid="104"></rect>
+                                
+                                
+                                <line x1="50" y1="60%" x2="50" y2="40%" stroke="#00a35c" stroke-width="1.5" vid="105"></line>
+                                <rect x="46" y="45%" width="8" height="13%" fill="#00a35c" vid="106"></rect>
+                                
+                                
+                                <line x1="70" y1="42%" x2="70" y2="52%" stroke="#d9304f" stroke-width="1.5" vid="107"></line>
+                                <rect x="66" y="45%" width="8" height="5%" fill="#d9304f" vid="108"></rect>
+                                
+                                
+                                <line x1="90" y1="50%" x2="90" y2="35%" stroke="#00a35c" stroke-width="1.5" vid="109"></line>
+                                <rect x="86" y="38%" width="8" height="10%" fill="#00a35c" vid="110"></rect>
+                                
+                                
+                                <line x1="110" y1="40%" x2="110" y2="25%" stroke="#00a35c" stroke-width="1.5" vid="111"></line>
+                                <rect x="106" y="28%" width="8" height="10%" fill="#00a35c" vid="112"></rect>
+                                
+                                
+                                <line x1="130" y1="20%" x2="130" y2="40%" stroke="#d9304f" stroke-width="1.5" vid="113"></line>
+                                <rect x="126" y="28%" width="8" height="8%" fill="#d9304f" vid="114"></rect>
+
+                                
+                                <line x1="150" y1="34%" x2="150" y2="50%" stroke="#d9304f" stroke-width="1.5" vid="115"></line>
+                                <rect x="146" y="36%" width="8" height="12%" fill="#d9304f" vid="116"></rect>
+
+                                
+                                <line x1="170" y1="55%" x2="170" y2="45%" stroke="#00a35c" stroke-width="1.5" vid="117"></line>
+                                <rect x="166" y="48%" width="8" height="5%" fill="#00a35c" vid="118"></rect>
+
+                                
+                                <line x1="190" y1="50%" x2="190" y2="30%" stroke="#00a35c" stroke-width="1.5" vid="119"></line>
+                                <rect x="186" y="35%" width="8" height="13%" fill="#00a35c" vid="120"></rect>
+
+                                
+                                <line x1="210" y1="38%" x2="210" y2="15%" stroke="#00a35c" stroke-width="1.5" vid="121"></line>
+                                <rect x="206" y="20%" width="8" height="15%" fill="#00a35c" vid="122"></rect>
+
+                                
+                                <line x1="230" y1="12%" x2="230" y2="30%" stroke="#d9304f" stroke-width="1.5" vid="123"></line>
+                                <rect x="226" y="20%" width="8" height="8%" fill="#d9304f" vid="124"></rect>
+
+                                
+                                <line x1="250" y1="25%" x2="250" y2="45%" stroke="#d9304f" stroke-width="1.5" vid="125"></line>
+                                <rect x="246" y="28%" width="8" height="14%" fill="#d9304f" vid="126"></rect>
+
+                                
+                                <line x1="270" y1="40%" x2="270" y2="60%" stroke="#d9304f" stroke-width="1.5" vid="127"></line>
+                                <rect x="266" y="42%" width="8" height="15%" fill="#d9304f" vid="128"></rect>
+
+                                
+                                <line x1="290" y1="65%" x2="290" y2="50%" stroke="#00a35c" stroke-width="1.5" vid="129"></line>
+                                <rect x="286" y="55%" width="8" height="8%" fill="#00a35c" vid="130"></rect>
+
+                                
+                                <line x1="310" y1="58%" x2="310" y2="40%" stroke="#00a35c" stroke-width="1.5" vid="131"></line>
+                                <rect x="306" y="45%" width="8" height="10%" fill="#00a35c" vid="132"></rect>
+
+                                
+                                <line x1="330" y1="48%" x2="330" y2="35%" stroke="#00a35c" stroke-width="1.5" vid="133"></line>
+                                <rect x="326" y="38%" width="8" height="8%" fill="#00a35c" vid="134"></rect>
+
+                                
+                                <line x1="350" y1="30%" x2="350" y2="50%" stroke="#d9304f" stroke-width="1.5" vid="135"></line>
+                                <rect x="346" y="38%" width="8" height="10%" fill="#d9304f" vid="136"></rect>
+
+                                
+                                <line x1="370" y1="55%" x2="370" y2="40%" stroke="#00a35c" stroke-width="1.5" vid="137"></line>
+                                <rect x="366" y="45%" width="8" height="8%" fill="#00a35c" vid="138"></rect>
+
+                                
+                                <line x1="390" y1="48%" x2="390" y2="42%" stroke="#00a35c" stroke-width="1.5" vid="139"></line>
+                                <rect x="386" y="42%" width="8" height="4%" fill="#00a35c" vid="140"></rect>
+                            </g>
+
+                            
+                            <g class="current-price" vid="141">
+                                <line x1="0" y1="42%" x2="100%" y2="42%" stroke="#00a35c" stroke-width="1" stroke-dasharray="2,2" vid="142"></line>
+                            </g>
+
+                            
+                            <g class="crosshair" vid="143">
+                                <line x1="0" y1="60%" x2="100%" y2="60%" stroke="#a0a0a0" stroke-width="1" stroke-dasharray="2,2" vid="144"></line>
+                                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#a0a0a0" stroke-width="1" stroke-dasharray="2,2" vid="145"></line>
+                            </g>
+                        </svg>
+
+                        
+                        <div class="absolute right-0 top-0 bottom-0 w-[60px] pointer-events-none z-20 flex flex-col justify-between py-4 text-[10px] text-hl-muted font-mono" vid="146">
+                            <span class="pl-2" vid="147">66,000</span>
+                            <span class="pl-2" vid="148">65,500</span>
+                            <span class="pl-2" vid="149">65,000</span>
+                            <span class="pl-2" vid="150">64,500</span>
+                            
+                            <div class="absolute right-0 top-[42%] -translate-y-1/2 bg-hl-green text-white font-bold px-1 py-0.5 w-full flex items-center justify-end" vid="151">
+                                64,230.5
+                            </div>
+                            
+                            <div class="absolute right-0 top-[20%] -translate-y-1/2 bg-hl-panel border border-hl-orange text-hl-orange px-1 py-0.5 w-full flex items-center justify-end font-bold" vid="152">
+                                65,800.0
+                            </div>
+                            <div class="absolute right-0 top-[80%] -translate-y-1/2 bg-hl-panel border border-hl-blue text-hl-blue px-1 py-0.5 w-full flex items-center justify-end font-bold" vid="153">
+                                62,100.0
+                            </div>
+                            <span class="pl-2 mt-4" vid="154">64,000</span>
+                            <span class="pl-2" vid="155">63,500</span>
+                            <span class="pl-2" vid="156">63,000</span>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="w-[300px] border-l border-hl-border flex flex-col bg-hl-panel shrink-0" vid="157">
+                    
+                    <div class="h-10 border-b border-hl-border flex items-center justify-between px-4 shrink-0 bg-hl-panel" vid="158">
+                        <div class="flex gap-4 h-full" vid="159">
+                            <button class="text-hl-text font-mono uppercase text-[11px] tracking-widest font-bold border-b-2 border-hl-text pt-1" vid="160">Order Book</button>
+                            <button class="text-hl-muted hover:text-hl-text transition-colors font-mono uppercase text-[11px] tracking-widest pt-1" vid="161">Trades</button>
+                        </div>
+                        <div class="flex gap-2" vid="162">
+                            <button class="w-6 h-6 bg-hl-hover border border-hl-border flex items-center justify-center text-hl-text" vid="163"><i class="ph ph-list-dashes" vid="164"></i></button>
+                            <button class="w-6 h-6 border border-transparent hover:border-hl-border hover:bg-hl-hover flex items-center justify-center text-hl-muted" vid="165"><i class="ph ph-rows" vid="166"></i></button>
+                        </div>
+                    </div>
+
+                    
+                    <div class="flex justify-between px-4 py-2 text-[9px] uppercase font-mono tracking-widest text-hl-muted shrink-0 bg-hl-panel border-b border-hl-border" vid="167">
+                        <div class="w-1/3 text-left" vid="168">Price (USD)</div>
+                        <div class="w-1/3 text-right" vid="169">Size (BTC)</div>
+                        <div class="w-1/3 text-right" vid="170">Total (BTC)</div>
+                    </div>
+
+                    
+                    <div class="flex-1 flex flex-col justify-end overflow-hidden" vid="171">
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="172">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 85%" vid="173"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="174">64,245.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="175">0.150</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="176">12.450</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="177">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 78%" vid="178"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="179">64,244.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="180">0.850</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="181">12.300</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="182">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 70%" vid="183"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="184">64,242.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="185">1.200</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="186">11.450</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="187">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 65%" vid="188"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="189">64,241.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="190">0.500</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="191">10.250</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="192">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 60%" vid="193"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="194">64,239.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="195">2.100</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="196">9.750</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="197">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 45%" vid="198"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="199">64,238.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="200">0.300</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="201">7.650</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="202">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 42%" vid="203"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="204">64,236.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="205">0.100</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="206">7.350</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="207">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 40%" vid="208"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="209">64,235.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="210">1.500</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="211">7.250</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="212">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 25%" vid="213"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="214">64,234.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="215">0.250</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="216">5.750</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="217">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 22%" vid="218"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="219">64,233.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="220">0.800</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="221">5.500</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="222">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 15%" vid="223"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="224">64,232.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="225">1.200</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="226">4.700</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="227">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 10%" vid="228"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="229">64,231.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="230">0.500</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="231">3.500</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="232">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#d9304f]/15 transition-colors" style="width: 8%" vid="233"></div>
+                            <span class="text-hl-red z-10 w-1/3 text-left font-bold" vid="234">64,231.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="235">2.000</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="236">3.000</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="h-[36px] flex items-center justify-center gap-4 bg-hl-bg border-y border-hl-border shrink-0" vid="237">
+                        <span class="text-lg font-bold text-hl-green font-mono" vid="238">64,230.50</span>
+                        <div class="flex items-center text-hl-muted text-[11px] font-mono" vid="239">
+                            <i class="ph ph-arrow-up text-hl-green mr-1" vid="240"></i>
+                            $64,230.50
+                        </div>
+                    </div>
+
+                    
+                    <div class="flex-1 flex flex-col overflow-hidden" vid="241">
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="242">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 12%" vid="243"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="244">64,230.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="245">0.850</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="246">0.850</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="247">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 18%" vid="248"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="249">64,228.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="250">1.200</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="251">2.050</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="252">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 25%" vid="253"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="254">64,227.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="255">0.500</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="256">2.550</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="257">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 30%" vid="258"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="259">64,225.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="260">2.100</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="261">4.650</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="262">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 32%" vid="263"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="264">64,224.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="265">0.300</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="266">4.950</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="267">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 38%" vid="268"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="269">64,222.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="270">0.100</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="271">5.050</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="272">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 45%" vid="273"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="274">64,221.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="275">1.500</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="276">6.550</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="277">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 50%" vid="278"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="279">64,219.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="280">0.250</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="281">6.800</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="282">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 58%" vid="283"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="284">64,218.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="285">0.800</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="286">7.600</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="287">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 65%" vid="288"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="289">64,216.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="290">1.200</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="291">8.800</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="292">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 72%" vid="293"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="294">64,215.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="295">0.500</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="296">9.300</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="297">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 80%" vid="298"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="299">64,213.5</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="300">2.000</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="301">11.300</span>
+                        </div>
+                        <div class="relative h-[22px] flex items-center justify-between px-4 hover:bg-hl-hover cursor-pointer text-[11px] font-mono group" vid="302">
+                            <div class="absolute right-0 top-0 bottom-0 bg-[#00a35c]/15 transition-colors" style="width: 85%" vid="303"></div>
+                            <span class="text-hl-green z-10 w-1/3 text-left font-bold" vid="304">64,212.0</span>
+                            <span class="text-hl-text z-10 w-1/3 text-right" vid="305">0.850</span>
+                            <span class="text-hl-muted z-10 w-1/3 text-right" vid="306">12.150</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="h-[280px] border-t border-hl-border bg-hl-panel flex flex-col shrink-0" vid="307">
+                
+                <div class="flex gap-8 px-6 bg-[#1a1a1a] h-10 shrink-0 items-center" vid="308">
+                    <button class="text-white font-mono uppercase text-[10px] tracking-widest font-bold border-b-2 border-white h-full pt-1" vid="309">Positions (1)</button>
+                    <button class="text-[#a0a0a0] hover:text-white transition-colors font-mono uppercase text-[10px] tracking-widest font-bold h-full pt-1" vid="310">Open Orders (2)</button>
+                    <button class="text-[#a0a0a0] hover:text-white transition-colors font-mono uppercase text-[10px] tracking-widest font-bold h-full pt-1" vid="311">Order History</button>
+                    <button class="text-[#a0a0a0] hover:text-white transition-colors font-mono uppercase text-[10px] tracking-widest font-bold h-full pt-1" vid="312">Trade History</button>
+                </div>
+                
+                
+                <div class="flex-1 overflow-auto" vid="313">
+                    <table class="w-full text-left text-xs whitespace-nowrap" vid="314">
+                        <thead class="text-hl-muted sticky top-0 bg-hl-panel z-10 border-b border-hl-border" vid="315">
+                            <tr vid="316">
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] w-32" vid="317">Market</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px]" vid="318">Side</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="319">Size</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="320">Entry Price</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="321">Mark Price</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="322">Liq. Price</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="323">Margin</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="324">PNL (ROE%)</th>
+                                <th class="px-6 py-3 font-mono uppercase tracking-widest text-[9px] text-right" vid="325">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody vid="326">
+                            <tr class="border-b border-hl-border hover:bg-hl-hover transition-colors font-mono text-[11px]" vid="327">
+                                <td class="px-6 py-4 font-mono font-bold flex items-center gap-2" vid="328">
+                                    <i class="ph-fill ph-currency-btc text-[#e67e22] text-lg" vid="329"></i>
+                                    BTC-PERP
+                                </td>
+                                <td class="px-6 py-4 text-hl-green font-mono font-bold uppercase tracking-widest text-[10px]" vid="330">Long</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="331">0.5000</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="332">63,000.00</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="333">64,230.50</td>
+                                <td class="px-6 py-4 text-right text-hl-orange" vid="334">58,125.00</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="335">1,500.00 <span class="text-hl-muted text-[9px] ml-1" vid="336">20X</span></td>
+                                <td class="px-6 py-4 text-right text-hl-green font-bold" vid="337">
+                                    +$615.25 <br vid="338"> <span class="text-[9px]" vid="339">(+41.01%)</span>
+                                </td>
+                                <td class="px-6 py-4 text-right" vid="340">
+                                    <button class="border border-hl-border bg-hl-panel hover:bg-hl-bg text-hl-text px-3 py-1.5 transition-colors font-mono uppercase text-[9px] tracking-widest font-bold" vid="341">Close</button>
+                                </td>
+                            </tr>
+                            <tr class="border-b border-hl-border hover:bg-hl-hover transition-colors font-mono text-[11px] opacity-50" vid="342">
+                                <td class="px-6 py-4 font-mono font-bold flex items-center gap-2" vid="343">
+                                    <i class="ph-fill ph-currency-eth text-[#0066cc] text-lg" vid="344"></i>
+                                    ETH-PERP
+                                </td>
+                                <td class="px-6 py-4 text-hl-red font-mono font-bold uppercase tracking-widest text-[10px]" vid="345">Short</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="346">10.00</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="347">3,500.00</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="348">3,520.10</td>
+                                <td class="px-6 py-4 text-right text-hl-orange" vid="349">3,850.00</td>
+                                <td class="px-6 py-4 text-right text-hl-text" vid="350">3,500.00 <span class="text-hl-muted text-[9px] ml-1" vid="351">10X</span></td>
+                                <td class="px-6 py-4 text-right text-hl-red font-bold" vid="352">
+                                    -$201.00 <br vid="353"> <span class="text-[9px]" vid="354">(-5.74%)</span>
+                                </td>
+                                <td class="px-6 py-4 text-right" vid="355">
+                                    <button class="border border-hl-border bg-hl-panel hover:bg-hl-bg text-hl-text px-3 py-1.5 transition-colors font-mono uppercase text-[9px] tracking-widest font-bold" vid="356">Close</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+
+        
+        <div class="w-[320px] bg-hl-panel flex flex-col shrink-0 overflow-y-auto border-l border-hl-border" vid="357">
+            
+            <div class="flex border-b border-hl-border h-12 shrink-0 bg-hl-panel" vid="358">
+                <button class="flex-1 flex justify-center items-center font-mono uppercase text-[11px] tracking-widest font-bold border-b-2 border-hl-text text-hl-text" vid="359">Place Order</button>
+                <button class="flex-1 flex justify-center items-center font-mono uppercase text-[11px] tracking-widest text-hl-muted hover:text-hl-text transition-colors border-b-2 border-transparent" vid="360">Info</button>
+            </div>
+
+            <div class="p-4 flex flex-col gap-6" vid="361">
+                
+                <div class="flex items-center justify-between bg-hl-bg border border-hl-border p-1" vid="362">
+                    <button class="flex-1 py-1.5 bg-hl-panel border border-hl-border text-center font-mono uppercase text-[10px] tracking-widest font-bold text-hl-text" vid="363">Cross</button>
+                    <button class="flex-1 py-1.5 text-center text-hl-muted hover:text-hl-text font-mono uppercase text-[10px] tracking-widest font-bold transition-colors" vid="364">Isolated</button>
+                    <div class="w-px h-4 bg-hl-border mx-1" vid="365"></div>
+                    <button class="px-3 py-1.5 text-center text-hl-text font-mono uppercase text-[10px] tracking-widest font-bold hover:bg-hl-panel border border-transparent hover:border-hl-border transition-colors flex items-center gap-1" vid="366">20X <i class="ph ph-pencil-simple text-hl-muted" vid="367"></i></button>
+                </div>
+
+                
+                <div class="flex gap-4 text-[10px] font-mono uppercase tracking-widest font-bold" vid="368">
+                    <button class="text-hl-text border-b border-hl-text pb-1" vid="369">Limit</button>
+                    <button class="text-hl-muted hover:text-hl-text pb-1 transition-colors border-b border-transparent hover:border-hl-border" vid="370">Market</button>
+                    <button class="text-hl-muted hover:text-hl-text pb-1 transition-colors border-b border-transparent hover:border-hl-border" vid="371">Stop Limit</button>
+                    <button class="text-hl-muted hover:text-hl-text pb-1 transition-colors" vid="372"><i class="ph ph-dots-three text-sm" vid="373"></i></button>
+                </div>
+
+                
+                <div class="flex flex-col gap-4" vid="374">
+                    
+                    <div class="flex flex-col gap-2" vid="375">
+                        <div class="flex justify-between font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="376">
+                            <span vid="377">Price</span>
+                            <span class="flex items-center gap-1 cursor-pointer hover:text-hl-text" vid="378"><i class="ph ph-wallet" vid="379"></i> 50,432.50 USDC</span>
+                        </div>
+                        <div class="relative flex items-center bg-hl-bg border border-hl-border overflow-hidden focus-within:border-black transition-colors" vid="380">
+                            <input type="text" value="64230.50" class="w-full bg-transparent text-right pr-12 pl-3 py-2.5 text-sm font-mono font-bold outline-none text-hl-text" vid="381">
+                            <span class="absolute right-3 font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="382">USD</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="flex flex-col gap-2" vid="383">
+                        <div class="flex justify-between font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="384">
+                            <span vid="385">Size</span>
+                            <span class="cursor-pointer hover:text-hl-text" vid="386">MAX: 15.5 BTC</span>
+                        </div>
+                        <div class="relative flex items-center bg-hl-bg border border-hl-border overflow-hidden focus-within:border-black transition-colors" vid="387">
+                            <input type="text" placeholder="0.00" class="w-full bg-transparent text-right pr-12 pl-3 py-2.5 text-sm font-mono font-bold outline-none text-hl-text" vid="388">
+                            <span class="absolute right-3 font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="389">BTC</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="pt-2 pb-1 relative" vid="390">
+                        <input type="range" min="0" max="100" value="0" class="w-full relative z-10" vid="391">
+                        <div class="absolute top-1/2 -translate-y-1/2 left-0 right-0 flex justify-between px-1 pointer-events-none z-0" vid="392">
+                            <div class="w-1.5 h-1.5 bg-hl-border" vid="393"></div>
+                            <div class="w-1.5 h-1.5 bg-hl-border" vid="394"></div>
+                            <div class="w-1.5 h-1.5 bg-hl-border" vid="395"></div>
+                            <div class="w-1.5 h-1.5 bg-hl-border" vid="396"></div>
+                            <div class="w-1.5 h-1.5 bg-hl-border" vid="397"></div>
+                        </div>
+                        <div class="flex justify-between font-mono uppercase text-[9px] tracking-widest text-hl-muted mt-2" vid="398">
+                            <span vid="399">0%</span>
+                            <span vid="400">25%</span>
+                            <span vid="401">50%</span>
+                            <span vid="402">75%</span>
+                            <span vid="403">100%</span>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="flex items-center justify-between mt-2" vid="404">
+                        <label class="flex items-center gap-2 cursor-pointer group" vid="405">
+                            <div class="w-3.5 h-3.5 border border-hl-border flex items-center justify-center group-hover:border-hl-text bg-hl-bg" vid="406"></div>
+                            <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted group-hover:text-hl-text" vid="407">Post Only</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group" vid="408">
+                            <div class="w-3.5 h-3.5 border border-hl-border flex items-center justify-center group-hover:border-hl-text bg-hl-bg" vid="409"></div>
+                            <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted group-hover:text-hl-text" vid="410">Reduce Only</span>
+                        </label>
+                    </div>
+                </div>
+
+                
+                <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-hl-border" vid="411">
+                    <div class="flex justify-between items-center" vid="412">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="413">Order Value</span>
+                        <span class="font-mono text-xs font-bold" vid="414">0.00 USD</span>
+                    </div>
+                    <div class="flex justify-between items-center" vid="415">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="416">Margin Required</span>
+                        <span class="font-mono text-xs font-bold" vid="417">0.00 USD</span>
+                    </div>
+                    <div class="flex justify-between items-center" vid="418">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="419">Available Margin</span>
+                        <span class="font-mono text-xs font-bold text-hl-text" vid="420">50,432.50 USD</span>
+                    </div>
+                </div>
+
+                
+                <div class="flex gap-3 mt-4" vid="421">
+                    <button class="flex-1 bg-hl-green hover:opacity-90 text-white font-mono uppercase tracking-widest font-bold py-3 transition-colors flex flex-col items-center justify-center" vid="422">
+                        <span class="text-sm" vid="423">BUY / LONG</span>
+                    </button>
+                    <button class="flex-1 bg-hl-red hover:opacity-90 text-white font-mono uppercase tracking-widest font-bold py-3 transition-colors flex flex-col items-center justify-center" vid="424">
+                        <span class="text-sm" vid="425">SELL / SHORT</span>
+                    </button>
+                </div>
+
+                
+                <div class="bg-hl-bg p-3 mt-4 flex flex-col gap-2 border border-hl-border" vid="426">
+                    <div class="flex justify-between items-center" vid="427">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="428">Max Buy</span>
+                        <span class="font-mono text-[10px] font-bold" vid="429">15.541 BTC</span>
+                    </div>
+                    <div class="flex justify-between items-center" vid="430">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="431">Max Sell</span>
+                        <span class="font-mono text-[10px] font-bold" vid="432">15.541 BTC</span>
+                    </div>
+                    <div class="flex justify-between items-center" vid="433">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="434">Cost</span>
+                        <span class="font-mono text-[10px] font-bold" vid="435">0.00 USDC</span>
+                    </div>
+                    <div class="flex justify-between items-center" vid="436">
+                        <span class="font-mono uppercase text-[9px] tracking-widest text-hl-muted" vid="437">Fee Tier</span>
+                        <span class="font-mono text-[10px] font-bold text-hl-text cursor-pointer hover:underline" vid="438">VIP 1 (0.02% / 0.05%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+</body></html>
