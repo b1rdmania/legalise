@@ -34,6 +34,7 @@ from app.core.matter_fs import (
 from app.core.model_gateway import PrivilegePaused
 from app.core.text_extraction import extract as extract_text
 from app.core.user_keys import ProviderKeyMissing
+from app.core.api import audit
 from app.models import (
     AuditEntry,
     Document,
@@ -160,16 +161,16 @@ async def _write_audit(
     resource_id: str | None = None,
     payload: dict | None = None,
 ) -> None:
-    entry = AuditEntry(
+    await audit.log(
+        session,
+        action,
         actor_id=actor.id,
         matter_id=matter.id if matter else None,
-        action=action,
         module=module,
         resource_type=resource_type,
         resource_id=resource_id,
-        payload=payload or {},
+        payload=payload,
     )
-    session.add(entry)
 
 
 # ---------- endpoints -------------------------------------------------------

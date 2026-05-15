@@ -33,7 +33,7 @@ from app.core.user_keys import (
     get_user_provider_key,
     mark_user_key_used,
 )
-from app.models import AuditEntry, Matter
+from app.models import Matter
 
 # Providers that require a per-user (or server-fallback) API key. Ollama
 # and stub-echo run keyless; everything else routes through user_keys.
@@ -362,24 +362,27 @@ class ModelGateway:
         )
 
         # Audit the call. Session lifecycle is the caller's responsibility.
-        session.add(
-            AuditEntry(
-                actor_id=actor_id,
-                matter_id=matter_id,
-                action="model.call",
-                resource_type=resource_type,
-                resource_id=resource_id,
-                model_used=result.model_used,
-                prompt_hash=result.prompt_hash,
-                response_hash=result.response_hash,
-                token_count=result.token_count,
-                latency_ms=result.latency_ms,
-                payload={
-                    "requested_model": requested,
-                    "posture": effective_posture.value,
-                    **(payload or {}),
-                },
-            )
+        # Lazy import of the audit helper to break the import cycle
+        # (`app.core.api` re-exports this gateway as `model_gateway`).
+        from app.core.api import audit
+
+        await audit.log(
+            session,
+            "model.call",
+            actor_id=actor_id,
+            matter_id=matter_id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            model_used=result.model_used,
+            prompt_hash=result.prompt_hash,
+            response_hash=result.response_hash,
+            token_count=result.token_count,
+            latency_ms=result.latency_ms,
+            payload={
+                "requested_model": requested,
+                "posture": effective_posture.value,
+                **(payload or {}),
+            },
         )
 
         return result

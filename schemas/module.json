@@ -118,6 +118,29 @@
       },
       "description": "Permissions the module requires. Audit and model-call permissions are granted by default to all modules; explicit declaration is preferred."
     },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "matter.read",
+          "document.body.read",
+          "document.generated.write",
+          "model.invoke",
+          "chronology.read",
+          "chronology.write",
+          "citation.write",
+          "audit.emit"
+        ]
+      },
+      "description": "Declared capabilities the module exercises. v0.1 surfaces these as declarations under review; runtime per-capability enforcement is v0.2."
+    },
+    "trust_posture": {
+      "type": "string",
+      "enum": ["trusted", "third_party", "experimental"],
+      "description": "Trust band for the module. Surfaced in the Modules page; declarative only in v0.1."
+    },
     "metadata": {
       "type": "object",
       "description": "Free-form module-specific metadata.",

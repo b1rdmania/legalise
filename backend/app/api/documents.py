@@ -25,7 +25,8 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing
-from app.models import AuditEntry, Document, DocumentEdit, DocumentVersion, Matter, User
+from app.core.api import audit
+from app.models import Document, DocumentEdit, DocumentVersion, Matter, User
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_edit import (
     EDIT_STATUS_ACCEPTED,
@@ -611,16 +612,15 @@ async def get_anonymise_mapping(
     raw_spans = mapping.get("spans") if isinstance(mapping, dict) else None
     spans = raw_spans if isinstance(raw_spans, list) else []
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            action="module.anonymisation.viewed",
-            module="anonymisation",
-            resource_type="document",
-            resource_id=str(doc.id),
-            payload={"token_count": len(tokens)},
-        )
+    await audit.log(
+        session,
+        "module.anonymisation.viewed",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="anonymisation",
+        resource_type="document",
+        resource_id=str(doc.id),
+        payload={"token_count": len(tokens)},
     )
     await session.commit()
 
@@ -645,16 +645,15 @@ async def delete_anonymise_document(
         # Idempotent delete: no-op when the row never existed.
         return None
     await session.delete(redacted)
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            action="module.anonymisation.deleted",
-            module="anonymisation",
-            resource_type="document",
-            resource_id=str(doc.id),
-            payload={"engine": redacted.engine},
-        )
+    await audit.log(
+        session,
+        "module.anonymisation.deleted",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="anonymisation",
+        resource_type="document",
+        resource_id=str(doc.id),
+        payload={"engine": redacted.engine},
     )
     await session.commit()
     return None

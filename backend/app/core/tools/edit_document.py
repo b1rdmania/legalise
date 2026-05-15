@@ -22,7 +22,7 @@ from app.core.tools.schemas import (
     EditDocumentOutput,
     PendingEditRead,
 )
-from app.models import AuditEntry
+from app.core.api import audit
 from app.models.document import Document
 from app.models.document_edit import DocumentEdit, EDIT_STATUS_PENDING
 from app.models.document_version import DocumentVersion
@@ -75,19 +75,18 @@ async def handle_edit_document(
 
     await session.flush()
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter.id,
-            module="document_edit",
-            action="document.edits.persisted",
-            resource_type="document_version",
-            resource_id=str(version.id),
-            payload={
-                "version_id": str(version.id),
-                "count": len(created),
-            },
-        )
+    await audit.log(
+        session,
+        "document.edits.persisted",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="document_edit",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "version_id": str(version.id),
+            "count": len(created),
+        },
     )
 
     return EditDocumentOutput(

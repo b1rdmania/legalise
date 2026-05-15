@@ -29,9 +29,9 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.api import audit
 from app.core.model_gateway import ModelGateway
 from app.models import (
-    AuditEntry,
     Document,
     DocumentBody,
     DocumentEdit,
@@ -215,23 +215,22 @@ async def propose_edits(
     # Module-level audit row separate from the `model.call` row that
     # `gateway.call()` writes. Lets the matter audit tab show one row
     # per user invocation, with the model call as a child fact.
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter.id,
-            action="document.edit_instruction.invoked",
-            module="document_edit",
-            resource_type="document",
-            resource_id=str(doc.id),
-            payload={
-                "mode": mode,
-                "instruction_hash": instr_hash,
-                "version_id": str(version.id),
-                "pending_count": len(pending),
-                "parse_ok": parse_ok,
-                "truncated": truncated,
-            },
-        )
+    await audit.log(
+        session,
+        "document.edit_instruction.invoked",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="document_edit",
+        resource_type="document",
+        resource_id=str(doc.id),
+        payload={
+            "mode": mode,
+            "instruction_hash": instr_hash,
+            "version_id": str(version.id),
+            "pending_count": len(pending),
+            "parse_ok": parse_ok,
+            "truncated": truncated,
+        },
     )
 
     await session.flush()

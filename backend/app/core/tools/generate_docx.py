@@ -25,9 +25,9 @@ from docx.enum.section import WD_ORIENTATION
 from docx.shared import Inches
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.api import audit
 from app.core.config import settings
 from app.core.tools.schemas import GenerateDocxInput, GenerateDocxOutput
-from app.models import AuditEntry
 
 
 def _apply_orientation(document: DocxDocument, orientation: str) -> None:
@@ -101,23 +101,22 @@ async def handle_generate_docx(
     char_count = len(inputs.body_markdown)
     storage_uri = str(relative)
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter_id,
-            module="document_generation",
-            action="document.generated",
-            resource_type="document",
-            resource_id=str(file_uuid),
-            payload={
-                "format": "docx",
-                "char_count": char_count,
-                "byte_count": byte_count,
-                "storage_uri": storage_uri,
-                "orientation": orientation,
-                "title": inputs.title,
-            },
-        )
+    await audit.log(
+        session,
+        "document.generated",
+        actor_id=actor_id,
+        matter_id=matter_id,
+        module="document_generation",
+        resource_type="document",
+        resource_id=str(file_uuid),
+        payload={
+            "format": "docx",
+            "char_count": char_count,
+            "byte_count": byte_count,
+            "storage_uri": storage_uri,
+            "orientation": orientation,
+            "title": inputs.title,
+        },
     )
 
     return GenerateDocxOutput(

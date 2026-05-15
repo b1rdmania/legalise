@@ -24,7 +24,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway
-from app.models import AuditEntry, Document, DocumentBody, Matter
+from app.core.api import audit
+from app.models import Document, DocumentBody, Matter
 from app.models.document_body import (
     BODY_KIND_EXTRACTED,
     BODY_KIND_REDACTED,
@@ -339,23 +340,22 @@ async def anonymise_document(
         existing.engine = outcome.engine_used
         existing.anonymised_at = now
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter.id,
-            action="module.anonymisation.run",
-            module="anonymisation",
-            resource_type="document",
-            resource_id=str(doc.id),
-            payload={
-                "engine_requested": engine,
-                "engine": outcome.engine_used,
-                "entity_count": outcome.entity_count,
-                "char_count": char_count,
-                "latency_ms": latency_ms,
-                "threshold": threshold,
-            },
-        )
+    await audit.log(
+        session,
+        "module.anonymisation.run",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="anonymisation",
+        resource_type="document",
+        resource_id=str(doc.id),
+        payload={
+            "engine_requested": engine,
+            "engine": outcome.engine_used,
+            "entity_count": outcome.entity_count,
+            "char_count": char_count,
+            "latency_ms": latency_ms,
+            "threshold": threshold,
+        },
     )
     await session.flush()
 

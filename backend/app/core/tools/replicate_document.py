@@ -23,7 +23,7 @@ from app.core.tools.schemas import (
     ReplicateDocumentInput,
     ReplicateDocumentOutput,
 )
-from app.models import AuditEntry
+from app.core.api import audit
 from app.models.document import Document
 from app.models.document_version import (
     DocumentVersion,
@@ -91,20 +91,19 @@ async def handle_replicate_document(
     session.add(new_version)
     await session.flush()
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter.id,
-            module="document_edit",
-            action="document.replicated",
-            resource_type="document",
-            resource_id=str(document.id),
-            payload={
-                "new_version_id": str(new_version.id),
-                "new_version_number": new_version.version_number,
-                "source_version_id": str(latest.id),
-            },
-        )
+    await audit.log(
+        session,
+        "document.replicated",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="document_edit",
+        resource_type="document",
+        resource_id=str(document.id),
+        payload={
+            "new_version_id": str(new_version.id),
+            "new_version_number": new_version.version_number,
+            "source_version_id": str(latest.id),
+        },
     )
 
     return ReplicateDocumentOutput(

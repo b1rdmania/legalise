@@ -26,6 +26,9 @@ import os
 from datetime import datetime, date
 from pathlib import Path
 
+import frontmatter
+import yaml
+
 from app.core.config import settings
 from app.models import Matter
 
@@ -56,66 +59,29 @@ def matter_dir(slug: str, user_id) -> Path:
     return d
 
 
-def _yaml_value(v: object) -> str:
-    if v is None:
-        return "null"
-    if isinstance(v, (date, datetime)):
-        return v.isoformat()
-    if isinstance(v, bool):
-        return "true" if v else "false"
-    if isinstance(v, (int, float)):
-        return str(v)
-    # String — quote if it contains anything that could confuse a YAML parser.
-    s = str(v)
-    if any(ch in s for ch in ":#\n\"'") or s.strip() != s:
-        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
-    return s
-
-
-def _emit(lines: list[str], key: str, value: object, indent: int) -> None:
-    pad = "  " * indent
+def _coerce_for_yaml(value: object) -> object:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _coerce_for_yaml(v) for k, v in value.items()}
     if isinstance(value, list):
-        if not value:
-            lines.append(f"{pad}{key}: []")
-            return
-        lines.append(f"{pad}{key}:")
-        for item in value:
-            if isinstance(item, dict):
-                first = True
-                for ik, iv in item.items():
-                    prefix = f"{pad}  - " if first else f"{pad}    "
-                    if isinstance(iv, (list, dict)):
-                        lines.append(f"{prefix}{ik}:")
-                        _emit_value(lines, iv, indent + 2)
-                    else:
-                        lines.append(f"{prefix}{ik}: {_yaml_value(iv)}")
-                    first = False
-            else:
-                lines.append(f"{pad}  - {_yaml_value(item)}")
-    elif isinstance(value, dict):
-        lines.append(f"{pad}{key}:")
-        for ik, iv in value.items():
-            _emit(lines, ik, iv, indent + 1)
-    else:
-        lines.append(f"{pad}{key}: {_yaml_value(value)}")
-
-
-def _emit_value(lines: list[str], value: object, indent: int) -> None:
-    pad = "  " * indent
-    if isinstance(value, list):
-        for item in value:
-            lines.append(f"{pad}- {_yaml_value(item)}")
-    elif isinstance(value, dict):
-        for ik, iv in value.items():
-            _emit(lines, ik, iv, indent)
+        return [_coerce_for_yaml(v) for v in value]
+    return value
 
 
 def _yaml_frontmatter(fields: dict) -> str:
-    lines = ["---"]
-    for k, v in fields.items():
-        _emit(lines, k, v, 0)
-    lines.append("---")
-    return "\n".join(lines) + "\n"
+    payload = {k: _coerce_for_yaml(v) for k, v in fields.items()}
+    dumped = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True, default_flow_style=False)
+    return f"---\n{dumped}---\n"
+
+
+def parse_matter_md(text: str) -> tuple[dict, str]:
+    """Parse a matter.md file into (frontmatter_dict, body). Thin wrapper
+    around python-frontmatter so callers don't need to import the lib."""
+    post = frontmatter.loads(text)
+    return dict(post.metadata), post.content
 
 
 def materialise_matter(matter: Matter) -> Path:
@@ -237,4 +203,10 @@ def record_document(
     )
 
 
-__all__ = ["matter_dir", "materialise_matter", "append_history", "record_document"]
+__all__ = [
+    "matter_dir",
+    "materialise_matter",
+    "append_history",
+    "record_document",
+    "parse_matter_md",
+]

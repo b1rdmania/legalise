@@ -41,7 +41,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_fs import append_history
-from app.models import AuditEntry, Document, Event, Matter, User
+from app.core.api import audit
+from app.models import Document, Event, Matter, User
 
 
 router = APIRouter()
@@ -253,18 +254,18 @@ async def confirm_gate(
     if not body.acknowledgement.strip():
         raise HTTPException(400, "acknowledgement text is required")
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            action="chronology.gate.confirmed",
-            resource_type="chronology",
-            resource_id=matter.slug,
-            payload={
-                "acknowledgement": body.acknowledgement.strip(),
-                "rule": "CPR 31.22(1)",
-            },
-        )
+    await audit.log(
+        session,
+        "chronology.gate.confirmed",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="chronology",
+        resource_type="chronology",
+        resource_id=matter.slug,
+        payload={
+            "acknowledgement": body.acknowledgement.strip(),
+            "rule": "CPR 31.22(1)",
+        },
     )
     await session.commit()
     append_history(

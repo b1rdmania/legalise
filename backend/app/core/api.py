@@ -87,6 +87,11 @@ class _AuditAPI:
         resource_type: str | None = None,
         resource_id: str | None = None,
         payload: dict | None = None,
+        model_used: str | None = None,
+        prompt_hash: str | None = None,
+        response_hash: str | None = None,
+        token_count: int | None = None,
+        latency_ms: int | None = None,
     ) -> None:
         session.add(
             AuditEntry(
@@ -96,6 +101,11 @@ class _AuditAPI:
                 module=module,
                 resource_type=resource_type,
                 resource_id=resource_id,
+                model_used=model_used,
+                prompt_hash=prompt_hash,
+                response_hash=response_hash,
+                token_count=token_count,
+                latency_ms=latency_ms,
                 payload=payload or {},
             )
         )

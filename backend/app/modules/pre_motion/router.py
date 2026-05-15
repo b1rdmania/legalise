@@ -29,7 +29,7 @@ from app.core.model_gateway import (
     gateway as model_gateway,
 )
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
-from app.models import AuditEntry, Matter, User
+from app.models import Matter, User
 
 from .pdf import render_pre_motion_pdf
 from .pipeline import run_pre_motion
@@ -422,21 +422,20 @@ async def export_pre_motion_docx(
     byte_count: int = tool_result["byte_count"]
     file_uuid = storage_uri.rsplit("/", 1)[-1].removesuffix(".docx")
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            module="pre_motion",
-            action="module.pre_motion.docx.exported",
-            resource_type="pre-motion",
-            resource_id=file_uuid,
-            payload={
-                "verdict": result.synthesis.verdict,
-                "file_uuid": file_uuid,
-                "byte_count": byte_count,
-                "total_token_count": result.total_token_count,
-            },
-        )
+    await audit_api.log(
+        session,
+        "module.pre_motion.docx.exported",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="pre_motion",
+        resource_type="pre-motion",
+        resource_id=file_uuid,
+        payload={
+            "verdict": result.synthesis.verdict,
+            "file_uuid": file_uuid,
+            "byte_count": byte_count,
+            "total_token_count": result.total_token_count,
+        },
     )
     await session.commit()
 

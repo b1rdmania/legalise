@@ -24,7 +24,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters import plugin_bridge as plugin_bridge_module
-from app.models import AuditEntry
+from app.core.api import audit
 
 from .schemas import CaseLawResult, CaseLawSearchResponse
 
@@ -226,22 +226,21 @@ async def search(
 
     truncated = len(parsed) >= MAX_RESULTS
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter_id,
-            module="case_law",
-            action="module.case_law.search",
-            resource_type="case_law_search",
-            resource_id=None,
-            payload={
-                "query": query,
-                "court": court,
-                "year": year,
-                "result_count": len(parsed),
-                "truncated": truncated,
-            },
-        )
+    await audit.log(
+        session,
+        "module.case_law.search",
+        actor_id=actor_id,
+        matter_id=matter_id,
+        module="case_law",
+        resource_type="case_law_search",
+        resource_id=None,
+        payload={
+            "query": query,
+            "court": court,
+            "year": year,
+            "result_count": len(parsed),
+            "truncated": truncated,
+        },
     )
 
     return CaseLawSearchResponse(

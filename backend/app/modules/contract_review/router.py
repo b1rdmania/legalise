@@ -30,7 +30,8 @@ from app.core.model_gateway import (
     gateway as model_gateway,
 )
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
-from app.models import AuditEntry, Matter, User
+from app.core.api import audit
+from app.models import Matter, User
 
 from .export import render_contract_review_markdown
 from .pipeline import run_contract_review
@@ -285,25 +286,24 @@ async def export_docx(
         result.model_dump_json(by_alias=False).encode("utf-8")
     ).hexdigest()
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            module="contract_review",
-            action="module.contract_review.docx.exported",
-            resource_type="contract-review",
-            resource_id=file_uuid,
-            payload={
-                "file_uuid": file_uuid,
-                "byte_count": byte_count,
-                "envelope_hash": envelope_hash,
-                "document_id": result.document_id,
-                "document_filename": result.document_filename,
-                "total_token_count": result.total_token_count,
-                "clause_count": len(result.parsed.clauses),
-                "redline_count": len(result.redlines),
-            },
-        )
+    await audit.log(
+        session,
+        "module.contract_review.docx.exported",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="contract_review",
+        resource_type="contract-review",
+        resource_id=file_uuid,
+        payload={
+            "file_uuid": file_uuid,
+            "byte_count": byte_count,
+            "envelope_hash": envelope_hash,
+            "document_id": result.document_id,
+            "document_filename": result.document_filename,
+            "total_token_count": result.total_token_count,
+            "clause_count": len(result.parsed.clauses),
+            "redline_count": len(result.redlines),
+        },
     )
     await session.commit()
 

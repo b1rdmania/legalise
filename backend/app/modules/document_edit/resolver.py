@@ -35,8 +35,8 @@ from typing import Literal
 from sqlalchemy import func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.api import audit
 from app.models import (
-    AuditEntry,
     Document,
     DocumentBody,
     DocumentEdit,
@@ -257,39 +257,37 @@ async def _maybe_close_version(
     # Per-skip audit rows for drift visibility.
     for edit, st in zip(accepted, [s for s in statuses if s != "not_accepted"]):
         if st.startswith("skipped"):
-            session.add(
-                AuditEntry(
-                    actor_id=actor_id,
-                    matter_id=matter.id,
-                    action="document.edit.resolution_skipped",
-                    module="document_edit",
-                    resource_type="document_edit",
-                    resource_id=str(edit.id),
-                    payload={
-                        "version_id": str(version.id),
-                        "new_version_id": str(new_version.id),
-                        "reason": st,
-                    },
-                )
+            await audit.log(
+                session,
+                "document.edit.resolution_skipped",
+                actor_id=actor_id,
+                matter_id=matter.id,
+                module="document_edit",
+                resource_type="document_edit",
+                resource_id=str(edit.id),
+                payload={
+                    "version_id": str(version.id),
+                    "new_version_id": str(new_version.id),
+                    "reason": st,
+                },
             )
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter.id,
-            action="document.version.resolved",
-            module="document_edit",
-            resource_type="document_version",
-            resource_id=str(new_version.id),
-            payload={
-                "source_version_id": str(version.id),
-                "kind": kind,
-                "accepted_count": len(accepted),
-                "rejected_count": rejected_count,
-                "skipped_count": skipped,
-                "resolved_text_length": len(resolved_text),
-            },
-        )
+    await audit.log(
+        session,
+        "document.version.resolved",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="document_edit",
+        resource_type="document_version",
+        resource_id=str(new_version.id),
+        payload={
+            "source_version_id": str(version.id),
+            "kind": kind,
+            "accepted_count": len(accepted),
+            "rejected_count": rejected_count,
+            "skipped_count": skipped,
+            "resolved_text_length": len(resolved_text),
+        },
     )
 
     return new_version, resolved_text
@@ -346,20 +344,19 @@ async def resolve_edit(
 
     await session.refresh(updated)
 
-    session.add(
-        AuditEntry(
-            actor_id=actor_id,
-            matter_id=matter.id,
-            action=f"document.edit.{new_status}",
-            module="document_edit",
-            resource_type="document_edit",
-            resource_id=str(updated.id),
-            payload={
-                "version_id": str(version.id),
-                "document_id": str(document.id),
-                "change_id": updated.change_id,
-            },
-        )
+    await audit.log(
+        session,
+        f"document.edit.{new_status}",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="document_edit",
+        resource_type="document_edit",
+        resource_id=str(updated.id),
+        payload={
+            "version_id": str(version.id),
+            "document_id": str(document.id),
+            "change_id": updated.change_id,
+        },
     )
 
     new_version, resolved_text = await _maybe_close_version(
@@ -417,20 +414,19 @@ async def resolve_bulk(
     # Per-edit audit rows so the matter log carries the same shape as
     # the single-edit path (one row per resolution).
     for eid in affected_ids:
-        session.add(
-            AuditEntry(
-                actor_id=actor_id,
-                matter_id=matter.id,
-                action=f"document.edit.{new_status}",
-                module="document_edit",
-                resource_type="document_edit",
-                resource_id=str(eid),
-                payload={
-                    "version_id": str(version_id),
-                    "document_id": str(document.id),
-                    "bulk": True,
-                },
-            )
+        await audit.log(
+            session,
+            f"document.edit.{new_status}",
+            actor_id=actor_id,
+            matter_id=matter.id,
+            module="document_edit",
+            resource_type="document_edit",
+            resource_id=str(eid),
+            payload={
+                "version_id": str(version_id),
+                "document_id": str(document.id),
+                "bulk": True,
+            },
         )
 
     new_version, resolved_text = await _maybe_close_version(

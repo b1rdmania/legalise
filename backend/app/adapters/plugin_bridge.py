@@ -28,12 +28,13 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+import frontmatter
 import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway, PrivilegePosture
-from app.models import AuditEntry, Matter
+from app.models import Matter
 
 logger = structlog.get_logger()
 
@@ -60,34 +61,33 @@ class PluginInvocationResult:
 
 
 def _parse_skill_md(text: str) -> SkillManifest:
-    """Parse a SKILL.md: split YAML frontmatter from the body. Minimal
-    parser — only pulls `name` and `description` out of the frontmatter,
-    everything else is ignored. Body is returned verbatim."""
-    if not text.startswith("---\n"):
+    """Parse a SKILL.md via python-frontmatter. The body is returned
+    verbatim; the frontmatter must declare `name` (everything else is
+    optional)."""
+    if not text.startswith("---"):
         raise ValueError("SKILL.md must start with YAML frontmatter delimited by '---'")
-    end = text.find("\n---\n", 4)
-    if end < 0:
-        raise ValueError("SKILL.md frontmatter not terminated")
-    fm_block = text[4:end]
-    body = text[end + len("\n---\n") :]
+    try:
+        post = frontmatter.loads(text)
+    except Exception as exc:
+        raise ValueError(f"SKILL.md frontmatter parse failed: {exc}") from exc
 
-    name = ""
-    description = ""
-    argument_hint: str | None = None
-    # Very narrow YAML reader: handles `key: value` and `key: "..."` for the
-    # two fields we need. Anything more complex is ignored.
-    for line in fm_block.splitlines():
-        if line.startswith("name:"):
-            name = line.split(":", 1)[1].strip().strip("\"'")
-        elif line.startswith("description:"):
-            description = line.split(":", 1)[1].strip().strip("\"'")
-        elif line.startswith("argument-hint:"):
-            argument_hint = line.split(":", 1)[1].strip().strip("\"'")
-
+    metadata = post.metadata or {}
+    name = str(metadata.get("name", "")).strip()
     if not name:
         raise ValueError("SKILL.md frontmatter missing `name`")
 
-    return SkillManifest(name=name, description=description, argument_hint=argument_hint, body=body)
+    description_raw = metadata.get("description", "")
+    description = str(description_raw).strip() if description_raw is not None else ""
+
+    hint_raw = metadata.get("argument-hint")
+    argument_hint = str(hint_raw).strip() if hint_raw is not None else None
+
+    return SkillManifest(
+        name=name,
+        description=description,
+        argument_hint=argument_hint,
+        body=post.content,
+    )
 
 
 def _render_matter_block(matter: Matter) -> str:
@@ -184,10 +184,16 @@ class PluginBridge:
 
         # Plugin invocation audit row — written BEFORE the model call so a
         # crash mid-call still leaves provenance of the attempt.
-        plugin_audit = AuditEntry(
+        # Lazy import: `app.core.api` re-exports this module's bridge, so a
+        # top-level import would create a cycle at startup.
+        from app.core.api import audit
+
+        await audit.log(
+            session,
+            "plugin.invoked",
             actor_id=actor_id,
             matter_id=matter.id,
-            action="plugin.invoked",
+            module=plugin,
             resource_type="plugin",
             resource_id=f"{plugin}:{skill}",
             payload={
@@ -198,7 +204,6 @@ class PluginBridge:
                 "matter_slug": matter.slug,
             },
         )
-        session.add(plugin_audit)
         await session.flush()
 
         # Dispatch through the gateway. Gateway re-reads posture from the DB,

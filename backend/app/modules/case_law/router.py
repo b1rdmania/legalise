@@ -25,7 +25,8 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused
 from app.core.user_keys import ProviderKeyMissing
-from app.models import AuditEntry, Matter, MatterCitation, User
+from app.core.api import audit
+from app.models import Matter, MatterCitation, User
 
 from .schemas import (
     CaseLawSearchRequest,
@@ -112,20 +113,19 @@ async def create_citation(
     session.add(cit)
     await session.flush()
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            module="case_law",
-            action="module.citation.added",
-            resource_type="citation",
-            resource_id=str(cit.id),
-            payload={
-                "case_name": body.case_name,
-                "citation_ref": body.citation_ref,
-                "has_source_url": body.source_url is not None,
-            },
-        )
+    await audit.log(
+        session,
+        "module.citation.added",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="case_law",
+        resource_type="citation",
+        resource_id=str(cit.id),
+        payload={
+            "case_name": body.case_name,
+            "citation_ref": body.citation_ref,
+            "has_source_url": body.source_url is not None,
+        },
     )
     await session.commit()
     await session.refresh(cit)
@@ -171,19 +171,18 @@ async def delete_citation(
 
     await session.delete(cit)
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            module="case_law",
-            action="module.citation.deleted",
-            resource_type="citation",
-            resource_id=str(citation_id),
-            payload={
-                "case_name": cit.case_name,
-                "citation_ref": cit.citation_ref,
-            },
-        )
+    await audit.log(
+        session,
+        "module.citation.deleted",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="case_law",
+        resource_type="citation",
+        resource_id=str(citation_id),
+        payload={
+            "case_name": cit.case_name,
+            "citation_ref": cit.citation_ref,
+        },
     )
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

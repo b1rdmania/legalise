@@ -27,7 +27,8 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing
-from app.models import AuditEntry, Matter, User
+from app.core.api import audit
+from app.models import Matter, User
 
 from .catalog import catalogue_for_matter_type, resolve
 from .schemas import (
@@ -175,20 +176,19 @@ async def draft_letter_docx(
     byte_count: int = result["byte_count"]
     file_uuid = storage_uri.rsplit("/", 1)[-1].removesuffix(".docx")
 
-    session.add(
-        AuditEntry(
-            actor_id=user.id,
-            matter_id=matter.id,
-            module="letters",
-            action="module.letters.docx.exported",
-            resource_type="letter",
-            resource_id=file_uuid,
-            payload={
-                "letter_type": body.letter_type,
-                "file_uuid": file_uuid,
-                "byte_count": byte_count,
-            },
-        )
+    await audit.log(
+        session,
+        "module.letters.docx.exported",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="letters",
+        resource_type="letter",
+        resource_id=file_uuid,
+        payload={
+            "letter_type": body.letter_type,
+            "file_uuid": file_uuid,
+            "byte_count": byte_count,
+        },
     )
     await session.commit()
 
