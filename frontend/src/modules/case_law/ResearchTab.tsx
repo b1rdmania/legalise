@@ -8,6 +8,7 @@ import { useState } from "react";
 import {
   CaseLawSearchResponse,
   Matter,
+  MatterCitationRead,
   searchCaseLaw,
 } from "./api";
 import { CaseLawCard } from "./CaseLawCard";
@@ -15,6 +16,8 @@ import { CitationsSidebar } from "./CitationsSidebar";
 
 type Props = {
   matter: Matter;
+  // Demo path — pre-loaded citations for `#/demo`.
+  initialCitations?: MatterCitationRead[];
 };
 
 // Find Case Law's court set — keep these stable per skill spec.
@@ -27,7 +30,7 @@ const COURT_OPTIONS: { value: string; label: string }[] = [
   { value: "ukut", label: "Upper Tribunal (UKUT)" },
 ];
 
-export function ResearchTab({ matter }: Props) {
+export function ResearchTab({ matter, initialCitations }: Props) {
   const [query, setQuery] = useState("");
   const [court, setCourt] = useState("");
   const [year, setYear] = useState("");
@@ -166,7 +169,11 @@ export function ResearchTab({ matter }: Props) {
           )}
         </div>
         <div>
-          <CitationsSidebar slug={matter.slug} refreshKey={refreshKey} />
+          <CitationsSidebar
+            slug={matter.slug}
+            refreshKey={refreshKey}
+            initialCitations={initialCitations}
+          />
         </div>
       </div>
     </div>

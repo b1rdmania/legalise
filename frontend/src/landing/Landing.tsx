@@ -112,8 +112,14 @@ export function Landing() {
           ) : (
             <div className="flex flex-wrap items-center gap-4 mt-8">
               <a
-                href="#/auth/signup"
+                href="#/demo"
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                See it in action — no signup
+              </a>
+              <a
+                href="#/auth/signup"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 Sign up — free, BYO key
               </a>

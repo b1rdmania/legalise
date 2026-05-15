@@ -15,6 +15,7 @@ import { Modules } from "../modules-page/Modules";
 import { MatterList } from "../matter/MatterList";
 import { NewMatter } from "../matter/NewMatter";
 import { MatterDetail } from "../matter/MatterDetail";
+import { DemoMatter } from "../demo/DemoMatter";
 import { TopBar } from "../ui/TopBar";
 import { Drawer } from "../ui/Drawer";
 import type { TabKey } from "../matter/tabs/types";
@@ -114,6 +115,7 @@ function AppInner() {
             onTabChange={setDrawerTab}
           />
         )}
+        {route.name === "demo" && <DemoMatter />}
         {route.name === "signin" && <SignIn />}
         {route.name === "signup" && <SignUp />}
         {route.name === "forgot" && <ForgotPassword />}

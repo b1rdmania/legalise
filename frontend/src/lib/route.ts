@@ -30,6 +30,7 @@ export type Route =
   | { name: "verify"; token: string | null }
   | { name: "modules" }
   | { name: "submitModule" }
+  | { name: "demo"; tab?: string }
   | { name: "list" }
   | { name: "new" }
   | { name: "detail"; slug: string; tab?: string }
@@ -60,6 +61,9 @@ export function parseHash(hash: string): Route {
   if (h === "auth/verify") return { name: "verify", token: query.get("token") };
   if (h === "modules") return { name: "modules" };
   if (h === "modules/submit") return { name: "submitModule" };
+  if (h === "demo") return { name: "demo" };
+  const demoMatch = h.match(/^demo\/(.+)$/);
+  if (demoMatch) return { name: "demo", tab: demoMatch[1] };
   if (h === "matters") return { name: "list" };
   if (h === "matters/new") return { name: "new" };
   if (h === "settings" || h === "settings/profile") return { name: "settings", tab: "profile" };
@@ -97,6 +101,7 @@ export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "verify",
   "modules", // catalogue is public per HANDOVER_AUTH §7 allowlist
   "submitModule", // pre-login surface; Turnstile + IP rate-limit gate it
+  "demo", // public workspace tour — Khan v Acme from a hard-coded snapshot
 ]);
 
 export const isPublicRoute = (route: Route): boolean =>

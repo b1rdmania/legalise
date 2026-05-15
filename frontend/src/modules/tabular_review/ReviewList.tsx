@@ -14,10 +14,14 @@ import {
 type Props = {
   slug: string;
   onSelect: (reviewId: string) => void;
+  // Demo path: when supplied, skip the fetch and render directly.
+  initialReviews?: ReviewSummary[];
 };
 
-export function ReviewList({ slug, onSelect }: Props) {
-  const [items, setItems] = useState<ReviewSummary[] | null>(null);
+export function ReviewList({ slug, onSelect, initialReviews }: Props) {
+  const [items, setItems] = useState<ReviewSummary[] | null>(
+    initialReviews ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -33,8 +37,9 @@ export function ReviewList({ slug, onSelect }: Props) {
   };
 
   useEffect(() => {
+    if (initialReviews) return;
     load();
-  }, [slug]);
+  }, [slug, initialReviews]);
 
   const onCreate = async () => {
     if (!newTitle.trim()) return;

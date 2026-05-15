@@ -26,6 +26,11 @@ import { StageStrip } from "./StageStrip";
 interface Props {
   matter: Matter;
   docs: MatterDocument[];
+  // Demo path: when supplied, the result panel renders directly with this
+  // canned envelope and the "Run review" button flashes a sign-up CTA via
+  // the optional onRunOverride callback. Production MatterDetail omits both.
+  previewResult?: ContractReviewResult;
+  onRunOverride?: () => void;
 }
 
 const POSTURES: { value: Posture; label: string }[] = [
@@ -65,7 +70,7 @@ function guessContractKind(filename: string): ContractKind {
   return "other";
 }
 
-export function ContractReviewTab({ matter, docs }: Props) {
+export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }: Props) {
   // Prefer contract-shaped docs first; fall back to everything.
   const contractDocs = useMemo(
     () =>
@@ -95,7 +100,9 @@ export function ContractReviewTab({ matter, docs }: Props) {
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ContractReviewResult | null>(null);
+  const [result, setResult] = useState<ContractReviewResult | null>(
+    previewResult ?? null,
+  );
   const [liveStages, setLiveStages] = useState<
     Record<string, Partial<StageStatus>>
   >({});
@@ -111,6 +118,10 @@ export function ContractReviewTab({ matter, docs }: Props) {
   };
 
   const onRun = async () => {
+    if (onRunOverride) {
+      onRunOverride();
+      return;
+    }
     if (!documentId) {
       setError("Pick a document first.");
       return;

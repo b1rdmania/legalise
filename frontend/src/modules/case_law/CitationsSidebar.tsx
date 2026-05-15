@@ -9,10 +9,14 @@ import { MatterCitationRead, deleteCitation, listCitations } from "./api";
 type Props = {
   slug: string;
   refreshKey: number;
+  // Demo path: when supplied, skip the fetch and render directly.
+  initialCitations?: MatterCitationRead[];
 };
 
-export function CitationsSidebar({ slug, refreshKey }: Props) {
-  const [rows, setRows] = useState<MatterCitationRead[] | null>(null);
+export function CitationsSidebar({ slug, refreshKey, initialCitations }: Props) {
+  const [rows, setRows] = useState<MatterCitationRead[] | null>(
+    initialCitations ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -25,9 +29,10 @@ export function CitationsSidebar({ slug, refreshKey }: Props) {
   };
 
   useEffect(() => {
+    if (initialCitations) return;
     load();
     // re-runs whenever refreshKey ticks
-  }, [slug, refreshKey]);
+  }, [slug, refreshKey, initialCitations]);
 
   const onDelete = async (id: string) => {
     try {
