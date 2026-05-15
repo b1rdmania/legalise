@@ -26,7 +26,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
 from app.core.config import settings
-from app.core.model_gateway import ModelGateway, PrivilegePosture, PrivilegePaused
+from app.core.model_gateway import (
+    ModelGateway,
+    PrivilegePosture,
+    PrivilegePaused,
+    gateway as _module_gateway,
+)
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import Document, Matter
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
@@ -148,7 +153,13 @@ async def estimate(
             )
             est_output_tokens += OUTPUT_TOKEN_BUDGET.get(col.type, 200)
 
-    provider = provider_for_model(matter.default_model_id) or "stub-echo"
+    # Defer to the gateway's actual routing so a B_mixed matter with
+    # Ollama registered shows local rates (£0.00), not the Anthropic
+    # rate-card it would never hit. Codex R3 finding: estimate() was
+    # the last `provider_for_model` caller after R2; using the gateway
+    # selector keeps preflight + estimate + actual run consistent.
+    posture = PrivilegePosture(matter.privilege_posture)
+    provider = _module_gateway.select_provider_name(matter.default_model_id, posture)
     if provider not in RATE_CARD:
         provider = "stub-echo"
     p_in, p_out = RATE_CARD[provider]
