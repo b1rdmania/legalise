@@ -1,7 +1,4 @@
-"""Case-law module schemas — search request/response + citation CRUD shapes.
-
-See PHASE_C_DELTA.md §"W1 — Case-law lookup surface (§4e)" for the contract.
-"""
+"""Case-law module schemas — search request/response + citation CRUD shapes."""
 
 from __future__ import annotations
 

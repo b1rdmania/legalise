@@ -8,14 +8,15 @@ This repo is `v0.1`. It runs locally on Docker Compose, or live at the demo URL 
 
 ## What it does
 
-Four modules sit inside the matter workspace. Each one is a surface a UK solicitor recognises.
+Five module-style surfaces sit inside the matter workspace. Each one is a surface a UK solicitor recognises.
 
 - **Pre-Motion** — adversarial premortem of a draft pleading or position. Four agent stages (steelman / weakest-link / counter-pleading / synthesiser), nine model calls, one audited run. Useful before issuing or before a CMC.
 - **Contract Review** — parser / analyst / redliner / summariser pipeline over an uploaded contract. Returns clause-level issues, a redline, and a summary memo. Streams stage events so you can watch it work.
 - **Letters** — drafts an LBA or other matter-shaped letter from the matter context. All letter types export through the procedural `.docx` generator in v0.1 (template-driven LBA returns in v0.2).
 - **Anonymisation** — Presidio-based PII detection over a document with a deterministic token map. Detokenise round-trips byte-identical. Built so external counsel review or training-data exports go out clean.
+- **Assistant** — matter-scoped chat that answers against the matter context, cites documents / chronology by ID, and routes users into the structured modules via action chips.
 
-All four route through one privilege-aware model gateway and write to one audit log.
+All five route through one privilege-aware model gateway and write to one audit log.
 
 ## How privilege posture works
 
@@ -57,13 +58,13 @@ In v0.1:
 
 - FastAPI + Postgres + pgvector backend with audit middleware and privilege-aware model gateway
 - React 19 + Vite frontend, hash router, Tailwind + Shadcn primitives
-- Four modules listed above, all wired end-to-end against the Khan sample matter
+- Five module-style surfaces listed above, all wired end-to-end against the Khan sample matter
 - Tracked-changes document editing with accept/reject and version timeline
 - Tabular review across multiple documents
 - `.docx` export for letters, Pre-Motion, and Contract Review (procedural generator across all letter types in v0.1)
 - Public module submission flow that opens a draft PR against `claude-for-uk-legal`
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Four smoke evals covering audit-row contract, posture routing, redline anchors, NDA parse
+- Smoke evals covering audit rows, posture routing, redline anchors, NDA parse, and Assistant invariants
 
 Not in v0.1, on the v0.2 list:
 
@@ -91,7 +92,7 @@ Three open-source UK / European legal AI workspaces are shipping in parallel in 
 - **Mike** — Will Chen, [`willchen96/mike`](https://github.com/willchen96/mike), AGPL-3.0. Jurisdiction-agnostic, drafting-baseline-first, the cleanest tracked-changes UX in the open-source legal AI space.
 - **Stella** — Jan Kubica, [`stella/stella`](https://github.com/stella/stella), Apache-2.0. Jurisdiction-pluralist, Magic Circle scale, mature anonymisation pipeline and tabular review.
 
-These are independent builds tackling the same wedge from different angles. Legalise's wedge is **regulator shape** — audit by default, privilege posture, CPR 31.22 gate, retention as a first-class field, England & Wales only. Stella ships more polish in anonymisation. Mike ships more drafting surface. The matter wire-format RFC at [`schemas/matter.json`](./schemas/matter.json) is open so matters can move between any of the three.
+These are independent builds tackling the same wedge from different angles. Legalise's wedge is **regulator shape** — audit by default, privilege posture, CPR 31.22 gate, retention as a first-class field, England & Wales only. Stella ships more polish in anonymisation. Mike ships more drafting surface. A matter wire-format RFC is on the v0.3 roadmap once there is real demand for moving matters between tools.
 
 Full credit and honest divergence map: [`docs/PEERS.md`](./docs/PEERS.md).
 

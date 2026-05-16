@@ -1,6 +1,6 @@
 """Server-key fallback invariant — production refuses even with flag true.
 
-Pins the R2-promoted §7 invariant from HANDOVER_AUTH.md:
+Pins the auth invariant:
 > `LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true` is honoured only when
 > ENVIRONMENT in {development, dev, local}. In production the env var
 > is read as `false` regardless of value.

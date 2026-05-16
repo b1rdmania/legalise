@@ -49,9 +49,8 @@ async def get_matter(
 ) -> Matter | None:
     """Fetch a matter by `(slug, user_id)`, or None if absent.
 
-    Slug uniqueness is composite per-owner (HANDOVER_AUTH.md §3e
-    Option A) — a global slug lookup would be ambiguous, so `user_id`
-    is required.
+    Slug uniqueness is composite per-owner; a global slug lookup would
+    be ambiguous, so `user_id` is required.
     """
     return await session.scalar(
         select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)

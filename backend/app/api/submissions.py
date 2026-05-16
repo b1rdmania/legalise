@@ -1,4 +1,4 @@
-"""Public module submission flow — Phase D W3 (§4h).
+"""Public module submission flow.
 
 Unauthenticated POST that opens a draft PR against
 `b1rdmania/claude-for-uk-legal`. The endpoint is the auth boundary:
@@ -7,7 +7,7 @@ per-IP rate-limiting (Redis-backed multi-instance is v0.2), and a
 config gate (`submission_enabled` + `github_submission_token`)
 degrades to 503 when the surface is not provisioned.
 
-Hard guards (preserved from HANDOVER_INFRA_BUILD §3 + PHASE_INFRA_DELTA §6):
+Hard guards:
 - The PAT must be `b1rdmania`-scoped fine-grained, `contents:write`
   + `pull_requests:write` on `b1rdmania/claude-for-uk-legal` only.
   NOT `ziggythebot`. Caller-supplied tokens are not honoured — the
@@ -47,7 +47,8 @@ from app.core.db import get_session
 router = APIRouter()
 
 
-# Closed capability set per PHASE_INFRA_DELTA §4 decision 2.
+# Closed capability set for v0.1. Keep in sync with schemas/module.json
+# and the module lifecycle section in docs/ROADMAP.md.
 ALLOWED_CAPABILITIES = frozenset(
     {
         "matter.read",
@@ -72,7 +73,7 @@ _KEBAB_RE = re.compile(r"^[a-z][a-z0-9-]*[a-z0-9]$")
 
 
 # In-memory per-IP token bucket. Single-process; multi-instance Redis
-# rate-limiting is v0.2 doctrine (see PHASE_INFRA_DELTA §5). Bucket
+# rate-limiting is v0.2 doctrine (see docs/ROADMAP.md). Bucket
 # entries are deques of UNIX timestamps; we sweep old ones on each
 # call. No background reaper — small process memory footprint at
 # launch traffic and the OS reclaims when the worker recycles.

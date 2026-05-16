@@ -69,7 +69,7 @@ class TestSchema:
             ModuleSubmissionRequest(**_valid_payload(trust_posture="enterprise"))
 
     def test_capability_set_matches_doctrine(self) -> None:
-        # PHASE_INFRA_DELTA §4 decision 2 — eight-item closed set.
+        # v0.1 module manifest doctrine — eight-item closed set.
         assert ALLOWED_CAPABILITIES == frozenset(
             {
                 "matter.read",

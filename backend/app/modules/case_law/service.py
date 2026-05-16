@@ -1,7 +1,7 @@
 """Case-law search service — invokes the `find-case-law` skill via the plugin
 bridge and parses the markdown table the skill renders into structured cards.
 
-Design call (per PHASE_C_DELTA.md): skill-bridge, not a direct model call.
+Design call: skill-bridge, not a direct model call.
 The skill output is model-fabricated for v0.1; the UI surfaces a verify-on-
 caselaw.nationalarchives banner. v0.2 swaps the transport for MCP-backed
 real Find Case Law hits — the Python shape stays stable.

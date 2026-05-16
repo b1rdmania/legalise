@@ -41,17 +41,15 @@ def _matters_root() -> Path:
 
 def _user_shard(user_id) -> str:
     """12-char hex prefix of the user UUID. Stable across runs; collision
-    space at v0.1 scale is irrelevant. Path namespacing per HANDOVER_AUTH
-    §3e Option A."""
+    space at v0.1 scale is irrelevant."""
     return str(user_id).replace("-", "")[:12]
 
 
 def matter_dir(slug: str, user_id) -> Path:
     """Per-owner sharded matter directory: `matters/{user-shard}/{slug}/`.
 
-    Slug uniqueness is per-owner (HANDOVER_AUTH §3e Option A) so two
-    users can each hold `khan-v-acme-trading-2026` without colliding on
-    disk.
+    Slug uniqueness is per-owner so two users can each hold
+    `khan-v-acme-trading-2026` without colliding on disk.
     """
     d = _matters_root() / _user_shard(user_id) / slug
     d.mkdir(parents=True, exist_ok=True)

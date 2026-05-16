@@ -66,7 +66,7 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
 }
 
 // Every authenticated cross-origin call MUST send the session cookie
-// (HANDOVER_AUTH §7 cookie/CORS coherence invariant). All app fetches
+// Cookie/CORS coherence invariant. All app fetches
 // route through `apiFetch` so `credentials: "include"` is uniform.
 export function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
   return fetch(input, { credentials: "include", ...init });
@@ -1328,7 +1328,7 @@ export const SUBMISSION_TRUST_POSTURES = [
 export type SubmissionTrustPosture = (typeof SUBMISSION_TRUST_POSTURES)[number];
 
 // Closed capability set — mirrors backend `ALLOWED_CAPABILITIES`
-// (PHASE_INFRA_DELTA §4 decision 2). Keep in sync.
+// and schemas/module.json. Keep in sync.
 export const SUBMISSION_CAPABILITIES = [
   "matter.read",
   "document.body.read",

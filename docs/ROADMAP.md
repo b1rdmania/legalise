@@ -17,6 +17,7 @@ Shipped surfaces:
 - Contract Review (parser / analyst / redliner / summariser pipeline, SSE-streamed)
 - Letters (procedural `.docx` generator across all letter types in v0.1; template-driven LBA returns in v0.2)
 - Anonymisation (Presidio detection + deterministic token map + detokenise round-trip)
+- Assistant (matter-scoped chat with document / chronology citations and action chips into modules)
 - Tracked-changes document editing with accept / reject and version timeline
 - Tabular review across multiple documents
 - Public module submission flow opens a draft PR against `claude-for-uk-legal`
@@ -24,7 +25,7 @@ Shipped surfaces:
 - Module enable/disable enforcement at the `(plugin, skill)` layer
 - `module.json` schema validation surfaces broken manifests in the UI
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Four smoke evals: audit-row contract, posture routing, redline anchor resolution, NDA parse
+- Smoke evals: audit-row contract, posture routing, redline anchor resolution, NDA parse, assistant prompt/audit invariants
 
 ## v0.2: locked direction
 
@@ -61,6 +62,12 @@ Locked (the direction is fixed; implementation lands in v0.2):
   v0.1 uses in-memory token bucket (single Fly instance is sufficient).
 - **GitHub App for the submission flow.** v0.1 uses a `b1rdmania`-scoped
   PAT. v0.2 replaces with an auto-rotating installation token.
+- **Assistant prompt hardening.** v0.1 ships a conservative built-in
+  system prompt. v0.2 can add prompt versioning, richer source selection,
+  and provider-native structured responses.
+- **Shared module discovery helper.** The Modules page and Assistant both
+  discover installed skills. v0.1 accepts the duplication; v0.2 centralises
+  discovery behind one helper before capability enforcement lands.
 
 Other v0.2 work that was already on the roadmap:
 

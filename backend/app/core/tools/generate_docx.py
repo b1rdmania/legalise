@@ -11,8 +11,8 @@ plausibly-formatted Word document, not perfect fidelity.
 Storage path deviates from the delta sheet: we don't have `user_id` /
 `matter_slug` available at the handler boundary without an additional
 DB lookup. Path used: `matter_files/generated/{matter_id|_orphan}/{uuid}.docx`.
-See HANDOVER_BROADER_A — Phase B should plumb user_id through and
-align with `matter_fs.matter_dir(slug, user_id)`.
+Future work should plumb user_id through and align with
+`matter_fs.matter_dir(slug, user_id)`.
 """
 
 from __future__ import annotations

@@ -97,8 +97,8 @@ class Settings(BaseSettings):
     # endpoint degrades to 503 when the token is unset so the surface
     # cannot accidentally hit GitHub without a configured PAT. Turnstile
     # site/secret keys gate the unauthenticated POST against bots; in-memory
-    # token bucket adds defense in depth on a single Fly instance (Redis
-    # rate-limiter is v0.2 per PHASE_INFRA_DELTA §5).
+    # token bucket adds defense in depth on a single Fly instance. Redis
+    # rate-limiting is v0.2 per docs/ROADMAP.md.
     submission_enabled: bool = True
     github_submission_token: str | None = None
     github_submission_repo: str = "b1rdmania/claude-for-uk-legal"

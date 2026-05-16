@@ -61,7 +61,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_secret = settings.session_secret
 
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
-        # Never log raw email — PII per HANDOVER_AUTH §4 "Mike weaknesses".
+        # Never log raw email — PII.
         # user_id is the durable handle; admins join via the users table.
         logger.info("auth.user.registered", user_id=str(user.id))
         # Dev-only escape hatch: skip the email loop and mark verified on
@@ -170,7 +170,7 @@ fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
 
 # `current_user` — hard dependency: 401 if no valid session, 403 if the
 # session belongs to an unverified user. Workspace routes require email
-# verification per HANDOVER_AUTH §5 / R-review enforcement decision.
+# verification; production users must verify before accessing the app.
 current_user = fastapi_users.current_user(active=True, verified=True)
 # `optional_current_user` — soft dependency: returns None for anon traffic.
 # Used by audit middleware so http.* rows resolve to NULL on anon, not

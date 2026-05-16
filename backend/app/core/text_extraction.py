@@ -4,7 +4,7 @@ Dispatches by mime-type / magic bytes and returns a uniform `ExtractResult`
 regardless of the underlying library outcome. The caller persists this as
 a `DocumentBody` row.
 
-Rules (see PHASE_A_DELTA.md Workstream 1):
+Rules:
 - PDF: try `pypdf`. If text < 100 chars AND size > 50_000, retry with
   `pdfplumber`. If still < 100 chars on a > 50KB PDF, classify as scanned.
 - Encrypted PDFs raise on `pypdf` → classify as `failed` with

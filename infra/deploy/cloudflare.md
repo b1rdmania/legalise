@@ -37,7 +37,7 @@ This guide is for the maintainer; operators can deploy anywhere.
 | Storage | Cloudflare R2 | Location hint `WEUR` + jurisdiction `eu` | Hint is best-effort. `eu` jurisdiction is the only contractual guarantee — not UK-only. |
 | AI provider | Anthropic API | US-managed by default | Local-model toggle (Ollama) is documented as self-host-only — not in the live demo. |
 
-**Marketing claim alignment.** With Fly.io `lhr` as backend + Neon London + R2 + Cloudflare Pages, the defensible claim is *"UK-region database and backend; edge CDN and object storage at EU / Western Europe placement."* Don't write "UK data residency end-to-end" — R2's `eu` jurisdiction does not guarantee UK, and Cloudflare Containers is only `WEUR`.
+**Marketing claim alignment.** With Fly.io `lhr` as backend + Neon London + R2 + Cloudflare Pages, the defensible claim is *"UK-region database and backend; edge CDN and object storage at EU / Western Europe placement."* Do not claim that every byte stays in the UK — R2's `eu` jurisdiction does not guarantee UK, and Cloudflare Containers is only `WEUR`.
 
 ## Preflight — verify before running any of the steps below
 
@@ -264,7 +264,7 @@ curl -sI -X OPTIONS https://api.legalise.dev/api/matters \
 
 The Contract Review pipeline streams stage frames over SSE and runs the
 work as a `BackgroundTask` on the same request. v0.1 has no `arq` / Redis
-job runner (locked for v0.2 per `backend/PHASE_INFRA_DELTA.md` §5). This
+job runner (locked for v0.2 in `docs/ROADMAP.md`). This
 smoke step exists to surface job-runner brittleness — orphaned tasks,
 leaked DB sessions, half-written audit rows — before launch instead of
 during it.
@@ -305,7 +305,7 @@ curl -s https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/audit \
 - Re-running the smoke from step 1 succeeds with a fresh SSE stream.
 
 **If any of the above fail, do not promote to launch.** This is the
-signal that `arq` + Redis (the locked v0.2 doctrine) needs to land before
+signal that `arq` + Redis (the locked v0.2 direction) needs to land before
 v0.1 ships, not after. Surface to Andy.
 
 **Manual click-through after the curls pass:**

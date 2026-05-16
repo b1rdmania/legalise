@@ -310,7 +310,8 @@ async def upload_document(
         payload={"filename": doc.filename, "sha256": sha, "tag": tag, "from_disclosure": from_disclosure},
     )
 
-    # Text extraction (synchronous; see PHASE_A_DELTA G1.5).
+    # Text extraction is synchronous for v0.1 so document bodies are
+    # immediately available to modules after upload.
     extract_result = extract_text(contents, doc.mime_type, doc.filename)
     session.add(
         DocumentBody(

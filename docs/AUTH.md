@@ -3,9 +3,9 @@
 Reference for the v0.1 auth surface — what's wired, what each env var
 controls, what self-host operators need to own.
 
-For the broader trust posture see [`TRUST.md`](./TRUST.md). For the
-build-time decisions and reviewer signoff history see
-[`HANDOVER_AUTH.md`](../HANDOVER_AUTH.md) and `HANDOVER_DAY_CD.md`.
+For the broader trust posture see [`TRUST.md`](./TRUST.md). This file is
+the canonical v0.1 reference for auth, sessions, provider keys, and
+signup seeding.
 
 ---
 

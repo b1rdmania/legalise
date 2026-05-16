@@ -163,9 +163,9 @@ Before Day 1:
 
 ### Day 17a — Module discovery + catalogue framing
 
-Pivot batch from `HANDOVER_PIVOT.md`: ship the read-only Discovery layer and
-rewrite public framing around Legalise as the audited execution layer for a
-Git-distributed catalogue of Claude legal skills.
+Ship the read-only Discovery layer and rewrite public framing around Legalise
+as the audited execution layer for a Git-distributed catalogue of Claude legal
+skills.
 
 - Backend: `GET /api/modules` scans `PLUGINS_ROOT` for installed `SKILL.md`
   files; `GET /api/modules/{plugin}/{skill}` exposes the prompt body for

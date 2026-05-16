@@ -8,7 +8,7 @@ top-level `{...}`, loads it, and validates.
 Boundary doctrine: this lives **outside** the gateway. The gateway
 routes and audits model calls; structured-output parsing is a consumer
 concern. Provider-native schema/tool-calling is a v0.2/v0.3 gateway
-upgrade per PHASE_INFRA_DELTA §4 decision 7 — not rushed.
+upgrade per docs/ROADMAP.md — not rushed.
 """
 
 from __future__ import annotations

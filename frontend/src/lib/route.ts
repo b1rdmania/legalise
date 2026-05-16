@@ -99,7 +99,7 @@ export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "reset",
   "verifyPending",
   "verify",
-  "modules", // catalogue is public per HANDOVER_AUTH §7 allowlist
+  "modules", // public catalogue / submission route
   "submitModule", // pre-login surface; Turnstile + IP rate-limit gate it
   "demo", // public workspace tour — Khan v Acme from a hard-coded snapshot
 ]);
