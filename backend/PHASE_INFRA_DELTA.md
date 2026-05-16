@@ -290,7 +290,7 @@ These are doctrine, not launch compromises. Launch compromises are called out ex
 
 ### Settings / Fly secrets (additions vs PHASE_E_DELTA W3.1)
 
-No additions over what PHASE_E_DELTA W3.1 + W3.2 already enumerate. The Batch-1 deps require no env vars; `docxtpl` requires no env vars. Pre-flight delta in Phase E W3 already covers Presidio + spaCy + GitHub PAT + Turnstile.
+No additions over what PHASE_E_DELTA W3.1 + W3.2 already enumerate. The Batch-1 deps require no env vars. Pre-flight delta in Phase E W3 already covers Presidio + spaCy + GitHub PAT + Turnstile.
 
 ### Audit-row hygiene
 
