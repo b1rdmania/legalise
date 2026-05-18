@@ -10,7 +10,7 @@ signup.
 
 Shipped surfaces:
 
-- Matter spine — slug, title, parties, documents, audit, chronology, privilege posture
+- Matter spine - slug, title, parties, documents, audit, chronology, privilege posture
 - Privilege-aware model gateway (Anthropic / OpenAI / Ollama)
 - Audit middleware over every model call and matter mutation
 - Pre-Motion (adversarial premortem, four stages, nine model calls)
@@ -43,13 +43,13 @@ Locked (the direction is fixed; implementation lands in v0.2):
   brittleness this work resolves.
 - **Runtime per-capability enforcement.** v0.1 declares capabilities
   and schema-validates them. v0.2 makes them enforceable policy at
-  every call site — the gateway checks the calling skill's declared
+  every call site. The gateway checks the calling skill's declared
   capability against the action it's attempting.
 - **Provider-native structured output and tool calling.** v0.1 uses
   `backend/app/core/structured_output.py::parse_model_json` as an
   internal helper. v0.2 moves the gateway to provider-native schemas
   where available, with a fallback to the helper. Interacts with
-  posture-aware provider selection — not rushed.
+  posture-aware provider selection. Not rushed.
 - **`audit_actions.py` constants module.** Required. The audit action
   taxonomy moves from stringly-typed call sites to constants imported
   from `backend/app/core/audit_actions.py`.

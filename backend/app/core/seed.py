@@ -26,6 +26,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.api import audit as audit_api
 from app.core.matter_fs import materialise_matter, append_history, record_document
 from app.models import Document, Event, Matter, PRIVILEGE_MIXED, STATUS_OPEN, User
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
@@ -421,7 +422,7 @@ async def _seed_chronology(
     matter: Matter,
     user_id,
     docs: dict[str, Document],
-) -> None:
+) -> list[Event]:
     """Seed 7 chronology events for Khan. Significance 1-5. Some carry a
     source_doc_id pointing at the dismissal letter — those are the
     CPR 31.22-tainted entries that trip the gate.
@@ -463,20 +464,78 @@ async def _seed_chronology(
         (date(2026, 5, 24), 4, "ACAS Day B — EC certificate issued.", [], False),
     ]
 
+    events: list[Event] = []
     for event_date, sig, desc, sources, priv in fixtures:
-        session.add(
-            Event(
-                matter_id=matter.id,
-                event_date=event_date,
-                description=desc,
-                significance=sig,
-                source_doc_ids=sources,
-                priv_flag=priv,
-                created_by_id=user_id,
-            )
+        event = Event(
+            matter_id=matter.id,
+            event_date=event_date,
+            description=desc,
+            significance=sig,
+            source_doc_ids=sources,
+            priv_flag=priv,
+            created_by_id=user_id,
         )
+        session.add(event)
+        events.append(event)
 
     await session.flush()
+    return events
+
+
+async def _write_seed_audit_rows(
+    session: AsyncSession,
+    matter: Matter,
+    docs: dict[str, Document],
+    events: list[Event],
+) -> None:
+    """Bootstrap audit rows for a freshly-seeded matter.
+
+    actor_id is None so the rows do not pretend the user performed the
+    seeding. payload kind is "seed" so the audit UI can label them
+    truthfully. Same session as the seed itself, so a rollback rolls both
+    back together.
+    """
+    await audit_api.log(
+        session,
+        "seed.matter.created",
+        matter_id=matter.id,
+        module="seed",
+        resource_type="matter",
+        resource_id=str(matter.id),
+        payload={
+            "actor": "system.bootstrap",
+            "kind": "seed",
+            "slug": matter.slug,
+        },
+    )
+    for doc in docs.values():
+        await audit_api.log(
+            session,
+            "seed.document.ingested",
+            matter_id=matter.id,
+            module="seed",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "actor": "system.bootstrap",
+                "kind": "seed",
+                "filename": doc.filename,
+            },
+        )
+    for event in events:
+        await audit_api.log(
+            session,
+            "seed.chronology.ingested",
+            matter_id=matter.id,
+            module="seed",
+            resource_type="event",
+            resource_id=str(event.id),
+            payload={
+                "actor": "system.bootstrap",
+                "kind": "seed",
+                "event_date": event.event_date.isoformat(),
+            },
+        )
 
 
 async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter:
@@ -559,7 +618,8 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
     await session.flush()
 
     docs = await _seed_documents(session, matter, user.id)
-    await _seed_chronology(session, matter, user.id, docs)
+    events = await _seed_chronology(session, matter, user.id, docs)
+    await _write_seed_audit_rows(session, matter, docs, events)
 
     materialise_matter(matter)
     append_history(matter.slug, user.id, "matter.seeded", "Khan v Acme demo matter inserted")

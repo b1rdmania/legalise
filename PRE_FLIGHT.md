@@ -351,7 +351,53 @@ runbook.
 
 ---
 
-## 7. What's NOT in pre-flight
+## 7. Browser walk against local stack
+
+API smoke is not enough. The frontend now carries more of the product
+claim than it did at Day 9. Walk every surface eyes-on before the
+deploy. ~15 minutes if nothing breaks.
+
+Bring the stack up:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d
+```
+
+Open `http://localhost:3000` in a clean profile (no localStorage, no
+cookie). Walk in this order:
+
+| # | Surface | Pass criterion |
+|---|---|---|
+| 1 | Unauth landing | Renders. Sign-in / sign-up CTAs visible. No console errors. |
+| 2 | `#/demo` cold | Loads the canned Khan snapshot. Mutation CTAs flash the sign-up workspace-framed message. Every tab inside the demo renders. No backend calls in the network panel (it's static). |
+| 3 | Signup | Register a fresh email. Dev autoverify lands you in the workspace with the seeded Khan matter visible. |
+| 4 | Audit tab (fresh) | Shows bootstrap rows from the per-user seed: one `seed.matter.created`, one row per seeded document, one row per seeded event. Module column = `seed`. Actor renders as system / bootstrap, not the user's email. |
+| 5 | Documents | Three seeded documents listed. Open each. Body renders. Tracked-changes timeline renders even at v1. |
+| 6 | Chronology gate | Seven events listed. One marked disclosure-tainted. Acknowledgement gate fires before tainted detail surfaces. Confirm. Tainted content now visible. New `chronology.gate.confirmed` row in Audit. |
+| 7 | Pre-Motion | Open the tab. Form validates. Submit a small input against `stub-echo` (DB-side switch documented in HANDOVER_LAUNCH_QA.md) or against a real Anthropic key. Stage events stream. Final result renders. |
+| 8 | Contract Review | Pick the seeded NDA. Submit. SSE stream produces stage events. Redline anchors resolve. Summary memo renders. Export `.docx`. |
+| 9 | Letters | Catalogue loads with at least the LBA option. Draft a letter. Export `.docx`. |
+| 10 | Anonymisation | Run Presidio on a document. Detokenise round-trips byte-identical. |
+| 11 | Assistant | Open chat. Send a question. Reply renders. Citations on `[doc:...]` / `[chron:...]` resolve to clickable labels, not raw UUIDs. Suggested-action chips, when present, route into the right module. |
+| 12 | Modules page | At least one skill listed under "installed". Declared capabilities surface as metadata. `broken` list empty (if it's not, the `claude-for-uk-legal` manifests are not landed — block deploy). |
+
+SSE-disconnect smoke (required per PHASE_INFRA_DELTA §4 decision 6):
+during Contract Review or Pre-Motion stream, close the browser tab
+mid-run. Re-open the matter. The run finalises server-side; the tab
+shows the completed run, not a stuck "in progress" state.
+
+**Done state.**
+- Every row above ticks.
+- No console errors on any tab.
+- Audit tab non-empty on first paint for the fresh user.
+- Modules page shows skills under `skills:`, not `broken:`.
+- SSE-disconnect leaves no stuck run.
+
+If any row fails, fix before deploy. Blocking.
+
+---
+
+## 8. What's NOT in pre-flight
 
 - The actual deploy commands — those live in `infra/deploy/cloudflare.md`.
 - Gotenberg deployment — same file, §5b.

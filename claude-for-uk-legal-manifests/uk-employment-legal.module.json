@@ -1,0 +1,25 @@
+{
+  "name": "uk-employment-legal",
+  "version": "0.1.0",
+  "description": "UK employment law skills - Employment Tribunal claims, ACAS conciliation, settlement agreements, and pre-action correspondence.",
+  "author": "b1rdmania",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/b1rdmania/claude-for-uk-legal",
+  "nav": {
+    "label": "Employment",
+    "icon": "lucide:briefcase",
+    "order": 60
+  },
+  "routes": {
+    "backend_prefix": "/api/modules/uk-employment-legal",
+    "frontend_route": "/matters/$slug/employment"
+  },
+  "capabilities": [
+    "matter.read",
+    "document.body.read",
+    "document.generated.write",
+    "model.invoke",
+    "audit.emit"
+  ],
+  "trust_posture": "trusted"
+}

@@ -14,7 +14,7 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
 from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyBaseAccessTokenTableUUID
 from sqlalchemy import DateTime, ForeignKey, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.models.base import Base
 
@@ -42,9 +42,22 @@ class AccessToken(SQLAlchemyBaseAccessTokenTableUUID, Base):
     Cookie transport stores the token value in an httponly cookie; this
     table is the server-side validator. Lifetime is enforced by the
     strategy config, not a column.
+
+    The fastapi-users mixin declares `user_id` with a FK to `user.id`
+    (singular). Our user table is `users`, so we override the column
+    here. Migration 0003 already creates the FK against `users.id`;
+    this only fixes the ORM-side metadata so flush resolves correctly.
     """
 
     __tablename__ = "access_token"
+
+    @declared_attr
+    def user_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(
+            UUID(as_uuid=True),
+            ForeignKey("users.id", ondelete="cascade"),
+            nullable=False,
+        )
 
 
 class UserApiKey(Base):

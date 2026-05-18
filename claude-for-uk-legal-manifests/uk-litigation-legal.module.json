@@ -1,0 +1,27 @@
+{
+  "name": "uk-litigation-legal",
+  "version": "0.1.0",
+  "description": "UK litigation skills - adversarial premortem, chronology assembly, CPR-compliant correspondence, and disclosure list drafting.",
+  "author": "b1rdmania",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/b1rdmania/claude-for-uk-legal",
+  "nav": {
+    "label": "Litigation",
+    "icon": "lucide:scale",
+    "order": 61
+  },
+  "routes": {
+    "backend_prefix": "/api/modules/uk-litigation-legal",
+    "frontend_route": "/matters/$slug/litigation"
+  },
+  "capabilities": [
+    "matter.read",
+    "document.body.read",
+    "document.generated.write",
+    "chronology.read",
+    "chronology.write",
+    "model.invoke",
+    "audit.emit"
+  ],
+  "trust_posture": "trusted"
+}

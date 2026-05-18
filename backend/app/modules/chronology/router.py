@@ -42,7 +42,7 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_fs import append_history
 from app.core.api import audit
-from app.models import Document, Event, Matter, User
+from app.models import AuditEntry, Document, Event, Matter, User
 
 
 router = APIRouter()
