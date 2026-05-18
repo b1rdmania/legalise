@@ -165,7 +165,7 @@ Existing suite used stub sessions everywhere; no test hit `/auth/login`, no test
 
 **Broader route E2E coverage (19 new tests).** `test_matters_routes.py`, `test_documents_routes.py`, `test_audit_route.py`, `test_modules_route.py`, `test_letters_catalog.py`, `test_workspace_skills.py`. Each follows the same pattern: signup → assertions.
 
-## File-level summary (what's in master, 3 commits ahead of origin)
+## File-level summary (what's in master, 5 commits ahead of origin)
 
 ```
 # Source
@@ -239,7 +239,7 @@ What it does not ship: chronology-write capability wiring (no module-driven writ
    - Make BYO-key onboarding unavoidable (first post-signup screen, blocking matter UI until a key is saved).
    Stub-echo is not an acceptable launch impression. Decision before Day 15.
 4. **Browser walk per PRE_FLIGHT §7.** Eyes-on pass across all matter tabs + Modules page + `#/demo` cold.
-5. **Push.** Master is 3 commits ahead of origin. Nothing to merge, just push.
+5. **Push.** Master is 5 commits ahead of origin. Nothing to merge, just push.
 
 ## What reviewer should audit
 
@@ -250,4 +250,4 @@ Suggested audit pass:
 - Manifest validation: every file in `claude-for-uk-legal-manifests/*.module.json` passes `Draft202012Validator(json.load(open('schemas/module.json')))`
 - Capability wiring: `grep -rn "require_capability" backend/app/` should return the 5 boundaries listed under Fix 5
 - Doctrine check: no `chronology.write` enforcement (deliberate, documented)
-- Voice check: `grep -c "-" README.md docs/MANIFESTO.md docs/ROADMAP.md` should return 0 across the board
+- Voice check: `rg -n "—|–" README.md docs/MANIFESTO.md docs/ROADMAP.md` should return no matches (em dash U+2014, en dash U+2013)

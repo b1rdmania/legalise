@@ -36,7 +36,7 @@ Items requiring Andy action before Day 15 deploy:
 2. **Re-pin `PLUGINS_REPO_REF`** in `backend/app/core/config.py` to the new SHA. Verify `/api/modules` returns `skills: 15`, `broken: 0`.
 3. **Provider-key launch posture.** Real demo key vs unavoidable BYO-key onboarding. Decision needed before Day 15.
 4. **Browser walk** per `PRE_FLIGHT.md` §7. Eyes-on across every tab + Modules page + `#/demo` cold.
-5. **Push.** Master is 3 commits ahead of origin.
+5. **Push.** Master is 5 commits ahead of origin.
 
 Items deferred to v0.2 (direction locked):
 

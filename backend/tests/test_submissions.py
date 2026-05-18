@@ -69,7 +69,9 @@ class TestSchema:
             ModuleSubmissionRequest(**_valid_payload(trust_posture="enterprise"))
 
     def test_capability_set_matches_doctrine(self) -> None:
-        # v0.1 module manifest doctrine — eight-item closed set.
+        # v0.1 capability vocabulary. Seven-item closed set.
+        # audit emission is not a capability: audit is mandatory provenance,
+        # not a permission a module can be denied. Reviewer-locked.
         assert ALLOWED_CAPABILITIES == frozenset(
             {
                 "matter.read",
@@ -79,7 +81,6 @@ class TestSchema:
                 "chronology.read",
                 "chronology.write",
                 "citation.write",
-                "audit.emit",
             }
         )
 

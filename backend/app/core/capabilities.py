@@ -19,7 +19,10 @@ Capability vocabulary (locked, mirrors `schemas/module.json`):
     chronology.read
     chronology.write
     citation.write
-    audit.emit
+
+Note: audit emission is not a capability. Audit is mandatory provenance
+and is not gated by grants. Any code path that mutates state writes an
+audit row unconditionally.
 """
 
 from __future__ import annotations
@@ -47,9 +50,37 @@ CAPABILITY_VOCABULARY: frozenset[str] = frozenset(
         "chronology.read",
         "chronology.write",
         "citation.write",
-        "audit.emit",
     }
 )
+
+
+def declared_capabilities_for_skill(
+    module_payload: dict | None, skill: str
+) -> list[str]:
+    """Resolve declared capabilities for a `(plugin, skill)` pair.
+
+    Per-skill `skills.<slug>.capabilities` overrides the plugin-level
+    `capabilities` list when present. Skills absent from the `skills`
+    map inherit plugin-level. Non-dict inputs return `[]`.
+
+    Single source of truth for both the Modules listing endpoint and
+    the signup auto-grant. Keeps the two in lock-step so what the
+    user sees is exactly what the runtime grants.
+    """
+    if not isinstance(module_payload, dict):
+        return []
+    skills_map = module_payload.get("skills")
+    if isinstance(skills_map, dict):
+        override = skills_map.get(skill)
+        if isinstance(override, dict) and "capabilities" in override:
+            override_caps = override.get("capabilities")
+            if isinstance(override_caps, list):
+                return [c for c in override_caps if isinstance(c, str)]
+            return []
+    plugin_caps = module_payload.get("capabilities")
+    if isinstance(plugin_caps, list):
+        return [c for c in plugin_caps if isinstance(c, str)]
+    return []
 
 
 class CapabilityDenied(Exception):
@@ -227,13 +258,18 @@ async def auto_grant_declared_for_user(
     *,
     user_id: uuid.UUID,
 ) -> int:
-    """Grant every declared capability of every installed plugin's skills
-    to `user_id`. Returns the number of `(plugin, skill, capability)`
-    triples written. Idempotent.
+    """Grant every declared capability of every installed skill to `user_id`.
+    Returns the number of `(plugin, skill, capability)` triples written.
+    Idempotent.
+
+    Reads per-skill `capabilities` via `declared_capabilities_for_skill` so
+    the grant set matches what `/api/modules` reports. Auto-grant and the
+    Modules listing endpoint share one resolver; they cannot drift.
 
     v0.1 policy: declared = granted at signup. The Modules page lets the
-    user revoke any time. v0.1.1 ships an explicit grant UI; until then
-    the auto-grant keeps the user-visible workspace working end-to-end.
+    user revoke any time. An explicit grant-confirmation UI lands with the
+    next workspace surface; the auto-grant keeps v0.1 end-to-end functional
+    without forcing a click-through before the first call.
     """
     # Lazy imports break startup cycles; this module is imported very early.
     import json as _json
@@ -242,11 +278,7 @@ async def auto_grant_declared_for_user(
 
     root = _plugins_root()
     written = 0
-    # Walk every SKILL.md found at PLUGINS_ROOT. Each one resolves to a
-    # plugin's `module.json`; the declared `capabilities` list applies
-    # to every skill under that plugin (the schema is plugin-level in
-    # v0.1; per-skill capabilities ship with the next manifest revision).
-    manifest_cache: dict[str, list[str]] = {}
+    manifest_cache: dict[str, dict | None] = {}
     for path in _skill_paths():
         try:
             plugin, _, skill, _filename = path.relative_to(root).parts
@@ -255,20 +287,19 @@ async def auto_grant_declared_for_user(
         if plugin not in manifest_cache:
             mj_path = _module_json_for(path)
             if not mj_path.exists():
-                manifest_cache[plugin] = []
+                manifest_cache[plugin] = None
                 continue
             try:
-                payload = _json.loads(mj_path.read_text(encoding="utf-8"))
+                manifest_cache[plugin] = _json.loads(
+                    mj_path.read_text(encoding="utf-8")
+                )
             except (ValueError, OSError):
-                manifest_cache[plugin] = []
+                manifest_cache[plugin] = None
                 continue
-            caps = payload.get("capabilities") if isinstance(payload, dict) else None
-            manifest_cache[plugin] = (
-                [c for c in caps if isinstance(c, str)]
-                if isinstance(caps, list)
-                else []
-            )
-        for capability in manifest_cache[plugin]:
+        capabilities = declared_capabilities_for_skill(
+            manifest_cache[plugin], skill
+        )
+        for capability in capabilities:
             await grant(
                 session,
                 user_id=user_id,
@@ -283,6 +314,7 @@ async def auto_grant_declared_for_user(
 __all__ = [
     "CAPABILITY_VOCABULARY",
     "CapabilityDenied",
+    "declared_capabilities_for_skill",
     "require_capability",
     "list_granted",
     "grant",

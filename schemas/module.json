@@ -130,16 +130,15 @@
           "model.invoke",
           "chronology.read",
           "chronology.write",
-          "citation.write",
-          "audit.emit"
+          "citation.write"
         ]
       },
-      "description": "Declared capabilities the module exercises. v0.1 surfaces these as declarations under review; runtime per-capability enforcement is v0.2."
+      "description": "Declared capabilities the module exercises. Plugin-level default; per-skill overrides under `skills.<slug>.capabilities` take precedence. Auto-granted at signup; user can revoke from the Modules page; enforced at runtime by `app.core.capabilities.require_capability`."
     },
     "trust_posture": {
       "type": "string",
       "enum": ["trusted", "third_party", "experimental"],
-      "description": "Trust band for the module. Surfaced in the Modules page; declarative only in v0.1."
+      "description": "Trust band for the module. Surfaced in the Modules page. Plugin-level default; per-skill `skills.<slug>.trust_posture` takes precedence."
     },
     "skills": {
       "type": "object",
@@ -160,8 +159,7 @@
                   "model.invoke",
                   "chronology.read",
                   "chronology.write",
-                  "citation.write",
-                  "audit.emit"
+                  "citation.write"
                 ]
               }
             },

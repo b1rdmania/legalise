@@ -40,12 +40,12 @@ Per-skill capabilities. The schema's optional `skills` map carries per-skill ove
 
 | Skill | Capabilities |
 |---|---|
-| `lba-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `acas-early-conciliation` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `et1-claim-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `unfair-dismissal-screener` | matter.read, document.body.read, model.invoke, audit.emit |
-| `settlement-agreement-review` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `part-36-offer` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `lba-drafter` | matter.read, document.body.read, document.generated.write, model.invoke |
+| `acas-early-conciliation` | matter.read, document.body.read, document.generated.write, model.invoke |
+| `et1-claim-drafter` | matter.read, document.body.read, document.generated.write, model.invoke |
+| `unfair-dismissal-screener` | matter.read, document.body.read, model.invoke |
+| `settlement-agreement-review` | matter.read, document.body.read, document.generated.write, model.invoke |
+| `part-36-offer` | matter.read, document.body.read, document.generated.write, model.invoke |
 
 `unfair-dismissal-screener` is the only narrow one. It returns a viability verdict, not a generated document, so `document.generated.write` is dropped.
 
@@ -53,11 +53,11 @@ Per-skill capabilities. The schema's optional `skills` map carries per-skill ove
 
 | Skill | Capabilities |
 |---|---|
-| `pre-motion` | matter.read, document.body.read, chronology.read, model.invoke, audit.emit |
-| `chronology` | matter.read, document.body.read, chronology.read, chronology.write, model.invoke, audit.emit |
-| `cpr-letter-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `disclosure-list` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `without-prejudice-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `pre-motion` | matter.read, document.body.read, chronology.read, model.invoke |
+| `chronology` | matter.read, document.body.read, chronology.read, chronology.write, model.invoke |
+| `cpr-letter-drafter` | matter.read, document.body.read, document.generated.write, model.invoke |
+| `disclosure-list` | matter.read, document.body.read, document.generated.write, model.invoke |
+| `without-prejudice-drafter` | matter.read, document.body.read, document.generated.write, model.invoke |
 
 `pre-motion` reads chronology but does not write documents. `chronology` is the only writer of chronology events.
 
@@ -65,10 +65,10 @@ Per-skill capabilities. The schema's optional `skills` map carries per-skill ove
 
 | Skill | Capabilities |
 |---|---|
-| `find-case-law` | matter.read, citation.write, model.invoke, audit.emit |
-| `citation-verifier` | matter.read, citation.write, model.invoke, audit.emit |
-| `legislation-lookup` | matter.read, citation.write, model.invoke, audit.emit |
-| `practice-direction-lookup` | matter.read, citation.write, model.invoke, audit.emit |
+| `find-case-law` | matter.read, citation.write, model.invoke |
+| `citation-verifier` | matter.read, citation.write, model.invoke |
+| `legislation-lookup` | matter.read, citation.write, model.invoke |
+| `practice-direction-lookup` | matter.read, citation.write, model.invoke |
 
 Research skills are uniform. Each writes a citation row, none generates a document in v0.1.
 
@@ -78,7 +78,7 @@ The manifest schema is at `legalise:schemas/module.json`. The `capabilities` enu
 
 ```
 matter.read | document.body.read | document.generated.write | model.invoke |
-chronology.read | chronology.write | citation.write | audit.emit
+chronology.read | chronology.write | citation.write
 ```
 
 New names need a schema PR and reviewer signoff.

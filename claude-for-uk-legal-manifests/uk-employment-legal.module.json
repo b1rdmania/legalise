@@ -18,8 +18,7 @@
     "matter.read",
     "document.body.read",
     "document.generated.write",
-    "model.invoke",
-    "audit.emit"
+    "model.invoke"
   ],
   "trust_posture": "trusted",
   "skills": {
@@ -28,8 +27,7 @@
         "matter.read",
         "document.body.read",
         "document.generated.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "acas-early-conciliation": {
@@ -37,8 +35,7 @@
         "matter.read",
         "document.body.read",
         "document.generated.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "et1-claim-drafter": {
@@ -46,16 +43,14 @@
         "matter.read",
         "document.body.read",
         "document.generated.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "unfair-dismissal-screener": {
       "capabilities": [
         "matter.read",
         "document.body.read",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "settlement-agreement-review": {
@@ -63,8 +58,7 @@
         "matter.read",
         "document.body.read",
         "document.generated.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "part-36-offer": {
@@ -72,8 +66,7 @@
         "matter.read",
         "document.body.read",
         "document.generated.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     }
   }

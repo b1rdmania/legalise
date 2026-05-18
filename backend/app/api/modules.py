@@ -204,15 +204,16 @@ async def list_modules(
             broken.append(BrokenManifest(plugin=plugin, skill=skill, errors=errors))
             continue
 
-        # Per-skill overrides take precedence over plugin-level defaults.
-        # A skill absent from the `skills` map inherits the plugin-level
-        # values. v0.1 surfaces these as declared metadata only; runtime
-        # enforcement is the next unit (HANDOVER_LAUNCH_QA.md).
-        plugin_caps: list[str] = (
-            list(module_payload.get("capabilities", []))
-            if isinstance(module_payload, dict)
-            else []
-        )
+        # Declared capabilities resolve per-skill via the shared helper
+        # in `app.core.capabilities`. Auto-grant on signup reads the same
+        # function so what the user sees here matches what the runtime
+        # actually grants. Per-skill overrides take precedence over the
+        # plugin-level list; skills absent from the `skills` map inherit
+        # plugin-level. Trust posture follows the same precedence.
+        from app.core.capabilities import declared_capabilities_for_skill
+
+        capabilities = declared_capabilities_for_skill(module_payload, skill)
+
         plugin_trust = (
             module_payload.get("trust_posture")
             if isinstance(module_payload, dict)
@@ -225,12 +226,6 @@ async def list_modules(
                 candidate = skills_map.get(skill, {})
                 if isinstance(candidate, dict):
                     skill_override = candidate
-
-        capabilities = (
-            list(skill_override["capabilities"])
-            if "capabilities" in skill_override
-            else plugin_caps
-        )
         trust_posture = skill_override.get("trust_posture", plugin_trust)
 
         granted = sorted(granted_by_skill.get((plugin, skill), []))

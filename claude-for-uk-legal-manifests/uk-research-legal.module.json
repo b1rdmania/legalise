@@ -17,8 +17,7 @@
   "capabilities": [
     "matter.read",
     "citation.write",
-    "model.invoke",
-    "audit.emit"
+    "model.invoke"
   ],
   "trust_posture": "trusted",
   "skills": {
@@ -26,32 +25,28 @@
       "capabilities": [
         "matter.read",
         "citation.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "citation-verifier": {
       "capabilities": [
         "matter.read",
         "citation.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "legislation-lookup": {
       "capabilities": [
         "matter.read",
         "citation.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     },
     "practice-direction-lookup": {
       "capabilities": [
         "matter.read",
         "citation.write",
-        "model.invoke",
-        "audit.emit"
+        "model.invoke"
       ]
     }
   }

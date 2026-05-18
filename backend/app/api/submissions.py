@@ -58,7 +58,6 @@ ALLOWED_CAPABILITIES = frozenset(
         "chronology.read",
         "chronology.write",
         "citation.write",
-        "audit.emit",
     }
 )
 
