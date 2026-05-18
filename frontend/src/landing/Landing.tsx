@@ -52,12 +52,12 @@ export function Landing() {
         <div className="mb-16">
           <div className="eyebrow font-mono text-muted mb-4">VERSION 0.1 - MAY 2026</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
-            Open a matter. Ask the assistant. Install a legal module. Run it. See what it touched.
+            Open a matter. Ask the assistant. Install a legal module. Run it.
+            See what it touched. See the audit trail.
           </h1>
           <p className="text-xl text-muted leading-relaxed max-w-2xl">
-            UK legal AI workspace for England &amp; Wales. Matter-first, privilege-posture-aware,
-            audit-logged. Open-source under Apache 2.0. The Khan v Acme sample matter seeds on
-            signup so the workspace is never empty.
+            UK legal AI workspace. England &amp; Wales only. Matter-first.
+            Open-source, Apache 2.0.
           </p>
 
           <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
@@ -111,13 +111,13 @@ export function Landing() {
                 href="#/demo"
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
-                See it in action, no signup
+                Open the demo
               </a>
               <a
                 href="#/auth/signup"
                 className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
-                Sign up, free, BYO key
+                Sign up free
               </a>
               <a
                 href="#/auth/signin"
@@ -143,10 +143,9 @@ export function Landing() {
           )}
 
           <p className="text-sm text-muted mt-6 max-w-2xl">
-            Signup is free. Bring your own Anthropic or OpenAI key after verification. Keys are
-            stored encrypted server-side and used only by the privilege-aware model gateway on
-            your matters. The seeded Khan v Acme demo matter is copied into your workspace on
-            confirm, so first sign-in lands on something live.
+            Bring your own Anthropic or OpenAI key after verification. Keys are encrypted at
+            rest. The Khan v Acme sample matter seeds on first sign-in so the workspace is
+            never empty.
           </p>
         </div>
 
