@@ -89,7 +89,7 @@ class Settings(BaseSettings):
     # backend container in dev (see infra/docker-compose.yml).
     plugins_root: str = "/plugins"
     plugins_repo: str | None = "https://github.com/b1rdmania/claude-for-uk-legal"
-    plugins_repo_ref: str | None = "3fb0ea86ad49f92d90fbd9dcfbee70f5947ba31c"
+    plugins_repo_ref: str | None = "f8201f1da72f6485c296eff620b19db18f016b68"
 
     # Public module submission flow (Phase D W3). Opens a draft PR on
     # `b1rdmania/claude-for-uk-legal` via a fine-grained PAT scoped to that
