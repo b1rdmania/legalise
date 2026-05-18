@@ -34,19 +34,43 @@ Expected: `skills: 15 | broken: 0`.
 
 ## What the manifests declare
 
-Per-plugin capability union (the bridge applies these to every skill in the plugin in v0.1; per-skill granularity lands with runtime enforcement). All three plugins use `trust_posture: trusted` because they originate from the canonical `b1rdmania/claude-for-uk-legal` catalogue.
+Per-skill capabilities. The schema's optional `skills` map carries per-skill overrides; the bridge prefers per-skill values and falls back to plugin-level when absent. Plugin-level `capabilities` is the union, kept as the safety fallback for consumers that do not read `skills`. All three plugins use `trust_posture: trusted` because they originate from the canonical `b1rdmania/claude-for-uk-legal` catalogue.
 
-| Plugin | Capabilities |
+### uk-employment-legal (6 skills)
+
+| Skill | Capabilities |
 |---|---|
-| `uk-employment-legal` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
-| `uk-litigation-legal` | matter.read, document.body.read, document.generated.write, chronology.read, chronology.write, model.invoke, audit.emit |
-| `uk-research-legal` | matter.read, citation.write, model.invoke, audit.emit |
+| `lba-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `acas-early-conciliation` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `et1-claim-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `unfair-dismissal-screener` | matter.read, document.body.read, model.invoke, audit.emit |
+| `settlement-agreement-review` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `part-36-offer` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
 
-Skill-level reasoning behind each union:
+`unfair-dismissal-screener` is the only narrow one. It returns a viability verdict, not a generated document, so `document.generated.write` is dropped.
 
-- **uk-employment-legal**: every skill drafts a letter or analyses a claim. All read matter + document bodies, all call the model, all emit audit. Five of six write a generated document (the unfair-dismissal-screener returns a screening verdict, not a doc — but the plugin union still includes the write capability).
-- **uk-litigation-legal**: pre-motion and chronology read chronology; chronology writes it. Three drafting skills write documents. All read matter + document bodies, call the model, emit audit.
-- **uk-research-legal**: every skill is a research lookup that writes a citation row. None write generated documents in v0.1.
+### uk-litigation-legal (5 skills)
+
+| Skill | Capabilities |
+|---|---|
+| `pre-motion` | matter.read, document.body.read, chronology.read, model.invoke, audit.emit |
+| `chronology` | matter.read, document.body.read, chronology.read, chronology.write, model.invoke, audit.emit |
+| `cpr-letter-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `disclosure-list` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+| `without-prejudice-drafter` | matter.read, document.body.read, document.generated.write, model.invoke, audit.emit |
+
+`pre-motion` reads chronology but does not write documents. `chronology` is the only writer of chronology events.
+
+### uk-research-legal (4 skills)
+
+| Skill | Capabilities |
+|---|---|
+| `find-case-law` | matter.read, citation.write, model.invoke, audit.emit |
+| `citation-verifier` | matter.read, citation.write, model.invoke, audit.emit |
+| `legislation-lookup` | matter.read, citation.write, model.invoke, audit.emit |
+| `practice-direction-lookup` | matter.read, citation.write, model.invoke, audit.emit |
+
+Research skills are uniform. Each writes a citation row, none generates a document in v0.1.
 
 ## Schema reference
 

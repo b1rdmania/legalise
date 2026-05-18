@@ -4,8 +4,9 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -20,6 +21,7 @@ from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
 from app.api.workspace import router as workspace_router
 from app.core.audit import AuditMiddleware
+from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
 from app.core.encryption import assert_auth_secrets_present, assert_master_key_present
 from app.core.model_gateway import gateway as model_gateway
@@ -115,6 +117,29 @@ app.add_middleware(
 )
 
 app.add_middleware(AuditMiddleware)
+
+
+@app.exception_handler(CapabilityDenied)
+async def _capability_denied_handler(request: Request, exc: CapabilityDenied) -> JSONResponse:
+    """Return a structured 403 for any uncaught CapabilityDenied.
+
+    Audit row is already written inside `require_capability`. Routers
+    that prefer to translate to their own HTTP shape can still catch
+    `CapabilityDenied` directly; anything that propagates lands here.
+    """
+    return JSONResponse(
+        status_code=403,
+        content={
+            "error": "capability_denied",
+            "plugin": exc.plugin,
+            "skill": exc.skill,
+            "capability": exc.capability,
+            "message": (
+                f"Module '{exc.plugin}/{exc.skill}' was not granted "
+                f"'{exc.capability}'. Grant from the Modules page."
+            ),
+        },
+    )
 
 
 @app.get("/health")

@@ -179,6 +179,22 @@ class PluginBridge:
             if disabled is not None:
                 raise SkillDisabled(plugin, skill)
 
+            # Runtime capability enforcement. Skill bridge needs to read
+            # the matter to assemble the prompt and call the model on the
+            # skill's behalf. Both are gated. Other capabilities the skill
+            # exercises through gateway tools are enforced at the tool
+            # boundary, not here.
+            from app.core.capabilities import require_capability
+
+            await require_capability(
+                session, user_id=actor_id, plugin=plugin, skill=skill,
+                capability="matter.read",
+            )
+            await require_capability(
+                session, user_id=actor_id, plugin=plugin, skill=skill,
+                capability="model.invoke",
+            )
+
         manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
 
         # Load the matter — single source of truth for privilege + context.

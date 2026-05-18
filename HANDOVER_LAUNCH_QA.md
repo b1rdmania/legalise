@@ -136,29 +136,60 @@ Actor convention. Use a reserved system actor identifier rather than the user. `
 
 `backend/tests/test_seed_audit.py`. After per-user seed: matter audit query returns N rows where N matches `1 + len(seeded_documents) + len(seeded_events)`. Each row has `payload.kind == "seed"` and `actor_id IS NULL`.
 
-## Pre-production unit (v0.1.1 or whatever the next runtime unit is named)
+## Pre-production unit (v0.1.1) — DONE
 
-This is not in this unit's scope. Carving it out for the next unit so the reviewer-ratified doctrine has a named home.
+Landed on branch `feat/capability-enforcement`. The doctrine line is now
+load-bearing in code:
 
-### What it does
+- `backend/app/models/workspace_skill_capability_grant.py` — model.
+- `backend/alembic/versions/0008_capability_grants.py` — migration.
+- `backend/app/core/capabilities.py` — `require_capability`, `grant`,
+  `revoke`, `list_granted`, plus `auto_grant_declared_for_user` for the
+  signup hook.
+- `backend/app/main.py` — `CapabilityDenied` handler returns the
+  structured 403 payload (`{error, plugin, skill, capability, message}`)
+  and the audit row is committed inside `require_capability` before the
+  exception propagates, so denied attempts always leave a trail.
 
-1. Introduce `workspace_skill_capability_grants` table. Columns: `(user_id, plugin, skill, capability, granted_at, granted_by_user_id)`.
-2. Implement `require_capability(plugin, skill, capability)` as a backend helper that reads granted grants and raises `CapabilityDenied` with a structured 403 payload on miss.
-3. Wire `require_capability(...)` at every privileged boundary where module work is executed:
-   - Plugin bridge prompt/context assembly
-   - Assistant/module tool invocation
-   - Document body access for module reads
-   - Generated document writes by modules
-   - Model calls made on behalf of a module
-   - Chronology and citation mutations attributed to a module
-4. UI: Modules page grows a per-skill "Grant capabilities" action that diffs declared vs granted, requires explicit user click to grant.
-5. Manifest updates do not silently escalate. A manifest can declare a new capability, but the workspace must grant it. Newly declared capabilities surface in the UI as "requested, not granted."
+Wired boundaries:
 
-### Why this sits outside this unit
+1. **Plugin bridge** (`adapters/plugin_bridge.py::invoke`) — requires
+   `matter.read` and `model.invoke` for the `(plugin, skill)`.
+2. **Tool invocation** (`core/model_gateway.py::invoke_tool`) — accepts
+   `plugin` + `skill` kwargs; when present, requires `model.invoke` plus
+   the tool-write capability (`generate_docx` → `document.generated.write`).
+3. **Document body read** (`api/documents.py::get_document_body`) —
+   optional `plugin` + `skill` query params; when supplied, requires
+   `document.body.read`. User-initiated UI calls (no params) keep the
+   existing owner-only gate, no behavioural change.
+4. **Generated document writes** — flow through the tool boundary above.
+5. **Model calls** (`core/model_gateway.py::call`) — when `payload`
+   carries both `plugin` and `skill`, requires `model.invoke`.
+6. **Citation writes** (`modules/case_law/router.py::create_citation`) —
+   optional `plugin` + `skill` query params; when supplied, requires
+   `citation.write`.
 
-This unit is launch posture. The runtime layer needs a separate model + migration + 15-ish call-site changes + end-to-end test coverage. Carving it out keeps the launch fix small and the runtime work properly scoped.
+Chronology mutations: no module-attributed write endpoint exists today
+(the `POST /chronology/gate` route is the user's own acknowledgement).
+When a module-driven chronology write lands, the same pattern applies:
+optional `plugin` + `skill` params trigger `chronology.write`.
 
-The doctrine line above is the bridge: v0.1 ships honest framing, v0.1.1 (or the next runtime unit) ships the enforcement that makes the framing redundant.
+Auto-grant on signup runs inside `_post_verify` alongside the demo seed,
+wrapped in try/except + log so a manifest read failure cannot block
+registration.
+
+Modules surface (`/api/modules`) returns `declared_capabilities` and
+`granted_capabilities` per skill alongside the existing `capabilities`
+field (kept as an alias of declared for backward-compat).
+
+Test coverage: `backend/tests/test_capabilities.py` covers
+helper-level (raise on miss, succeed on grant, idempotent grant, no-op
+revoke, list_granted), an HTTP wire-through (module-attributed body
+read 403s on missing grant), and the signup auto-grant.
+
+Test counts (container): **108 passed** (was 82). The new
+`test_capabilities.py` plus pre-existing capability surface tests run on
+the same DB-backed infra.
 
 ## P2: browser walk (moves to PRE_FLIGHT)
 

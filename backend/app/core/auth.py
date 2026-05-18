@@ -120,6 +120,28 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 error=str(exc),
             )
 
+        # Auto-grant declared capabilities for every installed plugin's
+        # skills. v0.1 policy: declared = granted; the workspace user
+        # can revoke from the Modules page. Wrapped so a manifest read
+        # failure cannot block registration.
+        try:
+            from app.core.capabilities import auto_grant_declared_for_user
+
+            session = self.user_db.session
+            count = await auto_grant_declared_for_user(session, user_id=user.id)
+            await session.commit()
+            logger.info(
+                "auth.user.capabilities_auto_granted",
+                user_id=str(user.id),
+                triples=count,
+            )
+        except Exception as exc:
+            logger.warning(
+                "auth.user.capabilities_auto_grant_failed",
+                user_id=str(user.id),
+                error=str(exc),
+            )
+
     async def on_after_forgot_password(
         self, user: User, token: str, request: Request | None = None
     ) -> None:

@@ -1,7 +1,7 @@
 {
   "name": "uk-research-legal",
   "version": "0.1.0",
-  "description": "UK legal research skills - Find Case Law judgment retrieval, legislation lookup, practice direction lookup, and citation verification.",
+  "description": "UK legal research skills. Find Case Law judgment retrieval, legislation lookup, practice direction lookup, and citation verification.",
   "author": "b1rdmania",
   "license": "Apache-2.0",
   "homepage": "https://github.com/b1rdmania/claude-for-uk-legal",
@@ -20,5 +20,39 @@
     "model.invoke",
     "audit.emit"
   ],
-  "trust_posture": "trusted"
+  "trust_posture": "trusted",
+  "skills": {
+    "find-case-law": {
+      "capabilities": [
+        "matter.read",
+        "citation.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "citation-verifier": {
+      "capabilities": [
+        "matter.read",
+        "citation.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "legislation-lookup": {
+      "capabilities": [
+        "matter.read",
+        "citation.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "practice-direction-lookup": {
+      "capabilities": [
+        "matter.read",
+        "citation.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    }
+  }
 }

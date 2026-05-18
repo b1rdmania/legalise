@@ -1,7 +1,7 @@
 {
   "name": "uk-litigation-legal",
   "version": "0.1.0",
-  "description": "UK litigation skills - adversarial premortem, chronology assembly, CPR-compliant correspondence, and disclosure list drafting.",
+  "description": "UK litigation skills. Adversarial premortem, chronology assembly, CPR-compliant correspondence, and disclosure list drafting.",
   "author": "b1rdmania",
   "license": "Apache-2.0",
   "homepage": "https://github.com/b1rdmania/claude-for-uk-legal",
@@ -23,5 +23,53 @@
     "model.invoke",
     "audit.emit"
   ],
-  "trust_posture": "trusted"
+  "trust_posture": "trusted",
+  "skills": {
+    "pre-motion": {
+      "capabilities": [
+        "matter.read",
+        "document.body.read",
+        "chronology.read",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "chronology": {
+      "capabilities": [
+        "matter.read",
+        "document.body.read",
+        "chronology.read",
+        "chronology.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "cpr-letter-drafter": {
+      "capabilities": [
+        "matter.read",
+        "document.body.read",
+        "document.generated.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "disclosure-list": {
+      "capabilities": [
+        "matter.read",
+        "document.body.read",
+        "document.generated.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    },
+    "without-prejudice-drafter": {
+      "capabilities": [
+        "matter.read",
+        "document.body.read",
+        "document.generated.write",
+        "model.invoke",
+        "audit.emit"
+      ]
+    }
+  }
 }

@@ -96,10 +96,26 @@ async def case_law_search(
 async def create_citation(
     slug: str,
     body: CitationCreateRequest,
+    plugin: str | None = None,
+    skill: str | None = None,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> MatterCitationRead:
     matter = await _matter_or_404(slug, session, user)
+
+    # Module-attributed citation writes require the `citation.write`
+    # grant on the calling `(plugin, skill)`. User-initiated UI writes
+    # (no plugin/skill query params) keep the existing owner-only gate.
+    if plugin and skill:
+        from app.core.capabilities import require_capability
+
+        await require_capability(
+            session,
+            user_id=user.id,
+            plugin=plugin,
+            skill=skill,
+            capability="citation.write",
+        )
 
     cit = MatterCitation(
         matter_id=matter.id,

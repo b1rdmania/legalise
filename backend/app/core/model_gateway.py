@@ -183,6 +183,8 @@ class ModelGateway:
         actor_id: uuid.UUID,
         matter_id: uuid.UUID | None,
         inputs: dict,
+        plugin: str | None = None,
+        skill: str | None = None,
     ) -> dict:
         """Invoke a registered tool by name.
 
@@ -198,6 +200,37 @@ class ModelGateway:
         tool = self._tools.get(name)
         if tool is None:
             raise ToolNotFound(f"tool not registered: {name}")
+
+        # Runtime capability enforcement: tool calls made on behalf of a
+        # `(plugin, skill)` need `model.invoke` for that triple. Non-module
+        # tool invocations (user-initiated, internal jobs) skip the check.
+        # Tools that write privileged resources also need the matching
+        # write capability: `generate_docx` -> `document.generated.write`.
+        if plugin and skill and actor_id is not None:
+            from app.core.capabilities import require_capability
+
+            await require_capability(
+                session,
+                user_id=actor_id,
+                plugin=plugin,
+                skill=skill,
+                capability="model.invoke",
+            )
+            # Tool-specific capability map. Kept inline (a handful of
+            # entries) until the registry grows; lift to GatewayTool
+            # metadata when that happens.
+            _TOOL_WRITE_CAPABILITY = {
+                "generate_docx": "document.generated.write",
+            }
+            extra_cap = _TOOL_WRITE_CAPABILITY.get(name)
+            if extra_cap is not None:
+                await require_capability(
+                    session,
+                    user_id=actor_id,
+                    plugin=plugin,
+                    skill=skill,
+                    capability=extra_cap,
+                )
 
         try:
             validated_inputs = tool.input_model.model_validate(inputs)
@@ -318,6 +351,27 @@ class ModelGateway:
             raise PrivilegePaused(
                 "Matter privilege posture is C_paused — LLM calls are blocked. "
                 "Change posture to A_cleared or B_mixed to proceed."
+            )
+
+        # Runtime capability enforcement: if this call is attributed to a
+        # `(plugin, skill)` (payload carries both keys), require the
+        # `model.invoke` grant for that triple. Non-module-attributed
+        # calls (user-initiated assistant turns, internal jobs) skip the
+        # check — the existing per-matter privilege gate above stands.
+        if (
+            actor_id is not None
+            and isinstance(payload, dict)
+            and payload.get("plugin")
+            and payload.get("skill")
+        ):
+            from app.core.capabilities import require_capability
+
+            await require_capability(
+                session,
+                user_id=actor_id,
+                plugin=str(payload["plugin"]),
+                skill=str(payload["skill"]),
+                capability="model.invoke",
             )
 
         requested = model or settings.default_model_id

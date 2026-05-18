@@ -41,6 +41,7 @@ from app.models.document_version import DocumentVersion, VERSION_KIND_VALUES
 from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
 from app.models.tabular_review import TabularReview, TabularReviewRow
 from app.models.workspace_skill import WorkspaceDisabledSkill
+from app.models.workspace_skill_capability_grant import WorkspaceSkillCapabilityGrant
 from app.models.matter_citation import MatterCitation
 from app.models.assistant import AssistantMessage
 
@@ -59,6 +60,7 @@ __all__ = [
     "TabularReview",
     "TabularReviewRow",
     "WorkspaceDisabledSkill",
+    "WorkspaceSkillCapabilityGrant",
     "MatterCitation",
     "AssistantMessage",
     "PRIVILEGE_CLEARED",

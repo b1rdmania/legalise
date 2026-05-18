@@ -22,7 +22,7 @@ from app.adapters.plugin_bridge import _parse_skill_md
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
-from app.models import User, WorkspaceDisabledSkill
+from app.models import User, WorkspaceDisabledSkill, WorkspaceSkillCapabilityGrant
 
 
 router = APIRouter()
@@ -70,7 +70,13 @@ class ModuleSkill(BaseModel):
     description: str
     source_url: str | None
     argument_hint: str | None
+    # `capabilities` is retained as an alias for `declared_capabilities`
+    # so existing UI clients keep working through v0.1. New clients
+    # should read the explicit declared / granted pair so the runtime
+    # gap is visible. Both fields carry the same shape: a list of slugs.
     capabilities: list[str] = []
+    declared_capabilities: list[str] = []
+    granted_capabilities: list[str] = []
     trust_posture: str | None = None
     enabled: bool = True
 
@@ -145,6 +151,19 @@ async def list_modules(
     )
     disabled: set[tuple[str, str]] = {(r.plugin, r.skill) for r in disabled_rows.all()}
 
+    # Per-user granted capabilities, indexed by `(plugin, skill)`. Empty
+    # for users on a fresh workspace where the auto-grant hasn't run
+    # (legacy users, manifest read failures); shown as such in the UI so
+    # the gap is visible rather than hidden.
+    grant_rows = await session.scalars(
+        select(WorkspaceSkillCapabilityGrant).where(
+            WorkspaceSkillCapabilityGrant.user_id == user.id
+        )
+    )
+    granted_by_skill: dict[tuple[str, str], list[str]] = {}
+    for row in grant_rows.all():
+        granted_by_skill.setdefault((row.plugin, row.skill), []).append(row.capability)
+
     # Cache per-plugin manifest validation across multiple skills in the
     # same plugin so we only read + validate the manifest once per request.
     manifest_cache: dict[str, tuple[dict | None, list[dict]]] = {}
@@ -185,16 +204,36 @@ async def list_modules(
             broken.append(BrokenManifest(plugin=plugin, skill=skill, errors=errors))
             continue
 
-        capabilities = (
+        # Per-skill overrides take precedence over plugin-level defaults.
+        # A skill absent from the `skills` map inherits the plugin-level
+        # values. v0.1 surfaces these as declared metadata only; runtime
+        # enforcement is the next unit (HANDOVER_LAUNCH_QA.md).
+        plugin_caps: list[str] = (
             list(module_payload.get("capabilities", []))
             if isinstance(module_payload, dict)
             else []
         )
-        trust_posture = (
+        plugin_trust = (
             module_payload.get("trust_posture")
             if isinstance(module_payload, dict)
             else None
         )
+        skill_override = {}
+        if isinstance(module_payload, dict):
+            skills_map = module_payload.get("skills", {})
+            if isinstance(skills_map, dict):
+                candidate = skills_map.get(skill, {})
+                if isinstance(candidate, dict):
+                    skill_override = candidate
+
+        capabilities = (
+            list(skill_override["capabilities"])
+            if "capabilities" in skill_override
+            else plugin_caps
+        )
+        trust_posture = skill_override.get("trust_posture", plugin_trust)
+
+        granted = sorted(granted_by_skill.get((plugin, skill), []))
 
         skills.append(
             ModuleSkill(
@@ -205,6 +244,8 @@ async def list_modules(
                 source_url=_source_url(path),
                 argument_hint=manifest.argument_hint,
                 capabilities=capabilities,
+                declared_capabilities=capabilities,
+                granted_capabilities=granted,
                 trust_posture=trust_posture,
                 enabled=(plugin, skill) not in disabled,
             )

@@ -67,6 +67,8 @@ class DocumentBodyRead(BaseModel):
 @router.get("/{document_id}/body", response_model=DocumentBodyRead)
 async def get_document_body(
     document_id: uuid.UUID,
+    plugin: str | None = None,
+    skill: str | None = None,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> DocumentBody:
@@ -92,6 +94,20 @@ async def get_document_body(
     doc, matter = pair
     if matter.created_by_id != user.id:
         raise HTTPException(404, "document not found")
+
+    # Module-attributed reads require `document.body.read` for the
+    # `(plugin, skill)` triple. User-initiated UI reads (no plugin/skill
+    # query params) keep the existing owner-only gate above.
+    if plugin and skill:
+        from app.core.capabilities import require_capability
+
+        await require_capability(
+            session,
+            user_id=user.id,
+            plugin=plugin,
+            skill=skill,
+            capability="document.body.read",
+        )
 
     body = await session.scalar(
         select(DocumentBody).where(

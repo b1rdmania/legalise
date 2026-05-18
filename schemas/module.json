@@ -141,6 +141,40 @@
       "enum": ["trusted", "third_party", "experimental"],
       "description": "Trust band for the module. Surfaced in the Modules page; declarative only in v0.1."
     },
+    "skills": {
+      "type": "object",
+      "description": "Per-skill overrides. Keys are skill slugs (match the SKILL.md frontmatter `name`). When a skill is present here, its `capabilities` and `trust_posture` replace the plugin-level defaults for that skill. Skills absent from this map inherit the plugin-level values.",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*[a-z0-9]$": {
+          "type": "object",
+          "properties": {
+            "capabilities": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "matter.read",
+                  "document.body.read",
+                  "document.generated.write",
+                  "model.invoke",
+                  "chronology.read",
+                  "chronology.write",
+                  "citation.write",
+                  "audit.emit"
+                ]
+              }
+            },
+            "trust_posture": {
+              "type": "string",
+              "enum": ["trusted", "third_party", "experimental"]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "metadata": {
       "type": "object",
       "description": "Free-form module-specific metadata.",
