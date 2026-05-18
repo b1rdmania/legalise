@@ -1,4 +1,4 @@
-// ReviewList — landing surface for the Reviews tab.
+// ReviewList - landing surface for the Reviews tab.
 //
 // Lists existing reviews for a matter, lets the user create a new one,
 // and emits selection events the host (ReviewsTab) routes to an editor.
@@ -84,7 +84,7 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
           <input
             autoFocus
             className="flex-1 px-2 py-1 border border-neutral-300 rounded text-sm"
-            placeholder="Review title (e.g. Acme correspondence — disclosure relevance)"
+            placeholder="Review title (e.g. Acme correspondence - disclosure relevance)"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onCreate()}

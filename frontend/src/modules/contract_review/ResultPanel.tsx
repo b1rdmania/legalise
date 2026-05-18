@@ -75,7 +75,7 @@ function Accordion({
 }
 
 function riskBar(score: number): string {
-  if (score <= 0) return "—";
+  if (score <= 0) return "-";
   if (score >= 4) return "⚠⚠⚠⚠";
   if (score === 3) return "⚠⚠⚠";
   if (score === 2) return "⚠⚠";
@@ -94,7 +94,7 @@ function AnalysisRow({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h4 className="font-medium text-ink">
           {analysis.clause_id}
-          {clauseTitle ? ` — ${clauseTitle}` : ""}
+          {clauseTitle ? ` - ${clauseTitle}` : ""}
         </h4>
         <span className="text-xs text-ink/70">
           risk {analysis.risk_score}/5 {riskBar(analysis.risk_score)}
@@ -111,7 +111,7 @@ function AnalysisRow({
             <span
               key={i}
               className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[11px] sm:text-xs ${SEV_CLS[issue.severity]}`}
-              title={`${issue.statute_ref ? issue.statute_ref + " — " : ""}${issue.description}`}
+              title={`${issue.statute_ref ? issue.statute_ref + " - " : ""}${issue.description}`}
             >
               <span className="font-semibold">
                 {UK_BADGE_LABEL[issue.category] || issue.category}
@@ -168,7 +168,7 @@ function RedlineRow({ redline }: { redline: Redline }) {
           </div>
           <div className="whitespace-pre-wrap text-sm text-ink/80 leading-relaxed">
             {redline.original_text || (
-              <em className="text-ink/50">(no original — clause to be inserted)</em>
+              <em className="text-ink/50">(no original - clause to be inserted)</em>
             )}
           </div>
         </div>
@@ -336,7 +336,7 @@ export function ResultPanel({
       >
         {result.redlines.length === 0 ? (
           <p className="italic text-ink/50 text-sm">
-            No redlines proposed — no clause scored at risk 3+ or carried a
+            No redlines proposed - no clause scored at risk 3+ or carried a
             high-severity UK issue.
           </p>
         ) : (

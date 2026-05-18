@@ -1,4 +1,4 @@
-// ReviewEditor — host for an open review.
+// ReviewEditor - host for an open review.
 //
 // Two regions:
 //   - ColumnEditor: edit columns_config (PATCH on blur via save button).

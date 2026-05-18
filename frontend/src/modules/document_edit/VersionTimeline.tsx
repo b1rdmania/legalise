@@ -1,4 +1,4 @@
-// VersionTimeline — vertical list of document versions with edit counts.
+// VersionTimeline - vertical list of document versions with edit counts.
 //
 // Fetches `getDocumentVersions(documentId)` on mount + whenever `refreshKey`
 // changes. Renders nothing if no versions exist (Phase A invariant: every

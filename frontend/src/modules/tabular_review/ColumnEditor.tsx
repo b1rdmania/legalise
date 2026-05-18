@@ -1,4 +1,4 @@
-// ColumnEditor — array editor for a review's columns_config.
+// ColumnEditor - array editor for a review's columns_config.
 //
 // Per-row inline form: snake_case key, label, prompt textarea, type
 // dropdown, delete. Add-column row at bottom. Changes are debounced
@@ -76,7 +76,7 @@ export function ColumnEditor({ columns, onChange }: Props) {
               className="col-span-6 px-2 py-1 text-sm border border-neutral-300 rounded resize-y min-h-[2.5rem]"
               value={c.prompt}
               onChange={(e) => update(i, { prompt: e.target.value })}
-              placeholder="Prompt — what should the model extract?"
+              placeholder="Prompt - what should the model extract?"
             />
             <select
               className="col-span-2 px-2 py-1 text-sm border border-neutral-300 rounded"

@@ -5,7 +5,7 @@ import { TABS } from "../matter/tabs/types";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 const DEMO_HREF_AUTHED = `#/matters/${DEMO_SLUG}`;
-const DEMO_HREF_UNAUTHED = "#/auth/signup";
+const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
 
@@ -39,7 +39,7 @@ export function Drawer({
     navigate("/");
   };
 
-  // P18 drawer item sets — match docs/DESIGN.md §P18 §"Drawer items by state".
+  // P18 drawer item sets - match docs/DESIGN.md §P18 §"Drawer items by state".
   type Item = {
     href?: string;
     label: string;
@@ -51,7 +51,7 @@ export function Drawer({
   let secondary: Item[] = [];
 
   if (isDetail && matter) {
-    // Workspace + matter in scope: tabs · — · Modules · Settings · Sign out
+    // Workspace + matter in scope: tabs · - · Modules · Settings · Sign out
     const currentTab = (route.name === "detail" ? route.tab : undefined) ?? "overview";
     primary = TABS.map((t) => ({
       href: `#/matters/${matter.slug}${t.key === "overview" ? "" : `/${t.key}`}`,
@@ -64,7 +64,7 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else if (isModules || isList || isSettings) {
-    // Workspace no matter: Matters · Modules · — · Settings · Sign out
+    // Workspace no matter: Matters · Modules · - · Settings · Sign out
     primary = [
       { href: "#/matters", label: "Matters", active: isList },
       { href: "#/modules", label: "Modules", active: isModules },
@@ -74,9 +74,10 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Marketing: Modules · Docs · GitHub · — · Open demo matter · Sign in
-    // "Open demo matter" routes to signup until Day D lands the post-signup
-    // Khan copy. Visible label preserved per DESIGN.md.
+    // Marketing: Modules · Docs · GitHub · - · Open demo matter · Sign in
+    // "Open demo matter" for unauthed visitors routes to /#/demo (the
+    // static client-side Khan snapshot). Authed users land directly in
+    // their seeded Khan matter.
     primary = [
       { href: "#/modules", label: "Modules" },
       { href: GITHUB_DOCS, label: "Docs", external: true },

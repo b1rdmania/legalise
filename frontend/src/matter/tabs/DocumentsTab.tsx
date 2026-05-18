@@ -35,7 +35,7 @@ export function DocumentsTab({
   return (
     <div>
       <form className="mb-10 flex flex-wrap items-end gap-4">
-        <Field label="Tag" hint="optional — e.g. pleadings, disclosure">
+        <Field label="Tag" hint="optional - e.g. pleadings, disclosure">
           <input
             value={tag}
             onChange={(e) => setTag(e.target.value)}

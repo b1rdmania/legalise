@@ -1,4 +1,4 @@
-// EditPanel — structured edit-instruction surface (Phase A, §4-pre-A).
+// EditPanel - structured edit-instruction surface (Phase A, §4-pre-A).
 //
 // Per-document panel: textarea + mode dropdown + four preset buttons +
 // submit. Renders pending edits read-only after submission. Accept/reject

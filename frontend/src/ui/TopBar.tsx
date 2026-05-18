@@ -5,7 +5,7 @@ import { BrandMark } from "./BrandMark";
 import { ProfileChip } from "./ProfileChip";
 import { TABS, type TabKey } from "../matter/tabs/types";
 
-const DEMO_HREF_UNAUTHED = "#/auth/signup";
+const DEMO_HREF_UNAUTHED = "#/demo";
 
 export function TopBar({
   route,
@@ -29,7 +29,7 @@ export function TopBar({
 
   return (
     <>
-      {/* Dense-data variant — mobile, on matter detail */}
+      {/* Dense-data variant - mobile, on matter detail */}
       {isDetail && drawerMatter && (
         <header className="fixed inset-x-0 top-0 z-40 bg-paper border-b border-rule md:hidden">
           <div className="px-4 h-[64px] flex items-center justify-between">

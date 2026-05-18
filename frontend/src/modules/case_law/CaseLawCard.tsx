@@ -1,8 +1,8 @@
-// CaseLawCard — single result from the /case-law/search endpoint.
+// CaseLawCard - single result from the /case-law/search endpoint.
 //
 // "Cite into matter" persists the row into matter_citations via POST
-// /citations. The composed citation_text is what survives — a stable string
-// rather than the structured result fields — because v0.2 may swap result
+// /citations. The composed citation_text is what survives - a stable string
+// rather than the structured result fields - because v0.2 may swap result
 // shapes when MCP transport lands.
 
 import { useState } from "react";
@@ -20,7 +20,7 @@ function composeCitationText(r: CaseLawResult): string {
   if (r.citation_ref) bits.push(r.citation_ref);
   if (r.court) bits.push(r.court);
   if (r.judgment_date) bits.push(r.judgment_date);
-  const head = bits.join(" — ");
+  const head = bits.join(" - ");
   return r.summary ? `${head}\n\n${r.summary}` : head;
 }
 

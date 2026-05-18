@@ -23,7 +23,7 @@ export function SignUp() {
     setError(null);
     try {
       await auth.signUp(email, password, name);
-      // After register, backend may require verification — route to pending.
+      // After register, backend may require verification - route to pending.
       navigate("/auth/verify-pending");
     } catch (err) {
       setError(String(err));
@@ -34,12 +34,12 @@ export function SignUp() {
 
   return (
     <AuthCard
-      eyebrow="AUTH — SIGN UP"
+      eyebrow="AUTH - SIGN UP"
       heading="Sign up"
       intro="Create a workspace. You'll add an Anthropic or OpenAI key after email verification."
     >
       <form className="flex flex-col gap-6" onSubmit={submit}>
-        <Field label="Name" hint="optional — shown in audit rows">
+        <Field label="Name" hint="optional - shown in audit rows">
           <input
             type="text"
             autoComplete="name"

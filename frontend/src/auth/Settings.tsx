@@ -122,7 +122,7 @@ function SettingsProfile({
         <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Profile</h2>
         <p className="prose-p mb-0">Visible in audit rows. Email and verification status read-only.</p>
       </div>
-      <Field label="Email" hint={user.is_verified ? "verified" : "unverified — check your inbox"}>
+      <Field label="Email" hint={user.is_verified ? "verified" : "unverified - check your inbox"}>
         <input type="email" value={user.email} disabled className={inputCls + " opacity-60 cursor-not-allowed"} />
       </Field>
       <Field label="Name">
@@ -250,7 +250,7 @@ function SettingsKeys() {
                 <span className="text-ink font-bold uppercase">{k.provider}</span>
                 <span className="text-muted">{k.created_at.slice(0, 10)}</span>
                 <span className="text-muted">
-                  {k.last_used_at ? k.last_used_at.slice(0, 16).replace("T", " ") : "—"}
+                  {k.last_used_at ? k.last_used_at.slice(0, 16).replace("T", " ") : "-"}
                 </span>
                 <button
                   type="button"
@@ -301,7 +301,7 @@ function SettingsPreferences() {
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Preferences</h2>
       <div className="bg-wash p-6 border-l-4 border-ink">
-        <div className="eyebrow-sm mb-2">ROADMAP — v0.2</div>
+        <div className="eyebrow-sm mb-2">ROADMAP - v0.2</div>
         <p className="prose-p mb-0">
           Per-user defaults (timezone, locale, retention reminders) land in v0.2 alongside the
           Module Lifecycle work. v0.1 ships with system defaults applied uniformly.

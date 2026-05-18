@@ -206,7 +206,7 @@ function PremotionResult({ result }: { result: PreMotionRunResult }) {
                 <p className="text-sm text-ink mb-2 leading-relaxed">{fs.scenario}</p>
                 {fs.mitigation && (
                   <p className="text-sm text-prose leading-relaxed">
-                    <span className="text-ink font-semibold">Mitigation —</span> {fs.mitigation}
+                    <span className="text-ink font-semibold">Mitigation -</span> {fs.mitigation}
                   </p>
                 )}
               </div>
@@ -222,7 +222,7 @@ function PremotionResult({ result }: { result: PreMotionRunResult }) {
           <ul className="list-none space-y-4 text-prose text-sm pl-0">
             {result.synthesis.blind_spots.map((bs, i) => (
               <li key={i} className="flex items-start gap-4">
-                <span className="font-bold text-ink">—</span>
+                <span className="font-bold text-ink">-</span>
                 <span>{bs}</span>
               </li>
             ))}
@@ -239,10 +239,10 @@ function PremotionResult({ result }: { result: PreMotionRunResult }) {
           <ul className="list-none space-y-4 text-prose text-sm pl-0">
             {result.synthesis.evidence_inconsistencies.map((ei, i) => (
               <li key={i} className="flex items-start gap-4">
-                <span className="font-bold text-ink">—</span>
+                <span className="font-bold text-ink">-</span>
                 <span>
                   <Badge>{ei.severity.toUpperCase()}</Badge>{" "}
-                  <strong className="text-ink font-semibold">{ei.claim}</strong> — {ei.issue}
+                  <strong className="text-ink font-semibold">{ei.claim}</strong> - {ei.issue}
                 </span>
               </li>
             ))}
@@ -250,7 +250,7 @@ function PremotionResult({ result }: { result: PreMotionRunResult }) {
         </section>
       )}
 
-      {/* stage telemetry — dense rows */}
+      {/* stage telemetry - dense rows */}
       <section>
         <h3 className="text-2xl font-bold tracking-tight2 text-ink mb-6">Stage telemetry</h3>
         <div className="border-t border-rule">

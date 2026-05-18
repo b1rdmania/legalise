@@ -6,7 +6,7 @@ export function OverviewTab({ matter }: { matter: Matter }) {
       <div className="flex flex-wrap gap-x-10 gap-y-4 mb-10 pb-10 border-b border-rule">
         <div>
           <div className="eyebrow mb-1.5">Cause</div>
-          <div className="text-sm font-semibold text-ink">{matter.cause ?? "—"}</div>
+          <div className="text-sm font-semibold text-ink">{matter.cause ?? "-"}</div>
         </div>
         <div>
           <div className="eyebrow mb-1.5">Opened</div>
@@ -15,7 +15,7 @@ export function OverviewTab({ matter }: { matter: Matter }) {
         <div>
           <div className="eyebrow mb-1.5">Retention</div>
           <div className="text-sm font-semibold text-ink">
-            {matter.retention_until?.slice(0, 10) ?? "—"}
+            {matter.retention_until?.slice(0, 10) ?? "-"}
           </div>
         </div>
         <div>
@@ -51,10 +51,10 @@ export function OverviewTab({ matter }: { matter: Matter }) {
 
       {/* Contract Review v0.2 callout */}
       <div className="bg-wash border-l-4 border-ink p-6 my-12">
-        <div className="eyebrow mb-3">ROADMAP — v0.2</div>
+        <div className="eyebrow mb-3">ROADMAP - v0.2</div>
         <p className="text-sm text-ink leading-relaxed">
           Contract review graduates from counsel-mvp in v0.2. Four-agent orchestration over uploaded
-          contracts — Parser, Analyst, Redliner, Summariser — same shape as Pre-Motion's bespoke
+          contracts - Parser, Analyst, Redliner, Summariser - same shape as Pre-Motion's bespoke
           pipeline. See{" "}
           <a
             href="https://github.com/b1rdmania/legalise/blob/master/docs/ROADMAP.md"

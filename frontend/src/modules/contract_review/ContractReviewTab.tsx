@@ -1,6 +1,6 @@
-// ContractReviewTab — host component for the four-stage redliner UI.
+// ContractReviewTab - host component for the four-stage redliner UI.
 //
-// Takes `matter` and `docs` from the parent (App.tsx) — module cannot
+// Takes `matter` and `docs` from the parent (App.tsx) - module cannot
 // modify lib/api.ts (owned by other workstreams). Filter to documents
 // that are plausibly contracts (filename hint + tag) but show all docs
 // with a "pick a doc with extracted body" note so a user with weird
@@ -50,7 +50,7 @@ const CONTRACT_KINDS: { value: ContractKind; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-// Empty stage strip baseline — used before any run lands.
+// Empty stage strip baseline - used before any run lands.
 const INITIAL_STAGES: StageStatus[] = [
   { name: "parser", status: "pending", sub_agent_count: 1, duration_ms: 0, token_count: 0, errors: [] },
   { name: "analyst", status: "pending", sub_agent_count: 1, duration_ms: 0, token_count: 0, errors: [] },
@@ -170,7 +170,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
           }
         } else if (evt.event === "result") {
           setResult(evt.data);
-          // Clear live overrides — the canonical stages array now drives UI.
+          // Clear live overrides - the canonical stages array now drives UI.
           setLiveStages({});
         } else if (evt.event === "error") {
           setError(evt.data.message || "Contract review failed.");
@@ -218,7 +218,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
           UK GDPR Art 28 / governing law / jurisdiction / arbitration) →
           redline → summarise. Runs against the document's extracted text;
           anonymised bodies are not used. Results are not persisted in v0.1
-          — export as .docx to keep a copy.
+          - export as .docx to keep a copy.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">

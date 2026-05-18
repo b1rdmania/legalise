@@ -1,4 +1,4 @@
-// RedactedToggle — switches between the original extracted body and
+// RedactedToggle - switches between the original extracted body and
 // the redacted body. Caller supplies the original; this component
 // fetches the redacted view lazily on first toggle.
 
@@ -35,7 +35,7 @@ export function RedactedToggle({ documentId, originalText, initialResult }: Prop
     } catch (e) {
       setError(
         e instanceof Error && e.message.startsWith("404")
-          ? "No redacted body yet — run Anonymise first."
+          ? "No redacted body yet - run Anonymise first."
           : e instanceof Error
             ? e.message
             : String(e),

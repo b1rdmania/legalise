@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signout();
     } catch {
-      // ignore — clear local state regardless
+      // ignore - clear local state regardless
     }
     setUser(null);
   }, []);

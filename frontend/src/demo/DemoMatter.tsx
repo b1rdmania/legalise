@@ -50,10 +50,10 @@ export function DemoMatter() {
     }
   }, [route]);
 
-  // Demo route is public — make sure no protected-route redirect interferes.
+  // Demo route is public - make sure no protected-route redirect interferes.
   useEffect(() => {
     if (route.name === "demo" && !isPublicRoute(route)) {
-      // Defensive — should never hit; the route allowlist already covers it.
+      // Defensive - should never hit; the route allowlist already covers it.
     }
   }, [route]);
 
@@ -187,7 +187,7 @@ function DemoBanner() {
         </span>
       </div>
       <p className="text-sm text-prose">
-        Khan v Acme — a worked unfair-dismissal matter. Browse every tab. Mutations are disabled. Sign up to upload your own matter.
+        Khan v Acme - a worked unfair-dismissal matter. Browse every tab. Mutations are disabled. Sign up to upload your own matter.
       </p>
       <a
         href="#/auth/signup"
@@ -259,7 +259,7 @@ function DemoDocumentsTab({
             className={inputCls}
             placeholder="pleadings"
           />
-          <span className="text-xs text-muted">optional — e.g. pleadings, disclosure</span>
+          <span className="text-xs text-muted">optional - e.g. pleadings, disclosure</span>
         </label>
         <label className="flex items-center gap-2 min-h-[44px]">
           <input

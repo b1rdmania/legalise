@@ -38,7 +38,7 @@ export function MatterList() {
 
       {matters && matters.length === 0 && (
         <div className="border border-rule p-6 text-sm text-muted">
-          No matters yet —{" "}
+          No matters yet -{" "}
           <a
             href="#/matters/new"
             className="text-ink underline hover:text-muted"

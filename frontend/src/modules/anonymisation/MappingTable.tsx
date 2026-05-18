@@ -1,4 +1,4 @@
-// MappingTable — token → original reveal. Matter-owner-only on the
+// MappingTable - token → original reveal. Matter-owner-only on the
 // backend; this component assumes the parent has already gated the
 // view (the 403 will surface as an error string if not).
 //

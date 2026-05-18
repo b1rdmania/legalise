@@ -26,9 +26,9 @@ export function PrivilegeControl({
         className="absolute inset-0 opacity-0 cursor-pointer"
         aria-label="Privilege posture"
       >
-        <option value="A_cleared">A_cleared — frontier OK</option>
-        <option value="B_mixed">B_mixed — local preferred</option>
-        <option value="C_paused">C_paused — LLM blocked</option>
+        <option value="A_cleared">A_cleared - frontier OK</option>
+        <option value="B_mixed">B_mixed - local preferred</option>
+        <option value="C_paused">C_paused - LLM blocked</option>
       </select>
     </label>
   );

@@ -126,7 +126,7 @@ export function MatterDetail({
     try {
       await confirmGate(
         slug,
-        "I confirm the CPR 31.22 implied undertaking — disclosed material is used only for these proceedings.",
+        "I confirm the CPR 31.22 implied undertaking - disclosed material is used only for these proceedings.",
       );
       getChronology(slug).then(setChron).catch(() => undefined);
       listAudit(slug, 30).then(setAudit).catch(() => undefined);
@@ -228,7 +228,7 @@ export function MatterDetail({
     try {
       const { file_uuid } = await exportLetterDocx(slug, {
         letter_type: letterDraft.letter_type,
-        title: `${letterDraft.letter_type.toUpperCase()} — ${matter?.title || slug}`,
+        title: `${letterDraft.letter_type.toUpperCase()} - ${matter?.title || slug}`,
         draft_markdown: letterDraft.draft_markdown,
       });
       const blob = await downloadGeneratedDocx(file_uuid);

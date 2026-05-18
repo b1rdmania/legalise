@@ -1,4 +1,4 @@
-// DiffRow — single edit's inline tracked-change renderer.
+// DiffRow - single edit's inline tracked-change renderer.
 //
 // Visual layout: muted context_before / context_after wrapping a char-level
 // diff between deleted_text and inserted_text. Status pill + rationale below.
@@ -79,7 +79,7 @@ export function DiffRow({
         )}
         {conflict && (
           <span className="font-mono uppercase tracking-track2 text-[9px] text-muted italic">
-            resolved elsewhere — refreshed
+            resolved elsewhere - refreshed
           </span>
         )}
         {pending && onAccept && onReject && (

@@ -1,4 +1,4 @@
-// ReviewGrid — the spreadsheet itself.
+// ReviewGrid - the spreadsheet itself.
 //
 // Sticky first column: filename. Header row from columns_config. Per-cell
 // loading spinner when this column or this run is in flight. "Run column"
@@ -19,7 +19,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function renderCell(col: ColumnSpec, value: unknown): ReactElement {
   if (value === undefined || value === null || value === "") {
-    return <span className="text-neutral-300">—</span>;
+    return <span className="text-neutral-300">-</span>;
   }
   const s = String(value);
   if (col.type === "yesno") {
@@ -59,7 +59,7 @@ export function ReviewGrid({
   if (rows.length === 0) {
     return (
       <div className="text-sm text-neutral-500 italic p-4 border border-neutral-200 rounded">
-        No documents in this matter yet — upload one to populate the grid.
+        No documents in this matter yet - upload one to populate the grid.
       </div>
     );
   }

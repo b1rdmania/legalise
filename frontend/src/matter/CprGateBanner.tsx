@@ -2,13 +2,13 @@ export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: 
   return (
     <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm mb-6">
       <div className="font-semibold mb-2">
-        CPR 31.22 — implied undertaking · action required
+        CPR 31.22 - implied undertaking · action required
       </div>
       <p className="leading-relaxed mb-3">
         {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents obtained
         under disclosure. CPR 31.22(1) restricts use of disclosed material to the proceedings in
         which it was disclosed. Until you acknowledge the implied undertaking, the server
-        withholds detail of those {count === 1 ? "entry" : "entries"} — the rows below show them
+        withholds detail of those {count === 1 ? "entry" : "entries"} - the rows below show them
         as redacted.
       </p>
       <p className="text-prose leading-relaxed mb-4">

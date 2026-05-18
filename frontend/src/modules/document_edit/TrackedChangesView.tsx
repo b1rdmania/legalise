@@ -1,4 +1,4 @@
-// TrackedChangesView — interactive accept/reject panel for proposed edits.
+// TrackedChangesView - interactive accept/reject panel for proposed edits.
 //
 // Replaces Phase A's read-only PendingEditsList. Renders per-edit DiffRows
 // with inline Accept / Reject buttons + bulk header buttons. Updates the

@@ -32,7 +32,7 @@ export function SignIn() {
   };
 
   return (
-    <AuthCard eyebrow="AUTH — SIGN IN" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
+    <AuthCard eyebrow="AUTH - SIGN IN" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <Field label="Email">
           <input

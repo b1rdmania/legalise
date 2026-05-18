@@ -1,4 +1,4 @@
-// CitationsSidebar — list of saved matter_citations.
+// CitationsSidebar - list of saved matter_citations.
 //
 // Imperatively refreshable via `refreshKey` so the parent tab can bump it
 // when a card is cited from the search results panel.

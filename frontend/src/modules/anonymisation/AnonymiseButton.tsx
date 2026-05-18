@@ -1,7 +1,7 @@
-// AnonymiseButton — per-document trigger. Three visual states:
-//   1. "Anonymise"     — no redacted body yet.
-//   2. "Re-anonymise"  — a redacted body exists; clicking re-runs.
-//   3. spinner         — request in flight.
+// AnonymiseButton - per-document trigger. Three visual states:
+//   1. "Anonymise"     - no redacted body yet.
+//   2. "Re-anonymise"  - a redacted body exists; clicking re-runs.
+//   3. spinner         - request in flight.
 //
 // On success the parent is notified via `onResult` so it can refresh
 // any side-by-side view (RedactedToggle / MappingTable).
@@ -24,7 +24,7 @@ export function AnonymiseButton({ documentId, onResult }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // Probe for an existing redacted body so the label reflects state.
-  // A 404 is the expected "never anonymised" path — swallow it.
+  // A 404 is the expected "never anonymised" path - swallow it.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -69,7 +69,7 @@ export function AnonymiseButton({ documentId, onResult }: Props) {
         aria-busy={busy}
         title={
           existing
-            ? `Last run via ${existing.engine} on ${new Date(existing.anonymised_at).toLocaleString()} — ${existing.entity_count} entities`
+            ? `Last run via ${existing.engine} on ${new Date(existing.anonymised_at).toLocaleString()} - ${existing.entity_count} entities`
             : "Run document anonymisation"
         }
       >

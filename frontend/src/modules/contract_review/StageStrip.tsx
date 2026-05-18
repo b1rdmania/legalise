@@ -6,7 +6,7 @@ import type { StageState, StageStatus } from "./api";
 
 interface Props {
   stages: StageStatus[];
-  // Optional progress overlay — when a stream is mid-flight the caller can
+  // Optional progress overlay - when a stream is mid-flight the caller can
   // pass partial stage state keyed by name; we merge over the static array.
   liveOverrides?: Record<string, Partial<StageStatus>>;
 }

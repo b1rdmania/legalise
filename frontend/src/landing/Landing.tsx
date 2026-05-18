@@ -10,52 +10,54 @@ export function Landing() {
   // Day D on_after_verify hook copies Khan into their workspace.
   const onOpenDemo = () => navigate(`/matters/${DEMO_SLUG}`);
 
-  const parts: { name: string; body: string }[] = [
+  const steps: { name: string; body: string }[] = [
     {
-      name: "Catalogue",
-      body: "Plain-text SKILL.md files. claude-for-uk-legal is the default catalogue: fork it, review changes by PR diff, pin an approved SHA.",
+      name: "Open a matter",
+      body: "A slug, the parties, the documents, the chronology, the privilege posture, the retention clock. Every model call from here on lives inside this matter.",
     },
     {
-      name: "Bridge",
-      body: "Loads SKILL.md, injects matter context, dispatches through the privilege-aware model gateway, and writes plugin.invoked + model.call audit rows.",
+      name: "Ask the assistant",
+      body: "Matter-scoped chat. Answers against the matter context. Cites documents and chronology by ID. Returns a chip into a structured workflow rather than improvising in prose.",
     },
     {
-      name: "Surfaces",
-      body: "Three proven render patterns: generic invoke, curated multi-skill selection (Letters), and bespoke orchestration (Pre-Motion fans out across 4 stages, 9 calls). Surfaces are proof, not identity.",
+      name: "Install a legal module",
+      body: "Modules declare the capabilities they need. The workspace grants those capabilities; you can revoke any time from the Modules page.",
     },
     {
-      name: "Discovery",
-      body: "The installed skills page shows what is present at PLUGINS_ROOT, grouped by plugin, with source links and prompt bodies for review.",
+      name: "Run it",
+      body: "The module operates on the matter through a privilege-aware gateway. Cloud providers, local models, and tool calls all route through the same audit-and-posture layer.",
     },
     {
-      name: "Install / approval",
-      body: "Installation is Git: fork the catalogue, approve prompt changes in code review, pin PLUGINS_REPO_REF, deploy. No ratings, no marketplace database.",
+      name: "See what it touched",
+      body: "Every model call, every document mutation, every chronology entry, every capability denial writes an audit row. The Audit tab is the canonical record.",
+    },
+    {
+      name: "See the audit trail",
+      body: "Filter by module. Export. Show a regulator, a client, or opposing counsel.",
     },
   ];
 
   const trust: string[] = [
-    "Audit log per LLM call and per matter mutation, append-only by convention in v0.1.",
-    "Privilege posture is a first-class matter property — A_cleared / B_mixed / C_paused — read by the gateway before any model call.",
-    "CPR 31.22 gate on chronology entries sourced from disclosed documents — server-side, not UI.",
-    "BYO provider keys, encrypted at rest. Your Anthropic or OpenAI key is the only thing the gateway uses on your matters; revoke at any time from Settings · API keys.",
-    "Local-model toggle in self-host: point the gateway at Ollama or vLLM, keep frontier models for A_cleared only.",
+    "Audit by default. Every action writes a row. Append-only by convention in v0.1; the row shape is bespoke and stable.",
+    "Privilege posture as a dispatch constraint. A_cleared, B_mixed, or C_paused. The gateway reads it before every model call and refuses any call the posture doesn't permit.",
+    "Capabilities, requested and granted and enforced. Modules declare what they need; the workspace grants at signup; runtime checks the grant before every privileged operation. A denial is a structured 403 plus an audit row.",
+    "CPR 31.22 gate on chronology entries sourced from disclosed documents. Server-side, not UI.",
+    "BYO provider keys, encrypted at rest. Your key, your provider, your records.",
   ];
 
   return (
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-16">
       <div className="max-w-4xl">
-        {/* P3 hero */}
+        {/* Hero */}
         <div className="mb-16">
-          <div className="eyebrow font-mono text-muted mb-4">VERSION 0.1 — MAY 2026</div>
+          <div className="eyebrow font-mono text-muted mb-4">VERSION 0.1 - MAY 2026</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
-            Legalise turns reviewable legal skills into audited matter workflows.
+            Open a matter. Ask the assistant. Install a legal module. Run it. See what it touched.
           </h1>
           <p className="text-xl text-muted leading-relaxed max-w-2xl">
-            Open-source UK legal AI workspace. SKILL.md files, matter context, audit log per LLM
-            call, CPR 31.22 gate on disclosed material. Skills come from{" "}
-            <span className="text-ink">claude-for-uk-legal</span> by default; fork the catalogue,
-            review the skills, point <span className="text-ink">PLUGINS_ROOT</span> at your fork.
-            Approval is code review. Provenance is git history.
+            UK legal AI workspace for England &amp; Wales. Matter-first, privilege-posture-aware,
+            audit-logged. Open-source under Apache 2.0. The Khan v Acme sample matter seeds on
+            signup so the workspace is never empty.
           </p>
 
           <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
@@ -73,7 +75,7 @@ export function Landing() {
             </div>
           </div>
 
-          {/* P12 buttons */}
+          {/* CTAs */}
           {auth.user ? (
             <div className="flex flex-wrap items-center gap-4 mt-8">
               <button
@@ -92,13 +94,7 @@ export function Landing() {
                 href="#/modules"
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
-                Installed skills
-              </a>
-              <a
-                href="#/modules/submit"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                Submit a skill
+                Modules
               </a>
               <a
                 href="https://github.com/b1rdmania/legalise"
@@ -115,13 +111,13 @@ export function Landing() {
                 href="#/demo"
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
-                See it in action — no signup
+                See it in action, no signup
               </a>
               <a
                 href="#/auth/signup"
                 className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
-                Sign up — free, BYO key
+                Sign up, free, BYO key
               </a>
               <a
                 href="#/auth/signin"
@@ -133,13 +129,7 @@ export function Landing() {
                 href="#/modules"
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
-                Installed skills
-              </a>
-              <a
-                href="#/modules/submit"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                Submit a skill
+                Modules
               </a>
               <a
                 href="https://github.com/b1rdmania/legalise"
@@ -153,59 +143,56 @@ export function Landing() {
           )}
 
           <p className="text-sm text-muted mt-6 max-w-2xl">
-            Signup is free. Bring your own Anthropic or OpenAI key after
-            verification — keys are stored encrypted server-side and used
-            only by the privilege-aware model gateway on your matters. The
-            seeded Khan v Acme demo matter is copied into your workspace on
-            confirm so the first sign-in lands on something live.
+            Signup is free. Bring your own Anthropic or OpenAI key after verification. Keys are
+            stored encrypted server-side and used only by the privilege-aware model gateway on
+            your matters. The seeded Khan v Acme demo matter is copied into your workspace on
+            confirm, so first sign-in lands on something live.
           </p>
         </div>
 
-        {/* Five parts — P7 em-dash list */}
+        {/* How it works */}
         <section className="mb-24">
           <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
-            01. Execution layer — five parts
+            01. How it works
           </h2>
           <p className="prose-p">
-            The execution layer is a small, named set of moving parts. Each is replaceable; none
-            is a marketplace.
+            Six verbs. The product mechanic carried by the workflow, not by the architecture.
           </p>
           <ul className="list-none space-y-6 text-prose pl-0">
-            {parts.map((p) => (
-              <li key={p.name} className="flex items-start gap-4">
-                <span className="text-ink font-bold">—</span>
+            {steps.map((s) => (
+              <li key={s.name} className="flex items-start gap-4">
+                <span className="text-ink font-bold">-</span>
                 <span>
-                  <strong className="text-ink font-semibold">{p.name}.</strong> {p.body}
+                  <strong className="text-ink font-semibold">{s.name}.</strong> {s.body}
                 </span>
               </li>
             ))}
           </ul>
         </section>
 
-        {/* Trust posture */}
+        {/* Trust layer */}
         <section className="mb-24">
           <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
-            02. Trust posture
+            02. The trust layer
           </h2>
           <div className="bg-wash p-8 border-l-4 border-ink my-8">
             <p className="text-sm font-medium italic m-0">
-              "If a matter has disclosure-tainted entries, the user must acknowledge the implied
-              undertaking before those entries become readable. This is enforced server-side,
-              not in the UI."
+              "Manifest requests capabilities. Workspace grants capabilities. Runtime enforces
+              capabilities."
             </p>
           </div>
           <ul className="list-none space-y-4 text-prose text-sm pl-0">
             {trust.map((t, i) => (
               <li key={i} className="flex items-start gap-4">
-                <span className="font-bold text-ink">—</span>
+                <span className="font-bold text-ink">-</span>
                 <span>{t}</span>
               </li>
             ))}
           </ul>
           <p className="prose-p mt-8">
-            Honest about v0.1 limits: retention recorded but not enforced; append-only audit
-            log by convention not by Postgres grant; module install / per-workspace policy is
-            v0.2 work. See{" "}
+            Honest about v0.1 limits: retention recorded but not enforced; append-only audit log
+            by convention, not by Postgres grant; chronology-write capability wiring waits for
+            the first module-driven chronology endpoint. See{" "}
             <a
               href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
               target="_blank"

@@ -1,4 +1,4 @@
-// CostEstimateDialog — modal that shows the pre-run cost band.
+// CostEstimateDialog - modal that shows the pre-run cost band.
 //
 // Above 50 cells the API requires confirm_above_50=true; we surface the
 // requires_confirm flag verbatim so the user sees what they're consenting
@@ -27,7 +27,7 @@ export function CostEstimateDialog({ estimate, onConfirm, onCancel, busy }: Prop
         <h3 className="text-lg font-semibold">Confirm run</h3>
         {empty ? (
           <p className="text-sm text-neutral-600">
-            Nothing to run — either there are no columns, no documents, or no
+            Nothing to run - either there are no columns, no documents, or no
             document bodies available.
           </p>
         ) : (
@@ -53,14 +53,14 @@ export function CostEstimateDialog({ estimate, onConfirm, onCancel, busy }: Prop
                 </dd>
               </div>
               <div className="text-[11px] text-neutral-500 pt-1">
-                Provider: {estimate.provider ?? "—"}
+                Provider: {estimate.provider ?? "-"}
                 {estimate.model_id && ` · ${estimate.model_id}`}
                 {" "}· ±30% band, billed against your provider key.
               </div>
             </dl>
             {estimate.requires_confirm && (
               <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
-                More than 50 cells — explicit confirmation required.
+                More than 50 cells - explicit confirmation required.
               </div>
             )}
           </>

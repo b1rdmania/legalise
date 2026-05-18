@@ -15,7 +15,7 @@ import { Footer } from "../ui/Footer";
 // Pre-login surface. Turnstile widget + per-IP token bucket gate the
 // POST; backend opens a draft PR on b1rdmania/claude-for-uk-legal via
 // a b1rdmania-scoped PAT. SKILL.md frontmatter is synthesised
-// authoritatively server-side — this client preview is a UX aid only.
+// authoritatively server-side - this client preview is a UX aid only.
 
 declare global {
   interface Window {
@@ -46,7 +46,7 @@ function isGhHandle(v: string): boolean {
 }
 
 // Tiny client-side YAML stringify for the preview pane. Not
-// wire-format-identical with the backend's `frontmatter.dump` — the
+// wire-format-identical with the backend's `frontmatter.dump` - the
 // backend is authoritative. This exists so the submitter can sanity-
 // check shape before sending.
 function previewYaml(value: unknown, indent = 0): string {
@@ -417,7 +417,7 @@ export function SubmitModule() {
 
           <Field
             label="SKILL.md body (markdown)"
-            hint="Min 20 characters. The backend wraps it in YAML frontmatter authoritatively — do not paste your own frontmatter here."
+            hint="Min 20 characters. The backend wraps it in YAML frontmatter authoritatively - do not paste your own frontmatter here."
             invalid={bodyMarkdown !== "" && bodyMarkdown.trim().length < 20}
           >
             <textarea

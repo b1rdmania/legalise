@@ -40,7 +40,7 @@ export function Verify({ token }: { token: string | null }) {
 
   if (status === "pending") {
     return (
-      <AuthCard eyebrow="AUTH — VERIFY EMAIL" heading="Verifying…">
+      <AuthCard eyebrow="AUTH - VERIFY EMAIL" heading="Verifying…">
         <LoadingLine label="checking your token" />
       </AuthCard>
     );
@@ -49,7 +49,7 @@ export function Verify({ token }: { token: string | null }) {
   if (status === "ok") {
     return (
       <AuthCard
-        eyebrow="AUTH — VERIFY EMAIL"
+        eyebrow="AUTH - VERIFY EMAIL"
         heading="Email verified"
         intro="Your account is active. Open your workspace to get started."
       >
@@ -61,7 +61,7 @@ export function Verify({ token }: { token: string | null }) {
   }
 
   return (
-    <AuthCard eyebrow="AUTH — VERIFY EMAIL" heading="Verification failed">
+    <AuthCard eyebrow="AUTH - VERIFY EMAIL" heading="Verification failed">
       {error && <ErrorCallout message={error} />}
       <p className="text-sm text-muted mt-6">
         <a href="#/auth/verify-pending" className="hover:text-ink underline">

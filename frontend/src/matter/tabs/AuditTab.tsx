@@ -67,12 +67,12 @@ export function AuditTab({ audit }: { audit: AuditEntry[] | null }) {
                 className="grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 border-b border-rule hover:bg-wash transition-colors font-mono text-[11px] items-center"
               >
                 <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
-                <span className="text-prose truncate">{e.module ?? "—"}</span>
+                <span className="text-prose truncate">{e.module ?? "-"}</span>
                 <span className="text-ink font-bold truncate">{e.action}</span>
-                <span className="text-prose truncate">{e.model_used ?? "—"}</span>
-                <span className="text-ink">{e.token_count ?? "—"}</span>
-                <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "—"}</span>
-                <span className="text-muted truncate">{(e.prompt_hash ?? "—").slice(0, 8)}</span>
+                <span className="text-prose truncate">{e.model_used ?? "-"}</span>
+                <span className="text-ink">{e.token_count ?? "-"}</span>
+                <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "-"}</span>
+                <span className="text-muted truncate">{(e.prompt_hash ?? "-").slice(0, 8)}</span>
               </div>
             ))}
           </div>

@@ -1,4 +1,4 @@
-// ResearchTab — host for case-law search (§4e).
+// ResearchTab - host for case-law search (§4e).
 //
 // Layout: results pane left, citations sidebar right. Banner up top declares
 // the v0.1 caveat: results are model-fabricated, verify on the Find Case
@@ -16,11 +16,11 @@ import { CitationsSidebar } from "./CitationsSidebar";
 
 type Props = {
   matter: Matter;
-  // Demo path — pre-loaded citations for `#/demo`.
+  // Demo path - pre-loaded citations for `#/demo`.
   initialCitations?: MatterCitationRead[];
 };
 
-// Find Case Law's court set — keep these stable per skill spec.
+// Find Case Law's court set - keep these stable per skill spec.
 const COURT_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Any court" },
   { value: "uksc", label: "Supreme Court (UKSC)" },

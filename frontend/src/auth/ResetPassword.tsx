@@ -31,7 +31,7 @@ export function ResetPassword({ token }: { token: string | null }) {
   if (!token) {
     return (
       <AuthCard
-        eyebrow="AUTH — RESET PASSWORD"
+        eyebrow="AUTH - RESET PASSWORD"
         heading="Missing token"
         intro="This page expects a one-time token from the reset email link."
       >
@@ -45,7 +45,7 @@ export function ResetPassword({ token }: { token: string | null }) {
   if (done) {
     return (
       <AuthCard
-        eyebrow="AUTH — RESET PASSWORD"
+        eyebrow="AUTH - RESET PASSWORD"
         heading="Password updated"
         intro="Your new password is set. Sign in to continue."
       >
@@ -58,7 +58,7 @@ export function ResetPassword({ token }: { token: string | null }) {
 
   return (
     <AuthCard
-      eyebrow="AUTH — RESET PASSWORD"
+      eyebrow="AUTH - RESET PASSWORD"
       heading="Choose a new password"
       intro="At least 8 characters. The reset link expires soon, so finish here."
     >

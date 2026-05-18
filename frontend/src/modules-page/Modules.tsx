@@ -99,14 +99,15 @@ export function Modules() {
           Modules
         </h1>
         <p className="text-sm text-prose max-w-2xl">
-          Module enable/disable is enforced per workspace. Declared capabilities and
-          trust posture are schema-validated from each module manifest and shown below
-          as declarations under review — no runtime per-capability check yet.
+          Declared capabilities are what each module needs. Granted capabilities are
+          what the workspace has authorised for you. The runtime checks the grant
+          before every privileged operation; a denial returns a structured 403 and
+          writes an audit row. Revoke any capability you don't want a module to hold.
         </p>
       </div>
 
       {error && <ErrorCallout message={error} />}
-      {!data && !error && <LoadingLine label="loading installed skills" />}
+      {!data && !error && <LoadingLine label="loading modules" />}
 
       {data && data.broken.length > 0 && (
         <div className="mb-10 border border-rule bg-yellow-100 p-4">
@@ -115,7 +116,7 @@ export function Modules() {
             {data.broken.map((b, i) => (
               <li key={`${b.plugin}-${b.skill}-${i}`} title={b.errors.map((e) => `${e.path} ${e.message}`).join("\n")}>
                 <span className="font-mono text-xs">{b.plugin}/{b.skill}</span>{" "}
-                — {b.errors[0]?.message ?? "manifest invalid"}
+                - {b.errors[0]?.message ?? "manifest invalid"}
                 {b.errors.length > 1 && (
                   <span className="text-muted"> (+{b.errors.length - 1} more)</span>
                 )}
@@ -234,7 +235,7 @@ export function Modules() {
 }
 
 function trustPostureClasses(posture: string | null): string {
-  // Subtle, boring borders. No emoji. The posture is a declaration — not
+  // Subtle, boring borders. No emoji. The posture is a declaration - not
   // an enforcement claim.
   switch (posture) {
     case "trusted":
@@ -278,7 +279,7 @@ function SkillBlock({
     <>
       <div className="mb-8">
         <div className="eyebrow font-mono text-muted mb-4 flex items-center gap-3 flex-wrap">
-          <span>INSTALLED SKILL — {skill.plugin}</span>
+          <span>INSTALLED SKILL - {skill.plugin}</span>
           {!skill.enabled && (
             <span className="text-[10px] uppercase tracking-track2 text-muted border border-rule px-2 py-0.5">
               Disabled
@@ -368,8 +369,8 @@ function SkillBlock({
             </button>
             <span className="text-xs text-muted">
               {skill.enabled
-                ? "Enabled — invocations allowed for this workspace."
-                : "Disabled — invocations blocked for this workspace."}
+                ? "Enabled - invocations allowed for this workspace."
+                : "Disabled - invocations blocked for this workspace."}
             </span>
           </div>
           {toggleError && (

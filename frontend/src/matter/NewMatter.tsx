@@ -36,7 +36,7 @@ export function NewMatter() {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
       <div className="mb-10">
-        <div className="eyebrow font-mono text-muted mb-4">MATTERS — NEW</div>
+        <div className="eyebrow font-mono text-muted mb-4">MATTERS - NEW</div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
           New matter.
         </h1>
@@ -92,9 +92,9 @@ export function NewMatter() {
             onChange={(e) => setForm({ ...form, privilege_posture: e.target.value })}
             className={inputCls}
           >
-            <option value="A_cleared">A_cleared — frontier models allowed</option>
-            <option value="B_mixed">B_mixed — default, local preferred</option>
-            <option value="C_paused">C_paused — LLM calls blocked</option>
+            <option value="A_cleared">A_cleared - frontier models allowed</option>
+            <option value="B_mixed">B_mixed - default, local preferred</option>
+            <option value="C_paused">C_paused - LLM calls blocked</option>
           </select>
         </Field>
 
