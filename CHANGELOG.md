@@ -8,11 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Added
 
-- v0.1 build in progress — see `BUILD_PLAN.md` for the day-by-day plan.
+- Runtime capability enforcement. `workspace_skill_capability_grants` table + `require_capability` helper, wired at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). Auto-grant on signup keeps the v0.1 UX honest (declared = granted by default; user can revoke).
+- Per-skill module manifests. Schema supports per-skill `capabilities` and `trust_posture` overrides. Bridge surfaces `declared_capabilities` and `granted_capabilities` separately.
+- Bootstrap audit rows on per-user demo seed. `actor_id=NULL`, `module=seed`, `payload.kind=seed`. Idempotent across re-runs and upgrade path.
+- Real-DB E2E test infrastructure (`backend/tests/conftest.py`) with transaction-rollback per test, ASGI client, savepoint-joined sessions. Skips cleanly when DB unreachable.
+- 41 new tests covering auth, chronology, modules, matters, documents, audit, letters, workspace skills, runtime capability enforcement, seed audit, and per-skill capability surfacing.
 
-## [0.1.0] — Target: May/June 2026
+### Fixed
 
-Initial release. Demo positioning — drafts for solicitor review, not a production legal tool.
+- `/auth/login` returned HTTP 500 on every attempt. `AccessToken.user_id` inherited a FK to `user.id` from the fastapi-users mixin; our table is `users`. ORM override added in `app/models/user.py`.
+- `/api/matters/{slug}/chronology` returned HTTP 500 on the tainted-event path. `_gate_state` referenced `AuditEntry` without importing it.
+
+### Changed
+
+- README, MANIFESTO, ROADMAP, and the assistant system prompt rewritten to remove AI tics and em dashes. Skill substrate no longer surfaced in product copy.
+- PRE_FLIGHT.md gains §7 browser walk checklist required before Day 15 deploy.
+
+## [0.1.0] - Target: May/June 2026
+
+Initial release. Demo positioning - drafts for solicitor review, not a production legal tool.
 
 ### Added
 
@@ -29,4 +43,4 @@ Initial release. Demo positioning — drafts for solicitor review, not a product
 
 - `MANIFESTO.md`, `EXECUTIVE_SUMMARY.md`, `SCOPE.md`, `ARCHITECTURE.md`, `BUILD_PLAN.md`, `ROADMAP.md`, `REGULATORY_PLUMBING.md`, `CONTRIBUTING.md`.
 
-To be expanded with detail at launch — this entry is a scaffold during the build window.
+To be expanded with detail at launch - this entry is a scaffold during the build window.

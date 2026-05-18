@@ -21,11 +21,13 @@ Shipped surfaces:
 - Tracked-changes document editing with accept / reject and version timeline
 - Tabular review across multiple documents
 - Public module submission flow opens a draft PR against `claude-for-uk-legal`
-- Read-only installed-skills view at `#/modules` with declared capabilities + trust posture per skill
+- Read-only installed-skills view at `#/modules` with declared + granted capabilities + trust posture per skill
 - Module enable/disable enforcement at the `(plugin, skill)` layer
 - `module.json` schema validation surfaces broken manifests in the UI
+- Per-skill capability and trust-posture overrides in the manifest schema
+- **Runtime capability enforcement.** `workspace_skill_capability_grants` table, `require_capability` helper, wired at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). Auto-grant on signup. Denied attempts emit a structured 403 plus a `module.capability.denied` audit row.
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Smoke evals: audit-row contract, posture routing, redline anchor resolution, NDA parse, assistant prompt/audit invariants
+- Smoke evals + real-DB E2E coverage across auth, chronology, modules, matters, documents, audit, letters, workspace skills, capabilities, seed audit
 
 ## v0.2: locked direction
 
@@ -41,10 +43,7 @@ Locked (the direction is fixed; implementation lands in v0.2):
   router-local `asyncio.create_task` onto the job runner. SSE-disconnect
   during Contract Review is the v0.1 Day-15 smoke that proves the
   brittleness this work resolves.
-- **Runtime per-capability enforcement.** v0.1 declares capabilities
-  and schema-validates them. v0.2 makes them enforceable policy at
-  every call site. The gateway checks the calling skill's declared
-  capability against the action it's attempting.
+- **Chronology-write capability wiring.** v0.1 enforces capabilities at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). The chronology-mutation boundary is unwired because no module-driven chronology write endpoint exists yet. v0.2 lands that endpoint and gates it on `chronology.write` via the same `plugin` + `skill` query-param pattern.
 - **Provider-native structured output and tool calling.** v0.1 uses
   `backend/app/core/structured_output.py::parse_model_json` as an
   internal helper. v0.2 moves the gateway to provider-native schemas
