@@ -67,8 +67,11 @@ export function MatterDetail({
     }
   }, [route]);
 
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const setTabAndHash = (next: TabKey) => {
     setTab(next);
+    setMobileNavOpen(false);
     const target = `/matters/${slug}/${next}`;
     if (`#${target}` !== window.location.hash) navigate(target);
   };
@@ -306,9 +309,6 @@ export function MatterDetail({
     }
   };
 
-  // TODO(mobile): on < md the MatterNav is hidden. The existing P18
-  // mobile drawer covers nav for now; a dedicated compact mobile rail
-  // (or bottom-sheet picker) lands after the v0.4 desktop flip settles.
   return (
     <div className="flex">
       <MatterNav
@@ -316,9 +316,15 @@ export function MatterDetail({
         tab={tab}
         onChange={setTabAndHash}
         onPostureChange={onPostureChange}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
       />
       <div className="flex-1 min-w-0">
-        <MatterBreadcrumb matter={matter} tab={tab} />
+        <MatterBreadcrumb
+          matter={matter}
+          tab={tab}
+          onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
+        />
         <main className="px-4 sm:px-6 lg:px-10 py-10">
           {error && matter && <ErrorCallout message={error} compact />}
           {tab === "assistant" && (

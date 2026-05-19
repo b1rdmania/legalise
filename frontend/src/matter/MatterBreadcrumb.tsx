@@ -3,6 +3,9 @@
 // Matters / {matter title} / {tab label}. Posture lives in the
 // sidebar matter card. Surfaces that need more metadata render it
 // inline within the tab body.
+//
+// Mobile: a hamburger button sits at the left edge and toggles the
+// MatterNav slide-out sheet (P19 mobile variant).
 
 import type { Matter } from "../lib/api";
 import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "./tabs/types";
@@ -18,9 +21,11 @@ function labelFor(tab: TabKey): string {
 export function MatterBreadcrumb({
   matter,
   tab,
+  onToggleMobileNav,
 }: {
   matter: Matter;
   tab: TabKey;
+  onToggleMobileNav?: () => void;
 }) {
   const tabLabel = labelFor(tab);
   // For workflow surfaces, show Matters / title / Workflows / surface
@@ -28,7 +33,19 @@ export function MatterBreadcrumb({
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-4 border-b border-rule flex items-center justify-between gap-4">
-      <div className="flex items-center min-w-0 text-sm">
+      <div className="flex items-center min-w-0 text-sm gap-1">
+        {onToggleMobileNav && (
+          <button
+            type="button"
+            onClick={onToggleMobileNav}
+            aria-label="Open matter navigation"
+            className="md:hidden min-h-[44px] min-w-[44px] -ml-2 flex items-center justify-center text-ink shrink-0"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        )}
         <a href="#/matters" className="text-muted hover:text-ink transition-colors shrink-0">
           Matters
         </a>

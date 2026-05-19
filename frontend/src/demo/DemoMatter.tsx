@@ -42,6 +42,7 @@ export function DemoMatter() {
       : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [flash, setFlash] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (route.name === "demo" && route.tab && isTabKey(route.tab)) {
@@ -60,6 +61,7 @@ export function DemoMatter() {
 
   const setTabAndHash = (next: TabKey) => {
     setTab(next);
+    setMobileNavOpen(false);
     const target = `/demo/${next}`;
     if (`#${target}` !== window.location.hash) navigate(target);
   };
@@ -93,16 +95,21 @@ export function DemoMatter() {
         <DemoBanner />
         {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
       </div>
-      {/* TODO(mobile): MatterNav is hidden < md; the P18 drawer covers nav for now. */}
       <div className="flex">
         <MatterNav
           matter={matter}
           tab={tab}
           onChange={setTabAndHash}
           onPostureChange={flashPosture}
+          mobileOpen={mobileNavOpen}
+          onMobileClose={() => setMobileNavOpen(false)}
         />
         <div className="flex-1 min-w-0">
-          <MatterBreadcrumb matter={matter} tab={tab} />
+          <MatterBreadcrumb
+            matter={matter}
+            tab={tab}
+            onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
+          />
           <main className="px-4 sm:px-6 lg:px-10 py-10">
             {tab === "assistant" && (
               <AssistantTab
