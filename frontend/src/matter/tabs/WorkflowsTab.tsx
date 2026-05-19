@@ -30,9 +30,9 @@ export function WorkflowsTab({ slug }: { slug: string }) {
         ))}
       </div>
 
-      <p className="text-xs text-muted mt-10 leading-relaxed">
-        Install more modules from the{" "}
-        <a href="#/modules" className="text-ink hover:underline">
+      <p className="text-xs text-muted mt-8">
+        Browse all available modules in the{" "}
+        <a href="#/modules" className="text-[#0066CC] hover:underline">
           module catalogue
         </a>
         .

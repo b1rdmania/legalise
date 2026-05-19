@@ -45,9 +45,8 @@ export function Settings({ tab }: { tab: SettingsTab }) {
   return (
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
       <div className="mb-10">
-        <div className="eyebrow font-mono text-muted mb-4">SETTINGS</div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
-          Account
+          Settings
         </h1>
       </div>
       <div className="flex flex-col lg:flex-row gap-10">
@@ -79,6 +78,30 @@ export function Settings({ tab }: { tab: SettingsTab }) {
   );
 }
 
+// Per-field Save button. Disabled when the field equals the persisted
+// value (matches Mike's settings pattern - each change is an explicit
+// action, more legal-workspace-y than a single bottom Save).
+function FieldSave({
+  dirty,
+  busy,
+  onClick,
+}: {
+  dirty: boolean;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={!dirty || busy}
+      onClick={onClick}
+      className="bg-ink text-paper px-5 hover:bg-black transition-colors text-sm font-medium disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed min-h-[44px] shrink-0"
+    >
+      {busy ? "Saving" : "Save"}
+    </button>
+  );
+}
+
 function SettingsProfile({
   user,
   onUpdated,
@@ -91,85 +114,223 @@ function SettingsProfile({
   const [defaultModel, setDefaultModel] = useState(user.default_model_id ?? "");
   const [defaultPosture, setDefaultPosture] = useState(user.default_privilege_posture ?? "B_mixed");
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [busyField, setBusyField] = useState<string | null>(null);
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  // Persisted (last-saved) values - drive the dirty flag per field.
+  const [savedName, setSavedName] = useState(user.name ?? "");
+  const [savedModel, setSavedModel] = useState(user.default_model_id ?? "");
+  const [savedPosture, setSavedPosture] = useState(user.default_privilege_posture ?? "B_mixed");
+
+  useEffect(() => {
+    setSavedName(user.name ?? "");
+    setSavedModel(user.default_model_id ?? "");
+    setSavedPosture(user.default_privilege_posture ?? "B_mixed");
+  }, [user]);
+
+  const saveField = async (
+    field: "name" | "password" | "default_model_id" | "default_privilege_posture",
+    patch: import("../lib/api").UserProfileUpdate,
+  ) => {
+    setBusyField(field);
     setError(null);
     try {
-      const patch: import("../lib/api").UserProfileUpdate = {
-        name,
-        default_model_id: defaultModel || null,
-        default_privilege_posture: defaultPosture || null,
-      };
-      if (password) patch.password = password;
       await updateProfile(patch);
-      setPassword("");
-      setSavedAt(Date.now());
+      if (field === "name") setSavedName(name);
+      if (field === "default_model_id") setSavedModel(defaultModel);
+      if (field === "default_privilege_posture") setSavedPosture(defaultPosture);
+      if (field === "password") setPassword("");
       onUpdated();
     } catch (err) {
       setError(String(err));
     } finally {
-      setBusy(false);
+      setBusyField(null);
     }
   };
 
+  const onDeleteAccount = () => {
+    const ok = window.confirm(
+      "Delete your account? This removes all matters and audit history and cannot be undone.",
+    );
+    if (!ok) return;
+    // TODO(delete-account): no deleteAccount endpoint in lib/api yet. Wire to
+    // DELETE /auth/users/me (or equivalent) once the backend ships it.
+    // eslint-disable-next-line no-console
+    console.warn("[Settings] delete-account requested but no endpoint wired yet");
+  };
+
+  // TODO(plan): backend does not yet expose a plan field on CurrentUser.
+  // Surface user.role until a richer billing model lands.
+  const planLabel = user.role ? user.role : "Admin";
+
   return (
-    <form className="flex flex-col gap-8" onSubmit={submit}>
+    <div className="flex flex-col gap-8">
       <div>
         <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Profile</h2>
         <p className="prose-p mb-0">Visible in audit rows. Email and verification status read-only.</p>
       </div>
-      <Field label="Email" hint={user.is_verified ? "verified" : "unverified - check your inbox"}>
-        <input type="email" value={user.email} disabled className={inputCls + " opacity-60 cursor-not-allowed"} />
-      </Field>
-      <Field label="Name">
-        <input
-          type="text"
-          value={name}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-      <Field label="New password" hint="leave blank to keep current">
-        <input
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-          className={inputCls}
-        />
-      </Field>
-      <Field label="Default model" hint="model id used for new matters when none specified">
-        <input
-          type="text"
-          value={defaultModel}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
-          placeholder="claude-opus-4-7"
-          className={inputCls + " font-mono"}
-        />
-      </Field>
-      <Field label="Default privilege posture">
-        <select
-          value={defaultPosture}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => setDefaultPosture(e.target.value)}
-          className={inputCls}
-        >
-          <option value="A_cleared">A · cleared</option>
-          <option value="B_mixed">B · mixed</option>
-          <option value="C_paused">C · paused</option>
-        </select>
-      </Field>
+
       {error && <ErrorCallout message={error} />}
-      <div className="flex items-center gap-4">
-        <button type="submit" disabled={busy} className={primaryBtn}>
-          {busy ? "Saving…" : "Save changes"}
-        </button>
-        {savedAt && <span className="text-sm text-muted">Saved.</span>}
+
+      <div>
+        <label className="eyebrow mb-2 block">Email</label>
+        <div className="flex gap-3">
+          <input
+            type="email"
+            value={user.email}
+            disabled
+            className={inputCls + " opacity-60 cursor-not-allowed"}
+          />
+        </div>
+        <p className="text-xs text-muted mt-2">
+          {user.is_verified ? "Verified." : "Unverified. Check your inbox."}
+        </p>
       </div>
-    </form>
+
+      <div>
+        <label className="eyebrow mb-2 block">Display name</label>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            className={inputCls}
+          />
+          <FieldSave
+            dirty={name !== savedName}
+            busy={busyField === "name"}
+            onClick={() => void saveField("name", { name })}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="eyebrow mb-2 block">New password</label>
+        <div className="flex gap-3">
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            placeholder="leave blank to keep current"
+            className={inputCls}
+          />
+          <FieldSave
+            dirty={password.length > 0}
+            busy={busyField === "password"}
+            onClick={() => void saveField("password", { password })}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="eyebrow mb-2 block">Default model</label>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={defaultModel}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
+            placeholder="claude-opus-4-7"
+            className={inputCls + " font-mono"}
+          />
+          <FieldSave
+            dirty={defaultModel !== savedModel}
+            busy={busyField === "default_model_id"}
+            onClick={() =>
+              void saveField("default_model_id", { default_model_id: defaultModel || null })
+            }
+          />
+        </div>
+        <p className="text-xs text-muted mt-2">Model id used for new matters when none specified.</p>
+      </div>
+
+      <div>
+        <label className="eyebrow mb-2 block">Default privilege posture</label>
+        <div className="flex gap-3">
+          <select
+            value={defaultPosture}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setDefaultPosture(e.target.value)}
+            className={inputCls}
+          >
+            <option value="A_cleared">A · cleared</option>
+            <option value="B_mixed">B · mixed</option>
+            <option value="C_paused">C · paused</option>
+          </select>
+          <FieldSave
+            dirty={defaultPosture !== savedPosture}
+            busy={busyField === "default_privilege_posture"}
+            onClick={() =>
+              void saveField("default_privilege_posture", {
+                default_privilege_posture: defaultPosture,
+              })
+            }
+          />
+        </div>
+      </div>
+
+      {/* Usage Plan */}
+      <div>
+        <div className="eyebrow mb-4 mt-12">Usage Plan</div>
+        <div className="text-sm font-semibold text-ink capitalize">{planLabel}</div>
+      </div>
+
+      {/* Actions */}
+      <div>
+        <div className="eyebrow mb-4 mt-12">Actions</div>
+        <SignOutButton />
+      </div>
+
+      {/* Danger zone */}
+      <div>
+        <div className="eyebrow mb-4 mt-12 text-[#D9304F]">Danger Zone</div>
+        <p className="text-sm text-muted mb-4">
+          Deleting your account removes all matters and audit history. This action cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={onDeleteAccount}
+          className="border border-[#D9304F] text-[#D9304F] hover:bg-[#FEF2F2] px-4 py-2 transition-colors text-sm font-medium min-h-[44px]"
+        >
+          Delete account
+        </button>
+      </div>
+
+    </div>
+  );
+}
+
+// SignOut button reads from AuthProvider via useAuth.
+function SignOutButton() {
+  const auth = useAuth();
+  const handle = async () => {
+    try {
+      await auth.signOut();
+    } finally {
+      navigate("/auth/signin");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void handle()}
+      className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center gap-2"
+    >
+      <span>Sign out</span>
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M6 3H3v10h3" />
+        <path d="M10 11l3-3-3-3" />
+        <path d="M13 8H7" />
+      </svg>
+    </button>
   );
 }
 
@@ -289,7 +450,7 @@ function SettingsKeys() {
         </Field>
         {error && <ErrorCallout message={error} />}
         <button type="submit" disabled={busy || !apiKey} className={primaryBtn + " self-start"}>
-          {busy ? "Saving…" : "Save key"}
+          {busy ? "Saving" : "Save key"}
         </button>
       </form>
     </div>

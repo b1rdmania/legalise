@@ -42,6 +42,15 @@ one of them (Workflows).
   MatterNav carry identity. Bare H2 + eyebrow + lede headers inside
   each tab body are removed; tabs land directly into the form, table,
   or chat surface.
+- **Modules vs Workflows.** Two terms, two surfaces. **Modules** are
+  what you install: the public catalogue at `#/modules` lists every
+  installable skill across the workspace. **Workflows** are what you
+  run on a matter once a module is installed: the matter-scoped
+  `#/matters/{slug}/workflows` page lists the runnable surfaces for
+  that matter (Pre-Motion, Letters, Contract review, Tabular Review,
+  Case law). Modules are what you install. Workflows are what you run
+  on a matter. The TopBar / Drawer use "Modules" for the catalogue
+  hop; the MatterNav uses "Workflows" for the per-matter list.
 
 ### What changed in v0.3
 
@@ -1058,9 +1067,17 @@ keeps working (`#/matters/{slug}/premotion`) so links stay stable.
 first whether it should nest under an existing one (Workflows is the
 canonical example: 5 module surfaces compress to 1 nav slot).
 
-**Mobile.** Hidden at `< md`. The existing P18 drawer covers mobile
-navigation for v0.4. A dedicated compact mobile rail (or bottom-sheet
-picker) lands after the desktop flip settles.
+**Mobile.** At `< md` the static rail is hidden. A hamburger button
+sits at the left of the MatterBreadcrumb (P20) and toggles the rail
+as a left-anchored slide-out sheet: `fixed inset-y-0 left-0 w-[280px]
+bg-paper border-r border-rule z-50`, with a `bg-ink/40` backdrop
+(`fixed inset-0 z-40 md:hidden`). The sheet renders the same matter
+card + nav list + footer as the desktop rail. Selecting a nav item
+closes the sheet; tapping the backdrop closes it; an inline close
+button next to the matter card eyebrow closes it. Coexists with P18:
+P18 is the global app drawer (hamburger in the TopBar, app-level
+nav); P19's mobile sheet is matter-scoped and lives behind the
+breadcrumb hamburger.
 
 ## P20 - Slim breadcrumb (matter workspace content header)
 

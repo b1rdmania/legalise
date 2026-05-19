@@ -3,7 +3,13 @@
 // Pattern reference: Mike, Claude.ai, Sana AI, Mistral, Fibery.
 // 5 primitives (Assistant / Documents / Chronology / Workflows / Audit);
 // installed legal modules nest behind Workflows.
+//
+// Mobile: at < md the static rail is hidden. When `mobileOpen` is true
+// the same content renders as a left-anchored 280px sheet with a
+// bg-ink/40 backdrop. The hamburger that triggers it lives in
+// MatterBreadcrumb.
 
+import type { ReactNode } from "react";
 import type { Matter } from "../lib/api";
 import { PrivilegeControl } from "./PrivilegeControl";
 import { SIDEBAR_NAV, sidebarActiveFor, type TabKey } from "./tabs/types";
@@ -13,22 +19,100 @@ export function MatterNav({
   tab,
   onChange,
   onPostureChange,
+  mobileOpen,
+  onMobileClose,
 }: {
   matter: Matter;
   tab: TabKey;
   onChange: (next: TabKey) => void;
   onPostureChange: (next: string) => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }) {
   const activeKey = sidebarActiveFor(tab);
 
+  const body = (
+    <NavBody
+      matter={matter}
+      activeKey={activeKey}
+      onChange={onChange}
+      onPostureChange={onPostureChange}
+    />
+  );
+
   return (
-    <aside
-      className="w-[220px] shrink-0 border-r border-rule bg-paper hidden md:flex md:flex-col sticky top-[64px] sm:top-[80px] h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] overflow-y-auto"
-      aria-label="Matter navigation"
-    >
+    <>
+      {/* Desktop: static rail */}
+      <aside
+        className="w-[220px] shrink-0 border-r border-rule bg-paper hidden md:flex md:flex-col sticky top-[64px] sm:top-[80px] h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] overflow-y-auto"
+        aria-label="Matter navigation"
+      >
+        {body}
+      </aside>
+
+      {/* Mobile: backdrop + slide-in sheet */}
+      {mobileOpen && (
+        <>
+          <div
+            onClick={onMobileClose}
+            className="md:hidden fixed inset-0 z-40 bg-ink/40"
+            aria-hidden="true"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Matter navigation"
+            className="md:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-paper border-r border-rule flex flex-col overflow-y-auto"
+          >
+            <NavBody
+              matter={matter}
+              activeKey={activeKey}
+              onChange={(next) => {
+                onChange(next);
+                onMobileClose?.();
+              }}
+              onPostureChange={onPostureChange}
+              closeButton={
+                <button
+                  type="button"
+                  onClick={onMobileClose}
+                  aria-label="Close matter navigation"
+                  className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center text-muted hover:text-ink"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                </button>
+              }
+            />
+          </aside>
+        </>
+      )}
+    </>
+  );
+}
+
+function NavBody({
+  matter,
+  activeKey,
+  onChange,
+  onPostureChange,
+  closeButton,
+}: {
+  matter: Matter;
+  activeKey: TabKey | null;
+  onChange: (next: TabKey) => void;
+  onPostureChange: (next: string) => void;
+  closeButton?: ReactNode;
+}) {
+  return (
+    <>
       {/* Matter card */}
       <div className="px-4 py-5 border-b border-rule">
-        <div className="eyebrow mb-2">Matter</div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="eyebrow mb-2">Matter</div>
+          {closeButton}
+        </div>
         <div className="text-sm font-semibold text-ink leading-snug break-words">
           {matter.title}
         </div>
@@ -73,7 +157,7 @@ export function MatterNav({
           {matter.status}
         </div>
       </div>
-    </aside>
+    </>
   );
 }
 
