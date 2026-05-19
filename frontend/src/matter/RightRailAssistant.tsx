@@ -6,6 +6,7 @@ import {
   type Matter,
 } from "../lib/api";
 import { InlineSpinner, primaryBtn } from "../ui/primitives";
+import { InlineAgentStatus, MessageBubble } from "./MessageBubble";
 
 interface Props {
   matter: Matter;
@@ -19,6 +20,10 @@ const MAX_VISIBLE = 5;
 // Persistent right-rail Assistant. Lives next to the main column on every
 // non-Assistant matter surface. Reuses the assistant API; keeps its own
 // local last-5 view (does not share state with AssistantTab).
+//
+// Shares MessageBubble with AssistantTab via compact mode so the message
+// shape stays consistent: user right-aligned on wash, assistant left-aligned
+// plain prose with citation chips below.
 export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpenFull }: Props) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState("");
@@ -121,7 +126,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {!loaded && (
           <p className="font-mono text-[10px] uppercase tracking-track2 text-muted flex items-center gap-2">
             <InlineSpinner />
@@ -134,22 +139,24 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
           </p>
         )}
         {messages.map((m) => (
-          <div
+          <MessageBubble
             key={m.id}
-            className={
-              m.role === "user"
-                ? "bg-wash p-3 text-xs text-prose whitespace-pre-wrap"
-                : "border border-rule p-3 text-xs text-ink whitespace-pre-wrap"
-            }
-          >
-            {m.content}
-          </div>
+            message={m}
+            docs={null}
+            chronology={[]}
+            onDocChip={onOpenFull}
+            onChronChip={onOpenFull}
+            compact
+          />
         ))}
         {pending && (
-          <div className="border border-rule p-3 text-xs text-muted flex items-center gap-2">
-            <InlineSpinner />
-            <span className="font-mono uppercase tracking-track2 text-[10px]">thinking</span>
-          </div>
+          <InlineAgentStatus
+            compact
+            steps={[
+              { label: "Reading", status: "complete" },
+              { label: "Drafting", status: "running" },
+            ]}
+          />
         )}
         {error && (
           <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-xs p-2">
@@ -172,12 +179,17 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
           <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
-              className="text-xs font-mono text-muted hover:text-ink whitespace-nowrap"
+              className="font-mono text-[11px] text-muted hover:text-ink whitespace-nowrap transition-colors"
               onClick={onOpenFull}
             >
               + Documents
             </button>
-            <span className="text-[10px] font-mono text-muted truncate">Claude Sonnet 4.6 ▾</span>
+            <span
+              className="font-mono text-[10px] text-muted truncate"
+              title="Model picker stub. Not wired in v0.1."
+            >
+              Claude Sonnet 4.6 v
+            </span>
           </div>
           <button
             type="button"
@@ -191,7 +203,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
         <button
           type="button"
           onClick={onOpenFull}
-          className="mt-2 block text-xs text-muted hover:text-ink transition-colors"
+          className="mt-2 block font-mono text-[11px] text-muted hover:text-ink transition-colors"
         >
           Open full Assistant
         </button>
