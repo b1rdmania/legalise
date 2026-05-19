@@ -1,10 +1,21 @@
 # Backend handover — Legalise v0.1 → v0.2
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-19. Master on `b535356`. Design v0.4 shell is FROZEN; the chat redesign + reviewer hardening pass shipped today.
-**Scope:** what backend exists, what's queued, and the open questions Andy wants a second opinion on before scope freezes.
+**As of:** 2026-05-19. Master on `4583f4b` (post-backend pass). Design v0.4 shell is FROZEN; chat redesign + hardening + four backend endpoints all shipped today.
 
-This is a *scoping* handover, not a build plan. Push back on priority, scope, and shape — that's the point.
+**Status: ALL FOUR ENDPOINTS SHIPPED.** This doc is preserved as the
+scoping artefact that fed the reviewer pass; the live spec for each
+endpoint now lives in `docs/BACKEND_TODOS.md`. Open questions in §4
+were resolved in the reviewer's verdict and are reflected in the
+implementations.
+
+**What shipped:**
+1. `GET /api/modules/public` — `a5dca6d`
+2. `GET /api/matters/{slug}/workflows` — `bddca3d`
+3. `DELETE /api/users/me` — `1196599`
+4. `User.plan` display-only field — `4583f4b`
+
+The sections below remain as the original scoping document.
 
 ---
 

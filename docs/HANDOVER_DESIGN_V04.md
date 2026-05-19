@@ -3,7 +3,7 @@
 **For:** the reviewer agent (and Andy for context).
 **As of:** 2026-05-19. Updated after a reviewer pass — current master is past `22a323d`; the hardening commits that landed after the original handover are the response to those review notes. See `git log` for the live trail.
 
-**v0.4 shell is FROZEN.** Chat surface redesign is the next iteration — interaction pattern only, no shell flip. See `MEMORY/legalise-chat-redesign.md` for the reviewer brief. Backend follow-ups parked in `docs/BACKEND_TODOS.md`.
+**v0.4 shell is FROZEN.** Chat surface redesign SHIPPED `1e683be`+`b535356`: 920px centered conversation column, 560px user bubble on `bg-wash`, citation chips as `Document · filename.ext` / `Event · 12 Mar 2026`, sticky composer width-matched, RightRailAssistant has explicit `disabled` state. All four backend TODOs from `BACKEND_TODOS.md` SHIPPED (`a5dca6d`, `bddca3d`, `1196599`, `4583f4b`). Product doctrine added at `docs/JOY.md` (commit `3e9b443`) and linked from DESIGN.md. A JOY-doctrine pass (Matter Pulse, Suggested Actions, Audit Confirmation, anti-pattern sweep) is in-flight at the time of writing.
 **Scope:** every visual change shipped in this session, the doctrine behind them, what's settled, what's open. Read this before opening DESIGN.md; this is the short story, DESIGN.md is the long one.
 
 ---
