@@ -84,7 +84,7 @@ async def test_per_skill_capabilities_override_plugin_defaults(
                 "document.body.read",
                 "document.generated.write",
                 "model.invoke",
-                "audit.emit",
+                "chronology.read",
             ],
             "trust_posture": "third_party",
             "skills": {
@@ -93,7 +93,7 @@ async def test_per_skill_capabilities_override_plugin_defaults(
                         "matter.read",
                         "document.body.read",
                         "model.invoke",
-                        "audit.emit",
+                        "chronology.read",
                     ],
                     "trust_posture": "trusted",
                 }
@@ -127,7 +127,7 @@ async def test_per_skill_capabilities_override_plugin_defaults(
         "document.body.read",
         "document.generated.write",
         "model.invoke",
-        "audit.emit",
+        "chronology.read",
     ]
     assert drafter["trust_posture"] == "third_party"
 
@@ -138,7 +138,7 @@ async def test_per_skill_capabilities_override_plugin_defaults(
         "matter.read",
         "document.body.read",
         "model.invoke",
-        "audit.emit",
+        "chronology.read",
     ]
     assert screener["trust_posture"] == "trusted"
 
@@ -162,7 +162,7 @@ async def test_skills_map_missing_falls_back_to_plugin_level(
                 "backend_prefix": "/api/modules/thin-plugin",
                 "frontend_route": "/matters/$slug/thin",
             },
-            "capabilities": ["matter.read", "audit.emit"],
+            "capabilities": ["matter.read", "chronology.read"],
             "trust_posture": "experimental",
         },
     )
@@ -184,5 +184,5 @@ async def test_skills_map_missing_falls_back_to_plugin_level(
     assert body["broken"] == []
     only = body["skills"][0]
     assert only["skill"] == "only-skill"
-    assert only["capabilities"] == ["matter.read", "audit.emit"]
+    assert only["capabilities"] == ["matter.read", "chronology.read"]
     assert only["trust_posture"] == "experimental"
