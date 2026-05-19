@@ -2,7 +2,7 @@
 
 UK legal AI workspace. Built for the regulator, not the demo.
 
-Live at [legalise.dev](https://legalise.dev). Open source, Apache 2.0. England & Wales. `v0.1`.
+Open source, Apache 2.0. England & Wales. `v0.1`. Hosted demo at [legalise.dev](https://legalise.dev) shipping Friday.
 
 ![Audit tab. Khan v Acme sample matter.](docs/img/audit-tab.png)
 
@@ -69,7 +69,7 @@ The plugin layer (where the legal logic actually lives) is at [`claude-for-uk-le
 
 ## Try it
 
-Demo at [legalise.dev](https://legalise.dev). Khan v Acme sample matter seeds on signup. Or run it locally:
+The hosted demo at [legalise.dev](https://legalise.dev) goes live Friday. Khan v Acme sample matter will seed on signup. Until then, run it locally:
 
 ```bash
 git clone https://github.com/b1rdmania/legalise
