@@ -202,6 +202,36 @@ export interface PublicModulesResponse {
 export const getPublicModules = () =>
   apiFetch(`${API}/modules/public`).then((r) => jsonOrThrow<PublicModulesResponse>(r));
 
+// Per-matter workflows catalogue. State (grant, availability, last_run_at)
+// is derived live on the backend from grants + audit + matter posture.
+export type WorkflowGrant = "granted" | "partial" | "blocked" | "not-installed";
+export type WorkflowAvailability =
+  | "ok"
+  | "blocked-by-posture"
+  | "blocked-by-grant"
+  | "not-installed";
+
+export interface WorkflowState {
+  key: string;
+  title: string;
+  description: string;
+  declared_capabilities: string[];
+  granted_capabilities: string[];
+  grant: WorkflowGrant;
+  last_run_at: string | null;
+  availability: WorkflowAvailability;
+  reason: string | null;
+}
+
+export interface MatterWorkflowsResponse {
+  workflows: WorkflowState[];
+}
+
+export const getMatterWorkflows = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/workflows`).then((r) =>
+    jsonOrThrow<MatterWorkflowsResponse>(r),
+  );
+
 export const getSkillBody = (plugin: string, skill: string) =>
   apiFetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
     if (!r.ok) {

@@ -493,6 +493,271 @@ async def invoke_plugin(
     )
 
 
+# ---------------------------------------------------------------------------
+# Workflow catalogue per matter
+#
+# The Workflows tab in the matter UI lists the legal workflows installed on
+# the workspace and, per matter, what state each one is in: granted /
+# partial / blocked / not-installed; last run; availability under the
+# matter's current posture. Everything derived at query time. No
+# `WorkflowRun` denorm table yet (locked decision in reviewer pass).
+#
+# `key` is the UI taxonomy. `audit_modules` is the set of audit `module`
+# values that signal "this workflow ran" - the audit log is the source
+# of truth for last_run_at in v0.1. `declared_capabilities` is the canonical
+# capability set the workflow needs at runtime.
+# ---------------------------------------------------------------------------
+
+
+class WorkflowDef(BaseModel):
+    key: str
+    title: str
+    description: str
+    declared_capabilities: list[str]
+    audit_modules: list[str]
+
+
+WORKFLOW_DEFS: list[WorkflowDef] = [
+    WorkflowDef(
+        key="premotion",
+        title="Pre-Motion",
+        description=(
+            "Stress-test a claim with nine model calls. Reads the matter "
+            "documents and chronology. Logs every step to the audit; writes "
+            "no other artefacts."
+        ),
+        declared_capabilities=[
+            "matter.read",
+            "document.body.read",
+            "chronology.read",
+            "audit.write",
+            "model.invoke",
+        ],
+        audit_modules=["pre_motion", "premotion"],
+    ),
+    WorkflowDef(
+        key="letters",
+        title="Letters",
+        description=(
+            "Draft a routing-aware letter (LBA for ET, CPR letter for civil). "
+            "Reads matter metadata and the chronology. Outputs a draft "
+            "document and an audit trail."
+        ),
+        declared_capabilities=[
+            "matter.read",
+            "chronology.read",
+            "document.generated.write",
+            "audit.write",
+            "model.invoke",
+        ],
+        audit_modules=["letters"],
+    ),
+    WorkflowDef(
+        key="contract-review",
+        title="Contract review",
+        description=(
+            "Run a four-stage UK-focused review: parse, analyse against "
+            "UCTA / CRA / UK GDPR / governing law / jurisdiction, redline, "
+            "summarise."
+        ),
+        declared_capabilities=[
+            "document.body.read",
+            "document.generated.write",
+            "audit.write",
+            "model.invoke",
+        ],
+        audit_modules=["contract_review"],
+    ),
+    WorkflowDef(
+        key="reviews",
+        title="Tabular Review",
+        description=(
+            "Apply a structured column set across a document set. One row "
+            "per document, one column per question; every cell cites its "
+            "source passage."
+        ),
+        declared_capabilities=[
+            "document.body.read",
+            "review.write",
+            "audit.write",
+            "model.invoke",
+        ],
+        audit_modules=["tabular_review"],
+    ),
+    WorkflowDef(
+        key="research",
+        title="Case law",
+        description=(
+            "Search reported UK authorities and cite them into the matter. "
+            "v0.2 swaps in the Find Case Law MCP."
+        ),
+        declared_capabilities=[
+            "matter.read",
+            "citation.write",
+            "audit.write",
+            "net.http",
+            "model.invoke",
+        ],
+        audit_modules=["research", "case_law"],
+    ),
+]
+
+
+class WorkflowState(BaseModel):
+    key: str
+    title: str
+    description: str
+    declared_capabilities: list[str]
+    granted_capabilities: list[str]
+    grant: str  # "granted" | "partial" | "blocked" | "not-installed"
+    last_run_at: datetime | None
+    availability: str  # "ok" | "blocked-by-posture" | "blocked-by-grant" | "not-installed"
+    reason: str | None
+
+
+class MatterWorkflowsResponse(BaseModel):
+    workflows: list[WorkflowState]
+
+
+def _compute_workflow_state(
+    wf: WorkflowDef,
+    user_granted: set[str],
+    posture: str | None,
+    last_run_at: datetime | None,
+) -> WorkflowState:
+    """Derive grant + availability + reason for one workflow.
+
+    `user_granted` is the union of capabilities granted to the user
+    across every (plugin, skill) row. The workspace concept "this user
+    holds this capability somewhere" is what gates the workflow surface
+    in the UI; per-call enforcement is the runtime's concern, not the
+    catalogue's.
+    """
+    declared = list(wf.declared_capabilities)
+    granted = sorted(c for c in declared if c in user_granted)
+
+    if not declared:
+        return WorkflowState(
+            key=wf.key,
+            title=wf.title,
+            description=wf.description,
+            declared_capabilities=declared,
+            granted_capabilities=granted,
+            grant="not-installed",
+            last_run_at=last_run_at,
+            availability="not-installed",
+            reason="workflow declares no capabilities",
+        )
+
+    declared_set = set(declared)
+    granted_set = set(granted)
+
+    if granted_set == declared_set:
+        grant = "granted"
+    elif granted_set:
+        grant = "partial"
+    else:
+        grant = "blocked"
+
+    # Posture rule (v0.1): C_paused refuses cloud model calls, so any
+    # workflow declaring `model.invoke` is blocked under that posture.
+    # A_cleared and B_mixed permit cloud calls; A_cleared additionally
+    # filters privileged content out of the prompt, but that's a runtime
+    # concern, not a catalogue gate.
+    if posture == "C_paused" and "model.invoke" in declared_set:
+        return WorkflowState(
+            key=wf.key,
+            title=wf.title,
+            description=wf.description,
+            declared_capabilities=declared,
+            granted_capabilities=granted,
+            grant=grant,
+            last_run_at=last_run_at,
+            availability="blocked-by-posture",
+            reason="posture C_paused refuses cloud model calls",
+        )
+
+    if grant == "granted":
+        return WorkflowState(
+            key=wf.key,
+            title=wf.title,
+            description=wf.description,
+            declared_capabilities=declared,
+            granted_capabilities=granted,
+            grant=grant,
+            last_run_at=last_run_at,
+            availability="ok",
+            reason=None,
+        )
+
+    missing = sorted(declared_set - granted_set)
+    return WorkflowState(
+        key=wf.key,
+        title=wf.title,
+        description=wf.description,
+        declared_capabilities=declared,
+        granted_capabilities=granted,
+        grant=grant,
+        last_run_at=last_run_at,
+        availability="blocked-by-grant",
+        reason=f"missing capabilities: {', '.join(missing)}",
+    )
+
+
+@router.get("/{slug}/workflows", response_model=MatterWorkflowsResponse)
+async def list_matter_workflows(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> MatterWorkflowsResponse:
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    from app.models import WorkspaceSkillCapabilityGrant
+
+    grant_rows = await session.scalars(
+        select(WorkspaceSkillCapabilityGrant.capability).where(
+            WorkspaceSkillCapabilityGrant.user_id == user.id
+        )
+    )
+    user_granted: set[str] = set(grant_rows.all())
+
+    # Last run per workflow: scan the audit log for this matter, take the
+    # most recent timestamp whose `module` matches one of the workflow's
+    # `audit_modules`. v0.1: small audit logs, in-memory grouping. v0.2:
+    # consider a denorm field if matter audit logs grow.
+    audit_modules: set[str] = {m for wf in WORKFLOW_DEFS for m in wf.audit_modules}
+    audit_rows = await session.scalars(
+        select(AuditEntry)
+        .where(AuditEntry.matter_id == matter.id, AuditEntry.module.in_(audit_modules))
+        .order_by(AuditEntry.timestamp.desc())
+    )
+    last_run_by_module: dict[str, datetime] = {}
+    for row in audit_rows.all():
+        if row.module and row.module not in last_run_by_module:
+            last_run_by_module[row.module] = row.timestamp
+
+    workflows: list[WorkflowState] = []
+    for wf in WORKFLOW_DEFS:
+        last_run_at = max(
+            (last_run_by_module[m] for m in wf.audit_modules if m in last_run_by_module),
+            default=None,
+        )
+        workflows.append(
+            _compute_workflow_state(
+                wf=wf,
+                user_granted=user_granted,
+                posture=matter.privilege_posture,
+                last_run_at=last_run_at,
+            )
+        )
+
+    return MatterWorkflowsResponse(workflows=workflows)
+
+
 @router.get("/{slug}/audit", response_model=list[AuditEntryRead])
 async def list_audit(
     slug: str,

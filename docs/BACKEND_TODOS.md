@@ -16,17 +16,27 @@ static `WORKFLOW_TABS` preview for a live fetch via `getPublicModules()`.
 Tests: `backend/tests/test_modules_public.py` covers shape, no-leak,
 no-auth, cache header, and parity with the authed endpoint.
 
-## TODO(workflow-state)
+## ~~TODO(workflow-state)~~ SHIPPED 2026-05-19
 
-**Where:** `frontend/src/matter/tabs/WorkflowsTab.tsx`.
+`GET /api/matters/{slug}/workflows` returns five workflow states, each
+derived live from declared capabilities, the union of the user's
+granted capabilities, the matter posture, and the audit log.
 
-**Current state:** Each workflow card renders `Status: installed`,
-`Last run: never`, `Availability: ok` as static strings.
+- `grant`: `granted` / `partial` / `blocked` / `not-installed`
+- `availability`: `ok` / `blocked-by-posture` / `blocked-by-grant` /
+  `not-installed`
+- `last_run_at`: most recent audit timestamp whose `module` matches the
+  workflow's `audit_modules` set. No denorm table.
+- `reason`: human string when blocked.
 
-**Needed:** `GET /api/matters/{slug}/workflows` returning per-workflow
-`{ grant: "installed" | "blocked" | "not-installed", last_run_at: ISO | null,
-availability: "ok" | "blocked-by-posture" | "blocked-by-grant" }`. Frontend
-already has the colour-coded display ready; just wire the data.
+Workflow definitions (`WORKFLOW_DEFS`) live alongside the route in
+`backend/app/api/matters.py` and are the canonical taxonomy. Frontend
+`WorkflowsTab.tsx` fetches via `getMatterWorkflows()` and renders the
+real `grant` / `last run` / `availability` instead of static placeholders.
+Matter ownership scoped via the existing `created_by_id` check. Tests
+in `backend/tests/test_matter_workflows_route.py` cover shape, default
+blocked, grant derivation (partial vs granted), posture blocking,
+last-run-at audit sourcing, and 404 for non-owner matters.
 
 ## TODO(plan)
 
