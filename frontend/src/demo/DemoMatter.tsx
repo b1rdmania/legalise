@@ -156,7 +156,7 @@ export function DemoMatter() {
               />
             )}
             {tab === "workflows" && <WorkflowsTab slug={matter.slug} />}
-            {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} />}
+            {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} matter={matter} />}
             {tab === "premotion" && (
               <PreMotionTab
                 matter={matter}

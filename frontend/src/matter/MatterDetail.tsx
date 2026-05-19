@@ -365,7 +365,7 @@ export function MatterDetail({
             />
           )}
           {tab === "workflows" && <WorkflowsTab slug={slug} />}
-          {tab === "audit" && <AuditTab audit={audit} />}
+          {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
           {/* Workflow surfaces - reached via Workflows page; sidebar highlights Workflows. */}
           {tab === "premotion" && (
             <PreMotionTab

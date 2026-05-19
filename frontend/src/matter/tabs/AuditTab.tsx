@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 
-import type { AuditEntry } from "../../lib/api";
+import type { AuditEntry, Matter } from "../../lib/api";
 import { LoadingLine } from "../../ui/primitives";
 
-export function AuditTab({ audit }: { audit: AuditEntry[] | null }) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+function truncateUuid(value: string): string {
+  if (!isUuid(value)) return value;
+  return `${value.slice(0, 8)}…${value.slice(-4)}`;
+}
+
+export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter?: Matter | null }) {
   const [moduleFilter, setModuleFilter] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -103,13 +114,21 @@ export function AuditTab({ audit }: { audit: AuditEntry[] | null }) {
       )}
 
       {selected && (
-        <AuditDetailDrawer entry={selected} onClose={() => setSelectedId(null)} />
+        <AuditDetailDrawer entry={selected} matter={matter ?? null} onClose={() => setSelectedId(null)} />
       )}
     </div>
   );
 }
 
-function AuditDetailDrawer({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
+function AuditDetailDrawer({
+  entry,
+  matter,
+  onClose,
+}: {
+  entry: AuditEntry;
+  matter: Matter | null;
+  onClose: () => void;
+}) {
   const payloadKeys = Object.keys(entry.payload ?? {});
   const hasPayload = payloadKeys.length > 0;
 
@@ -147,9 +166,9 @@ function AuditDetailDrawer({ entry, onClose }: { entry: AuditEntry; onClose: () 
           <Row label="Timestamp" value={entry.timestamp} />
           <Row label="Module" value={entry.module ?? "-"} />
           <Row label="Action" value={entry.action} />
-          <Row label="Actor" value={entry.actor_id ?? "system"} />
-          <Row label="Resource" value={resourceLabel(entry)} />
-          <Row label="Matter id" value={entry.matter_id ?? "-"} />
+          <ActorRow actor={entry.actor_id} />
+          <ResourceRow entry={entry} />
+          <MatterIdRow matterId={entry.matter_id} matter={matter} />
           <Row label="Model" value={entry.model_used ?? "-"} />
           <Row label="Tokens" value={entry.token_count != null ? String(entry.token_count) : "-"} />
           <Row label="Latency" value={entry.latency_ms != null ? `${entry.latency_ms}ms` : "-"} />
@@ -171,14 +190,6 @@ function AuditDetailDrawer({ entry, onClose }: { entry: AuditEntry; onClose: () 
   );
 }
 
-function resourceLabel(entry: AuditEntry): string {
-  const type = entry.resource_type;
-  const id = entry.resource_id;
-  if (!type && !id) return "-";
-  if (type && id) return `${type}:${id}`;
-  return id ?? type ?? "-";
-}
-
 function Row({
   label,
   value,
@@ -196,6 +207,157 @@ function Row({
       <dd className={"text-ink " + (mono ? "font-mono " : "") + (brk ? "break-all" : "break-words")}>
         {value}
       </dd>
+    </>
+  );
+}
+
+function RowLabel({ label }: { label: string }) {
+  return (
+    <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">{label}</dt>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const onClick = () => {
+    try {
+      void navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-xs text-muted hover:text-ink transition-colors"
+      aria-label={copied ? "Copied" : "Copy full value"}
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+function UuidValue({ value }: { value: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 break-all">
+      <span className="font-mono text-ink" title={value}>
+        {truncateUuid(value)}
+      </span>
+      <CopyButton value={value} />
+    </span>
+  );
+}
+
+function ActorRow({ actor }: { actor: string | null | undefined }) {
+  if (!actor) {
+    return (
+      <>
+        <RowLabel label="Actor" />
+        <dd className="text-ink">system</dd>
+      </>
+    );
+  }
+  if (isUuid(actor)) {
+    return (
+      <>
+        <RowLabel label="Actor" />
+        <dd>
+          <UuidValue value={actor} />
+        </dd>
+      </>
+    );
+  }
+  return (
+    <>
+      <RowLabel label="Actor" />
+      <dd className="text-ink break-words">{actor}</dd>
+    </>
+  );
+}
+
+function ResourceRow({ entry }: { entry: AuditEntry }) {
+  const type = entry.resource_type;
+  const id = entry.resource_id;
+  if (!type && !id) {
+    return (
+      <>
+        <RowLabel label="Resource" />
+        <dd className="text-ink">-</dd>
+      </>
+    );
+  }
+  if (type && id && isUuid(id)) {
+    return (
+      <>
+        <RowLabel label="Resource" />
+        <dd className="inline-flex items-center gap-2 break-all">
+          <span className="font-mono text-ink" title={`${type}:${id}`}>
+            {type}:{truncateUuid(id)}
+          </span>
+          <CopyButton value={`${type}:${id}`} />
+        </dd>
+      </>
+    );
+  }
+  const value = type && id ? `${type}:${id}` : id ?? type ?? "-";
+  return (
+    <>
+      <RowLabel label="Resource" />
+      <dd className="text-ink font-mono break-words">{value}</dd>
+    </>
+  );
+}
+
+function MatterIdRow({
+  matterId,
+  matter,
+}: {
+  matterId: string | null | undefined;
+  matter: Matter | null;
+}) {
+  if (!matterId) {
+    return (
+      <>
+        <RowLabel label="Matter id" />
+        <dd className="text-ink">-</dd>
+      </>
+    );
+  }
+  const titleMatches = matter && matter.id === matterId && matter.title;
+  if (titleMatches) {
+    return (
+      <>
+        <RowLabel label="Matter id" />
+        <dd>
+          <div className="text-ink break-words">{matter.title}</div>
+          {isUuid(matterId) ? (
+            <div className="mt-1 text-muted">
+              <UuidValue value={matterId} />
+            </div>
+          ) : (
+            <div className="mt-1 text-muted font-mono break-all">{matterId}</div>
+          )}
+        </dd>
+      </>
+    );
+  }
+  if (isUuid(matterId)) {
+    return (
+      <>
+        <RowLabel label="Matter id" />
+        <dd>
+          <UuidValue value={matterId} />
+        </dd>
+      </>
+    );
+  }
+  return (
+    <>
+      <RowLabel label="Matter id" />
+      <dd className="text-ink font-mono break-words">{matterId}</dd>
     </>
   );
 }
