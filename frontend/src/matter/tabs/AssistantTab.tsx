@@ -379,6 +379,34 @@ function MessageBubble({
 // title can't terminate the parser. Labels resolve via lookup below.
 const CITATION_RE = /\[(doc|chron):([A-Za-z0-9_.\-]+)\]/g;
 
+// Strip a common file extension off a document filename for chip display.
+// Hyphens and underscores are kept as-is.
+function stripExtension(filename: string): string {
+  const dot = filename.lastIndexOf(".");
+  if (dot <= 0) return filename;
+  const ext = filename.slice(dot + 1).toLowerCase();
+  // Conservative allow-list of legal document extensions.
+  if (/^(pdf|docx|doc|txt|md|rtf|odt|eml|msg|csv|xlsx|xls|png|jpg|jpeg|tiff)$/.test(ext)) {
+    return filename.slice(0, dot);
+  }
+  return filename;
+}
+
+const HUMAN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Format an ISO date or YYYY-MM-DD string as "12 Mar 2026". Falls back to
+// the raw input if it doesn't parse.
+function formatHumanDate(iso: string): string {
+  if (!iso) return iso;
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return iso;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!year || !month || !day || month < 1 || month > 12) return iso;
+  return `${day} ${HUMAN_MONTHS[month - 1]} ${year}`;
+}
+
 function renderContent(
   content: string,
   docs: MatterDocument[] | null,
@@ -388,11 +416,17 @@ function renderContent(
   invert: boolean,
 ) {
   const docLabel = new Map<string, string>();
-  for (const d of docs ?? []) docLabel.set(d.id, d.filename || d.id);
+  const docFull = new Map<string, string>();
+  for (const d of docs ?? []) {
+    const full = d.filename || d.id;
+    docFull.set(d.id, full);
+    docLabel.set(d.id, stripExtension(full));
+  }
   const chronLabel = new Map<string, string>();
+  const chronFull = new Map<string, string>();
   for (const e of chronology) {
-    const date = e.event_date ? `${e.event_date}: ` : "";
-    chronLabel.set(e.id, date + (e.description || e.id));
+    chronFull.set(e.id, `${e.event_date}: ${e.description || e.id}`);
+    chronLabel.set(e.id, formatHumanDate(e.event_date));
   }
 
   const parts: Array<string | { kind: "doc" | "chron"; id: string }> = [];
@@ -410,13 +444,15 @@ function renderContent(
     if (typeof p === "string") return <span key={i}>{p}</span>;
     const onClick = p.kind === "doc" ? onDocChip : onChronChip;
     const lookup = p.kind === "doc" ? docLabel.get(p.id) : chronLabel.get(p.id);
-    const label = lookup ?? `${p.kind === "doc" ? "document" : "event"} ${p.id.slice(0, 8)}`;
+    const fullId = p.kind === "doc" ? docFull.get(p.id) ?? p.id : chronFull.get(p.id) ?? p.id;
+    const label = lookup ?? p.id.slice(0, 8);
+    const prefix = p.kind === "doc" ? "Document" : "Chronology";
     const cls = invert
       ? "inline-flex items-center border border-paper/60 bg-paper/10 text-paper px-1.5 py-0.5 mx-0.5 text-[11px] font-mono align-baseline hover:bg-paper hover:text-ink transition-colors"
       : "inline-flex items-center border border-ink bg-paper text-ink px-1.5 py-0.5 mx-0.5 text-[11px] font-mono align-baseline hover:bg-ink hover:text-paper transition-colors";
     return (
-      <button key={i} type="button" onClick={onClick} className={cls} title={`${p.kind}:${p.id}`}>
-        {p.kind === "doc" ? "doc" : "chron"}: {label}
+      <button key={i} type="button" onClick={onClick} className={cls} title={fullId}>
+        [{prefix}: {label}]
       </button>
     );
   });
