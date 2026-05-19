@@ -4,6 +4,8 @@ UK legal AI workspace. Built for the regulator, not the demo.
 
 Open source, Apache 2.0. England & Wales. `v0.1`. Hosted demo at [legalise.dev](https://legalise.dev) shipping Friday.
 
+The hosted demo is for evaluation. Real AI workflows require your own model key. Legalise does not provide model access and v0.1 is not for live client matters.
+
 ![Audit tab. Khan v Acme sample matter.](docs/img/audit-tab.png)
 
 ---

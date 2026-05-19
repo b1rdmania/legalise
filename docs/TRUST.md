@@ -33,6 +33,10 @@ suite. Solicitors author and review; the system drafts and records.
 - **Not certified** against any framework today. No SOC 2, no ISO 27001, no
   Cyber Essentials. See Section 4 for the planned sequencing.
 
+### Hosted demo and BYO model keys
+
+Legalise's hosted v0.1 environment is an evaluation workspace, not a regulated legal service. Users must provide their own model provider credentials to run real AI workflows. Legalise does not bundle, resell, or intermediate model access. The demo should not be used for live client matters.
+
 ## 3. What v0.1 does not yet do (read this first)
 
 We list gaps at the top, not the bottom. Anyone considering a procurement

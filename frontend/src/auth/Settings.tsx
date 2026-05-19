@@ -409,8 +409,8 @@ function SettingsKeys() {
       <div>
         <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">API keys</h2>
         <p className="prose-p mb-0">
-          Bring your own provider key. Stored encrypted server-side and used by the privilege-aware
-          model gateway for every call on your matters.
+          Bring your own Anthropic/OpenAI/Ollama key. Keys are encrypted and used only for your
+          requests. Legalise does not resell model access.
         </p>
       </div>
 
