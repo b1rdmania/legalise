@@ -32,7 +32,7 @@ from app.core.model_gateway import (
     PrivilegePaused,
     gateway as _module_gateway,
 )
-from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
+from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError, get_user_provider_key
 from app.models import Document, Matter
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.tabular_review import TabularReview, TabularReviewRow
@@ -349,10 +349,10 @@ async def run_review(
                             "document_id": str(doc.id),
                         },
                     )
-                except (PrivilegePaused, ProviderKeyMissing):
-                    # Policy failures propagate — preflight should have
-                    # caught key-missing, but keep the guard in case the
-                    # provider key was revoked mid-run.
+                except (PrivilegePaused, ProviderKeyMissing, ProviderUpstreamError):
+                    # Policy failures and structured upstream errors
+                    # propagate so the router can map them to 409 / 422 /
+                    # 502, never to per-cell error rows.
                     raise
                 except Exception as exc:  # noqa: BLE001
                     raw_text, err_msg = None, f"{type(exc).__name__}: {exc}"

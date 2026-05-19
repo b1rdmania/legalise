@@ -34,7 +34,7 @@ from app.core.matter_fs import (
 )
 from app.core.model_gateway import PrivilegePaused
 from app.core.text_extraction import extract as extract_text
-from app.core.user_keys import ProviderKeyMissing
+from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
 from app.models import (
     AuditEntry,
@@ -477,6 +477,16 @@ async def invoke_plugin(
         raise HTTPException(
             422,
             detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
+        ) from exc
+    except ProviderUpstreamError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": exc.code,
+                "provider": exc.provider,
+                "upstream_status": exc.upstream_status,
+                "message": str(exc),
+            },
         ) from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc

@@ -8,13 +8,38 @@ posture allows frontier calls.
 from __future__ import annotations
 
 import structlog
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APIStatusError, AsyncOpenAI
+
+from app.core.user_keys import ProviderUpstreamError
 
 logger = structlog.get_logger()
 
 
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_MAX_TOKENS = 2048
+
+
+def _translate_status_error(provider: str, exc: APIStatusError) -> ProviderUpstreamError:
+    """Map an OpenAI SDK `APIStatusError` to a `ProviderUpstreamError`.
+
+    Same four-code contract as the Anthropic provider, kept inline to
+    avoid a circular import via `app.core.model_gateway`.
+    """
+    status = getattr(exc, "status_code", None)
+    if status in (401, 403):
+        code = "provider_invalid_key"
+    elif status == 429:
+        code = "provider_rate_limited"
+    elif status in (503, 529):
+        code = "provider_overloaded"
+    else:
+        code = "provider_error"
+    return ProviderUpstreamError(
+        provider=provider,
+        code=code,
+        upstream_status=status,
+        message=f"{provider}: upstream {status}: {exc}",
+    )
 
 
 class OpenAIProvider:
@@ -43,9 +68,29 @@ class OpenAIProvider:
                 max_tokens=max_tokens,
                 messages=messages,
             )
-        except Exception:
+        except APIStatusError as exc:
+            logger.exception(
+                "legalise.provider.openai.error",
+                model=model,
+                upstream_status=exc.status_code,
+            )
+            raise _translate_status_error("openai", exc) from exc
+        except APIConnectionError as exc:
+            logger.exception("legalise.provider.openai.connection_error", model=model)
+            raise ProviderUpstreamError(
+                provider="openai",
+                code="provider_error",
+                upstream_status=None,
+                message=f"openai: connection error: {exc}",
+            ) from exc
+        except Exception as exc:
             logger.exception("legalise.provider.openai.error", model=model)
-            raise
+            raise ProviderUpstreamError(
+                provider="openai",
+                code="provider_error",
+                upstream_status=None,
+                message=f"openai: {type(exc).__name__}: {exc}",
+            ) from exc
 
         text = response.choices[0].message.content or ""
         usage = response.usage

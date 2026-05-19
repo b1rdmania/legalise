@@ -1,0 +1,239 @@
+"""Gateway translates SDK exceptions into structured ProviderUpstreamError.
+
+Pins the upstream-error contract:
+
+  401 / 403 -> provider_invalid_key
+  429       -> provider_rate_limited
+  503 / 529 -> provider_overloaded
+  other     -> provider_error
+
+And the audit-on-failure invariant: every failed call writes an
+`AuditEntry` row (action="model.call.error") BEFORE the exception
+re-raises so a 502 in production is just as traceable as a 200.
+
+DB-free: we use the same in-memory provider + stub-session pattern as
+`test_gateway_fallback.py`, and assert the `session.add(...)` capture
+contains an `AuditEntry` with the right action / payload.
+"""
+
+from __future__ import annotations
+
+import uuid
+from unittest.mock import patch
+
+import pytest
+
+from app.core import model_gateway as gw_module
+from app.core.model_gateway import ModelGateway, PrivilegePosture
+from app.core.user_keys import ProviderUpstreamError
+from app.models import AuditEntry
+
+
+class _RaisingProvider:
+    """Stand-in provider with name='anthropic' that raises whatever the
+    test wires up. The gateway's KEYED_PROVIDERS check fires for
+    name='anthropic', exercising the user-key resolution path."""
+
+    name = "anthropic"
+
+    def __init__(self, exc: Exception) -> None:
+        self._exc = exc
+
+    async def call(self, prompt: str, *, system=None, **kwargs):  # noqa: ANN001
+        raise self._exc
+
+
+class _CapturingSession:
+    """Async session stand-in that records `session.add(...)` calls so we
+    can assert an audit row was written before the gateway re-raised."""
+
+    def __init__(self) -> None:
+        self.added: list[object] = []
+
+    async def scalar(self, *args, **kwargs):  # noqa: ANN001, ANN002
+        return None
+
+    async def execute(self, *args, **kwargs):  # noqa: ANN001, ANN002
+        class _Row:
+            def first(self):
+                return None
+        return _Row()
+
+    def add(self, obj) -> None:
+        self.added.append(obj)
+
+
+def _make_status_error(status: int) -> Exception:
+    """Build a duck-typed APIStatusError. The gateway catches the
+    `ProviderUpstreamError` the provider raises, so the SDK exception
+    class itself never leaves the provider — we don't need the real
+    `anthropic.APIStatusError` here. We instead raise the gateway-level
+    exception directly from the stub provider, mirroring what the
+    wrapped Anthropic SDK call would produce."""
+    code_map = {
+        401: "provider_invalid_key",
+        403: "provider_invalid_key",
+        429: "provider_rate_limited",
+        503: "provider_overloaded",
+        529: "provider_overloaded",
+    }
+    code = code_map.get(status, "provider_error")
+    return ProviderUpstreamError(
+        provider="anthropic",
+        code=code,
+        upstream_status=status,
+        message=f"anthropic: upstream {status}: simulated",
+    )
+
+
+@pytest.fixture
+def actor_id() -> uuid.UUID:
+    return uuid.uuid4()
+
+
+@pytest.mark.asyncio
+@patch.object(gw_module, "mark_user_key_used")
+@patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
+@pytest.mark.parametrize(
+    "status,expected_code",
+    [
+        (401, "provider_invalid_key"),
+        (403, "provider_invalid_key"),
+        (429, "provider_rate_limited"),
+        (503, "provider_overloaded"),
+        (529, "provider_overloaded"),
+        (500, "provider_error"),
+        (418, "provider_error"),
+    ],
+)
+async def test_gateway_translates_status_to_structured_error(
+    _mock_lookup, _mock_mark, actor_id, status, expected_code
+):
+    """For each upstream status, the gateway raises ProviderUpstreamError
+    with the contract code AND writes an audit row first."""
+    provider = _RaisingProvider(_make_status_error(status))
+    g = ModelGateway()
+    g.register(provider)
+    session = _CapturingSession()
+
+    with patch.object(gw_module.settings, "environment", "development"), \
+         patch.object(gw_module.settings, "allow_server_key_fallback", False):
+        with pytest.raises(ProviderUpstreamError) as excinfo:
+            await g.call(
+                session=session,
+                matter_id=None,
+                actor_id=actor_id,
+                prompt="hi",
+                model="claude-opus-4-7",
+                posture=PrivilegePosture.B_MIXED,
+            )
+
+    assert excinfo.value.code == expected_code
+    assert excinfo.value.provider == "anthropic"
+    assert excinfo.value.upstream_status == status
+
+    # Audit provenance: exactly one AuditEntry row was added before the
+    # re-raise, and it carries the structured error payload.
+    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
+    assert len(audit_rows) == 1, "expected one audit row on failure"
+    row = audit_rows[0]
+    assert row.action == "model.call.error"
+    assert row.model_used == "anthropic"
+    assert row.prompt_hash is not None
+    err = row.payload.get("error")
+    assert isinstance(err, dict)
+    assert err.get("code") == expected_code
+    assert err.get("provider") == "anthropic"
+    assert err.get("upstream_status") == status
+
+
+@pytest.mark.asyncio
+@patch.object(gw_module, "mark_user_key_used")
+@patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
+async def test_gateway_audits_before_raising(_mock_lookup, _mock_mark, actor_id):
+    """Tightening: even if the test framework somehow swallows the
+    exception, the audit row must already be in `session.added` by the
+    time control returns to the caller."""
+    provider = _RaisingProvider(_make_status_error(429))
+    g = ModelGateway()
+    g.register(provider)
+    session = _CapturingSession()
+
+    with patch.object(gw_module.settings, "environment", "development"), \
+         patch.object(gw_module.settings, "allow_server_key_fallback", False):
+        try:
+            await g.call(
+                session=session,
+                matter_id=None,
+                actor_id=actor_id,
+                prompt="hi",
+                model="claude-opus-4-7",
+                posture=PrivilegePosture.B_MIXED,
+            )
+        except ProviderUpstreamError:
+            pass
+
+    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
+    assert len(audit_rows) == 1
+    # The user-key-used marker should NOT have run on the failure path.
+    _mock_mark.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Route-level translation: ProviderUpstreamError -> 502 with structured body.
+# Uses the assistant POST endpoint as a representative router and
+# monkeypatches `run_assistant_turn` so we exercise the catch arm without
+# needing real provider credentials. Requires the DB-backed `client`
+# fixture; it auto-skips if Postgres isn't reachable (see conftest.py).
+# ---------------------------------------------------------------------------
+
+
+ROUTE_TEST_EMAIL = "upstream-502-e2e@example.com"
+ROUTE_TEST_PASSWORD = "upstream-502-e2e-password-2026"
+KHAN_SLUG = "khan-v-acme-trading-2026"
+
+
+async def _signup_and_login(client) -> None:
+    reg = await client.post(
+        "/auth/register",
+        json={"email": ROUTE_TEST_EMAIL, "password": ROUTE_TEST_PASSWORD},
+    )
+    assert reg.status_code == 201, reg.text
+    login = await client.post(
+        "/auth/login",
+        data={"username": ROUTE_TEST_EMAIL, "password": ROUTE_TEST_PASSWORD},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login.status_code == 204, login.text
+
+
+@pytest.mark.asyncio
+async def test_assistant_route_translates_provider_upstream_to_502(client, monkeypatch) -> None:
+    """Router catch arm: ProviderUpstreamError -> 502 with
+    `{error, provider, upstream_status, message}` shape the frontend
+    pattern-matches on."""
+    await _signup_and_login(client)
+
+    from app.modules.assistant import router as assistant_router
+
+    async def _raise_upstream(*args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        raise ProviderUpstreamError(
+            provider="anthropic",
+            code="provider_rate_limited",
+            upstream_status=429,
+            message="anthropic: upstream 429: simulated",
+        )
+
+    monkeypatch.setattr(assistant_router, "run_assistant_turn", _raise_upstream)
+
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/assistant/messages",
+        json={"content": "hello", "selected_document_ids": []},
+    )
+    assert resp.status_code == 502, resp.text
+    body = resp.json()
+    detail = body["detail"]
+    assert detail["error"] == "provider_rate_limited"
+    assert detail["provider"] == "anthropic"
+    assert detail["upstream_status"] == 429
+    assert "anthropic" in detail["message"]

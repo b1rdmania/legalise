@@ -13,7 +13,33 @@ from __future__ import annotations
 import structlog
 import httpx
 
+from app.core.user_keys import ProviderUpstreamError
+
 logger = structlog.get_logger()
+
+
+def _translate_http_status_error(exc: httpx.HTTPStatusError) -> ProviderUpstreamError:
+    """Map an Ollama HTTP status error into the four-code contract.
+
+    Ollama is keyless, so `provider_invalid_key` rarely applies, but we
+    keep the mapping symmetric across providers so the UI surface can
+    stay uniform.
+    """
+    status = exc.response.status_code
+    if status in (401, 403):
+        code = "provider_invalid_key"
+    elif status == 429:
+        code = "provider_rate_limited"
+    elif status in (503, 529):
+        code = "provider_overloaded"
+    else:
+        code = "provider_error"
+    return ProviderUpstreamError(
+        provider="ollama",
+        code=code,
+        upstream_status=status,
+        message=f"ollama: upstream {status}: {exc}",
+    )
 
 
 DEFAULT_MODEL = "llama3.1:70b"
@@ -45,9 +71,34 @@ class OllamaProvider:
                 json={"model": model, "messages": messages, "stream": False},
             )
             response.raise_for_status()
-        except Exception:
+        except httpx.HTTPStatusError as exc:
+            logger.exception(
+                "legalise.provider.ollama.error",
+                model=model,
+                base_url=self._base_url,
+                upstream_status=exc.response.status_code,
+            )
+            raise _translate_http_status_error(exc) from exc
+        except httpx.HTTPError as exc:
+            logger.exception(
+                "legalise.provider.ollama.connection_error",
+                model=model,
+                base_url=self._base_url,
+            )
+            raise ProviderUpstreamError(
+                provider="ollama",
+                code="provider_error",
+                upstream_status=None,
+                message=f"ollama: connection error: {exc}",
+            ) from exc
+        except Exception as exc:
             logger.exception("legalise.provider.ollama.error", model=model, base_url=self._base_url)
-            raise
+            raise ProviderUpstreamError(
+                provider="ollama",
+                code="provider_error",
+                upstream_status=None,
+                message=f"ollama: {type(exc).__name__}: {exc}",
+            ) from exc
 
         data = response.json()
         text = (data.get("message") or {}).get("content", "")

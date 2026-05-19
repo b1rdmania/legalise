@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   listAssistantMessages,
   postAssistantMessage,
+  ProviderUpstreamError,
+  providerUpstreamMessage,
   type AssistantMessage,
   type Matter,
 } from "../lib/api";
@@ -83,7 +85,11 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
       });
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-      setError(err instanceof Error ? err.message : String(err));
+      if (err instanceof ProviderUpstreamError) {
+        setError(providerUpstreamMessage(err));
+      } else {
+        setError(err instanceof Error ? err.message : String(err));
+      }
     } finally {
       setPending(false);
     }
