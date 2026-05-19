@@ -44,7 +44,7 @@ font properties.**
 | Reference | What we lift | Where it lands |
 |---|---|---|
 | **Memo** (`memo-app-eta-tawny.vercel.app`) | Token system, custom utilities, header geometry, page max-widths, eyebrow + tight2 + prose-p patterns, mobile touch-target discipline | All surfaces. This is the base. |
-| **Warp Engine whitepaper** (`design-24211ed9...html`) | Header bar with logo wordmark + nav + ink CTA. Sidebar TOC with scroll-spy. Document hero (eyebrow / H1 / lede / metadata strip). Numbered section headers. Prose body with bordered code blocks. Inline blockquote with thick left border. Paragraph-as-em-dash list (use hyphens, never em dash). | Every surface: landing, modules, matter detail, all tabs. |
+| **Warp Engine whitepaper** (`design-24211ed9...html`) | Header bar with logo wordmark + nav + ink CTA. Sidebar TOC with scroll-spy (Landing only). Document hero (eyebrow / H1 / lede / metadata strip). Numbered section headers. Prose body with bordered code blocks. Inline blockquote with thick left border. Paragraph-as-em-dash list (use hyphens, never em dash). | Landing whitepaper; module catalogue prose. Matter detail uses the leaner MatterHeader + horizontal MatterTabBar (P9). |
 | **Mobbin pass - Clover / ClickUp / Otter / Yahoo Finance** (May 2026) | Hamburger → left drawer skeleton (workspace pill at top, sectioned items, settings cog at bottom), dense-data top-bar exception (back ← + contextual label, no nav chrome) | P18 mobile nav across every surface |
 
 If you are converting a component from one of these references, the
@@ -378,9 +378,12 @@ Source: Memo + Warp Engine (identical pattern).
 Body offset: `<body className="pt-[64px] sm:pt-[80px]">` — required, or
 content slides under the fixed header.
 
-## P2 — Sidebar TOC with scroll-spy
+## P2 — Sidebar TOC with scroll-spy (Landing only)
 
-Source: Warp Engine whitepaper. Used on Modules catalogue, docs surfaces, optionally Matter Detail.
+Source: Warp Engine whitepaper. Used on the **Landing whitepaper only**.
+Matter detail and module catalogue are workspaces with discrete tools,
+not chapters of one scroll, so they use P9 (horizontal numbered tab
+bar) instead. See the Anti-patterns section for why.
 
 ```jsx
 <aside className="w-80 hidden lg:block sticky top-[80px]
@@ -531,9 +534,11 @@ Em-dash bullet is the Warp signature. Don't substitute `•` or `→`.
 
 ## P8 - Document hero block
 
-Source: Warp Engine whitepaper, opening block. Used at the top of every
-matter tab and every document-shaped surface (modules detail, settings,
-audit detail). Replaces the v0.2 panel header strip.
+Source: Warp Engine whitepaper, opening block. Used on **single-document
+surfaces** that scroll as one — the Landing whitepaper, module detail
+prose, settings prose. Matter detail uses the leaner MatterHeader
+variant (see Workspace exception below). Replaces the v0.2 panel
+header strip.
 
 ```jsx
 <div className="mb-16">
@@ -963,16 +968,20 @@ Which patterns compose which surface.
 | **Signin** (`#/auth/signin`) | P1 TopBar · centered card (max-w-md) · P13 Inputs · P12 Primary button · text-sm links to signup + forgot |
 | **Signup** (`#/auth/signup`) | Same as Signin plus a P14-shaped note about BYO API keys after registration |
 | **Forgot / Reset / Verify pending / Verify** | P1 TopBar · centered card · P13 Inputs · P12 Buttons · P14 Error callouts where needed |
-| **Modules catalogue** (`#/modules`) | P1 TopBar · P2 Sidebar TOC (skill list) · P3 Hero (catalogue intro) · P4 Prose body (selected skill SKILL.md rendered) · P17 Footer |
-| **Matters list** (`#/matters`) | P1 TopBar · P3 Hero (small variant — just title + meta strip) · P16 Data table |
+| **Modules catalogue** (`#/modules`) | P1 TopBar · sidebar **skill picker** (master-detail list grouped by plugin — not a P2 scroll-spy TOC) · P4 Prose body (selected skill SKILL.md rendered) · P17 Footer. Unauth visitors see a designed banner (Sign in CTA + Open the demo CTA), no raw 401. |
+| **Matters list** (`#/matters`) | P1 TopBar · P3 Hero (small variant: just title + meta strip) · P16 Data table |
 | **New matter** (`#/matters/new`) | P1 TopBar · centered narrow form (max-w-2xl) · P13 Inputs · P12 Primary button |
-| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · P8 Panel header strip (slug + posture + status + model + type) · P9 Tab bar (Overview / Documents / Chronology / Pre-Motion / Letters / Audit) · main panel `flex-1` · contents vary by tab |
-| **Matter · Overview tab** | P11 Eyebrow stacks (case theory, pivot fact, ACAS dates) · P5 Blockquote pull (the case theory itself, if present) |
-| **Matter · Documents tab** | P16 Data table (filename / SHA / size / tag / from_disclosure) · upload P13 form at top |
+| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · **MatterHeader** (eyebrow + h1 + 5-item metadata strip including PrivilegeControl posture dropdown) · **MatterTabBar** (P9 — horizontal numbered tabs: 01 Overview · 02 Assistant · 03 Documents · 04 Chronology · 05 Reviews · 06 Research · 07 Pre-Motion · 08 Letters · 09 Contract review · 10 Audit) · main content full-width per tab |
+| **Matter · Overview tab** | Action strip (5 buttons: Ask the assistant / Run Pre-Motion / Draft letter / Review contract / View audit) · 2-col dashboard: pivot fact + theory of case (left) and Quick facts dl (right, with doc/event/audit counts + posture + default model) |
+| **Matter · Assistant tab** | Chat surface with matter context · inline citation chips (P15-shape, mono, uppercase) · suggested-actions footer below each assistant reply |
+| **Matter · Documents tab** | P16 Data table (Document / Type / Source / Extracted / Last action / Action) · upload P13 form at top · per-row expand drawer surfaces SHA + Size + Uploaded-at before EditPanel + AnonymiseButton |
 | **Matter · Chronology tab** | P10 Dense data row with overlay bar (variable weight = significance) · P14 Yellow warning callout when CPR 31.22 gate pending · P13 Input for acknowledgement |
-| **Matter · Pre-Motion tab** | P9 Tab bar (stages 0–3 + Result + Export) · streaming stage strip uses P10 dense rows · synthesis output uses P4 Prose + P15 Status pill for verdict colour |
+| **Matter · Reviews tab** | List view of saved reviews (P16-shape) → editor view (ColumnEditor form + ReviewGrid spreadsheet with monochrome bordered Yes/No pills) · CostEstimateDialog modal before run |
+| **Matter · Research tab** | P13 form (query + court + year) · result cards (case_name + citation_ref + summary + Cite-into-matter button) · CitationsSidebar pinned right (280px) |
+| **Matter · Pre-Motion tab** | Stage strip showing live stream of 4 stages (Optimistic Analyst / Evidence Inspector / Premortem Adversary / Synthesiser) · synthesis output uses P4 Prose + P15 Status pill for verdict colour · P5 Blockquote pull for "If we lose, this will be why" |
 | **Matter · Letters tab** | LetterSelector with P18-style active row (`bg-wash text-ink border-l-2 border-ink`) · LetterDraftView in bordered panel with P8-style eyebrow header strip · P12 ink-fill button for draft / re-draft |
-| **Matter · Audit tab** | P16 Data table (timestamp / action / model / tokens / latency / payload preview) |
+| **Matter · Contract review tab** | P13 form (Document / Posture / Contract type / Counterparty / Deal value) · StageStrip (parse / analyse / redline / summarise) · ResultPanel with three accordions (Summary / Analysis / Redlines) · severity + redline-priority use bordered semantic-text pills (no fills) |
+| **Matter · Audit tab** | Filter pill (module dropdown) · P16 Data table (Timestamp / Module / Action / Model / Tokens / Latency / Hash) |
 | **Settings** (`#/settings/{tab}`) | P1 TopBar · P2 Sidebar (Profile / Keys / Preferences) · main `flex-1 max-w-2xl p-10` · P13 Inputs per tab |
 | **Settings · Keys tab** | List of P10 dense rows (provider · last_used · created) · P13 form to add new |
 
@@ -1031,9 +1040,9 @@ These ship in the global CSS and are not optional:
 Committed verbatim into the repo at `docs/design-refs/` so they
 survive a Downloads-folder cleanup. Source-of-truth, never edit.
 
-- `docs/design-refs/warp-whitepaper.html` — Warp whitepaper HTML (patterns P2, P3, P4, P5, P6, P7, P17)
-- `docs/design-refs/hypertrade-terminal.html` — HyperTrade Terminal HTML (patterns P8, P9, P10, P15, P16)
-- `docs/design-refs/warp-whitepaper.react.js` — Warp whitepaper as React (conversion template; scroll-spy implementation)
+- `docs/design-refs/warp-whitepaper.html` — Warp whitepaper HTML (patterns P2, P3, P4, P5, P6, P7, P8, P17 — Landing only)
+- `docs/design-refs/hypertrade-terminal.html` — HyperTrade Terminal HTML (RETIRED in v0.3; kept for historical lineage of P10 dense rows + P15 status pill only; not authoritative)
+- `docs/design-refs/warp-whitepaper.react.js` — Warp whitepaper as React (Landing conversion template; scroll-spy implementation lives here, copied verbatim into `src/landing/Landing.tsx`)
 - `docs/design-refs/memo-production.css` — Memo production CSS (token definitions, utility classes)
 - `https://memo-app-eta-tawny.vercel.app/` — Memo live (interaction patterns, motion)
 - `~/.claude/skills/variant-workflow/SKILL.md` — strict preservation rules
