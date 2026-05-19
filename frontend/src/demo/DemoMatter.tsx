@@ -9,6 +9,7 @@ import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
 import { MatterNav } from "../matter/MatterNav";
 import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
+import { RightRailAssistant } from "../matter/RightRailAssistant";
 import { isTabKey, type TabKey } from "../matter/tabs/types";
 import { WorkflowsTab } from "../matter/tabs/WorkflowsTab";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
@@ -84,6 +85,22 @@ export function DemoMatter() {
   );
 
   const [showSoF, setShowSoF] = useState(false);
+  const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("legalise.right-rail.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("legalise.right-rail.collapsed", rightRailCollapsed ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [rightRailCollapsed]);
 
   const flashPosture = () => flashCta("Sign up to change posture on your own matter");
 
@@ -103,7 +120,8 @@ export function DemoMatter() {
         />
         <div className="flex-1 min-w-0">
           <MatterBreadcrumb matter={matter} tab={tab} />
-          <main className="px-4 sm:px-6 lg:px-10 py-10">
+          <div className="flex">
+          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
             {tab === "assistant" && (
               <AssistantTab
                 matter={matter}
@@ -182,6 +200,15 @@ export function DemoMatter() {
               <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
             )}
           </main>
+          {tab !== "assistant" && tab !== "workflows" && (
+            <RightRailAssistant
+              matter={matter}
+              collapsed={rightRailCollapsed}
+              onToggleCollapsed={() => setRightRailCollapsed((v) => !v)}
+              onOpenFull={() => setTabAndHash("assistant")}
+            />
+          )}
+          </div>
         </div>
       </div>
     </>
