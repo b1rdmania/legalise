@@ -2,6 +2,7 @@ import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
+import { BrandMark } from "./BrandMark";
 import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
@@ -67,7 +68,8 @@ export function TopBar({
         }
       >
         <div className="max-w-page mx-auto px-4 sm:px-6 h-[64px] sm:h-[80px] flex items-center justify-between">
-          <a href="#/" className="flex items-center group outline-none">
+          <a href="#/" className="flex items-center gap-3 group outline-none">
+            <BrandMark />
             <span className="font-semibold text-lg tracking-tight2 text-ink">legalise</span>
           </a>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink">
