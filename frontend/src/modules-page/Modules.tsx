@@ -3,18 +3,21 @@ import {
   disableSkill,
   enableSkill,
   getModules,
+  getPublicModules,
   getSkillBody,
   type ModuleSkill,
   type ModulesResponse,
+  type PublicModulesResponse,
 } from "../lib/api";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { useAuth } from "../auth/AuthProvider";
-import { WORKFLOW_TABS } from "../matter/tabs/types";
 
 export function Modules() {
   const auth = useAuth();
   const isAuthed = !!auth.user;
   const [data, setData] = useState<ModulesResponse | null>(null);
+  const [publicData, setPublicData] = useState<PublicModulesResponse | null>(null);
+  const [publicError, setPublicError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [promptBody, setPromptBody] = useState<Record<string, string>>({});
@@ -41,6 +44,14 @@ export function Modules() {
         if (/\b401\b/.test(msg)) return;
         setError(msg);
       });
+  }, [auth.loading, isAuthed]);
+
+  useEffect(() => {
+    if (auth.loading) return;
+    if (isAuthed) return;
+    getPublicModules()
+      .then(setPublicData)
+      .catch((e) => setPublicError(String(e)));
   }, [auth.loading, isAuthed]);
 
   useEffect(() => {
@@ -147,11 +158,9 @@ export function Modules() {
 
       {!isAuthed && (
         <>
-          {/* TODO(public-modules): no unauth-safe modules endpoint exists.
-              /api/modules requires auth. Until a public catalogue endpoint
-              lands, render a static preview of the known workflow modules
-              from WORKFLOW_TABS. */}
-          <PublicCataloguePreview />
+          {publicError && <ErrorCallout message={publicError} />}
+          {!publicData && !publicError && <LoadingLine label="loading catalogue" />}
+          {publicData && <PublicCatalogue data={publicData} />}
         </>
       )}
 
@@ -283,68 +292,96 @@ export function Modules() {
   );
 }
 
-function PublicCataloguePreview() {
+function PublicCatalogue({ data }: { data: PublicModulesResponse }) {
+  const shortRef = data.source.ref ? data.source.ref.slice(0, 7) : "unversioned";
   return (
     <section className="mb-12">
-      <div className="eyebrow mb-3">Preview catalogue</div>
-      <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">
-        Installed legal modules
-      </h2>
+      <div className="flex items-baseline justify-between gap-4 mb-3">
+        <div className="eyebrow">Installed catalogue</div>
+        <span
+          className="text-[10px] font-mono uppercase tracking-track2 text-muted truncate"
+          title={data.source.repo ?? "no source"}
+        >
+          {shortRef}
+        </span>
+      </div>
       <p className="text-sm text-prose max-w-2xl mb-6">
-        A read-only preview of the workflow modules shipped with the
-        workspace. Sign in to see your installed catalogue, grants, and
-        per-module status.
+        Each module declares the capabilities it needs. Granting and revoking
+        is workspace-scoped; sign up to control grants on your matters.
       </p>
 
+      {data.skills.length === 0 && data.broken.length === 0 && (
+        <p className="text-sm text-muted">No modules installed yet.</p>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {WORKFLOW_TABS.map((w) => {
-          const key = `legalise.workflows/${w.key}`;
+        {data.skills.map((s) => {
+          const key = `${s.plugin}/${s.skill}`;
           return (
-            <article key={w.key} className="border border-rule p-6">
-              <div className="eyebrow font-mono text-muted mb-3">
-                legalise.workflows
-              </div>
-              <h3 className="text-base font-bold text-ink mb-2">{w.label}</h3>
-              <p className="text-xs text-prose leading-relaxed mb-5">{w.blurb}</p>
+            <article key={key} className="border border-rule p-6">
+              <div className="eyebrow font-mono text-muted mb-3">{s.plugin}</div>
+              <h3 className="text-base font-bold text-ink mb-2">{s.name}</h3>
+              <p className="text-xs text-prose leading-relaxed mb-5">{s.description}</p>
 
-              <dl className="grid grid-cols-[96px_1fr] gap-y-1.5 text-[11px] font-mono mb-5">
-                <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Reads</dt>
-                <dd className="text-ink">{w.reads}</dd>
-                <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Writes</dt>
-                <dd className="text-ink">{w.writes}</dd>
-                <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Calls</dt>
-                <dd className="text-ink">{w.calls} per run</dd>
-              </dl>
-
-              <div className="mb-5">
-                <div className="eyebrow mb-2">Capabilities (declared)</div>
-                <div className="flex flex-wrap gap-2">
-                  {w.capabilities.map((c) => (
-                    <span
-                      key={c}
-                      className="inline-flex items-center text-[11px] font-mono text-ink border border-rule bg-wash px-2 py-0.5"
-                    >
-                      {c}
-                    </span>
-                  ))}
+              {s.declared_capabilities.length > 0 && (
+                <div className="mb-5">
+                  <div className="eyebrow mb-2">Capabilities (declared)</div>
+                  <div className="flex flex-wrap gap-2">
+                    {s.declared_capabilities.map((c) => (
+                      <span
+                        key={c}
+                        className="inline-flex items-center text-[11px] font-mono text-ink border border-rule bg-wash px-2 py-0.5"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center justify-between gap-3 pt-4 border-t border-rule">
-                <span className="text-[10px] font-mono uppercase tracking-track2 text-muted truncate" title={key}>
-                  {key}
-                </span>
-                <a
-                  href="#/auth/signin"
-                  className="text-xs text-[#0066CC] hover:underline whitespace-nowrap"
+                <span
+                  className={
+                    "text-[10px] font-mono uppercase tracking-track2 border px-1.5 py-0.5 " +
+                    trustPostureClasses(s.trust_posture)
+                  }
+                  title={`trust posture: ${s.trust_posture ?? "unset"}`}
                 >
-                  Sign in to manage
-                </a>
+                  {s.trust_posture ?? "unset"}
+                </span>
+                {s.source_url ? (
+                  <a
+                    href={s.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-[#0066CC] hover:underline whitespace-nowrap"
+                  >
+                    View source
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted">no source url</span>
+                )}
               </div>
             </article>
           );
         })}
       </div>
+
+      {data.broken.length > 0 && (
+        <div className="mt-8 border border-rule p-4">
+          <div className="eyebrow mb-2">Broken manifests</div>
+          <ul className="text-sm text-ink space-y-2">
+            {data.broken.map((b, i) => (
+              <li key={`${b.plugin}-${b.skill}-${i}`}>
+                <span className="font-mono text-xs">
+                  {b.plugin}/{b.skill}
+                </span>{" "}
+                - {b.errors[0]?.message ?? "manifest invalid"}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

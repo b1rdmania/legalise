@@ -173,6 +173,35 @@ export interface ModulesResponse {
 export const getModules = () =>
   apiFetch(`${API}/modules`).then((r) => jsonOrThrow<ModulesResponse>(r));
 
+// Public, unauth-safe view of the catalogue. No workspace state - no
+// `granted_capabilities`, no `enabled`. Backed by the same manifest
+// resolver as `getModules`. Backend sends Cache-Control: max-age=300.
+export interface PublicModuleSkill {
+  plugin: string;
+  skill: string;
+  name: string;
+  description: string;
+  declared_capabilities: string[];
+  trust_posture: string | null;
+  source_url: string | null;
+}
+
+export interface PublicModulesResponse {
+  source: {
+    repo: string | null;
+    ref: string | null;
+  };
+  skills: PublicModuleSkill[];
+  broken: {
+    plugin: string;
+    skill: string;
+    errors: { path: string; message: string }[];
+  }[];
+}
+
+export const getPublicModules = () =>
+  apiFetch(`${API}/modules/public`).then((r) => jsonOrThrow<PublicModulesResponse>(r));
+
 export const getSkillBody = (plugin: string, skill: string) =>
   apiFetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
     if (!r.ok) {

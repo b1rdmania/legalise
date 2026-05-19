@@ -3,19 +3,18 @@
 Surfaced during the v0.4 design pass. Frontend currently fakes these with static
 data or `window.confirm`; the real fix is a backend endpoint.
 
-## TODO(public-modules)
+## ~~TODO(public-modules)~~ SHIPPED 2026-05-19
 
-**Where:** `frontend/src/pages/ModulesPage.tsx` unauth catalogue (and the same
-data feeds the in-matter Workflows catalogue).
-
-**Current state:** Catalogue cards render from the frontend `WORKFLOW_TABS`
-constant in `frontend/src/matter/tabs/types.ts`. Unauth visitors see the same
-five hardcoded modules an authed user sees, regardless of what's actually
-installed in `PLUGINS_ROOT`.
-
-**Needed:** `GET /api/modules/public` returning the list of installed plugins
-with `key`, `label`, `blurb`, declared `capabilities`, and `version`. Read-only,
-no auth. Frontend swaps the constant for fetched data.
+`GET /api/modules/public` returns the catalogue from the same manifest
+resolver as `GET /api/modules` (the `_discover_skills()` helper in
+`backend/app/api/modules.py`). Response shape: `source`, `skills`,
+`broken`. Per-skill fields: `plugin`, `skill`, `name`, `description`,
+`declared_capabilities`, `trust_posture`, `source_url`. Workspace state
+(`granted_capabilities`, `enabled`) is deliberately absent. Cached at
+`Cache-Control: public, max-age=300`. Frontend `Modules.tsx` swapped the
+static `WORKFLOW_TABS` preview for a live fetch via `getPublicModules()`.
+Tests: `backend/tests/test_modules_public.py` covers shape, no-leak,
+no-auth, cache header, and parity with the authed endpoint.
 
 ## TODO(workflow-state)
 

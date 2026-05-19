@@ -7,11 +7,12 @@ present at PLUGINS_ROOT. Install and approval remain a Git workflow.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import PlainTextResponse
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
@@ -129,43 +130,33 @@ def _module_json_for(skill_md_path: Path) -> Path:
     return skill_md_path.parent.parent.parent / "module.json"
 
 
-@router.get("", response_model=ModulesResponse)
-async def list_modules(
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(current_user),
-) -> ModulesResponse:
-    """Return every installed SKILL.md discovered under PLUGINS_ROOT.
+@dataclass
+class _DiscoveredSkill:
+    """One SKILL.md + module.json resolved into the shape both endpoints
+    share. Per-user fields (`granted_capabilities`, `enabled`) are layered
+    on by the authed endpoint after discovery."""
 
-    Each discovered skill is paired with the plugin's `module.json`,
-    validated against `schemas/module.json` via `Draft202012Validator`.
-    Manifests that fail validation are returned in the `broken` list so
-    the UI can flag them — they are not silently dropped.
+    plugin: str
+    skill: str
+    name: str
+    description: str
+    source_url: str | None
+    argument_hint: str | None
+    declared_capabilities: list[str]
+    trust_posture: str | None
+
+
+def _discover_skills() -> tuple[list[_DiscoveredSkill], list[BrokenManifest]]:
+    """Walk PLUGINS_ROOT, parse every SKILL.md, validate its sibling
+    module.json. Single source of truth for the manifest resolver used by
+    both `GET /api/modules` (authed) and `GET /api/modules/public`.
     """
-    skills: list[ModuleSkill] = []
+    from app.core.capabilities import declared_capabilities_for_skill
+
+    skills: list[_DiscoveredSkill] = []
     broken: list[BrokenManifest] = []
     root = _plugins_root()
 
-    # Per-user disabled set (absence = enabled, presence = disabled).
-    disabled_rows = await session.scalars(
-        select(WorkspaceDisabledSkill).where(WorkspaceDisabledSkill.user_id == user.id)
-    )
-    disabled: set[tuple[str, str]] = {(r.plugin, r.skill) for r in disabled_rows.all()}
-
-    # Per-user granted capabilities, indexed by `(plugin, skill)`. Empty
-    # for users on a fresh workspace where the auto-grant hasn't run
-    # (legacy users, manifest read failures); shown as such in the UI so
-    # the gap is visible rather than hidden.
-    grant_rows = await session.scalars(
-        select(WorkspaceSkillCapabilityGrant).where(
-            WorkspaceSkillCapabilityGrant.user_id == user.id
-        )
-    )
-    granted_by_skill: dict[tuple[str, str], list[str]] = {}
-    for row in grant_rows.all():
-        granted_by_skill.setdefault((row.plugin, row.skill), []).append(row.capability)
-
-    # Cache per-plugin manifest validation across multiple skills in the
-    # same plugin so we only read + validate the manifest once per request.
     manifest_cache: dict[str, tuple[dict | None, list[dict]]] = {}
 
     for path in _skill_paths():
@@ -204,14 +195,6 @@ async def list_modules(
             broken.append(BrokenManifest(plugin=plugin, skill=skill, errors=errors))
             continue
 
-        # Declared capabilities resolve per-skill via the shared helper
-        # in `app.core.capabilities`. Auto-grant on signup reads the same
-        # function so what the user sees here matches what the runtime
-        # actually grants. Per-skill overrides take precedence over the
-        # plugin-level list; skills absent from the `skills` map inherit
-        # plugin-level. Trust posture follows the same precedence.
-        from app.core.capabilities import declared_capabilities_for_skill
-
         capabilities = declared_capabilities_for_skill(module_payload, skill)
 
         plugin_trust = (
@@ -228,23 +211,120 @@ async def list_modules(
                     skill_override = candidate
         trust_posture = skill_override.get("trust_posture", plugin_trust)
 
-        granted = sorted(granted_by_skill.get((plugin, skill), []))
-
         skills.append(
-            ModuleSkill(
+            _DiscoveredSkill(
                 plugin=plugin,
                 skill=skill,
                 name=manifest.name,
                 description=manifest.description,
                 source_url=_source_url(path),
                 argument_hint=manifest.argument_hint,
-                capabilities=capabilities,
                 declared_capabilities=capabilities,
-                granted_capabilities=granted,
                 trust_posture=trust_posture,
-                enabled=(plugin, skill) not in disabled,
             )
         )
+
+    return skills, broken
+
+
+class PublicModuleSkill(BaseModel):
+    """Public catalogue view of a skill. No workspace state -
+    `granted_capabilities` and `enabled` are deliberately absent so the
+    public surface cannot leak which capabilities any workspace holds."""
+
+    plugin: str
+    skill: str
+    name: str
+    description: str
+    declared_capabilities: list[str] = []
+    trust_posture: str | None = None
+    source_url: str | None = None
+
+
+class PublicModulesResponse(BaseModel):
+    source: ModuleSource
+    skills: list[PublicModuleSkill]
+    broken: list[BrokenManifest] = []
+
+
+@router.get("/public", response_model=PublicModulesResponse)
+async def list_modules_public(response: Response) -> PublicModulesResponse:
+    """Read-only catalogue for unauth visitors. Uses the same manifest
+    resolver as `GET /api/modules` so the listings cannot drift.
+
+    No workspace state is exposed: only declared capabilities, the
+    trust posture from the manifest, and the source URL. Cached for
+    five minutes; the catalogue mutates on a git push to the upstream
+    plugins repo, not on user action.
+    """
+    discovered, broken = _discover_skills()
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return PublicModulesResponse(
+        source=ModuleSource(repo=settings.plugins_repo, ref=settings.plugins_repo_ref),
+        skills=[
+            PublicModuleSkill(
+                plugin=s.plugin,
+                skill=s.skill,
+                name=s.name,
+                description=s.description,
+                declared_capabilities=s.declared_capabilities,
+                trust_posture=s.trust_posture,
+                source_url=s.source_url,
+            )
+            for s in discovered
+        ],
+        broken=broken,
+    )
+
+
+@router.get("", response_model=ModulesResponse)
+async def list_modules(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ModulesResponse:
+    """Return every installed SKILL.md discovered under PLUGINS_ROOT.
+
+    Each discovered skill is paired with the plugin's `module.json`,
+    validated against `schemas/module.json` via `Draft202012Validator`.
+    Manifests that fail validation are returned in the `broken` list so
+    the UI can flag them - they are not silently dropped.
+
+    Shares `_discover_skills()` with the public endpoint; layers per-user
+    grants and the per-user disabled set on top.
+    """
+    discovered, broken = _discover_skills()
+    root = _plugins_root()
+
+    disabled_rows = await session.scalars(
+        select(WorkspaceDisabledSkill).where(WorkspaceDisabledSkill.user_id == user.id)
+    )
+    disabled: set[tuple[str, str]] = {(r.plugin, r.skill) for r in disabled_rows.all()}
+
+    grant_rows = await session.scalars(
+        select(WorkspaceSkillCapabilityGrant).where(
+            WorkspaceSkillCapabilityGrant.user_id == user.id
+        )
+    )
+    granted_by_skill: dict[tuple[str, str], list[str]] = {}
+    for row in grant_rows.all():
+        granted_by_skill.setdefault((row.plugin, row.skill), []).append(row.capability)
+
+    skills = [
+        ModuleSkill(
+            plugin=d.plugin,
+            skill=d.skill,
+            name=d.name,
+            description=d.description,
+            source_url=d.source_url,
+            argument_hint=d.argument_hint,
+            capabilities=d.declared_capabilities,
+            declared_capabilities=d.declared_capabilities,
+            granted_capabilities=sorted(granted_by_skill.get((d.plugin, d.skill), [])),
+            trust_posture=d.trust_posture,
+            enabled=(d.plugin, d.skill) not in disabled,
+        )
+        for d in discovered
+    ]
 
     return ModulesResponse(
         plugins_root=str(root),
