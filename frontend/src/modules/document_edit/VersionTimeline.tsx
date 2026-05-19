@@ -40,7 +40,10 @@ export function VersionTimeline({ documentId, refreshKey = 0 }: Props) {
         if (!cancelled) setVersions(vs);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setError(`Could not load version history. ${msg}`);
+        }
       });
     return () => {
       cancelled = true;

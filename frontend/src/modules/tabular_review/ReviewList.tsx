@@ -10,7 +10,7 @@ import {
   createReview,
   deleteReview,
 } from "./api";
-import { EmptyState } from "../../ui/primitives";
+import { EmptyState, ErrorCallout } from "../../ui/primitives";
 
 type Props = {
   slug: string;
@@ -33,7 +33,8 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
       const rows = await listReviews(slug);
       setItems(rows);
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not load reviews. ${msg}`);
     }
   };
 
@@ -52,7 +53,8 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
       await load();
       onSelect(r.id);
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not create review. ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -64,7 +66,8 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
       await deleteReview(slug, id);
       await load();
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not delete review. ${msg}`);
     }
   };
 
@@ -100,8 +103,8 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
       )}
 
       {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] p-4 text-sm text-[#B91C1C] mb-6">
-          {error}
+        <div className="mb-6">
+          <ErrorCallout message={error} />
         </div>
       )}
 

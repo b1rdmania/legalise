@@ -13,6 +13,7 @@ import {
 } from "../../lib/api";
 import { TrackedChangesView } from "./TrackedChangesView";
 import { VersionTimeline } from "./VersionTimeline";
+import { ErrorCallout } from "../../ui/primitives";
 
 const PRESETS: { label: string; mode: EditMode; instruction: string }[] = [
   {
@@ -67,7 +68,8 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
       setResult(res);
       setTimelineKey((k) => k + 1);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not propose edits. ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -139,8 +141,8 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
       </div>
 
       {error && (
-        <div className="mt-4 border border-rule bg-wash p-3 text-[12px] text-ink font-mono whitespace-pre-wrap">
-          {error}
+        <div className="mt-4">
+          <ErrorCallout message={error} compact />
         </div>
       )}
 

@@ -37,12 +37,12 @@ export function Modules() {
         }
       })
       .catch((e) => {
-        const msg = String(e);
+        const msg = e instanceof Error ? e.message : String(e);
         // 401 should never surface raw to a visitor. The unauth branch
         // already short-circuits above; this guards a race where the
         // session expires mid-fetch.
         if (/\b401\b/.test(msg)) return;
-        setError(msg);
+        setError(`Could not load installed modules. ${msg}`);
       });
   }, [auth.loading, isAuthed]);
 
@@ -51,7 +51,10 @@ export function Modules() {
     if (isAuthed) return;
     getPublicModules()
       .then(setPublicData)
-      .catch((e) => setPublicError(String(e)));
+      .catch((e) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        setPublicError(`Could not load the module catalogue. ${msg}`);
+      });
   }, [auth.loading, isAuthed]);
 
   useEffect(() => {
@@ -62,9 +65,12 @@ export function Modules() {
     getSkillBody(plugin, skill)
       .then((body) => setPromptBody((prev) => ({ ...prev, [selectedKey]: body })))
       .catch((e) => {
-        const msg = String(e);
+        const msg = e instanceof Error ? e.message : String(e);
         if (/\b401\b/.test(msg)) return;
-        setPromptError((prev) => ({ ...prev, [selectedKey]: msg }));
+        setPromptError((prev) => ({
+          ...prev,
+          [selectedKey]: `Could not load the prompt body for this skill. ${msg}`,
+        }));
       });
   }, [selectedKey, data, promptBody, promptError, isAuthed]);
 
@@ -111,7 +117,11 @@ export function Modules() {
           : prev,
       );
     } catch (e) {
-      setToggleError((p) => ({ ...p, [key]: String(e) }));
+      const msg = e instanceof Error ? e.message : String(e);
+      setToggleError((p) => ({
+        ...p,
+        [key]: `Could not ${skill.enabled ? "disable" : "enable"} this skill. ${msg}`,
+      }));
     } finally {
       setToggling((p) => {
         const { [key]: _drop, ...rest } = p;
@@ -129,8 +139,8 @@ export function Modules() {
         </h1>
         <p className="text-sm text-prose max-w-2xl">
           {isAuthed
-            ? "Modules are the legal skills installed on your workspace. Each declares the capabilities it needs; the runtime checks the grant before every privileged operation and writes an audit row. Revoke any capability you don't want a module to hold."
-            : "Browse the legal skills available on Legalise. Each module declares the capabilities it needs and operates on a matter through the privilege-aware gateway. The catalogue is open; granting capabilities to a module needs a workspace."}
+            ? "Legal skills installed on your workspace. Each declares the capabilities it needs. Revoke any you do not want a module to hold."
+            : "Legal skills available on Legalise. The catalogue is open. Granting capabilities to a module needs a workspace."}
         </p>
         {!isAuthed && (
           <div className="mt-5 flex flex-wrap items-center gap-3">

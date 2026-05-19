@@ -13,6 +13,7 @@ import {
 } from "./api";
 import { CaseLawCard } from "./CaseLawCard";
 import { CitationsSidebar } from "./CitationsSidebar";
+import { ErrorCallout } from "../../ui/primitives";
 
 type Props = {
   matter: Matter;
@@ -52,7 +53,8 @@ export function ResearchTab({ matter, initialCitations }: Props) {
       });
       setResp(r);
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Case-law search failed. ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -127,8 +129,8 @@ export function ResearchTab({ matter, initialCitations }: Props) {
       </form>
 
       {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] p-4 text-sm text-[#B91C1C] mb-6">
-          {error}
+        <div className="mb-6">
+          <ErrorCallout message={error} />
         </div>
       )}
 

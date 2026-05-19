@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { MatterCitationRead, deleteCitation, listCitations } from "./api";
+import { ErrorCallout } from "../../ui/primitives";
 
 type Props = {
   slug: string;
@@ -24,7 +25,8 @@ export function CitationsSidebar({ slug, refreshKey, initialCitations }: Props) 
       const r = await listCitations(slug);
       setRows(r);
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not load cited authorities. ${msg}`);
     }
   };
 
@@ -39,18 +41,15 @@ export function CitationsSidebar({ slug, refreshKey, initialCitations }: Props) 
       await deleteCitation(slug, id);
       await load();
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not remove citation. ${msg}`);
     }
   };
 
   return (
     <div className="space-y-3">
       <div className="eyebrow">Cited authorities</div>
-      {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-xs text-[#B91C1C]">
-          {error}
-        </div>
-      )}
+      {error && <ErrorCallout message={error} compact />}
       {rows === null ? (
         <div className="text-xs text-muted">Loading…</div>
       ) : rows.length === 0 ? (

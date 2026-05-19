@@ -48,7 +48,8 @@ export function AnonymiseButton({ documentId, onResult }: Props) {
       setExisting(result);
       onResult?.(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Anonymisation failed. ${msg}`);
     } finally {
       setBusy(false);
     }

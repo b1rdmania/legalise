@@ -17,6 +17,7 @@ import {
   rejectEdit,
 } from "../../lib/api";
 import { DiffRow } from "./DiffRow";
+import { ErrorCallout } from "../../ui/primitives";
 
 type Props = {
   result: EditInstructionResponse;
@@ -75,7 +76,8 @@ export function TrackedChangesView({ result, onResolved }: Props) {
         replaceEdit({ ...edit, status: "accepted" });
         onResolved?.();
       } else {
-        setError(e instanceof Error ? e.message : String(e));
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(`Could not ${action} this edit. ${msg}`);
       }
     } finally {
       setBusyId(null);
@@ -97,7 +99,8 @@ export function TrackedChangesView({ result, onResolved }: Props) {
       flashBanner(res.new_version, (res.resolved_text || "").length);
       onResolved?.();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not ${action} all edits. ${msg}`);
     } finally {
       setBulkBusy(null);
     }
@@ -147,8 +150,8 @@ export function TrackedChangesView({ result, onResolved }: Props) {
       )}
 
       {error && (
-        <div className="mb-3 border border-rule bg-wash p-3 text-[12px] text-ink font-mono whitespace-pre-wrap">
-          {error}
+        <div className="mb-3">
+          <ErrorCallout message={error} compact />
         </div>
       )}
 

@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { CaseLawResult, createCitation } from "./api";
+import { ErrorCallout } from "../../ui/primitives";
 
 type Props = {
   slug: string;
@@ -42,7 +43,8 @@ export function CaseLawCard({ slug, result, onCited }: Props) {
       setDone(true);
       onCited();
     } catch (e) {
-      setError(String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Could not cite into matter. ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -86,11 +88,7 @@ export function CaseLawCard({ slug, result, onCited }: Props) {
           </a>
         </div>
       )}
-      {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-xs text-[#B91C1C]">
-          {error}
-        </div>
-      )}
+      {error && <ErrorCallout message={error} compact />}
     </div>
   );
 }

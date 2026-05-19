@@ -22,6 +22,7 @@ import {
 } from "./api";
 import { ResultPanel } from "./ResultPanel";
 import { StageStrip } from "./StageStrip";
+import { ErrorCallout } from "../../ui/primitives";
 
 interface Props {
   matter: Matter;
@@ -182,7 +183,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
         setError(e.message);
       } else {
         const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
+        setError(`Contract review failed. ${msg}`);
       }
     } finally {
       setRunning(false);
@@ -198,7 +199,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
       setExportLink(r.download_url);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setExportError(msg);
+      setExportError(`Could not export .docx. ${msg}`);
     } finally {
       setExporting(false);
     }
@@ -290,11 +291,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
         <StageStrip stages={stages} liveOverrides={liveStages} />
       </div>
 
-      {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
-          {error}
-        </div>
-      )}
+      {error && <ErrorCallout message={error} compact />}
       {!error && !result && (
         <p className="text-xs italic text-muted">
           Pick a contract-shaped document with extracted text. The Khan

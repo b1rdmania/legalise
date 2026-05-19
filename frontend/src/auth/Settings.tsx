@@ -144,7 +144,8 @@ function SettingsProfile({
       if (field === "password") setPassword("");
       onUpdated();
     } catch (err) {
-      setError(String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Could not save ${field.replace(/_/g, " ")}. ${msg}`);
     } finally {
       setBusyField(null);
     }
@@ -168,7 +169,8 @@ function SettingsProfile({
           `Cannot delete account yet. ${err.matterCount} matter${err.matterCount === 1 ? "" : "s"} still attached. Export or delete matters first (matter-delete lands in v0.2).`,
         );
       } else {
-        setError(String(err));
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(`Could not delete account. ${msg}`);
       }
     } finally {
       setBusyField(null);
@@ -365,7 +367,8 @@ function SettingsKeys() {
       const rows = await listApiKeys();
       setKeys(rows);
     } catch (err) {
-      setError(String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Could not load API keys. ${msg}`);
     }
   }, []);
 
@@ -383,7 +386,8 @@ function SettingsKeys() {
       setApiKey("");
       await refresh();
     } catch (err) {
-      setError(String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Could not save key. ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -395,7 +399,8 @@ function SettingsKeys() {
       await deleteApiKey(p);
       await refresh();
     } catch (err) {
-      setError(String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Could not remove key. ${msg}`);
     }
   };
 

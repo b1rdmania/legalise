@@ -76,7 +76,10 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
         if (!cancelled) setData(d);
       })
       .catch((e) => {
-        if (!cancelled) setError(String(e));
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setError(`Could not load workflows for this matter. ${msg}`);
+        }
       });
     return () => {
       cancelled = true;
@@ -86,8 +89,7 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
   return (
     <div className="max-w-4xl">
       <p className="text-sm text-prose max-w-2xl leading-relaxed mb-8">
-        Installed legal modules. Each operates on the matter through the
-        privilege-aware gateway. Click to open.
+        Installed legal modules. Click to open.
       </p>
 
       {error && <ErrorCallout message={error} />}

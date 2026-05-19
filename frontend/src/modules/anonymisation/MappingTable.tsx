@@ -38,7 +38,8 @@ export function MappingTable({ documentId, data: initial }: Props) {
       })
       .catch((e) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : String(e));
+          const msg = e instanceof Error ? e.message : String(e);
+          setError(`Could not load anonymisation mapping. ${msg}`);
         }
       })
       .finally(() => {

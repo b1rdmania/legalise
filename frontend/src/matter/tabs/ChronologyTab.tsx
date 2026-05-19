@@ -24,7 +24,7 @@ export function ChronologyTab({
       {chron.events.length === 0 && (
         <EmptyState
           title="No events yet"
-          body="Live chronology extraction lands in v0.2."
+          body="Upload dated documents on the Documents tab. Chronology events are extracted from each document body and appear here with their source. Live extraction lands in v0.2."
         />
       )}
 
@@ -87,14 +87,16 @@ function ChronologyTable({
             )}
             <span className="z-10 flex flex-wrap items-center gap-2 truncate">
               {e.source_doc_filenames.map((fn) => (
-                <a
+                // TODO(joy-source-link): wire to the source document when
+                // a routed Document detail view lands. Plain span keeps
+                // the source visible without faking an affordance.
+                <span
                   key={fn}
-                  href="#"
-                  onClick={(ev) => ev.preventDefault()}
-                  className="text-muted hover:text-ink truncate max-w-[160px]"
+                  className="text-muted truncate max-w-[160px]"
+                  title={fn}
                 >
                   {fn}
-                </a>
+                </span>
               ))}
               {e.from_disclosure && <Badge>CPR 31.22</Badge>}
               {e.priv_flag && <Badge>PRIV</Badge>}

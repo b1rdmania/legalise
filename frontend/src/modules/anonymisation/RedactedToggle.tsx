@@ -33,12 +33,11 @@ export function RedactedToggle({ documentId, originalText, initialResult }: Prop
       const r = await getAnonymisation(documentId);
       setResult(r);
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       setError(
-        e instanceof Error && e.message.startsWith("404")
+        msg.startsWith("404")
           ? "No redacted body yet - run Anonymise first."
-          : e instanceof Error
-            ? e.message
-            : String(e),
+          : `Could not load redacted body. ${msg}`,
       );
     } finally {
       setLoading(false);

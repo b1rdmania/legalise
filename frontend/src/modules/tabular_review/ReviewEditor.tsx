@@ -24,6 +24,12 @@ import {
 import { ColumnEditor } from "./ColumnEditor";
 import { ReviewGrid } from "./ReviewGrid";
 import { CostEstimateDialog } from "./CostEstimateDialog";
+import { ErrorCallout } from "../../ui/primitives";
+
+function friendlyError(action: string, e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  return `${action} ${msg}`;
+}
 
 type Props = {
   slug: string;
@@ -49,7 +55,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
     try {
       setReview(await getReview(slug, reviewId));
     } catch (e) {
-      setError(String(e));
+      setError(friendlyError("Could not load review.", e));
     }
   };
   useEffect(() => {
@@ -67,7 +73,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       setReview(next);
       setDirtyColumns(null);
     } catch (e) {
-      setError(String(e));
+      setError(friendlyError("Could not save columns.", e));
     } finally {
       setSavingColumns(false);
     }
@@ -81,7 +87,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       const est = await estimateReview(slug, review.id, { column_keys });
       setEstimate(est);
     } catch (e) {
-      setError(String(e));
+      setError(friendlyError("Could not estimate run cost.", e));
       setPendingScope(null);
     }
   };
@@ -104,7 +110,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       setPendingScope(null);
       await load();
     } catch (e) {
-      setError(String(e));
+      setError(friendlyError("Review run failed.", e));
     } finally {
       setRunBusy(false);
       setRunningColumnKey(null);
@@ -126,7 +132,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       a.click();
       // Backend sets Content-Disposition; browser handles the save.
     } catch (e) {
-      setError(String(e));
+      setError(friendlyError("Export failed.", e));
     } finally {
       setExportBusy(false);
     }
@@ -179,11 +185,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
         </div>
       </div>
 
-      {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
-          {error}
-        </div>
-      )}
+      {error && <ErrorCallout message={error} compact />}
 
       <ColumnEditor
         columns={columns}
