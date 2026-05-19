@@ -1,7 +1,7 @@
 # Handover — Legalise v0.2 substance + JOY pass
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-19 night. Repo head: `737ea81` (post-R3 hardening, CI green). Last CI-green code head before this pass: `d8be353`.
+**As of:** 2026-05-19 night. Repo head: `c213b69` (this doc + R3 addendum). Last CI-green code head: `737ea81`.
 **Scope:** everything that landed since the reviewer's backend scoping verdict and the "v0.1 truthfulness vs v0.2 substance" framing message. Read R3 first (most recent), then R2, then R1, then the original body if needed.
 
 ---

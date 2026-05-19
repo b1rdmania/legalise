@@ -93,7 +93,7 @@ v0.1. Honest about what's in and what isn't.
 - Tracked-changes editing with accept / reject and version timeline
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
 - Bootstrap audit rows on per-user seed so the Audit tab is non-empty on first paint
-- Real-DB E2E test infrastructure; 140 tests passing in the container
+- Real-DB E2E test infrastructure; 155 passed, 53 skipped in backend CI
 
 **v0.2:**
 
