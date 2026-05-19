@@ -1,0 +1,130 @@
+name: CI
+
+# Runs the backend pytest suite against a real Postgres + pgvector,
+# then the frontend type-check + production build. Mirrors the local
+# development loop documented in CONTRIBUTING.md.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: legalise
+          POSTGRES_PASSWORD: legalise
+          POSTGRES_DB: legalise_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U legalise -d legalise_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # POSTGRES_DSN is read by `settings.postgres_dsn` and used by
+      # alembic (sync psycopg driver). TEST_DATABASE_URL is read by
+      # `backend/tests/conftest.py` for the async engine. Both point at
+      # the same `legalise_test` database on localhost.
+      POSTGRES_DSN: postgresql+psycopg://legalise:legalise@localhost:5432/legalise_test
+      TEST_DATABASE_URL: postgresql+asyncpg://legalise:legalise@localhost:5432/legalise_test
+      ENVIRONMENT: test
+      # The modules tests tolerate an empty PLUGINS_ROOT but coverage is
+      # stronger with the real plugin suite checked out alongside.
+      PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
+      # The dev container bind-mounts the repo-root schemas dir; CI
+      # places it where modules.py + the parity test will find it.
+      SCHEMAS_PATH: ${{ github.workspace }}/schemas
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out claude-for-uk-legal at pinned ref
+        run: |
+          PLUGINS_REPO_REF=$(grep -E '^ARG PLUGINS_REPO_REF=' backend/Dockerfile | head -1 | sed 's/.*=//')
+          git clone --filter=blob:none https://github.com/b1rdmania/claude-for-uk-legal.git claude-for-uk-legal
+          git -C claude-for-uk-legal checkout "$PLUGINS_REPO_REF"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend (with dev deps)
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run alembic migrations against the test DB
+        working-directory: backend
+        run: python -m alembic upgrade head
+
+      - name: pytest
+        working-directory: backend
+        run: python -m pytest -x
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: tsc + vite build
+        working-directory: frontend
+        run: npm run build
+
+  voice-check:
+    name: Voice check (no em or en dashes in chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Voice check with ripgrep
+        run: |
+          # Fail if any em (U+2014) or en (U+2013) dash appears in the
+          # public-copy docs. Mirrors the local check documented in
+          # docs/HANDOVER_NEXT.md and CONTRIBUTING.md. Code comments
+          # and seeded legal-content strings are intentionally NOT
+          # scanned - the rule is for chrome strings + public copy.
+          if rg -n "—|–" \
+              README.md \
+              EXECUTIVE_SUMMARY.md \
+              ARCHITECTURE.md \
+              docs/MANIFESTO.md \
+              docs/ROADMAP.md; then
+            echo ""
+            echo "Em or en dash found in public copy. Use hyphen-minus."
+            exit 1
+          fi
+          echo "Voice check clean."
