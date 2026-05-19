@@ -11,6 +11,7 @@ import {
   getMatter,
   listAudit,
   listDocuments,
+  ProviderKeyMissingError,
   runPreMotionStream,
   setPrivilege,
   uploadDocument,
@@ -85,6 +86,7 @@ export function MatterDetail({
   const [premotion, setPremotion] = useState<PreMotionRunResult | null>(null);
   const [premotionRunning, setPremotionRunning] = useState(false);
   const [premotionError, setPremotionError] = useState<string | null>(null);
+  const [premotionKeyMissing, setPremotionKeyMissing] = useState<string | null>(null);
   const [premotionStages, setPremotionStages] = useState<StageProgress[]>([]);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export function MatterDetail({
   const [letterDraft, setLetterDraft] = useState<LetterDraft | null>(null);
   const [letterDrafting, setLetterDrafting] = useState(false);
   const [letterError, setLetterError] = useState<string | null>(null);
+  const [letterKeyMissing, setLetterKeyMissing] = useState<string | null>(null);
   const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -160,6 +163,7 @@ export function MatterDetail({
   const onRunPremotion = async () => {
     setPremotionRunning(true);
     setPremotionError(null);
+    setPremotionKeyMissing(null);
     setPremotion(null);
     setPremotionStages([]);
     try {
@@ -196,7 +200,11 @@ export function MatterDetail({
       }
       listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
-      setPremotionError(String(err));
+      if (err instanceof ProviderKeyMissingError) {
+        setPremotionKeyMissing(err.provider);
+      } else {
+        setPremotionError(String(err));
+      }
     } finally {
       setPremotionRunning(false);
     }
@@ -272,13 +280,18 @@ export function MatterDetail({
     if (!selectedLetter) return;
     setLetterDrafting(true);
     setLetterError(null);
+    setLetterKeyMissing(null);
     setLetterDraft(null);
     try {
       const draft = await draftLetter(slug, selectedLetter);
       setLetterDraft(draft);
       listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
-      setLetterError(String(err));
+      if (err instanceof ProviderKeyMissingError) {
+        setLetterKeyMissing(err.provider);
+      } else {
+        setLetterError(String(err));
+      }
     } finally {
       setLetterDrafting(false);
     }
@@ -379,6 +392,7 @@ export function MatterDetail({
               matter={matter}
               running={premotionRunning}
               error={premotionError}
+              keyMissingProvider={premotionKeyMissing}
               stages={premotionStages}
               result={premotion}
               onRun={onRunPremotion}
@@ -398,6 +412,7 @@ export function MatterDetail({
               onSelect={setSelectedLetter}
               drafting={letterDrafting}
               error={letterError}
+              keyMissingProvider={letterKeyMissing}
               draft={letterDraft}
               onDraft={onDraftLetter}
               docxBusy={letterDocxBusy}

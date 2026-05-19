@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   listAssistantMessages,
   postAssistantMessage,
+  ProviderKeyMissingError,
   type AssistantMessage,
   type Matter,
 } from "../lib/api";
-import { InlineSpinner, primaryBtn } from "../ui/primitives";
+import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../ui/primitives";
 import { InlineAgentStatus, MessageBubble } from "./MessageBubble";
 
 interface Props {
@@ -32,6 +33,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
   const [pending, setPending] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
     const content = input.trim();
     if (!content || pending) return;
     setError(null);
+    setKeyMissingProvider(null);
     setPending(true);
     const optimistic: AssistantMessage = {
       id: `rr-optimistic-${Date.now()}`,
@@ -83,7 +86,11 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
       });
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-      setError(err instanceof Error ? err.message : String(err));
+      if (err instanceof ProviderKeyMissingError) {
+        setKeyMissingProvider(err.provider);
+      } else {
+        setError(err instanceof Error ? err.message : String(err));
+      }
     } finally {
       setPending(false);
     }
@@ -164,6 +171,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
             ]}
           />
         )}
+        {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
         {error && (
           <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-xs p-2">
             {error}

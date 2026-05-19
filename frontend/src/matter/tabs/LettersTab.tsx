@@ -3,7 +3,7 @@ import type {
   LetterDraft,
   Matter,
 } from "../../lib/api";
-import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { Badge, EmptyState, ErrorCallout, LoadingLine, ProviderKeyMissingBanner } from "../../ui/primitives";
 
 export function LettersTab({
   matter,
@@ -12,6 +12,7 @@ export function LettersTab({
   onSelect,
   drafting,
   error,
+  keyMissingProvider,
   draft,
   onDraft,
   docxBusy,
@@ -24,6 +25,7 @@ export function LettersTab({
   onSelect: (id: string) => void;
   drafting: boolean;
   error: string | null;
+  keyMissingProvider?: string | null;
   draft: LetterDraft | null;
   onDraft: () => void;
   docxBusy: boolean;
@@ -87,6 +89,7 @@ export function LettersTab({
             )}
           </div>
 
+          {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
           {error && <ErrorCallout message={error} compact />}
 
           {draft && (

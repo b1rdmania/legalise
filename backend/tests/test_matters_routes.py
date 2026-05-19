@@ -7,6 +7,8 @@ chronology events.
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 
@@ -92,3 +94,51 @@ async def test_create_matter_then_list_returns_two(client) -> None:
     assert KHAN_SLUG in slugs
     assert created["slug"] in slugs
     assert len(slugs) == 2
+
+
+@pytest.mark.asyncio
+async def test_invoke_returns_provider_key_missing_envelope(client) -> None:
+    """A user with no Anthropic key invoking a keyed-model workflow must
+    get the canonical 422 envelope `{error, provider, message}` so the
+    frontend can render the inline "add a key in Settings" banner.
+
+    Patches `bridge.invoke` to raise `ProviderKeyMissing("anthropic")`
+    directly. That's the same exception `model_gateway.call()` raises
+    when the user has no key and the dev fallback is not permitted, so
+    asserting on the route's translation is the cleanest shape pin
+    without dragging a real model call into the test.
+    """
+    await _signup_and_login(client)
+
+    from app.adapters import plugin_bridge as plugin_bridge_module
+    from app.core.user_keys import ProviderKeyMissing
+
+    real_bridge = plugin_bridge_module.bridge
+    assert real_bridge is not None, "plugin bridge must be initialised at app start"
+
+    async def _raise(*args, **kwargs):
+        raise ProviderKeyMissing("anthropic")
+
+    with patch.object(real_bridge, "invoke", side_effect=_raise):
+        resp = await client.post(
+            f"/api/matters/{KHAN_SLUG}/invoke",
+            json={
+                "plugin": "core-letters",
+                "skill": "letter-before-action",
+                "inputs": {},
+            },
+        )
+
+    assert resp.status_code == 422, resp.text
+    body = resp.json()
+    # FastAPI wraps `HTTPException(detail=dict)` as `{"detail": {...}}`.
+    detail = body["detail"]
+    assert set(detail.keys()) == {"error", "provider", "message"}
+    assert detail["error"] == "provider_key_missing"
+    assert detail["provider"] == "anthropic"
+    # Message is the exception's `str(exc)`. Pin substance, not full text,
+    # so a future copy edit to ProviderKeyMissing's message doesn't break
+    # this test. The frontend banner doesn't display this string; the
+    # banner copy is built from `provider` alone.
+    assert "anthropic" in detail["message"]
+    assert "Settings" in detail["message"]

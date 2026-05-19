@@ -1,11 +1,12 @@
 import type { Matter, PreMotionRunResult } from "../../lib/api";
-import { Badge, ErrorCallout, InlineSpinner } from "../../ui/primitives";
+import { Badge, ErrorCallout, InlineSpinner, ProviderKeyMissingBanner } from "../../ui/primitives";
 import type { StageProgress } from "./types";
 
 export function PreMotionTab({
   matter,
   running,
   error,
+  keyMissingProvider,
   stages,
   result,
   onRun,
@@ -19,6 +20,7 @@ export function PreMotionTab({
   matter: Matter;
   running: boolean;
   error: string | null;
+  keyMissingProvider?: string | null;
   stages: StageProgress[];
   result: PreMotionRunResult | null;
   onRun: () => void;
@@ -55,6 +57,7 @@ export function PreMotionTab({
         </div>
       )}
 
+      {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
       {error && <ErrorCallout message={error} compact />}
 
       {(running || stages.length > 0) && !result && <PremotionStageStrip stages={stages} />}

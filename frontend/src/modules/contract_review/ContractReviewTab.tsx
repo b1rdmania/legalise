@@ -12,6 +12,7 @@ import type { Matter, MatterDocument } from "../../lib/api";
 
 import {
   exportContractReviewDocx,
+  ProviderKeyMissingError,
   runContractReviewStream,
   StreamPreflightError,
   type ContractKind,
@@ -22,7 +23,7 @@ import {
 } from "./api";
 import { ResultPanel } from "./ResultPanel";
 import { StageStrip } from "./StageStrip";
-import { ErrorCallout } from "../../ui/primitives";
+import { ErrorCallout, ProviderKeyMissingBanner } from "../../ui/primitives";
 
 interface Props {
   matter: Matter;
@@ -101,6 +102,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
 
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [result, setResult] = useState<ContractReviewResult | null>(
     previewResult ?? null,
   );
@@ -129,6 +131,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
     }
     setRunning(true);
     setError(null);
+    setKeyMissingProvider(null);
     setResult(null);
     setLiveStages({});
     setExportLink(null);
@@ -178,8 +181,10 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
         }
       }
     } catch (e: unknown) {
-      if (e instanceof StreamPreflightError) {
-        // 422 (provider_key_missing) and 409 (privilege-paused) land here.
+      if (e instanceof ProviderKeyMissingError) {
+        setKeyMissingProvider(e.provider);
+      } else if (e instanceof StreamPreflightError) {
+        // 409 (privilege-paused) and other preflight failures land here.
         setError(e.message);
       } else {
         const msg = e instanceof Error ? e.message : String(e);
@@ -291,6 +296,7 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
         <StageStrip stages={stages} liveOverrides={liveStages} />
       </div>
 
+      {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
       {error && <ErrorCallout message={error} compact />}
       {!error && !result && (
         <p className="text-xs italic text-muted">
