@@ -158,54 +158,15 @@ export function Landing() {
           )}
         </div>
 
-        {/* Right column: product mock composite */}
+        {/* Right column: editorial splash artwork */}
         <div className="hidden lg:block">
-          <div className="border border-rule bg-paper">
-            {/* Card 1: matter tab bar fragment */}
-            <div className="flex gap-6 px-4 pt-4 pb-0 text-xs">
-              <span className="text-ink font-semibold border-b-2 border-ink pb-2">
-                01 Overview
-              </span>
-              <span className="text-muted pb-2">02 Assistant</span>
-              <span className="text-muted pb-2">03 Documents</span>
-              <span className="text-muted pb-2">04 Chronology</span>
-            </div>
-
-            {/* Card 2: assistant reply */}
-            <div className="border-t border-rule p-4 flex flex-col gap-3">
-              <div className="bg-wash p-3 text-xs text-prose">
-                Pull every event from the disclosure documents that touches
-                the termination meeting.
-              </div>
-              <div className="border border-rule p-3 text-xs text-ink">
-                Eight events tagged. Three are CPR 31.22-gated. Open the
-                chronology to acknowledge the implied undertaking before
-                pinning to a Statement of Facts.
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <span className="inline-flex items-center gap-1 border border-rule px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-track2 text-prose mr-1">
-                  [CHRON #8]
-                </span>
-                <span className="inline-flex items-center gap-1 border border-rule px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-track2 text-prose mr-1">
-                  [DOC khan-employment-contract.pdf]
-                </span>
-                <span className="inline-flex items-center gap-1 border border-rule px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-track2 text-prose mr-1">
-                  [CITE Burchell 1980]
-                </span>
-              </div>
-            </div>
-
-            {/* Card 3: audit row */}
-            <div className="border-t border-rule">
-              <div className="px-4 pt-3 text-[9px] font-mono uppercase tracking-widest text-muted">
-                TIMESTAMP · MODULE · ACTION · MODEL · TOKENS · LATENCY · HASH
-              </div>
-              <div className="font-mono text-[11px] text-prose px-4 py-3">
-                2026-05-18 14:22 · uk-litigation-legal · premotion.run ·
-                claude-sonnet-4-6 · 12,400 tok · 4.2s · 8a3f
-              </div>
-            </div>
-          </div>
+          <img
+            src="/hero-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="w-full h-auto block select-none"
+            draggable={false}
+          />
         </div>
       </section>
 
