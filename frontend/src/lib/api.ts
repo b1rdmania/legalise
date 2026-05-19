@@ -88,14 +88,66 @@ export const createMatter = (body: MatterCreate) =>
 export const listDocuments = (slug: string) =>
   apiFetch(`${API}/matters/${slug}/documents`).then((r) => jsonOrThrow<MatterDocument[]>(r));
 
-export const uploadDocument = (slug: string, file: File, tag?: string, fromDisclosure?: boolean) => {
+// Typed upload error. Lets the UI show a friendly inline banner for
+// the two validation failures the backend enforces: unsupported MIME
+// (415) and over the 25 MB cap (413). Anything else flows through as
+// a generic Error from `jsonOrThrow`.
+export type UploadErrorKind = "unsupported_mime" | "upload_too_large";
+
+export class UploadError extends Error {
+  kind: UploadErrorKind;
+  status: number;
+  constructor(kind: UploadErrorKind, status: number, message: string) {
+    super(message);
+    this.name = "UploadError";
+    this.kind = kind;
+    this.status = status;
+  }
+}
+
+function formatMb(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export const uploadDocument = async (
+  slug: string,
+  file: File,
+  tag?: string,
+  fromDisclosure?: boolean,
+): Promise<MatterDocument> => {
   const fd = new FormData();
   fd.append("file", file);
   if (tag) fd.append("tag", tag);
   if (fromDisclosure) fd.append("from_disclosure", "true");
-  return apiFetch(`${API}/matters/${slug}/documents`, { method: "POST", body: fd }).then((r) =>
-    jsonOrThrow<MatterDocument>(r),
-  );
+  const res = await apiFetch(`${API}/matters/${slug}/documents`, {
+    method: "POST",
+    body: fd,
+  });
+  if (res.status === 413 || res.status === 415) {
+    let detail: Record<string, unknown> | null = null;
+    try {
+      const body = (await res.json()) as { detail?: Record<string, unknown> };
+      detail = body?.detail ?? null;
+    } catch {
+      detail = null;
+    }
+    if (res.status === 415) {
+      const got = (detail?.got as string | null) || file.type || "unknown";
+      throw new UploadError(
+        "unsupported_mime",
+        415,
+        `That file type is not supported (${got}). Upload a PDF, DOCX, DOC, TXT, MD, or RTF.`,
+      );
+    }
+    const maxBytes = Number(detail?.max_bytes ?? 25 * 1024 * 1024);
+    const gotBytes = Number(detail?.got_bytes ?? file.size);
+    throw new UploadError(
+      "upload_too_large",
+      413,
+      `File is too large (${formatMb(gotBytes)}). The limit is ${formatMb(maxBytes)} per document.`,
+    );
+  }
+  return jsonOrThrow<MatterDocument>(res);
 };
 
 export interface AuditEntry {

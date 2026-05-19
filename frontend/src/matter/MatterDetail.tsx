@@ -14,6 +14,7 @@ import {
   runPreMotionStream,
   setPrivilege,
   uploadDocument,
+  UploadError,
   type AuditEntry,
   type ChronologyResponse,
   type LetterCatalogue,
@@ -322,6 +323,11 @@ export function MatterDetail({
       await uploadDocument(slug, file, tag, fromDisclosure);
       load();
     } catch (err) {
+      // UploadError carries a friendly message for 413/415. Rethrow so
+      // DocumentsTab can show it inline next to the upload control,
+      // which is where the user just clicked. Other errors still
+      // surface on the page-level banner.
+      if (err instanceof UploadError) throw err;
       setError(String(err));
     }
   };

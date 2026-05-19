@@ -3,7 +3,8 @@ import type { ChangeEvent } from "react";
 import { EditPanel } from "../../modules/document_edit/EditPanel";
 import { AnonymiseButton } from "../../modules/anonymisation/AnonymiseButton";
 import type { MatterDocument } from "../../lib/api";
-import { Badge, EmptyState, Field, LoadingLine } from "../../ui/primitives";
+import { UploadError } from "../../lib/api";
+import { Badge, EmptyState, ErrorCallout, Field, LoadingLine } from "../../ui/primitives";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -41,16 +42,33 @@ export function DocumentsTab({
   onUpload,
 }: {
   docs: MatterDocument[] | null;
-  onUpload: (file: File, tag?: string, fromDisclosure?: boolean) => void;
+  onUpload: (
+    file: File,
+    tag?: string,
+    fromDisclosure?: boolean,
+  ) => void | Promise<void>;
 }) {
   const [tag, setTag] = useState("");
   const [fromDisclosure, setFromDisclosure] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    onUpload(file, tag || undefined, fromDisclosure || undefined);
+    setUploadError(null);
+    try {
+      await onUpload(file, tag || undefined, fromDisclosure || undefined);
+    } catch (err) {
+      // Caller may rethrow UploadError so the inline banner can show
+      // the friendly message. Anything else falls through to a
+      // generic message; the page-level banner still catches it too.
+      if (err instanceof UploadError) {
+        setUploadError(err.message);
+      } else {
+        setUploadError("Upload failed. Try again or pick a different file.");
+      }
+    }
     e.target.value = "";
   };
 
@@ -88,6 +106,8 @@ export function DocumentsTab({
           <input type="file" className="hidden" onChange={onFile} />
         </label>
       </form>
+
+      {uploadError && <ErrorCallout message={uploadError} compact />}
 
       {!docs && <LoadingLine label="loading documents" />}
       {docs && docs.length === 0 && (
