@@ -9,8 +9,8 @@ import {
   type SuggestedAction,
 } from "../../lib/api";
 import { InlineSpinner, primaryBtn } from "../../ui/primitives";
-import { AgentStatusCard } from "../AgentStatusCard";
 import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
+import { MatterPulse } from "../MatterPulse";
 import type { TabKey } from "./types";
 
 interface AssistantTabProps {
@@ -18,11 +18,38 @@ interface AssistantTabProps {
   docs: MatterDocument[] | null;
   chronology: ChronologyEvent[];
   setTabAndHash: (next: TabKey) => void;
+  // Counts for the Matter Pulse strip. Already in scope on the parent.
+  auditCount?: number;
+  // Demo / unauth path: pre-resolved granted workflows count so the
+  // pulse doesn't fire a 401-prone fetch.
+  workflowsGrantedCount?: number;
   // Demo override: prefilled messages + disabled input + custom placeholder.
   initialMessages?: AssistantMessage[];
   disabled?: boolean;
   disabledPlaceholder?: string;
+  // Called when a Suggested Action chip is clicked in disabled (demo) mode.
+  onDisabledAction?: () => void;
 }
+
+// Three concrete first-actions per matter type. Per JOY.md "Suggested
+// Actions": not generic. Matter-shaped starters that prefill the composer.
+const SUGGESTED_BY_TYPE: Record<string, string[]> = {
+  employment_tribunal: [
+    "Draft a Letter Before Action for the dismissal",
+    "Run pre-motion against the conduct framing",
+    "Summarise the witness statement",
+  ],
+  civil: [
+    "Draft a CPR pre-action letter",
+    "Run contract review on the NDA",
+    "Build the chronology from the documents",
+  ],
+};
+const SUGGESTED_DEFAULT = [
+  "Summarise this matter",
+  "List the documents and what they say",
+  "What deadlines should I be tracking?",
+];
 
 const ACTION_TARGET: Record<SuggestedAction["type"], TabKey> = {
   run_pre_motion: "premotion",
@@ -39,10 +66,14 @@ export function AssistantTab({
   docs,
   chronology,
   setTabAndHash,
+  auditCount,
+  workflowsGrantedCount,
   initialMessages,
   disabled = false,
   disabledPlaceholder,
+  onDisabledAction,
 }: AssistantTabProps) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [messages, setMessages] = useState<AssistantMessage[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -167,10 +198,35 @@ export function AssistantTab({
   const dispatchDocChip = () => setTabAndHash("documents");
   const dispatchChronChip = () => setTabAndHash("chronology");
 
+  const suggestions = useMemo(
+    () => SUGGESTED_BY_TYPE[matter.matter_type] ?? SUGGESTED_DEFAULT,
+    [matter.matter_type],
+  );
+
+  const onSuggestion = (s: string) => {
+    if (disabled) {
+      onDisabledAction?.();
+      return;
+    }
+    setInput(s);
+    // Defer focus so the textarea has rendered the new value.
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
   const [attachOpen, setAttachOpen] = useState(false);
 
   return (
     <div className="mx-auto w-full max-w-[920px] flex flex-col min-h-[520px]">
+      <div className="mb-4">
+        <MatterPulse
+          matter={matter}
+          documentsCount={docs?.length ?? 0}
+          chronologyCount={chronology.length}
+          auditCount={auditCount ?? 0}
+          workflowsGrantedCount={workflowsGrantedCount}
+          skipFetch={disabled}
+        />
+      </div>
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto pt-2 pb-6 space-y-6 max-h-[64vh]"
@@ -193,20 +249,20 @@ export function AssistantTab({
                 response.
               </p>
             </div>
-            {/* Preview: AgentStatusCard placeholder until the backend surfaces real
-                multi-step run data on AssistantMessage. Design lift only. */}
             <div>
-              <div className="eyebrow mb-2">Preview</div>
-              <AgentStatusCard
-                status="complete"
-                defaultExpanded
-                steps={[
-                  { label: "Read chronology and top three significant events.", status: "complete" },
-                  { label: "Scanned uploaded documents for relevant clauses.", status: "complete" },
-                  { label: "Drafted reply with inline citations.", status: "complete" },
-                ]}
-                reasoning="Cross-referenced the dismissal date in the chronology against the contractual notice clause, then framed the reply around the s.98 ERA test."
-              />
+              <div className="eyebrow mb-2">Try one of these</div>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => onSuggestion(s)}
+                    className="border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors text-left"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -286,6 +342,7 @@ export function AssistantTab({
           )}
 
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}

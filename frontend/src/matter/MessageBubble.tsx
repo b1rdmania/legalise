@@ -79,7 +79,10 @@ function AssistantMessageView({
       <div className={(compact ? "max-w-full" : "w-full") + " flex flex-col gap-2"}>
         <div className={`font-mono ${metaSizing} text-muted`}>
           Assistant{compact ? "" : ` · ${MODEL_LABEL}`}
-          {sourceCount > 0 ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}` : ""}
+          {!compact && sourceCount > 0
+            ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
+            : ""}
+          {" · audit row written"}
         </div>
         <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
           {text}

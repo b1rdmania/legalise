@@ -350,6 +350,7 @@ export function MatterDetail({
               matter={matter}
               docs={docs}
               chronology={chron?.events ?? []}
+              auditCount={audit?.length ?? 0}
               setTabAndHash={setTabAndHash}
             />
           )}
