@@ -25,12 +25,15 @@ function deriveType(d: MatterDocument): string {
   return "FILE";
 }
 
-// Format an ISO timestamp as YYYY-MM-DD. The MatterDocument type only
+// Format an ISO timestamp as "12 Mar 2026". The MatterDocument type only
 // carries `uploaded_at`, so that is treated as the most recent mutation
-// timestamp for the "Last action" column.
+// timestamp for the "Updated" column.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function formatDate(iso: string): string {
   if (!iso) return "";
-  return iso.slice(0, 10);
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso.slice(0, 10);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 export function DocumentsTab({
@@ -55,10 +58,11 @@ export function DocumentsTab({
     "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
 
   // Column template shared by the header row and each data row so columns
-  // stay aligned. Document gets the largest fr; SHA and Size move into the
-  // expand drawer so the primary scan path is workflow-shaped.
+  // stay aligned. Document gets the largest fr; full SHA moves into the
+  // expand drawer (short hash still shown as muted secondary line under
+  // the filename) so the primary scan path is workflow-shaped.
   const gridCols =
-    "grid grid-cols-[1.5fr_110px_120px_120px_110px_72px] gap-4 px-4 py-3";
+    "grid grid-cols-[1.5fr_110px_90px_110px_130px_72px] gap-4 px-4 py-3";
 
   return (
     <div className="max-w-4xl">
@@ -100,18 +104,13 @@ export function DocumentsTab({
             >
               <span>Document</span>
               <span>Type</span>
-              <span>Source</span>
-              <span>Extracted</span>
-              <span>Last action</span>
+              <span>Size</span>
+              <span>Disclosure</span>
+              <span>Updated</span>
               <span className="text-right">Action</span>
             </div>
             {docs.map((d) => {
               const typeLabel = deriveType(d);
-              // No body-extracted field exists on MatterDocument; the
-              // backend extracts on upload, so we render "Extracted" for
-              // every registered document. Swap to a real flag once the
-              // type grows one (e.g. body_extracted / extracted_at).
-              const extractedLabel = "Extracted";
               return (
                 <div key={d.id} className="border-b border-rule">
                   <div
@@ -119,19 +118,21 @@ export function DocumentsTab({
                     onClick={() =>
                       setEditingId(editingId === d.id ? null : d.id)
                     }
+                    title={`SHA-256 ${d.sha256}`}
                   >
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-ink truncate">
                         {d.filename}
                       </div>
-                      {d.tag && (
-                        <div className="mt-1 text-xs text-muted">
-                          <Badge>{d.tag.toUpperCase()}</Badge>
-                        </div>
-                      )}
+                      <div className="mt-0.5 text-[11px] text-muted truncate">
+                        {d.sha256.slice(0, 8)}
+                      </div>
                     </div>
                     <span>
                       <Badge>{typeLabel}</Badge>
+                    </span>
+                    <span className="text-xs text-ink">
+                      {formatBytes(d.size_bytes)}
                     </span>
                     <span>
                       {d.from_disclosure ? (
@@ -140,8 +141,7 @@ export function DocumentsTab({
                         <span className="text-xs text-muted">Upload</span>
                       )}
                     </span>
-                    <span className="text-xs text-ink">{extractedLabel}</span>
-                    <span className="font-mono text-xs text-ink">
+                    <span className="text-xs text-ink">
                       {formatDate(d.uploaded_at)}
                     </span>
                     <span className="text-muted uppercase tracking-track2 text-[9px] text-right">

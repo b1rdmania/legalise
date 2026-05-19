@@ -56,7 +56,7 @@ export function WorkflowsTab({ slug, posture }: { slug: string; posture?: string
             >
               <div className="text-sm font-semibold text-ink mb-2">{w.label}</div>
               <p className="text-xs text-prose leading-relaxed">
-                {w.calls} model {w.calls === 1 ? "call" : "calls"}. Reads {w.reads}. Writes {w.writes}.
+                {w.description}
               </p>
 
               <dl className="mt-4 grid grid-cols-[88px_1fr] gap-y-1 text-[11px] font-mono">
