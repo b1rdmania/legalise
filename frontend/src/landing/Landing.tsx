@@ -170,6 +170,26 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Trust strip: stack credibility below the hero */}
+      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-12">
+        <div className="eyebrow text-center mb-8">Built on</div>
+        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 max-w-4xl mx-auto">
+          <span className="text-sm font-semibold text-ink">Anthropic Claude</span>
+          <span className="text-sm font-semibold text-ink">OpenAI</span>
+          <span className="text-sm font-semibold text-ink">FastAPI</span>
+          <span className="text-sm font-semibold text-ink">Postgres + pgvector</span>
+          <span className="text-sm font-semibold text-ink">Apache 2.0</span>
+          <a
+            href="https://github.com/b1rdmania/legalise"
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-semibold text-ink hover:text-prose transition-colors underline-offset-4 hover:underline"
+          >
+            github.com/b1rdmania/legalise
+          </a>
+        </div>
+      </section>
+
       {/* Whitepaper body: sidebar TOC + numbered sections */}
       <div className="flex">
       {/* Sidebar TOC — Warp shape */}
