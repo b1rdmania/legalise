@@ -53,6 +53,22 @@ from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
 router = APIRouter()
 
 
+# Upload validation. Pre-launch hardening: cap binary size and restrict
+# accepted MIME types so a 2 GB `.exe` is no longer a valid request.
+# Extraction downstream (`extract_text`) only knows pdf / docx / doc /
+# txt / md / rtf, so the allowlist mirrors what we actually process.
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+ALLOWED_UPLOAD_MIMES = frozenset({
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+    "application/msword",  # .doc
+    "text/plain",
+    "text/markdown",
+    "application/rtf",
+    "text/rtf",
+})
+
+
 # ---------- schemas ---------------------------------------------------------
 
 class MatterCreate(BaseModel):
@@ -266,7 +282,26 @@ async def upload_document(
     if tag is not None and tag not in TAG_VALUES:
         raise HTTPException(400, f"tag must be one of {sorted(TAG_VALUES)}")
 
+    if file.content_type not in ALLOWED_UPLOAD_MIMES:
+        raise HTTPException(
+            415,
+            detail={
+                "error": "unsupported_mime",
+                "got": file.content_type,
+                "allowed": sorted(ALLOWED_UPLOAD_MIMES),
+            },
+        )
+
     contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413,
+            detail={
+                "error": "upload_too_large",
+                "max_bytes": MAX_UPLOAD_BYTES,
+                "got_bytes": len(contents),
+            },
+        )
     sha = hashlib.sha256(contents).hexdigest()
 
     doc = Document(
