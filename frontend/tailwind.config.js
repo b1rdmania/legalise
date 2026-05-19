@@ -7,7 +7,9 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // One font. JetBrains Mono retired 2026-05-19 - mono alias kept so
+        // existing `font-mono` classes silently render in the body stack.
+        mono: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         ink: '#181818',

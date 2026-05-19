@@ -112,46 +112,41 @@ export function Modules() {
   return (
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
       <div className="mb-10">
-        <div className="eyebrow font-mono text-muted mb-3">INSTALLED MODULES</div>
+        <div className="eyebrow text-muted mb-3">MODULE CATALOGUE</div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1] mb-3">
           Modules
         </h1>
         <p className="text-sm text-prose max-w-2xl">
-          Declared capabilities are what each module needs. Granted capabilities are
-          what the workspace has authorised for you. The runtime checks the grant
-          before every privileged operation; a denial returns a structured 403 and
-          writes an audit row. Revoke any capability you don't want a module to hold.
+          {isAuthed
+            ? "Modules are the legal skills installed on your workspace. Each declares the capabilities it needs; the runtime checks the grant before every privileged operation and writes an audit row. Revoke any capability you don't want a module to hold."
+            : "Browse the legal skills available on Legalise. Each module declares the capabilities it needs and operates on a matter through the privilege-aware gateway. The catalogue is open; granting capabilities to a module needs a workspace."}
         </p>
+        {!isAuthed && (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <a
+              href="#/modules/submit"
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium"
+            >
+              Submit a module
+            </a>
+            <a
+              href="#/auth/signup"
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium"
+            >
+              Sign up free
+            </a>
+            <a
+              href="#/demo"
+              className="text-sm text-muted hover:text-ink transition-colors"
+            >
+              Open the demo
+            </a>
+          </div>
+        )}
       </div>
 
       {!isAuthed && (
         <>
-          <div className="mb-10 border border-rule p-6">
-            <div className="eyebrow mb-2">Read only</div>
-            <div className="text-sm font-semibold text-ink mb-2">
-              Sign in to grant or revoke capabilities
-            </div>
-            <p className="text-sm text-prose mb-4 max-w-2xl">
-              Modules declare the capabilities they need. Granting and revoking
-              those grants is workspace-scoped, so it requires an account. You
-              can browse the demo matter without signing in.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href="#/auth/signin"
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium"
-              >
-                Sign in
-              </a>
-              <a
-                href="#/demo"
-                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium"
-              >
-                Open the demo
-              </a>
-            </div>
-          </div>
-
           {/* TODO(public-modules): no unauth-safe modules endpoint exists.
               /api/modules requires auth. Until a public catalogue endpoint
               lands, render a static preview of the known workflow modules
