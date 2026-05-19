@@ -94,6 +94,7 @@ Post-Heppner, the regulatory shape of legal AI in the UK matters more than the m
 ## Architecture and design
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) - stack rationale and decisions
+- [`docs/ENGINEERING.md`](./docs/ENGINEERING.md) - bespoke vs boring; what's custom, what's stock, what's not landed yet
 - [`docs/AUTH.md`](./docs/AUTH.md) - auth and provider-key model
 - [`docs/TRUST.md`](./docs/TRUST.md) - privilege architecture, sub-processor list, compliance order, open gaps
 - [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md) - write a new module
