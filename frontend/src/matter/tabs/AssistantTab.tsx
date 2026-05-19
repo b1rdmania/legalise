@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import {
   listAssistantMessages,
   postAssistantMessage,
+  ProviderKeyMissingError,
   type AssistantMessage,
   type ChronologyEvent,
   type Matter,
   type MatterDocument,
   type SuggestedAction,
 } from "../../lib/api";
-import { InlineSpinner, primaryBtn } from "../../ui/primitives";
+import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
 import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
 import { MatterPulse } from "../MatterPulse";
 import type { TabKey } from "./types";
@@ -79,6 +80,7 @@ export function AssistantTab({
   const [pending, setPending] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -154,6 +156,7 @@ export function AssistantTab({
     const content = input.trim();
     if (!content || pending || disabled) return;
     setError(null);
+    setKeyMissingProvider(null);
     setPending(true);
     setThinking(true);
     const optimistic: AssistantMessage = {
@@ -176,7 +179,11 @@ export function AssistantTab({
       });
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-      setError(formatError(err));
+      if (err instanceof ProviderKeyMissingError) {
+        setKeyMissingProvider(err.provider);
+      } else {
+        setError(formatError(err));
+      }
     } finally {
       setPending(false);
       setThinking(false);
@@ -290,6 +297,7 @@ export function AssistantTab({
         )}
       </div>
 
+      {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
       {error && (
         <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-sm p-3 mt-3">
           <div className="font-semibold mb-1">Could not send message</div>

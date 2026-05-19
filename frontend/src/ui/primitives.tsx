@@ -6,6 +6,28 @@ export const inputCls =
 export const primaryBtn =
   "bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
 
+// Inline banner for the canonical `provider_key_missing` 422 error.
+// Border + text tokens only. No fill, no radius, no shadow. The deep
+// link to `#/settings` is what makes this a one-click resolution
+// instead of a dead-end blob.
+export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
+  const label = provider.charAt(0).toUpperCase() + provider.slice(1);
+  return (
+    <div className="border border-ink p-3 my-3 text-sm">
+      <div className="font-semibold text-ink mb-1">{label} API key required</div>
+      <p className="leading-relaxed text-prose m-0">
+        Add a {label} API key in Settings to use this model. Or switch to stub-echo for the demo.
+      </p>
+      <a
+        href="#/settings"
+        className="inline-block mt-2 text-ink underline underline-offset-2 hover:text-prose transition-colors"
+      >
+        Open Settings
+      </a>
+    </div>
+  );
+}
+
 export function ErrorCallout({ message, compact = false }: { message: string; compact?: boolean }) {
   const { status, body } = parseError(message);
   return (

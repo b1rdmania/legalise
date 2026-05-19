@@ -57,8 +57,50 @@ export const API = import.meta.env.VITE_API_BASE_URL || "/api";
 // backend root, not under /api, so it needs the origin alone.
 export const BACKEND_ROOT = API.replace(/\/api\/?$/, "") || "";
 
+// Typed error for the canonical 422 provider_key_missing envelope:
+// `{detail: {error: "provider_key_missing", provider, message}}`.
+// Callers catch this with `instanceof ProviderKeyMissingError` so they
+// can render the inline "add a key in Settings" banner instead of a
+// generic error blob.
+export class ProviderKeyMissingError extends Error {
+  readonly provider: string;
+  readonly status = 422;
+  constructor(provider: string, message: string) {
+    super(message || `Provider key missing for ${provider}.`);
+    this.name = "ProviderKeyMissingError";
+    this.provider = provider;
+  }
+}
+
+// Inspect a 422 body for the canonical provider_key_missing envelope
+// and return a typed error. Tolerant of both `{detail: {...}}` (FastAPI
+// HTTPException) and a bare `{error, provider, message}` payload.
+export function providerKeyMissingFromBody(body: unknown): ProviderKeyMissingError | null {
+  if (!body || typeof body !== "object") return null;
+  const obj = body as Record<string, unknown>;
+  const candidate =
+    obj.detail && typeof obj.detail === "object" ? (obj.detail as Record<string, unknown>) : obj;
+  if (candidate.error !== "provider_key_missing") return null;
+  const provider = typeof candidate.provider === "string" ? candidate.provider : "unknown";
+  const message = typeof candidate.message === "string" ? candidate.message : "";
+  return new ProviderKeyMissingError(provider, message);
+}
+
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 422) {
+      // Try the structured envelope before falling back to a text throw.
+      const text = await res.text();
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // Not JSON. Fall through to the generic throw below.
+      }
+      const pk = providerKeyMissingFromBody(parsed);
+      if (pk) throw pk;
+      throw new Error(`${res.status} ${res.statusText}: ${text}`);
+    }
     const text = await res.text();
     throw new Error(`${res.status} ${res.statusText}: ${text}`);
   }
@@ -375,6 +417,16 @@ export async function* runPreMotionStream(
   });
   if (!resp.ok || !resp.body) {
     const text = await resp.text();
+    if (resp.status === 422) {
+      let parsed: unknown = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // not JSON
+      }
+      const pk = providerKeyMissingFromBody(parsed);
+      if (pk) throw pk;
+    }
     throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
   }
   const reader = resp.body.getReader();
@@ -1354,6 +1406,10 @@ export async function* runContractReviewStream(
       parsed = JSON.parse(text);
     } catch {
       /* leave as text */
+    }
+    if (resp.status === 422) {
+      const pk = providerKeyMissingFromBody(parsed);
+      if (pk) throw pk;
     }
     let message = `${resp.status} ${resp.statusText}`;
     if (parsed && typeof parsed === "object") {

@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import {
   ColumnSpec,
+  ProviderKeyMissingError,
   ReviewRead,
   RunEstimate,
   RunReport,
@@ -24,7 +25,7 @@ import {
 import { ColumnEditor } from "./ColumnEditor";
 import { ReviewGrid } from "./ReviewGrid";
 import { CostEstimateDialog } from "./CostEstimateDialog";
-import { ErrorCallout } from "../../ui/primitives";
+import { ErrorCallout, ProviderKeyMissingBanner } from "../../ui/primitives";
 
 function friendlyError(action: string, e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
@@ -40,6 +41,7 @@ type Props = {
 export function ReviewEditor({ slug, reviewId, onBack }: Props) {
   const [review, setReview] = useState<ReviewRead | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [dirtyColumns, setDirtyColumns] = useState<ColumnSpec[] | null>(null);
   const [savingColumns, setSavingColumns] = useState(false);
 
@@ -95,6 +97,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
   const onConfirmRun = async () => {
     if (!review || !estimate) return;
     setRunBusy(true);
+    setKeyMissingProvider(null);
     if (pendingScope?.column_keys?.length === 1) {
       setRunningColumnKey(pendingScope.column_keys[0]);
     } else {
@@ -110,7 +113,11 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       setPendingScope(null);
       await load();
     } catch (e) {
-      setError(friendlyError("Review run failed.", e));
+      if (e instanceof ProviderKeyMissingError) {
+        setKeyMissingProvider(e.provider);
+      } else {
+        setError(friendlyError("Review run failed.", e));
+      }
     } finally {
       setRunBusy(false);
       setRunningColumnKey(null);
@@ -185,6 +192,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
         </div>
       </div>
 
+      {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
       {error && <ErrorCallout message={error} compact />}
 
       <ColumnEditor
