@@ -1,4 +1,4 @@
-"""DELETE /api/users/me coverage.
+"""DELETE /auth/users/me coverage.
 
 v0.1 policy (locked in HANDOVER_BACKEND_V01.md):
     - 409 with `account_has_matters` when the user owns matters.
@@ -74,7 +74,7 @@ async def test_delete_account_with_no_matters_soft_deletes(client, db_session) -
     assert user_before is not None
     assert user_before.is_active is True
 
-    resp = await client.delete("/api/users/me")
+    resp = await client.delete("/auth/users/me")
     assert resp.status_code == 204, resp.text
 
     await db_session.refresh(user_before)
@@ -110,7 +110,7 @@ async def test_delete_account_with_matters_returns_409(client) -> None:
     )
     assert create.status_code == 201, create.text
 
-    resp = await client.delete("/api/users/me")
+    resp = await client.delete("/auth/users/me")
     assert resp.status_code == 409, resp.text
     body = resp.json()
     detail = body.get("detail", body)
@@ -152,7 +152,7 @@ async def test_delete_account_does_not_cascade_audit(client, db_session) -> None
     )
     assert len(audit_before.all()) >= 1
 
-    resp = await client.delete("/api/users/me")
+    resp = await client.delete("/auth/users/me")
     assert resp.status_code == 204, resp.text
 
     # Audit rows still keyed to the user_id. (No cascade.)
@@ -165,7 +165,7 @@ async def test_delete_account_does_not_cascade_audit(client, db_session) -> None
 @pytest.mark.asyncio
 async def test_delete_account_requires_auth(client) -> None:
     """No session, no delete."""
-    resp = await client.delete("/api/users/me")
+    resp = await client.delete("/auth/users/me")
     assert resp.status_code in (401, 403)
 
 
@@ -186,7 +186,7 @@ async def test_delete_account_only_touches_own_sessions(client, db_session) -> N
     assert len(b_tokens_before.all()) >= 1
 
     # B deletes their own (no-matters) account.
-    resp = await client.delete("/api/users/me")
+    resp = await client.delete("/auth/users/me")
     assert resp.status_code == 204
 
     # A's tokens untouched.

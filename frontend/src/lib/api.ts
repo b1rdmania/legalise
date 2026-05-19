@@ -250,7 +250,7 @@ export class AccountHasMattersError extends Error {
 }
 
 export const deleteAccount = async (): Promise<void> => {
-  const r = await apiFetch(`${API}/users/me`, { method: "DELETE" });
+  const r = await apiFetch(`${AUTH}/users/me`, { method: "DELETE" });
   if (r.status === 204) return;
   if (r.status === 409) {
     let count = 0;

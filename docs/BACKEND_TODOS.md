@@ -69,7 +69,7 @@ Tests in `backend/tests/test_user_plan.py` assert new users default to
 
 ## ~~TODO(delete-account)~~ SHIPPED 2026-05-19
 
-`DELETE /api/users/me` (mounted from `backend/app/api/account.py`)
+`DELETE /auth/users/me` (mounted from `backend/app/api/account.py`)
 implements the locked v0.1 policy from the reviewer pass:
 
 - **Matter count > 0**: 409 with

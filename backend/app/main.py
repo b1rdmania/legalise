@@ -163,8 +163,14 @@ async def health() -> dict[str, Any]:
     }
 
 
+# `account_router` mounts under `/auth/users` so the entire user
+# resource lives at one prefix. fastapi-users already owns
+# `GET/PATCH /auth/users/me` and `DELETE /auth/users/{id}` (superuser-
+# only). account_router MUST be registered BEFORE auth_router so its
+# literal `DELETE /me` wins over the fastapi-users `DELETE /{id}`
+# catch-all that would otherwise match `me` and return 403.
+app.include_router(account_router, prefix="/auth/users", tags=["account"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(account_router, prefix="/api/users", tags=["account"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])

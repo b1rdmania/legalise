@@ -65,6 +65,10 @@ services:
       # claude-for-uk-legal checkout — read-only bind mount. PLUGINS_ROOT
       # can be overridden via .env if the checkout lives elsewhere.
       - ${PLUGINS_HOST_PATH:-../../claude-for-uk-legal}:/plugins:ro
+      # Manifest schema — read-only bind so `modules.py` validator and
+      # the capability-vocabulary parity test can both find the canonical
+      # schemas/module.json from the repo root.
+      - ../schemas:/schemas:ro
     depends_on:
       db:
         condition: service_healthy

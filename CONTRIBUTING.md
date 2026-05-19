@@ -10,13 +10,92 @@ Thanks for considering a contribution.
 4. **UK-jurisdiction only.** This codebase is England & Wales. Scottish / NI / US contributions belong in separate forks or sibling projects.
 5. **Boring stack stays boring.** Don't introduce a new database, new framework, or new language without an issue and discussion first.
 
-## Pre-build state
+## Local development
 
-The repo is currently in pre-build state — plan and skeleton only. Once Week 1 of the build begins, this CONTRIBUTING file will be updated with concrete PR conventions, test requirements, and review process.
+Clone, `docker compose up`, sign up, walk the demo matter.
 
-For now, the best contribution is a thoughtful issue critiquing the plan documents. Read `EXECUTIVE_SUMMARY.md`, `BUILD_PLAN.md`, `ARCHITECTURE.md`, `SCOPE.md`, `ROADMAP.md`, and `REGULATORY_PLUMBING.md`, then open an issue with structural feedback.
+```bash
+git clone https://github.com/b1rdmania/legalise
+cd legalise
+cp .env.example .env             # edit ANTHROPIC_API_KEY if you have one
+docker compose -f infra/docker-compose.yml up --build
+```
 
-Stack alternatives, scope objections, regulatory plumbing concerns, and three-week-timeline pushback are all welcome. The build is solo for v0.1 but the plan benefits from outside eyes.
+Brings up Postgres + pgvector, Redis, MinIO, Gotenberg, the FastAPI
+backend on :8000, and the React frontend on :3000. Open
+`http://localhost:3000` and sign up. The Khan v Acme sample matter
+seeds automatically.
+
+## Tests
+
+Backend tests run against a real Postgres at `legalise_test` inside
+the backend container so the network and DSN match docker-compose.
+
+Full suite:
+
+```bash
+docker compose -f infra/docker-compose.yml exec -T \
+  -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
+  backend python -m pytest -x
+```
+
+Single file:
+
+```bash
+docker compose -f infra/docker-compose.yml exec -T \
+  -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
+  backend python -m pytest -x tests/test_modules_public.py
+```
+
+Re-run migrations on the test DB (after a new alembic revision lands):
+
+```bash
+docker compose -f infra/docker-compose.yml exec -T \
+  -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
+  backend python -m alembic upgrade head
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run build          # type-check + production build
+```
+
+## Voice checks
+
+Two house rules enforced before commit:
+
+```bash
+# No em or en dashes in chrome strings or public docs.
+rg -n "—|–" frontend/src/ README.md EXECUTIVE_SUMMARY.md ARCHITECTURE.md docs/MANIFESTO.md docs/ROADMAP.md
+
+# No __pycache__ or .pyc tracked.
+git ls-files | rg "__pycache__|\.pyc$"
+```
+
+Both should return empty. Em-dashes inside seeded legal-content
+strings (`frontend/src/demo/snapshot.ts` case theory etc.) are kept
+by intent — solicitor voice, not chrome.
+
+## Where to read first
+
+If you're skimming the repo to evaluate, in this order:
+
+1. [`README.md`](./README.md) — what it is, what it does
+2. [`docs/ENGINEERING.md`](./docs/ENGINEERING.md) — bespoke vs boring
+3. [`docs/DESIGN.md`](./docs/DESIGN.md) — visual contract (v0.4 FROZEN)
+4. [`docs/JOY.md`](./docs/JOY.md) — product-feel doctrine
+5. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — stack rationale
+6. [`docs/TRUST.md`](./docs/TRUST.md) — privilege, audit, sub-processors
+
+## Pull requests
+
+Keep PRs focused — one conceptual change per PR. Tests for backend
+changes; type-check + build green for frontend. Voice check on
+touched chrome strings. Commit messages explain the *why*, not just
+the *what*; look at recent commits on master for the house style.
 
 ## CLA
 

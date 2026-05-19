@@ -70,7 +70,7 @@ In:
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
 - Runtime capability enforcement: per-skill declarations, auto-grant on signup, runtime gates at the plugin bridge, model gateway, tool invocation, document body read, citation writes
 - Bootstrap audit rows on per-user seed so the Audit tab is non-empty on first paint
-- Real-DB E2E test infrastructure; 140 tests passing in the container
+- Real-DB E2E test infrastructure; 142 tests passing in the container
 
 Out, on the v0.2 list:
 
