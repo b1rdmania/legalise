@@ -1,16 +1,70 @@
-export type TabKey = "overview" | "documents" | "reviews" | "research" | "chronology" | "premotion" | "letters" | "contract-review" | "audit" | "assistant";
+// Matter shell taxonomy (v0.4 — compact left rail).
+//
+// SIDEBAR_NAV is the 5-item nav that renders in the left rail.
+// WORKFLOW_TABS are the installed-module surfaces reached from the
+// Workflows page; they keep their hash routes for deep-linking but
+// do not surface as their own sidebar items.
+//
+// "overview" is retired in v0.4. Bare /matters/{slug} redirects
+// to /matters/{slug}/assistant.
 
-export const TABS: ReadonlyArray<{ key: TabKey; label: string }> = [
-  { key: "overview", label: "Overview" },
+export type TabKey =
+  | "assistant"
+  | "documents"
+  | "chronology"
+  | "workflows"
+  | "audit"
+  // Workflow surfaces (reached via the Workflows page; sidebar shows
+  // them as Workflows-active when one is open)
+  | "premotion"
+  | "letters"
+  | "contract-review"
+  | "reviews"
+  | "research";
+
+export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Assistant" },
   { key: "documents", label: "Documents" },
   { key: "chronology", label: "Chronology" },
-  { key: "reviews", label: "Reviews" },
-  { key: "research", label: "Research" },
-  { key: "premotion", label: "Pre-Motion" },
-  { key: "letters", label: "Letters" },
-  { key: "contract-review", label: "Contract review" },
+  { key: "workflows", label: "Workflows" },
   { key: "audit", label: "Audit" },
+];
+
+export const WORKFLOW_TABS: ReadonlyArray<{
+  key: TabKey;
+  label: string;
+  blurb: string;
+}> = [
+  {
+    key: "premotion",
+    label: "Pre-Motion",
+    blurb:
+      "Adversarial premortem. Nine model calls. Optimistic Analyst, Evidence Inspector, Premortem Adversary, Synthesiser.",
+  },
+  {
+    key: "letters",
+    label: "Letters",
+    blurb:
+      "Routed by matter type. ET surfaces LBA drafter; civil surfaces CPR letter drafter.",
+  },
+  {
+    key: "contract-review",
+    label: "Contract review",
+    blurb:
+      "Four-stage UK-focused review. Parse, analyse (UCTA / CRA / UK GDPR / governing law / jurisdiction), redline, summarise.",
+  },
+  {
+    key: "reviews",
+    label: "Tabular Review",
+    blurb:
+      "Run a structured column set across a document set. One row per document, one column per question. Cell answers cite back to the source passage.",
+  },
+  {
+    key: "research",
+    label: "Case law",
+    blurb:
+      "Search reported authorities and cite them into the matter. v0.2 swaps in Find Case Law via MCP.",
+  },
 ];
 
 export type StageProgress = {
@@ -23,6 +77,28 @@ export type StageProgress = {
   errors?: string[];
 };
 
+const VALID_KEYS: ReadonlySet<string> = new Set<TabKey>([
+  "assistant",
+  "documents",
+  "chronology",
+  "workflows",
+  "audit",
+  "premotion",
+  "letters",
+  "contract-review",
+  "reviews",
+  "research",
+]);
+
 export function isTabKey(v: string): v is TabKey {
-  return ["overview", "documents", "reviews", "research", "chronology", "premotion", "letters", "contract-review", "audit", "assistant"].includes(v);
+  return VALID_KEYS.has(v);
+}
+
+// Which sidebar item should highlight as active given the current tab.
+// Workflow surfaces (premotion / letters / etc.) highlight Workflows.
+export function sidebarActiveFor(tab: TabKey): TabKey {
+  if (tab === "premotion" || tab === "letters" || tab === "contract-review" || tab === "reviews" || tab === "research") {
+    return "workflows";
+  }
+  return tab;
 }
