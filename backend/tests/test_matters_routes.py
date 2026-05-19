@@ -110,16 +110,18 @@ async def test_invoke_returns_provider_key_missing_envelope(client) -> None:
     """
     await _signup_and_login(client)
 
+    from unittest.mock import AsyncMock
+
     from app.adapters import plugin_bridge as plugin_bridge_module
     from app.core.user_keys import ProviderKeyMissing
 
-    real_bridge = plugin_bridge_module.bridge
-    assert real_bridge is not None, "plugin bridge must be initialised at app start"
+    # The bridge is initialised in `main.lifespan`, which conftest does
+    # not run. Stub the module attribute directly with an AsyncMock whose
+    # `invoke` raises the exception we're pinning the envelope around.
+    fake_bridge = AsyncMock()
+    fake_bridge.invoke.side_effect = ProviderKeyMissing("anthropic")
 
-    async def _raise(*args, **kwargs):
-        raise ProviderKeyMissing("anthropic")
-
-    with patch.object(real_bridge, "invoke", side_effect=_raise):
+    with patch.object(plugin_bridge_module, "bridge", fake_bridge):
         resp = await client.post(
             f"/api/matters/{KHAN_SLUG}/invoke",
             json={

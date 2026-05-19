@@ -25,7 +25,7 @@ from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.model_gateway import PrivilegePaused
-from app.core.user_keys import ProviderKeyMissing
+from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
 from app.models import Matter, MatterCitation, User
 
@@ -82,6 +82,16 @@ async def case_law_search(
             detail={
                 "error": "provider_key_missing",
                 "provider": exc.provider,
+                "message": str(exc),
+            },
+        ) from exc
+    except ProviderUpstreamError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": exc.code,
+                "provider": exc.provider,
+                "upstream_status": exc.upstream_status,
                 "message": str(exc),
             },
         ) from exc

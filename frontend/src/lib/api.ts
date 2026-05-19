@@ -86,6 +86,59 @@ export function providerKeyMissingFromBody(body: unknown): ProviderKeyMissingErr
   return new ProviderKeyMissingError(provider, message);
 }
 
+// Structured upstream-provider error. Backend returns
+//   502 { detail: { error: "provider_invalid_key" | ..., provider, upstream_status, message } }
+// when an Anthropic / OpenAI / Ollama call fails. Surfacing the code on
+// a typed error lets the UI render a friendly banner instead of an
+// opaque "Error: 502 ...".
+export type ProviderUpstreamCode =
+  | "provider_invalid_key"
+  | "provider_rate_limited"
+  | "provider_overloaded"
+  | "provider_error";
+
+export class ProviderUpstreamError extends Error {
+  readonly code: ProviderUpstreamCode;
+  readonly provider: string;
+  readonly upstreamStatus: number | null;
+  constructor(
+    code: ProviderUpstreamCode,
+    provider: string,
+    upstreamStatus: number | null,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ProviderUpstreamError";
+    this.code = code;
+    this.provider = provider;
+    this.upstreamStatus = upstreamStatus;
+  }
+}
+
+const _PROVIDER_UPSTREAM_CODES = new Set<ProviderUpstreamCode>([
+  "provider_invalid_key",
+  "provider_rate_limited",
+  "provider_overloaded",
+  "provider_error",
+]);
+
+// Attempt to read a `ProviderUpstreamError` out of an arbitrary detail
+// object. Returns null if the shape doesn't match. Accepts both the
+// router envelope (`{detail: {error, provider, ...}}`) and the SSE
+// stream envelope (`{error, provider, ...}`).
+export function tryParseProviderUpstream(value: unknown): ProviderUpstreamError | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const detail = v.detail && typeof v.detail === "object" ? (v.detail as Record<string, unknown>) : v;
+  const code = detail.error;
+  if (typeof code !== "string") return null;
+  if (!_PROVIDER_UPSTREAM_CODES.has(code as ProviderUpstreamCode)) return null;
+  const provider = typeof detail.provider === "string" ? detail.provider : "unknown";
+  const upstream = typeof detail.upstream_status === "number" ? detail.upstream_status : null;
+  const message = typeof detail.message === "string" ? detail.message : `${provider}: ${code}`;
+  return new ProviderUpstreamError(code as ProviderUpstreamCode, provider, upstream, message);
+}
+
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
     if (res.status === 422) {
@@ -102,9 +155,37 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
       throw new Error(`${res.status} ${res.statusText}: ${text}`);
     }
     const text = await res.text();
+    if (res.status === 502) {
+      try {
+        const body = JSON.parse(text);
+        const parsed = tryParseProviderUpstream(body);
+        if (parsed) throw parsed;
+      } catch (e) {
+        if (e instanceof ProviderUpstreamError) throw e;
+        // not JSON, fall through to the generic Error
+      }
+    }
     throw new Error(`${res.status} ${res.statusText}: ${text}`);
   }
   return res.json() as Promise<T>;
+}
+
+// Translate a `ProviderUpstreamError` code into a human readable banner
+// string. `{provider}` is substituted with the actual provider name so
+// the same map serves Anthropic, OpenAI, and Ollama.
+export function providerUpstreamMessage(err: ProviderUpstreamError): string {
+  const provider = err.provider.charAt(0).toUpperCase() + err.provider.slice(1);
+  switch (err.code) {
+    case "provider_invalid_key":
+      return `${provider} rejected the API key. Re-check it in Settings.`;
+    case "provider_rate_limited":
+      return `${provider} is rate-limiting requests. Try again in a moment.`;
+    case "provider_overloaded":
+      return `${provider} is overloaded. Try again shortly.`;
+    case "provider_error":
+    default:
+      return `${provider} returned an error. Check Settings or try a different model.`;
+  }
 }
 
 // Every authenticated cross-origin call MUST send the session cookie
@@ -1462,6 +1543,10 @@ export async function* runContractReviewStream(
     if (resp.status === 422) {
       const pk = providerKeyMissingFromBody(parsed);
       if (pk) throw pk;
+    }
+    if (resp.status === 502) {
+      const upstream = tryParseProviderUpstream(parsed);
+      if (upstream) throw upstream;
     }
     let message = `${resp.status} ${resp.statusText}`;
     if (parsed && typeof parsed === "object") {

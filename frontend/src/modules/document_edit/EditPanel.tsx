@@ -10,6 +10,8 @@ import {
   EditMode,
   EditInstructionResponse,
   postEditInstruction,
+  ProviderUpstreamError,
+  providerUpstreamMessage,
 } from "../../lib/api";
 import { TrackedChangesView } from "./TrackedChangesView";
 import { VersionTimeline } from "./VersionTimeline";
@@ -68,8 +70,12 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
       setResult(res);
       setTimelineKey((k) => k + 1);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(`Could not propose edits. ${msg}`);
+      if (e instanceof ProviderUpstreamError) {
+        setError(providerUpstreamMessage(e));
+      } else {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(`Could not propose edits. ${msg}`);
+      }
     } finally {
       setBusy(false);
     }

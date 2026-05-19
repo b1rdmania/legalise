@@ -29,7 +29,7 @@ from app.core.model_gateway import (
     PrivilegePosture,
     gateway as model_gateway,
 )
-from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
+from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError, get_user_provider_key
 from app.core.api import audit
 from app.models import Matter, User
 
@@ -84,6 +84,16 @@ async def run_endpoint(
             detail={
                 "error": "provider_key_missing",
                 "provider": exc.provider,
+                "message": str(exc),
+            },
+        ) from exc
+    except ProviderUpstreamError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": exc.code,
+                "provider": exc.provider,
+                "upstream_status": exc.upstream_status,
                 "message": str(exc),
             },
         ) from exc
@@ -194,6 +204,20 @@ async def run_stream_endpoint(
                                 "code": 422,
                                 "error": "provider_key_missing",
                                 "provider": exc.provider,
+                            },
+                        }
+                    )
+                    return
+                except ProviderUpstreamError as exc:
+                    await queue.put(
+                        {
+                            "event": "error",
+                            "data": {
+                                "message": str(exc),
+                                "code": 502,
+                                "error": exc.code,
+                                "provider": exc.provider,
+                                "upstream_status": exc.upstream_status,
                             },
                         }
                     )

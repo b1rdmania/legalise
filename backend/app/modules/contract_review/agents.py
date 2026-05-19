@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway, PrivilegePaused
 from app.core.structured_output import StructuredOutputError, parse_model_json
-from app.core.user_keys import ProviderKeyMissing
+from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import Matter
 
 from . import prompts
@@ -95,9 +95,10 @@ class BaseAgent:
                     "stage": self.stage,
                 },
             )
-        except (PrivilegePaused, ProviderKeyMissing):
-            # Policy failures must surface to the router as 409 / 422 —
-            # never swallow into a 200 fallback envelope. Codex R1 finding.
+        except (PrivilegePaused, ProviderKeyMissing, ProviderUpstreamError):
+            # Policy failures and structured upstream errors must surface
+            # to the router as 409 / 422 / 502, never swallow into a 200
+            # fallback envelope. Codex R1 finding.
             raise
         except Exception as exc:
             return AgentCall(

@@ -3,6 +3,8 @@ import {
   listAssistantMessages,
   postAssistantMessage,
   ProviderKeyMissingError,
+  ProviderUpstreamError,
+  providerUpstreamMessage,
   type AssistantMessage,
   type ChronologyEvent,
   type Matter,
@@ -432,6 +434,7 @@ export function AssistantTab({
 }
 
 function formatError(err: unknown): string {
+  if (err instanceof ProviderUpstreamError) return providerUpstreamMessage(err);
   const text = err instanceof Error ? err.message : String(err);
   const m = text.match(/^Error:\s*(\d{3})\s+([^:]+):\s*(.*)$/s);
   if (!m) return text.replace(/^Error:\s*/, "");

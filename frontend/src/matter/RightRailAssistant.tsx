@@ -3,6 +3,8 @@ import {
   listAssistantMessages,
   postAssistantMessage,
   ProviderKeyMissingError,
+  ProviderUpstreamError,
+  providerUpstreamMessage,
   type AssistantMessage,
   type Matter,
 } from "../lib/api";
@@ -88,6 +90,8 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       if (err instanceof ProviderKeyMissingError) {
         setKeyMissingProvider(err.provider);
+      } else if (err instanceof ProviderUpstreamError) {
+        setError(providerUpstreamMessage(err));
       } else {
         setError(err instanceof Error ? err.message : String(err));
       }

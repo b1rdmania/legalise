@@ -15,6 +15,9 @@ import {
   ProviderKeyMissingError,
   runContractReviewStream,
   StreamPreflightError,
+  ProviderUpstreamError,
+  providerUpstreamMessage,
+  tryParseProviderUpstream,
   type ContractKind,
   type ContractReviewResult,
   type Posture,
@@ -177,14 +180,21 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
           // Clear live overrides - the canonical stages array now drives UI.
           setLiveStages({});
         } else if (evt.event === "error") {
-          setError(evt.data.message || "Contract review failed.");
+          const upstream = tryParseProviderUpstream(evt.data);
+          if (upstream) {
+            setError(providerUpstreamMessage(upstream));
+          } else {
+            setError(evt.data.message || "Contract review failed.");
+          }
         }
       }
     } catch (e: unknown) {
       if (e instanceof ProviderKeyMissingError) {
         setKeyMissingProvider(e.provider);
+      } else if (e instanceof ProviderUpstreamError) {
+        setError(providerUpstreamMessage(e));
       } else if (e instanceof StreamPreflightError) {
-        // 409 (privilege-paused) and other preflight failures land here.
+        // 422 (provider_key_missing) and 409 (privilege-paused) land here.
         setError(e.message);
       } else {
         const msg = e instanceof Error ? e.message : String(e);

@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.user_keys import (
     ProviderKeyMissing,
+    ProviderUpstreamError,
     get_user_provider_key,
     mark_user_key_used,
 )
@@ -400,7 +401,41 @@ class ModelGateway:
                 provider_kwargs["api_key"] = user_key
 
         start = time.perf_counter()
-        response_text, tokens = await provider.call(prompt, system=system, **provider_kwargs)
+        try:
+            response_text, tokens = await provider.call(prompt, system=system, **provider_kwargs)
+        except ProviderUpstreamError as exc:
+            # Audit provenance is mandatory on failure: a failed model call
+            # is just as accountable as a successful one. Write the row
+            # with the same shape we use on success (prompt hash, requested
+            # model, posture) plus the structured upstream error code, then
+            # re-raise. Routers translate to 502.
+            latency_ms = int((time.perf_counter() - start) * 1000)
+            from app.core.api import audit  # lazy import, see success path
+
+            await audit.log(
+                session,
+                "model.call.error",
+                actor_id=actor_id,
+                matter_id=matter_id,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                model_used=provider.name,
+                prompt_hash=_sha(prompt),
+                response_hash=None,
+                token_count=None,
+                latency_ms=latency_ms,
+                payload={
+                    "requested_model": requested,
+                    "posture": effective_posture.value,
+                    "error": {
+                        "code": exc.code,
+                        "provider": exc.provider,
+                        "upstream_status": exc.upstream_status,
+                    },
+                    **(payload or {}),
+                },
+            )
+            raise
         latency_ms = int((time.perf_counter() - start) * 1000)
 
         if provider.name in _KEYED_PROVIDERS and actor_id is not None and "api_key" in provider_kwargs:

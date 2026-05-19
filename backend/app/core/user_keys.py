@@ -28,6 +28,36 @@ class ProviderKeyMissing(RuntimeError):
         )
 
 
+class ProviderUpstreamError(RuntimeError):
+    """Raised when an upstream provider call fails (4xx / 5xx).
+
+    The gateway translates SDK-level exceptions into one of four
+    structured `code` values so the API boundary can return a 502 with a
+    machine-readable detail and the UI can map to a friendly message:
+
+        provider_invalid_key   (401 / 403)
+        provider_rate_limited  (429)
+        provider_overloaded    (503 / 529)
+        provider_error         (anything else)
+
+    Audit row provenance is mandatory: the gateway writes an `AuditEntry`
+    BEFORE raising, so a failed call is just as traceable as a successful
+    one.
+    """
+
+    def __init__(
+        self,
+        provider: str,
+        code: str,
+        upstream_status: int | None,
+        message: str,
+    ):
+        self.provider = provider
+        self.code = code
+        self.upstream_status = upstream_status
+        super().__init__(message)
+
+
 async def get_user_provider_key(
     session: AsyncSession, user_id: uuid.UUID, provider: str
 ) -> str | None:
