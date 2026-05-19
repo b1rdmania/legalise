@@ -16,27 +16,41 @@ static `WORKFLOW_TABS` preview for a live fetch via `getPublicModules()`.
 Tests: `backend/tests/test_modules_public.py` covers shape, no-leak,
 no-auth, cache header, and parity with the authed endpoint.
 
-## ~~TODO(workflow-state)~~ SHIPPED 2026-05-19
+## ~~TODO(workflow-state)~~ SHIPPED 2026-05-19 (reviewer-tightened)
 
 `GET /api/matters/{slug}/workflows` returns five workflow states, each
 derived live from declared capabilities, the union of the user's
 granted capabilities, the matter posture, and the audit log.
 
-- `grant`: `granted` / `partial` / `blocked` / `not-installed`
-- `availability`: `ok` / `blocked-by-posture` / `blocked-by-grant` /
-  `not-installed`
+- `grant`: `granted` / `partial` / `blocked`. Workspace-level signal:
+  does the workspace hold the runtime capability types this workflow
+  needs? NOT per-skill enforcement.
+- `availability`: `ok` / `blocked-by-posture` / `blocked-by-grant`.
 - `last_run_at`: most recent audit timestamp whose `module` matches the
   workflow's `audit_modules` set. No denorm table.
 - `reason`: human string when blocked.
 
+`declared_capabilities` MUST be a subset of the runtime vocabulary in
+`app.core.capabilities.CAPABILITY_VOCABULARY`. Audit emission is
+mandatory provenance and is NOT a capability; descriptive metadata
+("writes review table", "uses network") belongs in the human
+`description`, not in `declared_capabilities`. Enforced by
+`test_workflow_declared_capabilities_match_runtime_vocabulary`.
+
+v0.1 admits the endpoint is a built-in catalogue (five workflows are
+in-app pipelines, not installed plugins) - `not-installed` is
+deliberately absent from the response enum. Guard:
+`test_workflows_grant_values_never_include_not_installed`.
+
 Workflow definitions (`WORKFLOW_DEFS`) live alongside the route in
-`backend/app/api/matters.py` and are the canonical taxonomy. Frontend
-`WorkflowsTab.tsx` fetches via `getMatterWorkflows()` and renders the
-real `grant` / `last run` / `availability` instead of static placeholders.
-Matter ownership scoped via the existing `created_by_id` check. Tests
-in `backend/tests/test_matter_workflows_route.py` cover shape, default
-blocked, grant derivation (partial vs granted), posture blocking,
-last-run-at audit sourcing, and 404 for non-owner matters.
+`backend/app/api/matters.py`. Frontend `WorkflowsTab.tsx` fetches via
+`getMatterWorkflows()` and renders the real `grant` / `last run` /
+`availability`. Matter ownership scoped via the existing
+`created_by_id` check. Tests in
+`backend/tests/test_matter_workflows_route.py` (7) cover shape,
+default blocked, grant derivation, posture blocking, last-run-at
+audit sourcing, 404 for non-owner matters, runtime-vocabulary subset,
+and no-`not-installed`-leak.
 
 ## ~~TODO(plan)~~ SHIPPED 2026-05-19
 

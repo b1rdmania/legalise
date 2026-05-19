@@ -121,13 +121,12 @@ async def test_workflows_grant_derivation(client, db_session) -> None:
     )
 
     # Letters needs: matter.read, chronology.read, document.generated.write,
-    # audit.write, model.invoke. Use a sentinel (plugin, skill) - the
-    # endpoint reads the capability column only and unions across rows.
+    # model.invoke. Use a sentinel (plugin, skill) - the endpoint reads
+    # the capability column only and unions across rows.
     for cap in [
         "matter.read",
         "chronology.read",
         "document.generated.write",
-        "audit.write",
         "model.invoke",
     ]:
         db_session.add(
@@ -166,18 +165,16 @@ async def test_workflows_blocked_by_posture(client, db_session) -> None:
     slug = await _new_matter(client)
     user = await db_session.scalar(select(User).where(User.email == EMAIL_A))
 
-    # Grant the union of every workflow's declared capabilities so grant
-    # would normally read as `granted` for all five.
+    # Grant the union of every workflow's declared capabilities (runtime
+    # vocabulary only, post-reviewer-fix) so grant would normally read
+    # as `granted` for all five.
     full_set = {
         "matter.read",
         "document.body.read",
         "document.generated.write",
         "chronology.read",
-        "audit.write",
         "model.invoke",
-        "review.write",
         "citation.write",
-        "net.http",
     }
     for cap in full_set:
         db_session.add(
@@ -254,3 +251,41 @@ async def test_workflows_scoped_to_matter_owner(client) -> None:
 
     resp = await client.get(f"/api/matters/{slug}/workflows")
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_workflow_declared_capabilities_match_runtime_vocabulary(client) -> None:
+    """Every workflow's `declared_capabilities` must be a subset of the
+    runtime vocabulary in `app.core.capabilities.CAPABILITY_VOCABULARY`.
+
+    Reviewer P1: audit emission is mandatory provenance (not revocable);
+    descriptive metadata like "writes review table" / "uses network"
+    belongs in `description`, not `declared_capabilities`.
+    """
+    from app.core.capabilities import CAPABILITY_VOCABULARY
+
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug = await _new_matter(client)
+
+    resp = await client.get(f"/api/matters/{slug}/workflows")
+    assert resp.status_code == 200
+
+    for w in resp.json()["workflows"]:
+        stray = set(w["declared_capabilities"]) - CAPABILITY_VOCABULARY
+        assert stray == set(), (
+            f"workflow {w['key']} declares non-runtime capabilities: {sorted(stray)}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_workflows_grant_values_never_include_not_installed(client) -> None:
+    """v0.1: workflows are built-in in-app pipelines; the endpoint always
+    returns the same five and `not-installed` is intentionally absent
+    from the response enum. Regression guard against re-introduction."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug = await _new_matter(client)
+    resp = await client.get(f"/api/matters/{slug}/workflows")
+    assert resp.status_code == 200
+    for w in resp.json()["workflows"]:
+        assert w["grant"] != "not-installed"
+        assert w["availability"] != "not-installed"

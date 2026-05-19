@@ -496,16 +496,29 @@ async def invoke_plugin(
 # ---------------------------------------------------------------------------
 # Workflow catalogue per matter
 #
-# The Workflows tab in the matter UI lists the legal workflows installed on
-# the workspace and, per matter, what state each one is in: granted /
-# partial / blocked / not-installed; last run; availability under the
-# matter's current posture. Everything derived at query time. No
-# `WorkflowRun` denorm table yet (locked decision in reviewer pass).
+# v0.1 surfaces five built-in workflows as the matter's Workflows tab.
+# These are NOT installed plugins; they are in-app orchestration over
+# the model gateway. The endpoint always returns the five entries.
+# Treat this as a *built-in catalogue with workspace-level capability
+# state*, not an install-state listing.
 #
-# `key` is the UI taxonomy. `audit_modules` is the set of audit `module`
-# values that signal "this workflow ran" - the audit log is the source
-# of truth for last_run_at in v0.1. `declared_capabilities` is the canonical
-# capability set the workflow needs at runtime.
+# Per workflow we derive:
+#   - `grant`: does the workspace hold the runtime capability types this
+#     workflow needs? Values: `granted` (all held), `partial` (some
+#     held), `blocked` (none held). Union of `(plugin, skill, capability)`
+#     grants across the user's workspace - workspace-level signal, not
+#     per-skill enforcement. The runtime enforces at the per-call layer
+#     regardless of what this endpoint says.
+#   - `availability`: `ok` / `blocked-by-posture` / `blocked-by-grant`.
+#     Computed from grant + matter posture.
+#   - `last_run_at`: most recent audit timestamp whose `module` matches
+#     one of the workflow's `audit_modules`. No denorm table.
+#
+# `declared_capabilities` carries ONLY runtime-vocabulary slugs (see
+# `app.core.capabilities.CAPABILITY_VOCABULARY`). Audit emission is
+# mandatory provenance, not a revocable permission; "writes a review
+# table" / "uses network" is descriptive metadata in the human
+# `description`, not a runtime capability.
 # ---------------------------------------------------------------------------
 
 
@@ -530,7 +543,6 @@ WORKFLOW_DEFS: list[WorkflowDef] = [
             "matter.read",
             "document.body.read",
             "chronology.read",
-            "audit.write",
             "model.invoke",
         ],
         audit_modules=["pre_motion", "premotion"],
@@ -547,7 +559,6 @@ WORKFLOW_DEFS: list[WorkflowDef] = [
             "matter.read",
             "chronology.read",
             "document.generated.write",
-            "audit.write",
             "model.invoke",
         ],
         audit_modules=["letters"],
@@ -563,7 +574,6 @@ WORKFLOW_DEFS: list[WorkflowDef] = [
         declared_capabilities=[
             "document.body.read",
             "document.generated.write",
-            "audit.write",
             "model.invoke",
         ],
         audit_modules=["contract_review"],
@@ -578,8 +588,6 @@ WORKFLOW_DEFS: list[WorkflowDef] = [
         ),
         declared_capabilities=[
             "document.body.read",
-            "review.write",
-            "audit.write",
             "model.invoke",
         ],
         audit_modules=["tabular_review"],
@@ -594,8 +602,6 @@ WORKFLOW_DEFS: list[WorkflowDef] = [
         declared_capabilities=[
             "matter.read",
             "citation.write",
-            "audit.write",
-            "net.http",
             "model.invoke",
         ],
         audit_modules=["research", "case_law"],
@@ -609,9 +615,14 @@ class WorkflowState(BaseModel):
     description: str
     declared_capabilities: list[str]
     granted_capabilities: list[str]
-    grant: str  # "granted" | "partial" | "blocked" | "not-installed"
+    # `grant` reports workspace-level capability coverage: does the user
+    # hold the runtime capability types this workflow needs anywhere in
+    # their grant table? `granted` = all, `partial` = some, `blocked` =
+    # none. v0.1 does not enumerate `not-installed`: every workflow is a
+    # built-in in-app pipeline, always present.
+    grant: str  # "granted" | "partial" | "blocked"
     last_run_at: datetime | None
-    availability: str  # "ok" | "blocked-by-posture" | "blocked-by-grant" | "not-installed"
+    availability: str  # "ok" | "blocked-by-posture" | "blocked-by-grant"
     reason: str | None
 
 
@@ -628,26 +639,21 @@ def _compute_workflow_state(
     """Derive grant + availability + reason for one workflow.
 
     `user_granted` is the union of capabilities granted to the user
-    across every (plugin, skill) row. The workspace concept "this user
-    holds this capability somewhere" is what gates the workflow surface
-    in the UI; per-call enforcement is the runtime's concern, not the
-    catalogue's.
+    across every (plugin, skill) row. This is a workspace-level signal -
+    "does the workspace hold the runtime capability types this workflow
+    needs?" - NOT a per-skill enforcement claim. The runtime gates each
+    call at the per-(plugin, skill) capability layer; this endpoint just
+    surfaces whether the workspace has the right shape for the workflow
+    to be runnable.
+
+    `declared` is asserted to be a non-empty subset of the runtime
+    vocabulary - WORKFLOW_DEFS is authored against
+    `app.core.capabilities.CAPABILITY_VOCABULARY`. The `not-installed`
+    branch is unreachable in v0.1 (built-in catalogue) and intentionally
+    omitted from the response enum.
     """
     declared = list(wf.declared_capabilities)
     granted = sorted(c for c in declared if c in user_granted)
-
-    if not declared:
-        return WorkflowState(
-            key=wf.key,
-            title=wf.title,
-            description=wf.description,
-            declared_capabilities=declared,
-            granted_capabilities=granted,
-            grant="not-installed",
-            last_run_at=last_run_at,
-            availability="not-installed",
-            reason="workflow declares no capabilities",
-        )
 
     declared_set = set(declared)
     granted_set = set(granted)

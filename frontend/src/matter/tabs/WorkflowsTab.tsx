@@ -22,14 +22,12 @@ const GRANT_LABEL: Record<WorkflowGrant, string> = {
   granted: "granted",
   partial: "partial",
   blocked: "blocked",
-  "not-installed": "not installed",
 };
 
 const AVAILABILITY_LABEL: Record<WorkflowAvailability, string> = {
   ok: "ok",
   "blocked-by-posture": "blocked by posture",
   "blocked-by-grant": "blocked by grant",
-  "not-installed": "not installed",
 };
 
 function availabilityClasses(value: WorkflowAvailability): string {
@@ -39,7 +37,6 @@ function availabilityClasses(value: WorkflowAvailability): string {
     case "blocked-by-posture":
       return "text-[#E67E22]";
     case "blocked-by-grant":
-    case "not-installed":
     default:
       return "text-[#D9304F]";
   }
@@ -52,7 +49,6 @@ function grantClasses(value: WorkflowGrant): string {
     case "partial":
       return "text-[#E67E22]";
     case "blocked":
-    case "not-installed":
     default:
       return "text-[#D9304F]";
   }

@@ -204,12 +204,13 @@ export const getPublicModules = () =>
 
 // Per-matter workflows catalogue. State (grant, availability, last_run_at)
 // is derived live on the backend from grants + audit + matter posture.
-export type WorkflowGrant = "granted" | "partial" | "blocked" | "not-installed";
+// `grant` is workspace-level capability coverage (do you hold the runtime
+// capability types this workflow needs?), NOT per-skill enforcement.
+export type WorkflowGrant = "granted" | "partial" | "blocked";
 export type WorkflowAvailability =
   | "ok"
   | "blocked-by-posture"
-  | "blocked-by-grant"
-  | "not-installed";
+  | "blocked-by-grant";
 
 export interface WorkflowState {
   key: string;
