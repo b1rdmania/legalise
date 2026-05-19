@@ -1,3 +1,8 @@
+// PrivilegeControl - monochrome posture selector.
+// v0.3: no semantic colour fills. Reads as a plain mono dropdown
+// sitting inline with the surrounding sidebar text. No coloured pill,
+// no coloured square. Matches the document-as-product idiom.
+
 export function PrivilegeControl({
   value,
   onChange,
@@ -5,31 +10,16 @@ export function PrivilegeControl({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const colour =
-    value === "A_cleared"
-      ? "#00A35C"
-      : value === "B_mixed"
-        ? "#E67E22"
-        : value === "C_paused"
-          ? "#D9304F"
-          : "#181818";
   return (
-    <label
-      className="relative inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold cursor-pointer"
-      style={{ borderColor: colour, color: colour }}
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label="Privilege posture"
+      className="bg-transparent text-sm font-semibold font-mono text-ink border-none outline-none cursor-pointer p-0 -ml-0.5 focus-visible:underline focus-visible:underline-offset-4"
     >
-      <span className="w-1.5 h-1.5" style={{ backgroundColor: colour }} />
-      {value.replace("_", " ").toUpperCase()}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="absolute inset-0 opacity-0 cursor-pointer"
-        aria-label="Privilege posture"
-      >
-        <option value="A_cleared">A_cleared - frontier OK</option>
-        <option value="B_mixed">B_mixed - local preferred</option>
-        <option value="C_paused">C_paused - LLM blocked</option>
-      </select>
-    </label>
+      <option value="A_cleared">A_cleared</option>
+      <option value="B_mixed">B_mixed</option>
+      <option value="C_paused">C_paused</option>
+    </select>
   );
 }

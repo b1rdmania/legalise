@@ -1,12 +1,12 @@
 /** @type {import('tailwindcss').Config} */
-// Tokens mirror docs/DESIGN.md (Paper Ink Workspace — Memo + Warp + HyperTrade lift).
+// Tokens mirror docs/DESIGN.md v0.3 (Document-as-product, Memo + Warp lift).
 // Six named colour tokens, two fonts, three letter-spacing utilities, zero radius, zero shadow.
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {

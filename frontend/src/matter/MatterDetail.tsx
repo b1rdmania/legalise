@@ -23,9 +23,9 @@ import {
   type PreMotionRunResult,
 } from "../lib/api";
 import { navigate, useRoute } from "../lib/route";
-import { ErrorCallout, LoadingLine, StatusBadge } from "../ui/primitives";
-import { PrivilegeControl } from "./PrivilegeControl";
-import { isTabKey, TABS, type StageProgress, type TabKey } from "./tabs/types";
+import { ErrorCallout, LoadingLine } from "../ui/primitives";
+import { MatterSidebar } from "./MatterSidebar";
+import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { ReviewsTab } from "./tabs/ReviewsTab";
@@ -306,13 +306,15 @@ export function MatterDetail({
   };
 
   return (
-    <div className="max-w-page mx-auto">
-      {/* P8 panel header */}
-      <PanelHeader matter={matter} onPostureChange={onPostureChange} />
-      {/* P9 tab bar */}
-      <TabBar tab={tab} onChange={setTabAndHash} />
+    <div className="max-w-page mx-auto flex">
+      <MatterSidebar
+        matter={matter}
+        tab={tab}
+        onChange={setTabAndHash}
+        onPostureChange={onPostureChange}
+      />
 
-      <div className="px-4 sm:px-6 lg:px-10 py-8">
+      <main className="flex-1 px-4 sm:px-6 lg:px-16 py-12 min-w-0">
         {error && matter && <ErrorCallout message={error} compact />}
         {tab === "overview" && <OverviewTab matter={matter} />}
         {tab === "documents" && (
@@ -371,72 +373,12 @@ export function MatterDetail({
             setTabAndHash={setTabAndHash}
           />
         )}
-      </div>
+      </main>
     </div>
   );
 }
 
-// -- PanelHeader (P8) -------------------------------------------------------
-
-function PanelHeader({
-  matter,
-  onPostureChange,
-}: {
-  matter: Matter;
-  onPostureChange: (next: string) => void;
-}) {
-  return (
-    <div className="border-b border-rule px-4 sm:px-6 lg:px-10 py-4 flex flex-wrap items-center gap-x-8 gap-y-4 bg-paper">
-      <div className="flex flex-col">
-        <span className="text-xl font-mono font-bold tracking-tight text-ink">
-          {matter.slug}
-        </span>
-        <span className="text-sm text-prose">{matter.title}</span>
-      </div>
-      <div className="flex flex-col justify-center">
-        <span className="eyebrow tracking-track2 mb-0.5">Matter type</span>
-        <span className="text-ink font-mono text-xs font-bold">{matter.matter_type}</span>
-      </div>
-      <div className="flex flex-col justify-center">
-        <span className="eyebrow tracking-track2 mb-0.5">Status</span>
-        <span className="text-xs font-bold">
-          <StatusBadge status={matter.status} />
-        </span>
-      </div>
-      <div className="flex flex-col justify-center">
-        <span className="eyebrow tracking-track2 mb-0.5">Model</span>
-        <span className="text-ink font-mono text-xs font-bold">{matter.default_model_id}</span>
-      </div>
-      <div className="flex flex-col justify-center">
-        <span className="eyebrow tracking-track2 mb-0.5">Posture</span>
-        <PrivilegeControl value={matter.privilege_posture} onChange={onPostureChange} />
-      </div>
-    </div>
-  );
-}
-
-// -- TabBar (P9) ------------------------------------------------------------
-
-function TabBar({ tab, onChange }: { tab: TabKey; onChange: (t: TabKey) => void }) {
-  return (
-    <div className="border-b border-rule px-4 sm:px-6 lg:px-10 flex gap-8 overflow-x-auto bg-paper">
-      {TABS.map((t) => {
-        const active = t.key === tab;
-        return (
-          <button
-            key={t.key}
-            onClick={() => onChange(t.key)}
-            className={
-              "min-h-[44px] -mb-px border-b-2 px-1 text-sm font-medium transition-colors whitespace-nowrap " +
-              (active
-                ? "border-ink text-ink"
-                : "border-transparent text-muted hover:text-ink")
-            }
-          >
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+// PanelHeader (old P8) and TabBar (old P9) removed in v0.3.
+// MatterSidebar carries navigation + posture/status/model metadata.
+// The hero block (slug, title, posture, status) lives inside each tab's
+// content, document-shaped, per DESIGN.md §P8 (document hero).

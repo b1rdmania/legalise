@@ -1,14 +1,56 @@
+import { useEffect, useRef, useState } from "react";
 import { navigate } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
 import { Footer } from "../ui/Footer";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 
+type Section = { id: string; label: string; sub?: boolean };
+
+const SECTIONS: Section[] = [
+  { id: "abstract", label: "01. What it is" },
+  { id: "how", label: "02. How it works" },
+  { id: "trust", label: "03. The trust layer" },
+  { id: "posture", label: "3.1 Privilege posture", sub: true },
+  { id: "capabilities", label: "3.2 Capabilities", sub: true },
+  { id: "limits", label: "04. What v0.1 is not" },
+  { id: "keys", label: "05. Bring your own key" },
+  { id: "source", label: "06. Open source" },
+];
+
 export function Landing() {
   const auth = useAuth();
-  // Authed users see the demo matter directly; unauth users sign up and the
-  // Day D on_after_verify hook copies Khan into their workspace.
   const onOpenDemo = () => navigate(`/matters/${DEMO_SLUG}`);
+
+  const refs = useRef<Record<string, HTMLElement | null>>({});
+  const [active, setActive] = useState<string>("abstract");
+
+  useEffect(() => {
+    const onScroll = () => {
+      let current = SECTIONS[0].id;
+      for (const s of SECTIONS) {
+        const el = refs.current[s.id];
+        if (el) {
+          const top = el.getBoundingClientRect().top;
+          if (top <= 140) current = s.id;
+        }
+      }
+      setActive(current);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const jump = (id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = refs.current[id];
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.pageYOffset - 100;
+      window.scrollTo({ top, behavior: "smooth" });
+      setActive(id);
+    }
+  };
 
   const steps: { name: string; body: string }[] = [
     {
@@ -37,20 +79,90 @@ export function Landing() {
     },
   ];
 
-  const trust: string[] = [
-    "Audit by default. Every action writes a row. Append-only by convention in v0.1; the row shape is bespoke and stable.",
-    "Privilege posture as a dispatch constraint. A_cleared, B_mixed, or C_paused. The gateway reads it before every model call and refuses any call the posture doesn't permit.",
-    "Capabilities, requested and granted and enforced. Modules declare what they need; the workspace grants at signup; runtime checks the grant before every privileged operation. A denial is a structured 403 plus an audit row.",
-    "CPR 31.22 gate on chronology entries sourced from disclosed documents. Server-side, not UI.",
-    "BYO provider keys, encrypted at rest. Your key, your provider, your records.",
-  ];
-
   return (
-    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-16">
-      <div className="max-w-4xl">
+    <div className="max-w-page mx-auto flex">
+      {/* Sidebar TOC — Warp shape */}
+      <aside
+        className="w-80 hidden lg:block sticky top-[80px] h-[calc(100vh-80px)] border-r border-rule p-10 overflow-y-auto"
+        aria-label="Whitepaper sections"
+      >
+        <div className="eyebrow mb-8">Whitepaper</div>
+        <nav className="flex flex-col gap-1">
+          {SECTIONS.map((s) => {
+            const isActive = active === s.id;
+            return (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                onClick={jump(s.id)}
+                className={
+                  "py-2 border-l-2 transition-all " +
+                  (s.sub ? "pl-8 text-xs " : "pl-4 text-sm ") +
+                  (isActive
+                    ? "border-ink text-ink font-semibold"
+                    : "border-transparent text-muted hover:text-ink")
+                }
+              >
+                {s.label}
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="mt-12 pt-8 border-t border-rule">
+          <div className="eyebrow-sm mb-4">Resources</div>
+          <ul className="flex flex-col gap-3 text-sm">
+            <li>
+              <a
+                href="https://github.com/b1rdmania/legalise"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink hover:text-muted transition-colors"
+              >
+                GitHub repository
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/b1rdmania/legalise/blob/master/docs/MANIFESTO.md"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink hover:text-muted transition-colors"
+              >
+                Manifesto
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink hover:text-muted transition-colors"
+              >
+                Trust posture
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/b1rdmania/legalise/blob/master/docs/ROADMAP.md"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink hover:text-muted transition-colors"
+              >
+                Roadmap
+              </a>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      {/* Document column */}
+      <main className="flex-1 px-4 sm:px-6 md:px-16 lg:px-24 py-16 max-w-4xl mx-auto">
         {/* Hero */}
         <div className="mb-16">
-          <div className="eyebrow font-mono text-muted mb-4">VERSION 0.1 - MAY 2026</div>
+          <div className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
+            Version 0.1 · May 2026
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
             Open a matter. Ask the assistant. Install a legal module. Run it.
             See what it touched. See the audit trail.
@@ -63,15 +175,15 @@ export function Landing() {
           <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
             <div>
               <div className="eyebrow mb-1.5">Author</div>
-              <div className="text-sm font-semibold">Andy Bird</div>
+              <div className="text-sm font-semibold text-ink">Andy Bird</div>
             </div>
             <div>
               <div className="eyebrow mb-1.5">License</div>
-              <div className="text-sm font-semibold">Apache 2.0</div>
+              <div className="text-sm font-semibold text-ink">Apache 2.0</div>
             </div>
             <div>
               <div className="eyebrow mb-1.5">Status</div>
-              <div className="text-sm font-semibold text-[#00A35C]">v0.1 demo</div>
+              <div className="text-sm font-semibold text-ink">v0.1 demo</div>
             </div>
           </div>
 
@@ -96,14 +208,6 @@ export function Landing() {
               >
                 Modules
               </a>
-              <a
-                href="https://github.com/b1rdmania/legalise"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                GitHub
-              </a>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-4 mt-8">
@@ -121,77 +225,165 @@ export function Landing() {
               </a>
               <a
                 href="#/auth/signin"
-                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+                className="text-sm text-muted hover:text-ink transition-colors"
               >
                 Sign in
               </a>
-              <a
-                href="#/modules"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                Modules
-              </a>
-              <a
-                href="https://github.com/b1rdmania/legalise"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                GitHub
-              </a>
             </div>
           )}
-
-          <p className="text-sm text-muted mt-6 max-w-2xl">
-            Bring your own Anthropic or OpenAI key after verification. Keys are encrypted at
-            rest. The Khan v Acme sample matter seeds on first sign-in so the workspace is
-            never empty.
-          </p>
         </div>
 
-        {/* How it works */}
-        <section className="mb-24">
+        {/* 01. What it is */}
+        <section
+          id="abstract"
+          ref={(el) => { refs.current.abstract = el; }}
+          className="mb-24"
+        >
           <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
-            01. How it works
+            01. What it is
           </h2>
           <p className="prose-p">
-            Six verbs. The product mechanic carried by the workflow, not by the architecture.
+            Legalise is a single-tenant workspace for a single matter. The
+            matter is the unit. Documents, chronology, audit, model calls,
+            module installs, capability grants all hang off it. Open the
+            Khan v Acme sample matter to see the surface end-to-end without
+            signing up.
           </p>
-          <ul className="list-none space-y-6 text-prose pl-0">
+          <p className="prose-p">
+            Built for England &amp; Wales work. Privilege posture is a
+            dispatch-time constraint, not a checkbox. The runtime refuses
+            cloud calls when posture is C_paused. Capabilities are declared
+            in module manifests, granted at install, and enforced before
+            every privileged operation.
+          </p>
+        </section>
+
+        {/* 02. How it works */}
+        <section
+          id="how"
+          ref={(el) => { refs.current.how = el; }}
+          className="mb-24"
+        >
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            02. How it works
+          </h2>
+          <p className="prose-p">
+            Six verbs. The product mechanic carried by the workflow, not the
+            architecture.
+          </p>
+          <ul className="list-none space-y-4 text-prose text-sm pl-0">
             {steps.map((s) => (
               <li key={s.name} className="flex items-start gap-4">
-                <span className="text-ink font-bold">-</span>
+                <span className="font-bold text-ink">-</span>
                 <span>
-                  <strong className="text-ink font-semibold">{s.name}.</strong> {s.body}
+                  <strong className="text-ink font-semibold">{s.name}.</strong>{" "}
+                  {s.body}
                 </span>
               </li>
             ))}
           </ul>
         </section>
 
-        {/* Trust layer */}
-        <section className="mb-24">
+        {/* 03. The trust layer */}
+        <section
+          id="trust"
+          ref={(el) => { refs.current.trust = el; }}
+          className="mb-24"
+        >
           <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
-            02. The trust layer
+            03. The trust layer
           </h2>
+          <p className="prose-p">
+            Trust is not a marketing word here. It is the runtime contract
+            between a module and the workspace. One sentence carries the
+            whole posture.
+          </p>
           <div className="bg-wash p-8 border-l-4 border-ink my-8">
-            <p className="text-sm font-medium italic m-0">
-              "Manifest requests capabilities. Workspace grants capabilities. Runtime enforces
-              capabilities."
+            <p className="text-sm font-medium italic text-prose m-0">
+              "Manifest requests capabilities. Workspace grants capabilities.
+              Runtime enforces capabilities."
             </p>
           </div>
+
+          <h3
+            id="posture"
+            ref={(el) => { refs.current.posture = el; }}
+            className="text-lg font-bold tracking-tight2 text-ink mt-10 mb-4"
+          >
+            3.1 Privilege posture
+          </h3>
+          <p className="prose-p">
+            Every matter carries one of three postures. A_cleared excludes
+            privileged material and permits cloud providers. B_mixed
+            requires opt-in per matter. C_paused refuses cloud calls
+            altogether and routes only to local models. The gateway reads
+            posture before every model call and writes an audit row on
+            every denial.
+          </p>
+
+          <h3
+            id="capabilities"
+            ref={(el) => { refs.current.capabilities = el; }}
+            className="text-lg font-bold tracking-tight2 text-ink mt-10 mb-4"
+          >
+            3.2 Capabilities
+          </h3>
+          <p className="prose-p">
+            Seven capability names. Each module manifest lists the ones
+            it needs. The workspace grants on install. The runtime checks
+            the grant before each privileged operation; a denial is a
+            structured 403 plus an audit row. Per-skill overrides keep
+            grants tight to what each skill actually touches.
+          </p>
+        </section>
+
+        {/* 04. What v0.1 is not */}
+        <section
+          id="limits"
+          ref={(el) => { refs.current.limits = el; }}
+          className="mb-24"
+        >
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            04. What v0.1 is not
+          </h2>
+          <p className="prose-p">
+            Honest about the limits so the live posture is legible.
+          </p>
           <ul className="list-none space-y-4 text-prose text-sm pl-0">
-            {trust.map((t, i) => (
-              <li key={i} className="flex items-start gap-4">
-                <span className="font-bold text-ink">-</span>
-                <span>{t}</span>
-              </li>
-            ))}
+            <li className="flex items-start gap-4">
+              <span className="font-bold text-ink">-</span>
+              <span>
+                <strong className="text-ink font-semibold">Retention is recorded, not enforced.</strong>{" "}
+                The retention clock is in the matter row; nothing yet acts on it.
+              </span>
+            </li>
+            <li className="flex items-start gap-4">
+              <span className="font-bold text-ink">-</span>
+              <span>
+                <strong className="text-ink font-semibold">Audit is append-only by convention.</strong>{" "}
+                No Postgres revoke on DELETE yet. The application never deletes;
+                the database does not refuse.
+              </span>
+            </li>
+            <li className="flex items-start gap-4">
+              <span className="font-bold text-ink">-</span>
+              <span>
+                <strong className="text-ink font-semibold">No multi-tenant isolation.</strong>{" "}
+                Single workspace per deploy. Bring your own deploy if you need
+                isolation. v0.2 introduces tenants.
+              </span>
+            </li>
+            <li className="flex items-start gap-4">
+              <span className="font-bold text-ink">-</span>
+              <span>
+                <strong className="text-ink font-semibold">Not a substitute for counsel.</strong>{" "}
+                The assistant cites; it does not advise. Module output is
+                drafted material for a qualified solicitor to review.
+              </span>
+            </li>
           </ul>
           <p className="prose-p mt-8">
-            Honest about v0.1 limits: retention recorded but not enforced; append-only audit log
-            by convention, not by Postgres grant; chronology-write capability wiring waits for
-            the first module-driven chronology endpoint. See{" "}
+            Full posture in{" "}
             <a
               href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
               target="_blank"
@@ -204,8 +396,65 @@ export function Landing() {
           </p>
         </section>
 
+        {/* 05. Bring your own key */}
+        <section
+          id="keys"
+          ref={(el) => { refs.current.keys = el; }}
+          className="mb-24"
+        >
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            05. Bring your own key
+          </h2>
+          <p className="prose-p">
+            After email verification, attach an Anthropic or OpenAI key
+            from the Profile page. Keys are encrypted at rest. The workspace
+            never proxies through a shared key; every model call is billed
+            against the operator's own provider account. Revoke at any
+            time.
+          </p>
+          <p className="prose-p">
+            The Khan v Acme sample matter seeds on first sign-in so the
+            workspace is never empty.
+          </p>
+        </section>
+
+        {/* 06. Open source */}
+        <section
+          id="source"
+          ref={(el) => { refs.current.source = el; }}
+          className="mb-24"
+        >
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-6">
+            06. Open source
+          </h2>
+          <p className="prose-p">
+            Apache 2.0. Read the source, run it locally, fork it, ship a
+            module against it. The plugin catalogue lives in a separate
+            repo; the workspace pins a commit SHA so the install surface is
+            reproducible.
+          </p>
+          <div className="flex flex-wrap gap-4 mt-6">
+            <a
+              href="https://github.com/b1rdmania/legalise"
+              target="_blank"
+              rel="noreferrer"
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            >
+              github.com/b1rdmania/legalise
+            </a>
+            <a
+              href="https://github.com/b1rdmania/claude-for-uk-legal"
+              target="_blank"
+              rel="noreferrer"
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            >
+              Plugin catalogue
+            </a>
+          </div>
+        </section>
+
         <Footer />
-      </div>
+      </main>
     </div>
   );
 }

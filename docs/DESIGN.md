@@ -1,39 +1,96 @@
-# Legalise — Design Contract (v0.2)
+# Legalise - Design Contract (v0.3)
 
-> **Paper Ink Workspace.** White-paper editorial aesthetic for marketing
-> and prose surfaces; terminal-panel density for workspace surfaces.
-> Inspired by the Warp Engine whitepaper, the HyperTrade trading
-> terminal, and lifted directly from the Memo legal-AI workspace token
-> system. Single coherent design system across both registers.
+> **Document-as-product.** Single register everywhere. The Warp Engine
+> whitepaper aesthetic applies to marketing, workspace, and module
+> surfaces alike. Memo provides the token base.
 
-**Theme:** light. Paper-and-ink, no shadows, no rounded corners,
-borders define structure, mono accents on data and labels.
+**Theme:** light. Paper-and-ink, no shadows, no rounded corners.
+Borders define structure. Mono accents on data and labels. No status
+colour fills; status reads via mono bordered pills.
 
-The visual register is a **law clerk's workbench**, not a SaaS
-dashboard. Prose where the work is reading, panels where the work is
-inspecting structured data. A solicitor should be able to print any
-surface and have it look like a working document.
+The visual register is a **printed brief**, not a SaaS dashboard. Every
+surface should look like something a solicitor could print and hand to
+a regulator. Prose where the work is reading. Slim tables where the
+work is scanning. Sidebar TOC anywhere the page has more than one
+section.
+
+### What changed in v0.3
+
+- **Single register.** The previous v0.2 hybrid (Warp prose + HyperTrade
+  Terminal density) was visually cluttered on workspace surfaces. v0.3
+  collapses to one register: Warp document-as-product.
+- **Sidebar TOC across all matter surfaces.** Replaces the horizontal
+  tab bar (old P9) and the dense panel header (old P8). Sidebar is
+  numbered, scroll-spy active, slim eyebrow stack for matter metadata.
+- **Monochrome status pills only.** No green OPEN, no orange B_MIXED
+  with coloured square. Status reads as a bordered mono pill (P15
+  unchanged) or as an eyebrow + value stack.
+- **HyperTrade Terminal lineage retired.** v0.2's panel headers,
+  coloured semantics, dense overlay rows are out. Anything that needs
+  density goes into a slim table inside the document column.
 
 ## Lineage and preservation
 
-This design lifts directly from three references. Each lift carries
-the [variant-workflow](https://github.com/ziggythebot/variant-workflow)
+Two references. Each lift carries the
+[variant-workflow](https://github.com/ziggythebot/variant-workflow)
 strict-preservation rule: **when copying a specific component, change
-only what the framework requires — never values, never spacing, never
-gradients, never font properties.**
+only what the framework requires. Never values, never spacing, never
+font properties.**
 
 | Reference | What we lift | Where it lands |
 |---|---|---|
-| **Memo** (`memo-app-eta-tawny.vercel.app`) | Token system, custom utilities, header geometry, page max-widths, eyebrow + tight2 + prose-p patterns, mobile touch-target discipline | All surfaces — this is the base |
-| **Warp Engine whitepaper** (`design-24211ed9...html`) | Sidebar TOC with scroll-spy, prose body with bordered code blocks, metadata strip (Author / Topic / Status), inline blockquote with thick left border, paragraph-as-em-dash list pattern | Landing, Modules catalogue, About, docs surfaces |
-| **HyperTrade Terminal** (`design-81588719...html`) | Panel header strip (instrument + price + 24h change + funding), tab-bar with `border-b-2` active state, dense data rows with absolute background overlays, mono uppercase column headers at 9-10px, status colour semantics, sidebar order-entry form | Matter Detail header, Audit log, Chronology, Pre-Motion stage strip, Settings tabs |
-| **Mobbin pass — Clover / ClickUp / Otter / Yahoo Finance** (May 2026) | Hamburger → left drawer skeleton (workspace pill at top, sectioned items, settings cog at bottom), dense-data top-bar exception (back ← + contextual label, no nav chrome) | P18 mobile nav across every surface |
+| **Memo** (`memo-app-eta-tawny.vercel.app`) | Token system, custom utilities, header geometry, page max-widths, eyebrow + tight2 + prose-p patterns, mobile touch-target discipline | All surfaces. This is the base. |
+| **Warp Engine whitepaper** (`design-24211ed9...html`) | Header bar with logo wordmark + nav + ink CTA. Sidebar TOC with scroll-spy. Document hero (eyebrow / H1 / lede / metadata strip). Numbered section headers. Prose body with bordered code blocks. Inline blockquote with thick left border. Paragraph-as-em-dash list (use hyphens, never em dash). | Every surface: landing, modules, matter detail, all tabs. |
+| **Mobbin pass - Clover / ClickUp / Otter / Yahoo Finance** (May 2026) | Hamburger → left drawer skeleton (workspace pill at top, sectioned items, settings cog at bottom), dense-data top-bar exception (back ← + contextual label, no nav chrome) | P18 mobile nav across every surface |
 
 If you are converting a component from one of these references, the
-rule is: **paste exactly, change only framework syntax**. Do not round
-spacing, do not simplify gradients (there are none, that's the point),
-do not extract inline styles, do not invent semantic HTML. If you
+rule is: **paste exactly, change only framework syntax.** Do not round
+spacing. Do not simplify gradients (there are none, that's the point).
+Do not extract inline styles. Do not invent semantic HTML. If you
 think something should be "cleaner," don't.
+
+## Anti-patterns
+
+These were live in v0.2 and are retired in v0.3. If a PR reintroduces
+any of them, reject the PR or add it to this list with a reason.
+
+- **Coloured status fills.** No green / orange / red boxes or pill
+  fills for posture, status, verdict, or run state. Status reads as
+  plain `text-sm font-semibold text-ink` text or, where a bordered
+  pill is needed, the monochrome P15 pattern (ink border, ink text,
+  paper fill). Colour as a semantic dimension is reserved for verdict
+  text inside a result (P10), not for chrome.
+- **Mixed font weights in a single value row.** A meta strip with
+  some values in `font-semibold` and others in `font-mono` (no
+  weight) reads as inconsistent design, not intentional contrast.
+  Pick one. Match the Warp metadata strip: every value
+  `text-sm font-semibold`.
+- **Pull quotes with internal eyebrow labels.** The pull-quote pattern
+  is the Warp whitepaper form: `bg-wash p-8 border-l-4 border-ink my-8`
+  with `text-sm font-medium italic text-prose`. No internal eyebrow
+  ("Pivot fact", "Theory") above the quoted text — the left rule + wash
+  do the work. Eyebrows belong on hero metadata strips, not inside
+  prose blocks.
+- **Terminal density on workspace surfaces.** No HyperTrade-style
+  panel header strips, no dense data rows with absolute background
+  overlays, no `tracking-[0.2em]` uppercase mono columns at 9px in
+  the matter chrome. Density goes into a document-shaped table
+  inside the prose column.
+- **Mono on values that sit next to sans-semibold values.** If a
+  metadata strip needs technical identifiers (slugs, hashes), put
+  them in `text-sm font-semibold` sans, not mono. Mono is reserved
+  for code blocks (P6), eyebrow labels (uppercase + tracking-widest
+  mono is fine because the size is 10-12px), and inline citation
+  refs.
+- **Horizontal tab bars on matter surfaces.** Replaced by the
+  Warp-style sidebar TOC (P9). Tab bars compress more navigation
+  into less space; sidebar TOCs let the page scan as a document.
+- **"Open demo" CTAs that route to signup.** Demo is the static
+  `#/demo` snapshot. Signup is a separate flow. Conflating them
+  cost us a real bug.
+- **Marketing voice in chrome strings.** No "in action", no
+  "powerful", no commas-as-conjunctions in CTAs ("Sign up, free,
+  BYO key"). Plain English imperative or short claim.
 
 ---
 
@@ -75,19 +132,24 @@ not apply decoratively):
 
 ---
 
-## Tokens — Typography
+## Tokens - Typography
 
 | Family | Stack | Tailwind |
 |---|---|---|
-| Sans | `Inter, ui-sans-serif, system-ui, -apple-system, sans-serif` | `font-sans` (default) |
-| Mono | `JetBrains Mono, ui-monospace, SFMono-Regular, monospace` | `font-mono` |
+| Sans | `"Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif` | `font-sans` (default) |
+| Mono | `"JetBrains Mono", ui-monospace, SFMono-Regular, monospace` | `font-mono` |
 
 Google Fonts load:
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 ```
 
-Weights available: Inter `400 / 500 / 600 / 700`; JetBrains Mono `400 / 500`.
+Weights available: Hanken Grotesk `400 / 500 / 600 / 700`; JetBrains Mono `400 / 500`.
+
+Hanken Grotesk is the open-source HK Grotesk family used by the live
+Warp Engine site. Geometric humanist sans, lifts cleanly into the
+document-as-product idiom. Inter is the closest substitute if Hanken
+Grotesk fails to load - keep both in the fallback chain.
 
 ### Type scale (Tailwind tokens, verbatim from Memo bundle)
 
@@ -461,66 +523,99 @@ Source: Warp whitepaper Security section.
 
 Em-dash bullet is the Warp signature. Don't substitute `•` or `→`.
 
-## P8 — Panel header strip (data dashboard)
+## P8 - Document hero block
 
-Source: HyperTrade Terminal — the BTC-PERP / price / 24h-change strip. Used for Matter Detail top, Pre-Motion run header, Audit log filter strip.
+Source: Warp Engine whitepaper, opening block. Used at the top of every
+matter tab and every document-shaped surface (modules detail, settings,
+audit detail). Replaces the v0.2 panel header strip.
 
 ```jsx
-<div className="h-16 border-b border-rule flex items-center px-4 gap-8
-                shrink-0 bg-paper">
-  <button className="flex items-center gap-2 hover:bg-wash px-2 py-1 group">
-    <ListIcon className="text-muted group-hover:text-ink" />
-    <span className="text-xl font-mono font-bold tracking-tight text-ink">
-      KHAN-V-ACME-TRADING-2026
-    </span>
-    <CaretDown className="text-muted group-hover:text-ink text-xs" />
-  </button>
+<div className="mb-16">
+  <div className="text-xs font-mono text-muted mb-4">
+    MATTER · EMPLOYMENT TRIBUNAL
+  </div>
+  <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
+    Khan v Acme Trading Ltd
+  </h1>
+  <p className="text-xl text-muted leading-relaxed max-w-2xl">
+    s.94 ERA 1996, unfair dismissal. Three concurrent claim routes,
+    documented grievance, audience-of-47 social-media post.
+  </p>
 
-  {/* Stat column — repeat for each metric */}
-  <div className="flex flex-col justify-center">
-    <span className="eyebrow tracking-track2 mb-0.5">Posture</span>
-    <span className="text-[#00A35C] font-mono text-xs font-bold">A_cleared</span>
-  </div>
-  <div className="flex flex-col justify-center">
-    <span className="eyebrow tracking-track2 mb-0.5">Status</span>
-    <span className="text-ink font-mono text-xs font-bold">open</span>
-  </div>
-  <div className="flex flex-col justify-center">
-    <span className="eyebrow tracking-track2 mb-0.5">Model</span>
-    <span className="text-ink font-mono text-xs font-bold">claude-opus-4-7</span>
-  </div>
-  <div className="flex flex-col justify-center">
-    <span className="eyebrow tracking-track2 mb-0.5">Matter type</span>
-    <span className="text-ink font-mono text-xs font-bold">employment_tribunal</span>
+  <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
+    <div>
+      <div className="eyebrow mb-1.5">Slug</div>
+      <div className="text-sm font-mono">khan-v-acme-trading-2026</div>
+    </div>
+    <div>
+      <div className="eyebrow mb-1.5">Opened</div>
+      <div className="text-sm font-semibold">2026-05-12</div>
+    </div>
+    <div>
+      <div className="eyebrow mb-1.5">Posture</div>
+      <div className="text-sm font-semibold">B_mixed</div>
+    </div>
+    <div>
+      <div className="eyebrow mb-1.5">Status</div>
+      <div className="text-sm font-semibold">open</div>
+    </div>
   </div>
 </div>
 ```
 
-Eyebrow + mono bold value, columns separated by `gap-8`. Status
-colours follow the semantic palette.
+Eyebrow on top in mono. H1 reads as the document title. Subhead is the
+lede in muted prose. Meta strip sits below the rule. No coloured pills.
+Matches the Warp hero geometry verbatim.
 
-## P9 — Tab bar with border-b-2 active state
+## P9 - Sidebar TOC (matter + module + docs surfaces)
 
-Source: HyperTrade Terminal. Used for Settings tabs (Profile / Keys / Preferences), Matter Detail tabs (Overview / Documents / Chronology / Pre-Motion / Audit), Pre-Motion stage strip.
+Source: Warp Engine whitepaper sidebar. Used on every matter detail
+page, every module detail page, and every doc surface that has more
+than one section. Replaces the v0.2 horizontal tab bar.
 
 ```jsx
-<div className="flex gap-4 border-b border-rule px-6 bg-paper h-10 items-center">
-  <button className="text-ink font-mono uppercase text-[11px] tracking-track2
-                     font-bold border-b-2 border-ink h-full pt-1 -mb-px">
-    Overview
-  </button>
-  <button className="text-muted hover:text-ink transition-colors font-mono uppercase
-                     text-[11px] tracking-track2 font-bold border-b-2 border-transparent
-                     h-full pt-1 -mb-px">
-    Documents
-  </button>
-  <button className="text-muted hover:text-ink transition-colors font-mono uppercase
-                     text-[11px] tracking-track2 font-bold border-b-2 border-transparent
-                     h-full pt-1 -mb-px">
-    Chronology
-  </button>
-</div>
+<aside className="w-80 hidden lg:block sticky top-[80px] h-[calc(100vh-80px)]
+                  border-r border-rule p-10 overflow-y-auto">
+  <div className="text-[10px] font-bold tracking-[0.2em] text-muted uppercase mb-8">
+    Matter
+  </div>
+  <nav className="flex flex-col gap-1">
+    <a href="#overview"
+       className="toc-link py-2 border-l-2 border-ink pl-4 text-sm text-ink font-semibold">
+      01. Overview
+    </a>
+    <a href="#documents"
+       className="toc-link py-2 border-l-2 border-transparent pl-4 text-sm text-muted hover:text-ink transition-all">
+      02. Documents
+    </a>
+    <a href="#chronology"
+       className="toc-link py-2 border-l-2 border-transparent pl-4 text-sm text-muted hover:text-ink transition-all">
+      03. Chronology
+    </a>
+    {/* etc */}
+  </nav>
+
+  <div className="mt-12 pt-8 border-t border-rule">
+    <div className="text-[10px] font-bold tracking-[0.1em] text-muted uppercase mb-4">
+      Posture
+    </div>
+    <div className="text-sm font-semibold">B_mixed</div>
+    <div className="text-xs text-muted mt-1">Cloud providers opt-in.</div>
+  </div>
+</aside>
 ```
+
+Width `w-80`. Sticky under the 80px header. Numbered entries scroll-spy
+the page sections; active state is left ink border + `text-ink
+font-semibold`. Inactive entries are `text-muted`. Posture, status,
+model live below the rule as eyebrow + value stacks (no coloured fills).
+
+On mobile (`lg:hidden`) the sidebar collapses; the existing P18 drawer
+provides navigation.
+
+The main column lives at `max-w-4xl` to the right of the sidebar with
+`p-6 md:p-16 lg:p-24` padding. Mirrors the Warp document column
+exactly.
 
 The `-mb-px` overlaps the container `border-b border-rule` so the
 active `border-b-2 border-ink` reads continuous, not stacked.
