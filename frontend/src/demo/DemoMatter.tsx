@@ -235,7 +235,7 @@ function DemoBanner() {
         </span>
       </div>
       <p className="text-sm text-prose">
-        Khan v Acme - a worked unfair-dismissal matter. Browse every tab. Mutations are disabled. Sign up to upload your own matter.
+        Khan v Acme. Worked unfair-dismissal matter, mutations disabled. Sign up to upload your own.
       </p>
       <a
         href="#/auth/signup"

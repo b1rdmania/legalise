@@ -151,12 +151,6 @@ function NavBody({
         })}
       </nav>
 
-      {/* Footer status */}
-      <div className="mt-auto border-t border-rule px-4 py-3">
-        <div className="text-[10px] font-mono uppercase tracking-track2 text-muted">
-          {matter.status}
-        </div>
-      </div>
     </>
   );
 }

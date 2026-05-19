@@ -1260,7 +1260,7 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
     id: "asst-msg-02",
     role: "assistant",
     content:
-      `The [doc:${ID.nda}] is a three-year mutual NDA between Acme Trading Ltd and North Mill Consulting Limited. Confidentiality obligations survive indefinitely. Three points stand out: an unlimited mutual indemnity that is unlikely to be enforceable under UCTA s.3, a data-protection clause that does not satisfy UK GDPR Art 28, and no governing law or jurisdiction clause.`,
+      `This three-year mutual NDA [doc:${ID.nda}] between Acme Trading Ltd and North Mill Consulting Limited has three issues worth flagging. Confidentiality obligations survive indefinitely. The unlimited mutual indemnity is unlikely to be enforceable under UCTA s.3. The data-protection clause does not satisfy UK GDPR Art 28. And there is no governing law or jurisdiction clause.`,
     suggested_actions: [
       {
         type: "review_contract",
