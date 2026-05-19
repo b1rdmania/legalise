@@ -85,14 +85,16 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing: Modules · Docs · GitHub · - · Open the demo · Sign up free · Sign in
+    // Unauth marketing: Modules · Docs · GitHub · - · Open the demo · Sign up free · Sign in.
+    // On the demo route itself, drop "Open the demo" (you're already on it).
+    const isDemo = route.name === "demo";
     primary = [
       { href: "#/modules", label: "Modules" },
       { href: GITHUB_DOCS, label: "Docs", external: true },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: DEMO_HREF_UNAUTHED, label: "Open the demo" },
+      ...(isDemo ? [] : [{ href: DEMO_HREF_UNAUTHED, label: "Open the demo" }]),
       { href: "#/auth/signup", label: "Sign up free" },
       { href: "#/auth/signin", label: "Sign in" },
     ];

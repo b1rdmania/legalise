@@ -30,40 +30,70 @@ export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "audit", label: "Audit" },
 ];
 
-export const WORKFLOW_TABS: ReadonlyArray<{
+export interface WorkflowTab {
   key: TabKey;
   label: string;
   blurb: string;
-}> = [
+  // Static descriptive metadata for the catalogue card (v0.1 - these are
+  // descriptions of the workflow's contract, not live state).
+  reads: string;
+  writes: string;
+  calls: number;
+  // Capabilities declared by the module. Read-only display in the public
+  // catalogue.
+  capabilities: string[];
+}
+
+export const WORKFLOW_TABS: ReadonlyArray<WorkflowTab> = [
   {
     key: "premotion",
     label: "Pre-Motion",
     blurb:
       "Adversarial premortem. Nine model calls. Optimistic Analyst, Evidence Inspector, Premortem Adversary, Synthesiser.",
+    reads: "documents + chronology",
+    writes: "audit only",
+    calls: 9,
+    capabilities: ["matter.read", "document.body.read", "chronology.read", "audit.write"],
   },
   {
     key: "letters",
     label: "Letters",
     blurb:
       "Routed by matter type. ET surfaces LBA drafter; civil surfaces CPR letter drafter.",
+    reads: "matter metadata + chronology",
+    writes: "document.generated + audit",
+    calls: 3,
+    capabilities: ["matter.read", "chronology.read", "document.write", "audit.write"],
   },
   {
     key: "contract-review",
     label: "Contract review",
     blurb:
       "Four-stage UK-focused review. Parse, analyse (UCTA / CRA / UK GDPR / governing law / jurisdiction), redline, summarise.",
+    reads: "documents",
+    writes: "document.generated + audit",
+    calls: 4,
+    capabilities: ["document.body.read", "document.write", "audit.write"],
   },
   {
     key: "reviews",
     label: "Tabular Review",
     blurb:
       "Run a structured column set across a document set. One row per document, one column per question. Cell answers cite back to the source passage.",
+    reads: "documents",
+    writes: "review.table + audit",
+    calls: 1,
+    capabilities: ["document.body.read", "review.write", "audit.write"],
   },
   {
     key: "research",
     label: "Case law",
     blurb:
       "Search reported authorities and cite them into the matter. v0.2 swaps in Find Case Law via MCP.",
+    reads: "matter metadata",
+    writes: "citation + audit",
+    calls: 2,
+    capabilities: ["matter.read", "citation.write", "audit.write", "net.http"],
   },
 ];
 

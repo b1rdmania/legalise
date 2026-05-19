@@ -9,6 +9,7 @@ import {
 } from "../lib/api";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { useAuth } from "../auth/AuthProvider";
+import { WORKFLOW_TABS } from "../matter/tabs/types";
 
 export function Modules() {
   const auth = useAuth();
@@ -124,31 +125,39 @@ export function Modules() {
       </div>
 
       {!isAuthed && (
-        <div className="mb-10 border border-rule p-6">
-          <div className="eyebrow mb-2">Read only</div>
-          <div className="text-sm font-semibold text-ink mb-2">
-            Sign in to grant or revoke capabilities
+        <>
+          <div className="mb-10 border border-rule p-6">
+            <div className="eyebrow mb-2">Read only</div>
+            <div className="text-sm font-semibold text-ink mb-2">
+              Sign in to grant or revoke capabilities
+            </div>
+            <p className="text-sm text-prose mb-4 max-w-2xl">
+              Modules declare the capabilities they need. Granting and revoking
+              those grants is workspace-scoped, so it requires an account. You
+              can browse the demo matter without signing in.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href="#/auth/signin"
+                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium"
+              >
+                Sign in
+              </a>
+              <a
+                href="#/demo"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium"
+              >
+                Open the demo
+              </a>
+            </div>
           </div>
-          <p className="text-sm text-prose mb-4 max-w-2xl">
-            Modules declare the capabilities they need. Granting and revoking
-            those grants is workspace-scoped, so it requires an account. You
-            can browse the demo matter without signing in.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <a
-              href="#/auth/signin"
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium"
-            >
-              Sign in
-            </a>
-            <a
-              href="#/demo"
-              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium"
-            >
-              Open the demo
-            </a>
-          </div>
-        </div>
+
+          {/* TODO(public-modules): no unauth-safe modules endpoint exists.
+              /api/modules requires auth. Until a public catalogue endpoint
+              lands, render a static preview of the known workflow modules
+              from WORKFLOW_TABS. */}
+          <PublicCataloguePreview />
+        </>
       )}
 
       {isAuthed && error && <ErrorCallout message={error} />}
@@ -276,6 +285,72 @@ export function Modules() {
         </div>
       )}
     </div>
+  );
+}
+
+function PublicCataloguePreview() {
+  return (
+    <section className="mb-12">
+      <div className="eyebrow mb-3">Preview catalogue</div>
+      <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">
+        Installed legal modules
+      </h2>
+      <p className="text-sm text-prose max-w-2xl mb-6">
+        A read-only preview of the workflow modules shipped with the
+        workspace. Sign in to see your installed catalogue, grants, and
+        per-module status.
+      </p>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {WORKFLOW_TABS.map((w) => {
+          const key = `legalise.workflows/${w.key}`;
+          return (
+            <article key={w.key} className="border border-rule p-6">
+              <div className="eyebrow font-mono text-muted mb-3">
+                legalise.workflows
+              </div>
+              <h3 className="text-base font-bold text-ink mb-2">{w.label}</h3>
+              <p className="text-xs text-prose leading-relaxed mb-5">{w.blurb}</p>
+
+              <dl className="grid grid-cols-[96px_1fr] gap-y-1.5 text-[11px] font-mono mb-5">
+                <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Reads</dt>
+                <dd className="text-ink">{w.reads}</dd>
+                <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Writes</dt>
+                <dd className="text-ink">{w.writes}</dd>
+                <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Calls</dt>
+                <dd className="text-ink">{w.calls} per run</dd>
+              </dl>
+
+              <div className="mb-5">
+                <div className="eyebrow mb-2">Capabilities (declared)</div>
+                <div className="flex flex-wrap gap-2">
+                  {w.capabilities.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center text-[11px] font-mono text-ink border border-rule bg-wash px-2 py-0.5"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-rule">
+                <span className="text-[10px] font-mono uppercase tracking-track2 text-muted truncate" title={key}>
+                  {key}
+                </span>
+                <a
+                  href="#/auth/signin"
+                  className="text-xs text-[#0066CC] hover:underline whitespace-nowrap"
+                >
+                  Sign in to manage
+                </a>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

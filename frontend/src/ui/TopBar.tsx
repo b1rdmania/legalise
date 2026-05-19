@@ -24,6 +24,7 @@ export function TopBar({
   const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list";
+  const isDemo = route.name === "demo";
 
   const surfaceLabel =
     SIDEBAR_NAV.find((t) => t.key === drawerTab)?.label ??
@@ -102,12 +103,24 @@ export function TopBar({
               </>
             ) : (
               <>
-                <a
-                  href={DEMO_HREF_UNAUTHED}
-                  className="text-ink hover:text-muted transition-colors"
-                >
-                  Open the demo
-                </a>
+                {!isDemo && (
+                  <a
+                    href={DEMO_HREF_UNAUTHED}
+                    className="text-ink hover:text-muted transition-colors"
+                  >
+                    Open the demo
+                  </a>
+                )}
+                {isDemo && (
+                  <a
+                    href="https://github.com/b1rdmania/legalise"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted hover:text-ink transition-colors"
+                  >
+                    Fork on GitHub
+                  </a>
+                )}
                 <a
                   href="#/auth/signup"
                   className="text-ink hover:text-muted transition-colors"
