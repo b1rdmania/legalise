@@ -41,7 +41,11 @@ jobs:
       # the same `legalise_test` database on localhost.
       POSTGRES_DSN: postgresql+psycopg://legalise:legalise@localhost:5432/legalise_test
       TEST_DATABASE_URL: postgresql+asyncpg://legalise:legalise@localhost:5432/legalise_test
-      ENVIRONMENT: test
+      # `development` matches the docker-compose dev env. The email
+      # module fails closed on `test` (no RESEND_API_KEY) because the
+      # DEV_ENVIRONMENTS allowlist is `{development, dev, local}`. The
+      # tests rely on the dev-mode auto-verify path.
+      ENVIRONMENT: development
       # The modules tests tolerate an empty PLUGINS_ROOT but coverage is
       # stronger with the real plugin suite checked out alongside.
       PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
