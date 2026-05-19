@@ -38,14 +38,20 @@ in `backend/tests/test_matter_workflows_route.py` cover shape, default
 blocked, grant derivation (partial vs granted), posture blocking,
 last-run-at audit sourcing, and 404 for non-owner matters.
 
-## TODO(plan)
+## ~~TODO(plan)~~ SHIPPED 2026-05-19
 
-**Where:** `frontend/src/pages/SettingsPage.tsx` plan section.
+`User.plan` is a `String(32)` column on the users table, defaulted to
+`"free"` at both ORM and SQL level (alembic `0009_user_plan`). Every
+new user signs up `free`. Surfaced via the fastapi-users `UserRead`
+schema, so `/auth/users/me` returns the field. `CurrentUser` on the
+frontend carries it; `Settings.tsx` profile capitalises the value
+("free" -> "Free") for the badge.
 
-**Current state:** Renders a hardcoded "Free" badge. No source of truth.
-
-**Needed:** Add a `plan` field to `CurrentUser` (string: `free` / `pro` /
-`team`). Settable when billing wires up later; for now seed all users `free`.
+**No enforcement.** No Stripe wiring, no plan-based gating, no limits.
+v0.1 keeps this honest: the field is signage, not a billing contract.
+Tests in `backend/tests/test_user_plan.py` assert new users default to
+`free` and the value flows through both `/auth/register` and
+`/auth/users/me`.
 
 ## ~~TODO(delete-account)~~ SHIPPED 2026-05-19
 

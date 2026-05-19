@@ -668,6 +668,8 @@ export interface CurrentUser {
   email: string;
   name: string;
   role: string;
+  // v0.1 plan tier - display only. No billing enforcement.
+  plan: string;
   default_model_id: string | null;
   default_privilege_posture: string | null;
   is_active: boolean;

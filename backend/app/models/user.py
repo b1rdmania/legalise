@@ -24,6 +24,14 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="solicitor")
+    # v0.1 plan field - display only. No enforcement, no billing semantics
+    # wired anywhere. Every user is `free`. Real subscription state (plan
+    # periods, Stripe references, plan-based gating) lands in v0.2 when
+    # billing wires; until then this is honest "what tier are you on"
+    # signage and nothing more.
+    plan: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="free", server_default="free"
+    )
     default_model_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     default_privilege_posture: Mapped[str | None] = mapped_column(
         String(16), nullable=True, default="B_mixed"

@@ -175,9 +175,11 @@ function SettingsProfile({
     }
   };
 
-  // TODO(plan): backend does not yet expose a plan field on CurrentUser.
-  // Surface user.role until a richer billing model lands.
-  const planLabel = user.role ? user.role : "Admin";
+  // v0.1 plan field is display-only - no billing semantics. Capitalise
+  // the tier for the badge ("free" -> "Free"); fall back to "Free" if
+  // an older user predates the column (server default backfills, so
+  // this is defensive).
+  const planLabel = (user.plan || "free").replace(/^./, (c) => c.toUpperCase());
 
   return (
     <div className="flex flex-col gap-8">
