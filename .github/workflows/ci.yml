@@ -52,6 +52,9 @@ jobs:
       # The dev container bind-mounts the repo-root schemas dir; CI
       # places it where modules.py + the parity test will find it.
       SCHEMAS_PATH: ${{ github.workspace }}/schemas
+      # Matter filesystem root. Default `/data/matters` (the docker
+      # volume mount) is not writable on the CI runner.
+      MATTERS_ROOT: ${{ github.workspace }}/_matters
 
     steps:
       - uses: actions/checkout@v4
