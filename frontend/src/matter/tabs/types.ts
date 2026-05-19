@@ -1,16 +1,16 @@
 export type TabKey = "overview" | "documents" | "reviews" | "research" | "chronology" | "premotion" | "letters" | "contract-review" | "audit" | "assistant";
 
-export const TABS: { key: TabKey; label: string }[] = [
+export const TABS: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Overview" },
+  { key: "assistant", label: "Assistant" },
   { key: "documents", label: "Documents" },
+  { key: "chronology", label: "Chronology" },
   { key: "reviews", label: "Reviews" },
   { key: "research", label: "Research" },
-  { key: "chronology", label: "Chronology" },
   { key: "premotion", label: "Pre-Motion" },
   { key: "letters", label: "Letters" },
   { key: "contract-review", label: "Contract review" },
   { key: "audit", label: "Audit" },
-  { key: "assistant", label: "Assistant" },
 ];
 
 export type StageProgress = {

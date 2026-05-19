@@ -24,7 +24,8 @@ import {
 } from "../lib/api";
 import { navigate, useRoute } from "../lib/route";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
-import { MatterSidebar } from "./MatterSidebar";
+import { MatterHeader } from "./MatterHeader";
+import { MatterTabBar } from "./MatterTabBar";
 import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
@@ -306,17 +307,21 @@ export function MatterDetail({
   };
 
   return (
-    <div className="max-w-page mx-auto flex">
-      <MatterSidebar
-        matter={matter}
-        tab={tab}
-        onChange={setTabAndHash}
-        onPostureChange={onPostureChange}
-      />
-
-      <main className="flex-1 px-4 sm:px-6 lg:px-16 py-12 min-w-0">
+    <>
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10">
+        <MatterHeader matter={matter} onPostureChange={onPostureChange} />
+      </div>
+      <MatterTabBar tab={tab} onChange={setTabAndHash} />
+      <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-10">
         {error && matter && <ErrorCallout message={error} compact />}
-        {tab === "overview" && <OverviewTab matter={matter} />}
+        {tab === "overview" && (
+          <OverviewTab
+            matter={matter}
+            docCount={docs?.length}
+            eventCount={chron?.events?.length}
+            auditRecent={audit?.length}
+          />
+        )}
         {tab === "documents" && (
           <DocumentsTab docs={docs} onUpload={onUpload} />
         )}
@@ -374,11 +379,11 @@ export function MatterDetail({
           />
         )}
       </main>
-    </div>
+    </>
   );
 }
 
-// PanelHeader (old P8) and TabBar (old P9) removed in v0.3.
-// MatterSidebar carries navigation + posture/status/model metadata.
-// The hero block (slug, title, posture, status) lives inside each tab's
-// content, document-shaped, per DESIGN.md §P8 (document hero).
+// Stage 2 retoken: MatterSidebar (old P9 sidebar TOC) replaced by
+// MatterHeader + MatterTabBar. Sidebar TOC is reserved for the Landing
+// whitepaper. Matter detail uses a horizontal numbered tab bar because
+// tabs are discrete tools, not chapters of one scroll.

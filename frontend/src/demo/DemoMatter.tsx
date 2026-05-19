@@ -1,13 +1,14 @@
-// Read-only demo workspace for `#/demo`. Mirrors MatterDetail's layout
-// (MatterSidebar + document main column) but feeds every tab from the
-// hard-coded snapshot. Mutation handlers flash a workspace-framed sign-up
-// CTA. Zero backend calls.
+// Read-only demo workspace for `#/demo`. Mirrors MatterDetail's shell
+// (MatterHeader + MatterTabBar + main column) but feeds every tab from
+// the hard-coded snapshot. Mutation handlers flash a workspace-framed
+// sign-up CTA. Zero backend calls.
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
-import { MatterSidebar } from "../matter/MatterSidebar";
+import { MatterHeader } from "../matter/MatterHeader";
+import { MatterTabBar } from "../matter/MatterTabBar";
 import { isTabKey, type TabKey } from "../matter/tabs/types";
 import { OverviewTab } from "../matter/tabs/OverviewTab";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
@@ -87,20 +88,24 @@ export function DemoMatter() {
   const flashPosture = () => flashCta("Sign up to change posture on your own matter");
 
   return (
-    <div className="max-w-page mx-auto">
-      <DemoBanner />
-      {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
-
-      <div className="flex">
-        <MatterSidebar
-          matter={matter}
-          tab={tab}
-          onChange={setTabAndHash}
-          onPostureChange={flashPosture}
-        />
-
-        <main className="flex-1 px-4 sm:px-6 lg:px-16 py-12 min-w-0">
-        {tab === "overview" && <OverviewTab matter={matter} />}
+    <>
+      <div className="max-w-page mx-auto">
+        <DemoBanner />
+        {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
+      </div>
+      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10">
+        <MatterHeader matter={matter} onPostureChange={flashPosture} />
+      </div>
+      <MatterTabBar tab={tab} onChange={setTabAndHash} />
+      <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-10">
+        {tab === "overview" && (
+          <OverviewTab
+            matter={matter}
+            docCount={documents.length}
+            eventCount={DEMO_SNAPSHOT.chronology.events.length}
+            auditRecent={DEMO_SNAPSHOT.audit.length}
+          />
+        )}
         {tab === "documents" && (
           <DemoDocumentsTab
             docs={documents}
@@ -177,9 +182,8 @@ export function DemoMatter() {
             disabledPlaceholder="Sign up to chat with the assistant on your own matter"
           />
         )}
-        </main>
-      </div>
-    </div>
+      </main>
+    </>
   );
 }
 
@@ -335,5 +339,5 @@ function DemoDocumentsTab({
   );
 }
 
-// PanelHeader + TabBar removed in v0.3 — the demo now shares
-// MatterSidebar with the live workspace.
+// Stage 2 retoken: demo shares the same MatterHeader + MatterTabBar
+// shell as the live workspace. Mutation handlers flash a sign-up CTA.

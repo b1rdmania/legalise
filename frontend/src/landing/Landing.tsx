@@ -80,7 +80,137 @@ export function Landing() {
   ];
 
   return (
-    <div className="max-w-page mx-auto flex">
+    <div className="max-w-page mx-auto">
+      {/* Hero: two-column above the fold */}
+      <section className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 grid grid-cols-1 lg:grid-cols-[minmax(0,36rem)_minmax(0,1fr)] gap-12 lg:gap-16 items-start border-b border-rule">
+        {/* Left column: text + CTAs */}
+        <div>
+          <div className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
+            Version 0.1 · May 2026
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
+            Open a matter. Ask the assistant. Run a legal module. See the
+            audit trail.
+          </h1>
+          <p className="text-xl text-muted leading-relaxed">
+            UK legal AI workspace. England &amp; Wales only. Matter-first.
+            Open-source, Apache 2.0.
+          </p>
+
+          <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
+            <div>
+              <div className="eyebrow mb-1.5">Author</div>
+              <div className="text-sm font-semibold text-ink">Andy Bird</div>
+            </div>
+            <div>
+              <div className="eyebrow mb-1.5">License</div>
+              <div className="text-sm font-semibold text-ink">Apache 2.0</div>
+            </div>
+            <div>
+              <div className="eyebrow mb-1.5">Status</div>
+              <div className="text-sm font-semibold text-ink">v0.1 demo</div>
+            </div>
+          </div>
+
+          {/* CTAs */}
+          {auth.user ? (
+            <div className="flex flex-wrap items-center gap-4 mt-8">
+              <button
+                onClick={onOpenDemo}
+                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
+              >
+                Open demo matter
+              </button>
+              <a
+                href="#/matters"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                All matters
+              </a>
+              <a
+                href="#/modules"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                Modules
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-4 mt-8">
+              <a
+                href="#/demo"
+                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                Open the demo
+              </a>
+              <a
+                href="#/auth/signup"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              >
+                Sign up free
+              </a>
+              <a
+                href="#/auth/signin"
+                className="text-sm text-muted hover:text-ink transition-colors"
+              >
+                Sign in
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Right column: product mock composite */}
+        <div className="hidden lg:block">
+          <div className="border border-rule bg-paper">
+            {/* Card 1: matter tab bar fragment */}
+            <div className="flex gap-6 px-4 pt-4 pb-0 text-xs">
+              <span className="text-ink font-semibold border-b-2 border-ink pb-2">
+                01 Overview
+              </span>
+              <span className="text-muted pb-2">02 Assistant</span>
+              <span className="text-muted pb-2">03 Documents</span>
+              <span className="text-muted pb-2">04 Chronology</span>
+            </div>
+
+            {/* Card 2: assistant reply */}
+            <div className="border-t border-rule p-4 flex flex-col gap-3">
+              <div className="bg-wash p-3 text-xs text-prose">
+                Pull every event from the disclosure documents that touches
+                the termination meeting.
+              </div>
+              <div className="border border-rule p-3 text-xs text-ink">
+                Eight events tagged. Three are CPR 31.22-gated. Open the
+                chronology to acknowledge the implied undertaking before
+                pinning to a Statement of Facts.
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <span className="inline-flex items-center gap-1 border border-rule px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-track2 text-prose mr-1">
+                  [CHRON #8]
+                </span>
+                <span className="inline-flex items-center gap-1 border border-rule px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-track2 text-prose mr-1">
+                  [DOC khan-employment-contract.pdf]
+                </span>
+                <span className="inline-flex items-center gap-1 border border-rule px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-track2 text-prose mr-1">
+                  [CITE Burchell 1980]
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: audit row */}
+            <div className="border-t border-rule">
+              <div className="px-4 pt-3 text-[9px] font-mono uppercase tracking-widest text-muted">
+                TIMESTAMP · MODULE · ACTION · MODEL · TOKENS · LATENCY · HASH
+              </div>
+              <div className="font-mono text-[11px] text-prose px-4 py-3">
+                2026-05-18 14:22 · uk-litigation-legal · premotion.run ·
+                claude-sonnet-4-6 · 12,400 tok · 4.2s · 8a3f
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Whitepaper body: sidebar TOC + numbered sections */}
+      <div className="flex">
       {/* Sidebar TOC — Warp shape */}
       <aside
         className="w-80 hidden lg:block sticky top-[80px] h-[calc(100vh-80px)] border-r border-rule p-10 overflow-y-auto"
@@ -158,81 +288,6 @@ export function Landing() {
 
       {/* Document column */}
       <main className="flex-1 px-4 sm:px-6 md:px-16 lg:px-24 py-16 max-w-4xl mx-auto">
-        {/* Hero */}
-        <div className="mb-16">
-          <div className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
-            Version 0.1 · May 2026
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
-            Open a matter. Ask the assistant. Install a legal module. Run it.
-            See what it touched. See the audit trail.
-          </h1>
-          <p className="text-xl text-muted leading-relaxed max-w-2xl">
-            UK legal AI workspace. England &amp; Wales only. Matter-first.
-            Open-source, Apache 2.0.
-          </p>
-
-          <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
-            <div>
-              <div className="eyebrow mb-1.5">Author</div>
-              <div className="text-sm font-semibold text-ink">Andy Bird</div>
-            </div>
-            <div>
-              <div className="eyebrow mb-1.5">License</div>
-              <div className="text-sm font-semibold text-ink">Apache 2.0</div>
-            </div>
-            <div>
-              <div className="eyebrow mb-1.5">Status</div>
-              <div className="text-sm font-semibold text-ink">v0.1 demo</div>
-            </div>
-          </div>
-
-          {/* CTAs */}
-          {auth.user ? (
-            <div className="flex flex-wrap items-center gap-4 mt-8">
-              <button
-                onClick={onOpenDemo}
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
-              >
-                Open demo matter
-              </button>
-              <a
-                href="#/matters"
-                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
-              >
-                All matters
-              </a>
-              <a
-                href="#/modules"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                Modules
-              </a>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-4 mt-8">
-              <a
-                href="#/demo"
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
-              >
-                Open the demo
-              </a>
-              <a
-                href="#/auth/signup"
-                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
-              >
-                Sign up free
-              </a>
-              <a
-                href="#/auth/signin"
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                Sign in
-              </a>
-            </div>
-          )}
-        </div>
-
         {/* 01. What it is */}
         <section
           id="abstract"
@@ -455,6 +510,7 @@ export function Landing() {
 
         <Footer />
       </main>
+      </div>
     </div>
   );
 }

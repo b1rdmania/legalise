@@ -8,8 +8,11 @@ import {
   type ModulesResponse,
 } from "../lib/api";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
+import { useAuth } from "../auth/AuthProvider";
 
 export function Modules() {
+  const auth = useAuth();
+  const isAuthed = !!auth.user;
   const [data, setData] = useState<ModulesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -19,6 +22,8 @@ export function Modules() {
   const [toggleError, setToggleError] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (auth.loading) return;
+    if (!isAuthed) return;
     getModules()
       .then((d) => {
         setData(d);
@@ -27,17 +32,29 @@ export function Modules() {
           setSelectedKey(`${first.plugin}/${first.skill}`);
         }
       })
-      .catch((e) => setError(String(e)));
-  }, []);
+      .catch((e) => {
+        const msg = String(e);
+        // 401 should never surface raw to a visitor. The unauth branch
+        // already short-circuits above; this guards a race where the
+        // session expires mid-fetch.
+        if (/\b401\b/.test(msg)) return;
+        setError(msg);
+      });
+  }, [auth.loading, isAuthed]);
 
   useEffect(() => {
+    if (!isAuthed) return;
     if (!selectedKey || !data) return;
     if (promptBody[selectedKey] || promptError[selectedKey]) return;
     const [plugin, skill] = selectedKey.split("/", 2);
     getSkillBody(plugin, skill)
       .then((body) => setPromptBody((prev) => ({ ...prev, [selectedKey]: body })))
-      .catch((e) => setPromptError((prev) => ({ ...prev, [selectedKey]: String(e) })));
-  }, [selectedKey, data, promptBody, promptError]);
+      .catch((e) => {
+        const msg = String(e);
+        if (/\b401\b/.test(msg)) return;
+        setPromptError((prev) => ({ ...prev, [selectedKey]: msg }));
+      });
+  }, [selectedKey, data, promptBody, promptError, isAuthed]);
 
   const grouped = useMemo(() => {
     const m = new Map<string, ModuleSkill[]>();
@@ -106,8 +123,36 @@ export function Modules() {
         </p>
       </div>
 
-      {error && <ErrorCallout message={error} />}
-      {!data && !error && <LoadingLine label="loading modules" />}
+      {!isAuthed && (
+        <div className="mb-10 border border-rule p-6">
+          <div className="eyebrow mb-2">Read only</div>
+          <div className="text-sm font-semibold text-ink mb-2">
+            Sign in to grant or revoke capabilities
+          </div>
+          <p className="text-sm text-prose mb-4 max-w-2xl">
+            Modules declare the capabilities they need. Granting and revoking
+            those grants is workspace-scoped, so it requires an account. You
+            can browse the demo matter without signing in.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="#/auth/signin"
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium"
+            >
+              Sign in
+            </a>
+            <a
+              href="#/demo"
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium"
+            >
+              Open the demo
+            </a>
+          </div>
+        </div>
+      )}
+
+      {isAuthed && error && <ErrorCallout message={error} />}
+      {isAuthed && !data && !error && <LoadingLine label="loading modules" />}
 
       {data && data.broken.length > 0 && (
         <div className="mb-10 border border-rule bg-yellow-100 p-4">

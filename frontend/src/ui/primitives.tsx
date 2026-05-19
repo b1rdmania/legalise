@@ -34,6 +34,25 @@ export function parseError(err: string): { status: string | null; body: string }
   return { status, body };
 }
 
+export function EmptyState({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="border border-rule p-8 text-center max-w-2xl mx-auto">
+      <div className="eyebrow mb-3">Empty</div>
+      <div className="text-sm font-semibold text-ink">{title}</div>
+      {body && <p className="text-sm text-prose mt-2">{body}</p>}
+      {action && <div className="mt-6 flex items-center justify-center gap-3">{action}</div>}
+    </div>
+  );
+}
+
 export function LoadingLine({ label }: { label: string }) {
   return (
     <p className="font-mono text-xs text-muted flex items-center gap-2">

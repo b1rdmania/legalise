@@ -69,37 +69,53 @@ export function TopBar({
             <span className="font-bold text-lg tracking-tight2 text-ink mt-0.5">LEGALISE</span>
           </a>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink">
-            <a
-              href="#/modules"
-              className={
-                "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-muted")
-              }
-            >
-              Modules
-            </a>
-            <a
-              href="#/matters"
-              className={
-                "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-muted")
-              }
-            >
-              Matters
-            </a>
             {auth.user ? (
-              <ProfileChip user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+              <>
+                <a
+                  href="#/matters"
+                  className={
+                    "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                  }
+                >
+                  Matters
+                </a>
+                <a
+                  href="#/modules"
+                  className={
+                    "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                  }
+                >
+                  Modules
+                </a>
+                <a
+                  href="#/settings/profile"
+                  className={
+                    "transition-colors " + (route.name === "settings" ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                  }
+                >
+                  Settings
+                </a>
+                <ProfileChip user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+              </>
             ) : (
               <>
                 <a
-                  href="#/auth/signin"
+                  href={DEMO_HREF_UNAUTHED}
                   className="text-ink hover:text-muted transition-colors"
                 >
-                  Sign in
+                  Open the demo
                 </a>
                 <a
-                  href={DEMO_HREF_UNAUTHED}
+                  href="#/auth/signup"
+                  className="text-ink hover:text-muted transition-colors"
+                >
+                  Sign up free
+                </a>
+                <a
+                  href="#/auth/signin"
                   className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
                 >
-                  Open demo matter
+                  Sign in
                 </a>
               </>
             )}

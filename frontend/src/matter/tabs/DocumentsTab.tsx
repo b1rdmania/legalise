@@ -11,6 +11,28 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)}M`;
 }
 
+// Derive a Type label from the document. Prefer the user-set tag, else
+// fall back to the file extension. Always uppercased.
+function deriveType(d: MatterDocument): string {
+  if (d.tag) return d.tag.toUpperCase();
+  const name = d.filename.toLowerCase();
+  const dot = name.lastIndexOf(".");
+  if (dot < 0) return "FILE";
+  const ext = name.slice(dot + 1);
+  if (ext === "pdf") return "PDF";
+  if (ext === "docx") return "DOCX";
+  if (ext === "txt") return "TXT";
+  return "FILE";
+}
+
+// Format an ISO timestamp as YYYY-MM-DD. The MatterDocument type only
+// carries `uploaded_at`, so that is treated as the most recent mutation
+// timestamp for the "Last action" column.
+function formatDate(iso: string): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
 export function DocumentsTab({
   docs,
   onUpload,
@@ -32,6 +54,12 @@ export function DocumentsTab({
   const inputCls =
     "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
 
+  // Column template shared by the header row and each data row so columns
+  // stay aligned. Document gets the largest fr; SHA and Size move into the
+  // expand drawer so the primary scan path is workflow-shaped.
+  const gridCols =
+    "grid grid-cols-[1.5fr_110px_120px_120px_110px_72px] gap-4 px-4 py-3";
+
   return (
     <div className="max-w-4xl">
       <div className="mb-10 pb-8 border-b border-rule">
@@ -46,7 +74,7 @@ export function DocumentsTab({
         </p>
       </div>
       <form className="mb-10 flex flex-wrap items-end gap-4">
-        <Field label="Tag" hint="optional - e.g. pleadings, disclosure">
+        <Field label="Tag" hint="optional, e.g. pleadings, disclosure">
           <input
             value={tag}
             onChange={(e) => setTag(e.target.value)}
@@ -77,53 +105,108 @@ export function DocumentsTab({
       {docs && docs.length > 0 && (
         <div className="border-t border-rule overflow-x-auto">
           <div className="min-w-[720px]">
-            <div className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-              <span>SHA</span>
-              <span>Filename</span>
-              <span>Size</span>
-              <span>Tag</span>
-              <span>Disclosure</span>
+            <div
+              className={`${gridCols} text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]`}
+            >
+              <span>Document</span>
+              <span>Type</span>
+              <span>Source</span>
+              <span>Extracted</span>
+              <span>Last action</span>
               <span className="text-right">Action</span>
             </div>
-            {docs.map((d) => (
-              <div key={d.id} className="border-b border-rule">
-                <div
-                  className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 hover:bg-wash transition-colors font-mono text-[11px] items-center cursor-pointer"
-                  onClick={() => setEditingId(editingId === d.id ? null : d.id)}
-                >
-                  <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
-                  <span className="text-ink truncate">{d.filename}</span>
-                  <span className="text-ink">{formatBytes(d.size_bytes)}</span>
-                  <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
-                  <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
-                  <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                    {editingId === d.id ? "Close" : "Edit"}
-                  </span>
-                </div>
-                {editingId === d.id && (
-                  <>
-                    <EditPanel
-                      documentId={d.id}
-                      filename={d.filename}
-                      onClose={() => setEditingId(null)}
-                    />
-                    <div className="border-t border-rule bg-paper p-5">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
-                          Anonymise · {d.filename}
+            {docs.map((d) => {
+              const typeLabel = deriveType(d);
+              // No body-extracted field exists on MatterDocument; the
+              // backend extracts on upload, so we render "Extracted" for
+              // every registered document. Swap to a real flag once the
+              // type grows one (e.g. body_extracted / extracted_at).
+              const extractedLabel = "Extracted";
+              return (
+                <div key={d.id} className="border-b border-rule">
+                  <div
+                    className={`${gridCols} hover:bg-wash transition-colors items-center cursor-pointer`}
+                    onClick={() =>
+                      setEditingId(editingId === d.id ? null : d.id)
+                    }
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-ink truncate">
+                        {d.filename}
+                      </div>
+                      {d.tag && (
+                        <div className="mt-1 text-xs text-muted">
+                          <Badge>{d.tag.toUpperCase()}</Badge>
                         </div>
-                        <AnonymiseButton documentId={d.id} />
-                      </div>
-                      <div className="text-[11px] text-muted">
-                        Generates a redacted body with [PARTY_n] / [ORG_n] / [ADDRESS_n] /
-                        [DATE_n] tokens. Original document stays unchanged. Side-by-side
-                        toggle UI lands with the routed Document detail view.
-                      </div>
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
-            ))}
+                    <span>
+                      <Badge>{typeLabel}</Badge>
+                    </span>
+                    <span>
+                      {d.from_disclosure ? (
+                        <Badge>CPR 31</Badge>
+                      ) : (
+                        <span className="text-xs text-muted">Upload</span>
+                      )}
+                    </span>
+                    <span className="text-xs text-ink">{extractedLabel}</span>
+                    <span className="font-mono text-xs text-ink">
+                      {formatDate(d.uploaded_at)}
+                    </span>
+                    <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
+                      {editingId === d.id ? "Close" : "Edit"}
+                    </span>
+                  </div>
+                  {editingId === d.id && (
+                    <>
+                      <div className="border-t border-rule bg-paper p-5">
+                        <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1 font-mono text-[11px]">
+                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
+                            SHA-256
+                          </dt>
+                          <dd className="text-ink truncate">
+                            {d.sha256.slice(0, 16)}
+                          </dd>
+                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
+                            Size
+                          </dt>
+                          <dd className="text-ink">{formatBytes(d.size_bytes)}</dd>
+                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
+                            Uploaded
+                          </dt>
+                          <dd className="text-ink">{d.uploaded_at}</dd>
+                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
+                            Tag
+                          </dt>
+                          <dd className="text-ink">
+                            {d.tag ? d.tag.toUpperCase() : "(none)"}
+                          </dd>
+                        </dl>
+                      </div>
+                      <EditPanel
+                        documentId={d.id}
+                        filename={d.filename}
+                        onClose={() => setEditingId(null)}
+                      />
+                      <div className="border-t border-rule bg-paper p-5">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
+                            Anonymise · {d.filename}
+                          </div>
+                          <AnonymiseButton documentId={d.id} />
+                        </div>
+                        <div className="text-[11px] text-muted">
+                          Generates a redacted body with [PARTY_n] / [ORG_n] / [ADDRESS_n] /
+                          [DATE_n] tokens. Original document stays unchanged. Side-by-side
+                          toggle UI lands with the routed Document detail view.
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

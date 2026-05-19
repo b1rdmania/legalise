@@ -11,17 +11,21 @@ colour fills; status reads via mono bordered pills.
 The visual register is a **printed brief**, not a SaaS dashboard. Every
 surface should look like something a solicitor could print and hand to
 a regulator. Prose where the work is reading. Slim tables where the
-work is scanning. Sidebar TOC anywhere the page has more than one
-section.
+work is scanning. Sidebar TOC for documents that scroll as one
+(the Landing whitepaper). Horizontal numbered tab bar for workspaces
+with discrete tools (matter detail).
 
 ### What changed in v0.3
 
 - **Single register.** The previous v0.2 hybrid (Warp prose + HyperTrade
   Terminal density) was visually cluttered on workspace surfaces. v0.3
   collapses to one register: Warp document-as-product.
-- **Sidebar TOC across all matter surfaces.** Replaces the horizontal
-  tab bar (old P9) and the dense panel header (old P8). Sidebar is
-  numbered, scroll-spy active, slim eyebrow stack for matter metadata.
+- **Sidebar TOC reserved for the Landing whitepaper.** Initial v0.3 also
+  applied it to matter detail; that read as "thesis document wrapped
+  around a backend" rather than a workspace. Matter detail now uses a
+  slim MatterHeader (title + slug + posture dropdown + metadata strip)
+  above a horizontal numbered MatterTabBar. Sidebar TOC stays on the
+  Landing because the Landing genuinely IS a whitepaper.
 - **Monochrome status pills only.** No green OPEN, no orange B_MIXED
   with coloured square. Status reads as a bordered mono pill (P15
   unchanged) or as an eyebrow + value stack.
@@ -82,9 +86,11 @@ any of them, reject the PR or add it to this list with a reason.
   for code blocks (P6), eyebrow labels (uppercase + tracking-widest
   mono is fine because the size is 10-12px), and inline citation
   refs.
-- **Horizontal tab bars on matter surfaces.** Replaced by the
-  Warp-style sidebar TOC (P9). Tab bars compress more navigation
-  into less space; sidebar TOCs let the page scan as a document.
+- **Sidebar TOCs on workspace surfaces.** The whitepaper sidebar TOC
+  pattern (Landing P9) is for documents that scroll as one. Matter
+  detail and module catalogue surfaces are discrete tools, not
+  chapters; they use a horizontal tab bar instead. Sidebar TOC is
+  reserved for the Landing whitepaper.
 - **"Open demo" CTAs that route to signup.** Demo is the static
   `#/demo` snapshot. Signup is a separate flow. Conflating them
   cost us a real bug.
@@ -567,58 +573,52 @@ Eyebrow on top in mono. H1 reads as the document title. Subhead is the
 lede in muted prose. Meta strip sits below the rule. No coloured pills.
 Matches the Warp hero geometry verbatim.
 
-## P9 - Sidebar TOC (matter + module + docs surfaces)
+**Workspace exception.** Matter shell uses a leaner `MatterHeader` -
+eyebrow + h1 + 5-item metadata strip (Slug, Opened, Retention, Status,
+Posture) - not a full document hero. Document heroes are for the
+Landing whitepaper and for single-document surfaces, not for
+workspaces with horizontal tab navigation (P9).
 
-Source: Warp Engine whitepaper sidebar. Used on every matter detail
-page, every module detail page, and every doc surface that has more
-than one section. Replaces the v0.2 horizontal tab bar.
+## P9 - Horizontal numbered tab bar (matter + workspace surfaces)
+
+Source: Mobbin pull on legal/workspace SaaS (Bonsai project detail,
+Asana product demo, Square invoice detail). Used on every matter
+detail surface and every workspace catalogue that exposes discrete
+tools rather than chapters of one scroll. Sidebar TOC is reserved
+for the Landing whitepaper.
 
 ```jsx
-<aside className="w-80 hidden lg:block sticky top-[80px] h-[calc(100vh-80px)]
-                  border-r border-rule p-10 overflow-y-auto">
-  <div className="text-[10px] font-bold tracking-[0.2em] text-muted uppercase mb-8">
-    Matter
-  </div>
-  <nav className="flex flex-col gap-1">
-    <a href="#overview"
-       className="toc-link py-2 border-l-2 border-ink pl-4 text-sm text-ink font-semibold">
-      01. Overview
-    </a>
-    <a href="#documents"
-       className="toc-link py-2 border-l-2 border-transparent pl-4 text-sm text-muted hover:text-ink transition-all">
-      02. Documents
-    </a>
-    <a href="#chronology"
-       className="toc-link py-2 border-l-2 border-transparent pl-4 text-sm text-muted hover:text-ink transition-all">
-      03. Chronology
-    </a>
+<div className="border-b border-rule overflow-x-auto sticky top-[64px] sm:top-[80px] bg-paper z-30">
+  <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 flex gap-8">
+    <button className="pt-4 pb-3 -mb-px text-sm border-b-2 border-ink text-ink font-semibold whitespace-nowrap">
+      01 Overview
+    </button>
+    <button className="pt-4 pb-3 -mb-px text-sm border-b-2 border-transparent text-muted hover:text-ink whitespace-nowrap">
+      02 Assistant
+    </button>
+    <button className="pt-4 pb-3 -mb-px text-sm border-b-2 border-transparent text-muted hover:text-ink whitespace-nowrap">
+      03 Documents
+    </button>
     {/* etc */}
-  </nav>
-
-  <div className="mt-12 pt-8 border-t border-rule">
-    <div className="text-[10px] font-bold tracking-[0.1em] text-muted uppercase mb-4">
-      Posture
-    </div>
-    <div className="text-sm font-semibold">B_mixed</div>
-    <div className="text-xs text-muted mt-1">Cloud providers opt-in.</div>
   </div>
-</aside>
+</div>
 ```
 
-Width `w-80`. Sticky under the 80px header. Numbered entries scroll-spy
-the page sections; active state is left ink border + `text-ink
-font-semibold`. Inactive entries are `text-muted`. Posture, status,
-model live below the rule as eyebrow + value stacks (no coloured fills).
+Eyebrow numbering uses a single space, not a period: `01 Overview`,
+not `01. Overview`. The period form is reserved for in-prose section
+headings (P4 numbered H2).
 
-On mobile (`lg:hidden`) the sidebar collapses; the existing P18 drawer
-provides navigation.
+Active state: `border-ink text-ink font-semibold`. Inactive:
+`border-transparent text-muted hover:text-ink`. Sticky under the
+fixed top bar (`top-[64px]` mobile, `top-[80px]` sm+) so the tabs
+stay in reach as the tab content scrolls.
 
-The main column lives at `max-w-4xl` to the right of the sidebar with
-`p-6 md:p-16 lg:p-24` padding. Mirrors the Warp document column
-exactly.
+On mobile the row scrolls horizontally inside `overflow-x-auto`. No
+collapse to a select; horizontal scroll is the pattern.
 
 The `-mb-px` overlaps the container `border-b border-rule` so the
-active `border-b-2 border-ink` reads continuous, not stacked.
+active `border-b-2 border-ink` reads as one continuous rule, not
+stacked.
 
 ## P10 — Dense data row with overlay bar
 

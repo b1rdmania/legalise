@@ -3,8 +3,6 @@ import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { TABS } from "../matter/tabs/types";
 
-const DEMO_SLUG = "khan-v-acme-trading-2026";
-const DEMO_HREF_AUTHED = `#/matters/${DEMO_SLUG}`;
 const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
@@ -73,21 +71,28 @@ export function Drawer({
       { href: "#/settings/profile", label: "Settings", active: isSettings },
       { label: "Sign out", onClick: onSignOut },
     ];
+  } else if (auth.user) {
+    // Authed marketing/landing view: keep the authed workspace nav so the
+    // user never sees marketing CTAs once signed in.
+    primary = [
+      { href: "#/matters", label: "Matters" },
+      { href: "#/modules", label: "Modules" },
+    ];
+    secondary = [
+      { href: "#/settings/profile", label: "Settings" },
+      { label: "Sign out", onClick: onSignOut },
+    ];
   } else {
-    // Marketing: Modules · Docs · GitHub · - · Open demo matter · Sign in
-    // "Open demo matter" for unauthed visitors routes to /#/demo (the
-    // static client-side Khan snapshot). Authed users land directly in
-    // their seeded Khan matter.
+    // Unauth marketing: Modules · Docs · GitHub · - · Open the demo · Sign up free · Sign in
     primary = [
       { href: "#/modules", label: "Modules" },
       { href: GITHUB_DOCS, label: "Docs", external: true },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: auth.user ? DEMO_HREF_AUTHED : DEMO_HREF_UNAUTHED, label: "Open demo matter" },
-      auth.user
-        ? { label: "Sign out", onClick: onSignOut }
-        : { href: "#/auth/signin", label: "Sign in" },
+      { href: DEMO_HREF_UNAUTHED, label: "Open the demo" },
+      { href: "#/auth/signup", label: "Sign up free" },
+      { href: "#/auth/signin", label: "Sign in" },
     ];
   }
 
