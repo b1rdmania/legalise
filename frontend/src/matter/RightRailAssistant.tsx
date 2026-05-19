@@ -13,6 +13,8 @@ interface Props {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onOpenFull: () => void;
+  // Read-only/demo mode: replace composer with a sign-up strip.
+  disabled?: boolean;
 }
 
 const MAX_VISIBLE = 5;
@@ -24,7 +26,7 @@ const MAX_VISIBLE = 5;
 // Shares MessageBubble with AssistantTab via compact mode so the message
 // shape stays consistent: user right-aligned on wash, assistant left-aligned
 // plain prose with citation chips below.
-export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpenFull }: Props) {
+export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpenFull, disabled = false }: Props) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -34,6 +36,10 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
 
   useEffect(() => {
     if (collapsed) return;
+    if (disabled) {
+      setLoaded(true);
+      return;
+    }
     let cancelled = false;
     listAssistantMessages(matter.slug)
       .then((rows) => {
@@ -48,7 +54,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
     return () => {
       cancelled = true;
     };
-  }, [matter.slug, collapsed]);
+  }, [matter.slug, collapsed, disabled]);
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -165,6 +171,19 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
         )}
       </div>
 
+      {disabled ? (
+        <div className="border-t border-rule p-3 flex flex-col gap-2">
+          <p className="text-xs text-prose leading-relaxed m-0">
+            Ask about this matter after signing up.
+          </p>
+          <a
+            href="#/auth/signup"
+            className="bg-ink text-paper px-3 py-1.5 text-xs font-medium inline-flex items-center justify-center hover:bg-black transition-colors self-start"
+          >
+            Sign up free
+          </a>
+        </div>
+      ) : (
       <div className="border-t border-rule p-3">
         <textarea
           value={input}
@@ -208,6 +227,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
           Open full Assistant
         </button>
       </div>
+      )}
     </aside>
   );
 }
