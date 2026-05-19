@@ -42,14 +42,14 @@ This is the wedge. Three things every solicitor needs from an AI tool, every one
 
 **Capabilities, requested and granted and enforced.** Modules declare what they need: read documents, write generated docs, call the model, write citations. The workspace grants those capabilities at signup; you can revoke any time. The runtime checks the grant before every privileged operation. A denial is a structured 403 plus an audit row. The doctrine, locked: manifest requests capabilities, workspace grants capabilities, runtime enforces capabilities.
 
-CPR 31.22 implied-undertaking gating, BYO provider keys, no provider-specific dependencies that bypass the gateway. None of this is theory; it's all in code today.
+CPR 31.22 implied-undertaking gating, per-user encrypted provider keys (AES-256-GCM, added in Settings), stub-echo as the keyless default, no provider-specific dependencies that bypass the gateway. None of this is theory; it's all in code today.
 
 ## Quick start
 
 ```bash
 git clone https://github.com/b1rdmania/legalise
 cd legalise
-cp .env.example .env             # edit ANTHROPIC_API_KEY if you have one; stub-echo works without
+cp .env.example .env             # all keys optional in dev; stub-echo runs keyless. Add your own key in Settings after signup.
 docker compose -f infra/docker-compose.yml up --build
 ```
 
