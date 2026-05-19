@@ -121,18 +121,22 @@ export function TopBar({
                     Fork on GitHub
                   </a>
                 )}
-                <a
-                  href="#/auth/signup"
-                  className="text-ink hover:text-muted transition-colors"
-                >
-                  Sign up free
-                </a>
-                <a
-                  href="#/auth/signin"
-                  className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
-                >
-                  Sign in
-                </a>
+                {!isDemo && (
+                  <>
+                    <a
+                      href="#/auth/signup"
+                      className="text-ink hover:text-muted transition-colors"
+                    >
+                      Sign up free
+                    </a>
+                    <a
+                      href="#/auth/signin"
+                      className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
+                    >
+                      Sign in
+                    </a>
+                  </>
+                )}
               </>
             )}
           </nav>
