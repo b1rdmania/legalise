@@ -1,8 +1,38 @@
 # Handover — Legalise v0.2 substance + JOY pass
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-19 evening. Master on `4e15fd8`.
+**As of:** 2026-05-19 evening. Master on `3b331ee` (post-R1 fixes).
 **Scope:** everything that landed since the reviewer's backend scoping verdict and the "v0.1 truthfulness vs v0.2 substance" framing message. Read in order; sections are short.
+
+---
+
+## R1 — what landed after the original handover
+
+Reviewer's first verdict approved 3/4 endpoints and blocked workflow-state on capability vocabulary, grant derivation, and the unreachable `not-installed` enum. Fixed in `d9af89f`, with three follow-ups in `3b331ee`.
+
+**Backend (`d9af89f`)**
+- `WORKFLOW_DEFS` capability vocabulary stripped to runtime-only: `audit.write` / `review.write` / `net.http` removed. The intent ("writes review table", "uses network") now lives in the human `description`. New regression test `test_workflow_declared_capabilities_match_runtime_vocabulary` asserts every workflow's declared set ⊆ `CAPABILITY_VOCABULARY`.
+- `not-installed` removed from `WorkflowGrant` and `WorkflowAvailability` (response enum and frontend types). v0.1 admits the endpoint is a built-in catalogue; `not-installed` is reserved for future marketplace modules. Guard test `test_workflows_grant_values_never_include_not_installed`.
+- Grant derivation kept as workspace-level union (the workflows are in-app pipelines, not skill-backed), with the docstring on `_compute_workflow_state`, `WorkflowState` comment, and `WORKFLOW_DEFS` header all spelling out the v0.1 semantics explicitly.
+
+**Pre-launch tidy (`3b331ee`)**
+- `DELETE /api/users/me` moved to `DELETE /auth/users/me` so the entire user resource lives at one URL prefix. `account_router` mounts before `auth_router` in `main.py` so the literal `/me` wins over fastapi-users' superuser-only `/{id}` catch-all. Frontend `deleteAccount` URL + 5 account tests + BACKEND_TODOS doc updated.
+- `backend/tests/test_capability_vocabulary_schema.py` (2 tests) asserts both schema enum locations in `schemas/module.json` equal `CAPABILITY_VOCABULARY` exactly. Side fix: `docker-compose.yml` now bind-mounts `../schemas:/schemas:ro` because `modules.py`'s validator was silently returning None inside the container (schema file invisible). Honest gap closed.
+- `CONTRIBUTING.md` refreshed: stale "pre-build state" replaced with real `docker compose up` / `pytest` / `alembic upgrade` commands + voice-check rg recipes.
+
+**Stats (post-R1)**
+- Master: `3b331ee`
+- Tests: **142** collected, all passing (was 138 in the original handover; the original said 121 because the README was stale at that point — README now matches at 142).
+- Workflow `grant` enum: `granted` | `partial` | `blocked`
+- Workflow `availability` enum: `ok` | `blocked-by-posture` | `blocked-by-grant`
+
+**Frontend hygiene also done in R1:**
+- `frontend/src/matter/tabs/types.ts::WORKFLOW_TABS` had a second stale capability vocabulary (`audit.write`, `document.write`, `review.write`, `net.http`). Stripped: `WorkflowTab` is now `{ key, label }` only. Backend `WORKFLOW_DEFS` is the single source of truth for workflow metadata.
+- `docs/JOY.md` Module Cards pattern clarified: `not-installed` is for future marketplace modules, never v0.1 built-in workflows.
+
+The body of this doc below is the original handover content. The status block at the top of §2 lists the original numbers; refer to this R1 section for current state.
+
+---
 
 ---
 

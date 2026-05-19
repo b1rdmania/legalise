@@ -30,85 +30,24 @@ export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "audit", label: "Audit" },
 ];
 
+// Frontend workflow taxonomy. Used by TopBar + MatterBreadcrumb to
+// resolve a workflow tab key to its human label and to test "is this
+// a workflow surface". The canonical workflow definitions (capabilities,
+// audit modules, description, state derivation) live server-side in
+// `backend/app/api/matters.py::WORKFLOW_DEFS` and are surfaced via
+// `GET /api/matters/{slug}/workflows`. Do not duplicate that metadata
+// here - the backend is the single source of truth.
 export interface WorkflowTab {
   key: TabKey;
   label: string;
-  blurb: string;
-  // Plain-English description rendered on the Workflows catalogue card.
-  // This is the human story; the schema slugs below stay as the source
-  // of truth for the Modules catalogue.
-  description: string;
-  // Static descriptive metadata for the catalogue card (v0.1 - these are
-  // descriptions of the workflow's contract, not live state).
-  reads: string;
-  writes: string;
-  calls: number;
-  // Capabilities declared by the module. Read-only display in the public
-  // catalogue.
-  capabilities: string[];
 }
 
 export const WORKFLOW_TABS: ReadonlyArray<WorkflowTab> = [
-  {
-    key: "premotion",
-    label: "Pre-Motion",
-    blurb:
-      "Adversarial premortem. Nine model calls. Optimistic Analyst, Evidence Inspector, Premortem Adversary, Synthesiser.",
-    description:
-      "Stress-test a claim with nine model calls. Reads the matter documents and chronology. Logs every step to the audit; writes no other artefacts.",
-    reads: "documents + chronology",
-    writes: "audit only",
-    calls: 9,
-    capabilities: ["matter.read", "document.body.read", "chronology.read", "audit.write"],
-  },
-  {
-    key: "letters",
-    label: "Letters",
-    blurb:
-      "Routed by matter type. ET surfaces LBA drafter; civil surfaces CPR letter drafter.",
-    description:
-      "Draft a routing-aware letter (LBA for ET, CPR letter for civil). Reads matter metadata and the chronology. Outputs a draft document and an audit trail.",
-    reads: "matter metadata + chronology",
-    writes: "document.generated + audit",
-    calls: 3,
-    capabilities: ["matter.read", "chronology.read", "document.write", "audit.write"],
-  },
-  {
-    key: "contract-review",
-    label: "Contract review",
-    blurb:
-      "Four-stage UK-focused review. Parse, analyse (UCTA / CRA / UK GDPR / governing law / jurisdiction), redline, summarise.",
-    description:
-      "Run a four-stage UK-focused review: parse, analyse against UCTA/CRA/UK GDPR/governing law/jurisdiction, redline, summarise. Reads the contract; outputs a draft redline and an audit trail.",
-    reads: "documents",
-    writes: "document.generated + audit",
-    calls: 4,
-    capabilities: ["document.body.read", "document.write", "audit.write"],
-  },
-  {
-    key: "reviews",
-    label: "Tabular Review",
-    blurb:
-      "Run a structured column set across a document set. One row per document, one column per question. Cell answers cite back to the source passage.",
-    description:
-      "Apply a structured column set across a document set. One row per document, one column per question; every cell cites its source passage.",
-    reads: "documents",
-    writes: "review.table + audit",
-    calls: 1,
-    capabilities: ["document.body.read", "review.write", "audit.write"],
-  },
-  {
-    key: "research",
-    label: "Case law",
-    blurb:
-      "Search reported authorities and cite them into the matter. v0.2 swaps in Find Case Law via MCP.",
-    description:
-      "Search reported UK authorities and cite them into the matter. v0.2 swaps in the Find Case Law MCP.",
-    reads: "matter metadata",
-    writes: "citation + audit",
-    calls: 2,
-    capabilities: ["matter.read", "citation.write", "audit.write", "net.http"],
-  },
+  { key: "premotion", label: "Pre-Motion" },
+  { key: "letters", label: "Letters" },
+  { key: "contract-review", label: "Contract review" },
+  { key: "reviews", label: "Tabular Review" },
+  { key: "research", label: "Case law" },
 ];
 
 export type StageProgress = {

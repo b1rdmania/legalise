@@ -88,8 +88,9 @@ Every module card must show:
 - reads (what data it touches)
 - writes (what it produces)
 - last run (provenance)
-- availability (granted, partial, blocked, not-installed; posture
-  blocking explained)
+- availability (granted, partial, blocked; posture blocking explained;
+  `not-installed` only applies to future marketplace modules, never
+  to v0.1 built-in workflows, which are always present)
 - primary action
 
 Module cards are the marketplace surface. They have to read as
