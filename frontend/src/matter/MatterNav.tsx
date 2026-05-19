@@ -164,6 +164,17 @@ function NavBody({
 // Inline posture control - identical behaviour to PrivilegeControl, but
 // the surrounding rule-bordered chip provides the visual frame so we
 // strip the default left margin and tighten the font to mono 11px.
+const POSTURE_LABEL: Record<string, string> = {
+  A_cleared: "Cleared",
+  B_mixed: "Mixed",
+  C_paused: "Paused",
+};
+const POSTURE_BLURB: Record<string, string> = {
+  A_cleared: "A_cleared - privileged material excluded; cloud providers permitted",
+  B_mixed: "B_mixed - cloud providers allowed for this matter",
+  C_paused: "C_paused - local models only; cloud calls refused",
+};
+
 function PrivilegeControlInline({
   value,
   onChange,
@@ -176,11 +187,12 @@ function PrivilegeControlInline({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label="Privilege posture"
+      title={POSTURE_BLURB[value] ?? value}
       className="bg-transparent text-[10px] font-mono font-bold uppercase tracking-track2 text-ink border-none outline-none cursor-pointer p-0 focus-visible:underline focus-visible:underline-offset-4"
     >
-      <option value="A_cleared">A_cleared</option>
-      <option value="B_mixed">B_mixed</option>
-      <option value="C_paused">C_paused</option>
+      <option value="A_cleared">{POSTURE_LABEL.A_cleared}</option>
+      <option value="B_mixed">{POSTURE_LABEL.B_mixed}</option>
+      <option value="C_paused">{POSTURE_LABEL.C_paused}</option>
     </select>
   );
 }

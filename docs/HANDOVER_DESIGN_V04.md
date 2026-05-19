@@ -1,7 +1,7 @@
 # Design handover — Legalise v0.4
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-19, master `22a323d`.
+**As of:** 2026-05-19. Updated after a reviewer pass — current master is past `22a323d`; the hardening commits that landed after the original handover are the response to those review notes. See `git log` for the live trail.
 **Scope:** every visual change shipped in this session, the doctrine behind them, what's settled, what's open. Read this before opening DESIGN.md; this is the short story, DESIGN.md is the long one.
 
 ---

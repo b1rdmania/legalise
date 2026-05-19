@@ -404,7 +404,7 @@ export function MatterDetail({
           {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
           {tab === "research" && matter && <ResearchTab matter={matter} />}
         </main>
-        {tab !== "assistant" && tab !== "workflows" && (
+        {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
           <RightRailAssistant
             matter={matter}
             collapsed={rightRailCollapsed}

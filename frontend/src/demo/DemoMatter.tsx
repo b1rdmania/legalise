@@ -207,7 +207,7 @@ export function DemoMatter() {
               <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
             )}
           </main>
-          {tab !== "assistant" && tab !== "workflows" && (
+          {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
             <RightRailAssistant
               matter={matter}
               collapsed={rightRailCollapsed}

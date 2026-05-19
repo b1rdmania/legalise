@@ -219,18 +219,34 @@ export function AssistantTab({
           </div>
         )}
 
+        {disabled ? (
+          // Compact unauth state - no oversized inert textarea.
+          <div className="mt-3 border border-rule p-4 flex flex-wrap items-center gap-3 bg-paper">
+            <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
+              {disabledPlaceholder ?? "Sign up to chat with the assistant on your own matter."}
+            </p>
+            <a
+              href="#/auth/signup"
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] inline-flex items-center"
+            >
+              Sign up free
+            </a>
+            <a
+              href="#/auth/signin"
+              className="text-sm text-muted hover:text-ink transition-colors"
+            >
+              Sign in
+            </a>
+          </div>
+        ) : (
         <div className="mt-3">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
-            disabled={disabled || pending}
+            disabled={pending}
             rows={3}
-            placeholder={
-              disabled
-                ? disabledPlaceholder ?? "Sign up to chat with the assistant on your own matter"
-                : "Ask about the matter. Cmd/Ctrl+Enter to send."
-            }
+            placeholder="Ask about the matter. Cmd/Ctrl+Enter to send."
             className="w-full bg-paper border border-rule px-4 py-3 text-[15px] focus:border-ink focus:outline-none transition-colors font-sans text-ink resize-y disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed"
           />
           <div className="mt-2 flex items-center justify-between gap-3">
@@ -241,13 +257,14 @@ export function AssistantTab({
             </span>
             <button
               onClick={onSend}
-              disabled={disabled || pending || !input.trim()}
+              disabled={pending || !input.trim()}
               className={primaryBtn}
             >
               {pending ? "Sending…" : "Send"}
             </button>
           </div>
         </div>
+        )}
       </div>
 
       <aside className="border border-rule bg-paper p-5 self-start space-y-5">

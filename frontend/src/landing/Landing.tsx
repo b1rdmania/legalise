@@ -161,7 +161,9 @@ export function Landing() {
         {/* Right column: editorial splash artwork */}
         <div className="hidden lg:block">
           <img
-            src="/hero-splash.png"
+            src="/hero-splash.webp"
+            width={2000}
+            height={980}
             alt=""
             aria-hidden="true"
             className="w-full h-auto block select-none"
