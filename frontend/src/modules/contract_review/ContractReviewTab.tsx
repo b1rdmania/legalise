@@ -211,20 +211,6 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="mb-10 pb-8 border-b border-rule">
-        <div className="eyebrow mb-3">08 · Contract review</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Contract review
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Four-stage UK-focused review: parse, analyse (UCTA / CRA s.62 /
-          UK GDPR Art 28 / governing law / jurisdiction / arbitration),
-          redline, summarise. Runs against the document's extracted text.
-          Anonymised bodies are not used. Results are not persisted in
-          v0.1. Export as .docx to keep a copy.
-        </p>
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="eyebrow">Document</span>

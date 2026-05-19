@@ -1,7 +1,7 @@
 import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
-import { TABS } from "../matter/tabs/types";
+import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
@@ -49,12 +49,14 @@ export function Drawer({
   let secondary: Item[] = [];
 
   if (isDetail && matter) {
-    // Workspace + matter in scope: tabs · - · Modules · Settings · Sign out
-    const currentTab = (route.name === "detail" ? route.tab : undefined) ?? "overview";
-    primary = TABS.map((t) => ({
-      href: `#/matters/${matter.slug}${t.key === "overview" ? "" : `/${t.key}`}`,
+    // Workspace + matter in scope: sidebar nav · - · Modules · Settings · Sign out
+    const rawTab = route.name === "detail" ? route.tab : undefined;
+    const currentTab = rawTab && isTabKey(rawTab) ? rawTab : "assistant";
+    const activeKey = sidebarActiveFor(currentTab);
+    primary = SIDEBAR_NAV.map((t) => ({
+      href: `#/matters/${matter.slug}/${t.key}`,
       label: t.label,
-      active: currentTab === t.key,
+      active: activeKey === t.key,
     }));
     secondary = [
       { href: "#/modules", label: "Modules" },

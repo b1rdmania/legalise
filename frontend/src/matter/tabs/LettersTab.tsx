@@ -3,7 +3,7 @@ import type {
   LetterDraft,
   Matter,
 } from "../../lib/api";
-import { Badge, ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
 
 export function LettersTab({
   matter,
@@ -36,24 +36,11 @@ export function LettersTab({
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-10 pb-8 border-b border-rule">
-        <div className="eyebrow mb-3">07 · Letters</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Letters
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Routed by matter type. ET matters surface{" "}
-          <span className="text-ink font-mono text-xs">uk-employment-legal/lba-drafter</span> as
-          default; civil matters surface{" "}
-          <span className="text-ink font-mono text-xs">uk-litigation-legal/cpr-letter-drafter</span>.
-          Drafts are not persisted in v0.1. Download the .docx to keep a copy.
-        </p>
-      </div>
-
       {catalogue.letter_types.length === 0 && (
-        <div className="border border-rule p-6 text-sm text-muted">
-          No letter skills mapped for matter_type={catalogue.matter_type}.
-        </div>
+        <EmptyState
+          title="No letter skills mapped"
+          body={`No letter skills are registered for matter_type=${catalogue.matter_type}.`}
+        />
       )}
 
       {catalogue.letter_types.length > 0 && (

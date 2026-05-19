@@ -33,19 +33,6 @@ export function PreMotionTab({
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-10 pb-8 border-b border-rule">
-        <div className="eyebrow mb-3">06 · Pre-Motion</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Pre-Motion
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Adversarial premortem. Optimistic Analyst then Evidence Inspector
-          (three parallel sub-agents) then Premortem Adversary (four parallel
-          sub-agents) then Synthesiser. Nine model calls per run, all
-          audited.
-        </p>
-      </div>
-
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <button
           onClick={onRun}

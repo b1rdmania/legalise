@@ -1,5 +1,5 @@
 import type { ChronologyResponse } from "../../lib/api";
-import { Badge, LoadingLine, ToggleButton } from "../../ui/primitives";
+import { Badge, EmptyState, LoadingLine, ToggleButton } from "../../ui/primitives";
 import { CprGateBanner } from "../CprGateBanner";
 
 export function ChronologyTab({
@@ -17,27 +17,15 @@ export function ChronologyTab({
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-10 pb-8 border-b border-rule">
-        <div className="eyebrow mb-3">05 · Chronology</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Chronology
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Events extracted from the matter documents, sorted by date.
-          Disclosure-sourced events sit behind the CPR 31.22 gate until
-          counsel acknowledges the implied undertaking. The Statement of
-          facts variant filters to significance four and above.
-        </p>
-      </div>
-
       {chron.gate.required && !chron.gate.confirmed && (
         <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
       )}
 
       {chron.events.length === 0 && (
-        <div className="border border-rule p-6 text-sm text-muted">
-          No events seeded. Live extraction lands v0.2.
-        </div>
+        <EmptyState
+          title="No events yet"
+          body="Live chronology extraction lands in v0.2."
+        />
       )}
 
       {chron.events.length > 0 && (

@@ -10,6 +10,7 @@ import {
   createReview,
   deleteReview,
 } from "./api";
+import { EmptyState } from "../../ui/primitives";
 
 type Props = {
   slug: string;
@@ -69,26 +70,13 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-10 pb-8 border-b border-rule">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="eyebrow mb-3">03 · Reviews</div>
-            <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-              Tabular reviews
-            </h2>
-            <p className="text-sm text-prose max-w-2xl leading-relaxed">
-              Run a structured column set across a document set. One row
-              per document, one column per question. Cell answers cite back
-              to the source passage.
-            </p>
-          </div>
-          <button
-            className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[40px] shrink-0"
-            onClick={() => setCreating((c) => !c)}
-          >
-            {creating ? "Cancel" : "New review"}
-          </button>
-        </div>
+      <div className="flex items-center justify-end gap-4 mb-6">
+        <button
+          className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[40px] shrink-0"
+          onClick={() => setCreating((c) => !c)}
+        >
+          {creating ? "Cancel" : "New review"}
+        </button>
       </div>
 
       {creating && (
@@ -120,9 +108,10 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
       {items === null ? (
         <div className="text-sm text-muted">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="border border-rule p-6 text-sm text-muted">
-          No reviews yet. Click <em>New review</em> to start.
-        </div>
+        <EmptyState
+          title="No reviews yet"
+          body="Click New review to start a structured column set."
+        />
       ) : (
         <div className="border-t border-rule">
           {items.map((r) => (

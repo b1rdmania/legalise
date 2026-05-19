@@ -1,0 +1,59 @@
+// MatterBreadcrumb - slim path strip above the content column (v0.4).
+// Replaces the v0.3.1 MatterHeader full metadata block. Single line:
+// Matters / {matter title} / {tab label}. Posture lives in the
+// sidebar matter card. Surfaces that need more metadata render it
+// inline within the tab body.
+
+import type { Matter } from "../lib/api";
+import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "./tabs/types";
+
+function labelFor(tab: TabKey): string {
+  const sidebar = SIDEBAR_NAV.find((t) => t.key === tab);
+  if (sidebar) return sidebar.label;
+  const workflow = WORKFLOW_TABS.find((t) => t.key === tab);
+  if (workflow) return workflow.label;
+  return "";
+}
+
+export function MatterBreadcrumb({
+  matter,
+  tab,
+}: {
+  matter: Matter;
+  tab: TabKey;
+}) {
+  const tabLabel = labelFor(tab);
+  // For workflow surfaces, show Matters / title / Workflows / surface
+  const isWorkflowSurface = WORKFLOW_TABS.some((t) => t.key === tab);
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-10 py-4 border-b border-rule flex items-center justify-between gap-4">
+      <div className="flex items-center min-w-0 text-sm">
+        <a href="#/matters" className="text-muted hover:text-ink transition-colors shrink-0">
+          Matters
+        </a>
+        <span className="text-muted mx-2 shrink-0">/</span>
+        <span className="font-semibold text-ink truncate" title={matter.title}>
+          {matter.title}
+        </span>
+        {tabLabel && (
+          <>
+            <span className="text-muted mx-2 shrink-0">/</span>
+            {isWorkflowSurface && (
+              <>
+                <a
+                  href={`#/matters/${matter.slug}/workflows`}
+                  className="text-muted hover:text-ink transition-colors shrink-0"
+                >
+                  Workflows
+                </a>
+                <span className="text-muted mx-2 shrink-0">/</span>
+              </>
+            )}
+            <span className="text-prose truncate shrink-0">{tabLabel}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
