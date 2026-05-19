@@ -52,7 +52,7 @@ export function MessageBubble({
 function UserMessage({ content, compact }: { content: string; compact: boolean }) {
   const cls = compact
     ? "max-w-[90%] bg-wash border border-rule px-3 py-2 text-xs text-ink whitespace-pre-wrap leading-relaxed"
-    : "max-w-[80%] bg-wash border border-rule px-4 py-3 text-sm text-ink whitespace-pre-wrap leading-relaxed";
+    : "max-w-[560px] bg-wash border border-rule px-4 py-3 text-sm text-ink whitespace-pre-wrap leading-relaxed";
   return (
     <div className="flex justify-end">
       <div className={cls}>{content}</div>
@@ -76,7 +76,7 @@ function AssistantMessageView({
 
   return (
     <div className="flex justify-start">
-      <div className={(compact ? "max-w-full" : "max-w-[88%]") + " flex flex-col gap-2"}>
+      <div className={(compact ? "max-w-full" : "w-full") + " flex flex-col gap-2"}>
         <div className={`font-mono ${metaSizing} text-muted`}>
           Assistant{compact ? "" : ` · ${MODEL_LABEL}`}
           {sourceCount > 0 ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}` : ""}
@@ -96,9 +96,10 @@ function AssistantMessageView({
                   compact ? "text-[10px]" : "text-[11px]"
                 } hover:border-ink transition-colors`}
               >
-                <span className="text-muted mr-1">
-                  {c.kind === "doc" ? "Document" : "Chronology"}
+                <span className="text-muted">
+                  {c.kind === "doc" ? "Document" : "Event"}
                 </span>
+                <span className="text-muted mx-1" aria-hidden>{"·"}</span>
                 <span>{c.label}</span>
               </button>
             ))}
@@ -145,7 +146,8 @@ function extractCitations(
   for (const d of docs ?? []) {
     const full = d.filename || d.id;
     docFull.set(d.id, full);
-    docLabel.set(d.id, stripExtension(full));
+    // Keep full filename (with extension) on the chip; ID stays in tooltip.
+    docLabel.set(d.id, full);
   }
   const chronLabel = new Map<string, string>();
   const chronFull = new Map<string, string>();
@@ -177,16 +179,6 @@ function extractCitations(
     });
   }
   return { text, citations };
-}
-
-function stripExtension(filename: string): string {
-  const dot = filename.lastIndexOf(".");
-  if (dot <= 0) return filename;
-  const ext = filename.slice(dot + 1).toLowerCase();
-  if (/^(pdf|docx|doc|txt|md|rtf|odt|eml|msg|csv|xlsx|xls|png|jpg|jpeg|tiff)$/.test(ext)) {
-    return filename.slice(0, dot);
-  }
-  return filename;
 }
 
 const HUMAN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
