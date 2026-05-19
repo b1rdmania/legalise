@@ -14,6 +14,7 @@ from pathlib import Path
 
 from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
+from app.api.account import router as account_router
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.modules import router as modules_router
@@ -163,6 +164,7 @@ async def health() -> dict[str, Any]:
 
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(account_router, prefix="/api/users", tags=["account"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])

@@ -47,12 +47,26 @@ last-run-at audit sourcing, and 404 for non-owner matters.
 **Needed:** Add a `plan` field to `CurrentUser` (string: `free` / `pro` /
 `team`). Settable when billing wires up later; for now seed all users `free`.
 
-## TODO(delete-account)
+## ~~TODO(delete-account)~~ SHIPPED 2026-05-19
 
-**Where:** `frontend/src/pages/SettingsPage.tsx` danger zone.
+`DELETE /api/users/me` (mounted from `backend/app/api/account.py`)
+implements the locked v0.1 policy from the reviewer pass:
 
-**Current state:** Button calls `window.confirm` then logs to console.
+- **Matter count > 0**: 409 with
+  `{error: "account_has_matters", message, matter_count}`. No deletion.
+  v0.1 safety rail; v0.2 adds matter export / delete then a graceful
+  account-deletion flow that walks through it.
+- **Matter count == 0**: 204. `is_active=False`, profile fields scrubbed
+  (`name`, `default_model_id`, `default_privilege_posture`), every
+  `AccessToken` row for the user removed, session cookie cleared.
+- **Audit entries never cascade.** `AuditEntry.actor_id` is nullable;
+  hard purge with anonymisation is a v0.2 background job.
 
-**Needed:** `DELETE /api/users/me` that soft-deletes the user, invalidates the
-session cookie, and returns 204. Matters owned by the user follow whatever
-retention policy we land on (TBD — flag for a separate decision).
+Tests in `backend/tests/test_account_delete.py` cover: no-matters
+soft-delete + session revocation + cookie clear, matters-owned 409,
+audit FK survival, auth-required, and per-user session isolation.
+
+Frontend `Settings.tsx` danger-zone now wires to `deleteAccount()` in
+`lib/api.ts`. Throws `AccountHasMattersError` with `matterCount` on 409;
+copy bumps the user to "Export or delete matters first (matter-delete
+lands in v0.2)."

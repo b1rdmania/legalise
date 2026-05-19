@@ -232,6 +232,38 @@ export const getMatterWorkflows = (slug: string) =>
     jsonOrThrow<MatterWorkflowsResponse>(r),
   );
 
+// Account-level operations. v0.1 ships only delete; v0.2 adds export.
+// `deleteAccount` either succeeds with 204 (soft-delete + session
+// revocation) or throws `AccountHasMattersError` (server returns 409
+// with the matter count when the user owns matters).
+export class AccountHasMattersError extends Error {
+  readonly matterCount: number;
+  constructor(matterCount: number) {
+    super(
+      `Account owns ${matterCount} matter${matterCount === 1 ? "" : "s"}. ` +
+        "Export or delete matters before deleting the account.",
+    );
+    this.name = "AccountHasMattersError";
+    this.matterCount = matterCount;
+  }
+}
+
+export const deleteAccount = async (): Promise<void> => {
+  const r = await apiFetch(`${API}/users/me`, { method: "DELETE" });
+  if (r.status === 204) return;
+  if (r.status === 409) {
+    let count = 0;
+    try {
+      const body = (await r.json()) as { detail?: { matter_count?: number } };
+      count = body.detail?.matter_count ?? 0;
+    } catch {
+      // body parse failure — leave count at 0 and surface the generic message.
+    }
+    throw new AccountHasMattersError(count);
+  }
+  throw new Error(`deleteAccount: ${r.status} ${r.statusText}`);
+};
+
 export const getSkillBody = (plugin: string, skill: string) =>
   apiFetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
     if (!r.ok) {

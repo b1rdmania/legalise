@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import {
+  AccountHasMattersError,
+  deleteAccount,
   deleteApiKey,
   listApiKeys,
   updateProfile,
@@ -109,6 +111,7 @@ function SettingsProfile({
   user: CurrentUser;
   onUpdated: () => void;
 }) {
+  const auth = useAuth();
   const [name, setName] = useState(user.name ?? "");
   const [password, setPassword] = useState("");
   const [defaultModel, setDefaultModel] = useState(user.default_model_id ?? "");
@@ -147,15 +150,29 @@ function SettingsProfile({
     }
   };
 
-  const onDeleteAccount = () => {
+  const onDeleteAccount = async () => {
     const ok = window.confirm(
-      "Delete your account? This removes all matters and audit history and cannot be undone.",
+      "Delete your account? Your matters and audit trail will be retained; your profile and sessions will be cleared.",
     );
     if (!ok) return;
-    // TODO(delete-account): no deleteAccount endpoint in lib/api yet. Wire to
-    // DELETE /auth/users/me (or equivalent) once the backend ships it.
-    // eslint-disable-next-line no-console
-    console.warn("[Settings] delete-account requested but no endpoint wired yet");
+    setBusyField("delete");
+    setError(null);
+    try {
+      await deleteAccount();
+      // Soft-deleted server-side; clear the auth state and bounce home.
+      await auth.signOut();
+      navigate("/");
+    } catch (err) {
+      if (err instanceof AccountHasMattersError) {
+        setError(
+          `Cannot delete account yet. ${err.matterCount} matter${err.matterCount === 1 ? "" : "s"} still attached. Export or delete matters first (matter-delete lands in v0.2).`,
+        );
+      } else {
+        setError(String(err));
+      }
+    } finally {
+      setBusyField(null);
+    }
   };
 
   // TODO(plan): backend does not yet expose a plan field on CurrentUser.
