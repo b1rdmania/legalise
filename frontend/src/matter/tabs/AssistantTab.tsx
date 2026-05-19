@@ -9,6 +9,7 @@ import {
   type SuggestedAction,
 } from "../../lib/api";
 import { InlineSpinner, primaryBtn } from "../../ui/primitives";
+import { AgentStatusCard } from "../AgentStatusCard";
 import type { TabKey } from "./types";
 
 interface AssistantTabProps {
@@ -163,14 +164,29 @@ export function AssistantTab({
             </p>
           )}
           {loaded && messages.length === 0 && (
-            <div className="text-sm text-muted">
-              <p className="mb-2">
+            <div className="text-sm text-muted space-y-4">
+              <p>
                 Ask anything about this matter. The assistant has the chronology,
                 the uploaded documents, and the audit trail in context.
               </p>
               <p className="text-xs text-muted">
                 Citations appear inline as chips. Suggested next steps appear below each reply.
               </p>
+              {/* Preview: AgentStatusCard placeholder until the backend surfaces real
+                  multi-step run data on AssistantMessage. Design lift only. */}
+              <div className="pt-4">
+                <div className="eyebrow mb-2">Preview</div>
+                <AgentStatusCard
+                  status="complete"
+                  defaultExpanded
+                  steps={[
+                    { label: "Read chronology and top three significant events.", status: "complete" },
+                    { label: "Scanned uploaded documents for relevant clauses.", status: "complete" },
+                    { label: "Drafted reply with inline citations.", status: "complete" },
+                  ]}
+                  reasoning="Cross-referenced the dismissal date in the chronology against the contractual notice clause, then framed the reply around the s.98 ERA test."
+                />
+              </div>
             </div>
           )}
           {messages.map((m) => (

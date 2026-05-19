@@ -26,6 +26,7 @@ import { navigate, useRoute } from "../lib/route";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { MatterNav } from "./MatterNav";
 import { MatterBreadcrumb } from "./MatterBreadcrumb";
+import { RightRailAssistant } from "./RightRailAssistant";
 import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { ReviewsTab } from "./tabs/ReviewsTab";
@@ -97,6 +98,22 @@ export function MatterDetail({
   const [letterDraft, setLetterDraft] = useState<LetterDraft | null>(null);
   const [letterDrafting, setLetterDrafting] = useState(false);
   const [letterError, setLetterError] = useState<string | null>(null);
+  const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("legalise.right-rail.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("legalise.right-rail.collapsed", rightRailCollapsed ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }, [rightRailCollapsed]);
 
   const load = () => {
     getMatter(slug)
@@ -325,7 +342,8 @@ export function MatterDetail({
           tab={tab}
           onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
         />
-        <main className="px-4 sm:px-6 lg:px-10 py-10">
+        <div className="flex">
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
           {error && matter && <ErrorCallout message={error} compact />}
           {tab === "assistant" && (
             <AssistantTab
@@ -386,6 +404,15 @@ export function MatterDetail({
           {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
           {tab === "research" && matter && <ResearchTab matter={matter} />}
         </main>
+        {tab !== "assistant" && tab !== "workflows" && (
+          <RightRailAssistant
+            matter={matter}
+            collapsed={rightRailCollapsed}
+            onToggleCollapsed={() => setRightRailCollapsed((v) => !v)}
+            onOpenFull={() => setTabAndHash("assistant")}
+          />
+        )}
+        </div>
       </div>
     </div>
   );
