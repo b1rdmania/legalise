@@ -134,10 +134,13 @@ export function DemoMatter() {
                 matter={matter}
                 docs={documents}
                 chronology={DEMO_SNAPSHOT.chronology.events}
+                auditCount={DEMO_SNAPSHOT.audit.length}
+                workflowsGrantedCount={4}
                 setTabAndHash={setTabAndHash}
                 initialMessages={DEMO_SNAPSHOT.assistantMessages}
                 disabled
                 disabledPlaceholder="Sign up to chat with the assistant on your own matter"
+                onDisabledAction={() => flashCta("Sign up to use suggested actions on your own matter")}
               />
             )}
             {tab === "documents" && (
