@@ -3,7 +3,7 @@ import type { ChangeEvent } from "react";
 import { EditPanel } from "../../modules/document_edit/EditPanel";
 import { AnonymiseButton } from "../../modules/anonymisation/AnonymiseButton";
 import type { MatterDocument } from "../../lib/api";
-import { Badge, Field, LoadingLine } from "../../ui/primitives";
+import { Badge, EmptyState, Field, LoadingLine } from "../../ui/primitives";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -62,17 +62,6 @@ export function DocumentsTab({
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-10 pb-8 border-b border-rule">
-        <div className="eyebrow mb-3">02 · Documents</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Documents
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Upload, tag, anonymise. Disclosure documents flag as CPR 31.22 and
-          gate the chronology. The body is the source of truth; the file is
-          stored alongside but never edited.
-        </p>
-      </div>
       <form className="mb-10 flex flex-wrap items-end gap-4">
         <Field label="Tag" hint="optional, e.g. pleadings, disclosure">
           <input
@@ -98,9 +87,10 @@ export function DocumentsTab({
 
       {!docs && <LoadingLine label="loading documents" />}
       {docs && docs.length === 0 && (
-        <div className="border border-rule p-6 text-sm text-muted">
-          No documents registered yet.
-        </div>
+        <EmptyState
+          title="No documents registered yet"
+          body="Upload a document above to populate the matter."
+        />
       )}
       {docs && docs.length > 0 && (
         <div className="border-t border-rule overflow-x-auto">

@@ -63,26 +63,19 @@ export function ResearchTab({ matter, initialCitations }: Props) {
 
   return (
     <div className="max-w-5xl">
-      <div className="mb-10 pb-8 border-b border-rule max-w-4xl">
-        <div className="eyebrow mb-3">04 · Research</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Research
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Search reported authorities and cite them into the matter.
-          Results in v0.1 are synthesised from model knowledge. Verify
-          each citation on{" "}
-          <a
-            href="https://caselaw.nationalarchives.gov.uk"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[#0066CC] hover:underline"
-          >
-            caselaw.nationalarchives.gov.uk
-          </a>{" "}
-          before relying on it. v0.2 swaps in Find Case Law via MCP.
-        </p>
-      </div>
+      <p className="text-sm text-prose max-w-2xl leading-relaxed mb-6">
+        v0.1 results are synthesised from model knowledge. Verify each
+        citation on{" "}
+        <a
+          href="https://caselaw.nationalarchives.gov.uk"
+          target="_blank"
+          rel="noreferrer"
+          className="text-[#0066CC] hover:underline"
+        >
+          caselaw.nationalarchives.gov.uk
+        </a>{" "}
+        before relying on it.
+      </p>
 
       <form
         onSubmit={onSearch}

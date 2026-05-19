@@ -7,10 +7,10 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
-import { MatterHeader } from "../matter/MatterHeader";
-import { MatterTabBar } from "../matter/MatterTabBar";
+import { MatterNav } from "../matter/MatterNav";
+import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
 import { isTabKey, type TabKey } from "../matter/tabs/types";
-import { OverviewTab } from "../matter/tabs/OverviewTab";
+import { WorkflowsTab } from "../matter/tabs/WorkflowsTab";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { PreMotionTab } from "../matter/tabs/PreMotionTab";
 import { LettersTab } from "../matter/tabs/LettersTab";
@@ -39,7 +39,7 @@ export function DemoMatter() {
   const initialTab: TabKey =
     route.name === "demo" && route.tab && isTabKey(route.tab)
       ? (route.tab as TabKey)
-      : "overview";
+      : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export function DemoMatter() {
     if (route.name === "demo" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab as TabKey);
     } else if (route.name === "demo" && !route.tab) {
-      setTab("overview");
+      setTab("assistant");
     }
   }, [route]);
 
@@ -60,7 +60,7 @@ export function DemoMatter() {
 
   const setTabAndHash = (next: TabKey) => {
     setTab(next);
-    const target = next === "overview" ? "/demo" : `/demo/${next}`;
+    const target = `/demo/${next}`;
     if (`#${target}` !== window.location.hash) navigate(target);
   };
 
@@ -89,100 +89,101 @@ export function DemoMatter() {
 
   return (
     <>
-      <div className="max-w-page mx-auto">
+      <div>
         <DemoBanner />
         {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
       </div>
-      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10">
-        <MatterHeader matter={matter} onPostureChange={flashPosture} />
+      {/* TODO(mobile): MatterNav is hidden < md; the P18 drawer covers nav for now. */}
+      <div className="flex">
+        <MatterNav
+          matter={matter}
+          tab={tab}
+          onChange={setTabAndHash}
+          onPostureChange={flashPosture}
+        />
+        <div className="flex-1 min-w-0">
+          <MatterBreadcrumb matter={matter} tab={tab} />
+          <main className="px-4 sm:px-6 lg:px-10 py-10">
+            {tab === "assistant" && (
+              <AssistantTab
+                matter={matter}
+                docs={documents}
+                chronology={DEMO_SNAPSHOT.chronology.events}
+                setTabAndHash={setTabAndHash}
+                initialMessages={DEMO_SNAPSHOT.assistantMessages}
+                disabled
+                disabledPlaceholder="Sign up to chat with the assistant on your own matter"
+              />
+            )}
+            {tab === "documents" && (
+              <DemoDocumentsTab
+                docs={documents}
+                onUpload={() => flashCta(CTA_UPLOAD_DOC)}
+                onEdit={() => flashCta(CTA_EDIT_DOC)}
+              />
+            )}
+            {tab === "chronology" && (
+              <ChronologyTab
+                chron={DEMO_SNAPSHOT.chronology}
+                showSoF={showSoF}
+                setShowSoF={setShowSoF}
+                onConfirmGate={noop}
+              />
+            )}
+            {tab === "workflows" && <WorkflowsTab slug={matter.slug} />}
+            {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} />}
+            {tab === "premotion" && (
+              <PreMotionTab
+                matter={matter}
+                running={false}
+                error={null}
+                stages={[]}
+                result={DEMO_SNAPSHOT.preMotion}
+                onRun={() => flashCta(CTA_RUN_PREMOTION)}
+                pdfBusy={false}
+                pdfError={null}
+                onExportPdf={() => flashCta(CTA_EXPORT)}
+                docxBusy={false}
+                docxError={null}
+                onExportDocx={() => flashCta(CTA_EXPORT)}
+              />
+            )}
+            {tab === "letters" && (
+              <LettersTab
+                matter={matter}
+                catalogue={DEMO_SNAPSHOT.letterCatalogue}
+                selected={selectedLetter}
+                onSelect={setSelectedLetter}
+                drafting={false}
+                error={null}
+                draft={
+                  selectedLetter === DEMO_SNAPSHOT.letterDraft.letter_type
+                    ? DEMO_SNAPSHOT.letterDraft
+                    : null
+                }
+                onDraft={() => flashCta(CTA_DRAFT_LETTER)}
+                docxBusy={false}
+                docxError={null}
+                onDownloadDocx={() => flashCta(CTA_EXPORT)}
+              />
+            )}
+            {tab === "contract-review" && (
+              <ContractReviewTab
+                matter={matter}
+                docs={documents}
+                previewResult={DEMO_SNAPSHOT.contractReview}
+                onRunOverride={() => flashCta(CTA_CONTRACT_REVIEW)}
+              />
+            )}
+            {tab === "reviews" && (
+              <ReviewsTab matter={matter} initialReviews={DEMO_SNAPSHOT.reviews} />
+            )}
+            {tab === "research" && (
+              <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
+            )}
+          </main>
+        </div>
       </div>
-      <MatterTabBar tab={tab} onChange={setTabAndHash} />
-      <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-10">
-        {tab === "overview" && (
-          <OverviewTab
-            matter={matter}
-            docCount={documents.length}
-            eventCount={DEMO_SNAPSHOT.chronology.events.length}
-            auditRecent={DEMO_SNAPSHOT.audit.length}
-          />
-        )}
-        {tab === "documents" && (
-          <DemoDocumentsTab
-            docs={documents}
-            onUpload={() => flashCta(CTA_UPLOAD_DOC)}
-            onEdit={() => flashCta(CTA_EDIT_DOC)}
-          />
-        )}
-        {tab === "reviews" && (
-          <ReviewsTab matter={matter} initialReviews={DEMO_SNAPSHOT.reviews} />
-        )}
-        {tab === "research" && (
-          <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
-        )}
-        {tab === "chronology" && (
-          <ChronologyTab
-            chron={DEMO_SNAPSHOT.chronology}
-            showSoF={showSoF}
-            setShowSoF={setShowSoF}
-            onConfirmGate={noop}
-          />
-        )}
-        {tab === "premotion" && (
-          <PreMotionTab
-            matter={matter}
-            running={false}
-            error={null}
-            stages={[]}
-            result={DEMO_SNAPSHOT.preMotion}
-            onRun={() => flashCta(CTA_RUN_PREMOTION)}
-            pdfBusy={false}
-            pdfError={null}
-            onExportPdf={() => flashCta(CTA_EXPORT)}
-            docxBusy={false}
-            docxError={null}
-            onExportDocx={() => flashCta(CTA_EXPORT)}
-          />
-        )}
-        {tab === "letters" && (
-          <LettersTab
-            matter={matter}
-            catalogue={DEMO_SNAPSHOT.letterCatalogue}
-            selected={selectedLetter}
-            onSelect={setSelectedLetter}
-            drafting={false}
-            error={null}
-            draft={
-              selectedLetter === DEMO_SNAPSHOT.letterDraft.letter_type
-                ? DEMO_SNAPSHOT.letterDraft
-                : null
-            }
-            onDraft={() => flashCta(CTA_DRAFT_LETTER)}
-            docxBusy={false}
-            docxError={null}
-            onDownloadDocx={() => flashCta(CTA_EXPORT)}
-          />
-        )}
-        {tab === "contract-review" && (
-          <ContractReviewTab
-            matter={matter}
-            docs={documents}
-            previewResult={DEMO_SNAPSHOT.contractReview}
-            onRunOverride={() => flashCta(CTA_CONTRACT_REVIEW)}
-          />
-        )}
-        {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} />}
-        {tab === "assistant" && (
-          <AssistantTab
-            matter={matter}
-            docs={documents}
-            chronology={DEMO_SNAPSHOT.chronology.events}
-            setTabAndHash={setTabAndHash}
-            initialMessages={DEMO_SNAPSHOT.assistantMessages}
-            disabled
-            disabledPlaceholder="Sign up to chat with the assistant on your own matter"
-          />
-        )}
-      </main>
     </>
   );
 }
@@ -339,5 +340,5 @@ function DemoDocumentsTab({
   );
 }
 
-// Stage 2 retoken: demo shares the same MatterHeader + MatterTabBar
-// shell as the live workspace. Mutation handlers flash a sign-up CTA.
+// v0.4: demo shares the same MatterNav + MatterBreadcrumb shell as the
+// live workspace. Mutation handlers flash a sign-up CTA.

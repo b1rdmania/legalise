@@ -24,18 +24,6 @@ export function AuditTab({ audit }: { audit: AuditEntry[] | null }) {
 
   return (
     <div>
-      <div className="mb-10 pb-8 border-b border-rule max-w-4xl">
-        <div className="eyebrow mb-3">09 · Audit</div>
-        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
-          Audit
-        </h2>
-        <p className="text-sm text-prose max-w-2xl leading-relaxed">
-          Every model call, document mutation, chronology entry, and
-          capability denial writes a row here. Filter by module to scope
-          to a workflow. The canonical record for a regulator, a client,
-          or opposing counsel.
-        </p>
-      </div>
       <div className="flex items-center gap-3 px-4 py-3 border-b border-t border-rule bg-paper text-[11px] font-mono">
         <span className="text-muted uppercase tracking-track2 text-[9px]">Filter</span>
         <select

@@ -1,19 +1,47 @@
-# Legalise - Design Contract (v0.3)
+# Legalise - Design Contract (v0.4)
 
-> **Document-as-product.** Single register everywhere. The Warp Engine
-> whitepaper aesthetic applies to marketing, workspace, and module
-> surfaces alike. Memo provides the token base.
+> **Two registers, not one.** The Warp Engine whitepaper aesthetic
+> applies to the **Landing** only (it is genuinely a whitepaper). The
+> **matter workspace** is a SaaS LLM workspace and uses a compact left
+> rail + slim breadcrumb pattern lifted from Mike, Claude.ai, Sana AI,
+> Mistral, and Fibery. Memo still provides the token base across both.
 
 **Theme:** light. Paper-and-ink, no shadows, no rounded corners.
 Borders define structure. Mono accents on data and labels. No status
 colour fills; status reads via mono bordered pills.
 
-The visual register is a **printed brief**, not a SaaS dashboard. Every
-surface should look like something a solicitor could print and hand to
-a regulator. Prose where the work is reading. Slim tables where the
-work is scanning. Sidebar TOC for documents that scroll as one
-(the Landing whitepaper). Horizontal numbered tab bar for workspaces
-with discrete tools (matter detail).
+The Landing reads like a **printed brief**. The matter workspace reads
+like a **legal LLM workspace**: compact navigation, conceptual density
+over nav granularity, persistent surfaces, assistant as the front door.
+Five primitives in the matter rail; installed legal modules nest behind
+one of them (Workflows).
+
+### What changed in v0.4
+
+- **Compact left rail replaces the horizontal tab bar.** The v0.3.1 tab
+  bar surfaced 10 numbered primitives across the top of every matter;
+  the reviewer flagged this as conceptually noisy. v0.4 collapses to 5
+  primitives in a 220px left rail: Assistant / Documents / Chronology /
+  Workflows / Audit. Installed legal modules (Pre-Motion / Letters /
+  Contract review / Tabular Review / Case law) nest behind the
+  Workflows page instead of each owning a top-level slot.
+- **Slim breadcrumb replaces MatterHeader.** Matter title + tab label
+  render as a single-line path at the top of the content column. The
+  5-item metadata strip (slug / opened / retention / status / posture)
+  is gone; posture moves to a chip inside the sidebar matter card. If a
+  surface needs more metadata, it surfaces it inline.
+- **Overview tab retired.** Bare `/matters/:slug` routes to `/assistant`.
+  "What is this matter" context lives in the sidebar matter card and the
+  breadcrumb; the assistant is the front door.
+- **Workflows as a first-class concept.** Pre-Motion / Letters /
+  Contract review / Tabular Review / Case law surface as a catalogue
+  page rather than as individual top-level tabs. Each is an installed
+  module the workspace knows about; the Workflows page shows what is
+  installed.
+- **No tab-header strips inside tab bodies.** The MatterBreadcrumb and
+  MatterNav carry identity. Bare H2 + eyebrow + lede headers inside
+  each tab body are removed; tabs land directly into the form, table,
+  or chat surface.
 
 ### What changed in v0.3
 
@@ -87,10 +115,24 @@ any of them, reject the PR or add it to this list with a reason.
   mono is fine because the size is 10-12px), and inline citation
   refs.
 - **Sidebar TOCs on workspace surfaces.** The whitepaper sidebar TOC
-  pattern (Landing P9) is for documents that scroll as one. Matter
-  detail and module catalogue surfaces are discrete tools, not
-  chapters; they use a horizontal tab bar instead. Sidebar TOC is
-  reserved for the Landing whitepaper.
+  pattern (Landing P2) is for documents that scroll as one. Matter
+  detail uses the P19 compact left rail (5 nav primitives + matter
+  card), not a scroll-spy TOC. Sidebar TOC stays on the Landing
+  whitepaper because the Landing genuinely IS a single scrolling
+  document.
+- **Horizontal tab bars with more than ~6 items.** v0.3.1 surfaced 10
+  numbered tabs across the top; this read as conceptually noisy. The
+  P19 compact left rail handles 4-6 primitives; anything beyond that
+  nests behind one of them (e.g. installed modules behind Workflows).
+- **Matter headers with full metadata strips.** v0.3.1's MatterHeader
+  repeated context (title + slug + opened + retention + status +
+  posture) on every page. The P20 slim breadcrumb carries identity;
+  posture lives in the P19 matter card. If a tab needs to surface
+  specific metadata, it does so inline.
+- **Tab-header strips inside tab bodies.** The eyebrow + numbered name
+  + H2 + lede block at the top of every tab body in v0.3.1 was
+  redundant once the breadcrumb shipped. Tab bodies land directly
+  into the form, table, or chat surface.
 - **"Open demo" CTAs that route to signup.** Demo is the static
   `#/demo` snapshot. Signup is a separate flow. Conflating them
   cost us a real bug.
@@ -584,7 +626,13 @@ Posture) - not a full document hero. Document heroes are for the
 Landing whitepaper and for single-document surfaces, not for
 workspaces with horizontal tab navigation (P9).
 
-## P9 - Horizontal numbered tab bar (matter + workspace surfaces)
+## P9 - Horizontal numbered tab bar (RETIRED in v0.4)
+
+Retired. Used in v0.3.1 for matter detail (10 numbered primitives
+across the top of every matter). Replaced by P19 compact left rail
++ P20 slim breadcrumb. Kept here as a historical reference; do not
+reintroduce on workspace surfaces. The reference HTML below stays so
+the lineage is auditable.
 
 Source: Mobbin pull on legal/workspace SaaS (Bonsai project detail,
 Asana product demo, Square invoice detail). Used on every matter
@@ -954,6 +1002,94 @@ The em-dash row is a literal `<div className="my-2 border-t border-rule" />` bet
 
 **Why this resolves the open reservation.** `legalise-design.md` listed three candidates (hamburger drawer, bottom tab, profile-only top bar). The Mobbin pass surfaced one dominant precedent across workspace/doc tools and a sharp split for dense-data screens. Net pattern is one drawer + one contextual exception, not three patterns. Marketing and workspace share the same chrome to keep the design language from forking.
 
+## P19 - Compact left rail (matter workspace)
+
+Source: Mobbin pass on legal-AI and adjacent LLM workspaces (Mike,
+Claude.ai, Sana AI, Mistral, Fibery, ClickUp, Cycle, OpenAI Platform).
+The shared pattern is a 220px single-level rail with 4-6 primitives,
+a matter/project card at the top, and a thin status footer at the
+bottom. v0.4 lands this for matter detail.
+
+```jsx
+<aside
+  className="w-[220px] shrink-0 border-r border-rule bg-paper hidden md:flex md:flex-col sticky top-[64px] sm:top-[80px] h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] overflow-y-auto"
+  aria-label="Matter navigation"
+>
+  {/* Matter card */}
+  <div className="px-4 py-5 border-b border-rule">
+    <div className="eyebrow mb-2">Matter</div>
+    <div className="text-sm font-semibold text-ink">Khan v Acme Trading Ltd</div>
+    <div className="text-xs text-muted font-mono mt-1">khan-v-acme-trading-2026</div>
+    <div className="mt-3 flex items-center gap-2">
+      <span className="eyebrow">Posture</span>
+      <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
+        {/* PrivilegeControl - mono select, no fill */}
+      </span>
+    </div>
+  </div>
+  {/* Nav list */}
+  <nav className="px-2 py-3 flex flex-col gap-0.5">
+    <button className="w-full text-left px-3 py-2 flex items-center gap-3 text-sm bg-wash text-ink font-semibold">
+      <svg width="16" height="16">{/* icon */}</svg>
+      <span>Assistant</span>
+    </button>
+    <button className="w-full text-left px-3 py-2 flex items-center gap-3 text-sm text-prose hover:text-ink hover:bg-wash">
+      <svg width="16" height="16">{/* icon */}</svg>
+      <span>Documents</span>
+    </button>
+    {/* etc */}
+  </nav>
+  <div className="mt-auto border-t border-rule px-4 py-3">
+    <div className="text-[10px] font-mono uppercase tracking-track2 text-muted">open</div>
+  </div>
+</aside>
+```
+
+**Active state.** `bg-wash text-ink font-semibold`. No left bar, no
+indicator chip. The wash fill plus the semibold ink reads as the
+active surface against the rest of the rail at `text-prose`.
+
+**Workflow nesting.** When the user is on a workflow surface (Pre-Motion,
+Letters, Contract review, Tabular Review, Case law), the sidebar
+highlights "Workflows" via `sidebarActiveFor(tab)`. The deep route
+keeps working (`#/matters/{slug}/premotion`) so links stay stable.
+
+**Item count rule.** 4-6 items. If a sixth nav slot is needed, ask
+first whether it should nest under an existing one (Workflows is the
+canonical example: 5 module surfaces compress to 1 nav slot).
+
+**Mobile.** Hidden at `< md`. The existing P18 drawer covers mobile
+navigation for v0.4. A dedicated compact mobile rail (or bottom-sheet
+picker) lands after the desktop flip settles.
+
+## P20 - Slim breadcrumb (matter workspace content header)
+
+Source: Mobbin pass on legal-AI and adjacent workspaces (same
+references as P19). Replaces the v0.3.1 MatterHeader full metadata
+block. Single line. Path-shaped: workspace / matter / surface, plus
+an optional intermediate hop for workflow surfaces.
+
+```jsx
+<div className="px-4 sm:px-6 lg:px-10 py-4 border-b border-rule flex items-center justify-between gap-4">
+  <div className="flex items-center min-w-0 text-sm">
+    <a href="#/matters" className="text-muted hover:text-ink transition-colors shrink-0">
+      Matters
+    </a>
+    <span className="text-muted mx-2 shrink-0">/</span>
+    <span className="font-semibold text-ink truncate">Khan v Acme Trading Ltd</span>
+    <span className="text-muted mx-2 shrink-0">/</span>
+    <span className="text-prose truncate shrink-0">Assistant</span>
+  </div>
+</div>
+```
+
+For workflow surfaces, render the Workflows hop:
+`Matters / {title} / Workflows / Pre-Motion`. Posture, slug, opened,
+retention, and status do not appear here. Posture lives in the P19
+matter card, the rest live in the breadcrumb only if the surface
+genuinely needs them, in which case the surface renders an inline
+strip below this breadcrumb.
+
 ---
 
 # Surface map
@@ -971,12 +1107,12 @@ Which patterns compose which surface.
 | **Modules catalogue** (`#/modules`) | P1 TopBar · sidebar **skill picker** (master-detail list grouped by plugin — not a P2 scroll-spy TOC) · P4 Prose body (selected skill SKILL.md rendered) · P17 Footer. Unauth visitors see a designed banner (Sign in CTA + Open the demo CTA), no raw 401. |
 | **Matters list** (`#/matters`) | P1 TopBar · P3 Hero (small variant: just title + meta strip) · P16 Data table |
 | **New matter** (`#/matters/new`) | P1 TopBar · centered narrow form (max-w-2xl) · P13 Inputs · P12 Primary button |
-| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · **MatterHeader** (eyebrow + h1 + 5-item metadata strip including PrivilegeControl posture dropdown) · **MatterTabBar** (P9 — horizontal numbered tabs: 01 Overview · 02 Assistant · 03 Documents · 04 Chronology · 05 Reviews · 06 Research · 07 Pre-Motion · 08 Letters · 09 Contract review · 10 Audit) · main content full-width per tab |
-| **Matter · Overview tab** | Action strip (5 buttons: Ask the assistant / Run Pre-Motion / Draft letter / Review contract / View audit) · 2-col dashboard: pivot fact + theory of case (left) and Quick facts dl (right, with doc/event/audit counts + posture + default model) |
-| **Matter · Assistant tab** | Chat surface with matter context · inline citation chips (P15-shape, mono, uppercase) · suggested-actions footer below each assistant reply |
+| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · **P19 MatterNav** (compact left rail, 220px — matter card with posture chip + 5 nav items: Assistant / Documents / Chronology / Workflows / Audit) · **P20 MatterBreadcrumb** (slim path strip) · main content full-width per tab. Bare `/matters/:slug` lands on Assistant. |
+| **Matter · Assistant tab** | Default landing for the matter. Chat surface with matter context · inline citation chips (P15-shape, mono, uppercase) · suggested-actions footer below each assistant reply |
 | **Matter · Documents tab** | P16 Data table (Document / Type / Source / Extracted / Last action / Action) · upload P13 form at top · per-row expand drawer surfaces SHA + Size + Uploaded-at before EditPanel + AnonymiseButton |
 | **Matter · Chronology tab** | P10 Dense data row with overlay bar (variable weight = significance) · P14 Yellow warning callout when CPR 31.22 gate pending · P13 Input for acknowledgement |
-| **Matter · Reviews tab** | List view of saved reviews (P16-shape) → editor view (ColumnEditor form + ReviewGrid spreadsheet with monochrome bordered Yes/No pills) · CostEstimateDialog modal before run |
+| **Matter · Workflows tab** | Catalogue page (`WorkflowsTab`) listing installed modules as 2-col cards: Pre-Motion / Letters / Contract review / Tabular Review / Case law. Each card links to its workflow surface hash route. Sidebar highlights Workflows when any workflow surface is open. |
+| **Matter · Reviews tab (workflow)** | List view of saved reviews (P16-shape) → editor view (ColumnEditor form + ReviewGrid spreadsheet with monochrome bordered Yes/No pills) · CostEstimateDialog modal before run. Reached via Workflows. |
 | **Matter · Research tab** | P13 form (query + court + year) · result cards (case_name + citation_ref + summary + Cite-into-matter button) · CitationsSidebar pinned right (280px) |
 | **Matter · Pre-Motion tab** | Stage strip showing live stream of 4 stages (Optimistic Analyst / Evidence Inspector / Premortem Adversary / Synthesiser) · synthesis output uses P4 Prose + P15 Status pill for verdict colour · P5 Blockquote pull for "If we lose, this will be why" |
 | **Matter · Letters tab** | LetterSelector with P18-style active row (`bg-wash text-ink border-l-2 border-ink`) · LetterDraftView in bordered panel with P8-style eyebrow header strip · P12 ink-fill button for draft / re-draft |

@@ -3,7 +3,7 @@ import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { BrandMark } from "./BrandMark";
 import { ProfileChip } from "./ProfileChip";
-import { TABS, type TabKey } from "../matter/tabs/types";
+import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
 
@@ -25,7 +25,10 @@ export function TopBar({
   const isModules = route.name === "modules";
   const isList = route.name === "list";
 
-  const surfaceLabel = TABS.find((t) => t.key === drawerTab)?.label ?? "";
+  const surfaceLabel =
+    SIDEBAR_NAV.find((t) => t.key === drawerTab)?.label ??
+    WORKFLOW_TABS.find((t) => t.key === drawerTab)?.label ??
+    "";
 
   return (
     <>

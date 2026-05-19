@@ -24,10 +24,9 @@ import {
 } from "../lib/api";
 import { navigate, useRoute } from "../lib/route";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
-import { MatterHeader } from "./MatterHeader";
-import { MatterTabBar } from "./MatterTabBar";
+import { MatterNav } from "./MatterNav";
+import { MatterBreadcrumb } from "./MatterBreadcrumb";
 import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
-import { OverviewTab } from "./tabs/OverviewTab";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { ReviewsTab } from "./tabs/ReviewsTab";
 import { ResearchTab } from "./tabs/ResearchTab";
@@ -37,6 +36,7 @@ import { LettersTab } from "./tabs/LettersTab";
 import { ContractReviewTab } from "./tabs/ContractReviewTab";
 import { AuditTab } from "./tabs/AuditTab";
 import { AssistantTab } from "./tabs/AssistantTab";
+import { WorkflowsTab } from "./tabs/WorkflowsTab";
 
 export function MatterDetail({
   slug,
@@ -49,7 +49,7 @@ export function MatterDetail({
 }) {
   const route = useRoute();
   const initialTab: TabKey =
-    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "overview";
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
 
   // sync tab → drawer label
@@ -57,19 +57,19 @@ export function MatterDetail({
     onTabChange(tab);
   }, [tab, onTabChange]);
 
-  // sync tab from hash when it changes (back/forward)
+  // sync tab from hash when it changes (back/forward). Bare /matters/:slug
+  // (no tab segment) lands on assistant - the workspace front door in v0.4.
   useEffect(() => {
     if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab);
     } else if (route.name === "detail" && !route.tab) {
-      setTab("overview");
+      setTab("assistant");
     }
   }, [route]);
 
   const setTabAndHash = (next: TabKey) => {
     setTab(next);
-    const target =
-      next === "overview" ? `/matters/${slug}` : `/matters/${slug}/${next}`;
+    const target = `/matters/${slug}/${next}`;
     if (`#${target}` !== window.location.hash) navigate(target);
   };
 
@@ -306,84 +306,86 @@ export function MatterDetail({
     }
   };
 
+  // TODO(mobile): on < md the MatterNav is hidden. The existing P18
+  // mobile drawer covers nav for now; a dedicated compact mobile rail
+  // (or bottom-sheet picker) lands after the v0.4 desktop flip settles.
   return (
-    <>
-      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10">
-        <MatterHeader matter={matter} onPostureChange={onPostureChange} />
+    <div className="flex">
+      <MatterNav
+        matter={matter}
+        tab={tab}
+        onChange={setTabAndHash}
+        onPostureChange={onPostureChange}
+      />
+      <div className="flex-1 min-w-0">
+        <MatterBreadcrumb matter={matter} tab={tab} />
+        <main className="px-4 sm:px-6 lg:px-10 py-10">
+          {error && matter && <ErrorCallout message={error} compact />}
+          {tab === "assistant" && (
+            <AssistantTab
+              matter={matter}
+              docs={docs}
+              chronology={chron?.events ?? []}
+              setTabAndHash={setTabAndHash}
+            />
+          )}
+          {tab === "documents" && (
+            <DocumentsTab docs={docs} onUpload={onUpload} />
+          )}
+          {tab === "chronology" && (
+            <ChronologyTab
+              chron={chron}
+              showSoF={showSoF}
+              setShowSoF={setShowSoF}
+              onConfirmGate={onConfirmGate}
+            />
+          )}
+          {tab === "workflows" && <WorkflowsTab slug={slug} />}
+          {tab === "audit" && <AuditTab audit={audit} />}
+          {/* Workflow surfaces - reached via Workflows page; sidebar highlights Workflows. */}
+          {tab === "premotion" && (
+            <PreMotionTab
+              matter={matter}
+              running={premotionRunning}
+              error={premotionError}
+              stages={premotionStages}
+              result={premotion}
+              onRun={onRunPremotion}
+              pdfBusy={pdfBusy}
+              pdfError={pdfError}
+              onExportPdf={onExportPdf}
+              docxBusy={docxBusy}
+              docxError={docxError}
+              onExportDocx={onExportDocx}
+            />
+          )}
+          {tab === "letters" && (
+            <LettersTab
+              matter={matter}
+              catalogue={letterCat}
+              selected={selectedLetter}
+              onSelect={setSelectedLetter}
+              drafting={letterDrafting}
+              error={letterError}
+              draft={letterDraft}
+              onDraft={onDraftLetter}
+              docxBusy={letterDocxBusy}
+              docxError={letterDocxError}
+              onDownloadDocx={onDownloadLetterDocx}
+            />
+          )}
+          {tab === "contract-review" && matter && docs && (
+            <ContractReviewTab matter={matter} docs={docs} />
+          )}
+          {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
+          {tab === "research" && matter && <ResearchTab matter={matter} />}
+        </main>
       </div>
-      <MatterTabBar tab={tab} onChange={setTabAndHash} />
-      <main className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-10">
-        {error && matter && <ErrorCallout message={error} compact />}
-        {tab === "overview" && (
-          <OverviewTab
-            matter={matter}
-            docCount={docs?.length}
-            eventCount={chron?.events?.length}
-            auditRecent={audit?.length}
-          />
-        )}
-        {tab === "documents" && (
-          <DocumentsTab docs={docs} onUpload={onUpload} />
-        )}
-        {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
-        {tab === "research" && matter && <ResearchTab matter={matter} />}
-        {tab === "chronology" && (
-          <ChronologyTab
-            chron={chron}
-            showSoF={showSoF}
-            setShowSoF={setShowSoF}
-            onConfirmGate={onConfirmGate}
-          />
-        )}
-        {tab === "premotion" && (
-          <PreMotionTab
-            matter={matter}
-            running={premotionRunning}
-            error={premotionError}
-            stages={premotionStages}
-            result={premotion}
-            onRun={onRunPremotion}
-            pdfBusy={pdfBusy}
-            pdfError={pdfError}
-            onExportPdf={onExportPdf}
-            docxBusy={docxBusy}
-            docxError={docxError}
-            onExportDocx={onExportDocx}
-          />
-        )}
-        {tab === "letters" && (
-          <LettersTab
-            matter={matter}
-            catalogue={letterCat}
-            selected={selectedLetter}
-            onSelect={setSelectedLetter}
-            drafting={letterDrafting}
-            error={letterError}
-            draft={letterDraft}
-            onDraft={onDraftLetter}
-            docxBusy={letterDocxBusy}
-            docxError={letterDocxError}
-            onDownloadDocx={onDownloadLetterDocx}
-          />
-        )}
-        {tab === "contract-review" && matter && docs && (
-          <ContractReviewTab matter={matter} docs={docs} />
-        )}
-        {tab === "audit" && <AuditTab audit={audit} />}
-        {tab === "assistant" && (
-          <AssistantTab
-            matter={matter}
-            docs={docs}
-            chronology={chron?.events ?? []}
-            setTabAndHash={setTabAndHash}
-          />
-        )}
-      </main>
-    </>
+    </div>
   );
 }
 
-// Stage 2 retoken: MatterSidebar (old P9 sidebar TOC) replaced by
-// MatterHeader + MatterTabBar. Sidebar TOC is reserved for the Landing
-// whitepaper. Matter detail uses a horizontal numbered tab bar because
-// tabs are discrete tools, not chapters of one scroll.
+// v0.4: compact left rail (MatterNav) + slim breadcrumb (MatterBreadcrumb)
+// replace the v0.3.1 MatterHeader + MatterTabBar. Five sidebar primitives;
+// installed modules nest behind Workflows. Bare /matters/:slug lands on
+// the Assistant tab. See docs/DESIGN.md "What changed in v0.4".

@@ -48,7 +48,7 @@ function AppInner() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [drawerMatter, setDrawerMatter] = useState<Matter | null>(null);
-  const [drawerTab, setDrawerTab] = useState<TabKey>("overview");
+  const [drawerTab, setDrawerTab] = useState<TabKey>("assistant");
 
   useEffect(() => {
     fetch(`${BACKEND_ROOT}/health`)
