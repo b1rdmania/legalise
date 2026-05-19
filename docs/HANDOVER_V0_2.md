@@ -1,8 +1,76 @@
 # Handover — Legalise v0.2 substance + JOY pass
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-19 late. Repo head: `be547bf` (this doc + sibling-handover forward pointers). Last CI-green code head: `d8be353`.
-**Scope:** everything that landed since the reviewer's backend scoping verdict and the "v0.1 truthfulness vs v0.2 substance" framing message. Read R2 first (the most recent state), then R1, then the original body if needed for context.
+**As of:** 2026-05-19 night. Repo head: `737ea81` (post-R3 hardening, CI green). Last CI-green code head before this pass: `d8be353`.
+**Scope:** everything that landed since the reviewer's backend scoping verdict and the "v0.1 truthfulness vs v0.2 substance" framing message. Read R3 first (most recent), then R2, then R1, then the original body if needed.
+
+---
+
+## R3 — pre-launch hardening pass (post-R2 signoff)
+
+After R2 signoff, Andy raised a two-track question: fork-and-play backend (closer to ready) vs hosted demo (further). My recommendation flagged four items worth pulling forward from v0.2: provider-key posture audit, landing polish, upload validation, and provider-failure UX. All four landed tonight.
+
+**Pre-launch accuracy fixes (`2a87803` + `613a1d6`)**
+
+- `.env.example`: `ALLOW_SERVER_KEY_FALLBACK` → `LEGALISE_ALLOW_SERVER_KEY_FALLBACK`. Without the `LEGALISE_` prefix the env var was silently ignored by `config.py`'s `Field(alias=...)`. Real bug surfaced by the provider-key posture audit.
+- `README.md`: replaced "BYO provider keys" with the actual posture: per-user AES-256-GCM keys added in Settings, stub-echo as keyless default. Quick-start no longer implies editing the env key is the path; Settings is.
+- `Landing.tsx`: removed em dash in a code comment (voice-check only scans chrome, not comments) and softened §04's "v0.2 introduces tenants" to "Multi-tenant is post-v0.2" because the README's v0.2 list never made that promise.
+
+**Three hardening items, parallel agents on worktrees, then sequential merge (`737ea81`)**
+
+Andy dispatched me to do all three while he was AFK. Spun up three sub-agents on isolated worktrees so they couldn't step on each other; merged in order 1 → 2 → 3 with conflict resolution on the shared chat / workflow surfaces.
+
+1. **Upload validation** (item 1 — agent committed on its behalf after timeout, then merged)
+   - `backend/app/api/matters.py`: `MAX_UPLOAD_BYTES = 25 MB` + `ALLOWED_UPLOAD_MIMES` (pdf, docx, doc, txt, md, rtf — mirrors what `extract_text` actually processes). Validates content_type → 415, body size → 413. Structured detail bodies with `error / max_bytes / got_bytes` or `error / got / allowed`.
+   - `frontend/src/lib/api.ts`: typed `UploadError` with `.kind` ∈ {`unsupported_mime`, `upload_too_large`}.
+   - `frontend/src/matter/tabs/DocumentsTab.tsx`: inline banner on the typed error.
+   - `backend/tests/test_upload_validation.py`: 3 tests (415, 413, valid-PDF regression guard). All pass.
+
+2. **ProviderKeyMissing UX consistency** (item 2)
+   - **Surprise:** audit of all `ProviderKeyMissing` catch sites found the backend was already consistent across **11** locations (matters.py:476, documents.py:204+552, plus 7 module routers + 2 internal worker silences). Zero backend changes. Work was entirely frontend wiring.
+   - `frontend/src/lib/api.ts`: typed `ProviderKeyMissingError` + `providerKeyMissingFromBody()` parser tolerant of both `{detail: {...}}` and bare `{error, provider, message}` envelopes.
+   - `frontend/src/ui/primitives.tsx`: `ProviderKeyMissingBanner` (border + text tokens only, no fill / rounded / shadow). Copy: `"Add a {Provider} API key in Settings to use this model. Or switch to stub-echo for the demo."` with `Open Settings` deep link to `#/settings`.
+   - Banner wired into 8 components: `MatterDetail`, `RightRailAssistant`, `AssistantTab`, `LettersTab`, `PreMotionTab`, `ContractReviewTab`, `ReviewEditor`, and one shared error path.
+   - `backend/tests/test_matters_routes.py::test_invoke_returns_provider_key_missing_envelope`: pins the 422 envelope shape. Initially failed in conftest because lifespan doesn't run — fixed by patching `plugin_bridge_module.bridge` with an `AsyncMock` directly (resolved during merge, see below).
+
+3. **Provider upstream errors** (item 3, the most surface area)
+   - New `ProviderUpstreamError` exception in `backend/app/core/user_keys.py` (same module as `ProviderKeyMissing` for consistency) with fields: `provider`, `code` ∈ {`provider_invalid_key`, `provider_rate_limited`, `provider_overloaded`, `provider_error`}, `upstream_status`.
+   - SDK wrapping done **inside each provider** (not in the gateway) — agent's choice, cleaner separation of concerns:
+     - `backend/app/providers/anthropic_provider.py:73-93` (catches `anthropic.APIStatusError` + `APIConnectionError`)
+     - `backend/app/providers/openai_provider.py:64-93` (catches `openai.APIStatusError` + `APIConnectionError`)
+     - `backend/app/providers/ollama_provider.py:62-91` (catches `httpx.HTTPStatusError` + `httpx.HTTPError`)
+   - Gateway-level wrapping at `backend/app/core/model_gateway.py:402-437` writes an **audit row on every upstream failure** before re-raising. Mandatory provenance preserved.
+   - 10 route-level catch sites mirror the `ProviderKeyMissing` pattern: parallel `except ProviderUpstreamError → HTTPException(502, detail={error, provider, upstream_status, message})`. Sites: matters.py, documents.py ×2, plus 7 module routers.
+   - Frontend: `ProviderUpstreamError` typed class + `providerUpstreamMessage()` helper mapping each code to friendly UI copy. Reused the existing `ErrorCallout` primitive (which does have a bg fill — agent's pragmatic judgment to avoid two visual treatments for similar error states; flagging it as a minor rule bend).
+   - `backend/tests/test_provider_upstream_errors.py`: 8 gateway-level tests (each status code + audit-row assertion). Plus 1 route-level test that skips without Postgres.
+
+**Merge resolution (`737ea81`)**
+
+Items 2 and 3 both touched `frontend/src/lib/api.ts` and the four shared chat / workflow components (`RightRailAssistant`, `AssistantTab`, `ContractReviewTab`, the lib's network error handler). All four conflicts were additive-not-mutually-exclusive — both error types coexist, with the catch chain checking `ProviderKeyMissingError` first (422 with deep-link banner), `ProviderUpstreamError` second (502 with code-specific message), then the generic `Error` fallthrough.
+
+Two small follow-ups landed in the merge commit:
+- `test_matters_routes.py`: item 2's envelope test depended on a lifespan-initialised `plugin_bridge_module.bridge`. Conftest does not run lifespan. Fixed by patching the module attribute directly with `AsyncMock(invoke=AsyncMock(side_effect=ProviderKeyMissing("anthropic")))`.
+- `test_provider_upstream_errors.py`: dropped one em dash from a docstring (caught by added-line voice check on the merged diff).
+
+**Stats (post-R3)**
+
+- Master: `737ea81`
+- CI: green on every job (Backend pytest, Frontend build, Voice check).
+- Tests: **155 passed, 53 skipped** (was 140 at d8be353; net **+15** tonight). README still claims 140; reviewer call on whether to bump.
+- `tsc --noEmit`: clean on the merged tree.
+- Voice check on added lines only: clean. (Baseline em-dashes in pre-existing comments/docs persist; the rule remained "introduce no new dashes" because the literal whole-tree pass would require a much bigger sweep.)
+
+**What this hardening pass deliberately did NOT do**
+
+- No deploy. CI is green, but `legalise.dev` still runs pre-R3 code until Andy promotes.
+- No clean-clone smoke walk (item 4 from the plan). That's blocked on Andy doing a real `rm -rf && git clone && docker compose up` from scratch — the harness can't faithfully simulate "first-time user".
+- No third-party guardrail integration (Lakera / Guardrails AI / Patronus). Recommendation was to wire the workflows into Andy's own `agent-kit` v0.2 post-launch rather than add a third-party dependency that contradicts the "no provider-specific bypass of the gateway" doctrine.
+
+**Open questions for the reviewer**
+
+1. **Item 3's `ErrorCallout` reuse.** The agent kept the existing primitive (which has `bg-[#FEF2F2]`) rather than introducing a parallel banner with no fill. Pragmatic call to keep visual consistency in the error-state surface. Defensible, or strict-rules violation worth fixing?
+2. **README test-count claim.** Now 140 in README, 155 in actual suite. Bump or leave (some skipped tests are real-DB-only and the reviewer's previous nit was about exact match).
+3. **`.env.example` `LEGALISE_` prefix bug.** This had been silently broken for at least a release cycle. Worth a `CHANGELOG` line, or just a quiet fix?
 
 ---
 
