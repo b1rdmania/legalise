@@ -68,29 +68,41 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Tabular reviews</h2>
-        <button
-          className="px-3 py-1.5 text-sm rounded border border-neutral-300 hover:bg-neutral-50"
-          onClick={() => setCreating((c) => !c)}
-        >
-          {creating ? "Cancel" : "New review"}
-        </button>
+    <div className="max-w-4xl">
+      <div className="mb-10 pb-8 border-b border-rule">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="eyebrow mb-3">03 · Reviews</div>
+            <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
+              Tabular reviews
+            </h2>
+            <p className="text-sm text-prose max-w-2xl leading-relaxed">
+              Run a structured column set across a document set. One row
+              per document, one column per question. Cell answers cite back
+              to the source passage.
+            </p>
+          </div>
+          <button
+            className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[40px] shrink-0"
+            onClick={() => setCreating((c) => !c)}
+          >
+            {creating ? "Cancel" : "New review"}
+          </button>
+        </div>
       </div>
 
       {creating && (
-        <div className="flex gap-2 p-3 border border-neutral-200 rounded bg-neutral-50">
+        <div className="flex gap-2 mb-6">
           <input
             autoFocus
-            className="flex-1 px-2 py-1 border border-neutral-300 rounded text-sm"
+            className="flex-1 bg-paper border border-rule px-3 py-2 text-sm focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink"
             placeholder="Review title (e.g. Acme correspondence - disclosure relevance)"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onCreate()}
           />
           <button
-            className="px-3 py-1 text-sm rounded bg-neutral-900 text-white disabled:opacity-50"
+            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={onCreate}
             disabled={busy || !newTitle.trim()}
           >
@@ -100,34 +112,34 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
       )}
 
       {error && (
-        <div className="text-sm text-red-700 border border-red-300 bg-red-50 rounded p-2">
+        <div className="border border-[#D9304F] bg-[#FEF2F2] p-4 text-sm text-[#B91C1C] mb-6">
           {error}
         </div>
       )}
 
       {items === null ? (
-        <div className="text-sm text-neutral-500">Loading…</div>
+        <div className="text-sm text-muted">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="text-sm text-neutral-500">
+        <div className="border border-rule p-6 text-sm text-muted">
           No reviews yet. Click <em>New review</em> to start.
         </div>
       ) : (
-        <ul className="divide-y divide-neutral-200 border border-neutral-200 rounded">
+        <div className="border-t border-rule">
           {items.map((r) => (
-            <li
+            <div
               key={r.id}
-              className="flex items-center justify-between p-3 hover:bg-neutral-50 cursor-pointer"
+              className="flex items-center justify-between gap-4 px-4 py-4 border-b border-rule hover:bg-wash transition-colors cursor-pointer"
               onClick={() => onSelect(r.id)}
             >
-              <div>
-                <div className="font-medium text-sm">{r.title}</div>
-                <div className="text-xs text-neutral-500">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-ink truncate">{r.title}</div>
+                <div className="text-xs text-muted font-mono mt-1">
                   {r.column_count} cols · {r.row_count} rows
                   {r.last_run_at && ` · last run ${new Date(r.last_run_at).toLocaleString()}`}
                 </div>
               </div>
               <button
-                className="text-xs text-neutral-500 hover:text-red-600"
+                className="text-xs text-muted hover:text-ink transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(r.id);
@@ -135,9 +147,9 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
               >
                 Delete
               </button>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

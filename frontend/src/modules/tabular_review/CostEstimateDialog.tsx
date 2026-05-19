@@ -22,59 +22,65 @@ export function CostEstimateDialog({ estimate, onConfirm, onCancel, busy }: Prop
   if (!estimate) return null;
   const empty = estimate.total_calls === 0;
   return (
-    <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4">
-      <div className="bg-white rounded shadow-lg max-w-md w-full p-5 space-y-4">
-        <h3 className="text-lg font-semibold">Confirm run</h3>
+    <div className="fixed inset-0 bg-ink/40 z-40 flex items-center justify-center p-4">
+      <div className="bg-paper border border-rule max-w-md w-full p-6 space-y-4">
+        <div>
+          <div className="eyebrow mb-2">Confirm</div>
+          <h3 className="text-xl font-bold tracking-tight2 text-ink">
+            Run review
+          </h3>
+        </div>
         {empty ? (
-          <p className="text-sm text-neutral-600">
-            Nothing to run - either there are no columns, no documents, or no
+          <p className="text-sm text-prose leading-relaxed">
+            Nothing to run. Either there are no columns, no documents, or no
             document bodies available.
           </p>
         ) : (
           <>
-            <dl className="text-sm space-y-1">
+            <dl className="text-sm space-y-1.5 font-mono">
               <div className="flex justify-between">
-                <dt className="text-neutral-500">Total cells</dt>
-                <dd>{estimate.total_calls}</dd>
+                <dt className="text-muted">Total cells</dt>
+                <dd className="text-ink">{estimate.total_calls}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-neutral-500">Estimated input tokens</dt>
-                <dd>{estimate.est_input_tokens.toLocaleString()}</dd>
+                <dt className="text-muted">Est. input tokens</dt>
+                <dd className="text-ink">{estimate.est_input_tokens.toLocaleString()}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-neutral-500">Estimated output tokens</dt>
-                <dd>{estimate.est_output_tokens.toLocaleString()}</dd>
+                <dt className="text-muted">Est. output tokens</dt>
+                <dd className="text-ink">{estimate.est_output_tokens.toLocaleString()}</dd>
               </div>
-              <div className="flex justify-between font-medium">
-                <dt className="text-neutral-700">Estimated cost</dt>
-                <dd>
-                  {poundString(estimate.est_cost_pence_lower)} –{" "}
+              <div className="flex justify-between font-semibold pt-2 border-t border-rule">
+                <dt className="text-ink">Estimated cost</dt>
+                <dd className="text-ink">
+                  {poundString(estimate.est_cost_pence_lower)} to{" "}
                   {poundString(estimate.est_cost_pence_upper)}
                 </dd>
               </div>
-              <div className="text-[11px] text-neutral-500 pt-1">
-                Provider: {estimate.provider ?? "-"}
-                {estimate.model_id && ` · ${estimate.model_id}`}
-                {" "}· ±30% band, billed against your provider key.
-              </div>
             </dl>
+            <p className="text-[11px] text-muted leading-relaxed">
+              Provider: {estimate.provider ?? "-"}
+              {estimate.model_id && ` · ${estimate.model_id}`}. ±30% band,
+              billed against your provider key.
+            </p>
             {estimate.requires_confirm && (
-              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
-                More than 50 cells - explicit confirmation required.
+              <div className="border border-rule p-3 text-xs text-ink">
+                <strong className="font-semibold">More than 50 cells.</strong>{" "}
+                Explicit confirmation required.
               </div>
             )}
           </>
         )}
         <div className="flex justify-end gap-2 pt-2">
           <button
-            className="px-3 py-1.5 text-sm rounded border border-neutral-300 hover:bg-neutral-50"
+            className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[40px] disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={onCancel}
             disabled={busy}
           >
             Cancel
           </button>
           <button
-            className="px-3 py-1.5 text-sm rounded bg-neutral-900 text-white disabled:opacity-40"
+            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={onConfirm}
             disabled={busy || empty}
           >

@@ -149,6 +149,18 @@ export function AssistantTab({
   const dispatchChronChip = () => setTabAndHash("chronology");
 
   return (
+    <div>
+      <div className="mb-10 pb-8 border-b border-rule max-w-4xl">
+        <div className="eyebrow mb-3">10 · Assistant</div>
+        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
+          Assistant
+        </h2>
+        <p className="text-sm text-prose max-w-2xl leading-relaxed">
+          Matter-scoped chat. The assistant reads the documents, chronology,
+          and audit trail in context. Citations appear inline as chips.
+          Suggested next steps appear below each reply.
+        </p>
+      </div>
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
       <div className="flex flex-col min-h-[520px]">
         <div
@@ -196,7 +208,7 @@ export function AssistantTab({
         </div>
 
         {error && (
-          <div className="border border-red-700 bg-red-50 text-red-700 text-sm p-3 mt-3">
+          <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-sm p-3 mt-3">
             <div className="font-semibold mb-1">Could not send message</div>
             <p className="leading-relaxed whitespace-pre-wrap">{error}</p>
           </div>
@@ -284,6 +296,7 @@ export function AssistantTab({
           </div>
         )}
       </aside>
+    </div>
     </div>
   );
 }

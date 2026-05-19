@@ -36,9 +36,9 @@ const UK_BADGE_LABEL: Record<UkIssueCategory, string> = {
 };
 
 const SEV_CLS: Record<RiskSeverity, string> = {
-  high: "border-red-600 text-red-700 bg-red-50",
-  medium: "border-amber-500 text-amber-700 bg-amber-50",
-  low: "border-rule text-ink/70 bg-paper",
+  high: "border-[#D9304F] text-[#D9304F] bg-paper",
+  medium: "border-[#E67E22] text-[#E67E22] bg-paper",
+  low: "border-rule text-prose bg-paper",
 };
 
 function Accordion({
@@ -59,12 +59,12 @@ function Accordion({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between bg-paper px-4 py-3 text-left text-sm sm:text-base font-medium text-ink hover:bg-paper/60 transition-colors"
+        className="flex w-full items-center justify-between bg-paper px-4 py-3 text-left text-sm sm:text-base font-semibold text-ink hover:bg-wash transition-colors"
       >
         <span>
           {title}
           {typeof count === "number" && (
-            <span className="ml-2 text-ink/50 text-xs">({count})</span>
+            <span className="ml-2 text-muted text-xs font-mono">({count})</span>
           )}
         </span>
         <span aria-hidden>{open ? "−" : "+"}</span>
@@ -90,18 +90,18 @@ function AnalysisRow({
   clauseTitle: string;
 }) {
   return (
-    <div className="border-t border-rule/60 py-3 first:border-t-0 first:pt-0">
+    <div className="border-t border-rule py-3 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h4 className="font-medium text-ink">
+        <h4 className="font-semibold text-ink">
           {analysis.clause_id}
           {clauseTitle ? ` - ${clauseTitle}` : ""}
         </h4>
-        <span className="text-xs text-ink/70">
+        <span className="text-xs text-muted font-mono">
           risk {analysis.risk_score}/5 {riskBar(analysis.risk_score)}
         </span>
       </div>
       {analysis.summary && (
-        <p className="mt-2 text-sm text-ink/80 leading-relaxed">
+        <p className="mt-2 text-sm text-prose leading-relaxed">
           {analysis.summary}
         </p>
       )}
@@ -124,17 +124,17 @@ function AnalysisRow({
         </div>
       )}
       {analysis.uk_issues.length > 0 && (
-        <ul className="mt-2 space-y-1">
+        <ul className="mt-2 space-y-1 list-none pl-0">
           {analysis.uk_issues.map((issue, i) => (
-            <li key={i} className="text-sm text-ink/85">
-              <span className="font-medium">{issue.severity.toUpperCase()}:</span>{" "}
+            <li key={i} className="text-sm text-prose">
+              <span className="font-semibold text-ink">{issue.severity.toUpperCase()}:</span>{" "}
               {issue.description}
             </li>
           ))}
         </ul>
       )}
       {analysis.posture_note && (
-        <p className="mt-2 text-xs italic text-ink/60">{analysis.posture_note}</p>
+        <p className="mt-2 text-xs italic text-muted">{analysis.posture_note}</p>
       )}
     </div>
   );
@@ -142,9 +142,9 @@ function AnalysisRow({
 
 function RedlineRow({ redline }: { redline: Redline }) {
   const pillCls: Record<string, string> = {
-    must: "border-red-600 text-red-700 bg-red-50",
-    suggested: "border-amber-500 text-amber-700 bg-amber-50",
-    nice_to_have: "border-rule text-ink/60 bg-paper",
+    must: "border-[#D9304F] text-[#D9304F] bg-paper",
+    suggested: "border-[#E67E22] text-[#E67E22] bg-paper",
+    nice_to_have: "border-rule text-muted bg-paper",
   };
   const labels: Record<string, string> = {
     must: "MUST",
@@ -152,37 +152,33 @@ function RedlineRow({ redline }: { redline: Redline }) {
     nice_to_have: "Nice-to-have",
   };
   return (
-    <div className="border-t border-rule/60 py-3 first:border-t-0 first:pt-0">
+    <div className="border-t border-rule py-3 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-2">
-        <h4 className="font-medium text-ink">{redline.clause_id}</h4>
+        <h4 className="font-semibold text-ink">{redline.clause_id}</h4>
         <span
-          className={`inline-flex items-center border px-2 py-0.5 text-[11px] ${pillCls[redline.priority] || pillCls.suggested}`}
+          className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-mono uppercase tracking-track2 font-bold ${pillCls[redline.priority] || pillCls.suggested}`}
         >
           {labels[redline.priority] || redline.priority}
         </span>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="border border-rule/60 bg-paper p-3">
-          <div className="text-[11px] uppercase tracking-wide text-ink/60 mb-1">
-            Original
-          </div>
-          <div className="whitespace-pre-wrap text-sm text-ink/80 leading-relaxed">
+        <div className="border border-rule bg-paper p-3">
+          <div className="eyebrow mb-2">Original</div>
+          <div className="whitespace-pre-wrap text-sm text-prose leading-relaxed">
             {redline.original_text || (
-              <em className="text-ink/50">(no original - clause to be inserted)</em>
+              <em className="text-muted">(no original - clause to be inserted)</em>
             )}
           </div>
         </div>
         <div className="border border-ink bg-paper p-3">
-          <div className="text-[11px] uppercase tracking-wide text-ink/60 mb-1">
-            Suggested
-          </div>
+          <div className="eyebrow mb-2">Suggested</div>
           <div className="whitespace-pre-wrap text-sm text-ink leading-relaxed">
-            {redline.suggested_text || <em className="text-ink/50">(no suggestion)</em>}
+            {redline.suggested_text || <em className="text-muted">(no suggestion)</em>}
           </div>
         </div>
       </div>
       {redline.explanation && (
-        <p className="mt-2 text-xs italic text-ink/70">
+        <p className="mt-2 text-xs italic text-muted">
           Why: {redline.explanation}
         </p>
       )}
@@ -208,15 +204,15 @@ export function ResultPanel({
       {/* Header row + export */}
       <div className="flex flex-wrap items-center justify-between gap-3 border border-rule bg-paper px-4 py-3">
         <div className="text-sm text-ink">
-          <div className="font-medium">
+          <div className="font-semibold">
             {result.parsed.title || result.document_filename}
           </div>
-          <div className="text-xs text-ink/60">
+          <div className="text-xs text-muted font-mono mt-1">
             {result.parsed.parties.length > 0 && (
               <>parties: {result.parsed.parties.join(" / ")} · </>
             )}
-            type: {result.parsed.document_type} · posture: {result.posture} · {" "}
-            governing law: {result.parsed.governing_law_stated || "not stated"} · {" "}
+            type: {result.parsed.document_type} · posture: {result.posture} ·{" "}
+            governing law: {result.parsed.governing_law_stated || "not stated"} ·{" "}
             {result.total_token_count} tok · {(result.total_duration_ms / 1000).toFixed(1)}s
           </div>
         </div>
@@ -224,7 +220,7 @@ export function ResultPanel({
           {exportLink && (
             <a
               href={exportLink}
-              className="text-xs underline text-ink/70 hover:text-ink"
+              className="text-xs underline text-muted hover:text-ink transition-colors"
               target="_blank"
               rel="noreferrer"
             >
@@ -242,7 +238,7 @@ export function ResultPanel({
         </div>
       </div>
       {exportError && (
-        <div className="border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div className="border border-[#D9304F] bg-[#FEF2F2] px-3 py-2 text-xs text-[#B91C1C]">
           {exportError}
         </div>
       )}
@@ -254,47 +250,47 @@ export function ResultPanel({
         onToggle={() => setOpenSummary((v) => !v)}
       >
         {result.summary.executive_summary ? (
-          <p className="whitespace-pre-wrap text-sm text-ink/85 leading-relaxed">
+          <p className="whitespace-pre-wrap text-sm text-prose leading-relaxed">
             {result.summary.executive_summary}
           </p>
         ) : (
-          <p className="italic text-ink/50 text-sm">(no executive summary)</p>
+          <p className="italic text-muted text-sm">(no executive summary)</p>
         )}
         {result.summary.recommendation && (
-          <div className="mt-3 border-l-2 border-ink pl-3 text-sm font-medium text-ink">
+          <div className="mt-3 border-l-4 border-ink pl-4 text-sm font-semibold text-ink">
             Recommendation: {result.summary.recommendation}
           </div>
         )}
         {result.summary.risk_overview && (
           <div className="mt-4">
-            <h4 className="text-xs uppercase tracking-wide text-ink/60 mb-1">
-              Risk overview
-            </h4>
-            <p className="whitespace-pre-wrap text-sm text-ink/80 leading-relaxed">
+            <div className="eyebrow mb-2">Risk overview</div>
+            <p className="whitespace-pre-wrap text-sm text-prose leading-relaxed">
               {result.summary.risk_overview}
             </p>
           </div>
         )}
         {result.summary.uk_specific_callouts.length > 0 && (
           <div className="mt-4">
-            <h4 className="text-xs uppercase tracking-wide text-ink/60 mb-1">
-              UK callouts
-            </h4>
-            <ul className="space-y-1 text-sm text-ink/85 list-disc pl-5">
+            <div className="eyebrow mb-2">UK callouts</div>
+            <ul className="list-none space-y-2 text-sm text-prose pl-0">
               {result.summary.uk_specific_callouts.map((c, i) => (
-                <li key={i}>{c}</li>
+                <li key={i} className="flex items-start gap-3">
+                  <span className="font-bold text-ink">-</span>
+                  <span>{c}</span>
+                </li>
               ))}
             </ul>
           </div>
         )}
         {result.summary.key_terms.length > 0 && (
           <div className="mt-4">
-            <h4 className="text-xs uppercase tracking-wide text-ink/60 mb-1">
-              Key terms
-            </h4>
-            <ul className="space-y-1 text-sm text-ink/80 list-disc pl-5">
+            <div className="eyebrow mb-2">Key terms</div>
+            <ul className="list-none space-y-2 text-sm text-prose pl-0">
               {result.summary.key_terms.map((t, i) => (
-                <li key={i}>{t}</li>
+                <li key={i} className="flex items-start gap-3">
+                  <span className="font-bold text-ink">-</span>
+                  <span>{t}</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -309,11 +305,11 @@ export function ResultPanel({
         count={result.analyses.length}
       >
         {result.analyses.length === 0 ? (
-          <p className="italic text-ink/50 text-sm">
+          <p className="italic text-muted text-sm">
             No clause-level analysis produced.
           </p>
         ) : (
-          <div className="divide-y divide-rule/40">
+          <div className="divide-y divide-rule">
             {result.analyses.map((a) => {
               const clause = clauseLookup.get(a.clause_id);
               const title = clause
@@ -335,12 +331,12 @@ export function ResultPanel({
         count={result.redlines.length}
       >
         {result.redlines.length === 0 ? (
-          <p className="italic text-ink/50 text-sm">
-            No redlines proposed - no clause scored at risk 3+ or carried a
+          <p className="italic text-muted text-sm">
+            No redlines proposed. No clause scored at risk 3+ or carried a
             high-severity UK issue.
           </p>
         ) : (
-          <div className="divide-y divide-rule/40">
+          <div className="divide-y divide-rule">
             {result.redlines.map((r, i) => (
               <RedlineRow key={`${r.clause_id}-${i}`} redline={r} />
             ))}

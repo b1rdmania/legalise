@@ -26,11 +26,11 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 const STATE_PILL_CLS: Record<StageState, string> = {
-  pending: "border-rule text-ink/40 bg-paper",
+  pending: "border-rule text-muted bg-paper",
   running: "border-ink text-ink bg-paper animate-pulse",
   done: "border-ink text-paper bg-ink",
-  error: "border-red-600 text-red-700 bg-red-50",
-  skipped: "border-rule/60 text-ink/40 bg-paper line-through",
+  error: "border-[#D9304F] text-[#D9304F] bg-paper",
+  skipped: "border-rule text-muted bg-paper line-through",
 };
 
 const STATE_DOT: Record<StageState, string> = {

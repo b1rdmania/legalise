@@ -19,27 +19,34 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function renderCell(col: ColumnSpec, value: unknown): ReactElement {
   if (value === undefined || value === null || value === "") {
-    return <span className="text-neutral-300">-</span>;
+    return <span className="text-muted">-</span>;
   }
   const s = String(value);
   if (col.type === "yesno") {
     const lower = s.toLowerCase();
-    const tone =
+    const colour =
       lower === "yes"
-        ? "bg-green-100 text-green-800"
+        ? "#00A35C"
         : lower === "no"
-        ? "bg-red-100 text-red-800"
-        : "bg-neutral-100 text-neutral-700";
-    return <span className={`px-1.5 py-0.5 rounded text-xs ${tone}`}>{s}</span>;
-  }
-  if (col.type === "date" && !DATE_RE.test(s)) {
+        ? "#D9304F"
+        : "#9CA3AF";
     return (
-      <span title="Not a strict YYYY-MM-DD value">
-        {s} <span className="text-amber-600">⚠</span>
+      <span
+        className="inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold"
+        style={{ borderColor: colour, color: colour }}
+      >
+        {s}
       </span>
     );
   }
-  return <span>{s}</span>;
+  if (col.type === "date" && !DATE_RE.test(s)) {
+    return (
+      <span title="Not a strict YYYY-MM-DD value" className="text-ink">
+        {s} <span className="text-[#E67E22]">⚠</span>
+      </span>
+    );
+  }
+  return <span className="text-ink">{s}</span>;
 }
 
 export function ReviewGrid({
@@ -51,39 +58,44 @@ export function ReviewGrid({
 }: Props) {
   if (columns.length === 0) {
     return (
-      <div className="text-sm text-neutral-500 italic p-4 border border-neutral-200 rounded">
+      <div className="border border-rule p-4 text-sm text-muted italic">
         Add at least one column above to start.
       </div>
     );
   }
   if (rows.length === 0) {
     return (
-      <div className="text-sm text-neutral-500 italic p-4 border border-neutral-200 rounded">
-        No documents in this matter yet - upload one to populate the grid.
+      <div className="border border-rule p-4 text-sm text-muted italic">
+        No documents in this matter yet. Upload one to populate the grid.
       </div>
     );
   }
   return (
-    <div className="overflow-x-auto border border-neutral-200 rounded">
+    <div className="overflow-x-auto border border-rule">
       <table className="min-w-full text-sm">
-        <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-600">
-          <tr>
-            <th className="sticky left-0 bg-neutral-50 px-3 py-2 text-left border-r border-neutral-200">
+        <thead>
+          <tr className="bg-paper border-b border-rule">
+            <th className="sticky left-0 bg-paper px-3 py-3 text-left border-r border-rule font-mono uppercase tracking-track2 text-[9px] text-muted">
               Filename
             </th>
             {columns.map((c) => {
               const busy = runningWhole || runningColumnKey === c.key;
               return (
-                <th key={c.key} className="px-3 py-2 text-left border-r border-neutral-200 align-top">
+                <th
+                  key={c.key}
+                  className="px-3 py-3 text-left border-r border-rule align-top"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="font-medium normal-case">{c.label}</div>
-                      <div className="text-[10px] text-neutral-400 font-mono normal-case">
+                      <div className="text-sm font-semibold text-ink normal-case">
+                        {c.label}
+                      </div>
+                      <div className="text-[9px] text-muted font-mono uppercase tracking-track2 mt-0.5">
                         {c.key} · {c.type}
                       </div>
                     </div>
                     <button
-                      className="text-[10px] px-1.5 py-0.5 rounded border border-neutral-300 hover:bg-white disabled:opacity-40"
+                      className="text-[10px] px-2 py-0.5 border border-rule hover:border-ink hover:bg-wash transition-colors font-mono uppercase tracking-track2 text-ink disabled:opacity-40 disabled:cursor-not-allowed"
                       onClick={() => onRunColumn(c.key)}
                       disabled={busy}
                     >
@@ -97,17 +109,17 @@ export function ReviewGrid({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.document_id} className="border-t border-neutral-200">
-              <td className="sticky left-0 bg-white px-3 py-2 text-left border-r border-neutral-200 max-w-[18rem] truncate">
+            <tr key={r.document_id} className="border-t border-rule hover:bg-wash transition-colors">
+              <td className="sticky left-0 bg-paper px-3 py-2 text-left border-r border-rule max-w-[18rem] truncate font-mono text-xs text-ink">
                 {r.document_filename}
               </td>
               {columns.map((c) => {
                 const busy = runningWhole || runningColumnKey === c.key;
                 const v = r.extracted_values?.[c.key];
                 return (
-                  <td key={c.key} className="px-3 py-2 border-r border-neutral-200 align-top">
+                  <td key={c.key} className="px-3 py-2 border-r border-rule align-top">
                     {busy && (v === undefined || v === null) ? (
-                      <span className="inline-block w-3 h-3 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="inline-block w-3 h-3 border-2 border-rule border-t-ink rounded-full animate-spin" />
                     ) : (
                       renderCell(c, v)
                     )}

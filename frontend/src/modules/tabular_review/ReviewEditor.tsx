@@ -133,26 +133,28 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
   };
 
   if (!review) {
-    return <div className="text-sm text-neutral-500">{error ?? "Loading review…"}</div>;
+    return <div className="text-sm text-muted">{error ?? "Loading review…"}</div>;
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-5xl">
+      <div className="flex items-center justify-between gap-4 pb-6 border-b border-rule">
         <div>
           <button
-            className="text-xs text-neutral-500 hover:text-neutral-900"
+            className="text-xs text-muted hover:text-ink transition-colors mb-2"
             onClick={onBack}
           >
             ← All reviews
           </button>
-          <h2 className="text-lg font-semibold">{review.title}</h2>
-          <div className="text-xs text-neutral-500">{review.rows.length} rows</div>
+          <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-1">
+            {review.title}
+          </h2>
+          <div className="text-xs font-mono text-muted">{review.rows.length} rows</div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           {isDirty && (
             <button
-              className="px-3 py-1.5 text-sm rounded border border-neutral-300 hover:bg-neutral-50 disabled:opacity-40"
+              className="border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-sm font-medium min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={saveColumns}
               disabled={savingColumns}
             >
@@ -160,7 +162,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
             </button>
           )}
           <button
-            className="px-3 py-1.5 text-sm rounded bg-neutral-900 text-white disabled:opacity-40"
+            className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-sm font-medium min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={() => openEstimate()}
             disabled={runBusy || isDirty || columns.length === 0}
             title={isDirty ? "Save column changes first" : ""}
@@ -168,7 +170,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
             Run review
           </button>
           <button
-            className="px-3 py-1.5 text-sm rounded border border-neutral-300 hover:bg-neutral-50 disabled:opacity-40"
+            className="border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-sm font-medium min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed"
             onClick={onExport}
             disabled={exportBusy || columns.length === 0}
           >
@@ -178,7 +180,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       </div>
 
       {error && (
-        <div className="text-sm text-red-700 border border-red-300 bg-red-50 rounded p-2">
+        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
           {error}
         </div>
       )}
@@ -197,15 +199,15 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       />
 
       {lastReport && (
-        <div className="text-xs text-neutral-600 border border-neutral-200 rounded p-2">
+        <div className="border border-rule p-3 text-xs font-mono text-prose">
           Last run: {lastReport.cells_run} cells ok
           {lastReport.cells_failed > 0 && ` · ${lastReport.cells_failed} failed`}
           {" · "}
           {lastReport.duration_ms}ms
           {lastReport.errors.length > 0 && (
-            <ul className="mt-1 list-disc pl-5">
+            <ul className="mt-2 list-none pl-0 space-y-1">
               {lastReport.errors.slice(0, 5).map((e, i) => (
-                <li key={i} className="text-red-600">
+                <li key={i} className="text-[#B91C1C]">
                   {e.column_key}: {e.error_message}
                 </li>
               ))}

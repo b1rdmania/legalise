@@ -210,119 +210,112 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
   const stages = result?.stages ?? INITIAL_STAGES;
 
   return (
-    <div className="space-y-6">
-      <div className="border border-rule bg-paper p-4 sm:p-5">
-        <h3 className="font-medium text-ink mb-1">Contract review</h3>
-        <p className="text-xs text-ink/60 mb-4 leading-relaxed">
-          Four-stage UK-focused review: parse → analyse (UCTA / CRA s.62 /
-          UK GDPR Art 28 / governing law / jurisdiction / arbitration) →
-          redline → summarise. Runs against the document's extracted text;
-          anonymised bodies are not used. Results are not persisted in v0.1
-          - export as .docx to keep a copy.
+    <div className="space-y-6 max-w-4xl">
+      <div className="mb-10 pb-8 border-b border-rule">
+        <div className="eyebrow mb-3">08 · Contract review</div>
+        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
+          Contract review
+        </h2>
+        <p className="text-sm text-prose max-w-2xl leading-relaxed">
+          Four-stage UK-focused review: parse, analyse (UCTA / CRA s.62 /
+          UK GDPR Art 28 / governing law / jurisdiction / arbitration),
+          redline, summarise. Runs against the document's extracted text.
+          Anonymised bodies are not used. Results are not persisted in
+          v0.1. Export as .docx to keep a copy.
         </p>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-ink/60">
-              Document
-            </span>
-            <select
-              value={documentId}
-              onChange={(e) => onPickDoc(e.target.value)}
-              className={inputCls}
-            >
-              {orderedDocs.length === 0 && (
-                <option value="">(no documents on this matter)</option>
-              )}
-              {orderedDocs.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.filename}
-                  {d.tag ? ` · ${d.tag}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-ink/60">
-              Posture
-            </span>
-            <select
-              value={posture}
-              onChange={(e) => setPosture(e.target.value as Posture)}
-              className={inputCls}
-            >
-              {POSTURES.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-ink/60">
-              Contract type (hint)
-            </span>
-            <select
-              value={contractType}
-              onChange={(e) => setContractType(e.target.value as ContractKind)}
-              className={inputCls}
-            >
-              {CONTRACT_KINDS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-ink/60">
-              Counterparty <span className="opacity-50">(optional)</span>
-            </span>
-            <input
-              value={counterparty}
-              onChange={(e) => setCounterparty(e.target.value)}
-              className={inputCls}
-              placeholder="North Mill Consulting Limited"
-            />
-          </label>
-          <label className="flex flex-col gap-1 sm:col-span-2">
-            <span className="text-xs uppercase tracking-wide text-ink/60">
-              Deal value <span className="opacity-50">(optional)</span>
-            </span>
-            <input
-              value={dealValue}
-              onChange={(e) => setDealValue(e.target.value)}
-              className={inputCls}
-              placeholder="£250k ARR / 18-month term"
-            />
-          </label>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onRun}
-            disabled={running || !documentId}
-            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
-          >
-            {running ? "Running…" : "Run review"}
-          </button>
-          <StageStrip stages={stages} liveOverrides={liveStages} />
-        </div>
-
-        {error && (
-          <div className="mt-4 border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {error}
-          </div>
-        )}
-        {!error && !result && (
-          <p className="mt-3 text-xs italic text-ink/50">
-            Pick a contract-shaped document with extracted text. The Khan
-            sample matter ships with a synthetic mutual NDA fixture for the
-            demo.
-          </p>
-        )}
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1">
+          <span className="eyebrow">Document</span>
+          <select
+            value={documentId}
+            onChange={(e) => onPickDoc(e.target.value)}
+            className={inputCls}
+          >
+            {orderedDocs.length === 0 && (
+              <option value="">(no documents on this matter)</option>
+            )}
+            {orderedDocs.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.filename}
+                {d.tag ? ` · ${d.tag}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="eyebrow">Posture</span>
+          <select
+            value={posture}
+            onChange={(e) => setPosture(e.target.value as Posture)}
+            className={inputCls}
+          >
+            {POSTURES.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="eyebrow">Contract type (hint)</span>
+          <select
+            value={contractType}
+            onChange={(e) => setContractType(e.target.value as ContractKind)}
+            className={inputCls}
+          >
+            {CONTRACT_KINDS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="eyebrow">Counterparty (optional)</span>
+          <input
+            value={counterparty}
+            onChange={(e) => setCounterparty(e.target.value)}
+            className={inputCls}
+            placeholder="North Mill Consulting Limited"
+          />
+        </label>
+        <label className="flex flex-col gap-1 sm:col-span-2">
+          <span className="eyebrow">Deal value (optional)</span>
+          <input
+            value={dealValue}
+            onChange={(e) => setDealValue(e.target.value)}
+            className={inputCls}
+            placeholder="£250k ARR / 18-month term"
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={running || !documentId}
+          className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
+        >
+          {running ? "Running…" : "Run review"}
+        </button>
+        <StageStrip stages={stages} liveOverrides={liveStages} />
+      </div>
+
+      {error && (
+        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-sm text-[#B91C1C]">
+          {error}
+        </div>
+      )}
+      {!error && !result && (
+        <p className="text-xs italic text-muted">
+          Pick a contract-shaped document with extracted text. The Khan
+          sample matter ships with a synthetic mutual NDA fixture for the
+          demo.
+        </p>
+      )}
 
       {result && (
         <ResultPanel

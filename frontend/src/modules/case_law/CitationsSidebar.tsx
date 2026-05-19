@@ -44,39 +44,39 @@ export function CitationsSidebar({ slug, refreshKey, initialCitations }: Props) 
   };
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold">Cited authorities</h3>
+    <div className="space-y-3">
+      <div className="eyebrow">Cited authorities</div>
       {error && (
-        <div className="text-xs text-red-700 border border-red-300 bg-red-50 rounded p-2">
+        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-xs text-[#B91C1C]">
           {error}
         </div>
       )}
       {rows === null ? (
-        <div className="text-xs text-neutral-500">Loading…</div>
+        <div className="text-xs text-muted">Loading…</div>
       ) : rows.length === 0 ? (
-        <div className="text-xs text-neutral-500">
+        <div className="text-xs text-muted">
           No citations saved yet. Cite a search result to pin it here.
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2 list-none pl-0">
           {rows.map((c) => (
             <li
               key={c.id}
-              className="border border-neutral-200 rounded p-2 bg-white"
+              className="border border-rule p-3 bg-paper"
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="space-y-0.5 min-w-0">
-                  <div className="text-sm font-medium truncate">
+                <div className="space-y-1 min-w-0">
+                  <div className="text-sm font-semibold text-ink truncate">
                     {c.case_name || "(unnamed)"}
                   </div>
-                  <div className="text-xs font-mono text-neutral-600 truncate">
+                  <div className="text-xs font-mono text-prose truncate">
                     {c.citation_ref}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => onDelete(c.id)}
-                  className="shrink-0 text-xs text-red-700 hover:underline"
+                  className="shrink-0 text-xs text-muted hover:text-ink transition-colors"
                 >
                   Remove
                 </button>
@@ -86,7 +86,7 @@ export function CitationsSidebar({ slug, refreshKey, initialCitations }: Props) 
                   href={c.source_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs text-blue-700 underline"
+                  className="text-xs text-[#0066CC] hover:underline mt-1 inline-block"
                 >
                   Source
                 </a>

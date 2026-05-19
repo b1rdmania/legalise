@@ -52,34 +52,37 @@ export function ColumnEditor({ columns, onChange }: Props) {
     setDraftType("text");
   };
 
+  const cellCls =
+    "bg-paper border border-rule px-2 py-1 text-sm focus:border-ink focus:outline-none transition-colors font-sans text-ink";
+
   return (
     <div className="space-y-3">
-      <div className="text-sm font-medium text-neutral-700">Columns</div>
+      <div className="eyebrow">Columns</div>
 
       {columns.length === 0 && (
-        <div className="text-xs text-neutral-500 italic">No columns yet.</div>
+        <div className="text-xs text-muted italic">No columns yet.</div>
       )}
 
       <div className="space-y-2">
         {columns.map((c, i) => (
           <div
             key={c.key}
-            className="grid grid-cols-12 gap-2 p-2 border border-neutral-200 rounded bg-white"
+            className="grid grid-cols-12 gap-2 p-3 border border-rule bg-paper"
           >
             <input
-              className="col-span-3 px-2 py-1 text-sm border border-neutral-300 rounded"
+              className={`col-span-3 ${cellCls}`}
               value={c.label}
               onChange={(e) => update(i, { label: e.target.value })}
               placeholder="Label"
             />
             <textarea
-              className="col-span-6 px-2 py-1 text-sm border border-neutral-300 rounded resize-y min-h-[2.5rem]"
+              className={`col-span-6 resize-y min-h-[2.5rem] ${cellCls}`}
               value={c.prompt}
               onChange={(e) => update(i, { prompt: e.target.value })}
               placeholder="Prompt - what should the model extract?"
             />
             <select
-              className="col-span-2 px-2 py-1 text-sm border border-neutral-300 rounded"
+              className={`col-span-2 ${cellCls}`}
               value={c.type}
               onChange={(e) => update(i, { type: e.target.value as ColumnSpec["type"] })}
             >
@@ -90,33 +93,33 @@ export function ColumnEditor({ columns, onChange }: Props) {
               ))}
             </select>
             <button
-              className="col-span-1 text-xs text-red-600 hover:underline"
+              className="col-span-1 text-xs text-muted hover:text-ink transition-colors"
               onClick={() => remove(i)}
             >
               Remove
             </button>
-            <div className="col-span-12 text-[10px] text-neutral-400 font-mono pl-1">
+            <div className="col-span-12 text-[10px] text-muted font-mono pl-1 uppercase tracking-track2">
               key: {c.key}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-12 gap-2 p-2 border border-dashed border-neutral-300 rounded">
+      <div className="grid grid-cols-12 gap-2 p-3 border border-dashed border-rule">
         <input
-          className="col-span-3 px-2 py-1 text-sm border border-neutral-300 rounded"
+          className={`col-span-3 ${cellCls}`}
           value={draftLabel}
           onChange={(e) => setDraftLabel(e.target.value)}
           placeholder="New column label"
         />
         <textarea
-          className="col-span-6 px-2 py-1 text-sm border border-neutral-300 rounded resize-y min-h-[2.5rem]"
+          className={`col-span-6 resize-y min-h-[2.5rem] ${cellCls}`}
           value={draftPrompt}
           onChange={(e) => setDraftPrompt(e.target.value)}
-          placeholder="Prompt (≥4 chars)"
+          placeholder="Prompt (4+ chars)"
         />
         <select
-          className="col-span-2 px-2 py-1 text-sm border border-neutral-300 rounded"
+          className={`col-span-2 ${cellCls}`}
           value={draftType}
           onChange={(e) => setDraftType(e.target.value as ColumnSpec["type"])}
         >
@@ -127,7 +130,7 @@ export function ColumnEditor({ columns, onChange }: Props) {
           ))}
         </select>
         <button
-          className="col-span-1 text-xs text-neutral-700 hover:underline disabled:opacity-40"
+          className="col-span-1 text-xs text-ink hover:text-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={add}
           disabled={!draftLabel.trim() || draftPrompt.trim().length < 4}
         >

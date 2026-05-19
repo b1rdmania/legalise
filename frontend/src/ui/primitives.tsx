@@ -9,7 +9,7 @@ export const primaryBtn =
 export function ErrorCallout({ message, compact = false }: { message: string; compact?: boolean }) {
   const { status, body } = parseError(message);
   return (
-    <div className={`bg-red-50 border border-red-700 ${compact ? "p-3" : "p-4"} text-red-700 text-sm my-3`}>
+    <div className={`bg-[#FEF2F2] border border-[#D9304F] ${compact ? "p-3" : "p-4"} text-[#B91C1C] text-sm my-3`}>
       <div className="font-semibold mb-1">
         Error{status ? ` · HTTP ${status}` : ""}
       </div>

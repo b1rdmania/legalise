@@ -49,14 +49,14 @@ export function CaseLawCard({ slug, result, onCited }: Props) {
   };
 
   return (
-    <div className="border border-neutral-200 rounded p-3 bg-white space-y-2">
+    <div className="border border-rule p-4 bg-paper space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-0.5">
-          <div className="font-medium text-sm">{result.case_name}</div>
-          <div className="text-xs font-mono text-neutral-700">
+        <div className="space-y-1 min-w-0">
+          <div className="text-sm font-semibold text-ink">{result.case_name}</div>
+          <div className="text-xs font-mono text-prose">
             {result.citation_ref}
           </div>
-          <div className="text-xs text-neutral-500">
+          <div className="text-xs text-muted">
             {[result.court, result.judgment_date].filter(Boolean).join(" · ")}
           </div>
         </div>
@@ -64,13 +64,13 @@ export function CaseLawCard({ slug, result, onCited }: Props) {
           type="button"
           onClick={onCite}
           disabled={busy || done}
-          className="shrink-0 px-3 py-1 text-xs rounded bg-neutral-900 text-white disabled:opacity-50"
+          className="shrink-0 border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {done ? "Cited" : busy ? "Citing…" : "Cite into matter"}
         </button>
       </div>
       {result.summary && (
-        <div className="text-sm text-neutral-700 whitespace-pre-wrap">
+        <div className="text-sm text-prose whitespace-pre-wrap leading-relaxed">
           {result.summary}
         </div>
       )}
@@ -80,14 +80,14 @@ export function CaseLawCard({ slug, result, onCited }: Props) {
             href={result.source_url}
             target="_blank"
             rel="noreferrer"
-            className="text-blue-700 underline"
+            className="text-[#0066CC] hover:underline"
           >
             Source
           </a>
         </div>
       )}
       {error && (
-        <div className="text-xs text-red-700 border border-red-300 bg-red-50 rounded p-2">
+        <div className="border border-[#D9304F] bg-[#FEF2F2] p-3 text-xs text-[#B91C1C]">
           {error}
         </div>
       )}
