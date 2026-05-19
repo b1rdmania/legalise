@@ -21,11 +21,11 @@
 | Frontend | React 19 + Vite + TanStack Router | Modern but stable. Hot reload, fast build, no Next.js framework lock-in. |
 | Styling | Tailwind + Shadcn primitives | Solicitor-legible defaults, customisable, no design-system rebuild needed. |
 | AI gateway | `app/core/model_gateway.py` | Abstracts Anthropic, OpenAI, Ollama. Per-matter privilege posture selects provider. |
-| Multi-agent | `app/agents/` — BaseAgent + Orchestrator | Async, streaming, tool-call-aware. Same pattern as Bird Legal MVP. |
+| Multi-agent | `app/agents/` (BaseAgent + Orchestrator) | Async, streaming, tool-call-aware. Same pattern as Bird Legal MVP. |
 | Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
 | Hosting (live demo) | Cloudflare Pages (frontend) + Fly.io `lhr` (backend, default) + Neon Postgres London + R2 (storage). Cloudflare Containers optional / experimental. | UK-region database and backend; edge CDN and storage at EU / Western Europe placement (R2 hint best-effort). See `infra/deploy/cloudflare.md` for honest residency caveats. |
-| Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. Operators can deploy anywhere — Cloudflare is the maintainer's choice, not a requirement. |
+| Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. Operators can deploy anywhere. Cloudflare is the maintainer's choice, not a requirement. |
 
 ## Module shape
 
@@ -47,18 +47,18 @@ frontend/src/modules/<module>/
   types.ts           # shared types with backend (codegen from OpenAPI)
 ```
 
-Modules share the matter primitive but are otherwise loosely coupled. Adding a new module is a self-contained PR — or a fork-local addition if a firm wants private modules.
+Modules share the matter primitive but are otherwise loosely coupled. Adding a new module is a self-contained PR, or a fork-local addition if a firm wants private modules.
 
 ## Module SDK
 
-Legalise is a **platform-shaped, module-extensible workspace** — the platform claim becomes load-bearing once `app.core.api` is real (v0.1 build window). Until then, the SDK exists at the planning level: manifest schema, example-tab starter, documented public-surface contract, MODULE_DEVELOPMENT.md guide.
+Legalise is a **platform-shaped, module-extensible workspace**. The platform claim becomes load-bearing once `app.core.api` is real (v0.1 build window). Until then, the SDK exists at the planning level: manifest schema, example-tab starter, documented public-surface contract, MODULE_DEVELOPMENT.md guide.
 
 Tabs are modules. New modules (a plain-english tab, a time-recording tab, a conflicts-check tab, a firm-specific workflow) plug into the matter spine using the same primitives the built-in modules use.
 
 The contract:
 
-- Every module ships a `module.json` validated against `/schemas/module.json` — declares name, version, nav entry, routes, plugin/env/MCP dependencies, permissions.
-- Every module imports only from `app.core.api` — the documented stable surface. Internals (`app.core.config`, `app.core.audit`, etc.) are not stable across patches.
+- Every module ships a `module.json` validated against `/schemas/module.json`, declaring name, version, nav entry, routes, plugin/env/MCP dependencies, permissions.
+- Every module imports only from `app.core.api`, the documented stable surface. Internals (`app.core.config`, `app.core.audit`, etc.) are not stable across patches.
 - Every module gets matter context, audit logging, model gateway access, plugin bridge access, and storage for free. No module re-implements those primitives.
 - Every module respects the matter's privilege posture and the audit log. These are not optional.
 
@@ -70,10 +70,10 @@ A minimal worked example lives at `examples/modules/example-tab/`. Full develope
 
 Manual, two places:
 
-1. `backend/app/main.py` — `app.include_router(module_router, prefix=...)`
-2. `frontend/src/lib/modules.ts` — registry array with the module slug and manifest
+1. `backend/app/main.py`: `app.include_router(module_router, prefix=...)`
+2. `frontend/src/lib/modules.ts`: registry array with the module slug and manifest
 
-v0.2 introduces auto-discovery — modules drop in, the platform finds them at boot, no manual edits.
+v0.2 introduces auto-discovery. Modules drop in, the platform finds them at boot, no manual edits.
 
 ### Module migrations (v0.1)
 
@@ -120,7 +120,7 @@ Event              # chronology entries
 
 AuditEntry
   id, actor_id (User), matter_id (nullable)
-  action (string — e.g. "matter.created", "model.call", "document.upload")
+  action (string, e.g. "matter.created", "model.call", "document.upload")
   resource_type, resource_id
   prompt_hash (nullable), response_hash (nullable)
   model_used (nullable), token_count (nullable), latency_ms (nullable)
@@ -169,9 +169,9 @@ class ModelGateway:
   4. Return Response.
 
 Providers:
-- AnthropicProvider — async Anthropic SDK
-- OpenAIProvider — async OpenAI SDK
-- OllamaProvider — async HTTP to local Ollama instance
+- AnthropicProvider: async Anthropic SDK
+- OpenAIProvider: async OpenAI SDK
+- OllamaProvider: async HTTP to local Ollama instance
 ```
 
 All LLM calls go through the gateway. There is no direct SDK import in any module.
@@ -201,8 +201,8 @@ v1 uses (1) for speed. v0.2 migrates to (2).
 
 Two layers:
 
-- **Middleware audit** — every FastAPI request touching a matter creates an AuditEntry (`matter.read`, `matter.update`, `document.upload`, etc.).
-- **Model gateway audit** — every LLM call records prompt hash, response hash, model, tokens, latency.
+- **Middleware audit.** Every FastAPI request touching a matter creates an AuditEntry (`matter.read`, `matter.update`, `document.upload`, etc.).
+- **Model gateway audit.** Every LLM call records prompt hash, response hash, model, tokens, latency.
 
 The audit log is exposed as a matter tab in the UI and as CSV / JSONL export.
 
@@ -212,9 +212,9 @@ Three matter-level states. Each module reads the posture and behaves accordingly
 
 | Posture | Default model | Chronology behaviour | SoF default |
 |---|---|---|---|
-| A — cleared | Anthropic | Extract without flags | All entries included |
-| B — mixed (default) | Anthropic; local recommended for sensitive matters | Tag each entry priv: ok / flag / review | Flagged entries excluded |
-| C — paused | None (refuse calls) | Refuse extraction | N/A |
+| A_cleared | Anthropic | Extract without flags | All entries included |
+| B_mixed (default) | Anthropic; local recommended for sensitive matters | Tag each entry priv: ok / flag / review | Flagged entries excluded |
+| C_paused | None (refuse calls) | Refuse extraction | N/A |
 
 Posture is mutable but every change creates an AuditEntry.
 
@@ -231,7 +231,7 @@ For demo purposes, one sample matter is pre-set to local mode so visitors can se
 ## Frontend state
 
 - **Server state** via TanStack Query.
-- **Client state** minimal — current matter, current module, selected document. Local component state.
+- **Client state** minimal. Current matter, current module, selected document. Local component state.
 - **Routing** TanStack Router, file-based.
 - **Auth** session cookie, refreshed via `/auth/me`. v0.2 swaps to WorkOS / Stytch.
 

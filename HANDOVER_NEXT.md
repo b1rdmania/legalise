@@ -68,8 +68,8 @@ rg "capability-gated|capability-enforced|UK data residency end-to-end|docxtpl" R
 # Audit writes only via the helper or the model layer
 rg "AuditEntry\\(" backend/app -g "*.py"
 
-# No em dashes in launch copy (U+2014)
-python3 -c "import sys; [print(f, open(f).read().count('—')) for f in ['README.md','docs/MANIFESTO.md','docs/ROADMAP.md']]"
+# No em dashes in public copy (U+2014)
+python3 -c "import sys; [print(f, open(f).read().count('—')) for f in ['README.md','docs/MANIFESTO.md','docs/ROADMAP.md','EXECUTIVE_SUMMARY.md','ARCHITECTURE.md']]"
 ```
 
 Expected:
@@ -78,7 +78,7 @@ Expected:
 - no references to deleted historic scratch in canonical docs
 - launch copy makes no capability-enforcement overclaim that does not exist (NB: v0.1 now actually ships enforcement, so the previous prohibition lifts - but launch copy should still describe accurately, not aspirationally)
 - direct `AuditEntry(...)` only in model/helper/middleware/seed sites
-- em-dash count = 0 across the three launch docs
+- em-dash count = 0 across all five public docs (README, MANIFESTO, ROADMAP, EXECUTIVE_SUMMARY, ARCHITECTURE)
 
 ## Test plan
 
