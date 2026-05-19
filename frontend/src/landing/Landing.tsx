@@ -194,7 +194,7 @@ export function Landing() {
 
       {/* Whitepaper body: sidebar TOC + numbered sections */}
       <div className="flex">
-      {/* Sidebar TOC — Warp shape */}
+      {/* Sidebar TOC, Warp shape */}
       <aside
         className="w-80 hidden lg:block sticky top-[80px] h-[calc(100vh-80px)] border-r border-rule p-10 overflow-y-auto"
         aria-label="Whitepaper sections"
@@ -408,7 +408,7 @@ export function Landing() {
               <span>
                 <strong className="text-ink font-semibold">No multi-tenant isolation.</strong>{" "}
                 Single workspace per deploy. Bring your own deploy if you need
-                isolation. v0.2 introduces tenants.
+                isolation. Multi-tenant is post-v0.2.
               </span>
             </li>
             <li className="flex items-start gap-4">
