@@ -6,6 +6,13 @@
 > rail + slim breadcrumb pattern lifted from Mike, Claude.ai, Sana AI,
 > Mistral, and Fibery. Memo still provides the token base across both.
 
+> **Design serves joy.** This document defines visual and interface
+> rules. The product-feel doctrine lives in [`JOY.md`](./JOY.md): what
+> "good" feels like when a solicitor uses Legalise, the core loop, the
+> required patterns (Matter Pulse, Suggested Actions, Source Chips,
+> Audit Confirmation, Module Cards), and the anti-patterns that break
+> trust. When the two conflict, design serves joy.
+
 **Theme:** light. Paper-and-ink, no shadows, no rounded corners.
 Borders define structure. Mono accents on data and labels. No status
 colour fills; status reads via mono bordered pills.
