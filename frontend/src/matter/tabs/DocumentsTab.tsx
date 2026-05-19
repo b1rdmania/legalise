@@ -33,7 +33,18 @@ export function DocumentsTab({
     "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
 
   return (
-    <div>
+    <div className="max-w-4xl">
+      <div className="mb-10 pb-8 border-b border-rule">
+        <div className="eyebrow mb-3">02 · Documents</div>
+        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
+          Documents
+        </h2>
+        <p className="text-sm text-prose max-w-2xl leading-relaxed">
+          Upload, tag, anonymise. Disclosure documents flag as CPR 31.22 and
+          gate the chronology. The body is the source of truth; the file is
+          stored alongside but never edited.
+        </p>
+      </div>
       <form className="mb-10 flex flex-wrap items-end gap-4">
         <Field label="Tag" hint="optional - e.g. pleadings, disclosure">
           <input

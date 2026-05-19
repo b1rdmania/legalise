@@ -33,14 +33,20 @@ export function PreMotionTab({
 
   return (
     <div className="max-w-4xl">
+      <div className="mb-10 pb-8 border-b border-rule">
+        <div className="eyebrow mb-3">06 · Pre-Motion</div>
+        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
+          Pre-Motion
+        </h2>
+        <p className="text-sm text-prose max-w-2xl leading-relaxed">
+          Adversarial premortem. Optimistic Analyst then Evidence Inspector
+          (three parallel sub-agents) then Premortem Adversary (four parallel
+          sub-agents) then Synthesiser. Nine model calls per run, all
+          audited.
+        </p>
+      </div>
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-prose max-w-2xl">
-            Adversarial premortem. Optimistic Analyst → Evidence Inspector × 3 parallel sub-agents
-            → Premortem Adversary × 4 parallel sub-agents → Synthesiser. Nine model calls per run,
-            all audited.
-          </p>
-        </div>
         <button
           onClick={onRun}
           disabled={running || blocked}
@@ -51,10 +57,14 @@ export function PreMotionTab({
       </div>
 
       {blocked && (
-        <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm mb-6">
-          <div className="font-semibold mb-1">Privilege posture C_paused</div>
-          LLM calls are blocked while the matter posture is paused. Change the posture in the
-          header strip to run a premortem.
+        <div className="border border-rule p-6 mb-6">
+          <div className="text-sm font-semibold text-ink mb-1">
+            Privilege posture C_paused
+          </div>
+          <p className="text-sm text-prose m-0 leading-relaxed">
+            Cloud model calls are refused while posture is paused. Change
+            the posture in the matter sidebar to run a premortem.
+          </p>
         </div>
       )}
 
@@ -176,12 +186,16 @@ function PremotionResult({ result }: { result: PreMotionRunResult }) {
         </div>
         <p className="prose-p">{result.synthesis.verdict_reasoning}</p>
         {result.synthesis.if_we_lose_this_will_be_why && (
-          <div className="bg-wash p-8 border-l-4 border-ink my-8">
-            <div className="eyebrow mb-3">If we lose, this will be why</div>
-            <p className="text-sm font-medium italic m-0 text-ink">
-              {result.synthesis.if_we_lose_this_will_be_why}
-            </p>
-          </div>
+          <>
+            <h3 className="text-lg font-bold tracking-tight2 text-ink mt-8 mb-3">
+              If we lose, this will be why
+            </h3>
+            <div className="bg-wash p-8 border-l-4 border-ink my-4">
+              <p className="text-sm font-medium italic m-0 text-prose">
+                {result.synthesis.if_we_lose_this_will_be_why}
+              </p>
+            </div>
+          </>
         )}
         {result.synthesis.summary && (
           <p className="prose-p whitespace-pre-wrap">{result.synthesis.summary}</p>

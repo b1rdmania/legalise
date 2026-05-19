@@ -58,46 +58,52 @@ export function ResearchTab({ matter, initialCitations }: Props) {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Research</h2>
-      </div>
+  const inputCls =
+    "bg-paper border border-rule px-3 py-2 text-sm focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
 
-      <div className="text-xs border border-amber-300 bg-amber-50 text-amber-900 rounded p-2">
-        Results are synthesised from model knowledge for v0.1. Verify each
-        citation on{" "}
-        <a
-          href="https://caselaw.nationalarchives.gov.uk"
-          target="_blank"
-          rel="noreferrer"
-          className="underline"
-        >
-          caselaw.nationalarchives.gov.uk
-        </a>{" "}
-        before relying on it.
+  return (
+    <div className="max-w-5xl">
+      <div className="mb-10 pb-8 border-b border-rule max-w-4xl">
+        <div className="eyebrow mb-3">04 · Research</div>
+        <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-3">
+          Research
+        </h2>
+        <p className="text-sm text-prose max-w-2xl leading-relaxed">
+          Search reported authorities and cite them into the matter.
+          Results in v0.1 are synthesised from model knowledge. Verify
+          each citation on{" "}
+          <a
+            href="https://caselaw.nationalarchives.gov.uk"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#0066CC] hover:underline"
+          >
+            caselaw.nationalarchives.gov.uk
+          </a>{" "}
+          before relying on it. v0.2 swaps in Find Case Law via MCP.
+        </p>
       </div>
 
       <form
         onSubmit={onSearch}
-        className="flex flex-wrap items-end gap-2 p-3 border border-neutral-200 rounded bg-neutral-50"
+        className="flex flex-wrap items-end gap-3 mb-6"
       >
-        <div className="flex-1 min-w-[240px]">
-          <label className="block text-xs text-neutral-600 mb-1">Query</label>
+        <div className="flex flex-col gap-1 flex-1 min-w-[240px]">
+          <span className="eyebrow">Query</span>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g. unfair dismissal Burchell test"
-            className="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
+            className={inputCls}
           />
         </div>
-        <div>
-          <label className="block text-xs text-neutral-600 mb-1">Court</label>
+        <div className="flex flex-col gap-1">
+          <span className="eyebrow">Court</span>
           <select
             value={court}
             onChange={(e) => setCourt(e.target.value)}
-            className="px-2 py-1 border border-neutral-300 rounded text-sm bg-white"
+            className={inputCls}
           >
             {COURT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -106,8 +112,8 @@ export function ResearchTab({ matter, initialCitations }: Props) {
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-xs text-neutral-600 mb-1">Year</label>
+        <div className="flex flex-col gap-1">
+          <span className="eyebrow">Year</span>
           <input
             type="number"
             value={year}
@@ -115,47 +121,47 @@ export function ResearchTab({ matter, initialCitations }: Props) {
             min={1900}
             max={2100}
             placeholder="YYYY"
-            className="w-24 px-2 py-1 border border-neutral-300 rounded text-sm"
+            className={`${inputCls} w-28`}
           />
         </div>
         <button
           type="submit"
           disabled={busy || query.trim().length < 2}
-          className="px-3 py-1.5 text-sm rounded bg-neutral-900 text-white disabled:opacity-50"
+          className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {busy ? "Searching…" : "Search"}
         </button>
       </form>
 
       {error && (
-        <div className="text-sm text-red-700 border border-red-300 bg-red-50 rounded p-2">
+        <div className="border border-[#D9304F] bg-[#FEF2F2] p-4 text-sm text-[#B91C1C] mb-6">
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4">
-        <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8">
+        <div className="space-y-3">
           {resp === null ? (
-            <div className="text-sm text-neutral-500">
+            <div className="border border-rule p-6 text-sm text-muted">
               Run a search to see authorities.
             </div>
           ) : resp.results.length === 0 ? (
-            <div className="space-y-2">
-              <div className="text-sm text-neutral-600">
+            <div className="space-y-3">
+              <div className="text-sm text-prose">
                 No structured results returned for "{resp.query}".
               </div>
               {resp.raw_response_excerpt && (
-                <pre className="text-xs whitespace-pre-wrap border border-neutral-200 rounded p-2 bg-neutral-50">
+                <pre className="text-xs whitespace-pre-wrap border border-rule bg-wash p-4 font-mono text-prose">
                   {resp.raw_response_excerpt}
                 </pre>
               )}
             </div>
           ) : (
             <>
-              <div className="text-xs text-neutral-500">
+              <div className="font-mono text-xs text-muted mb-2">
                 {resp.results.length} result{resp.results.length === 1 ? "" : "s"}
-                {resp.truncated ? " (truncated)" : ""} ·{" "}
-                {resp.model_used} · {resp.latency_ms}ms
+                {resp.truncated ? " (truncated)" : ""} · {resp.model_used} ·{" "}
+                {resp.latency_ms}ms
               </div>
               {resp.results.map((r, i) => (
                 <CaseLawCard
