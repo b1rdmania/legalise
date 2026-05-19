@@ -4,7 +4,7 @@
 
 UK legal AI workspace for England & Wales. Matter-first, privilege-posture-aware, audit-logged. Apache-2.0.
 
-`v0.1`. Live demo at the URL above. Or run it locally on Docker Compose. The Khan v Acme sample matter seeds on signup so the workspace is never empty.
+`v0.1`. Live demo at [legalise.dev](https://legalise.dev). Or run it locally on Docker Compose. The Khan v Acme sample matter seeds on signup so the workspace is never empty.
 
 ## How it works
 

@@ -1,10 +1,10 @@
-# Legalise — Executive Summary
+# Legalise: Executive Summary
 
 ## What this is
 
 Legalise is a UK-native legal AI workspace for England & Wales. Matter-first. Privilege-preserving. Built on top of the `claude-for-uk-legal` plugin suite. Open source under Apache 2.0.
 
-It is the workspace that demonstrates what a UK-jurisdiction AI-assisted legal practice could look like — designed to be solicitor-legible, developer-extensible, and investor-evaluatable.
+It shows what a UK AI-assisted legal practice could look like. Built for solicitors to read, developers to extend, and investors to evaluate.
 
 ## What this is not
 
@@ -15,16 +15,16 @@ It is the workspace that demonstrates what a UK-jurisdiction AI-assisted legal p
 
 ## Strategic position
 
-Four things are happening simultaneously in 2026:
+Four things are happening in 2026:
 
 1. **Anthropic shipped `claude-for-legal` for US workflows.** April 2026. 1,100+ stars in three weeks. The plugin model for legal AI is now first-party.
 2. **Stella shipped an open-source legal workspace.** 87 stars in 10 days, US-shaped, Apache 2.0. Workspace primitives (matter, document, tabular review) now exist as community infrastructure.
 3. **Mike owns the broad open-source Harvey / Legora lane.** Auth, projects, document assistant, tabular review, workflows, hosted demo, and strong OSS momentum. Legalise should not compete as a generic "open-source legal AI workspace"; that fight is already better served elsewhere.
 4. **No UK regulator-first execution layer exists.** English & Welsh law differs from US law in every meaningful procedural and substantive way for these workflows. The UK gap is narrower than "workspace", but sharper: reviewable legal skills executed inside matter context with audit, privilege posture, CPR gates, and Git-pinned provenance.
 
-Legalise fills the UK execution-layer gap. It is the **governed runtime** for `claude-for-uk-legal`'s **plugin counterpart** to Anthropic's `claude-for-legal`.
+Legalise fills the UK execution-layer gap. `claude-for-uk-legal` is the plugin counterpart to Anthropic's `claude-for-legal`. Legalise is the governed runtime that executes those plugins inside a UK matter.
 
-The longer-term thesis (separate to this codebase) is that a regulated UK ABS — Bird Legal — eventually runs on this stack. The workspace is the credibility artefact for that thesis. The ABS is the moat. The plugins and workspace are the calling card.
+The longer-term thesis (separate to this codebase) is that a regulated UK ABS, Bird Legal, eventually runs on this stack. The workspace is the credibility artefact for that thesis. The ABS is the moat. The plugins and workspace are the calling card.
 
 ## Why the workspace exists
 
@@ -34,7 +34,7 @@ Three audiences see the workspace and each takes something different from it:
 |---|---|---|
 | Developers | Code quality, multi-agent architecture, plugin composition, MCP-ready primitives. Stars, forks, PRs. | Visibility. Recruitment. Compounding GitHub trail. |
 | Solicitors | A matter-first workflow they recognise. Pre-Motion, chronology, CPR-letter drafting they could imagine using. | Credibility for future ABS conversations. Pipeline of co-founder candidates. |
-| Investors | A demo that proves the thesis is buildable. Regulatory plumbing visible (audit log, privilege posture, local model toggle). | Series A narrative — "we built the workspace; the ABS is next." |
+| Investors | A demo that proves the thesis is buildable. Regulatory plumbing visible (audit log, privilege posture, local model toggle). | Series A narrative. "We built the workspace; the ABS is next." |
 
 Build priority is developer-first (forks drive everything). Aesthetic priority is solicitor-legible (the shape is the signal). Investor evaluation falls out naturally from the same surface.
 
@@ -48,15 +48,15 @@ England & Wales civil and employment law. Does not cover:
 - Family procedure.
 - Tax tribunal beyond signposting.
 
-## v1 launch surface — one coherent sample-matter workflow
+## v1 launch surface: one coherent sample-matter workflow
 
-Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the canonical demonstrations, and the plugin bridge. (Post-pivot framing — see `README.md`. The project's identity is the audited execution layer for legal skills; the surfaces below are proof modules, not the project.)
+Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the canonical demonstrations, and the plugin bridge. (Post-pivot framing. See `README.md`. The project's identity is the audited execution layer for legal skills; the surfaces below are proof modules, not the project.)
 
-1. **Matter workspace** — the spine. Matter creation, document upload, audit trail, role stub, privilege posture toggle. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
-2. **Pre-Motion** — adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories, settlement-posture implications, and the one brutal one-sentence verdict: "if we lose this, this will be why." The canonical demonstration of bespoke-orchestration surfaces. Ported from the existing premotion app.
-3. **CPR-letter drafter as plugin-bridge proof** — matter-aware autofill on top of the existing `cpr-letter-drafter` plugin. Proves one real plugin invocation from the workspace.
-4. **Chronology read-only demo** — seeded fixture, CPR 31.22 implied-undertaking gate, significance tagging, SoF variant filtering. Demonstrates the regulatory shape without v0.1 live extraction.
-5. **Contract review** — visible roadmap tab, clearly labelled v0.2. The proven 4-agent pipeline in counsel-mvp graduates as a port + SDK wiring in v0.2, not as a v0.1 commitment.
+1. **Matter workspace.** The spine. Matter creation, document upload, audit trail, role stub, privilege posture toggle. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
+2. **Pre-Motion.** Adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories, settlement-posture implications, and the one brutal one-sentence verdict: "if we lose this, this will be why." The canonical demonstration of bespoke-orchestration surfaces. Ported from the existing premotion app.
+3. **CPR-letter drafter as plugin-bridge proof.** Matter-aware autofill on top of the existing `cpr-letter-drafter` plugin. Proves one real plugin invocation from the workspace.
+4. **Chronology read-only demo.** Seeded fixture, CPR 31.22 implied-undertaking gate, significance tagging, SoF variant filtering. Demonstrates the regulatory shape without v0.1 live extraction.
+5. **Contract review.** Visible roadmap tab, clearly labelled v0.2. The proven 4-agent pipeline in counsel-mvp graduates as a port + SDK wiring in v0.2, not as a v0.1 commitment.
 
 Post-pivot, the SDK-extensibility proof is `#/modules` Discovery over `PLUGINS_ROOT`, not a launch-week Plain-English tab. Plain-English is retired from v0.1 unless it returns as a normal v0.2 module.
 
@@ -95,14 +95,14 @@ Success at end of launch week is **not** measured in stars. The two signals that
 1. One solicitor inbound (any solicitor, any role).
 2. Stella's maintainer engaging publicly (star, quote-tweet, "we should chat").
 
-If both happen, the workspace did its job. If neither, the GitHub trail still compounds — the workspace + plugins + courtless + the whitepaper read as a coherent build trajectory whether the launch week pops or not.
+If both happen, the workspace did its job. If neither, the GitHub trail still compounds. The workspace + plugins + courtless + the whitepaper read as a coherent build trajectory whether the launch week pops or not.
 
 ## What needs to be true for this scope to hold
 
-- Bird Legal MVP code (now located at `/Users/andy/counsel-mvp/`, original name "Counsel") provides pattern references and prompt seeds — multi-agent BaseAgent, matter-first router shape, drafting/timeline/scanner/advisor prompt designs. Used as reference and seed, not wholesale port; rebuilt on the new platform layer so MVP debt isn't carried forward.
-- Pre-Motion logic is extractable as a single-turn module. (Confirmed — already exists as a stateful tool; the simplified single-turn version is what ships in v1.)
-- The `claude-for-uk-legal` plugins are stable as the backend for letter drafting and research. (Confirmed — shipped May 2026.)
-- Andy ships solo for three weeks without major Lawhive/other distractions. (Risk — flagged in BUILD_PLAN.md.)
+- Bird Legal MVP code (now located at `/Users/andy/counsel-mvp/`, original name "Counsel") provides pattern references and prompt seeds: multi-agent BaseAgent, matter-first router shape, drafting/timeline/scanner/advisor prompt designs. Used as reference and seed, not wholesale port; rebuilt on the new platform layer so MVP debt isn't carried forward.
+- Pre-Motion logic is extractable as a single-turn module. (Confirmed. Already exists as a stateful tool; the simplified single-turn version is what ships in v1.)
+- The `claude-for-uk-legal` plugins are stable as the backend for letter drafting and research. (Confirmed. Shipped May 2026.)
+- Andy ships solo for three weeks without major Lawhive/other distractions. (Risk. Flagged in BUILD_PLAN.md.)
 
 ## Reviewer notes
 
