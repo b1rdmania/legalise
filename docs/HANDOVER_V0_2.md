@@ -1,8 +1,51 @@
 # Handover — Legalise v0.2 substance + JOY pass
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-19 evening. Master on `3b331ee` (post-R1 fixes).
-**Scope:** everything that landed since the reviewer's backend scoping verdict and the "v0.1 truthfulness vs v0.2 substance" framing message. Read in order; sections are short.
+**As of:** 2026-05-19 late. Master on `d8be353` (post-R2: CI green).
+**Scope:** everything that landed since the reviewer's backend scoping verdict and the "v0.1 truthfulness vs v0.2 substance" framing message. Read R2 first (the most recent state), then R1, then the original body if needed for context.
+
+---
+
+## R2 — KISS pass + CI bring-up (post-R1)
+
+Two strands landed after the reviewer's R1 verdict: my own KISS pass against the same constraints the reviewer used, and a CI workflow that mechanises the test claim. CI is now green; reviewer can land sign-off with a checkmark next to the test-count claim.
+
+**Engineering doctrine (`75b221a`)**
+- `docs/ENGINEERING.md` added in response to the reviewer's KISS pass framing ("we build custom only where legal trust requires it; everything else is boring"). Names the bespoke surfaces (matter, posture, audit, capability vocabulary, CPR gate, JOY/design doctrine, citation UX) and the boring stack (FastAPI, SQLAlchemy, fastapi-users, Tailwind, Presidio, structlog). Documents the three v0.1 demo caveats (in-memory rate limit, SSE bound to request lifecycle, built-in workflow catalogue) and the "not landed yet" backlog (TanStack Query, `ApiError`, audit-action constants, `module_catalogue` extract, TanStack Table, `arq`). Linked from README under Architecture and design.
+
+**My own KISS pass items reviewer didn't flag (`3b331ee`)**
+
+These three items came from a self-review I did using the reviewer's "bespoke vs boring" lens. Andy approved them as pre-launch fixes; the larger items (TanStack Query migration, single `ApiError`, audit-action constants, `module_catalogue` extract) are deferred to post-launch per the reviewer's own "after launch" split.
+
+- **URL prefix unified.** `DELETE /api/users/me` moved to `DELETE /auth/users/me` so the entire user resource lives at one prefix alongside the existing `GET/PATCH /auth/users/me` that fastapi-users owns. `account_router` mounts BEFORE `auth_router` in `main.py` so the literal `/me` wins over fastapi-users' superuser-only `DELETE /{id}` catch-all (which would otherwise match `me` with id=`"me"` and 403). Frontend `deleteAccount` URL + 5 account tests + BACKEND_TODOS notes updated.
+- **Schema vs vocabulary parity test.** `backend/tests/test_capability_vocabulary_schema.py` (2 tests) asserts both `schemas/module.json` enum locations (plugin-level + per-skill) equal `CAPABILITY_VOCABULARY` exactly. Side fix: `infra/docker-compose.yml` now bind-mounts `../schemas:/schemas:ro` because `modules.py`'s validator was silently returning None inside the container (schema file invisible). Honest gap closed — manifest validation is now actually running.
+- **`CONTRIBUTING.md` refreshed.** Stale "pre-build state" block replaced with the real `docker compose up` / `pytest` / `alembic upgrade` commands and the voice-check rg recipes. Ground rules / CLA / AI-generated-contributions / code-of-conduct sections preserved.
+
+**CI workflow (`da81a1c` → `d8be353`)**
+
+GitHub Actions workflow at `.github/workflows/ci.yml` runs on push to master + every PR:
+
+- `backend` job spins up `pgvector/pgvector:pg16` as a service, clones `claude-for-uk-legal` at the SHA pinned in `backend/Dockerfile` so the modules tests exercise real plugin discovery, installs with `[dev]`, alembic upgrades the test DB, then `pytest -x`. Env: `POSTGRES_DSN` (psycopg sync, for alembic) + `TEST_DATABASE_URL` (asyncpg async, for conftest); `ENVIRONMENT=development` so the email module's dev path engages; `MATTERS_ROOT` overridden to a workspace-relative path.
+- `frontend` job is `npm ci` + `npm run build` (tsc + vite).
+- `voice-check` job rg-scans the five public-copy docs for em or en dashes — matches the local check.
+- Concurrency group cancels in-progress runs on the same ref.
+
+`.env.example` rewritten to match what `config.py` actually reads: dropped the stale "v0.2 swaps to WorkOS / Stytch" comment; added `SESSION_COOKIE_NAME`, `SESSION_COOKIE_SECURE`, `LEGALISE_KEY_ENCRYPTION_SECRET`, `ALLOW_SERVER_KEY_FALLBACK`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_VERIFY_URL_BASE`, `PASSWORD_RESET_URL_BASE`, `PLUGINS_HOST_PATH`, `PLUGINS_REPO`, `PLUGINS_REPO_REF`, `SUBMISSION_ENABLED`, `GITHUB_SUBMISSION_TOKEN`, `GITHUB_SUBMISSION_REPO`, `GITHUB_SUBMISSION_BASE_BRANCH`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `SUBMISSION_RATE_LIMIT_PER_HOUR`, `CORS_ORIGINS`.
+
+**Five-commit CI bring-up arc** (each fix surfaced a real issue):
+1. `da81a1c` initial workflow. Failed: email module fail-closed under `ENVIRONMENT=test` (DEV_ENVIRONMENTS allowlist is `{development, dev, local}`).
+2. `a905dae` set `ENVIRONMENT=development`. Failed: `PermissionError: '/data'` because `matters_root` default is `/data/matters` (the docker volume).
+3. `c5668a4` overrode `MATTERS_ROOT` to `$GITHUB_WORKSPACE/_matters`. Failed: `test_modules_per_skill_capabilities` fixture used retired `audit.emit`. **This was the schema-vocabulary-bind-mount finally biting** — the validator now actually runs (was silently no-op before), and it caught a stale fixture that had been carrying retired vocabulary unflagged.
+4. `7abce27` swapped fixture `audit.emit` → `chronology.read`. Failed: `python-frontmatter` 1.2 tightened `frontmatter.dump(post, buf)` to bytes-only buffer; submissions code path writes str.
+5. `d8be353` pinned `python-frontmatter>=1.1,<1.2`. **Green.**
+
+**Stats (post-R2)**
+- Master: `d8be353`
+- CI: green on every job (Backend pytest, Frontend build, Voice check).
+- Tests: **142** collected and passing, both locally and in CI.
+- README test-count claim: 142, matches reality.
+
+**One real bug fixed in this arc, worth flagging to the reviewer:** `test_modules_per_skill_capabilities.py` had been declaring `audit.emit` in its fixture manifests since before `audit.emit` was retired from the runtime vocabulary. The schema bind-mount in `3b331ee` is what made manifest validation start working — and the very first time validation was real in CI, it caught a fixture that hadn't been doctrine-correct in weeks. That's the schema-vocabulary parity test paying off on its first run, in production-shaped conditions.
 
 ---
 

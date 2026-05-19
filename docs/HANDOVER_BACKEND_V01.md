@@ -11,9 +11,11 @@ implementations.
 
 **What shipped:**
 1. `GET /api/modules/public` — `a5dca6d`
-2. `GET /api/matters/{slug}/workflows` — `bddca3d`
-3. `DELETE /api/users/me` — `1196599`
+2. `GET /api/matters/{slug}/workflows` — `bddca3d` (tightened in `d9af89f` per reviewer verdict)
+3. `DELETE /auth/users/me` — `1196599` (URL moved from `/api/users/me` in `3b331ee` so the user resource lives at one prefix)
 4. `User.plan` display-only field — `4583f4b`
+
+> **For the live launch-readiness state (R1 + R2 reviewer iterations, CI workflow green at `d8be353`), see [`HANDOVER_V0_2.md`](./HANDOVER_V0_2.md).** This doc is preserved as the scoping artefact.
 
 The sections below remain as the original scoping document.
 

@@ -4,6 +4,8 @@
 **As of:** 2026-05-19. Updated after a reviewer pass — current master is past `22a323d`; the hardening commits that landed after the original handover are the response to those review notes. See `git log` for the live trail.
 
 **v0.4 shell is FROZEN.** Chat surface redesign SHIPPED `1e683be`+`b535356`: 920px centered conversation column, 560px user bubble on `bg-wash`, citation chips as `Document · filename.ext` / `Event · 12 Mar 2026`, sticky composer width-matched, RightRailAssistant has explicit `disabled` state. All four backend TODOs from `BACKEND_TODOS.md` SHIPPED (`a5dca6d`, `bddca3d`, `1196599`, `4583f4b`). Product doctrine added at `docs/JOY.md` (`3e9b443`) and linked from DESIGN.md. JOY-doctrine pass SHIPPED `1ff2a75`+`1b83353`: Matter Pulse panel + Suggested Actions chips + Audit Confirmation in metadata line; raw HTTP errors prefixed with action-shaped context across 15 module/auth files; trust copy tightened on Modules and Workflows; dead chronology source link demoted.
+
+> **For the live launch-readiness state (post-R1 + post-R2 reviewer iterations, CI workflow green at `d8be353`), see [`HANDOVER_V0_2.md`](./HANDOVER_V0_2.md).** This doc is preserved as the design-pass artefact.
 **Scope:** every visual change shipped in this session, the doctrine behind them, what's settled, what's open. Read this before opening DESIGN.md; this is the short story, DESIGN.md is the long one.
 
 ---
