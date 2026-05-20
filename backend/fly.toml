@@ -2,7 +2,10 @@
 #
 # Default deploy: `fly deploy` from this directory after `fly launch
 # --no-deploy --copy-config` has registered the app and `fly secrets
-# set` has populated POSTGRES_DSN / ANTHROPIC_API_KEY / S3 credentials.
+# set` has populated POSTGRES_DSN / SESSION_SECRET /
+# LEGALISE_KEY_ENCRYPTION_SECRET / S3 credentials. Production posture is
+# BYO user keys: do NOT set ANTHROPIC_API_KEY / OPENAI_API_KEY here.
+# See infra/deploy/cloudflare.md §[server-key posture].
 #
 # Companion: legalise-gotenberg (internal-only Gotenberg sidecar in the
 # same region — see infra/deploy/cloudflare.md §5b).
