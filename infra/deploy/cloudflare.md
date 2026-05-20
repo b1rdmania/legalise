@@ -46,8 +46,11 @@ This guide is for the maintainer; operators can deploy anywhere.
 fly version && fly auth whoami
 wrangler --version && wrangler whoami
 
-# 2. Anthropic API key reachable from the shell that will run fly secrets set.
-echo "${ANTHROPIC_API_KEY:?missing}" | head -c 12 ; echo
+# 2. Secrets generators available. Used to mint SESSION_SECRET and
+# LEGALISE_KEY_ENCRYPTION_SECRET in step 4. No server-paid model key
+# needed: production posture is BYO user keys (see §server-key posture
+# below).
+command -v openssl >/dev/null && echo OK || echo "MISSING — install openssl"
 
 # 3. legalise.dev domain present in the Cloudflare account.
 wrangler domains list 2>/dev/null | grep -F legalise.dev || echo "MISSING — add legalise.dev to Cloudflare first"
@@ -121,7 +124,7 @@ fly deploy
 - `SESSION_COOKIE_SECURE=true` — session cookies ride only over HTTPS.
 - `RESEND_API_KEY` — without it, signup creates an unverified account that can never log in; the boot guard refuses this configuration so registration never silently no-ops.
 
-`ANTHROPIC_API_KEY` is deliberately absent. The gateway resolves Anthropic / OpenAI keys per-user from `user_api_keys` (BYO key). The server-key fallback is dev-only and refuses to fire in production even with `LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true`.
+**Server-key posture.** `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are deliberately absent from prod secrets. The gateway resolves Anthropic / OpenAI keys per-user from `user_api_keys` (BYO key, AES-256-GCM at rest). The server-key fallback is dev-only — `model_gateway.py:392-394` requires `environment in _DEV_ENVIRONMENTS` AND `LEGALISE_ALLOW_SERVER_KEY_FALLBACK=true`, so the fallback cannot fire in production regardless of flag value. Setting a server key in prod adds cost exposure and "Legalise provides model access" positioning ambiguity for zero functional benefit. Their absence is self-documenting.
 
 **Neon DSN driver prefix is load-bearing.** Neon hands out `postgres://`; the backend uses `psycopg` async and requires `postgresql+psycopg://`. SQLAlchemy will error out at boot if the prefix is wrong. Append `?sslmode=require` — Neon refuses unencrypted connections.
 
