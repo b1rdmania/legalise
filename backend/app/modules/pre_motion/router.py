@@ -23,6 +23,7 @@ from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.limits import check_generated_artefact
 from app.core.model_gateway import (
     PrivilegePaused,
     PrivilegePosture,
@@ -285,6 +286,10 @@ async def export_pre_motion_pdf(
             f"run envelope matter_slug={result.matter_slug} does not match url slug={slug}",
         )
 
+    # TODO(unit-4-jobs): once Unit 2 migrates /run and /run-stream to durable
+    # jobs, add check_generated_artefact to the job-completion path in jobs.py.
+    await check_generated_artefact(user.id, session)
+
     try:
         pdf_bytes = await render_pre_motion_pdf(matter=matter, result=result)
     except RuntimeError as exc:
@@ -421,6 +426,10 @@ async def export_pre_motion_docx(
             400,
             f"run envelope matter_slug={result.matter_slug} does not match url slug={slug}",
         )
+
+    # TODO(unit-4-jobs): once Unit 2 migrates /run and /run-stream to durable
+    # jobs, add check_generated_artefact to the job-completion path in jobs.py.
+    await check_generated_artefact(user.id, session)
 
     body_markdown = _render_synthesis_markdown(matter, result)
     title = f"Pre-Motion — {matter.title}"

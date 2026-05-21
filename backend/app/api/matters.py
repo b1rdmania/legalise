@@ -27,6 +27,7 @@ from app.adapters import plugin_bridge as plugin_bridge_module
 from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.limits import check_matter_create, check_document_upload
 from app.core.matter_fs import (
     append_history,
     materialise_matter,
@@ -239,6 +240,8 @@ async def create_matter(
     if body.privilege_posture not in PRIVILEGE_VALUES:
         raise HTTPException(400, f"privilege_posture must be one of {sorted(PRIVILEGE_VALUES)}")
 
+    await check_matter_create(user.id, session)
+
     base = slugify(body.title)
     slug = await unique_slug(session, base, user.id)
 
@@ -340,6 +343,11 @@ async def upload_document(
                 "got_bytes": len(contents),
             },
         )
+
+    # Evaluation limits: checked after the 413 size cap so oversized bodies
+    # produce 413 (not 429). Counts are read from Postgres against committed
+    # data; the document is not yet inserted at this point.
+    await check_document_upload(user.id, matter.id, len(contents), session)
 
     declared_format = _MIME_TO_FORMAT[file.content_type or ""]
     inferred_format = _sniff_format(contents[:1024])

@@ -294,6 +294,16 @@ def _provision(monkeypatch) -> None:
     monkeypatch.setattr(settings, "github_submission_token", "tok")
     monkeypatch.setattr(settings, "turnstile_secret_key", "secret")
     monkeypatch.setattr(settings, "turnstile_site_key", "site")
+    # Submission endpoint now gates on the per-day evaluation limit
+    # (Unit 4). Default is 0 (disabled at launch); tests that exercise
+    # the full submission flow opt in to a non-zero cap.
+    from app.core import limits as limits_module
+
+    monkeypatch.setattr(
+        limits_module,
+        "_limits",
+        limits_module.Limits(module_submissions_per_day=10),
+    )
 
 
 def _reset_rate_limit() -> None:

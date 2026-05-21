@@ -42,6 +42,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.api import audit
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.limits import check_module_submission
 
 
 router = APIRouter()
@@ -468,6 +469,9 @@ async def create_submission(
                 "message": "Too many submissions from this IP. Try later.",
             },
         )
+
+    # 3b. Evaluation-limit gate (per-day global cap; 0 = disabled).
+    await check_module_submission(user_id=None, session=session)
 
     # 4. Build the SKILL.md authoritatively and round-trip it to catch
     # any pathological body before we touch GitHub.

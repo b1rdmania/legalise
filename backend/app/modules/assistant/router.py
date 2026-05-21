@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.limits import check_assistant_message
 from app.core.model_gateway import PrivilegePaused
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import Matter, User
@@ -82,6 +83,7 @@ async def post_message(
     user: User = Depends(current_user),
 ) -> AssistantPostResponse:
     matter = await _resolve_matter(session, slug, user.id)
+    await check_assistant_message(user.id, session)
     try:
         user_row, assistant_row = await run_assistant_turn(
             session=session,

@@ -26,6 +26,7 @@ from app.adapters import plugin_bridge as plugin_bridge_module
 from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.limits import check_generated_artefact
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
@@ -162,6 +163,8 @@ async def draft_letter_docx(
     )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
+
+    await check_generated_artefact(user.id, session)
 
     try:
         result = await model_gateway.invoke_tool(
