@@ -67,7 +67,7 @@ async def _insert_row(conn: AsyncConnection, row: dict) -> uuid.UUID:
             VALUES
                 (:id, :timestamp, :actor_id, :matter_id, :action, :module,
                  :resource_type, :resource_id, :model_used, :prompt_hash,
-                 :response_hash, :token_count, :latency_ms, :payload::jsonb)
+                 :response_hash, :token_count, :latency_ms, CAST(:payload AS jsonb))
             """
         ),
         {**row, "id": str(row["id"]), "payload": '{"kind": "worm_test"}'},
