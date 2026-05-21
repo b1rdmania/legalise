@@ -20,9 +20,11 @@ from app.api import matters_router
 from app.api.account import router as account_router
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
+from app.api.jobs import router as jobs_router
 from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
+from app.api.usage import router as usage_router
 from app.api.workspace import router as workspace_router
 from app.core.audit import AuditMiddleware
 from app.core.capabilities import CapabilityDenied
@@ -225,7 +227,9 @@ async def health() -> dict[str, Any]:
 app.include_router(account_router, prefix="/auth/users", tags=["account"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
+app.include_router(usage_router, prefix="/api", tags=["usage"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
+app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
 # Submissions router MUST mount BEFORE the modules router. Both share
 # the `/api/modules` prefix; the modules router has a catch-all
