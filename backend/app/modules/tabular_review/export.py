@@ -18,7 +18,6 @@ import re
 import uuid
 from datetime import datetime, timezone
 from io import BytesIO
-from pathlib import Path
 from typing import Sequence
 
 from docx import Document as DocxDocument
@@ -28,7 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
-from app.core.config import settings
+from app.core.storage import generated_key, get_storage_backend
 from app.models import Document, Matter
 from app.models.tabular_review import TabularReview, TabularReviewRow
 
@@ -133,16 +132,35 @@ async def export_review_docx(
         docx.add_paragraph("(No columns defined — nothing to export.)")
 
     file_uuid = uuid.uuid4()
-    relative = Path("generated") / matter.slug / f"{file_uuid}.docx"
-    target = Path(settings.matters_root) / relative
-    target.parent.mkdir(parents=True, exist_ok=True)
+    filename = f"{file_uuid}.docx"
 
     buf = BytesIO()
     docx.save(buf)
     payload_bytes = buf.getvalue()
-    target.write_bytes(payload_bytes)
     byte_count = len(payload_bytes)
-    storage_uri = str(relative)
+
+    # Write to object storage (Unit 1 abstraction). The previous
+    # filesystem write at settings.matters_root left bytes inaccessible
+    # to the documents.py download path (which reads via storage in S3
+    # production). Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1.
+    storage_uri = generated_key(
+        user_id=matter.created_by_id,
+        matter_id=matter.id,
+        document_id=file_uuid,
+        filename=filename,
+    )
+    get_storage_backend().put_bytes(
+        storage_uri,
+        payload_bytes,
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ),
+        metadata={
+            "matter_id": str(matter.id),
+            "review_id": str(review.id),
+            "actor_id": str(actor_id),
+        },
+    )
 
     title = f"tabular-review-{matter.slug}-{_slug_title(review.title)}"
 

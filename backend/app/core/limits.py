@@ -227,6 +227,42 @@ async def check_assistant_message(user_id: uuid.UUID, session: AsyncSession) -> 
         )
 
 
+async def check_workflow_run(user_id: uuid.UUID, session: AsyncSession) -> None:
+    """Raise 429 if the user has queued or completed ≥ workflow_runs_per_day
+    workflow jobs today (UTC).
+
+    Counts Pre-Motion and Contract Review jobs created today by this user.
+    Export jobs are NOT workflow runs — they're data-portability operations
+    that should not consume the user's run budget (reviewer call per
+    HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P2).
+
+    Active-job cap (ACTIVE_JOB_LIMIT) and the daily workflow-run cap are
+    layered: the active cap prevents fan-out within a moment; this cap
+    prevents fan-out across the day.
+    """
+    from app.models.job import (
+        JOB_KIND_CONTRACT_REVIEW,
+        JOB_KIND_PRE_MOTION,
+        Job,
+    )
+
+    lim = get_limits()
+    today_start = _today_utc_start()
+
+    count = await session.scalar(
+        select(func.count(Job.id)).where(
+            Job.created_by_id == user_id,
+            Job.kind.in_({JOB_KIND_PRE_MOTION, JOB_KIND_CONTRACT_REVIEW}),
+            Job.created_at >= today_start,
+        )
+    )
+    current = count or 0
+    if current >= lim.workflow_runs_per_day:
+        raise _limit_exceeded(
+            "workflow_runs_per_day", current, lim.workflow_runs_per_day
+        )
+
+
 async def check_generated_artefact(user_id: uuid.UUID, session: AsyncSession) -> None:
     """Raise 429 if the user has generated ≥ generated_artefacts_per_day today (UTC).
 

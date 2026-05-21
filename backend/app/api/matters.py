@@ -937,13 +937,20 @@ async def delete_matter(
       - Tombstone over hard delete: sets matter.status = 'archived'.
         Document and event rows kept in DB for referential integrity;
         binary bytes removed from storage.
-      - Does NOT require a prior export. A warning audit row is written
-        when no successful export exists.
+      - Does NOT require a prior export. A warning audit row
+        (`matter.deleted_without_export`) is written when no successful
+        export exists.
       - Refuses with 409 if any jobs for this matter are currently
         queued or running.
-      - Writes a 'matter.deleted' audit row before tombstoning.
-      - Nulls audit_entries.matter_id for this matter so audit rows
-        outlive the tombstone without referential issues.
+      - Storage cleanup is the gate: if `storage.delete_prefix` raises,
+        the endpoint returns 502 and the matter remains live + un-archived
+        + no `matter.deleted` audit row is written (fail-closed semantics
+        per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1).
+      - On success, writes a `matter.deleted` audit row and sets
+        status=archived in a single transaction.
+      - Audit FKs are preserved: the matter row stays as a tombstone, so
+        `audit_entries.matter_id` continues to resolve. Unit 6 WORM
+        trigger forbids UPDATE/DELETE on audit_entries, so we don't try.
       - After this call, GET /api/matters/{slug} returns 404.
       - Cross-user: 404 (no 403), same as other matter endpoints.
     """
@@ -988,7 +995,39 @@ async def delete_matter(
         )
     ) or 0
 
-    # Write deletion audit row before tombstoning
+    # Attempt storage cleanup FIRST, before writing the matter.deleted
+    # audit row or setting status=archived. Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md
+    # §2 P1: a 204 response must mean the storage bytes are actually
+    # gone, not "we tried and the matter is archived anyway." A
+    # storage failure must leave the matter live and reachable so the
+    # user can retry, and must not emit a `matter.deleted` row claiming
+    # the delete happened.
+    try:
+        storage = get_storage_backend()
+        prefix = matter_prefix(user.id, matter.id)
+        storage.delete_prefix(prefix)
+    except Exception as exc:
+        # Discard any uncommitted writes (defensive — none have been
+        # made on this path yet, but symmetric with future additions).
+        await session.rollback()
+        raise HTTPException(
+            502,
+            detail={
+                "error": "matter_storage_delete_failed",
+                "matter_slug": matter.slug,
+                "message": (
+                    "Failed to delete matter storage objects. The matter "
+                    "has NOT been archived; please retry. If the error "
+                    "persists, contact the operator."
+                ),
+            },
+        ) from exc
+
+    # Storage cleanup succeeded — write the deletion audit row(s) and
+    # tombstone the matter in a single transaction. Tombstone design:
+    # the matter row stays (with status=archived), so audit FKs
+    # continue to resolve. No UPDATE on audit_entries (Unit 6 WORM
+    # trigger forbids it, and there's no referential reason).
     await _write_audit(
         session,
         actor=user,
@@ -1015,22 +1054,6 @@ async def delete_matter(
             },
         )
 
-    # Tombstone design: the matter row stays (with status=archived), so
-    # audit FKs continue to resolve. No UPDATE on audit_entries — Unit 6
-    # WORM trigger forbids it, and there's no referential reason to null
-    # the FK when the matter row is preserved.
-
-    # Remove storage objects for this matter (uploaded bytes + generated artefacts)
-    try:
-        storage = get_storage_backend()
-        prefix = matter_prefix(user.id, matter.id)
-        storage.delete_prefix(prefix)
-    except Exception:
-        # Storage deletion is best-effort; tombstone still proceeds.
-        # A future sweep can clean orphaned objects by scanning tombstoned matters.
-        pass
-
-    # Tombstone: set status to archived
     matter.status = STATUS_ARCHIVED
 
     await session.commit()

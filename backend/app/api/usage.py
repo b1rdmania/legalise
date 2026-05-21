@@ -38,6 +38,8 @@ class UsageResponse(BaseModel):
     assistant_messages_today: LimitEntry
     generated_artefacts_today: LimitEntry
     module_submissions_today: LimitEntry
+    workflow_runs_today: LimitEntry  # Pre-Motion + Contract Review jobs
+    active_jobs: LimitEntry  # queued + running, point-in-time
 
 
 async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
@@ -99,6 +101,30 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
         )
     )
 
+    # --- workflow runs today (Pre-Motion + Contract Review, exports excluded) ---
+    from app.models.job import (
+        JOB_ACTIVE_STATUSES,
+        JOB_KIND_CONTRACT_REVIEW,
+        JOB_KIND_PRE_MOTION,
+        Job,
+    )
+
+    workflow_runs_today = await session.scalar(
+        select(func.count(Job.id)).where(
+            Job.created_by_id == user.id,
+            Job.kind.in_({JOB_KIND_PRE_MOTION, JOB_KIND_CONTRACT_REVIEW}),
+            Job.created_at >= today_start,
+        )
+    )
+
+    # --- active jobs (point-in-time queued + running) ---
+    active_jobs = await session.scalar(
+        select(func.count(Job.id)).where(
+            Job.created_by_id == user.id,
+            Job.status.in_(JOB_ACTIVE_STATUSES),
+        )
+    )
+
     return UsageResponse(
         matters=LimitEntry(
             current=int(matter_count or 0),
@@ -129,6 +155,16 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
             current=int(submissions_today or 0),
             max=lim.module_submissions_per_day,
             period="day",
+        ),
+        workflow_runs_today=LimitEntry(
+            current=int(workflow_runs_today or 0),
+            max=lim.workflow_runs_per_day,
+            period="day",
+        ),
+        active_jobs=LimitEntry(
+            current=int(active_jobs or 0),
+            max=lim.active_jobs,
+            period="total",
         ),
     )
 

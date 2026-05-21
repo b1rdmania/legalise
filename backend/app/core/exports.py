@@ -1,13 +1,26 @@
-"""Export logic for Unit 5 — Matter Export / Delete.
+"""Export logic for Unit 5 — basic matter export bundle.
 
-Builds a zip archive containing:
+This is a BASIC export bundle, not complete data portability. v0.4
+scope per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P2 (Path A — narrowed
+claim). The bundle includes only:
+
   - matter_metadata.json   — matter row fields
   - documents/             — one subdir per document
       {doc_id}/metadata.json
       {doc_id}/{sha256}    — uploaded bytes (if storage_uri exists)
-  - artefacts.json         — generated artefact metadata (storage_uri list)
+  - artefacts.json         — generated artefact metadata (storage_uri list,
+                             no bytes)
   - audit.json             — all audit rows for the matter
   - jobs.json              — all job rows for the matter
+
+Out of scope for v0.4 (deferred to v0.5):
+  - chronology events
+  - document bodies (DocumentBody)
+  - document versions / edits (DocumentVersion, DocumentEdit)
+  - generated artefact BYTES (only metadata is included today)
+  - matter citations
+  - tabular reviews + rows
+  - assistant messages
 
 The zip is written to storage under:
   users/{user_id}/matters/{matter_id}/exports/{job_id}.zip
@@ -18,8 +31,9 @@ Design decisions:
   - Hard delete vs tombstone: tombstone (status = 'archived'). See api/exports.py.
   - Export before delete: NOT required. Delete allowed without prior export.
     A warning audit row is written if no export job succeeded before deletion.
-  - Audit FK on matter delete: audit_entries.matter_id is nullable; we null it
-    out on tombstone so audit rows survive without referential issues.
+  - Audit FK on matter delete: matter row is preserved (status=archived), so
+    audit FKs continue to resolve against the tombstone. No UPDATE on
+    audit_entries — Unit 6 WORM trigger forbids it.
 """
 
 from __future__ import annotations

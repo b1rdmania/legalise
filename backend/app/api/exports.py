@@ -1,4 +1,10 @@
-"""Export API — Unit 5 (Matter Export / Delete).
+"""Export API — Unit 5 basic matter export bundle.
+
+v0.4 ships a BASIC matter export bundle (matter metadata, document
+metadata, uploaded document bytes, audit log, job log). It is NOT
+complete data portability — see ``app/core/exports.py`` for the
+explicit out-of-scope list and HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2
+P2 for the narrowed claim.
 
 Routes:
     POST /api/matters/{slug}/export
@@ -10,7 +16,7 @@ Routes:
         Owner-scoped. Returns a presigned download URL (S3 backend) or
         streams the zip bytes (local backend).
 
-Registration note for integrator (app/main.py):
+Registration in app/main.py:
     from app.api.exports import router as exports_router
     app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 """
@@ -29,9 +35,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
-from app.core.jobs import ActiveJobLimitReached, create_job
+from app.core.jobs import ActiveJobLimitReached, create_job, update_status
 from app.models import (
     ACTIVE_JOB_LIMIT,
+    JOB_STATUS_FAILED,
     Job,
     Matter,
     User,
@@ -66,6 +73,39 @@ async def _enqueue_job(job_id: uuid.UUID) -> None:
         await redis.enqueue_job("run_job", str(job_id))
     finally:
         await redis.aclose()
+
+
+async def _enqueue_or_mark_failed(session: AsyncSession, job: Job) -> None:
+    """Enqueue ``job`` for the worker. On Redis failure, transition the
+    job to FAILED with ``error_code="enqueue_failed"`` and raise 503.
+
+    Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1 — replaces the
+    previous silent-pass which left export jobs queued forever when
+    Redis was unreachable.
+    """
+    try:
+        await _enqueue_job(job.id)
+    except Exception as exc:
+        await update_status(
+            session,
+            job,
+            JOB_STATUS_FAILED,
+            error_code="enqueue_failed",
+            error_message=f"Failed to enqueue export job: {type(exc).__name__}",
+        )
+        await session.commit()
+        raise HTTPException(
+            503,
+            detail={
+                "error": "job_enqueue_failed",
+                "job_id": str(job.id),
+                "message": (
+                    "Failed to queue the export job for execution. "
+                    "Please try again; the previous attempt has been "
+                    "marked failed and freed your active-job slot."
+                ),
+            },
+        ) from exc
 
 
 def _job_row(job: Job) -> dict[str, Any]:
@@ -128,13 +168,7 @@ async def create_export_job(
 
     await session.commit()
 
-    try:
-        await _enqueue_job(job.id)
-    except Exception:
-        # Redis unavailable — job row is durable; worker will pick it up
-        # on next poll or when Redis recovers. Return job row so client
-        # can poll status.
-        pass
+    await _enqueue_or_mark_failed(session, job)
 
     return _job_row(job)
 
