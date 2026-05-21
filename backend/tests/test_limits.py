@@ -190,7 +190,7 @@ async def test_workflow_run_limit_blocks_when_capped(
 
     resp = await client.post(
         f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "default"},
+        json={"depth": "fast"},
     )
     assert resp.status_code == 429, resp.text
     detail = resp.json()["detail"]

@@ -145,7 +145,7 @@ async def test_pre_motion_enqueue_failure_marks_job_failed(
 
     resp = await client.post(
         f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "default"},
+        json={"depth": "fast"},
     )
     assert resp.status_code == 503, resp.text
     detail = resp.json()["detail"]
@@ -176,7 +176,7 @@ async def test_enqueue_failed_job_does_not_consume_active_slot(
 
     resp = await client.post(
         f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "default"},
+        json={"depth": "fast"},
     )
     assert resp.status_code == 503, resp.text
 
