@@ -20,6 +20,7 @@ from app.api import matters_router
 from app.api.account import router as account_router
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
+from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
 from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
@@ -230,6 +231,7 @@ app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(usage_router, prefix="/api", tags=["usage"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
+app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
 # Submissions router MUST mount BEFORE the modules router. Both share
 # the `/api/modules` prefix; the modules router has a catch-all

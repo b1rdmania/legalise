@@ -18,7 +18,7 @@ import re
 import uuid
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -925,12 +925,12 @@ async def list_audit(
 # ---------------------------------------------------------------------------
 
 
-@router.delete("/{slug}", status_code=204)
+@router.delete("/{slug}", status_code=204, response_class=Response)
 async def delete_matter(
     slug: str,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
-) -> None:
+) -> Response:
     """Tombstone a matter (archive/delete).
 
     Design decisions:
@@ -1037,3 +1037,4 @@ async def delete_matter(
     matter.status = STATUS_ARCHIVED
 
     await session.commit()
+    return Response(status_code=204)
