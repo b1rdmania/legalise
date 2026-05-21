@@ -171,20 +171,25 @@ async def test_usage_endpoint_shape(client) -> None:
 async def test_matter_create_limit_blocks_at_max(
     client, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Creating one matter past the per-user cap returns 429."""
+    """Creating one matter past the per-user cap returns 429.
+
+    Signup auto-seeds the Khan v Acme demo matter, so the user already
+    owns 1 matter. Limit is set to 2 so a second matter still succeeds
+    and the third hits the cap.
+    """
     monkeypatch.setattr(
-        limits_module, "_limits", Limits(matters_per_user=1)
+        limits_module, "_limits", Limits(matters_per_user=2)
     )
     await _signup_and_login(client)
 
-    # First matter — should succeed.
+    # User owns Khan (auto-seeded). First user-created matter — should succeed.
     r1 = await client.post(
         "/api/matters",
         json={"title": "Matter A"},
     )
     assert r1.status_code == 201, r1.text
 
-    # Second — over the cap.
+    # Second user-created matter — over the cap (Khan + Matter A + this).
     r2 = await client.post(
         "/api/matters",
         json={"title": "Matter B"},
