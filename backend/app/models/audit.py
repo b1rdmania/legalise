@@ -1,8 +1,16 @@
 """AuditEntry model — the matter's provenance log.
 
 Every API call touching a matter, every model invocation, every privilege
-change, every plugin call writes one row. Append-only by convention. Real
-WORM enforcement (no UPDATE/DELETE grants) is v0.2.
+change, every plugin call writes one row.
+
+WORM enforcement (migration 0011):
+- A Postgres trigger (``enforce_audit_worm``) blocks UPDATE and DELETE at the
+  DB layer, independent of application code.
+- Role-level REVOKE (legalise_app role) is documented in 0011_audit_worm.py as
+  a v0.6 ops follow-up for stacks that have completed the role split.
+
+Do NOT add UPDATE or DELETE paths to this model. The trigger will reject them
+and surface as a 500 in production.
 """
 
 from __future__ import annotations
