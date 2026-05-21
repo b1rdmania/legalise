@@ -304,6 +304,7 @@ async def export_pre_motion_pdf(
         "module.pre_motion.pdf.exported",
         actor_id=user.id,
         matter_id=matter.id,
+        module="pre_motion",
         resource_type="pre-motion",
         resource_id=matter.slug,
         payload={

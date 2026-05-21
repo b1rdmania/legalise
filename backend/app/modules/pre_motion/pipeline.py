@@ -252,6 +252,7 @@ async def run_pre_motion(
         "module.pre_motion.run.start",
         actor_id=actor_id,
         matter_id=matter.id,
+        module="pre_motion",
         resource_type="pre-motion",
         resource_id=matter.slug,
         payload={
@@ -372,6 +373,7 @@ async def run_pre_motion(
         "module.pre_motion.run.complete",
         actor_id=actor_id,
         matter_id=matter.id,
+        module="pre_motion",
         resource_type="pre-motion",
         resource_id=matter.slug,
         payload={
