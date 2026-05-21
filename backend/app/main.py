@@ -4,6 +4,9 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
+from alembic.config import Config as AlembicConfig
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -60,6 +63,51 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("legalise.startup.db_unreachable", error=str(exc))
         # Allow boot to continue so /health can report the state — useful in dev.
+
+    # Unit 3 — migration discipline: check that the DB schema matches the
+    # code's head revision. In production, a schema mismatch is fatal: the
+    # app refuses to serve traffic rather than silently misbehaving on stale
+    # schema. In dev/local environments, the mismatch is logged but boot
+    # continues (the next entrypoint.sh run will migrate, or the developer
+    # can run `alembic upgrade head` manually).
+    _DEV_ENVIRONMENTS = {"development", "dev", "local"}
+    _is_dev_env = settings.environment in _DEV_ENVIRONMENTS
+    try:
+        alembic_cfg = AlembicConfig("alembic.ini")
+        script = ScriptDirectory.from_config(alembic_cfg)
+        head_revision = script.get_current_head()
+
+        # Inspect DB revision synchronously via a raw sync connection to keep
+        # this out of the async engine (MigrationContext uses sync DBAPI).
+        from sqlalchemy import create_engine as _sync_engine
+        _sync_dsn = settings.postgres_dsn.replace("+asyncpg", "").replace("+psycopg", "")
+        _sync_eng = _sync_engine(_sync_dsn, echo=False)
+        try:
+            with _sync_eng.connect() as _sync_conn:
+                ctx = MigrationContext.configure(_sync_conn)
+                current_revision = ctx.get_current_revision()
+        finally:
+            _sync_eng.dispose()
+
+        if current_revision != head_revision:
+            msg = (
+                f"DB schema is behind code — run `alembic upgrade head` via "
+                f"deploy release step before serving traffic. "
+                f"(current={current_revision!r}, head={head_revision!r})"
+            )
+            if _is_dev_env:
+                logger.warning("legalise.startup.schema_behind", current=current_revision, head=head_revision)
+            else:
+                logger.error("legalise.startup.schema_behind_fatal", current=current_revision, head=head_revision)
+                raise RuntimeError(msg)
+        else:
+            logger.info("legalise.startup.schema_ok", revision=current_revision)
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        # If alembic.ini is missing (e.g. tests), log and continue rather than
+        # crashing. Fatal schema check only applies when alembic is reachable.
+        logger.warning("legalise.startup.schema_check_skipped", error=str(exc))
 
     # Register every provider whose credentials/service is reachable.
     # stub-echo is always available as a fallback so the workspace runs

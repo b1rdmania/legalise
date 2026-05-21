@@ -1,25 +1,41 @@
 #!/bin/sh
 # Backend container entrypoint.
 #
-# Runs alembic migrations against the configured database, then execs
-# uvicorn. `exec` matters: it lets uvicorn replace this shell as PID 1,
-# so SIGTERM from the container runtime reaches the app cleanly.
+# Migration policy (Unit 3 — migration discipline):
 #
-# Migrations are deliberately part of the boot sequence in v0.1. Once
-# we have multi-replica deployments (v0.2+), migrations move to a
-# dedicated job step and this script just runs the app.
+#   Development environments (ENVIRONMENT in {development, dev, local}):
+#     `alembic upgrade head` runs at boot so `docker compose up` works
+#     without any extra steps.
+#
+#   Production environments (everything else):
+#     Boot does NOT run migrations. Migrations are a deploy-time release
+#     step (see fly.toml [deploy] release_command and docs/RUNBOOK.md).
+#     To override for a one-off run, set MIGRATIONS_ON_BOOT=true.
+#
+# `exec` matters: it lets uvicorn replace this shell as PID 1 so SIGTERM
+# from the container runtime reaches the app cleanly.
 
 set -e
 
-echo "[entrypoint] alembic upgrade head"
-alembic upgrade head
+_env="${ENVIRONMENT:-production}"
+
+_is_dev() {
+    [ "$_env" = "development" ] || [ "$_env" = "dev" ] || [ "$_env" = "local" ]
+}
+
+if _is_dev || [ "${MIGRATIONS_ON_BOOT:-false}" = "true" ]; then
+    echo "[entrypoint] running alembic upgrade head (env=${_env} MIGRATIONS_ON_BOOT=${MIGRATIONS_ON_BOOT:-false})"
+    alembic upgrade head
+else
+    echo "[entrypoint] skipping migrations at boot (env=${_env}) — release step handles this"
+fi
 
 # `--reload` is a dev-only setting — it spawns a file-watching parent
 # process and a child worker, which breaks Fly's SIGTERM forwarding to
 # the actual app. Gate it on ENVIRONMENT so prod deploys (Fly, anywhere
 # else) run a single uvicorn process with clean signal handling. Dev
 # compose sets ENVIRONMENT=development.
-if [ "${ENVIRONMENT:-production}" = "development" ] || [ "${ENVIRONMENT:-production}" = "dev" ] || [ "${ENVIRONMENT:-production}" = "local" ]; then
+if _is_dev; then
     echo "[entrypoint] exec uvicorn (dev mode — --reload on)"
     exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 else
