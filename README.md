@@ -29,7 +29,9 @@ Disclosure-tainted chronology entries carry a CPR 31.22 implied-undertaking flag
 
 ## When?
 
-Every model call, document mutation, chronology entry, and capability denial writes one row to an append-only audit log. Timestamped, hashed, tied to the matter and the actor. The Audit tab is the regulator-facing record.
+Every model call, document mutation, chronology entry, and capability denial writes one row to an audit log that the application never updates or deletes. Timestamped, hashed, tied to the matter and the actor. The Audit tab is the regulator-facing record.
+
+Append-only is enforced by convention in v0.1 — the application never writes UPDATE or DELETE against `audit_entries`. Postgres-level WORM grants (REVOKE UPDATE/DELETE on the table for the app role) land v0.2; v0.1 audit is therefore not forensically tamper-resistant against a DB superuser. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
 
 No background calls. No invisible inference. If it touched the matter, it's logged.
 
@@ -45,7 +47,7 @@ The gateway reads the posture before every model call. Privilege is a hard dispa
 
 ## What did it produce?
 
-Prompt and response are hashed and stored. So is the model, the tokens, the latency, the posture, the module that made the call. Any AI interaction on the matter can be reconstructed forensically.
+Prompt and response are hashed and stored. So is the model, the tokens, the latency, the posture, the module that made the call. Any AI interaction on the matter can be reconstructed from the audit row, subject to the v0.1 tamper-resistance caveat above.
 
 Capabilities for each module are declared in the manifest (read documents, call the model, write citations, etc.), granted on install, and checked at runtime before every privileged operation. A denial is a structured 403 plus an audit row.
 

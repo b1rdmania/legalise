@@ -419,6 +419,16 @@ export function Landing() {
                 drafted material for a qualified solicitor to review.
               </span>
             </li>
+            <li className="flex items-start gap-4">
+              <span className="font-bold text-ink">-</span>
+              <span>
+                <strong className="text-ink font-semibold">Not for live client matters.</strong>{" "}
+                The hosted demo is an evaluation workspace. Real AI workflows
+                require your own model key — Legalise does not bundle or
+                resell model access. Self-host for any work approaching real
+                client material.
+              </span>
+            </li>
           </ul>
           <p className="prose-p mt-8">
             Full posture in{" "}
