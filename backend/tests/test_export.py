@@ -54,6 +54,7 @@ class TestBuildMatterExportUnit:
         """build_matter_export writes a zip with matter_metadata, audit, jobs."""
         import os
 
+        _prev_storage_backend = os.environ.get("STORAGE_BACKEND")
         os.environ["STORAGE_BACKEND"] = "local"
         from app.core.storage import _reset_backend
 
@@ -110,7 +111,11 @@ class TestBuildMatterExportUnit:
             assert "jobs.json" in names
 
         finally:
-            del os.environ["STORAGE_BACKEND"]
+            # Restore the CI-level env var rather than deleting unconditionally:
+            # the CI workflow sets STORAGE_BACKEND=local so subsequent tests can find it.
+            os.environ["STORAGE_BACKEND"] = _prev_storage_backend if _prev_storage_backend is not None else ""
+            if _prev_storage_backend is None:
+                del os.environ["STORAGE_BACKEND"]
             _reset_backend()
 
     @pytest.mark.asyncio
@@ -119,6 +124,7 @@ class TestBuildMatterExportUnit:
         import json
         import os
 
+        _prev_storage_backend = os.environ.get("STORAGE_BACKEND")
         os.environ["STORAGE_BACKEND"] = "local"
         from app.core.storage import _reset_backend
 
@@ -171,7 +177,11 @@ class TestBuildMatterExportUnit:
             assert meta["id"] == str(matter_id)
 
         finally:
-            del os.environ["STORAGE_BACKEND"]
+            # Restore the CI-level env var rather than deleting unconditionally:
+            # the CI workflow sets STORAGE_BACKEND=local so subsequent tests can find it.
+            os.environ["STORAGE_BACKEND"] = _prev_storage_backend if _prev_storage_backend is not None else ""
+            if _prev_storage_backend is None:
+                del os.environ["STORAGE_BACKEND"]
             _reset_backend()
 
 
@@ -216,6 +226,7 @@ class TestWorkerDispatchExport:
 
         import os
 
+        _prev_storage_backend = os.environ.get("STORAGE_BACKEND")
         os.environ["STORAGE_BACKEND"] = "local"
         from app.core.storage import _reset_backend
 
@@ -225,7 +236,11 @@ class TestWorkerDispatchExport:
             assert "export_key" in result
             assert result["export_key"].endswith(f"{job.id}.zip")
         finally:
-            del os.environ["STORAGE_BACKEND"]
+            # Restore the CI-level env var rather than deleting unconditionally:
+            # the CI workflow sets STORAGE_BACKEND=local so subsequent tests can find it.
+            os.environ["STORAGE_BACKEND"] = _prev_storage_backend if _prev_storage_backend is not None else ""
+            if _prev_storage_backend is None:
+                del os.environ["STORAGE_BACKEND"]
             _reset_backend()
 
 
