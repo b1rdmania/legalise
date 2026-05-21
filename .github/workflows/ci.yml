@@ -55,6 +55,12 @@ jobs:
       # Matter filesystem root. Default `/data/matters` (the docker
       # volume mount) is not writable on the CI runner.
       MATTERS_ROOT: ${{ github.workspace }}/_matters
+      # Unit 1 object storage uses the local-filesystem backend in CI
+      # — no MinIO/R2 service. Backend resolves to `LocalStorageBackend`
+      # when STORAGE_BACKEND=local; storage root defaults to a temp
+      # path inside the workspace.
+      STORAGE_BACKEND: local
+      LOCAL_STORAGE_ROOT: ${{ github.workspace }}/_storage
 
     steps:
       - uses: actions/checkout@v4
