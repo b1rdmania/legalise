@@ -1,8 +1,8 @@
 # Legalise
 
-UK legal AI workspace. Built for the regulator, not the demo.
+Open-source UK legal AI workspace.
 
-Open source, Apache 2.0. England & Wales. Hosted evaluation environment at [legalise.dev](https://legalise.dev).
+Open a matter. Ask the assistant. Install legal modules. Run them through capability and privilege gates. Keep the record.
 
 Legalise is open source. The hosted site is a limited evaluation environment. Real AI workflows require your own model key. Legalise does not provide model access and is not for live client matters.
 
@@ -10,14 +10,36 @@ Legalise is open source. The hosted site is a limited evaluation environment. Re
 
 ---
 
-A regulator will eventually ask four questions about any AI tool used on a matter:
+## Why
+
+Most legal AI starts in the wrong place.
+
+It starts with chat. Or a CRM. Or a workflow builder. Then it tries to bolt legal trust on afterwards.
+
+Legal work does not start with a chat box. It starts with a matter file.
+
+A matter has documents, dates, parties, privilege, disclosure constraints, draft outputs, solicitor judgement, and a record of what happened. If AI is going to advance legal work, it has to live inside that structure.
+
+That is what Legalise is testing.
+
+The audit trail matters because it makes the work inspectable. But audit is not the product. Audit is the receipt.
+
+The product thesis is supervised autonomy: AI can advance a matter only if matter context, permissions, provenance, review gates, and accountability are first-class.
+
+Legalise is the open-source substrate for that thesis. The hosted site is only an evaluation environment.
+
+---
+
+## What a reviewer will ask
+
+A regulator, insurer, supervisor, or partner will eventually ask four questions about any AI tool used on a matter:
 
 1. What did it see?
 2. When?
 3. Under what protection?
 4. What did it produce?
 
-Most legal AI tools answer one of them, badly. Legalise answers all four by default.
+Most legal AI tools can answer one of them, partially. Legalise is built so the workspace can answer all four by default.
 
 ---
 
