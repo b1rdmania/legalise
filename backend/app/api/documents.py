@@ -10,23 +10,22 @@ from __future__ import annotations
 import re
 import uuid
 from datetime import datetime
-from pathlib import Path
 
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
-from app.core.config import settings
 from app.core.db import get_session
+from app.core.storage import get_storage_backend
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
-from app.models import Document, DocumentEdit, DocumentVersion, Matter, User
+from app.models import AuditEntry, Document, DocumentEdit, DocumentVersion, Matter, User
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_edit import (
     EDIT_STATUS_ACCEPTED,
@@ -284,15 +283,20 @@ async def download_generated_docx(
     if not storage_uri:
         raise HTTPException(404, "generated document not found")
 
-    target = Path(settings.matters_root) / storage_uri
-    if not target.is_file():
+    storage = get_storage_backend()
+    try:
+        data = storage.get_bytes(storage_uri)
+    except KeyError:
         raise HTTPException(404, "generated document not found")
 
     filename = _safe_filename((entry.payload or {}).get("title"), str(file_uuid))
-    return FileResponse(
-        path=str(target),
+    return StreamingResponse(
+        iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        filename=filename,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(data)),
+        },
     )
 
 

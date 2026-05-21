@@ -33,6 +33,7 @@ from app.core.matter_fs import (
     record_document,
 )
 from app.core.model_gateway import PrivilegePaused
+from app.core.storage import get_storage_backend, uploaded_key
 from app.core.text_extraction import extract as extract_text
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
@@ -361,7 +362,7 @@ async def upload_document(
         mime_type=file.content_type or "application/octet-stream",
         size_bytes=len(contents),
         sha256=sha,
-        storage_uri=None,  # v0.1: metadata-only register; binary store lands later
+        storage_uri=None,  # set after flush gives us doc.id
         tag=tag,
         from_disclosure=from_disclosure,
         disclosure_proceedings_ref=disclosure_proceedings_ref,
@@ -369,6 +370,28 @@ async def upload_document(
     )
     session.add(doc)
     await session.flush()
+
+    # Write bytes to object storage. Key uses canonical uploaded_key shape
+    # so the object is scoped to user + matter + document + content-hash.
+    # This happens after flush (we need doc.id) but before commit so a
+    # storage failure rolls back the DB row rather than leaving an orphan.
+    obj_key = uploaded_key(
+        user_id=user.id,
+        matter_id=matter.id,
+        document_id=doc.id,
+        sha256=sha,
+    )
+    storage = get_storage_backend()
+    storage.put_bytes(
+        obj_key,
+        contents,
+        content_type=file.content_type or "application/octet-stream",
+        metadata={
+            "filename": (file.filename or "untitled")[:200],
+            "sha256": sha,
+        },
+    )
+    doc.storage_uri = obj_key
 
     # Establish the v1 `upload` version row immediately. Downstream
     # surfaces (edit-instruction, replicate_document) use

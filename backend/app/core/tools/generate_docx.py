@@ -8,25 +8,24 @@ v0.1 markdown handling is intentionally narrow:
 A full markdown parser is out of scope; the tool's job is to produce a
 plausibly-formatted Word document, not perfect fidelity.
 
-Storage path deviates from the delta sheet: we don't have `user_id` /
-`matter_slug` available at the handler boundary without an additional
-DB lookup. Path used: `matter_files/generated/{matter_id|_orphan}/{uuid}.docx`.
-Future work should plumb user_id through and align with
-`matter_fs.matter_dir(slug, user_id)`.
+Unit 1: bytes are written to object storage via `app.core.storage`.
+The `storage_uri` returned and stored in audit payloads is the object key
+(``users/{user_id}/matters/{matter_id}/generated/{file_uuid}/{file_uuid}.docx``
+or a legacy key when user_id is not available).
+The download endpoint in documents.py reads from storage, not the filesystem.
 """
 
 from __future__ import annotations
 
+import io
 import uuid
-from pathlib import Path
 
 from docx import Document as DocxDocument
 from docx.enum.section import WD_ORIENTATION
-from docx.shared import Inches
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit
-from app.core.config import settings
+from app.core.storage import get_storage_backend, generated_key
 from app.core.tools.schemas import GenerateDocxInput, GenerateDocxOutput
 
 
@@ -73,39 +72,50 @@ async def handle_generate_docx(
     _apply_orientation(document, orientation)
     _render_markdown(document, inputs.title, inputs.body_markdown)
 
-    # Path: matter_files/generated/{matter_slug|matter_id}/{uuid}.docx.
-    # Phase B plumbs `matter_slug` through `GenerateDocxOptions` so callers
-    # that already know it can produce slug-shaped paths (matches
-    # matter_fs.matter_dir layout). Falls back to matter_id segment
-    # otherwise. See module docstring for Phase A deviation note.
-    matter_slug = (
-        inputs.options.matter_slug
-        if (inputs.options and inputs.options.matter_slug)
-        else None
-    )
-    if matter_slug and matter_id is not None:
-        matter_segment = matter_slug
-    elif inputs.options and inputs.options.matter_id:
-        matter_segment = str(inputs.options.matter_id)
-    elif matter_id is not None:
-        matter_segment = str(matter_id)
-    else:
-        matter_segment = "_orphan"
-    file_uuid = uuid.uuid4()
-    relative = Path("generated") / matter_segment / f"{file_uuid}.docx"
-    target = Path(settings.matters_root) / relative
-    target.parent.mkdir(parents=True, exist_ok=True)
-    document.save(str(target))
-
-    byte_count = target.stat().st_size
+    # Serialise to bytes in memory — no filesystem dependency.
+    buf = io.BytesIO()
+    document.save(buf)
+    docx_bytes = buf.getvalue()
+    byte_count = len(docx_bytes)
     char_count = len(inputs.body_markdown)
-    storage_uri = str(relative)
+
+    # Resolve matter_id from options if not provided directly.
+    effective_matter_id = matter_id
+    if effective_matter_id is None and inputs.options and inputs.options.matter_id:
+        effective_matter_id = inputs.options.matter_id
+
+    file_uuid = uuid.uuid4()
+    filename = f"{file_uuid}.docx"
+
+    # Build storage key. Unit 1: actor_id + matter_id are both available
+    # here so we use the canonical generated_key shape. When matter_id is
+    # genuinely absent (_orphan case) we fall back to a legacy key so the
+    # tool does not break callers that don't supply it.
+    if effective_matter_id is not None:
+        key = generated_key(
+            user_id=actor_id,
+            matter_id=effective_matter_id,
+            document_id=file_uuid,
+            filename=filename,
+        )
+    else:
+        key = f"generated/_orphan/{file_uuid}/{filename}"
+
+    storage = get_storage_backend()
+    storage.put_bytes(
+        key,
+        docx_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        metadata={"title": inputs.title[:200], "orientation": orientation},
+    )
+
+    storage_uri = key
 
     await audit.log(
         session,
         "document.generated",
         actor_id=actor_id,
-        matter_id=matter_id,
+        matter_id=effective_matter_id,
         module="document_generation",
         resource_type="document",
         resource_id=str(file_uuid),

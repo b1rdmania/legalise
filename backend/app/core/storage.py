@@ -1,0 +1,327 @@
+"""Object storage abstraction — Unit 1 (real backend substrate).
+
+Two backends:
+
+  S3StorageBackend  — boto3 against MinIO (local compose) or R2 (hosted prod).
+                      Reads config from app.core.config.settings.
+  LocalStorageBackend — local filesystem only; used in tests via env override.
+
+Choosing a backend
+------------------
+Call `get_storage_backend()` to get the singleton. It consults the env var
+`STORAGE_BACKEND` (values: ``s3`` [default] / ``local``). The local backend
+root defaults to ``/tmp/legalise-test-storage``; override with
+``LOCAL_STORAGE_ROOT``.
+
+Key format helpers
+------------------
+Two helpers build canonical object keys:
+
+  uploaded_key(user_id, matter_id, document_id, sha256)
+      → ``users/{user_id}/matters/{matter_id}/documents/{document_id}/{sha256}``
+
+  generated_key(user_id, matter_id, document_id, filename)
+      → ``users/{user_id}/matters/{matter_id}/generated/{document_id}/{filename}``
+
+Both sanitise their inputs so raw user-supplied filenames cannot produce
+path-traversal keys. Callers MUST use these helpers — never construct keys
+from raw filenames.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import uuid
+from pathlib import Path
+from typing import Protocol, runtime_checkable
+
+
+# ---------------------------------------------------------------------------
+# Key helpers
+# ---------------------------------------------------------------------------
+
+_SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]")
+
+
+def _sanitise_filename(name: str, max_len: int = 100) -> str:
+    """Strip everything except safe ASCII chars, then truncate."""
+    cleaned = _SAFE_FILENAME_RE.sub("_", name)
+    return cleaned[:max_len] or "file"
+
+
+def uploaded_key(
+    user_id: uuid.UUID,
+    matter_id: uuid.UUID,
+    document_id: uuid.UUID,
+    sha256: str,
+) -> str:
+    """Return the canonical key for an uploaded document's binary.
+
+    Key: ``users/{user_id}/matters/{matter_id}/documents/{document_id}/{sha256}``
+
+    SHA-256 hex is the content address; the segment is 64 hex chars and
+    does not need sanitisation. The UUID segments are similarly safe.
+    """
+    return f"users/{user_id}/matters/{matter_id}/documents/{document_id}/{sha256}"
+
+
+def generated_key(
+    user_id: uuid.UUID,
+    matter_id: uuid.UUID,
+    document_id: uuid.UUID,
+    filename: str,
+) -> str:
+    """Return the canonical key for a generated artefact (.docx / .pdf).
+
+    Key: ``users/{user_id}/matters/{matter_id}/generated/{document_id}/{safe_filename}``
+
+    ``filename`` is sanitised so it cannot contain path separators or
+    unexpected characters even if the caller passes a user-supplied string.
+    """
+    safe = _sanitise_filename(filename)
+    return f"users/{user_id}/matters/{matter_id}/generated/{document_id}/{safe}"
+
+
+# ---------------------------------------------------------------------------
+# Protocol
+# ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class StorageBackend(Protocol):
+    """Minimal S3-compatible object storage protocol.
+
+    Implementors:
+      S3StorageBackend   — boto3 / MinIO / R2.
+      LocalStorageBackend — filesystem, tests only.
+    """
+
+    def put_bytes(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        """Write ``data`` at ``key``. Overwrites if exists."""
+        ...
+
+    def get_bytes(self, key: str) -> bytes:
+        """Return the object at ``key``. Raises ``KeyError`` if absent."""
+        ...
+
+    def delete_object(self, key: str) -> None:
+        """Delete the object at ``key``. No-op if absent."""
+        ...
+
+    def exists(self, key: str) -> bool:
+        """Return True if the key exists in the bucket."""
+        ...
+
+    def presigned_get_url(self, key: str, ttl: int = 3600) -> str:
+        """Return a presigned GET URL valid for ``ttl`` seconds."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# S3-compatible backend (MinIO / R2 via boto3)
+# ---------------------------------------------------------------------------
+
+
+class S3StorageBackend:
+    """boto3 backend.
+
+    Reads ``s3_endpoint``, ``s3_access_key``, ``s3_secret_key``,
+    ``s3_bucket``, ``s3_region`` from app.core.config.settings. All five
+    are already in config.py; no new env vars are introduced.
+
+    Lazy client: the boto3 Session is created on first use so the import
+    doesn't hard-require network at module-load time (important for tests
+    that override the backend before any storage call).
+    """
+
+    def __init__(self) -> None:
+        self._client = None
+        self._bucket: str | None = None
+
+    def _ensure_client(self):
+        if self._client is not None:
+            return
+        import boto3
+        from botocore.config import Config
+        from app.core.config import settings
+
+        self._bucket = settings.s3_bucket
+        self._client = boto3.client(
+            "s3",
+            endpoint_url=settings.s3_endpoint,
+            aws_access_key_id=settings.s3_access_key,
+            aws_secret_access_key=settings.s3_secret_key,
+            region_name=settings.s3_region,
+            config=Config(signature_version="s3v4"),
+        )
+        # Ensure bucket exists (idempotent; MinIO accepts this on existing buckets).
+        self._ensure_bucket()
+
+    def _ensure_bucket(self) -> None:
+        """Create the bucket if it doesn't exist. Swallows BucketAlreadyOwnedByYou."""
+        try:
+            from botocore.exceptions import ClientError
+            self._client.head_bucket(Bucket=self._bucket)
+        except Exception:
+            try:
+                self._client.create_bucket(Bucket=self._bucket)
+            except Exception:
+                pass  # Already exists or transient error; put_bytes will surface real failures.
+
+    def put_bytes(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        self._ensure_client()
+        kwargs: dict = {
+            "Bucket": self._bucket,
+            "Key": key,
+            "Body": data,
+            "ContentType": content_type,
+        }
+        if metadata:
+            kwargs["Metadata"] = metadata
+        self._client.put_object(**kwargs)
+
+    def get_bytes(self, key: str) -> bytes:
+        self._ensure_client()
+        from botocore.exceptions import ClientError
+        try:
+            response = self._client.get_object(Bucket=self._bucket, Key=key)
+            return response["Body"].read()
+        except ClientError as exc:
+            code = exc.response["Error"]["Code"]
+            if code in ("NoSuchKey", "404"):
+                raise KeyError(f"storage key not found: {key}") from exc
+            raise
+
+    def delete_object(self, key: str) -> None:
+        self._ensure_client()
+        self._client.delete_object(Bucket=self._bucket, Key=key)
+
+    def exists(self, key: str) -> bool:
+        self._ensure_client()
+        from botocore.exceptions import ClientError
+        try:
+            self._client.head_object(Bucket=self._bucket, Key=key)
+            return True
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] in ("404", "NoSuchKey"):
+                return False
+            raise
+
+    def presigned_get_url(self, key: str, ttl: int = 3600) -> str:
+        self._ensure_client()
+        return self._client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": key},
+            ExpiresIn=ttl,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Local filesystem backend (tests only)
+# ---------------------------------------------------------------------------
+
+
+class LocalStorageBackend:
+    """Filesystem backend for test isolation.
+
+    Enabled by setting ``STORAGE_BACKEND=local`` in the test environment.
+    Root defaults to ``/tmp/legalise-test-storage``; override with
+    ``LOCAL_STORAGE_ROOT``.
+
+    No external processes or network required. Not for production use.
+    """
+
+    def __init__(self, root: str | None = None) -> None:
+        self._root = Path(
+            root
+            or os.environ.get("LOCAL_STORAGE_ROOT", "/tmp/legalise-test-storage")
+        )
+
+    def _path(self, key: str) -> Path:
+        # Normalise and reject traversal attempts.
+        resolved = (self._root / key).resolve()
+        if not str(resolved).startswith(str(self._root.resolve())):
+            raise ValueError(f"path traversal rejected: {key!r}")
+        return resolved
+
+    def put_bytes(
+        self,
+        key: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        target = self._path(key)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+
+    def get_bytes(self, key: str) -> bytes:
+        target = self._path(key)
+        if not target.is_file():
+            raise KeyError(f"storage key not found: {key}")
+        return target.read_bytes()
+
+    def delete_object(self, key: str) -> None:
+        target = self._path(key)
+        if target.is_file():
+            target.unlink()
+
+    def exists(self, key: str) -> bool:
+        return self._path(key).is_file()
+
+    def presigned_get_url(self, key: str, ttl: int = 3600) -> str:
+        raise NotImplementedError("LocalStorageBackend does not support presigned URLs")
+
+
+# ---------------------------------------------------------------------------
+# Singleton getter
+# ---------------------------------------------------------------------------
+
+_backend: StorageBackend | None = None
+
+
+def get_storage_backend() -> StorageBackend:
+    """Return the process-level storage backend singleton.
+
+    Controlled by env var ``STORAGE_BACKEND``:
+      ``s3``    (default) → S3StorageBackend (MinIO / R2 via config.py)
+      ``local`` → LocalStorageBackend (tests only; root from LOCAL_STORAGE_ROOT)
+    """
+    global _backend
+    if _backend is None:
+        backend_type = os.environ.get("STORAGE_BACKEND", "s3").lower()
+        if backend_type == "local":
+            _backend = LocalStorageBackend()
+        else:
+            _backend = S3StorageBackend()
+    return _backend
+
+
+def _reset_backend() -> None:
+    """Force re-creation of the singleton. Tests use this between cases."""
+    global _backend
+    _backend = None
+
+
+__all__ = [
+    "StorageBackend",
+    "S3StorageBackend",
+    "LocalStorageBackend",
+    "get_storage_backend",
+    "_reset_backend",
+    "uploaded_key",
+    "generated_key",
+]
