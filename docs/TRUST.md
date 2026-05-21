@@ -1,14 +1,15 @@
 # Trust & Security
 
-> Status: **v0.1 source of truth.** This document describes the system as it is
-> built today, plus the items we have committed to land in v0.2. It is the file
-> that backs `legalise.dev/trust` when that route exists.
+> Status: **evaluation release source of truth.** This document describes the
+> system as it is built today, plus the items we have committed to land before
+> any live-client or firm-pilot posture. It is the file that backs
+> `legalise.dev/trust` when that route exists.
 
 Legalise is an open-source workspace for England & Wales solicitor work. Every
 architectural decision documented here exists in service of three regulatory
 constraints: legal professional privilege (LPP), the SRA Code of Conduct, and
-UK GDPR. Where v0.1 cannot yet enforce a constraint, we say so plainly; we do
-not paper over a gap with aspirational language.
+UK GDPR. Where the evaluation release cannot yet enforce a constraint, we say
+so plainly; we do not paper over a gap with aspirational language.
 
 This document is not legal advice. The firm using Legalise remains the
 controller and accountable party.
@@ -35,14 +36,19 @@ suite. Solicitors author and review; the system drafts and records.
 
 ### Hosted demo and BYO model keys
 
-Legalise's hosted v0.1 environment is an evaluation workspace, not a regulated legal service. Users must provide their own model provider credentials to run real AI workflows. Legalise does not bundle, resell, or intermediate model access. The demo should not be used for live client matters.
+Legalise is open source. The hosted site is a limited evaluation environment,
+not a regulated legal service. Users must provide their own model provider
+credentials to run real AI workflows. Legalise does not bundle, resell, or
+intermediate model access. The hosted site should not be used for live client
+matters.
 
-## 3. What v0.1 does not yet do (read this first)
+## 3. What the evaluation release does not yet do (read this first)
 
 We list gaps at the top, not the bottom. Anyone considering a procurement
-conversation about v0.1 should see them before reading the architecture.
+conversation about the hosted evaluation environment should see them before
+reading the architecture.
 
-- **Self-hosted production use needs your own master encryption key.** v0.1 ships authentication (fastapi-users cookie sessions, email verification, AES-256-GCM per-user API key storage), but the self-host operator owns the master key. Lose it and stored provider keys become unrecoverable; share it and an operator can decrypt user keys offline.
+- **Self-hosted production use needs your own master encryption key.** The current release ships authentication (fastapi-users cookie sessions, email verification, AES-256-GCM per-user API key storage), but the self-host operator owns the master key. Lose it and stored provider keys become unrecoverable; share it and an operator can decrypt user keys offline.
 - **Retention is recorded, not enforced.** Every matter has a
   `retention_until` field; nothing actively sweeps and deletes when that
   date passes.
@@ -51,6 +57,12 @@ conversation about v0.1 should see them before reading the architecture.
   land v0.2.
 - **Application-layer encryption of stored prompts/responses is not yet
   implemented.** We rely on Neon/Fly/R2 at-rest encryption defaults.
+- **Uploaded and generated artefacts are moving to real object storage.**
+  The intended production shape is R2/S3-compatible storage as source of
+  truth, with Fly filesystem used only for cache and matter materialisation.
+- **Long-running workflows are not yet durable jobs.** Current SSE surfaces
+  are acceptable for evaluation. Live-client posture requires a jobs table
+  and worker so results survive client disconnects and instance restarts.
 - **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon
   London) are in the UK. Cloudflare R2 placement is EU (Western Europe),
   not UK-specific. Anthropic and OpenAI commercial APIs are US-served
@@ -207,7 +219,7 @@ work or was refused at the door:
   The trade-off is transactional integrity: semantic rows commit
   only when the semantic operation commits.
 
-The `audit_entries` table is append-only by convention in v0.1. WORM
+The `audit_entries` table is append-only by convention today. WORM
 enforcement (Postgres-level revocation of UPDATE/DELETE) lands v0.2.
 
 ---
@@ -231,7 +243,7 @@ payload carries `plugin`, `skill`, `skill_name`, `inputs`, and
 `matter_slug`, so "which skills ran against which matters?" is answerable
 from the audit log.
 
-What v0.1 does **not** yet cover: prompt-injection scanning, automated
+What the current release does **not** yet cover: prompt-injection scanning, automated
 `SKILL.md` linting, signed manifests, organisation-level skill allowlists,
 or per-workspace enable/disable policy. Those are v0.2 concerns.
 
@@ -239,7 +251,7 @@ or per-workspace enable/disable policy. Those are v0.2 concerns.
 
 ## 10. Authentication
 
-v0.1 ships **fastapi-users** with cookie sessions (HttpOnly, Secure,
+The current release ships **fastapi-users** with cookie sessions (HttpOnly, Secure,
 SameSite=Lax), email verification via Resend, and password reset via
 one-time token. Sessions are backed by a server-side `access_token`
 table — revocation is real, not just client-side.
@@ -261,7 +273,7 @@ via the autoverify path), the new user's workspace is seeded with the
 Khan v Acme demo matter — same idempotent path as the dev-boot seed.
 
 WorkOS / Stytch SSO with Microsoft 365 / SAML / org-level audit is
-the v0.2 milestone for enterprise adoption. v0.1 covers the
+the enterprise-adoption milestone. The current release covers the
 sole-practitioner and small-firm case via direct signup.
 
 ---
@@ -281,16 +293,16 @@ sole-practitioner and small-firm case via direct signup.
 
 ## 12. Compliance posture
 
-We do not claim certifications we do not hold. As of v0.1:
+We do not claim certifications we do not hold. As of the evaluation release:
 
-**No certification has been awarded against any framework as of v0.1.**
+**No certification has been awarded against any framework as of the evaluation release.**
 The table below is planned sequencing, not achieved assurance.
 
 | Framework | Where we are | Planned next |
 |---|---|---|
 | **UK GDPR / DPA 2018** | Designed against the principles (per-matter scoping, processor agreements with sub-processors, audit log of personal-data processing). The DPIA is owed, not published. Records of processing (Art. 30) and a public DPIA summary are v0.2 deliverables. The firm using Legalise is the controller and remains accountable | Author DPIA; publish ROPA |
 | **SRA Code of Conduct** | Designed to support solicitor accountability (audit trail, confidentiality via privilege posture). Legalise is not the regulated entity — the firm is | No further action — this is a perpetual support obligation, not a target |
-| **Cyber Essentials Plus** | Not certified. **Planned start v0.2** | Engage assessor; remediation work; certificate |
+| **Cyber Essentials Plus** | Not certified. Planned after the live-matter readiness foundations | Engage assessor; remediation work; certificate |
 | **ISO 27001** | Not certified. Planned start v0.3 if revenue justifies the audit cost | Open ISMS scope; controls implementation |
 | **SOC 2 Type II** | Not certified. Considered only on US-firm GTM or US-firm-owned UK customer demand. Not on the v0.2/v0.3 timeline | n/a until trigger |
 | **HIPAA** | Out of scope. Legalise is not designed for US healthcare workflows | n/a |

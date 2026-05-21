@@ -180,8 +180,8 @@ All LLM calls go through the gateway. There is no direct SDK import in any modul
 
 Multi-stage AI workflows live in each module's own `pipeline.py`. There is no shared agent abstraction in use at runtime in v0.1.
 
-- **Pre-Motion** (`backend/app/modules/pre_motion/pipeline.py`) — four stages: OptimisticAnalyst → EvidenceInspector × 3 (parallel) → PremortemAdversary × 4 (parallel) → Synthesiser. Stage status streamed to the frontend via SSE.
-- **Contract Review** (`backend/app/modules/contract_review/pipeline.py`) — Parser → Analyst → Redliner → Summariser. Stage events streamed via SSE.
+- **Pre-Motion** (`backend/app/modules/pre_motion/pipeline.py`) - four stages: OptimisticAnalyst, then EvidenceInspector x 3 (parallel), then PremortemAdversary x 4 (parallel), then Synthesiser. Stage status streamed to the frontend via SSE.
+- **Contract Review** (`backend/app/modules/contract_review/pipeline.py`) - Parser, then Analyst, then Redliner, then Summariser. Stage events streamed via SSE.
 
 Each pipeline imports the model gateway, audit API, and matter primitives directly from `app.core.api`. Each pipeline owns its stage definitions, its sub-agent prompts, its commit cadence, and its audit-row shape.
 

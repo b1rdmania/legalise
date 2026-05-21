@@ -1,12 +1,12 @@
 # Roadmap
 
-What ships in v0.1, what's locked for v0.2, what's parked for v0.3+. Honest about deferrals.
+What ships now, what's locked for live-matter readiness, what's parked for later. Honest about deferrals.
 
-## v0.1: current
+## Current: evaluation release candidate
 
-Open-source UK legal AI workspace, regulator-shaped, demo positioning.
-Live at the demo URL with Khan v Acme sample matter auto-seeded on
-signup.
+Open-source UK legal AI workspace, regulator-shaped, hosted as a limited
+evaluation environment. Legalise is open source; legalise.dev is a runnable
+evaluation copy. The hosted site is not for live client matters.
 
 Shipped surfaces:
 
@@ -29,20 +29,38 @@ Shipped surfaces:
 - fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
 - Smoke evals + real-DB E2E coverage across auth, chronology, modules, matters, documents, audit, letters, workspace skills, capabilities, seed audit
 
-## v0.2: locked direction
+## Live-matter readiness: locked direction
 
-Theme: production-shaped infrastructure and runtime enforcement.
+Theme: serious backend substrate before broader public launch pressure.
 
-Locked (the direction is fixed; implementation lands in v0.2):
+The direction is fixed. Feature work should pause until these backend
+foundations are either shipped or explicitly deferred by reviewer sign-off:
 
-- **TanStack Router + Query migration.** Frontend architecture
-  decision is fixed. Installed deps in v0.1 stay unused-but-installed
-  until the migration lands.
+- **Real object storage.** Uploaded binaries and generated artefacts move
+  to an S3-compatible storage abstraction. Local compose uses MinIO; hosted
+  production uses Cloudflare R2. Fly filesystem becomes cache and matter
+  materialisation only, never source of truth.
 - **Job runner: `arq` + Redis + `jobs` table as source of truth.** No
   re-debate of Dramatiq / RQ. Long-running module runs move off
-  router-local `asyncio.create_task` onto the job runner. SSE-disconnect
-  during Contract Review is the v0.1 Day-15 smoke that proves the
-  brittleness this work resolves.
+  router-local `asyncio.create_task` onto the job runner. Redis carries
+  queue metadata; Postgres stores job state and result pointers.
+- **Migration discipline.** Production app boot should not mutate schema.
+  Migrations move to a deploy/release step. The app should fail fast if
+  schema is behind.
+- **Hosted evaluation limits.** legalise.dev gets generous free evaluation
+  limits: matters, documents, total storage, daily workflow runs, active
+  jobs, generated artefacts, and public module submissions. Self-hosting
+  removes hosted limits.
+- **Matter export / delete.** Export a matter with documents, generated
+  artefacts, audit, and redaction mode. Delete/archive is owner-scoped,
+  refuses while jobs run, and records audit/retention consequences.
+- **Audit WORM groundwork.** Move toward DB-enforced append-only audit:
+  split migration/app roles, revoke update/delete on `audit_entries` for
+  the app role, and add trigger guard where practical.
+- **Key rotation runbook.** CLI and operator guide for rotating
+  `LEGALISE_KEY_ENCRYPTION_SECRET` across encrypted `user_api_keys`.
+- **Observability with scrubbing.** Error and job telemetry without prompts,
+  responses, or document text.
 - **Chronology-write capability wiring.** v0.1 enforces capabilities at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). The chronology-mutation boundary is unwired because no module-driven chronology write endpoint exists yet. v0.2 lands that endpoint and gates it on `chronology.write` via the same `plugin` + `skill` query-param pattern.
 - **Provider-native structured output and tool calling.** v0.1 uses
   `backend/app/core/structured_output.py::parse_model_json` as an
@@ -58,7 +76,7 @@ Locked (the direction is fixed; implementation lands in v0.2):
 - **`sse-starlette` swap.** Bespoke SSE frames replace with library
   inside the job-runner work.
 - **Multi-instance Redis-backed rate limiter** for the submission flow.
-  v0.1 uses in-memory token bucket (single Fly instance is sufficient).
+  Current code uses an in-memory token bucket (single Fly instance is sufficient for evaluation).
 - **GitHub App for the submission flow.** v0.1 uses a `b1rdmania`-scoped
   PAT. v0.2 replaces with an auto-rotating installation token.
 - **Assistant prompt hardening.** v0.1 ships a conservative built-in
@@ -68,7 +86,7 @@ Locked (the direction is fixed; implementation lands in v0.2):
   discover installed skills. v0.1 accepts the duplication; v0.2 centralises
   discovery behind one helper before capability enforcement lands.
 
-Other v0.2 work that was already on the roadmap:
+Other work already on the roadmap:
 
 - Enterprise SSO via WorkOS or Stytch (Microsoft 365, Google Workspace, SAML, SCIM)
 - MCP-based plugin bridge replacing direct skill rendering

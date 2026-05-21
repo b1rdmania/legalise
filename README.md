@@ -2,9 +2,9 @@
 
 UK legal AI workspace. Built for the regulator, not the demo.
 
-Open source, Apache 2.0. England & Wales. `v0.1`. Hosted demo at [legalise.dev](https://legalise.dev) shipping Friday.
+Open source, Apache 2.0. England & Wales. Hosted evaluation environment at [legalise.dev](https://legalise.dev).
 
-The hosted demo is for evaluation. Real AI workflows require your own model key. Legalise does not provide model access and v0.1 is not for live client matters.
+Legalise is open source. The hosted site is a limited evaluation environment. Real AI workflows require your own model key. Legalise does not provide model access and is not for live client matters.
 
 ![Audit tab. Khan v Acme sample matter.](docs/img/audit-tab.png)
 
@@ -25,13 +25,13 @@ Most legal AI tools answer one of them, badly. Legalise answers all four by defa
 
 Every matter has a spine: documents, chronology, parties, retention clock, privilege posture. The AI only sees what lives inside the matter. Cross-matter leakage is structurally impossible.
 
-Disclosure-tainted chronology entries carry a CPR 31.22 implied-undertaking flag. The chronology gate refuses cross-matter use. The refusal is audited.
+Disclosure-tainted chronology entries carry a CPR 31.22 implied-undertaking flag. The chronology gate withholds detail until acknowledgement. The acknowledgement is audited.
 
 ## When?
 
 Every model call, document mutation, chronology entry, and capability denial writes one row to an audit log that the application never updates or deletes. Timestamped, hashed, tied to the matter and the actor. The Audit tab is the regulator-facing record.
 
-Append-only is enforced by convention in v0.1 — the application never writes UPDATE or DELETE against `audit_entries`. Postgres-level WORM grants (REVOKE UPDATE/DELETE on the table for the app role) land v0.2; v0.1 audit is therefore not forensically tamper-resistant against a DB superuser. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
+Append-only is enforced by convention today: the application never writes UPDATE or DELETE against `audit_entries`. Postgres-level WORM grants (REVOKE UPDATE/DELETE on the table for the app role) are a live-matter readiness gate; the current audit trail is therefore not forensically tamper-resistant against a DB superuser. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
 
 No background calls. No invisible inference. If it touched the matter, it's logged.
 
@@ -47,7 +47,7 @@ The gateway reads the posture before every model call. Privilege is a hard dispa
 
 ## What did it produce?
 
-Prompt and response are hashed and stored. So is the model, the tokens, the latency, the posture, the module that made the call. Any AI interaction on the matter can be reconstructed from the audit row, subject to the v0.1 tamper-resistance caveat above.
+Prompt and response are hashed and stored. So is the model, the tokens, the latency, the posture, the module that made the call. Any AI interaction on the matter can be reconstructed from the audit row, subject to the tamper-resistance caveat above.
 
 Capabilities for each module are declared in the manifest (read documents, call the model, write citations, etc.), granted on install, and checked at runtime before every privileged operation. A denial is a structured 403 plus an audit row.
 
@@ -57,7 +57,7 @@ The doctrine:
 
 ---
 
-## v0.1 in 60 seconds
+## In 60 seconds
 
 Five surfaces inside the matter workspace:
 
@@ -73,7 +73,7 @@ The plugin layer (where the legal logic actually lives) is at [`claude-for-uk-le
 
 ## Try it
 
-The hosted demo at [legalise.dev](https://legalise.dev) goes live Friday. Khan v Acme sample matter will seed on signup. Until then, run it locally:
+The hosted evaluation environment at [legalise.dev](https://legalise.dev) seeds the Khan v Acme sample matter on signup. To run it locally:
 
 ```bash
 git clone https://github.com/b1rdmania/legalise
@@ -86,7 +86,7 @@ Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React. One command. 
 
 ## Status
 
-v0.1. Honest about what's in and what isn't.
+Evaluation release candidate. Honest about what's in and what isn't.
 
 **Shipped:**
 
@@ -99,18 +99,20 @@ v0.1. Honest about what's in and what isn't.
 - Bootstrap audit rows on per-user seed so the Audit tab is non-empty on first paint
 - Real-DB E2E test infrastructure; 155 passed, 53 skipped in backend CI
 
-**v0.2:**
+**Live-matter readiness gates:**
 
-- Job runner (`arq` + Redis + `jobs` table). Long runs still use router-local `asyncio.create_task`.
-- TanStack Router / Query migration
-- Provider-native structured output and tool calling
-- Docx templates for Pre-Motion and Contract Review
-- Multi-instance Redis-backed rate limiter
-- Chronology-write capability wiring when the endpoint lands
+- Real R2/S3 object storage for uploaded and generated artefacts. Fly filesystem remains cache/materialisation only.
+- Durable jobs (`arq` + Redis + `jobs` table). Long runs should not depend on a live request.
+- Release-step migrations instead of app-boot schema mutation.
+- Hosted evaluation limits: storage, workflow runs, active jobs, generated artefacts, and public submissions.
+- Matter export / delete with retention-aware audit handling.
+- WORM audit groundwork.
+- Key-rotation runbook for encrypted provider keys.
 
-**v0.3+:**
+**v0.6 trust layer:**
 
-- Matter export / import with privilege-aware redaction matrix
+- Configurable prompt shroud before cloud model dispatch.
+- Legal-quality evals for grounding, citation integrity, refusal behaviour, and module regressions.
 
 Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
@@ -118,6 +120,7 @@ Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
 - [`docs/MANIFESTO.md`](./docs/MANIFESTO.md): commitments that don't move
 - [`docs/TRUST.md`](./docs/TRUST.md): privilege architecture, sub-processor list, open gaps
+- [`docs/SUPERVISED_AUTONOMY.md`](./docs/SUPERVISED_AUTONOMY.md): launch definition and claim boundary
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md): stack rationale and decisions
 - [`docs/ENGINEERING.md`](./docs/ENGINEERING.md): bespoke vs boring; what's custom, what's stock
 - [`docs/AUTH.md`](./docs/AUTH.md): auth and provider-key model
