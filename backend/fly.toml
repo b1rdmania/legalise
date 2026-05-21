@@ -34,6 +34,14 @@ primary_region = "lhr"
   PLUGINS_REPO = "https://github.com/b1rdmania/claude-for-uk-legal"
   PLUGINS_REPO_REF = "3fb0ea86ad49f92d90fbd9dcfbee70f5947ba31c"
 
+[deploy]
+  # Unit 3 — migration discipline. Alembic runs ONCE per deploy on a
+  # single machine before any new app instances start serving traffic.
+  # This prevents the boot-time migration race that occurs when multiple
+  # Fly machines start concurrently. The app itself does NOT run
+  # migrations at boot (see backend/entrypoint.sh and docs/RUNBOOK.md).
+  release_command = "alembic upgrade head"
+
 [http_service]
   internal_port = 8000
   force_https = true
