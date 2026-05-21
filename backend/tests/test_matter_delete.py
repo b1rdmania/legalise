@@ -6,7 +6,8 @@ Tests cover:
   - Tombstoned matter absent from list.
   - Cross-user delete returns 404.
   - Delete with active job returns 409.
-  - Audit rows survive matter deletion (matter_id nulled, not deleted).
+  - Audit rows survive matter deletion (tombstone keeps the matter row;
+    audit FKs continue to resolve against status=archived rows).
   - Account deletion succeeds after matter is deleted.
 
 DB-backed tests skip when Postgres is unreachable (see conftest.py).
@@ -163,7 +164,10 @@ async def test_delete_matter_with_active_job_returns_409(client, db_session) -> 
 
 @pytest.mark.asyncio
 async def test_delete_matter_audit_rows_survive(client, db_session) -> None:
-    """Audit rows written before deletion survive with matter_id nulled."""
+    """Tombstone design: the matter row stays as `status=archived`, so
+    audit FKs continue to resolve. The Unit 6 WORM trigger forbids
+    UPDATE/DELETE on audit_entries, so we cannot — and don't need to —
+    null out matter_id on delete."""
     await _signup_and_login(client, EMAIL, PASSWORD)
 
     create = await client.post(
@@ -174,7 +178,6 @@ async def test_delete_matter_audit_rows_survive(client, db_session) -> None:
     slug = create.json()["slug"]
     matter_id = uuid.UUID(create.json()["id"])
 
-    # Check audit rows exist before deletion
     audit_before = list(
         (
             await db_session.scalars(
@@ -187,18 +190,19 @@ async def test_delete_matter_audit_rows_survive(client, db_session) -> None:
     resp = await client.delete(f"/api/matters/{slug}")
     assert resp.status_code == 204, resp.text
 
-    # After deletion, no audit rows should have matter_id == matter_id
-    # (they should have been nulled out)
-    audit_still_linked = list(
+    # Audit rows survive AND still point at the tombstoned matter.
+    audit_after = list(
         (
             await db_session.scalars(
                 select(AuditEntry).where(AuditEntry.matter_id == matter_id)
             )
         ).all()
     )
-    # The audit rows from before deletion were nulled; the deletion audit
-    # rows were written while matter_id was still live, then also nulled.
-    assert len(audit_still_linked) == 0
+    assert len(audit_after) >= len(audit_before), (
+        "audit rows must survive matter deletion (tombstone keeps FK live)"
+    )
+    actions = {row.action for row in audit_after}
+    assert "matter.deleted" in actions
 
 
 @pytest.mark.asyncio

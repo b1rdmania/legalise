@@ -1015,13 +1015,10 @@ async def delete_matter(
             },
         )
 
-    # Null out audit_entries.matter_id so audit rows survive the tombstone
-    # without referential issues (matter_id FK is nullable by design).
-    await session.execute(
-        AuditEntry.__table__.update()
-        .where(AuditEntry.matter_id == matter.id)
-        .values(matter_id=None)
-    )
+    # Tombstone design: the matter row stays (with status=archived), so
+    # audit FKs continue to resolve. No UPDATE on audit_entries — Unit 6
+    # WORM trigger forbids it, and there's no referential reason to null
+    # the FK when the matter row is preserved.
 
     # Remove storage objects for this matter (uploaded bytes + generated artefacts)
     try:

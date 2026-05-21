@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
-from app.models import AccessToken, Matter, User
+from app.models import STATUS_ARCHIVED, AccessToken, Matter, User
 
 
 router = APIRouter()
@@ -45,9 +45,16 @@ async def delete_account(
     Email + hashed_password are retained until a v0.2 background purge
     that anonymises actor_id on the audit log.
     """
+    # Archived (tombstoned) matters don't block account deletion — that's
+    # what the matter-delete flow is for. Only live matters count.
     matter_count = (
         await session.scalar(
-            select(func.count()).select_from(Matter).where(Matter.created_by_id == user.id)
+            select(func.count())
+            .select_from(Matter)
+            .where(
+                Matter.created_by_id == user.id,
+                Matter.status != STATUS_ARCHIVED,
+            )
         )
     ) or 0
 

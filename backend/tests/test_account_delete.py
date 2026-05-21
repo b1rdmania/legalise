@@ -11,8 +11,6 @@ from __future__ import annotations
 import pytest
 from sqlalchemy import select
 
-from sqlalchemy import delete as sa_delete
-
 from app.models import AccessToken, AuditEntry, Matter, User
 
 
@@ -38,28 +36,22 @@ async def _signup_and_login(client, email: str, password: str) -> None:
 
 async def _strip_seeded_matters(db_session, email: str) -> None:
     """Signup auto-seeds a demo matter (`seed_demo_matter_for_user` in
-    `app.core.seed`). For the no-matters branch we nuke the matter row
-    and every FK child via the DB so the API surface stays untouched."""
-    from app.models import Document, Event
+    `app.core.seed`). For the no-matters branch we tombstone seeded
+    matters by setting status to STATUS_ARCHIVED — the account-deletion
+    "has matters" check now ignores archived matters, so this puts the
+    user in the no-live-matters state without needing to mutate audit
+    rows (which the Unit 6 WORM trigger forbids)."""
+    from app.models import STATUS_ARCHIVED
 
     user = await db_session.scalar(select(User).where(User.email == email))
     assert user is not None
-    matter_ids = (
-        await db_session.scalars(select(Matter.id).where(Matter.created_by_id == user.id))
+    matter_rows = (
+        await db_session.scalars(select(Matter).where(Matter.created_by_id == user.id))
     ).all()
-    if not matter_ids:
+    if not matter_rows:
         return
-    # Children without ON DELETE CASCADE: documents, events. Audit FK
-    # `matter_id` is nullable; null it out instead of deleting (audit
-    # entries must outlive the matter).
-    await db_session.execute(sa_delete(Event).where(Event.matter_id.in_(matter_ids)))
-    await db_session.execute(sa_delete(Document).where(Document.matter_id.in_(matter_ids)))
-    await db_session.execute(
-        AuditEntry.__table__.update()
-        .where(AuditEntry.matter_id.in_(matter_ids))
-        .values(matter_id=None)
-    )
-    await db_session.execute(sa_delete(Matter).where(Matter.id.in_(matter_ids)))
+    for matter in matter_rows:
+        matter.status = STATUS_ARCHIVED
     await db_session.commit()
 
 
