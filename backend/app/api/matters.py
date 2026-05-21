@@ -1007,9 +1007,12 @@ async def delete_matter(
         prefix = matter_prefix(user.id, matter.id)
         storage.delete_prefix(prefix)
     except Exception as exc:
-        # Discard any uncommitted writes (defensive — none have been
-        # made on this path yet, but symmetric with future additions).
-        await session.rollback()
+        # No commit has been issued on this path yet; the request
+        # session will roll back via the dependency teardown when
+        # HTTPException propagates. We deliberately do NOT call
+        # `session.rollback()` here because the test conftest wraps
+        # each request in a SAVEPOINT and the explicit rollback
+        # confuses that nesting.
         raise HTTPException(
             502,
             detail={
