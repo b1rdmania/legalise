@@ -44,6 +44,19 @@ from app.models.workspace_skill import WorkspaceDisabledSkill
 from app.models.workspace_skill_capability_grant import WorkspaceSkillCapabilityGrant
 from app.models.matter_citation import MatterCitation
 from app.models.assistant import AssistantMessage
+from app.models.job import (
+    Job,
+    JOB_STATUS_QUEUED,
+    JOB_STATUS_RUNNING,
+    JOB_STATUS_SUCCEEDED,
+    JOB_STATUS_FAILED,
+    JOB_STATUS_CANCELLED,
+    JOB_STATUS_VALUES,
+    JOB_ACTIVE_STATUSES,
+    JOB_KIND_PRE_MOTION,
+    JOB_KIND_CONTRACT_REVIEW,
+    ACTIVE_JOB_LIMIT,
+)
 
 __all__ = [
     "Base",
@@ -63,6 +76,17 @@ __all__ = [
     "WorkspaceSkillCapabilityGrant",
     "MatterCitation",
     "AssistantMessage",
+    "Job",
+    "JOB_STATUS_QUEUED",
+    "JOB_STATUS_RUNNING",
+    "JOB_STATUS_SUCCEEDED",
+    "JOB_STATUS_FAILED",
+    "JOB_STATUS_CANCELLED",
+    "JOB_STATUS_VALUES",
+    "JOB_ACTIVE_STATUSES",
+    "JOB_KIND_PRE_MOTION",
+    "JOB_KIND_CONTRACT_REVIEW",
+    "ACTIVE_JOB_LIMIT",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",
     "PRIVILEGE_PAUSED",
