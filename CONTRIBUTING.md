@@ -63,6 +63,22 @@ npm install
 npm run build          # type-check + production build
 ```
 
+## Dependencies
+
+Backend dependencies live in `backend/pyproject.toml` with explicit upper bounds on the security-sensitive packages (`cryptography`, `fastapi-users`, `anthropic`, `openai`). The resolved versions are pinned in `backend/uv.lock`. CI checks the lockfile is in sync with `pyproject.toml` and asserts `cryptography>=44.0.0` in the installed env.
+
+After editing `backend/pyproject.toml`, regenerate the lockfile:
+
+```bash
+cd backend
+python -m pip install --user uv     # one-off
+python -m uv lock                   # regenerate uv.lock from pyproject.toml
+```
+
+Commit both `pyproject.toml` and `uv.lock` together. CI will fail with `uv lock --check` errors if they drift.
+
+The production Dockerfile currently installs from `pyproject.toml` ranges. Switching the production build to install from `uv.lock` for full reproducibility is a v0.5 follow-up.
+
 ## Voice checks
 
 Two house rules enforced before commit:
