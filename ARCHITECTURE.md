@@ -21,7 +21,7 @@
 | Frontend | React 19 + Vite + TanStack Router | Modern but stable. Hot reload, fast build, no Next.js framework lock-in. |
 | Styling | Tailwind + Shadcn primitives | Solicitor-legible defaults, customisable, no design-system rebuild needed. |
 | AI gateway | `app/core/model_gateway.py` | Abstracts Anthropic, OpenAI, Ollama. Per-matter privilege posture selects provider. |
-| Multi-agent | `app/agents/` (BaseAgent + Orchestrator) | Async, streaming, tool-call-aware. Same pattern as Bird Legal MVP. |
+| Multi-agent | Module-local pipelines in `app/modules/<name>/pipeline.py` (e.g. `pre_motion/pipeline.py` four-stage adversarial premortem; `contract_review/pipeline.py` parser → analyst → redliner → summariser). `app/agents/` exists as a placeholder for a future shared abstraction but is not used at runtime in v0.1. |
 | Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
 | Hosting (live demo) | Cloudflare Pages (frontend) + Fly.io `lhr` (backend, default) + Neon Postgres London + R2 (storage). Cloudflare Containers optional / experimental. | UK-region database and backend; edge CDN and storage at EU / Western Europe placement (R2 hint best-effort). See `infra/deploy/cloudflare.md` for honest residency caveats. |
@@ -36,7 +36,7 @@ backend/app/modules/<module>/
   __init__.py
   router.py          # FastAPI routes
   service.py         # business logic
-  agents.py          # any module-specific agents (multi-agent pipelines)
+  pipeline.py        # module-local multi-stage pipeline (where used; e.g. pre_motion, contract_review)
   schemas.py         # pydantic input/output models
   templates/         # any prompt templates or output templates
 
@@ -176,17 +176,16 @@ Providers:
 
 All LLM calls go through the gateway. There is no direct SDK import in any module.
 
-## Multi-agent (BaseAgent + Orchestrator)
+## Multi-stage pipelines (module-local)
 
-Same shape as Bird Legal MVP. Modules that need it (chronology, contract review) define an Orchestrator that runs Agents in series or parallel, each Agent wrapping a single LLM call with a system prompt and tool definitions.
+Multi-stage AI workflows live in each module's own `pipeline.py`. There is no shared agent abstraction in use at runtime in v0.1.
 
-```
-agents/
-  base.py            # Agent abstract base, run() returns AgentResult
-  orchestrator.py    # sequential/parallel run, status streaming to client
-```
+- **Pre-Motion** (`backend/app/modules/pre_motion/pipeline.py`) — four stages: OptimisticAnalyst → EvidenceInspector × 3 (parallel) → PremortemAdversary × 4 (parallel) → Synthesiser. Stage status streamed to the frontend via SSE.
+- **Contract Review** (`backend/app/modules/contract_review/pipeline.py`) — Parser → Analyst → Redliner → Summariser. Stage events streamed via SSE.
 
-Agents stream status updates to the frontend via SSE so users see "Parser → Analyst → Redliner → Summariser" progress in the contract review module.
+Each pipeline imports the model gateway, audit API, and matter primitives directly from `app.core.api`. Each pipeline owns its stage definitions, its sub-agent prompts, its commit cadence, and its audit-row shape.
+
+`backend/app/agents/` contains a `BaseAgent` ABC and a `SequentialOrchestrator` stub that raises `NotImplementedError`. It was scaffolded as a shared abstraction during early planning and was never wired up; modules pipelined locally instead. The folder remains in the tree as a placeholder for a future shared abstraction (v0.2+ scope) but does not run in v0.1.
 
 ## Plugin bridge
 

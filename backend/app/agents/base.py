@@ -1,7 +1,9 @@
-"""Base agent abstraction for multi-agent pipelines.
+"""Base agent abstraction — placeholder for a future shared abstraction.
 
-Ported from Bird Legal MVP. Real implementation lands Week 2 (chronology + contract review
-both depend on this).
+Not used at runtime in v0.1. Module-local pipelines (e.g.
+`app/modules/pre_motion/pipeline.py`) define sub-agent classes directly
+and do not subclass this. Kept as a v0.2+ scaffold; subject to redesign
+before any module is wired against it.
 """
 
 from abc import ABC, abstractmethod
