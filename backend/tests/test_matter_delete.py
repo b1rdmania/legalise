@@ -237,6 +237,74 @@ async def test_delete_without_prior_export_writes_warning_audit(client, db_sessi
 
 
 @pytest.mark.asyncio
+async def test_delete_matter_storage_failure_fails_closed(
+    client, db_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1: if
+    storage.delete_prefix raises, the endpoint must return 5xx and
+    leave the matter live + un-archived + no audit row claiming
+    successful deletion. A 204 must only fire when storage objects
+    are actually gone."""
+    from sqlalchemy import select as sa_select
+
+    from app.api import matters as matters_api
+    from app.models import AuditEntry, Matter
+
+    class _ExplodingStorage:
+        def delete_prefix(self, prefix):
+            raise RuntimeError("simulated R2 outage")
+
+        def put_bytes(self, *a, **k):
+            raise RuntimeError("unused")
+
+        def get_bytes(self, *a, **k):
+            raise RuntimeError("unused")
+
+        def delete_object(self, *a, **k):
+            raise RuntimeError("unused")
+
+    monkeypatch.setattr(
+        matters_api, "get_storage_backend", lambda: _ExplodingStorage()
+    )
+
+    await _signup_and_login(client, EMAIL, PASSWORD)
+    create = await client.post(
+        "/api/matters",
+        json={"title": "Storage Fail Delete"},
+    )
+    assert create.status_code == 201, create.text
+    slug = create.json()["slug"]
+    matter_id = uuid.UUID(create.json()["id"])
+
+    resp = await client.delete(f"/api/matters/{slug}")
+    assert resp.status_code == 502, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error"] == "matter_storage_delete_failed"
+
+    # Matter must NOT be archived.
+    matter = await db_session.scalar(
+        sa_select(Matter).where(Matter.id == matter_id)
+    )
+    assert matter is not None
+    assert matter.status != "archived"
+
+    # No `matter.deleted` audit row was written.
+    deleted_rows = list(
+        (
+            await db_session.scalars(
+                sa_select(AuditEntry).where(
+                    AuditEntry.matter_id == matter_id,
+                    AuditEntry.action == "matter.deleted",
+                )
+            )
+        ).all()
+    )
+    assert len(deleted_rows) == 0, (
+        "matter.deleted audit row must NOT exist when storage cleanup failed"
+    )
+
+
+@pytest.mark.asyncio
 async def test_account_deletion_succeeds_after_matter_deleted(client, db_session) -> None:
     """Account delete (DELETE /auth/users/me) succeeds after all matters archived."""
     from sqlalchemy import select as sa_select

@@ -33,12 +33,14 @@ from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.jobs import ActiveJobLimitReached, create_job, update_status
+from app.core.limits import check_workflow_run
 from app.core.model_gateway import PrivilegePosture, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import (
     ACTIVE_JOB_LIMIT,
     JOB_KIND_CONTRACT_REVIEW,
     JOB_KIND_PRE_MOTION,
+    JOB_STATUS_FAILED,
     Job,
     Matter,
     User,
@@ -129,6 +131,46 @@ async def _enqueue_job(job_id: uuid.UUID, redis_url: str) -> None:
         await redis.aclose()
 
 
+async def _enqueue_or_mark_failed(
+    session: AsyncSession,
+    job: Job,
+    *,
+    redis_url: str,
+) -> None:
+    """Enqueue ``job`` for the worker. If Redis is unreachable or the
+    enqueue raises, transition the job to FAILED with
+    ``error_code="enqueue_failed"``, commit the terminal state, and
+    raise HTTPException(503).
+
+    Without this, a Redis failure would leave a permanently queued row
+    consuming the user's active-job slot — the failure surface called
+    out by the reviewer (HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1).
+    """
+    try:
+        await _enqueue_job(job.id, redis_url)
+    except Exception as exc:
+        await update_status(
+            session,
+            job,
+            JOB_STATUS_FAILED,
+            error_code="enqueue_failed",
+            error_message=f"Failed to enqueue job: {type(exc).__name__}",
+        )
+        await session.commit()
+        raise HTTPException(
+            503,
+            detail={
+                "error": "job_enqueue_failed",
+                "job_id": str(job.id),
+                "message": (
+                    "Failed to queue the job for execution. Please try "
+                    "again; the previous attempt has been marked failed "
+                    "and freed your active-job slot."
+                ),
+            },
+        ) from exc
+
+
 # ---------------------------------------------------------------------------
 # POST /api/matters/{slug}/pre-motion/jobs
 # ---------------------------------------------------------------------------
@@ -144,6 +186,11 @@ async def create_pre_motion_job(
     """Enqueue a Pre-Motion pipeline run. Returns the job row immediately."""
     matter = await _resolve_matter(session, slug, user.id)
     await _preflight_provider(session, matter, user.id, "Pre-Motion")
+
+    # Daily workflow-run cap (Pre-Motion + Contract Review combined,
+    # exports excluded). Distinct from ACTIVE_JOB_LIMIT which guards
+    # parallelism within the moment.
+    await check_workflow_run(user.id, session)
 
     body = inputs or PreMotionRunInputs()
     try:
@@ -169,7 +216,7 @@ async def create_pre_motion_job(
 
     await session.commit()
 
-    await _enqueue_job(job.id, settings.redis_url)
+    await _enqueue_or_mark_failed(session, job, redis_url=settings.redis_url)
 
     return _job_row(job)
 
@@ -189,6 +236,9 @@ async def create_contract_review_job(
     """Enqueue a Contract Review pipeline run. Returns the job row immediately."""
     matter = await _resolve_matter(session, slug, user.id)
     await _preflight_provider(session, matter, user.id, "Contract Review")
+
+    # Daily workflow-run cap (Pre-Motion + Contract Review combined).
+    await check_workflow_run(user.id, session)
 
     try:
         job = await create_job(
@@ -213,7 +263,7 @@ async def create_contract_review_job(
 
     await session.commit()
 
-    await _enqueue_job(job.id, settings.redis_url)
+    await _enqueue_or_mark_failed(session, job, redis_url=settings.redis_url)
 
     return _job_row(job)
 

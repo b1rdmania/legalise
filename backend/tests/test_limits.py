@@ -161,10 +161,41 @@ async def test_usage_endpoint_shape(client) -> None:
         "assistant_messages_today",
         "generated_artefacts_today",
         "module_submissions_today",
+        "workflow_runs_today",
+        "active_jobs",
     ):
         assert field_name in body, f"missing {field_name}"
         assert "current" in body[field_name]
         assert "max" in body[field_name]
+
+
+@pytest.mark.asyncio
+async def test_workflow_run_limit_blocks_when_capped(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P2: workflow_runs_per_day
+    must actually be enforced — not just declared. With cap=0 the first
+    Pre-Motion job creation must hit 429 evaluation_limit_reached."""
+    from app.api import jobs as jobs_api
+
+    async def _explode_enqueue(*_args, **_kwargs):
+        # Should never be reached — 429 fires first.
+        raise AssertionError("enqueue should not be called when limit fires")
+
+    monkeypatch.setattr(jobs_api, "_enqueue_job", _explode_enqueue)
+    monkeypatch.setattr(
+        limits_module, "_limits", Limits(workflow_runs_per_day=0)
+    )
+    await _signup_and_login(client)
+
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
+        json={"depth": "default"},
+    )
+    assert resp.status_code == 429, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error"] == "evaluation_limit_reached"
+    assert detail["limit"] == "workflow_runs_per_day"
 
 
 @pytest.mark.asyncio

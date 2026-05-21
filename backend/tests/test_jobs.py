@@ -121,3 +121,64 @@ async def test_get_unknown_job_returns_404(client) -> None:
     rogue_id = uuid.uuid4()
     resp = await client.get(f"/api/matters/{KHAN_SLUG}/jobs/{rogue_id}")
     assert resp.status_code == 404, resp.text
+
+
+# ---------------------------------------------------------------------------
+# Enqueue-failure handling — P1 review fix
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_pre_motion_enqueue_failure_marks_job_failed(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If Redis enqueue raises after the job row is committed, the row
+    must be transitioned to FAILED with error_code=enqueue_failed and
+    the API must return 503 — never a silent success."""
+    from app.api import jobs as jobs_api
+
+    async def _explode(*_args, **_kwargs):
+        raise RuntimeError("redis unreachable")
+
+    monkeypatch.setattr(jobs_api, "_enqueue_job", _explode)
+    await _signup_and_login(client)
+
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
+        json={"depth": "default"},
+    )
+    assert resp.status_code == 503, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error"] == "job_enqueue_failed"
+    assert "job_id" in detail
+
+
+@pytest.mark.asyncio
+async def test_enqueue_failed_job_does_not_consume_active_slot(
+    client, db_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ACTIVE_JOB_LIMIT excludes terminal states. A failed enqueue
+    must free the slot so the user can retry without hitting 429."""
+    from sqlalchemy import select
+
+    from app.api import jobs as jobs_api
+    from app.core.jobs import get_active_job_count
+    from app.models import User
+
+    async def _explode(*_args, **_kwargs):
+        raise RuntimeError("redis unreachable")
+
+    monkeypatch.setattr(jobs_api, "_enqueue_job", _explode)
+    await _signup_and_login(client)
+
+    user = await db_session.scalar(select(User).where(User.email == TEST_EMAIL))
+    assert user is not None
+
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
+        json={"depth": "default"},
+    )
+    assert resp.status_code == 503, resp.text
+
+    active = await get_active_job_count(db_session, user.id)
+    assert active == 0, f"expected 0 active jobs, got {active}"
