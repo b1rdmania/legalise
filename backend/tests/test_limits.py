@@ -152,13 +152,15 @@ async def test_usage_endpoint_shape(client) -> None:
     resp = await client.get("/api/me/usage")
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    # Shape contract: every limit field appears with current + max.
+    # Shape contract: usage response carries current + max for every
+    # limit surface (matches UsageResponse in app.api.usage).
     for field_name in (
-        "matters_per_user",
+        "matters",
         "documents_per_matter",
-        "assistant_messages_per_day",
-        "generated_artefacts_per_day",
-        "module_submissions_per_day",
+        "total_storage_bytes",
+        "assistant_messages_today",
+        "generated_artefacts_today",
+        "module_submissions_today",
     ):
         assert field_name in body, f"missing {field_name}"
         assert "current" in body[field_name]
