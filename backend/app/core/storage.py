@@ -123,6 +123,19 @@ class StorageBackend(Protocol):
         """Return a presigned GET URL valid for ``ttl`` seconds."""
         ...
 
+    def list_keys(self, prefix: str) -> list[str]:
+        """Return all object keys that start with ``prefix``."""
+        ...
+
+    def delete_prefix(self, prefix: str) -> int:
+        """Delete all objects whose key starts with ``prefix``.
+
+        Returns the count of objects deleted. Safe to call when no objects
+        exist under the prefix (returns 0). Used by the matter delete path
+        to remove all storage objects scoped to a matter.
+        """
+        ...
+
 
 # ---------------------------------------------------------------------------
 # S3-compatible backend (MinIO / R2 via boto3)
@@ -228,6 +241,30 @@ class S3StorageBackend:
             ExpiresIn=ttl,
         )
 
+    def list_keys(self, prefix: str) -> list[str]:
+        self._ensure_client()
+        keys: list[str] = []
+        paginator = self._client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                keys.append(obj["Key"])
+        return keys
+
+    def delete_prefix(self, prefix: str) -> int:
+        self._ensure_client()
+        keys = self.list_keys(prefix)
+        if not keys:
+            return 0
+        # S3 batch delete: max 1000 per call
+        deleted = 0
+        for i in range(0, len(keys), 1000):
+            batch = [{"Key": k} for k in keys[i : i + 1000]]
+            self._client.delete_objects(
+                Bucket=self._bucket, Delete={"Objects": batch, "Quiet": True}
+            )
+            deleted += len(batch)
+        return deleted
+
 
 # ---------------------------------------------------------------------------
 # Local filesystem backend (tests only)
@@ -285,6 +322,31 @@ class LocalStorageBackend:
     def presigned_get_url(self, key: str, ttl: int = 3600) -> str:
         raise NotImplementedError("LocalStorageBackend does not support presigned URLs")
 
+    def list_keys(self, prefix: str) -> list[str]:
+        root = self._root.resolve()
+        prefix_path = (root / prefix).resolve()
+        if not str(prefix_path).startswith(str(root)):
+            raise ValueError(f"path traversal rejected: {prefix!r}")
+        keys: list[str] = []
+        if prefix_path.is_dir():
+            for p in prefix_path.rglob("*"):
+                if p.is_file():
+                    keys.append(str(p.relative_to(root)))
+        elif str(prefix_path).startswith(str(root)):
+            # prefix is not a directory; scan parent and filter
+            parent = prefix_path.parent
+            if parent.is_dir():
+                for p in parent.iterdir():
+                    if p.is_file() and str(p.relative_to(root)).startswith(prefix):
+                        keys.append(str(p.relative_to(root)))
+        return keys
+
+    def delete_prefix(self, prefix: str) -> int:
+        keys = self.list_keys(prefix)
+        for key in keys:
+            self.delete_object(key)
+        return len(keys)
+
 
 # ---------------------------------------------------------------------------
 # Singleton getter
@@ -316,6 +378,16 @@ def _reset_backend() -> None:
     _backend = None
 
 
+def matter_prefix(user_id: uuid.UUID, matter_id: uuid.UUID) -> str:
+    """Return the key prefix for all objects belonging to a matter.
+
+    All uploaded documents and generated artefacts for a matter are stored
+    under this prefix. Passing this to ``delete_prefix`` removes every
+    storage object scoped to the matter.
+    """
+    return f"users/{user_id}/matters/{matter_id}/"
+
+
 __all__ = [
     "StorageBackend",
     "S3StorageBackend",
@@ -324,4 +396,5 @@ __all__ = [
     "_reset_backend",
     "uploaded_key",
     "generated_key",
+    "matter_prefix",
 ]

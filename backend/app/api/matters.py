@@ -34,20 +34,25 @@ from app.core.matter_fs import (
     record_document,
 )
 from app.core.model_gateway import PrivilegePaused
-from app.core.storage import get_storage_backend, uploaded_key
+from app.core.storage import get_storage_backend, uploaded_key, matter_prefix
 from app.core.text_extraction import extract as extract_text
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
 from app.models import (
     AuditEntry,
     Document,
+    Job,
     Matter,
     User,
     PRIVILEGE_VALUES,
     PRIVILEGE_MIXED,
     STATUS_VALUES,  # noqa: F401 — exported for future endpoints
     STATUS_OPEN,
+    STATUS_ARCHIVED,
     TAG_VALUES,
+    JOB_ACTIVE_STATUSES,
+    JOB_KIND_EXPORT,
+    JOB_STATUS_SUCCEEDED,
 )
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
@@ -282,9 +287,10 @@ async def list_matters(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> list[Matter]:
+    # Archived matters (tombstones) are excluded from the default list view.
     rows = await session.scalars(
         select(Matter)
-        .where(Matter.created_by_id == user.id)
+        .where(Matter.created_by_id == user.id, Matter.status != STATUS_ARCHIVED)
         .order_by(Matter.opened_at.desc())
     )
     return list(rows.all())
@@ -299,7 +305,8 @@ async def get_matter(
     matter = await session.scalar(
         select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
     )
-    if matter is None:
+    # Archived matters return 404 — same response cross-user to avoid information leak.
+    if matter is None or matter.status == STATUS_ARCHIVED:
         raise HTTPException(404, f"matter not found: {slug}")
     return matter
 
@@ -911,3 +918,122 @@ async def list_audit(
         .limit(limit)
     )
     return list(rows.all())
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/matters/{slug}
+# ---------------------------------------------------------------------------
+
+
+@router.delete("/{slug}", status_code=204)
+async def delete_matter(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> None:
+    """Tombstone a matter (archive/delete).
+
+    Design decisions:
+      - Tombstone over hard delete: sets matter.status = 'archived'.
+        Document and event rows kept in DB for referential integrity;
+        binary bytes removed from storage.
+      - Does NOT require a prior export. A warning audit row is written
+        when no successful export exists.
+      - Refuses with 409 if any jobs for this matter are currently
+        queued or running.
+      - Writes a 'matter.deleted' audit row before tombstoning.
+      - Nulls audit_entries.matter_id for this matter so audit rows
+        outlive the tombstone without referential issues.
+      - After this call, GET /api/matters/{slug} returns 404.
+      - Cross-user: 404 (no 403), same as other matter endpoints.
+    """
+    # Owner lookup — 404 for missing or already-archived
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    if matter is None or matter.status == STATUS_ARCHIVED:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    # Refuse if active jobs exist for this matter
+    from sqlalchemy import func as sa_func
+    active_count = (
+        await session.scalar(
+            select(sa_func.count(Job.id)).where(
+                Job.matter_id == matter.id,
+                Job.status.in_(JOB_ACTIVE_STATUSES),
+            )
+        )
+    ) or 0
+    if active_count > 0:
+        raise HTTPException(
+            409,
+            detail={
+                "error": "matter_has_active_jobs",
+                "active_job_count": active_count,
+                "message": (
+                    "This matter has active jobs. Wait for them to complete "
+                    "or cancel them before deleting the matter."
+                ),
+            },
+        )
+
+    # Warn if no successful export exists
+    export_count = (
+        await session.scalar(
+            select(sa_func.count(Job.id)).where(
+                Job.matter_id == matter.id,
+                Job.kind == JOB_KIND_EXPORT,
+                Job.status == JOB_STATUS_SUCCEEDED,
+            )
+        )
+    ) or 0
+
+    # Write deletion audit row before tombstoning
+    await _write_audit(
+        session,
+        actor=user,
+        matter=matter,
+        action="matter.deleted",
+        resource_type="matter",
+        resource_id=matter.slug,
+        payload={
+            "title": matter.title,
+            "had_export": export_count > 0,
+            "export_count": export_count,
+        },
+    )
+    if export_count == 0:
+        await _write_audit(
+            session,
+            actor=user,
+            matter=matter,
+            action="matter.deleted_without_export",
+            resource_type="matter",
+            resource_id=matter.slug,
+            payload={
+                "warning": "Matter deleted without a prior successful export."
+            },
+        )
+
+    # Null out audit_entries.matter_id so audit rows survive the tombstone
+    # without referential issues (matter_id FK is nullable by design).
+    await session.execute(
+        AuditEntry.__table__.update()
+        .where(AuditEntry.matter_id == matter.id)
+        .values(matter_id=None)
+    )
+
+    # Remove storage objects for this matter (uploaded bytes + generated artefacts)
+    try:
+        storage = get_storage_backend()
+        prefix = matter_prefix(user.id, matter.id)
+        storage.delete_prefix(prefix)
+    except Exception:
+        # Storage deletion is best-effort; tombstone still proceeds.
+        # A future sweep can clean orphaned objects by scanning tombstoned matters.
+        pass
+
+    # Tombstone: set status to archived
+    matter.status = STATUS_ARCHIVED
+
+    await session.commit()

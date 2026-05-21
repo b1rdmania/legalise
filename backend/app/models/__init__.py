@@ -31,6 +31,7 @@ from app.models.matter import (
     STATUS_OPEN,
     STATUS_SETTLEMENT,
     STATUS_CLOSED,
+    STATUS_ARCHIVED,
     STATUS_VALUES,
 )
 from app.models.document import Document, TAG_VALUES
@@ -55,6 +56,7 @@ from app.models.job import (
     JOB_ACTIVE_STATUSES,
     JOB_KIND_PRE_MOTION,
     JOB_KIND_CONTRACT_REVIEW,
+    JOB_KIND_EXPORT,
     ACTIVE_JOB_LIMIT,
 )
 
@@ -86,6 +88,7 @@ __all__ = [
     "JOB_ACTIVE_STATUSES",
     "JOB_KIND_PRE_MOTION",
     "JOB_KIND_CONTRACT_REVIEW",
+    "JOB_KIND_EXPORT",
     "ACTIVE_JOB_LIMIT",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",
@@ -94,6 +97,7 @@ __all__ = [
     "STATUS_OPEN",
     "STATUS_SETTLEMENT",
     "STATUS_CLOSED",
+    "STATUS_ARCHIVED",
     "STATUS_VALUES",
     "TAG_VALUES",
     "BODY_KIND_VALUES",
