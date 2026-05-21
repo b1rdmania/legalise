@@ -91,3 +91,71 @@ async def test_upload_pdf_under_cap_succeeds(client) -> None:
     assert body["filename"] == "note.pdf"
     assert body["mime_type"] == "application/pdf"
     assert body["size_bytes"] == len(_PDF_BYTES)
+
+
+@pytest.mark.asyncio
+async def test_upload_rejects_pdf_declaration_with_zip_body(client) -> None:
+    """A body that starts `PK\\x03\\x04` declared as application/pdf must
+    be rejected with magic_byte_mismatch — a docx renamed `.pdf` would
+    otherwise reach the pdf parser unchecked."""
+    await _signup_and_login(client)
+
+    fake_pdf = b"PK\x03\x04" + b"\x00" * 64
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/documents",
+        files={"file": ("looks_like_zip.pdf", fake_pdf, "application/pdf")},
+    )
+    assert resp.status_code == 415, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error"] == "magic_byte_mismatch"
+    assert detail["declared_format"] == "pdf"
+    assert detail["inferred_format"] == "docx"
+
+
+@pytest.mark.asyncio
+async def test_upload_rejects_text_declaration_with_binary_body(client) -> None:
+    """Non-UTF-8 bytes declared as text/plain must be rejected. The
+    sniffer returns inferred=None when nothing matches and the body
+    isn't valid UTF-8."""
+    await _signup_and_login(client)
+
+    binary = bytes(range(0x80, 0x80 + 64))  # high-bit bytes, invalid UTF-8 head
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/documents",
+        files={"file": ("rogue.txt", binary, "text/plain")},
+    )
+    assert resp.status_code == 415, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error"] == "magic_byte_mismatch"
+    assert detail["declared_format"] == "text"
+    assert detail["inferred_format"] is None
+
+
+@pytest.mark.asyncio
+async def test_upload_accepts_text_plain_with_utf8_body(client) -> None:
+    """Plain text uploads have no fixed magic signature; a UTF-8
+    decodable body declared as text/plain must succeed."""
+    await _signup_and_login(client)
+
+    body = "Witness statement: I, Jasmine Khan, of 12 Acme Lane…".encode("utf-8")
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/documents",
+        files={"file": ("statement.txt", body, "text/plain")},
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["mime_type"] == "text/plain"
+
+
+@pytest.mark.asyncio
+async def test_upload_accepts_rtf_with_correct_magic(client) -> None:
+    """RTF magic is `{\\rtf`; declared as application/rtf must succeed
+    with a matching body."""
+    await _signup_and_login(client)
+
+    body = b"{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}Hello.}"
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/documents",
+        files={"file": ("note.rtf", body, "application/rtf")},
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["mime_type"] == "application/rtf"

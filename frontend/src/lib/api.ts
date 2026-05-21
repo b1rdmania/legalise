@@ -212,10 +212,14 @@ export const listDocuments = (slug: string) =>
   apiFetch(`${API}/matters/${slug}/documents`).then((r) => jsonOrThrow<MatterDocument[]>(r));
 
 // Typed upload error. Lets the UI show a friendly inline banner for
-// the two validation failures the backend enforces: unsupported MIME
-// (415) and over the 25 MB cap (413). Anything else flows through as
-// a generic Error from `jsonOrThrow`.
-export type UploadErrorKind = "unsupported_mime" | "upload_too_large";
+// the three validation failures the backend enforces: unsupported MIME
+// (415), declared MIME doesn't match magic bytes (415), and over the
+// 25 MB cap (413). Anything else flows through as a generic Error
+// from `jsonOrThrow`.
+export type UploadErrorKind =
+  | "unsupported_mime"
+  | "magic_byte_mismatch"
+  | "upload_too_large";
 
 export class UploadError extends Error {
   kind: UploadErrorKind;
@@ -255,6 +259,16 @@ export const uploadDocument = async (
       detail = null;
     }
     if (res.status === 415) {
+      const errKind = (detail?.error as string | undefined) ?? "unsupported_mime";
+      if (errKind === "magic_byte_mismatch") {
+        const declared = (detail?.declared_mime as string | null) || file.type || "the declared type";
+        const inferred = (detail?.inferred_format as string | null) ?? "something else";
+        throw new UploadError(
+          "magic_byte_mismatch",
+          415,
+          `File contents do not match its declared type. Declared as ${declared}; the bytes look like ${inferred}. Re-export from the source app and try again.`,
+        );
+      }
       const got = (detail?.got as string | null) || file.type || "unknown";
       throw new UploadError(
         "unsupported_mime",
