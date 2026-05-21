@@ -108,6 +108,15 @@ class Settings(BaseSettings):
     submission_rate_limit_per_hour: int = 5
 
 
+    # Unit 8 — observability
+    # Log format: "console" (human-readable, default) or "json" (log drain).
+    log_format: str = "console"
+    # Optional structured-log drain endpoint. No content is forwarded until
+    # a future adapter wires this up; the setting documents the intended
+    # integration point. Leave unset in dev.
+    logs_endpoint: str | None = None
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

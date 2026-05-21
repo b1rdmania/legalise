@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.observability import record_key_missing, record_provider_error, scrub_dict
 from app.core.user_keys import (
     ProviderKeyMissing,
     ProviderUpstreamError,
@@ -394,6 +395,8 @@ class ModelGateway:
                     and settings.allow_server_key_fallback
                 )
                 if not fallback_allowed:
+                    # Unit 8: emit scrubbed operational event — no key material logged.
+                    record_key_missing(provider=provider.name)
                     raise ProviderKeyMissing(provider.name)
                 # Fall through with no api_key kwarg — provider uses its
                 # construct-time fallback. Dev only.
@@ -410,6 +413,13 @@ class ModelGateway:
             # model, posture) plus the structured upstream error code, then
             # re-raise. Routers translate to 502.
             latency_ms = int((time.perf_counter() - start) * 1000)
+            # Unit 8: emit scrubbed operational event — provider name and
+            # error code only; no request body or prompt text logged.
+            record_provider_error(
+                provider=exc.provider,
+                code=exc.code,
+                upstream_status=exc.upstream_status,
+            )
             from app.core.api import audit  # lazy import, see success path
 
             await audit.log(
