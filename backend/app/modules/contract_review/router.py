@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.limits import check_generated_artefact
 from app.core.model_gateway import (
     PrivilegePaused,
     PrivilegePosture,
@@ -280,6 +281,10 @@ async def export_docx(
             400,
             f"run envelope matter_slug={result.matter_slug} does not match url slug={slug}",
         )
+
+    # TODO(unit-4-jobs): once Unit 2 migrates /run and /run-stream to durable
+    # jobs, add check_generated_artefact to the job-completion path in jobs.py.
+    await check_generated_artefact(user.id, session)
 
     body_markdown = render_contract_review_markdown(matter, result)
     title = f"Contract review — {result.document_filename or matter.title}"
