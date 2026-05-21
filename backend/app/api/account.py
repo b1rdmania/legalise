@@ -57,8 +57,9 @@ async def delete_account(
             detail={
                 "error": "account_has_matters",
                 "message": (
-                    "This account owns matters. Export or delete matters "
-                    "before deleting the account."
+                    "This account owns matters. Export each matter via "
+                    "POST /api/matters/{slug}/export, then delete it via "
+                    "DELETE /api/matters/{slug}, then retry account deletion."
                 ),
                 "matter_count": matter_count,
             },

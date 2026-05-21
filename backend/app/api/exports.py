@@ -1,0 +1,216 @@
+"""Export API — Unit 5 (Matter Export / Delete).
+
+Routes:
+    POST /api/matters/{slug}/export
+        Owner-scoped. Creates an export job using the Unit 2 jobs
+        infrastructure. Returns the job row immediately. Client polls
+        GET /api/matters/{slug}/jobs/{job_id} (existing endpoint).
+
+    GET  /api/matters/{slug}/export/{export_job_id}
+        Owner-scoped. Returns a presigned download URL (S3 backend) or
+        streams the zip bytes (local backend).
+
+Registration note for integrator (app/main.py):
+    from app.api.exports import router as exports_router
+    app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
+"""
+
+from __future__ import annotations
+
+import uuid
+from typing import Any
+
+import arq
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.auth import current_user
+from app.core.config import settings
+from app.core.db import get_session
+from app.core.jobs import ActiveJobLimitReached, create_job
+from app.models import (
+    ACTIVE_JOB_LIMIT,
+    Job,
+    Matter,
+    User,
+)
+from app.models.job import JOB_KIND_EXPORT, JOB_STATUS_SUCCEEDED
+
+
+router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+
+async def _resolve_matter_owned(
+    session: AsyncSession, slug: str, user_id: uuid.UUID
+) -> Matter:
+    """Return the matter if it exists and is owned by user. Always 404 on miss."""
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+    return matter
+
+
+async def _enqueue_job(job_id: uuid.UUID) -> None:
+    """Push job_id onto the arq queue. Redis never receives matter content."""
+    redis = await arq.create_pool(arq.connections.RedisSettings.from_dsn(settings.redis_url))
+    try:
+        await redis.enqueue_job("run_job", str(job_id))
+    finally:
+        await redis.aclose()
+
+
+def _job_row(job: Job) -> dict[str, Any]:
+    return {
+        "id": str(job.id),
+        "matter_id": str(job.matter_id),
+        "kind": job.kind,
+        "status": job.status,
+        "stage": job.stage,
+        "progress": job.progress,
+        "error_code": job.error_code,
+        "error_message": job.error_message,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "started_at": job.started_at.isoformat() if job.started_at else None,
+        "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+        "result_payload": job.result_payload,
+    }
+
+
+# ---------------------------------------------------------------------------
+# POST /api/matters/{slug}/export
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{slug}/export")
+async def create_export_job(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> dict[str, Any]:
+    """Enqueue a matter export job. Returns the job row immediately.
+
+    Client polls GET /api/matters/{slug}/jobs/{job_id} (existing endpoint from
+    Unit 2) to track progress. When succeeded, result_payload contains
+    ``{"export_key": "..."}`` — the storage key. Use
+    GET /api/matters/{slug}/export/{job_id} to download.
+    """
+    matter = await _resolve_matter_owned(session, slug, user.id)
+
+    try:
+        job = await create_job(
+            session,
+            matter_id=matter.id,
+            created_by_id=user.id,
+            kind=JOB_KIND_EXPORT,
+            input_payload={"matter_id": str(matter.id)},
+        )
+    except ActiveJobLimitReached:
+        raise HTTPException(
+            429,
+            detail={
+                "error": "active_job_limit_reached",
+                "limit": ACTIVE_JOB_LIMIT,
+                "message": (
+                    f"You already have {ACTIVE_JOB_LIMIT} active jobs. "
+                    "Wait for one to complete before starting another."
+                ),
+            },
+        )
+
+    await session.commit()
+
+    try:
+        await _enqueue_job(job.id)
+    except Exception:
+        # Redis unavailable — job row is durable; worker will pick it up
+        # on next poll or when Redis recovers. Return job row so client
+        # can poll status.
+        pass
+
+    return _job_row(job)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/matters/{slug}/export/{export_job_id}
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{slug}/export/{export_job_id}")
+async def download_export(
+    slug: str,
+    export_job_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> Response:
+    """Return a presigned download URL or stream the zip.
+
+    The export job must be in ``succeeded`` status. Returns:
+      - S3 backend: 302 redirect to a presigned URL (1-hour TTL).
+      - Local backend: raw zip bytes with appropriate headers.
+    """
+    matter = await _resolve_matter_owned(session, slug, user.id)
+
+    job = await session.scalar(
+        select(Job).where(
+            Job.id == export_job_id,
+            Job.matter_id == matter.id,
+            Job.kind == JOB_KIND_EXPORT,
+        )
+    )
+    if job is None:
+        raise HTTPException(404, f"export job not found: {export_job_id}")
+
+    if job.status != JOB_STATUS_SUCCEEDED:
+        raise HTTPException(
+            409,
+            detail={
+                "error": "export_not_ready",
+                "status": job.status,
+                "message": "Export job has not completed. Poll the job status endpoint.",
+            },
+        )
+
+    result = job.result_payload or {}
+    export_key: str | None = result.get("export_key")
+    if not export_key:
+        raise HTTPException(
+            500,
+            detail={"error": "export_key_missing", "message": "Export job succeeded but storage key is missing."},
+        )
+
+    from app.core.storage import get_storage_backend, LocalStorageBackend
+
+    storage = get_storage_backend()
+
+    if isinstance(storage, LocalStorageBackend):
+        # Stream bytes directly (test / local dev path)
+        try:
+            data = storage.get_bytes(export_key)
+        except KeyError:
+            raise HTTPException(404, "export file not found in storage")
+        filename = f"matter-{matter.slug}-export.zip"
+        return Response(
+            content=data,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(data)),
+            },
+        )
+    else:
+        # S3-compatible: return presigned URL
+        try:
+            url = storage.presigned_get_url(export_key, ttl=3600)
+        except Exception as exc:
+            raise HTTPException(500, f"could not generate presigned URL: {exc}") from exc
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=url, status_code=302)

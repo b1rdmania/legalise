@@ -29,6 +29,7 @@ from app.core.config import settings
 from app.core.jobs import update_stage, update_status
 from app.models import (
     JOB_KIND_CONTRACT_REVIEW,
+    JOB_KIND_EXPORT,
     JOB_KIND_PRE_MOTION,
     JOB_STATUS_FAILED,
     JOB_STATUS_RUNNING,
@@ -121,6 +122,8 @@ async def _dispatch(
         return await _run_pre_motion(session, job, matter)
     if job.kind == JOB_KIND_CONTRACT_REVIEW:
         return await _run_contract_review(session, job, matter)
+    if job.kind == JOB_KIND_EXPORT:
+        return await _run_export(session, job, matter)
     raise ValueError(f"unknown job kind: {job.kind}")
 
 
@@ -194,6 +197,24 @@ def _stage_progress_contract(name: str, payload: dict[str, Any]) -> int | None:
     if name == "stage.end" and index is not None:
         return int(index / 4 * 100)
     return None
+
+
+async def _run_export(
+    session: AsyncSession, job: Job, matter: Matter
+) -> dict[str, Any]:
+    """Build the matter export zip and write it to storage.
+
+    No model calls. No Redis content. Storage write only.
+    """
+    from app.core.exports import build_matter_export
+    from app.core.jobs import update_stage
+
+    await update_stage(session, job, stage="building_zip", progress=10)
+    await session.commit()
+
+    export_key = await build_matter_export(session, matter, job.id)
+
+    return {"export_key": export_key}
 
 
 # ---------------------------------------------------------------------------
