@@ -348,6 +348,7 @@ async def run_review(
                             "column_key": col.key,
                             "document_id": str(doc.id),
                         },
+                        caller_module="tabular_review",
                     )
                 except (PrivilegePaused, ProviderKeyMissing, ProviderUpstreamError):
                     # Policy failures and structured upstream errors

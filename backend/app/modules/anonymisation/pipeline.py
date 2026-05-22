@@ -196,6 +196,7 @@ async def _run_claude(
         resource_type="document",
         resource_id=str(doc_id),
         payload={"module": "anonymisation", "stage": "claude_fallback"},
+        caller_module="anonymisation",
     )
 
     envelope = parse_claude_envelope(result.text)

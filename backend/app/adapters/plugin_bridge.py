@@ -258,6 +258,7 @@ class PluginBridge:
             resource_type="plugin",
             resource_id=f"{plugin}:{skill}",
             payload={"plugin": plugin, "skill": skill},
+            caller_module=f"{plugin}.{skill}",
         )
 
         return PluginInvocationResult(

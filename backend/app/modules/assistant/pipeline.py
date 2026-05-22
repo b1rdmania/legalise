@@ -324,6 +324,7 @@ async def run_assistant_turn(
         resource_type="assistant_message",
         resource_id=str(user_row.id),
         payload={"stage": "assistant", "module": "assistant"},
+        caller_module="assistant",
     )
 
     parse_failed = False
