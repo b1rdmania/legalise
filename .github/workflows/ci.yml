@@ -108,6 +108,167 @@ jobs:
         working-directory: backend
         run: python -m pytest -x
 
+  # ---------------------------------------------------------------------------
+  # MinIO smoke — exercises the S3StorageBackend (boto3 path) against a real
+  # MinIO instance. Runs in parallel with the main backend job.
+  # The main `backend` job stays on STORAGE_BACKEND=local (fast, no MinIO).
+  #
+  # MinIO is started via `docker run` (not a service container) because
+  # `minio/minio` requires `server /data` as the startup command, which
+  # GitHub Actions service containers cannot pass via the `services:` block.
+  # ---------------------------------------------------------------------------
+  storage-minio-smoke:
+    name: Storage MinIO smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      ENVIRONMENT: development
+      PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
+      SCHEMAS_PATH: ${{ github.workspace }}/schemas
+      MATTERS_ROOT: ${{ github.workspace }}/_matters
+      # MinIO-backed storage for this job.
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: legalise
+      S3_SECRET_KEY: legalisesecret
+      S3_BUCKET: legalise-smoke
+      S3_REGION: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out claude-for-uk-legal at pinned ref
+        run: |
+          PLUGINS_REPO_REF=$(grep -E '^ARG PLUGINS_REPO_REF=' backend/Dockerfile | head -1 | sed 's/.*=//')
+          git clone --filter=blob:none https://github.com/b1rdmania/claude-for-uk-legal.git claude-for-uk-legal
+          git -C claude-for-uk-legal checkout "$PLUGINS_REPO_REF"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend (with dev deps)
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Start MinIO
+        run: |
+          # Run MinIO as a detached container. `server /data` is the required
+          # start command; the service-container syntax cannot pass this so we
+          # use docker run directly.
+          docker run -d \
+            --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=legalise \
+            -e MINIO_ROOT_PASSWORD=legalisesecret \
+            minio/minio server /data
+          # Wait for MinIO to become ready (up to 30 s).
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:9000/minio/health/live && echo "MinIO ready" && break
+            sleep 2
+          done
+
+      - name: Create MinIO bucket
+        run: |
+          # Install mc (MinIO client) and create the smoke-test bucket.
+          curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc \
+            -o /usr/local/bin/mc
+          chmod +x /usr/local/bin/mc
+          mc alias set local http://localhost:9000 legalise legalisesecret
+          mc mb --ignore-existing local/legalise-smoke
+
+      - name: pytest (MinIO smoke only)
+        working-directory: backend
+        run: >-
+          python -m pytest
+          tests/test_storage_minio_smoke.py
+          -v --tb=short
+
+  # ---------------------------------------------------------------------------
+  # Worker smoke — boots the arq worker against Postgres + Redis and runs an
+  # export job round-trip. No model calls; uses LocalStorageBackend.
+  # Runs in parallel with the main backend job.
+  # ---------------------------------------------------------------------------
+  worker-smoke:
+    name: Worker smoke (arq + export job)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: legalise
+          POSTGRES_PASSWORD: legalise
+          POSTGRES_DB: legalise_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U legalise -d legalise_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      POSTGRES_DSN: postgresql+psycopg://legalise:legalise@localhost:5432/legalise_test
+      TEST_DATABASE_URL: postgresql+asyncpg://legalise:legalise@localhost:5432/legalise_test
+      REDIS_URL: redis://localhost:6379/0
+      ENVIRONMENT: development
+      PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
+      SCHEMAS_PATH: ${{ github.workspace }}/schemas
+      MATTERS_ROOT: ${{ github.workspace }}/_matters
+      # Local storage — no MinIO required for the worker smoke.
+      STORAGE_BACKEND: local
+      LOCAL_STORAGE_ROOT: ${{ github.workspace }}/_storage
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out claude-for-uk-legal at pinned ref
+        run: |
+          PLUGINS_REPO_REF=$(grep -E '^ARG PLUGINS_REPO_REF=' backend/Dockerfile | head -1 | sed 's/.*=//')
+          git clone --filter=blob:none https://github.com/b1rdmania/claude-for-uk-legal.git claude-for-uk-legal
+          git -C claude-for-uk-legal checkout "$PLUGINS_REPO_REF"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend (with dev deps)
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run alembic migrations against the test DB
+        working-directory: backend
+        run: python -m alembic upgrade head
+
+      - name: pytest (worker smoke only)
+        working-directory: backend
+        run: >-
+          python -m pytest
+          tests/test_worker_smoke.py
+          -v --tb=short -s
+
   frontend:
     name: Frontend build
     runs-on: ubuntu-latest
