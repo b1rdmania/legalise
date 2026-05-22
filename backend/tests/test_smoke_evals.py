@@ -347,6 +347,7 @@ class _FakeGateway:
         resource_type=None,
         resource_id=None,
         payload=None,
+        caller_module=None,
     ) -> ModelResult:
         stage = (payload or {}).get("stage", "")
         text = self._responses.get(stage, "{}")
@@ -723,6 +724,7 @@ class _AssistantFakeGateway:
         resource_type=None,
         resource_id=None,
         payload=None,
+        caller_module=None,
     ) -> ModelResult:
         self.calls.append(
             {
