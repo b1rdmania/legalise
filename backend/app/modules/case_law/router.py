@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
@@ -44,11 +45,7 @@ router = APIRouter()
 async def _matter_or_404(
     slug: str, session: AsyncSession, user: User
 ) -> Matter:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     return matter
 
 

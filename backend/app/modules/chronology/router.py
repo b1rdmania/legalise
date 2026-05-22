@@ -40,6 +40,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.matter_fs import append_history
 from app.core.api import audit
 from app.models import AuditEntry, Document, Event, Matter, User
@@ -201,11 +202,7 @@ async def get_chronology(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> ChronologyResponse:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user.id)
 
     events, docs_by_id = await _load_chronology(session, matter)
 
@@ -245,11 +242,7 @@ async def confirm_gate(
     """Record this user's acknowledgement of CPR 31.22 implied undertaking
     for this matter. Idempotent — repeated confirmations write repeated
     audit rows (provenance over deduplication)."""
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user.id)
 
     if not body.acknowledgement.strip():
         raise HTTPException(400, "acknowledgement text is required")

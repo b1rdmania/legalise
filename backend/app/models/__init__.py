@@ -57,7 +57,6 @@ from app.models.job import (
     JOB_KIND_PRE_MOTION,
     JOB_KIND_CONTRACT_REVIEW,
     JOB_KIND_EXPORT,
-    ACTIVE_JOB_LIMIT,
 )
 
 __all__ = [
@@ -89,7 +88,6 @@ __all__ = [
     "JOB_KIND_PRE_MOTION",
     "JOB_KIND_CONTRACT_REVIEW",
     "JOB_KIND_EXPORT",
-    "ACTIVE_JOB_LIMIT",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",
     "PRIVILEGE_PAUSED",
