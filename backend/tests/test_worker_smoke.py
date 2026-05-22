@@ -242,15 +242,30 @@ async def _wait_for_terminal(
 
 
 async def _cleanup(session: AsyncSession, job_id: uuid.UUID, matter_id: uuid.UUID, user_id: uuid.UUID) -> None:
-    """Remove seeded rows so the test DB stays clean across runs."""
-    from sqlalchemy import delete
+    """Remove seeded rows so the test DB stays clean across runs.
+
+    Audit rows are protected by the Unit 6 WORM trigger
+    (audit_entries_worm); attempting DELETE/UPDATE on them raises.
+    For test cleanup only, we use `SET LOCAL session_replication_role = 'replica'`
+    to bypass the trigger for the duration of this transaction. This is
+    the standard Postgres pattern for admin-only mutations and is scoped
+    to a single transaction.
+    """
+    from sqlalchemy import delete, text
     from app.models.audit import AuditEntry
 
-    await session.execute(delete(Job).where(Job.id == job_id))
-    await session.execute(delete(AuditEntry).where(AuditEntry.matter_id == matter_id))
-    await session.execute(delete(Matter).where(Matter.id == matter_id))
-    await session.execute(delete(User).where(User.id == user_id))
-    await session.commit()
+    # Open a transaction explicitly so SET LOCAL is scoped to it.
+    await session.execute(text("BEGIN"))
+    try:
+        await session.execute(text("SET LOCAL session_replication_role = 'replica'"))
+        await session.execute(delete(Job).where(Job.id == job_id))
+        await session.execute(delete(AuditEntry).where(AuditEntry.matter_id == matter_id))
+        await session.execute(delete(Matter).where(Matter.id == matter_id))
+        await session.execute(delete(User).where(User.id == user_id))
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
 
 
 # ---------------------------------------------------------------------------
