@@ -26,6 +26,8 @@ The audit trail matters because it makes the work inspectable. But audit is not 
 
 The product thesis is supervised autonomy: AI can advance a matter only if matter context, permissions, provenance, review gates, and accountability are first-class.
 
+The question is not just what legal AI can automate. It is what must remain supervised, who supervised it, what evidence they saw, and what record exists when something later goes wrong.
+
 Legalise is the open-source substrate for that thesis. The hosted site is only an evaluation environment.
 
 ---

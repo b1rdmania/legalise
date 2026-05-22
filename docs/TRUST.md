@@ -22,6 +22,13 @@ A matter-first AI workspace with a model gateway, a privilege-posture access
 control, an audit log, and a plugin bridge to the `claude-for-uk-legal` skill
 suite. Solicitors author and review; the system drafts and records.
 
+The trust model is built around supervised autonomy, not unsupervised
+automation. Legalise should make it clear what the AI saw, what it did, which
+permission allowed it, which human remained accountable, and what record would
+be available to a firm, insurer, client, or regulator afterwards. The audit log
+is the receipt for that supervision model; it is not a claim that v0.1 is a
+regulated practice system.
+
 ## 2. What Legalise is not
 
 - Not legal advice. Every artefact is a draft for solicitor review.

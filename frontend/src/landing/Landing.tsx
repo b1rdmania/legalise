@@ -97,6 +97,11 @@ export function Landing() {
             UK legal AI workspace. England &amp; Wales only. Matter-first.
             Open-source, Apache 2.0.
           </p>
+          <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
+            Not unsupervised automation: a reference surface for matter context,
+            module permissions, human review gates, and the record that proves
+            what happened.
+          </p>
 
           <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
             <div>
@@ -294,6 +299,11 @@ export function Landing() {
             cloud calls when posture is C_paused. Capabilities are declared
             in module manifests, granted at install, and enforced before
             every privileged operation.
+          </p>
+          <p className="prose-p">
+            The thesis is supervised autonomy. The system can advance work
+            only inside a matter, under named permissions, with human review
+            points and an audit trail that shows what happened.
           </p>
         </section>
 

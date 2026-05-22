@@ -12,6 +12,14 @@ The market frames AI inside legal work as a chatbot problem. We frame it as a wo
 
 Outside that frame, the legal use case stops being legal. It's a generic question that happens to mention the law.
 
+## Supervised autonomy, not unsupervised automation
+
+The interesting question is no longer only what AI can automate. It is what a firm would choose not to automate, where human judgement must remain named, and how the system proves that boundary held.
+
+Legalise is not trying to make legal work unsupervised. It is trying to make supervision explicit, inspectable, and auditable.
+
+The unit is not a prompt. It is a matter. The control points are not vibes. They are permissions, privilege posture, source evidence, review gates, and audit rows. Audit is not the product. Audit is the receipt.
+
 ## Matter-first, not prompt-first
 
 The workspace organises around the matter. Documents, prompts, outputs, audit rows. All hang off a slug, a title, a parties record, a privilege posture, a retention clock.

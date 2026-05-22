@@ -133,6 +133,15 @@ Theme: signed identity, submission infrastructure, and portability.
 
 ## v0.5+: practice-ready
 
+- Named supervisor gates. A gate is not a boolean. It carries supervisor
+  identity, role, SRA reference where applicable, scope of approval, evidence
+  reviewed, override notes, timestamp, and immutable audit link.
+- Regulator reconstruction view. A reviewer should be able to walk one matter
+  from source document to model call to module output to human approval without
+  reading raw database rows.
+- PI / liability evidence chain. The system should help a firm show what was
+  supervised, what was delegated, what was refused, and where solicitor
+  judgement entered the workflow.
 - Multi-tenant isolation
 - Client portal (read-only, scoped to specific matters)
 - Conflict checks at matter intake
@@ -141,6 +150,21 @@ Theme: signed identity, submission infrastructure, and portability.
 - Court-form filing where APIs exist (CE-File, ET Portal)
 - SOC 2 Type II / ISO 27001 controls
 - Encryption-at-rest with customer-managed keys
+
+## v0.6+: evaluation and shroud layer
+
+- Legal-quality eval harnesses for grounding, citation integrity, refusal
+  behaviour, disclosure handling, privilege posture, and module regressions.
+- Hallucination controls at the product boundary: source-required answers,
+  citation verification, refusal when sources are missing, and regression
+  fixtures per module.
+- Prompt shroud before cloud dispatch. Configurable redaction/anonymisation
+  policies should remove or transform sensitive values before external model
+  calls where the matter posture requires it.
+- Local/cloud routing policy that is explainable to a solicitor: what must stay
+  local, what may go to frontier providers, and what was actually sent.
+- A public claim boundary for evals. Evals are evidence of a tested posture, not
+  proof that the system gives legal advice.
 
 ## Permanently out of scope
 
