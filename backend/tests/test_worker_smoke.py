@@ -278,9 +278,12 @@ async def test_worker_export_job_round_trip(
     matter = await _seed_matter(worker_session, user.id)
     job = await _seed_job(worker_session, matter.id, user.id)
 
-    # Ensure the session cache is cleared so subsequent reads are fresh.
-    # AsyncSession.expire_all() is synchronous — clears the identity map.
-    worker_session.expire_all()
+    # NOTE: do NOT call session.expire_all() here. expire_on_commit=False
+    # on the worker_session keeps the seeded `job.id` accessible without
+    # a refresh. If we expire, the next `job.id` access triggers an async
+    # refresh outside the SQLAlchemy greenlet context → MissingGreenlet.
+    # `_wait_for_terminal` re-queries each iteration so freshness is
+    # ensured there, not here.
 
     # --- 2. Enqueue ---
     await _enqueue_arq_job(job.id)
