@@ -4,7 +4,6 @@ import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
 import { BrandMark } from "./BrandMark";
 import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
-import { WAITLIST_HREF } from "../lib/access";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
 
@@ -104,40 +103,39 @@ export function TopBar({
               </>
             ) : (
               <>
-                {!isDemo && (
-                  <a
-                    href={DEMO_HREF_UNAUTHED}
-                    className="text-ink hover:text-muted transition-colors"
-                  >
-                    Open the demo
-                  </a>
-                )}
-                {isDemo && (
-                  <a
-                    href="https://github.com/b1rdmania/legalise"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-muted hover:text-ink transition-colors"
-                  >
-                    Fork on GitHub
-                  </a>
-                )}
-                {!isDemo && (
-                  <>
-                    <a
-                      href={WAITLIST_HREF}
-                      className="text-ink hover:text-muted transition-colors"
-                    >
-                      Join waitlist
-                    </a>
-                    <a
-                      href={WAITLIST_HREF}
-                      className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
-                    >
-                      Request access
-                    </a>
-                  </>
-                )}
+                <a
+                  href={DEMO_HREF_UNAUTHED}
+                  className={
+                    "transition-colors " +
+                    (isDemo ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                  }
+                >
+                  Demo
+                </a>
+                <a
+                  href="https://github.com/b1rdmania/legalise/blob/master/docs/MANIFESTO.md"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ink hover:text-muted transition-colors"
+                >
+                  Manifesto
+                </a>
+                <a
+                  href="https://github.com/b1rdmania/legalise"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ink hover:text-muted transition-colors"
+                >
+                  GitHub
+                </a>
+                <a
+                  href="https://github.com/b1rdmania/legalise/tree/master/docs"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ink hover:text-muted transition-colors"
+                >
+                  Docs
+                </a>
               </>
             )}
           </nav>

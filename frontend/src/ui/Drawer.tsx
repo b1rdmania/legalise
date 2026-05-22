@@ -7,6 +7,7 @@ import { WAITLIST_HREF } from "../lib/access";
 const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
+const GITHUB_MANIFESTO = "https://github.com/b1rdmania/legalise/blob/master/docs/MANIFESTO.md";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
 
@@ -86,18 +87,15 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing: Modules · Docs · GitHub · - · Open the demo · Join waitlist · Request access.
-    // On the demo route itself, drop "Open the demo" (you're already on it).
-    const isDemo = route.name === "demo";
+    // Unauth marketing nav: Demo · Manifesto · GitHub · Docs.
     primary = [
-      { href: "#/modules", label: "Modules" },
-      { href: GITHUB_DOCS, label: "Docs", external: true },
+      { href: DEMO_HREF_UNAUTHED, label: "Demo" },
+      { href: GITHUB_MANIFESTO, label: "Manifesto", external: true },
       { href: GITHUB_REPO, label: "GitHub", external: true },
+      { href: GITHUB_DOCS, label: "Docs", external: true },
     ];
     secondary = [
-      ...(isDemo ? [] : [{ href: DEMO_HREF_UNAUTHED, label: "Open the demo" }]),
-      { href: WAITLIST_HREF, label: "Join waitlist" },
-      { href: WAITLIST_HREF, label: "Request access" },
+      { href: WAITLIST_HREF, label: "Request hosted access" },
     ];
   }
 

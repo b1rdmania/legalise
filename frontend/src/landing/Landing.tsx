@@ -86,41 +86,17 @@ export function Landing() {
       <section className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 grid grid-cols-1 lg:grid-cols-[minmax(0,36rem)_minmax(0,1fr)] gap-12 lg:gap-16 items-start border-b border-rule">
         {/* Left column: text + CTAs */}
         <div>
-          <div className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">
-            Version 0.1 · May 2026
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
-            Open a matter. Ask the assistant. Run a legal module. See the
-            audit trail.
+            Open-source infrastructure for supervised legal AI.
           </h1>
-          <p className="text-xl text-muted leading-relaxed">
-            UK legal AI workspace. England &amp; Wales only. Matter-first.
-            Open-source, Apache 2.0.
+          <p className="text-xl text-muted leading-relaxed max-w-xl">
+            Matter files, legal modules, privilege posture, capability gates,
+            and an audit trail you can inspect.
           </p>
-          <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
-            Not unsupervised automation: a reference surface for matter context,
-            module permissions, human review gates, and the record that proves
-            what happened.
-          </p>
-
-          <div className="flex flex-wrap gap-x-10 gap-y-4 mt-10 pb-10 border-b border-rule">
-            <div>
-              <div className="eyebrow mb-1.5">Author</div>
-              <div className="text-sm font-semibold text-ink">Andy Bird</div>
-            </div>
-            <div>
-              <div className="eyebrow mb-1.5">License</div>
-              <div className="text-sm font-semibold text-ink">Apache 2.0</div>
-            </div>
-            <div>
-              <div className="eyebrow mb-1.5">Status</div>
-              <div className="text-sm font-semibold text-ink">v0.1 demo</div>
-            </div>
-          </div>
 
           {/* CTAs */}
           {auth.user ? (
-            <div className="flex flex-wrap items-center gap-4 mt-8">
+            <div className="flex flex-wrap items-center gap-4 mt-10">
               <button
                 onClick={onOpenDemo}
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
@@ -141,7 +117,7 @@ export function Landing() {
               </a>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center gap-4 mt-8">
+            <div className="flex flex-wrap items-center gap-4 mt-10">
               <a
                 href="#/demo"
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
@@ -149,16 +125,18 @@ export function Landing() {
                 Open the demo
               </a>
               <a
-                href={WAITLIST_HREF}
+                href="https://github.com/b1rdmania/legalise"
+                target="_blank"
+                rel="noreferrer"
                 className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
-                Join waitlist
+                Fork on GitHub
               </a>
               <a
                 href={WAITLIST_HREF}
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
-                Request access
+                Request hosted access
               </a>
             </div>
           )}
@@ -195,6 +173,31 @@ export function Landing() {
           >
             github.com/b1rdmania/legalise
           </a>
+        </div>
+      </section>
+
+      {/* Why I built this — editorial, sits above the whitepaper */}
+      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-20">
+        <div className="max-w-2xl">
+          <div className="eyebrow text-muted mb-6">Why I built this</div>
+          <p className="text-lg text-ink leading-relaxed mb-5">
+            I built Legalise because I think legal AI is starting in the wrong place.
+          </p>
+          <p className="text-lg text-ink leading-relaxed mb-5">
+            The work does not begin with a chatbot. It begins with a matter
+            file, a professional duty, a client document, and someone
+            accountable.
+          </p>
+          <p className="text-lg text-ink leading-relaxed mb-10">
+            If AI is going to advance legal work, the substrate should be
+            inspectable: what it saw, what it did, what it produced, and who
+            signed off.
+          </p>
+          <p className="text-base text-prose leading-relaxed">
+            I&rsquo;m Andy Bird. I&rsquo;m not launching a law firm here.
+            I&rsquo;m putting an open-source thesis in public so lawyers,
+            engineers, and regulators can argue with it.
+          </p>
         </div>
       </section>
 
