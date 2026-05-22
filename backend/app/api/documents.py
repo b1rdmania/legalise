@@ -25,7 +25,7 @@ from app.core.storage import get_storage_backend
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
-from app.models import AuditEntry, Document, DocumentEdit, DocumentVersion, Matter, User
+from app.models import AuditEntry, Document, DocumentEdit, DocumentVersion, Matter, User, STATUS_ARCHIVED
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_edit import (
     EDIT_STATUS_ACCEPTED,
@@ -91,7 +91,7 @@ async def get_document_body(
         raise HTTPException(404, "document not found")
 
     doc, matter = pair
-    if matter.created_by_id != user.id:
+    if matter.created_by_id != user.id or matter.status == STATUS_ARCHIVED:
         raise HTTPException(404, "document not found")
 
     # Module-attributed reads require `document.body.read` for the
@@ -276,7 +276,7 @@ async def download_generated_docx(
     matter = await session.scalar(
         select(Matter).where(Matter.id == entry.matter_id)
     )
-    if matter is None or matter.created_by_id != user.id:
+    if matter is None or matter.created_by_id != user.id or matter.status == STATUS_ARCHIVED:
         raise HTTPException(404, "generated document not found")
 
     storage_uri = (entry.payload or {}).get("storage_uri")
@@ -439,7 +439,7 @@ async def get_document_versions(
     if pair is None:
         raise HTTPException(404, "document not found")
     _, matter = pair
-    if matter.created_by_id != user.id:
+    if matter.created_by_id != user.id or matter.status == STATUS_ARCHIVED:
         raise HTTPException(404, "document not found")
 
     versions = (
@@ -505,7 +505,7 @@ async def _load_owned_document(
     if row is None:
         raise HTTPException(404, "document not found")
     doc, matter = row
-    if matter.created_by_id != user.id:
+    if matter.created_by_id != user.id or matter.status == STATUS_ARCHIVED:
         raise HTTPException(404, "document not found")
     return doc, matter
 

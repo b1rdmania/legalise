@@ -1,5 +1,15 @@
 """Export API — Unit 5 basic matter export bundle.
 
+Export-after-delete policy (Issue #4):
+    Exports are downloadable while the matter is live. Tombstoning the
+    matter (DELETE /api/matters/{slug}) sets status=archived, which
+    causes every call to `_resolve_matter_owned` → `resolve_owned_open_matter`
+    to raise 404. This means:
+      - POST /api/matters/{slug}/export           → 404 (cannot start new export)
+      - GET  /api/matters/{slug}/export/{job_id}  → 404 (cannot download existing)
+    Users must download their export before deleting the matter.
+    See test_export_after_delete.py for the regression test.
+
 v0.4 ships a BASIC matter export bundle (matter metadata, document
 metadata, uploaded document bytes, audit log, job log). It is NOT
 complete data portability — see ``app/core/exports.py`` for the
