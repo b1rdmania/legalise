@@ -49,6 +49,11 @@ class _CapturingSession:
 
     def __init__(self) -> None:
         self.added: list[object] = []
+        # `audit_failure` reads `session.bind` to construct its own
+        # sessionmaker. The capturing tests don't need a real engine;
+        # the bind attribute is read but not invoked because
+        # `audit_failure` is patched in these tests.
+        self.bind = None
 
     async def scalar(self, *args, **kwargs):
         return None
@@ -62,6 +67,22 @@ class _CapturingSession:
 
     def add(self, obj) -> None:
         self.added.append(obj)
+
+
+class _CapturingAuditFailure:
+    """Drop-in replacement for `app.core.api.audit_failure` that records
+    invocations instead of opening a separate DB session. Used by the
+    failure-path tests so we can assert the row would have been written
+    with the correct shape, without needing a real engine."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def __call__(self, request_session, action: str, **kwargs) -> None:
+        self.calls.append({"action": action, **kwargs})
+
+    def rows_with_action(self, action: str) -> list[dict]:
+        return [c for c in self.calls if c["action"] == action]
 
 
 class _SucceedingProvider:
@@ -105,16 +126,20 @@ def actor_id() -> uuid.UUID:
 @pytest.mark.asyncio
 @patch.object(gw_module, "get_user_provider_key", return_value=None)
 async def test_key_missing_writes_audit_row(_mock_lookup, actor_id):
-    """Gateway writes a `module.<module>.model.key_missing` audit row
-    before raising ProviderKeyMissing, so the failure is visible in the
-    forensic timeline."""
+    """Gateway calls `audit_failure` with the key_missing row before
+    raising. Per R3 review: `audit_failure` writes to a separate
+    committed session so the row survives the caller's rollback."""
+    import app.core.api as api_module
+
     g = ModelGateway()
     g.register(_SucceedingProvider())
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     with (
         patch.object(gw_module.settings, "environment", "production"),
         patch.object(gw_module.settings, "allow_server_key_fallback", False),
+        patch.object(api_module, "audit_failure", fake_audit),
     ):
         with pytest.raises(ProviderKeyMissing) as excinfo:
             await g.call(
@@ -129,19 +154,18 @@ async def test_key_missing_writes_audit_row(_mock_lookup, actor_id):
 
     assert excinfo.value.provider == "anthropic"
 
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1, "expected exactly one audit row for ProviderKeyMissing"
-    row = audit_rows[0]
-    assert row.action == "module.contract_review.model.key_missing"
-    assert row.module == "contract_review"
-    assert row.model_used == "anthropic"
-    assert isinstance(row.payload, dict)
-    err = row.payload.get("error")
+    rows = fake_audit.rows_with_action("module.contract_review.model.key_missing")
+    assert len(rows) == 1, "expected exactly one audit_failure call for ProviderKeyMissing"
+    row = rows[0]
+    assert row["module"] == "contract_review"
+    assert row["model_used"] == "anthropic"
+    payload = row["payload"]
+    err = payload.get("error")
     assert isinstance(err, dict)
     assert err.get("code") == "key_missing"
     assert err.get("provider") == "anthropic"
     # No prompt body in the audit row.
-    assert "prompt" not in row.payload
+    assert "prompt" not in payload
 
 
 @pytest.mark.asyncio
@@ -149,13 +173,17 @@ async def test_key_missing_writes_audit_row(_mock_lookup, actor_id):
 async def test_key_missing_module_unknown_when_no_caller_module(_mock_lookup, actor_id):
     """When `caller_module` is omitted, action uses 'unknown' as the
     module segment so the row is still written (never silently dropped)."""
+    import app.core.api as api_module
+
     g = ModelGateway()
     g.register(_SucceedingProvider())
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     with (
         patch.object(gw_module.settings, "environment", "production"),
         patch.object(gw_module.settings, "allow_server_key_fallback", False),
+        patch.object(api_module, "audit_failure", fake_audit),
     ):
         with pytest.raises(ProviderKeyMissing):
             await g.call(
@@ -168,25 +196,27 @@ async def test_key_missing_module_unknown_when_no_caller_module(_mock_lookup, ac
                 # caller_module intentionally omitted
             )
 
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1
-    row = audit_rows[0]
-    assert row.action == "module.unknown.model.key_missing"
-    assert row.module == "unknown"
+    rows = fake_audit.rows_with_action("module.unknown.model.key_missing")
+    assert len(rows) == 1
+    assert rows[0]["module"] == "unknown"
 
 
 @pytest.mark.asyncio
 @patch.object(gw_module, "get_user_provider_key", return_value=None)
 async def test_key_missing_payload_has_no_prompt_body(_mock_lookup, actor_id):
     """Audit payload must not contain prompt or response bodies (PII risk)."""
+    import app.core.api as api_module
+
     g = ModelGateway()
     g.register(_SucceedingProvider())
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     secret_prompt = "SUPER SECRET LEGAL CONTENT"
     with (
         patch.object(gw_module.settings, "environment", "production"),
         patch.object(gw_module.settings, "allow_server_key_fallback", False),
+        patch.object(api_module, "audit_failure", fake_audit),
     ):
         with pytest.raises(ProviderKeyMissing):
             await g.call(
@@ -199,11 +229,10 @@ async def test_key_missing_payload_has_no_prompt_body(_mock_lookup, actor_id):
                 caller_module="pre_motion",
             )
 
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1
-    row = audit_rows[0]
+    rows = fake_audit.rows_with_action("module.pre_motion.model.key_missing")
+    assert len(rows) == 1
     # The raw prompt body must not appear anywhere in the serialised payload.
-    payload_str = str(row.payload)
+    payload_str = str(rows[0]["payload"])
     assert secret_prompt not in payload_str
 
 
@@ -232,14 +261,18 @@ async def test_upstream_error_all_subcodes_audited(
 ):
     """All ProviderUpstreamError subcodes produce a `model.call.error`
     audit row that includes the structured error payload."""
+    import app.core.api as api_module
+
     exc = _upstream_error(code, upstream_status)
     g = ModelGateway()
     g.register(_RaisingProvider(exc))
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     with (
         patch.object(gw_module.settings, "environment", "development"),
         patch.object(gw_module.settings, "allow_server_key_fallback", False),
+        patch.object(api_module, "audit_failure", fake_audit),
     ):
         with pytest.raises(ProviderUpstreamError) as excinfo:
             await g.call(
@@ -255,14 +288,13 @@ async def test_upstream_error_all_subcodes_audited(
     assert excinfo.value.code == code
     assert excinfo.value.upstream_status == upstream_status
 
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1, f"expected one audit row for {code}"
-    row = audit_rows[0]
-    assert row.action == "model.call.error"
-    assert row.model_used == "anthropic"
-    assert row.module == "assistant"
-    assert row.prompt_hash is not None
-    err = row.payload.get("error")
+    rows = fake_audit.rows_with_action("model.call.error")
+    assert len(rows) == 1, f"expected one audit_failure call for {code}"
+    row = rows[0]
+    assert row["model_used"] == "anthropic"
+    assert row["module"] == "assistant"
+    assert row["prompt_hash"] is not None
+    err = row["payload"].get("error")
     assert isinstance(err, dict)
     assert err.get("code") == code
     assert err.get("provider") == "anthropic"
@@ -275,16 +307,22 @@ async def test_upstream_error_all_subcodes_audited(
 async def test_upstream_error_audit_written_before_raise(
     _mock_lookup, _mock_mark, actor_id
 ):
-    """Even if the caller swallows the exception, the audit row must already
-    be in session.added — audit-before-raise is the invariant."""
+    """Even if the caller swallows the exception, audit_failure must
+    already have been invoked — audit-before-raise is the invariant.
+    R3 review: invoked via audit_failure, not session.add, so the row
+    actually persists rather than getting rolled back."""
+    import app.core.api as api_module
+
     exc = _upstream_error("provider_rate_limited", 429)
     g = ModelGateway()
     g.register(_RaisingProvider(exc))
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     with (
         patch.object(gw_module.settings, "environment", "development"),
         patch.object(gw_module.settings, "allow_server_key_fallback", False),
+        patch.object(api_module, "audit_failure", fake_audit),
     ):
         try:
             await g.call(
@@ -299,8 +337,8 @@ async def test_upstream_error_audit_written_before_raise(
         except ProviderUpstreamError:
             pass
 
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1
+    rows = fake_audit.rows_with_action("model.call.error")
+    assert len(rows) == 1
     # key-used marker must NOT run on failure paths
     _mock_mark.assert_not_called()
 

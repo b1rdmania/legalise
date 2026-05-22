@@ -44,11 +44,16 @@ class _RaisingProvider:
 
 
 class _CapturingSession:
-    """Async session stand-in that records `session.add(...)` calls so we
-    can assert an audit row was written before the gateway re-raised."""
+    """Async session stand-in.
+
+    `bind = None` so `audit_failure` (R3) can read the attribute. The
+    `add` capture is retained for legacy assertions but the
+    failure-row tests now go through `_CapturingAuditFailure` patched
+    into `app.core.api`."""
 
     def __init__(self) -> None:
         self.added: list[object] = []
+        self.bind = None
 
     async def scalar(self, *args, **kwargs):  # noqa: ANN001, ANN002
         return None
@@ -61,6 +66,19 @@ class _CapturingSession:
 
     def add(self, obj) -> None:
         self.added.append(obj)
+
+
+class _CapturingAuditFailure:
+    """Drop-in replacement for `audit_failure` that records the calls
+    rather than opening a DB session. Per R3 review: failure-path
+    audit rows go through `audit_failure` (separate committed session)
+    rather than `session.add` so they survive the route's rollback."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def __call__(self, request_session, action: str, **kwargs) -> None:
+        self.calls.append({"action": action, **kwargs})
 
 
 def _make_status_error(status: int) -> Exception:
@@ -110,14 +128,19 @@ async def test_gateway_translates_status_to_structured_error(
     _mock_lookup, _mock_mark, actor_id, status, expected_code
 ):
     """For each upstream status, the gateway raises ProviderUpstreamError
-    with the contract code AND writes an audit row first."""
+    with the contract code AND calls audit_failure first (R3 review:
+    failure-path audit rows go via a separate committed session)."""
+    import app.core.api as api_module
+
     provider = _RaisingProvider(_make_status_error(status))
     g = ModelGateway()
     g.register(provider)
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     with patch.object(gw_module.settings, "environment", "development"), \
-         patch.object(gw_module.settings, "allow_server_key_fallback", False):
+         patch.object(gw_module.settings, "allow_server_key_fallback", False), \
+         patch.object(api_module, "audit_failure", fake_audit):
         with pytest.raises(ProviderUpstreamError) as excinfo:
             await g.call(
                 session=session,
@@ -132,15 +155,14 @@ async def test_gateway_translates_status_to_structured_error(
     assert excinfo.value.provider == "anthropic"
     assert excinfo.value.upstream_status == status
 
-    # Audit provenance: exactly one AuditEntry row was added before the
-    # re-raise, and it carries the structured error payload.
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1, "expected one audit row on failure"
-    row = audit_rows[0]
-    assert row.action == "model.call.error"
-    assert row.model_used == "anthropic"
-    assert row.prompt_hash is not None
-    err = row.payload.get("error")
+    # Audit provenance via audit_failure (committed in separate session
+    # so it survives any subsequent rollback by the caller).
+    rows = [c for c in fake_audit.calls if c["action"] == "model.call.error"]
+    assert len(rows) == 1, "expected one audit_failure call on failure"
+    row = rows[0]
+    assert row["model_used"] == "anthropic"
+    assert row["prompt_hash"] is not None
+    err = row["payload"].get("error")
     assert isinstance(err, dict)
     assert err.get("code") == expected_code
     assert err.get("provider") == "anthropic"
@@ -151,16 +173,20 @@ async def test_gateway_translates_status_to_structured_error(
 @patch.object(gw_module, "mark_user_key_used")
 @patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
 async def test_gateway_audits_before_raising(_mock_lookup, _mock_mark, actor_id):
-    """Tightening: even if the test framework somehow swallows the
-    exception, the audit row must already be in `session.added` by the
-    time control returns to the caller."""
+    """Even if the test framework swallows the exception, audit_failure
+    must already have been invoked. R3 review: invoked via audit_failure
+    so the row actually persists (separate committed session)."""
+    import app.core.api as api_module
+
     provider = _RaisingProvider(_make_status_error(429))
     g = ModelGateway()
     g.register(provider)
     session = _CapturingSession()
+    fake_audit = _CapturingAuditFailure()
 
     with patch.object(gw_module.settings, "environment", "development"), \
-         patch.object(gw_module.settings, "allow_server_key_fallback", False):
+         patch.object(gw_module.settings, "allow_server_key_fallback", False), \
+         patch.object(api_module, "audit_failure", fake_audit):
         try:
             await g.call(
                 session=session,
@@ -173,8 +199,8 @@ async def test_gateway_audits_before_raising(_mock_lookup, _mock_mark, actor_id)
         except ProviderUpstreamError:
             pass
 
-    audit_rows = [a for a in session.added if isinstance(a, AuditEntry)]
-    assert len(audit_rows) == 1
+    rows = [c for c in fake_audit.calls if c["action"] == "model.call.error"]
+    assert len(rows) == 1
     # The user-key-used marker should NOT have run on the failure path.
     _mock_mark.assert_not_called()
 

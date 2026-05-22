@@ -414,13 +414,25 @@ async def upload_document(
             },
         )
     except StorageWriteError as exc:
-        # No commit issued — the dependency teardown will roll back the
-        # flushed Document row so no orphan exists. Same shape as the
-        # matter-delete storage-failure path: an audit row on the
-        # failure side is a hardening follow-up that needs a separate
-        # session (request.app.state.session_factory) to survive the
-        # implicit rollback. The middleware `http.post` row already
-        # provides forensic provenance via path + 502 status.
+        # The request session's dependency teardown will roll back the
+        # flushed Document row so no orphan exists. Forensic provenance
+        # for the failure goes via `audit_failure` on a separate
+        # committed session — survives the rollback — R3 review fix.
+        from app.core.api import audit_failure
+        await audit_failure(
+            session,
+            "storage.put_bytes.failed",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="storage",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "storage_key": obj_key,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
         raise HTTPException(
             502,
             detail={

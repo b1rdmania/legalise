@@ -67,7 +67,12 @@ class _StubSession:
     - session.add(AuditEntry(...))
 
     We bypass all of that with matter_id=None and patch user-key lookup.
+
+    `bind = None` so the R3 `audit_failure` helper sees an unbound
+    session and no-ops (these tests don't assert audit-row writes).
     """
+
+    bind = None
 
     async def scalar(self, *args, **kwargs):
         return None
