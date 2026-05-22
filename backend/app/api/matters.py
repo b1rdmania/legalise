@@ -414,6 +414,12 @@ async def upload_document(
             },
         )
     except StorageWriteError as exc:
+        # The doc row was flushed but not committed; rollback drops it
+        # so we don't leave an orphan Document with no storage object.
+        # The audit row needs to survive the rollback though — so we
+        # rollback first, then write + commit the audit row on a fresh
+        # transaction.
+        await session.rollback()
         await _write_audit(
             session,
             actor=user,
@@ -428,7 +434,7 @@ async def upload_document(
                 "error_code": exc.error_code,
             },
         )
-        # Do not commit — rolls back the flushed doc row so no orphan Document exists.
+        await session.commit()
         raise HTTPException(
             502,
             detail={
