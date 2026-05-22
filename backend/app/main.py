@@ -87,8 +87,11 @@ async def lifespan(app: FastAPI):
 
         # Inspect DB revision synchronously via a raw sync connection to keep
         # this out of the async engine (MigrationContext uses sync DBAPI).
+        # Use psycopg v3 as the sync driver — stripping the driver hint
+        # back to plain `postgresql://` would default SQLAlchemy to
+        # psycopg2, which isn't installed.
         from sqlalchemy import create_engine as _sync_engine
-        _sync_dsn = settings.postgres_dsn.replace("+asyncpg", "").replace("+psycopg", "")
+        _sync_dsn = settings.postgres_dsn.replace("+asyncpg", "+psycopg")
         _sync_eng = _sync_engine(_sync_dsn, echo=False)
         try:
             with _sync_eng.connect() as _sync_conn:

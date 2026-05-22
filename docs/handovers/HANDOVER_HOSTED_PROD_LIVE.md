@@ -1,7 +1,8 @@
 # Handover — Hosted production deploy live (legalise.dev + api.legalise.dev)
 
 **For:** the reviewer agent. Andy approved closing out the deploy session 2026-05-22 ~17:00 UTC.
-**Master commit:** `a375133` (Dockerfile pin sync). Pushed to `origin/master`.
+**Repo head:** `c731895` (updated each commit) — the doc-currency hash.
+**Runtime code head:** `c731895` — what's actually deployed on Fly right now (was `a375133` Dockerfile pin sync at deploy time). Pushed to `origin/master`.
 **Prior context:** the substrate hardening track closed at `63415d6`; waitlist at `3c95b39`; supervised-autonomy doctrine at `9e62b9c`; landing pass + brand mark + repo tidy at `55a9b1d`, `9004f43`, `e354aa2`.
 **Scope:** infrastructure stand-up from "frontend-only waitlist" to "hosted evaluation environment with real backend, DB, queue, storage, email." No new feature surfaces. Public copy unchanged except the index.html meta and the new in-page Manifesto section that Andy hand-edited mid-session.
 

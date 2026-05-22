@@ -30,9 +30,10 @@ primary_region = "lhr"
   # operators care about the on-disk matter/ tree surviving redeploys.
   MATTERS_ROOT = "/data/matters"
   # PLUGINS_ROOT is set by the Dockerfile clone — see backend/Dockerfile.
+  # PLUGINS_REPO and PLUGINS_REPO_REF are intentionally NOT set here;
+  # they live in backend/Dockerfile as ARG + ENV (single source of
+  # truth) to prevent the drift class that shipped 15 broken manifests.
   PLUGINS_ROOT = "/plugins"
-  PLUGINS_REPO = "https://github.com/b1rdmania/claude-for-uk-legal"
-  PLUGINS_REPO_REF = "f8201f1da72f6485c296eff620b19db18f016b68"
 
 [deploy]
   # Unit 3 — migration discipline. Alembic runs ONCE per deploy on a
@@ -41,6 +42,14 @@ primary_region = "lhr"
   # Fly machines start concurrently. The app itself does NOT run
   # migrations at boot (see backend/entrypoint.sh and docs/RUNBOOK.md).
   release_command = "alembic upgrade head"
+
+# Process groups. `app` serves HTTP. `worker` runs the arq queue that
+# dequeues background jobs (export-to-docx, PDF generation, etc.).
+# Without a worker process, those jobs sit forever in Redis. The command
+# string here is exec'd via entrypoint.sh's one-shot branch ($# > 0).
+[processes]
+  app = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  worker = "arq app.worker.WorkerSettings"
 
 [http_service]
   internal_port = 8000
@@ -59,5 +68,11 @@ primary_region = "lhr"
   protocol = "http"
 
 [[vm]]
+  processes = ["app"]
   size = "shared-cpu-2x"
+  memory = "1gb"
+
+[[vm]]
+  processes = ["worker"]
+  size = "shared-cpu-1x"
   memory = "1gb"
