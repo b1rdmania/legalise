@@ -113,7 +113,7 @@ export function TopBar({
                   Demo
                 </a>
                 <a
-                  href="#manifesto"
+                  href="#/manifesto"
                   className="text-ink hover:text-muted transition-colors"
                 >
                   Manifesto

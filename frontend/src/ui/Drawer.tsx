@@ -89,7 +89,7 @@ export function Drawer({
     // Unauth marketing nav: Demo · Manifesto · GitHub · Docs.
     primary = [
       { href: DEMO_HREF_UNAUTHED, label: "Demo" },
-      { href: "#manifesto", label: "Manifesto" },
+      { href: "#/manifesto", label: "Manifesto" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
       { href: GITHUB_DOCS, label: "Docs", external: true },
     ];

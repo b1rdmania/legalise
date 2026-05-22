@@ -3,6 +3,7 @@
 //
 // Routes:
 //   #/                          → landing
+//   #/manifesto                 → manifesto (standalone, mirrors docs/MANIFESTO.md)
 //   #/waitlist                  → hosted evaluation waitlist
 //   #/auth/signin               → signin
 //   #/auth/signup               → signup
@@ -23,6 +24,7 @@ import { useEffect, useState } from "react";
 
 export type Route =
   | { name: "landing" }
+  | { name: "manifesto" }
   | { name: "waitlist" }
   | { name: "signin" }
   | { name: "signup" }
@@ -55,6 +57,7 @@ export function parseHash(hash: string): Route {
   const h = stripQuery(raw);
 
   if (h === "") return { name: "landing" };
+  if (h === "manifesto") return { name: "manifesto" };
   if (h === "waitlist") return { name: "waitlist" };
   if (h === "auth/signin") return { name: "signin" };
   if (h === "auth/signup") return { name: "signup" };
@@ -96,6 +99,7 @@ export const navigate = (to: string) => {
 // the session is absent (see useAuth in App.tsx).
 export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "landing",
+  "manifesto",
   "waitlist",
   "signin",
   "signup",
