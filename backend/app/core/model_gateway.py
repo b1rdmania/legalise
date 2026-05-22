@@ -330,6 +330,7 @@ class ModelGateway:
         resource_type: str | None = None,
         resource_id: str | None = None,
         payload: dict | None = None,
+        caller_module: str | None = None,
     ) -> ModelResult:
         # Privilege posture is authoritative from the matter row in this
         # session, never from a caller-supplied argument. This closes the
@@ -397,6 +398,29 @@ class ModelGateway:
                 if not fallback_allowed:
                     # Unit 8: emit scrubbed operational event — no key material logged.
                     record_key_missing(provider=provider.name)
+                    # Audit provenance for key-missing failures: write a row
+                    # before raising so forensic timelines never have invisible
+                    # failures. Provider name, model id, and posture are safe
+                    # to log; no prompt or key material is included.
+                    _km_module = caller_module or "unknown"
+                    from app.core.api import audit as _audit_api
+                    await _audit_api.log(
+                        session,
+                        f"module.{_km_module}.model.key_missing",
+                        actor_id=actor_id,
+                        matter_id=matter_id,
+                        module=_km_module,
+                        resource_type=resource_type,
+                        resource_id=resource_id,
+                        model_used=provider.name,
+                        payload={
+                            "requested_model": requested,
+                            "posture": effective_posture.value,
+                            "provider": provider.name,
+                            "error": {"code": "key_missing", "provider": provider.name},
+                            **(payload or {}),
+                        },
+                    )
                     raise ProviderKeyMissing(provider.name)
                 # Fall through with no api_key kwarg — provider uses its
                 # construct-time fallback. Dev only.
@@ -427,6 +451,7 @@ class ModelGateway:
                 "model.call.error",
                 actor_id=actor_id,
                 matter_id=matter_id,
+                module=caller_module,
                 resource_type=resource_type,
                 resource_id=resource_id,
                 model_used=provider.name,
@@ -470,6 +495,7 @@ class ModelGateway:
             "model.call",
             actor_id=actor_id,
             matter_id=matter_id,
+            module=caller_module,
             resource_type=resource_type,
             resource_id=resource_id,
             model_used=result.model_used,

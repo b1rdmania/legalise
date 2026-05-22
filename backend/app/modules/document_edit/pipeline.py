@@ -156,6 +156,7 @@ async def propose_edits(
         resource_type="document",
         resource_id=str(doc.id),
         payload={"module": "document_edit", "mode": mode, "instruction_hash": instr_hash},
+        caller_module="document_edit",
     )
 
     envelope, parse_ok = _parse_envelope(result.text)

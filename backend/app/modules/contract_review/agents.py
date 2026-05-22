@@ -94,6 +94,7 @@ class BaseAgent:
                     "module": "contract_review",
                     "stage": self.stage,
                 },
+                caller_module="contract_review",
             )
         except (PrivilegePaused, ProviderKeyMissing, ProviderUpstreamError):
             # Policy failures and structured upstream errors must surface

@@ -192,6 +192,7 @@ class PreMotionAgent:
                     "sub_agent_id": self.sub_agent_id,
                     "stage": self.stage,
                 },
+                caller_module="pre_motion",
             )
         except Exception as exc:
             return AgentCall(
