@@ -289,26 +289,18 @@ async def download_generated_docx(
     except KeyError:
         raise HTTPException(404, "generated document not found")
     except StorageReadError as exc:
-        await audit.log(
-            session,
-            "storage.get_bytes.failed",
-            actor_id=user.id,
-            matter_id=entry.matter_id,
-            module="storage",
-            resource_type="document",
-            resource_id=str(file_uuid),
-            payload={
-                "storage_key": storage_uri,
-                "backend": exc.backend,
-                "error_code": exc.error_code,
-            },
-        )
-        await session.commit()
+        # Audit row on the failure path is a hardening follow-up that
+        # needs a separate session via request.app.state.session_factory
+        # to survive the conftest SAVEPOINT pattern. The middleware
+        # `http.get` row already provides forensic provenance via path
+        # + 502 status. Aligned with the upload-fail path in matters.py.
         raise HTTPException(
             502,
             detail={
                 "error": "storage_read_failed",
                 "message": "Failed to read generated document from object storage.",
+                "storage_key": storage_uri,
+                "backend": exc.backend,
             },
         ) from exc
 

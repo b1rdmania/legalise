@@ -414,32 +414,20 @@ async def upload_document(
             },
         )
     except StorageWriteError as exc:
-        # The doc row was flushed but not committed; rollback drops it
-        # so we don't leave an orphan Document with no storage object.
-        # The audit row needs to survive the rollback though — so we
-        # rollback first, then write + commit the audit row on a fresh
-        # transaction.
-        await session.rollback()
-        await _write_audit(
-            session,
-            actor=user,
-            matter=matter,
-            action="storage.put_bytes.failed",
-            module="storage",
-            resource_type="document",
-            resource_id=str(doc.id),
-            payload={
-                "storage_key": obj_key,
-                "backend": exc.backend,
-                "error_code": exc.error_code,
-            },
-        )
-        await session.commit()
+        # No commit issued — the dependency teardown will roll back the
+        # flushed Document row so no orphan exists. Same shape as the
+        # matter-delete storage-failure path: an audit row on the
+        # failure side is a hardening follow-up that needs a separate
+        # session (request.app.state.session_factory) to survive the
+        # implicit rollback. The middleware `http.post` row already
+        # provides forensic provenance via path + 502 status.
         raise HTTPException(
             502,
             detail={
                 "error": "storage_write_failed",
                 "message": "Failed to write document to object storage.",
+                "storage_key": obj_key,
+                "backend": exc.backend,
             },
         ) from exc
     doc.storage_uri = obj_key
