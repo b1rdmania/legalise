@@ -11,7 +11,7 @@ second.
 
 > Hey Jan —
 >
-> Quick heads-up: I'm launching Legalise next week
+> Quick heads-up: I'm launching Legalise soon
 > ([github.com/b1rdmania/legalise](https://github.com/b1rdmania/legalise))
 > — open-source UK legal AI workspace, Apache-2.0, matter-first with
 > the regulatory plumbing (audit per LLM call, privilege posture,

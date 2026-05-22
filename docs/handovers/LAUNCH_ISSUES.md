@@ -6,7 +6,7 @@ Compact issue set for launch. Keep this to 6-8 issues. More than that becomes pr
 
 ## 1. Production smoke walk
 
-Run `PRE_FLIGHT.md` end to end against the deployed hosted environment.
+Run `docs/handovers/PRE_FLIGHT.md` end to end against the deployed hosted environment.
 
 Acceptance:
 

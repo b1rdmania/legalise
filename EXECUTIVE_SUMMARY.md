@@ -20,7 +20,7 @@ Four things are happening in 2026:
 1. **Anthropic shipped `claude-for-legal` for US workflows.** April 2026. 1,100+ stars in three weeks. The plugin model for legal AI is now first-party.
 2. **Stella shipped an open-source legal workspace.** 87 stars in 10 days, US-shaped, Apache 2.0. Workspace primitives (matter, document, tabular review) now exist as community infrastructure.
 3. **Mike owns the broad open-source Harvey / Legora lane.** Auth, projects, document assistant, tabular review, workflows, hosted demo, and strong OSS momentum. Legalise should not compete as a generic "open-source legal AI workspace"; that fight is already better served elsewhere.
-4. **No UK regulator-first execution layer exists.** English & Welsh law differs from US law in every meaningful procedural and substantive way for these workflows. The UK gap is narrower than "workspace", but sharper: reviewable legal skills executed inside matter context with audit, privilege posture, CPR gates, and Git-pinned provenance.
+4. **No UK supervised-autonomy workspace exists.** English & Welsh law differs from US law in every meaningful procedural and substantive way for these workflows. The UK gap is narrower than "workspace", but sharper: solicitor-supervised AI inside matter context with audit, privilege posture, CPR gates, and Git-pinned provenance.
 
 Legalise fills the UK execution-layer gap. `claude-for-uk-legal` is the plugin counterpart to Anthropic's `claude-for-legal`. Legalise is the governed runtime that executes those plugins inside a UK matter.
 
@@ -50,7 +50,7 @@ England & Wales civil and employment law. Does not cover:
 
 ## v1 launch surface: one coherent sample-matter workflow
 
-Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the canonical demonstrations, and the plugin bridge. (Post-pivot framing. See `README.md`. The project's identity is the audited execution layer for legal skills; the surfaces below are proof modules, not the project.)
+Per the locked SCOPE.md, v0.1 is **not** five end-to-end modules. The release commitment is one coherent sample-matter narrative threading the spine, the canonical demonstrations, and the plugin bridge. (Post-pivot framing. See `README.md`. The project's identity is an open-source UK legal AI workspace for supervised autonomy; the surfaces below are proof modules, not the project.)
 
 1. **Matter workspace.** The spine. Matter creation, document upload, audit trail, role stub, privilege posture toggle. Materialises to a filesystem-shaped folder (`matters/[slug]/matter.md`, `documents/`, `history.md`) compatible with Stella's schema.
 2. **Pre-Motion.** Adversarial premortem pipeline. Four-stage orchestration (Optimistic Analyst → Evidence Inspector w/ 3 parallel sub-agents → Premortem Adversary w/ 4 parallel Opus sub-agents → Synthesiser). Returns the stress-test brief with ranked failure scenarios across procedural / substantive / evidentiary / strategic categories, settlement-posture implications, and the one brutal one-sentence verdict: "if we lose this, this will be why." The canonical demonstration of bespoke-orchestration surfaces. Ported from the existing premotion app.
@@ -101,7 +101,7 @@ If both happen, the workspace did its job. If neither, the GitHub trail still co
 
 - Bird Legal MVP code (now located at `/Users/andy/counsel-mvp/`, original name "Counsel") provides pattern references and prompt seeds: multi-agent BaseAgent, matter-first router shape, drafting/timeline/scanner/advisor prompt designs. Used as reference and seed, not wholesale port; rebuilt on the new platform layer so MVP debt isn't carried forward.
 - Pre-Motion logic is extractable as a single-turn module. (Confirmed. Already exists as a stateful tool; the simplified single-turn version is what ships in v1.)
-- The `claude-for-uk-legal` plugins are stable as the backend for letter drafting and research. (Confirmed. Shipped May 2026.)
+- The `claude-for-uk-legal` plugins are stable as the backend for letter drafting and research. (Confirmed. Shipped.)
 - Andy ships solo for three weeks without major Lawhive/other distractions. (Risk. Flagged in BUILD_PLAN.md.)
 
 ## Reviewer notes

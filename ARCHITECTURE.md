@@ -17,7 +17,7 @@
 | Web framework | FastAPI | Async-native, OpenAPI for free, mature, ports to production scale without rewrite. |
 | ORM + migrations | SQLAlchemy 2 + Alembic | Boring, durable, audit-friendly. |
 | Database | PostgreSQL 16 + pgvector | One store for relational, JSONB, full-text, and embeddings. Will run in 30 years. |
-| Storage | MinIO (S3 API) | Self-hostable; swap for native S3 / Azure Blob in cloud. UK data residency requirement met by deployment region. |
+| Storage | MinIO (S3 API) | Self-hostable; swap for Cloudflare R2 in cloud. UK data residency requirement met by deployment region. |
 | Frontend | React 19 + Vite + TanStack Router | Modern but stable. Hot reload, fast build, no Next.js framework lock-in. |
 | Styling | Tailwind + Shadcn primitives | Solicitor-legible defaults, customisable, no design-system rebuild needed. |
 | AI gateway | `app/core/model_gateway.py` | Abstracts Anthropic, OpenAI, Ollama. Per-matter privilege posture selects provider. |

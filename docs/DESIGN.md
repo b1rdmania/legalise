@@ -483,7 +483,7 @@ Source: Warp whitepaper + Memo landing.
   <div className="eyebrow font-mono text-muted mb-4">VERSION 0.1 — MAY 2026</div>
   <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6
                  leading-[1.05]">
-    Legalise turns reviewable legal skills into audited matter workflows.
+    Legalise is an open-source UK legal AI workspace for supervised autonomy.
   </h1>
   <p className="text-xl text-muted leading-relaxed max-w-2xl">
     Open-source UK legal AI workspace. SKILL.md files, matter context,
@@ -517,8 +517,7 @@ Source: Warp whitepaper. Used for landing copy, Modules detail (rendered SKILL.m
 <section id="abstract" className="prose mb-24">
   <h2 className="text-2xl font-bold tracking-tight2 mb-6">01. Abstract</h2>
   <p className="prose-p">
-    Legalise is the audited execution layer between a Git-distributed catalogue
-    of SKILL.md files and a matter-first workspace.
+    Legalise is an open-source UK legal AI workspace for supervised autonomy.
   </p>
   <p className="prose-p">
     Every model call writes an audit row. Every matter has a privilege posture.

@@ -22,9 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Changed
 
 - README, MANIFESTO, ROADMAP, and the assistant system prompt rewritten to remove AI tics and em dashes. Skill substrate no longer surfaced in product copy.
-- PRE_FLIGHT.md gains §7 browser walk checklist required before Day 15 deploy.
+- docs/handovers/PRE_FLIGHT.md gains §7 browser walk checklist required before deploy.
 
-## [0.1.0] - Target: May/June 2026
+## [0.1.0] - Target: pending
 
 Initial release. Demo positioning - drafts for solicitor review, not a production legal tool.
 
@@ -41,6 +41,6 @@ Initial release. Demo positioning - drafts for solicitor review, not a productio
 
 ### Documentation
 
-- `MANIFESTO.md`, `EXECUTIVE_SUMMARY.md`, `SCOPE.md`, `ARCHITECTURE.md`, `BUILD_PLAN.md`, `ROADMAP.md`, `REGULATORY_PLUMBING.md`, `CONTRIBUTING.md`.
+- `docs/MANIFESTO.md`, `EXECUTIVE_SUMMARY.md`, `SCOPE.md`, `ARCHITECTURE.md`, `BUILD_PLAN.md`, `docs/ROADMAP.md`, `REGULATORY_PLUMBING.md`, `CONTRIBUTING.md`.
 
 To be expanded with detail at launch - this entry is a scaffold during the build window.

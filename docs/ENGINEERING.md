@@ -136,4 +136,4 @@ library, that is a regression and worth flagging.
 - `docs/TRUST.md` — privilege + audit architecture
 - `docs/MANIFESTO.md` — why this exists
 - `ARCHITECTURE.md` — stack rationale and decisions
-- `docs/BACKEND_TODOS.md` — shipped endpoint specs
+- `docs/handovers/BACKEND_TODOS.md` — shipped endpoint specs

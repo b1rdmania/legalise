@@ -7,7 +7,7 @@
 
 ## Short DM
 
-Hi [Name] — I am putting Legalise public this week.
+Hi [Name] — I am putting Legalise public soon.
 
 It is an open-source UK legal AI workspace: matter file, BYO model keys, installable legal modules, privilege posture, capability gates, CPR 31.22 chronology gate, and audit trail.
 
@@ -15,7 +15,7 @@ The claim I am trying to make is deliberately narrow:
 
 > v0.4 is the open substrate for supervised autonomy. The real supervisor-gate primitive lands next.
 
-I am not claiming it is a law firm, not for live client matters, and not regulator-grade yet.
+I am not claiming it is a law firm, not for live client matters, and not regulator-grade.
 
 Would you be willing to read the post/repo before launch and publicly engage if the framing is fair? A comment, quote-post, or even a pointed correction would help keep the conversation grounded.
 
@@ -26,7 +26,7 @@ Definition note: `docs/SUPERVISED_AUTONOMY.md`
 
 ## Slightly Longer Version
 
-Hi [Name] — I am launching Legalise publicly this week and would value a cold read from someone with real legal-engineering credibility.
+Hi [Name] — I am launching Legalise publicly soon and would value a cold read from someone with real legal-engineering credibility.
 
 The project is an open-source UK legal AI workspace. It starts from the matter file rather than a CRM: documents, chronology, assistant, modules, privilege posture, capability grants, BYO model keys, and audit trail.
 

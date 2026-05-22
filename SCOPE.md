@@ -38,7 +38,7 @@ The primary demo is one seeded sample matter that threads facts → Pre-Motion �
 - Top-level README with quickstart, architecture diagram, screenshots, demo link
 - ARCHITECTURE.md (this directory)
 - BUILD_PLAN.md
-- ROADMAP.md
+- docs/ROADMAP.md
 - REGULATORY_PLUMBING.md
 - CONTRIBUTING.md
 - Basic smoke/eval coverage for the primary sample matter and Pre-Motion output shape
@@ -109,10 +109,10 @@ The primary demo is one seeded sample matter that threads facts → Pre-Motion �
 |---|---|---|---|
 | Stack | Python + FastAPI + React | TypeScript + Bun + Next.js | Existing counsel-mvp (Bird Legal) code as pattern reference, AI ecosystem maturity, talent pool, would be the choice for a real ABS backend |
 | Counsel-mvp treatment | Pattern reference + prompt seeds | Wholesale port | Counsel-mvp was an MVP not a battle-tested product; carrying MVP debt forward would compromise the platform layer. Reuse what works (BaseAgent, matter-first routers, proven prompts); rebuild on `app.core.api` with audit + privilege + model gateway primitives. |
-| Database | Postgres + pgvector | SQLite + Pinecone | Production-ready from day one, one store for everything, audit-friendly |
+| Database | Postgres + pgvector | SQLite + Pinecone | Operationally durable from day one, one store for everything, audit-friendly |
 | Auth in v1 | Stub | Real (WorkOS) | Demo positioning; auth is v0.2 work |
 | Plugin bridge | Direct skill rendering | MCP servers | Faster to v1; MCP at v0.2 |
-| Demo headliner | Pre-Motion | Contract review | Most novel, most X-shareable, simplest to demo. (Post-pivot framing: Pre-Motion is the canonical demonstration of the bespoke-orchestration surface pattern, not the project's identity — the project is the audited execution layer for legal skills.) |
+| Demo headliner | Pre-Motion | Contract review | Most novel, most X-shareable, simplest to demo. (Post-pivot framing: Pre-Motion is the canonical demonstration of the bespoke-orchestration surface pattern, not the project's identity — the project is an open-source UK legal AI workspace for supervised autonomy.) |
 | Module count | One coherent workflow, with roadmap tabs | 5 end-to-end modules / 12 full Bird Legal MVP surfaces | Quality > breadth at v1; v0.1 should tell one matter story rather than show five isolated demos |
 | Live demo | Yes | Self-host only | Investor / solicitor evaluation needs zero-friction click-through |
 | Interop with Stella | Data schema match | Stack match (rewrite to Bun) | Faster to ship; protocol-level interop is enough |

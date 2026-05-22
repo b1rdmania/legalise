@@ -1,4 +1,4 @@
-# Pre-flight — interactive checklist before Day 15 deploy
+# Pre-flight — interactive checklist before deploy
 
 What Andy needs to do on his Mac before `infra/deploy/cloudflare.md`
 becomes runnable. Each section ends in a checkable green state. The
@@ -169,7 +169,7 @@ accordingly.
 1. Visit https://console.neon.tech → Sign up / log in
 2. **Create project**:
    - Name: `legalise-prod`
-   - Region: **AWS Europe (London) `eu-west-2`** (Neon's London PoP)
+   - Region: **Europe (London) `eu-west-2`** (Neon's London PoP; Neon runs on AWS underneath, Legalise itself is not AWS-hosted)
    - Postgres version: latest stable (16+)
 3. Inside the project → **Branches** → ensure you're on the default
    `production` branch (rename `main` if Neon defaults that)
@@ -274,7 +274,7 @@ fly secrets set \
 The public submission endpoint (`POST /api/modules/submissions`) opens a draft PR
 against `b1rdmania/claude-for-uk-legal` and is bot-gated by Cloudflare
 Turnstile. These secrets are required only if `submission_enabled=true` —
-the feature ships behind a config gate. If the gate is off at Day 15,
+the feature ships behind a config gate. If the gate is off at launch,
 provision them anyway so the flag flip is one command, not a re-deploy.
 
 | Env var | Source | Notes |
@@ -323,7 +323,7 @@ Fly app.
 
 ## 6. Local sanity pass (no deploy yet)
 
-Before kicking off Day 15, verify the deploy preflight in
+Before kicking off the deploy, verify the deploy preflight in
 `infra/deploy/cloudflare.md` is green:
 
 ```bash

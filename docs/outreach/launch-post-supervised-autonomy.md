@@ -135,7 +135,7 @@ Not legal advice.
 Not for live client matters.
 Not a guarantee against hallucination.
 Not a substitute for solicitor judgment.
-Not regulator-grade supervision yet.
+Not regulator-grade supervision.
 
 7.
 Evals, hallucination controls, cloud/local routing, prompt shrouding, and intricate case-law verification matter.

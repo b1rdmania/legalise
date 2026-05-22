@@ -32,6 +32,18 @@ Every model call writes an audit row. Every matter mutation writes an audit row.
 
 The audit log is what a solicitor uses to answer the questions a regulator, a client, or opposing counsel will eventually ask. What did your AI see. When did it see it. Under what protection. What did it produce.
 
+## Why the audit trail
+
+Professional liability is boring until it is existential.
+
+If AI touches a matter, the solicitor remains accountable. The client may ask what happened. The insurer may ask what happened. The SRA may ask what happened. A partner may ask why a deadline, citation, disclosure decision, or letter went wrong.
+
+A solicitor cannot responsibly supervise something if they cannot reconstruct what material the system saw, whether privileged material was involved, which model or module touched it, what it produced, who approved or relied on it, and what changed after human review.
+
+Without that, supervised autonomy is just trust me, a lawyer was nearby.
+
+Legalise records the path. The audit trail is not the product. It is the receipt.
+
 ## Privilege posture is a dispatch constraint
 
 Three states. `A_cleared`, `B_mixed`, `C_paused`. Each matter carries one. The gateway reads the posture before every model call and decides which providers can serve it.

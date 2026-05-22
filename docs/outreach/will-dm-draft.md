@@ -14,7 +14,7 @@ seen the launch.
 
 > Hey Will —
 >
-> Quick heads-up: I'm launching Legalise next week
+> Quick heads-up: I'm launching Legalise soon
 > ([github.com/b1rdmania/legalise](https://github.com/b1rdmania/legalise))
 > — open-source UK legal AI workspace, Apache-2.0, regulator-shape
 > first (audit-by-default, privilege posture, CPR 31.22 gate on
