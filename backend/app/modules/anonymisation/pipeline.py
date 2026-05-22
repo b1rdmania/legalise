@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.model_gateway import ModelGateway
 from app.core.api import audit
-from app.models import Document, DocumentBody, Matter
+from app.models import Document, DocumentBody, Matter, STATUS_ARCHIVED
 from app.models.document_body import (
     BODY_KIND_EXTRACTED,
     BODY_KIND_REDACTED,
@@ -252,7 +252,7 @@ async def anonymise_document(
     if pair is None:
         raise LookupError("document not found")
     doc, matter = pair
-    if matter.created_by_id != actor_id:
+    if matter.created_by_id != actor_id or matter.status == STATUS_ARCHIVED:
         raise LookupError("document not found")
 
     body = await session.scalar(
