@@ -101,15 +101,20 @@ export function Landing() {
   return (
     <div className="max-w-page mx-auto">
       {/* Hero: two-column above the fold */}
-      <section className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 grid grid-cols-1 lg:grid-cols-[minmax(0,36rem)_minmax(0,1fr)] gap-12 lg:gap-16 items-start border-b border-rule">
+      <section className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20 grid grid-cols-1 lg:grid-cols-[minmax(0,42rem)_minmax(22rem,1fr)] gap-12 lg:gap-16 items-start border-b border-rule">
         {/* Left column: text + CTAs */}
         <div>
+          <div className="eyebrow text-muted mb-5">v0.4 evaluation release</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
-            Open-source infrastructure for supervised legal AI.
+            Open-source substrate for supervised legal AI.
           </h1>
           <p className="text-xl text-muted leading-relaxed max-w-xl">
             Matter files, legal modules, privilege posture, capability gates,
             and an audit trail you can inspect.
+          </p>
+          <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
+            Legalise shows the workspace layer first. The supervisor-gate
+            primitive lands next. Not for live client matters.
           </p>
 
           {/* CTAs */}
@@ -160,62 +165,37 @@ export function Landing() {
           )}
         </div>
 
-        {/* Right column: editorial splash artwork */}
-        <div className="hidden lg:block">
-          <img
-            src="/hero-splash.webp"
-            width={2000}
-            height={980}
-            alt=""
-            aria-hidden="true"
-            className="w-full h-auto block select-none"
-            draggable={false}
-          />
-        </div>
-      </section>
-
-      {/* Trust strip: stack credibility below the hero */}
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-12">
-        <div className="eyebrow text-center mb-8">Built on</div>
-        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 max-w-4xl mx-auto">
-          <span className="text-sm font-semibold text-ink">Anthropic Claude</span>
-          <span className="text-sm font-semibold text-ink">OpenAI</span>
-          <span className="text-sm font-semibold text-ink">FastAPI</span>
-          <span className="text-sm font-semibold text-ink">Postgres + pgvector</span>
-          <span className="text-sm font-semibold text-ink">Apache 2.0</span>
-          <a
-            href="https://github.com/b1rdmania/legalise"
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm font-semibold text-ink hover:text-prose transition-colors underline-offset-4 hover:underline"
-          >
-            github.com/b1rdmania/legalise
-          </a>
-        </div>
-      </section>
-
-      {/* Why I built this — editorial, sits above the whitepaper */}
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-20">
-        <div className="max-w-2xl">
-          <div className="eyebrow text-muted mb-6">Why I built this</div>
-          <p className="text-lg text-ink leading-relaxed mb-5">
-            I built Legalise because I think legal AI is starting in the wrong place.
-          </p>
-          <p className="text-lg text-ink leading-relaxed mb-5">
-            The work does not begin with a chatbot. It begins with a matter
-            file, a professional duty, a client document, and someone
-            accountable.
-          </p>
-          <p className="text-lg text-ink leading-relaxed mb-10">
-            If AI is going to advance legal work, the substrate should be
-            inspectable: what it saw, what it did, what it produced, and who
-            signed off.
-          </p>
-          <p className="text-base text-prose leading-relaxed">
-            I&rsquo;m Andy Bird. I&rsquo;m not launching a law firm here.
-            I&rsquo;m putting an open-source thesis in public so lawyers,
-            engineers, and regulators can argue with it.
-          </p>
+        {/* Right column: proof panel */}
+        <div className="border border-rule bg-paper p-8">
+          <div className="eyebrow text-muted mb-6">What is already here</div>
+          <dl className="space-y-5 text-sm">
+            <div>
+              <dt className="font-semibold text-ink mb-1">Matter workspace</dt>
+              <dd className="text-prose leading-relaxed">
+                Documents, chronology, assistant, modules, posture, audit.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-ink mb-1">Runtime gates</dt>
+              <dd className="text-prose leading-relaxed">
+                Capability grants and privilege posture checked before
+                privileged operations.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-ink mb-1">BYO model keys</dt>
+              <dd className="text-prose leading-relaxed">
+                Users bring their own Anthropic, OpenAI, or local Ollama path.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-ink mb-1">Audit trail</dt>
+              <dd className="text-prose leading-relaxed">
+                Model calls, module actions, denials, mutations, and failures
+                leave rows.
+              </dd>
+            </div>
+          </dl>
         </div>
       </section>
 
