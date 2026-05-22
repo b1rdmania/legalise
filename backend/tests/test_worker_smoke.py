@@ -279,7 +279,8 @@ async def test_worker_export_job_round_trip(
     job = await _seed_job(worker_session, matter.id, user.id)
 
     # Ensure the session cache is cleared so subsequent reads are fresh.
-    await worker_session.expire_all()
+    # AsyncSession.expire_all() is synchronous — clears the identity map.
+    worker_session.expire_all()
 
     # --- 2. Enqueue ---
     await _enqueue_arq_job(job.id)

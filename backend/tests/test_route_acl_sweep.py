@@ -47,7 +47,7 @@ async def _create_matter_and_upload(client) -> tuple[str, str]:
     resp = await client.post(
         f"/api/matters/{slug}/documents",
         files={"file": ("test.pdf", io.BytesIO(_PDF_MAGIC), "application/pdf")},
-        data={"tag": "correspondence"},
+        data={"tag": "draft"},
     )
     assert resp.status_code == 201, resp.text
     doc_id = resp.json()["id"]
