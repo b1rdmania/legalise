@@ -12,23 +12,13 @@ Legalise is open source. The hosted site is a limited evaluation environment. Re
 
 ## Why
 
-Most legal AI starts in the wrong place.
+Legalise is the open-source substrate for a product thesis: supervised autonomy.
 
-It starts with chat. Or a CRM. Or a workflow builder. Then it tries to bolt legal trust on afterwards.
-
-Legal work does not start with a chat box. It starts with a matter file.
-
-A matter has documents, dates, parties, privilege, disclosure constraints, draft outputs, solicitor judgement, and a record of what happened. If AI is going to advance legal work, it has to live inside that structure.
-
-That is what Legalise is testing.
+The short version: legal AI should not just be a chatbot that answers questions. If it touches legal work, it should sit inside a matter file. It should know what documents it used, what permissions it had, what it produced, and which qualified human remained responsible for the important calls.
 
 The audit trail matters because it makes the work inspectable. But audit is not the product. Audit is the receipt.
 
-The product thesis is supervised autonomy: AI can advance a matter only if matter context, permissions, provenance, review gates, and accountability are first-class.
-
-The question is not just what legal AI can automate. It is what must remain supervised, who supervised it, what evidence they saw, and what record exists when something later goes wrong.
-
-Legalise is the open-source substrate for that thesis. The hosted site is only an evaluation environment.
+The full thesis lives in [`docs/MANIFESTO.md`](./docs/MANIFESTO.md). The claim boundary lives in [`docs/SUPERVISED_AUTONOMY.md`](./docs/SUPERVISED_AUTONOMY.md). The hosted site is only an evaluation environment.
 
 ---
 

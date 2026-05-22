@@ -7,7 +7,6 @@ import { WAITLIST_HREF } from "../lib/access";
 const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
-const GITHUB_MANIFESTO = "https://github.com/b1rdmania/legalise/blob/master/docs/MANIFESTO.md";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
 
@@ -90,7 +89,7 @@ export function Drawer({
     // Unauth marketing nav: Demo · Manifesto · GitHub · Docs.
     primary = [
       { href: DEMO_HREF_UNAUTHED, label: "Demo" },
-      { href: GITHUB_MANIFESTO, label: "Manifesto", external: true },
+      { href: "#manifesto", label: "Manifesto" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
       { href: GITHUB_DOCS, label: "Docs", external: true },
     ];

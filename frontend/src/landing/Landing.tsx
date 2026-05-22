@@ -9,6 +9,7 @@ const DEMO_SLUG = "khan-v-acme-trading-2026";
 type Section = { id: string; label: string; sub?: boolean };
 
 const SECTIONS: Section[] = [
+  { id: "manifesto", label: "00. Manifesto" },
   { id: "abstract", label: "01. What it is" },
   { id: "how", label: "02. How it works" },
   { id: "trust", label: "03. The trust layer" },
@@ -27,6 +28,19 @@ export function Landing() {
   const [active, setActive] = useState<string>("abstract");
 
   useEffect(() => {
+    const scrollToManifestoHash = () => {
+      if (window.location.hash !== "#manifesto") return;
+      window.setTimeout(() => {
+        const el = refs.current.manifesto;
+        if (!el) return;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - 100;
+        window.scrollTo({ top, behavior: "smooth" });
+        setActive("manifesto");
+      }, 0);
+    };
+
+    scrollToManifestoHash();
+
     const onScroll = () => {
       let current = SECTIONS[0].id;
       for (const s of SECTIONS) {
@@ -39,8 +53,12 @@ export function Landing() {
       setActive(current);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("hashchange", scrollToManifestoHash);
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("hashchange", scrollToManifestoHash);
+    };
   }, []);
 
   const jump = (id: string) => (e: React.MouseEvent) => {
@@ -198,6 +216,47 @@ export function Landing() {
             I&rsquo;m putting an open-source thesis in public so lawyers,
             engineers, and regulators can argue with it.
           </p>
+        </div>
+      </section>
+
+      {/* Manifesto excerpt: the page carries the thesis, GitHub carries the full file */}
+      <section
+        id="manifesto"
+        ref={(el) => { refs.current.manifesto = el; }}
+        className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-20"
+      >
+        <div className="max-w-3xl">
+          <div className="eyebrow text-muted mb-6">Manifesto</div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-8 leading-tight">
+            Supervised autonomy, not unsupervised automation.
+          </h2>
+          <div className="space-y-5 text-lg leading-relaxed text-ink">
+            <p>
+              The interesting question is no longer only what AI can automate.
+              It is what a firm would choose not to automate, where human
+              judgement must remain named, and how the system proves that
+              boundary held.
+            </p>
+            <p>
+              Legalise is not trying to make legal work unsupervised. It is
+              trying to make supervision explicit, inspectable, and auditable.
+            </p>
+            <p>
+              The unit is not a prompt. It is a matter. The control points are
+              permissions, privilege posture, source evidence, review gates, and
+              audit rows. Audit is not the product. Audit is the receipt.
+            </p>
+          </div>
+          <div className="mt-8">
+            <a
+              href="https://github.com/b1rdmania/legalise/blob/master/docs/MANIFESTO.md"
+              target="_blank"
+              rel="noreferrer"
+              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            >
+              Read the full manifesto
+            </a>
+          </div>
         </div>
       </section>
 

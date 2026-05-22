@@ -113,9 +113,7 @@ export function TopBar({
                   Demo
                 </a>
                 <a
-                  href="https://github.com/b1rdmania/legalise/blob/master/docs/MANIFESTO.md"
-                  target="_blank"
-                  rel="noreferrer"
+                  href="#manifesto"
                   className="text-ink hover:text-muted transition-colors"
                 >
                   Manifesto
