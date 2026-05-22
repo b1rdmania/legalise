@@ -25,6 +25,7 @@ from app.core.db import get_session
 from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
+from app.core.storage import StorageWriteError
 from app.models import Document, Matter, User
 from app.models.tabular_review import TabularReview, TabularReviewRow
 
@@ -374,12 +375,21 @@ async def export_review_endpoint(
     matter = await _require_matter(session, slug, user)
     review = await _require_review(session, review_id, matter)
 
-    file_uuid, byte_count, _storage_uri = await export_review_docx(
-        session=session,
-        review=review,
-        matter=matter,
-        actor_id=user.id,
-    )
+    try:
+        file_uuid, byte_count, _storage_uri = await export_review_docx(
+            session=session,
+            review=review,
+            matter=matter,
+            actor_id=user.id,
+        )
+    except StorageWriteError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_write_failed",
+                "message": "Failed to write tabular review export to object storage.",
+            },
+        ) from exc
     await session.commit()
     return ExportResponse(
         file_uuid=file_uuid,

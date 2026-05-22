@@ -38,6 +38,37 @@ from typing import Protocol, runtime_checkable
 
 
 # ---------------------------------------------------------------------------
+# Storage exception types
+# ---------------------------------------------------------------------------
+
+
+class StorageError(Exception):
+    """Base class for all structured storage failures."""
+
+    def __init__(self, message: str, key: str, backend: str, error_code: str) -> None:
+        super().__init__(message)
+        self.key = key
+        self.backend = backend
+        self.error_code = error_code
+
+
+class StorageWriteError(StorageError):
+    """Raised by put_bytes on a non-retryable backend failure."""
+
+
+class StorageReadError(StorageError):
+    """Raised by get_bytes when the object isn't readable for non-not-found reasons.
+
+    KeyError is still raised for missing objects ("not found" semantics).
+    StorageReadError surfaces every other boto3/IO failure.
+    """
+
+
+class StorageDeleteError(StorageError):
+    """Raised by delete_object / delete_prefix on backend failure."""
+
+
+# ---------------------------------------------------------------------------
 # Key helpers
 # ---------------------------------------------------------------------------
 
@@ -196,6 +227,7 @@ class S3StorageBackend:
         metadata: dict[str, str] | None = None,
     ) -> None:
         self._ensure_client()
+        from botocore.exceptions import ClientError, EndpointConnectionError
         kwargs: dict = {
             "Bucket": self._bucket,
             "Key": key,
@@ -204,11 +236,33 @@ class S3StorageBackend:
         }
         if metadata:
             kwargs["Metadata"] = metadata
-        self._client.put_object(**kwargs)
+        try:
+            self._client.put_object(**kwargs)
+        except ClientError as exc:
+            raise StorageWriteError(
+                f"S3 put_bytes failed for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="boto_client_error",
+            ) from exc
+        except EndpointConnectionError as exc:
+            raise StorageWriteError(
+                f"S3 endpoint unreachable during put_bytes for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="network_error",
+            ) from exc
+        except OSError as exc:
+            raise StorageWriteError(
+                f"Network error during put_bytes for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="network_error",
+            ) from exc
 
     def get_bytes(self, key: str) -> bytes:
         self._ensure_client()
-        from botocore.exceptions import ClientError
+        from botocore.exceptions import ClientError, EndpointConnectionError
         try:
             response = self._client.get_object(Bucket=self._bucket, Key=key)
             return response["Body"].read()
@@ -216,11 +270,46 @@ class S3StorageBackend:
             code = exc.response["Error"]["Code"]
             if code in ("NoSuchKey", "404"):
                 raise KeyError(f"storage key not found: {key}") from exc
-            raise
+            raise StorageReadError(
+                f"S3 get_bytes failed for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="boto_client_error",
+            ) from exc
+        except EndpointConnectionError as exc:
+            raise StorageReadError(
+                f"S3 endpoint unreachable during get_bytes for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="network_error",
+            ) from exc
+        except OSError as exc:
+            raise StorageReadError(
+                f"Network error during get_bytes for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="network_error",
+            ) from exc
 
     def delete_object(self, key: str) -> None:
         self._ensure_client()
-        self._client.delete_object(Bucket=self._bucket, Key=key)
+        from botocore.exceptions import ClientError, EndpointConnectionError
+        try:
+            self._client.delete_object(Bucket=self._bucket, Key=key)
+        except ClientError as exc:
+            raise StorageDeleteError(
+                f"S3 delete_object failed for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="boto_client_error",
+            ) from exc
+        except EndpointConnectionError as exc:
+            raise StorageDeleteError(
+                f"S3 endpoint unreachable during delete_object for key {key!r}: {exc}",
+                key=key,
+                backend="s3",
+                error_code="network_error",
+            ) from exc
 
     def exists(self, key: str) -> bool:
         self._ensure_client()
@@ -252,17 +341,41 @@ class S3StorageBackend:
 
     def delete_prefix(self, prefix: str) -> int:
         self._ensure_client()
-        keys = self.list_keys(prefix)
+        from botocore.exceptions import ClientError, EndpointConnectionError
+        try:
+            keys = self.list_keys(prefix)
+        except (ClientError, EndpointConnectionError, OSError) as exc:
+            raise StorageDeleteError(
+                f"S3 delete_prefix list failed for prefix {prefix!r}: {exc}",
+                key=prefix,
+                backend="s3",
+                error_code="boto_client_error" if not isinstance(exc, (EndpointConnectionError, OSError)) else "network_error",
+            ) from exc
         if not keys:
             return 0
         # S3 batch delete: max 1000 per call
         deleted = 0
-        for i in range(0, len(keys), 1000):
-            batch = [{"Key": k} for k in keys[i : i + 1000]]
-            self._client.delete_objects(
-                Bucket=self._bucket, Delete={"Objects": batch, "Quiet": True}
-            )
-            deleted += len(batch)
+        try:
+            for i in range(0, len(keys), 1000):
+                batch = [{"Key": k} for k in keys[i : i + 1000]]
+                self._client.delete_objects(
+                    Bucket=self._bucket, Delete={"Objects": batch, "Quiet": True}
+                )
+                deleted += len(batch)
+        except ClientError as exc:
+            raise StorageDeleteError(
+                f"S3 delete_prefix batch-delete failed for prefix {prefix!r}: {exc}",
+                key=prefix,
+                backend="s3",
+                error_code="boto_client_error",
+            ) from exc
+        except (EndpointConnectionError, OSError) as exc:
+            raise StorageDeleteError(
+                f"S3 delete_prefix network error for prefix {prefix!r}: {exc}",
+                key=prefix,
+                backend="s3",
+                error_code="network_error",
+            ) from exc
         return deleted
 
 
@@ -389,6 +502,10 @@ def matter_prefix(user_id: uuid.UUID, matter_id: uuid.UUID) -> str:
 
 
 __all__ = [
+    "StorageError",
+    "StorageWriteError",
+    "StorageReadError",
+    "StorageDeleteError",
     "StorageBackend",
     "S3StorageBackend",
     "LocalStorageBackend",

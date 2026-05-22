@@ -31,6 +31,7 @@ from app.core.model_gateway import (
     gateway as model_gateway,
 )
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError, get_user_provider_key
+from app.core.storage import StorageWriteError
 from app.models import STATUS_ARCHIVED, Matter, User
 
 from .pdf import render_pre_motion_pdf
@@ -446,6 +447,14 @@ async def export_pre_motion_docx(
         )
     except PrivilegePaused as exc:
         raise HTTPException(409, str(exc)) from exc
+    except StorageWriteError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_write_failed",
+                "message": "Failed to write generated pre-motion PDF to object storage.",
+            },
+        ) from exc
 
     storage_uri: str = tool_result["storage_uri"]
     byte_count: int = tool_result["byte_count"]

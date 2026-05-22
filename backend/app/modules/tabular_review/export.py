@@ -27,7 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
-from app.core.storage import generated_key, get_storage_backend
+from app.core.storage import generated_key, get_storage_backend, StorageWriteError
 from app.models import Document, Matter
 from app.models.tabular_review import TabularReview, TabularReviewRow
 
@@ -149,18 +149,35 @@ async def export_review_docx(
         document_id=file_uuid,
         filename=filename,
     )
-    get_storage_backend().put_bytes(
-        storage_uri,
-        payload_bytes,
-        content_type=(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ),
-        metadata={
-            "matter_id": str(matter.id),
-            "review_id": str(review.id),
-            "actor_id": str(actor_id),
-        },
-    )
+    try:
+        get_storage_backend().put_bytes(
+            storage_uri,
+            payload_bytes,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ),
+            metadata={
+                "matter_id": str(matter.id),
+                "review_id": str(review.id),
+                "actor_id": str(actor_id),
+            },
+        )
+    except StorageWriteError as exc:
+        await audit_api.log(
+            session,
+            "storage.put_bytes.failed",
+            module="storage",
+            actor_id=actor_id,
+            matter_id=matter.id,
+            resource_type="document",
+            resource_id=str(file_uuid),
+            payload={
+                "storage_key": storage_uri,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        raise
 
     title = f"tabular-review-{matter.slug}-{_slug_title(review.title)}"
 

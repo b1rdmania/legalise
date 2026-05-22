@@ -30,6 +30,7 @@ from app.core.limits import check_generated_artefact
 from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
+from app.core.storage import StorageWriteError
 from app.core.api import audit
 from app.models import Matter, User
 
@@ -169,6 +170,14 @@ async def draft_letter_docx(
         )
     except PrivilegePaused as exc:
         raise HTTPException(409, str(exc)) from exc
+    except StorageWriteError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_write_failed",
+                "message": "Failed to write generated letter to object storage.",
+            },
+        ) from exc
 
     # Recover the file uuid from the storage path the tool wrote. The
     # tool's `document.generated` audit row already records this — but
