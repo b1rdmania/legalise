@@ -23,6 +23,17 @@ _is_dev() {
     [ "$_env" = "development" ] || [ "$_env" = "dev" ] || [ "$_env" = "local" ]
 }
 
+# Fly's release_command (and `fly ssh console -C ...` / ad-hoc one-shots)
+# pass a command to the container. ENTRYPOINT swallows them unless we
+# honour positional args explicitly. Exec the supplied command and exit
+# without running boot-time migrations or uvicorn — release_command runs
+# alembic against the release machine and then must terminate cleanly so
+# Fly can promote the new app machines.
+if [ "$#" -gt 0 ]; then
+    echo "[entrypoint] exec one-shot: $*"
+    exec "$@"
+fi
+
 if _is_dev || [ "${MIGRATIONS_ON_BOOT:-false}" = "true" ]; then
     echo "[entrypoint] running alembic upgrade head (env=${_env} MIGRATIONS_ON_BOOT=${MIGRATIONS_ON_BOOT:-false})"
     alembic upgrade head
