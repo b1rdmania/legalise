@@ -1,8 +1,9 @@
 # Handover — Hosted production deploy live (legalise.dev + api.legalise.dev)
 
 **For:** the reviewer agent. Andy approved closing out the deploy session 2026-05-22 ~17:00 UTC.
-**Repo head:** `c731895` (updated each commit) — the doc-currency hash.
-**Runtime code head:** `c731895` — what's actually deployed on Fly right now (was `a375133` Dockerfile pin sync at deploy time). Pushed to `origin/master`.
+**Repo head:** `8ffc788` (this commit's parent — bumped each time the doc is touched).
+**Runtime code head:** `8ffc788` — Fly backend deployed at this hash; Cloudflare Pages serving the matching frontend bundle.
+**Reviewer cycle:** post-handover review landed 7 findings (2×P1, 3×P2, 2×P3); 6 closed in §11 below, 1 (Resend domain propagation) is purely a clock-time wait.
 **Prior context:** the substrate hardening track closed at `63415d6`; waitlist at `3c95b39`; supervised-autonomy doctrine at `9e62b9c`; landing pass + brand mark + repo tidy at `55a9b1d`, `9004f43`, `e354aa2`.
 **Scope:** infrastructure stand-up from "frontend-only waitlist" to "hosted evaluation environment with real backend, DB, queue, storage, email." No new feature surfaces. Public copy unchanged except the index.html meta and the new in-page Manifesto section that Andy hand-edited mid-session.
 
@@ -122,3 +123,46 @@ In priority order:
 - **Browser smoke priority** — is this a "before any external user" gate, or are you fine deferring to first-public-link?
 
 Nothing else is blocking. The substrate is up and the modules surface is clean. Andy is going to bed.
+
+---
+
+## 11. Reviewer-fix round (post-handover)
+
+The reviewer agent ran a pass over the original §1–10 above and produced a structured punch-list. Six items closed in one deploy cycle plus one follow-on fix; one (Resend domain) is clock-time only.
+
+### 11.1 What landed
+
+| P | Finding (reviewer phrasing) | Resolution | Commit(s) |
+|---|---|---|---|
+| **P1.1** | Live frontend not at repo head (`index-VaIOjJ_T.js` vs dist `index-Ccn5dSOt.js`) | Rebuilt with `VITE_API_BASE_URL=https://api.legalise.dev/api`, redeployed via `wrangler pages deploy`. Live now `index-DghSbVXf.js`. | (no commit — Pages deploy only) |
+| **P1.2** | No worker process — `[processes]` missing, arq has nothing dequeuing | Added `[processes]` block: `app = "uvicorn …"` and `worker = "arq app.worker.WorkerSettings"`. Per-process `[[vm]]` sizing. Deploy created 2 worker machines (1 active + 1 standby) in `lhr`. | `38fed34` |
+| **P2.1** | Schema guard silently skipped — `No module named 'psycopg2'` | `backend/app/main.py:91` rewrote the async DSN to bare `postgresql://`, which defaulted SQLAlchemy to psycopg2. Replaced with `.replace("+asyncpg","+psycopg")` so the sync engine uses psycopg v3. | `38fed34` |
+| **P2.2** | `www.legalise.dev` returns Cloudflare 525 | Stale CNAME → namecheap parking. Sub-agent updated CNAME to `legalise.pages.dev` and bound `www.legalise.dev` as a Pages custom domain. `curl -sI -L https://www.legalise.dev/` returns 200. | (no commit — DNS + Pages binding only) |
+| **P2.3** | Resend domain verification unproven | **Still propagating.** Andy's screenshot shows auto-config wrote the DKIM record (`resend._domainkey.mail`, status Pending) into Cloudflare correctly. Resend dashboard says "Checking DNS" and notes propagation "may take a few hours". Sub-agent's send-probe returned `403 domain_not_verified` and DNS lookups were empty at 1.1.1.1 — both consistent with mid-propagation state. Retry verify in a few hours. Frontend stays in waitlist mode (`access.ts` `HOSTED_ACCESS_MODE` default `"waitlist"`) — no open signup can hit the unverified domain. | — |
+| **P3.1** | Plugin pin drift class — Dockerfile ARG default + fly.toml `[env]` both carried the SHA | Collapsed to a single source of truth in `backend/Dockerfile`: `ARG PLUGINS_REPO_REF=...` + `ENV PLUGINS_REPO_REF=$PLUGINS_REPO_REF` so build-time clone and runtime URL construction read the same value. Removed `PLUGINS_REPO` and `PLUGINS_REPO_REF` from `backend/fly.toml [env]`. | `38fed34` |
+| **P3.2** | Handover header stale commit ref | Sub-agent updated header to `Repo head` / `Runtime code head` pattern. | `38fed34` |
+
+Plus a follow-on bug I introduced in P3.1 and Andy caught at the Modules UI: the Dockerfile's `PLUGINS_REPO` ARG had a `.git` suffix (`https://github.com/b1rdmania/claude-for-uk-legal.git` — needed for `git clone`). Runtime URL construction in `modules.py:_source_url` appends `/blob/<sha>/<path>` to that base, producing `…/claude-for-uk-legal.git/blob/…` URLs that GitHub 404s. Stripped the `.git` suffix (`git clone` accepts the bare URL fine). Fixed at `8ffc788`. Source URLs on the Modules surface now land at real SKILL.md pages on GitHub (verified HTTP 200 against a sample).
+
+### 11.2 Skill-check after redeploy
+
+`GET /api/modules/public` still returns **15 working / 0 broken** at `source.ref f8201f1da72f`. Source URLs verified to resolve. Modules page is clean in shape and in content.
+
+### 11.3 Local DNS hiccup worth noting
+
+The post-fix redeploy initially failed because `api.machines.dev` wasn't resolving for any libc-backed program on the Mac (`getaddrinfo` failed) even though `dig` returned the IP cleanly. Root cause: macOS DNS configuration only listed an IPv6 nameserver (router-local v6 address) and that resolver was intermittently failing for that hostname. Worked around by exporting `GODEBUG=netdns=go` for the `fly deploy` invocation, which switches Go's net package to its pure-Go DNS resolver (bypasses macOS's system resolver entirely). Worth adding to `RUNBOOK.md` as a known workaround.
+
+### 11.4 What's actually still open
+
+Just two things, both punt-able:
+
+1. **Resend propagation** — clock-time. Retry the Resend dashboard verify in a few hours. If it doesn't move by tomorrow morning, manually inspect the Cloudflare DNS records vs what Resend expects; the auto-config write was confirmed (screenshot), so it's almost certainly upstream propagation.
+2. **Browser smoke walk** — still not run. Highest-value next pass. A Playwright agent could drive signup → email → workspace → audit-row end-to-end now that the worker is up and Resend is on the cusp of verifying.
+
+Everything else from the original §9 list is now either resolved or actively running.
+
+### 11.5 What I want from the reviewer (round 2)
+
+- **Sanity-check the `[processes]` + `[[vm]]` shape** in `backend/fly.toml`. Are the per-process sizes sensible (app shared-cpu-2x/1gb, worker shared-cpu-1x/1gb)? Should `min_machines_running` apply to worker too, or is "1 active + 1 standby" enough?
+- **Confirm the Dockerfile-as-SoT** is the posture you wanted (vs `--build-arg` wrapper at deploy time). The `.git` suffix bug I introduced suggests the SoT collapse is fine but the ergonomics of "edit one file, two semantically-different consumers" still has a footgun.
+- **Browser-smoke priority** — same question as before. The substrate is now genuinely ready for it; Resend propagation is the only thing that gates verifying signup email delivery, but everything else (matter creation, BYO key, workflow runs, audit log, SSE streams) can be walked today against the in-place stack with a manually verified user.
