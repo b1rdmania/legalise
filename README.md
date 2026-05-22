@@ -95,7 +95,7 @@ The plugin layer (where the legal logic actually lives) is at [`claude-for-uk-le
 
 ## Try it
 
-The hosted evaluation environment at [legalise.dev](https://legalise.dev) seeds the Khan v Acme sample matter on signup. To run it locally:
+The hosted evaluation environment at [legalise.dev](https://legalise.dev) is waitlisted while the backend hardening pass finishes. You can browse the Khan v Acme demo on the hosted site, or run the full workspace locally:
 
 ```bash
 git clone https://github.com/b1rdmania/legalise

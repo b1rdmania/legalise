@@ -10,6 +10,7 @@ import { VerifyPending } from "../auth/VerifyPending";
 import { Verify } from "../auth/Verify";
 import { Settings } from "../auth/Settings";
 import { Landing } from "../landing/Landing";
+import { Waitlist } from "../landing/Waitlist";
 import { SubmitModule } from "../landing/SubmitModule";
 import { Modules } from "../modules-page/Modules";
 import { MatterList } from "../matter/MatterList";
@@ -19,6 +20,7 @@ import { DemoMatter } from "../demo/DemoMatter";
 import { TopBar } from "../ui/TopBar";
 import { Drawer } from "../ui/Drawer";
 import type { TabKey } from "../matter/tabs/types";
+import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
 
 // Seeded matter slug from backend/app/core/seed.py. Authenticated users land
 // here directly; unauthenticated visitors are routed to signup first because
@@ -63,7 +65,9 @@ function AppInner() {
   useEffect(() => {
     if (auth.loading) return;
     if (auth.user) return;
-    if (PROTECTED_ROUTE_NAMES.has(route.name)) navigate("/auth/signin");
+    if (PROTECTED_ROUTE_NAMES.has(route.name)) {
+      navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/signin");
+    }
   }, [auth.loading, auth.user, route.name]);
 
   // body-scroll-lock + esc to close
@@ -104,6 +108,7 @@ function AppInner() {
       />
       <main className="flex-1">
         {route.name === "landing" && <Landing />}
+        {route.name === "waitlist" && <Waitlist />}
         {route.name === "modules" && <Modules />}
         {route.name === "submitModule" && <SubmitModule />}
         {route.name === "list" && <MatterList />}
@@ -116,8 +121,8 @@ function AppInner() {
           />
         )}
         {route.name === "demo" && <DemoMatter />}
-        {route.name === "signin" && <SignIn />}
-        {route.name === "signup" && <SignUp />}
+        {route.name === "signin" && (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignIn />)}
+        {route.name === "signup" && (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignUp />)}
         {route.name === "forgot" && <ForgotPassword />}
         {route.name === "reset" && <ResetPassword token={route.token} />}
         {route.name === "verifyPending" && <VerifyPending />}

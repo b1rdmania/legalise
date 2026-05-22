@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
 import { BrandMark } from "./BrandMark";
 import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
+import { WAITLIST_HREF } from "../lib/access";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
 
@@ -124,16 +125,16 @@ export function TopBar({
                 {!isDemo && (
                   <>
                     <a
-                      href="#/auth/signup"
+                      href={WAITLIST_HREF}
                       className="text-ink hover:text-muted transition-colors"
                     >
-                      Sign up free
+                      Join waitlist
                     </a>
                     <a
-                      href="#/auth/signin"
+                      href={WAITLIST_HREF}
                       className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors"
                     >
-                      Sign in
+                      Request access
                     </a>
                   </>
                 )}

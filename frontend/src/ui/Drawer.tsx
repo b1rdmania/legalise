@@ -2,6 +2,7 @@ import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
+import { WAITLIST_HREF } from "../lib/access";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
@@ -85,7 +86,7 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing: Modules · Docs · GitHub · - · Open the demo · Sign up free · Sign in.
+    // Unauth marketing: Modules · Docs · GitHub · - · Open the demo · Join waitlist · Request access.
     // On the demo route itself, drop "Open the demo" (you're already on it).
     const isDemo = route.name === "demo";
     primary = [
@@ -95,8 +96,8 @@ export function Drawer({
     ];
     secondary = [
       ...(isDemo ? [] : [{ href: DEMO_HREF_UNAUTHED, label: "Open the demo" }]),
-      { href: "#/auth/signup", label: "Sign up free" },
-      { href: "#/auth/signin", label: "Sign in" },
+      { href: WAITLIST_HREF, label: "Join waitlist" },
+      { href: WAITLIST_HREF, label: "Request access" },
     ];
   }
 

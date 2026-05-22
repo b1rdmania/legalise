@@ -3,6 +3,7 @@
 //
 // Routes:
 //   #/                          → landing
+//   #/waitlist                  → hosted evaluation waitlist
 //   #/auth/signin               → signin
 //   #/auth/signup               → signup
 //   #/auth/forgot               → forgot-password
@@ -22,6 +23,7 @@ import { useEffect, useState } from "react";
 
 export type Route =
   | { name: "landing" }
+  | { name: "waitlist" }
   | { name: "signin" }
   | { name: "signup" }
   | { name: "forgot" }
@@ -53,6 +55,7 @@ export function parseHash(hash: string): Route {
   const h = stripQuery(raw);
 
   if (h === "") return { name: "landing" };
+  if (h === "waitlist") return { name: "waitlist" };
   if (h === "auth/signin") return { name: "signin" };
   if (h === "auth/signup") return { name: "signup" };
   if (h === "auth/forgot") return { name: "forgot" };
@@ -93,6 +96,7 @@ export const navigate = (to: string) => {
 // the session is absent (see useAuth in App.tsx).
 export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "landing",
+  "waitlist",
   "signin",
   "signup",
   "forgot",

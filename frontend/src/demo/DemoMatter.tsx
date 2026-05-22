@@ -6,6 +6,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
+import { WAITLIST_HREF } from "../lib/access";
 import { Badge } from "../ui/primitives";
 import { MatterNav } from "../matter/MatterNav";
 import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
@@ -22,12 +23,12 @@ import { ResearchTab } from "../modules/case_law/ResearchTab";
 import { ContractReviewTab } from "../modules/contract_review/ContractReviewTab";
 import { DEMO_SNAPSHOT } from "./snapshot";
 
-const CTA_RUN_PREMOTION = "Sign up to run Pre-Motion on your own matter";
-const CTA_DRAFT_LETTER = "Sign up to draft letters on your own matter";
-const CTA_UPLOAD_DOC = "Sign up to upload documents to your own matter";
-const CTA_EDIT_DOC = "Sign up to edit or anonymise documents on your own matter";
-const CTA_EXPORT = "Sign up to export documents from your own matter";
-const CTA_CONTRACT_REVIEW = "Sign up to run Contract Review on your own matter";
+const CTA_RUN_PREMOTION = "Join the waitlist to run Pre-Motion on your own matter";
+const CTA_DRAFT_LETTER = "Join the waitlist to draft letters on your own matter";
+const CTA_UPLOAD_DOC = "Join the waitlist to upload documents to your own matter";
+const CTA_EDIT_DOC = "Join the waitlist to edit or anonymise documents on your own matter";
+const CTA_EXPORT = "Join the waitlist to export documents from your own matter";
+const CTA_CONTRACT_REVIEW = "Join the waitlist to run Contract Review on your own matter";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -104,7 +105,7 @@ export function DemoMatter() {
     }
   }, [rightRailCollapsed]);
 
-  const flashPosture = () => flashCta("Sign up to change posture on your own matter");
+  const flashPosture = () => flashCta("Join the waitlist to change posture on your own matter");
 
   return (
     <>
@@ -139,8 +140,8 @@ export function DemoMatter() {
                 setTabAndHash={setTabAndHash}
                 initialMessages={DEMO_SNAPSHOT.assistantMessages}
                 disabled
-                disabledPlaceholder="Sign up to chat with the assistant on your own matter"
-                onDisabledAction={() => flashCta("Sign up to use suggested actions on your own matter")}
+                disabledPlaceholder="Join the waitlist to chat with the assistant on your own matter"
+                onDisabledAction={() => flashCta("Join the waitlist to use suggested actions on your own matter")}
               />
             )}
             {tab === "documents" && (
@@ -238,13 +239,13 @@ function DemoBanner() {
         </span>
       </div>
       <p className="text-sm text-prose">
-        Khan v Acme. Worked unfair-dismissal matter, mutations disabled. Sign up to upload your own.
+        Khan v Acme. Worked unfair-dismissal matter, mutations disabled. Hosted access is waitlisted.
       </p>
       <a
-        href="#/auth/signup"
+        href={WAITLIST_HREF}
         className="ml-auto bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-sm font-medium min-h-[36px] inline-flex items-center"
       >
-        Sign up →
+        Join waitlist →
       </a>
     </div>
   );
@@ -258,10 +259,10 @@ function FlashCta({ message, onClose }: { message: string; onClose: () => void }
       </span>
       <span className="text-sm text-ink">{message}.</span>
       <a
-        href="#/auth/signup"
+        href={WAITLIST_HREF}
         className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-xs font-medium min-h-[32px] inline-flex items-center"
       >
-        Sign up
+        Join waitlist
       </a>
       <button
         onClick={onClose}
@@ -366,7 +367,7 @@ function DemoDocumentsTab({
                     onClick={onEdit}
                     className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-xs font-medium min-h-[32px]"
                   >
-                    Sign up to edit or anonymise
+                    Join waitlist to edit or anonymise
                   </button>
                 </div>
               )}

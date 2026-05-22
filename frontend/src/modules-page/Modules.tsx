@@ -11,6 +11,7 @@ import {
 } from "../lib/api";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { useAuth } from "../auth/AuthProvider";
+import { WAITLIST_HREF } from "../lib/access";
 
 export function Modules() {
   const auth = useAuth();
@@ -151,10 +152,10 @@ export function Modules() {
               Submit a module
             </a>
             <a
-              href="#/auth/signup"
+              href={WAITLIST_HREF}
               className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium"
             >
-              Sign up free
+              Join waitlist
             </a>
             <a
               href="#/demo"

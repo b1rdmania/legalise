@@ -15,6 +15,7 @@ import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/pr
 import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
 import { MatterPulse } from "../MatterPulse";
 import type { TabKey } from "./types";
+import { WAITLIST_HREF } from "../../lib/access";
 
 interface AssistantTabProps {
   matter: Matter;
@@ -312,20 +313,20 @@ export function AssistantTab({
         <div className="mt-3 sticky bottom-0 bg-paper pt-3">
           <div className="border-t border-rule py-3 flex flex-wrap items-center gap-3">
             <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
-              {disabledPlaceholder ?? "Sign up to ask follow-up questions on your own matter"}
+              {disabledPlaceholder ?? "Hosted accounts are waitlisted while the backend hardening pass finishes"}
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="#/auth/signup"
+                href={WAITLIST_HREF}
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] inline-flex items-center"
               >
-                Sign up free
+                Join waitlist
               </a>
               <a
-                href="#/auth/signin"
+                href={WAITLIST_HREF}
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
-                Sign in
+                Request access
               </a>
             </div>
           </div>

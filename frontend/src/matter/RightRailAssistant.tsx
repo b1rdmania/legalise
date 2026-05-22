@@ -10,6 +10,7 @@ import {
 } from "../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../ui/primitives";
 import { InlineAgentStatus, MessageBubble } from "./MessageBubble";
+import { WAITLIST_HREF } from "../lib/access";
 
 interface Props {
   matter: Matter;
@@ -186,13 +187,13 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
       {disabled ? (
         <div className="border-t border-rule p-3 flex flex-col gap-2">
           <p className="text-xs text-prose leading-relaxed m-0">
-            Ask about this matter after signing up.
+            Hosted accounts are waitlisted while the backend hardening pass finishes.
           </p>
           <a
-            href="#/auth/signup"
+            href={WAITLIST_HREF}
             className="bg-ink text-paper px-3 py-1.5 text-xs font-medium inline-flex items-center justify-center hover:bg-black transition-colors self-start"
           >
-            Sign up free
+            Join waitlist
           </a>
         </div>
       ) : (
