@@ -24,7 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #
 # Update PLUGINS_REPO_REF when a new plugin release is needed; the build
 # will fail loudly if the ref does not exist.
-ARG PLUGINS_REPO=https://github.com/b1rdmania/claude-for-uk-legal.git
+# No `.git` suffix: `git clone` accepts the bare GitHub URL, and the
+# runtime appends /blob/<sha>/<path> to build source links — `.git` in
+# the middle of those URLs 404s on GitHub.
+ARG PLUGINS_REPO=https://github.com/b1rdmania/claude-for-uk-legal
 ARG PLUGINS_REPO_REF=f8201f1da72f6485c296eff620b19db18f016b68
 ENV PLUGINS_REPO=$PLUGINS_REPO
 ENV PLUGINS_REPO_REF=$PLUGINS_REPO_REF
