@@ -26,7 +26,7 @@ from docx.shared import Pt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.api import audit as audit_api
+from app.core.api import audit as audit_api, audit_failure
 from app.core.storage import generated_key, get_storage_backend, StorageWriteError
 from app.models import Document, Matter
 from app.models.tabular_review import TabularReview, TabularReviewRow
@@ -163,7 +163,11 @@ async def export_review_docx(
             },
         )
     except StorageWriteError as exc:
-        await audit_api.log(
+        # Failure-path audit row via `audit_failure` (separate committed
+        # session). The caller route raises HTTPException without
+        # committing, so `session.add` would be lost at teardown.
+        # R3 round-2 review fix.
+        await audit_failure(
             session,
             "storage.put_bytes.failed",
             module="storage",
