@@ -106,6 +106,11 @@ docker compose -f infra/docker-compose.yml up --build
 
 Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React. One command. Open `http://localhost:3000`.
 
+Self-hosting notes:
+
+- If deploying your fork to Fly, change `app = "legalise-backend"` in `backend/fly.toml` before `fly deploy`.
+- The backend image vendors [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) at a pinned SHA. Forks can point at their own plugin catalogue with the Docker build args `PLUGINS_REPO` and `PLUGINS_REPO_REF`.
+
 ## Status
 
 Evaluation release candidate. Honest about what's in and what isn't.
@@ -160,3 +165,5 @@ Apache 2.0. See [LICENSE](./LICENSE).
 ## Maintainer
 
 [@b1rdmania](https://github.com/b1rdmania). Open an issue. Or, if you're a UK solicitor wondering what your AI did with the client documents, get in touch.
+
+Canonical upstream: [`github.com/b1rdmania/legalise`](https://github.com/b1rdmania/legalise). Forks are independent deployments and are not operated, reviewed, or endorsed by the maintainer unless explicitly stated.

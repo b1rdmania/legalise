@@ -315,7 +315,8 @@ invert it. None of these have been started.
 
 ## 13. Reporting a vulnerability
 
-Until we have a dedicated security@legalise.dev:
+Security reports should follow the root [`SECURITY.md`](../SECURITY.md). In
+summary:
 
 - Email: `security@legalise.dev` (forwarded to maintainers)
 - Encrypted disclosure: GitHub Security Advisories on `github.com/b1rdmania/legalise`
