@@ -154,15 +154,23 @@ async def audit_failure(
     session opened on the same engine connects via its own pooled
     connection, so its commit is independent of the SAVEPOINT.
     """
-    if request_session.bind is None:
+    bind = request_session.bind
+    if bind is None:
         # Test or fixture context where the session isn't bound to an
         # engine. Best-effort: drop the audit row rather than crash.
         # In production, sessions always have a bind.
         return
 
-    factory = async_sessionmaker(
-        request_session.bind, expire_on_commit=False
-    )
+    # If the session is bound to a Connection (the conftest pattern
+    # wraps each test in an outer transaction on a specific connection),
+    # walk up to the engine so the new sessionmaker checks out a fresh
+    # connection from the pool. Otherwise the new session joins the
+    # outer transaction and the "independent commit" would be rolled
+    # back at test teardown.
+    if hasattr(bind, "engine"):
+        bind = bind.engine
+
+    factory = async_sessionmaker(bind, expire_on_commit=False)
     async with factory() as audit_session:
         audit_session.add(
             AuditEntry(
