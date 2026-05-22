@@ -24,7 +24,7 @@ from docx import Document as DocxDocument
 from docx.enum.section import WD_ORIENTATION
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.api import audit
+from app.core.api import audit, audit_failure
 from app.core.storage import get_storage_backend, generated_key, StorageWriteError
 from app.core.tools.schemas import GenerateDocxInput, GenerateDocxOutput
 
@@ -110,7 +110,12 @@ async def handle_generate_docx(
             metadata={"title": inputs.title[:200], "orientation": orientation},
         )
     except StorageWriteError as exc:
-        await audit.log(
+        # Failure-path audit row via `audit_failure` (separate committed
+        # session). The caller route raises HTTPException without
+        # committing, so a `session.add` here would be lost at teardown.
+        # R3 round-2 review fix — same pattern as the upload path in
+        # matters.py and the download path in documents.py.
+        await audit_failure(
             session,
             "storage.put_bytes.failed",
             actor_id=actor_id,
