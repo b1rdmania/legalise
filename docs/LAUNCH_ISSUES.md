@@ -85,9 +85,12 @@ Acceptance:
 
 ---
 
-## 7. v0.5 live-matter readiness gates
+## 7. Backend hardening gates
 
-Track the serious gates that remain after v0.4 evaluation launch.
+Track the serious gates that make the backend defensible. These are not
+"later-version because boring" items. If a gate is bounded and touches trust,
+deletion, export, audit, storage, jobs, provider keys, upload validation, or
+runtime limits, pull it forward.
 
 Acceptance:
 
@@ -97,6 +100,9 @@ Acceptance:
 - durable job migration fully replaces inline long-running paths.
 - deploy runbook proven.
 - security disclosure path.
+- archived-matter routes return 404 across every module surface.
+- active-job limit has one source of truth.
+- upload magic-byte validation and key-rotation smoke are green.
 
 ---
 
@@ -112,4 +118,3 @@ Acceptance:
 - refusal behaviour eval.
 - module regression eval.
 - cloud-provider anonymisation posture documented honestly.
-

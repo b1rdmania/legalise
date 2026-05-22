@@ -11,6 +11,8 @@
 
 Andy has decided to pull the serious backend work forward now, before the public launch pressure rises.
 
+Ethos update after the substrate R2 review: backend hardening is not a later-version bucket. If an issue affects trust boundaries, deletion, export, storage, jobs, audit, provider keys, upload validation, limits, secrets, WORM behaviour, or operational failure modes, it is in scope now. Public copy can wait for a pre-launch pass; backend correctness should not wait just because the hosted site is framed as a limited evaluation environment.
+
 The launch posture remains:
 
 > Legalise is open source. The hosted site is a limited evaluation environment.
@@ -38,7 +40,8 @@ This handover is the next implementation sequence.
 3. **Fly filesystem is not source of truth.** It can materialise `matter.md` and cache generated files. Source of truth is Postgres + object storage.
 4. **No new feature surfaces.** Stabilise storage/jobs/ops behind existing surfaces.
 5. **Every migration has rollback/repair thinking.** This is legal data, even in evaluation mode.
-6. **Keep public copy honest.** v0.4/v0.5 can be serious without claiming live-client readiness.
+6. **Keep public copy honest.** The hosted site can be serious without claiming live-client readiness.
+7. **Harden the backend now.** Do not defer bounded trust-boundary fixes behind version labels.
 
 ---
 
@@ -392,6 +395,8 @@ Review asks:
 - Do not add server-side Anthropic/OpenAI keys in production.
 - Do not claim live-client readiness after this unless WORM, deletion/export, durable jobs, storage, and operational runbooks are actually green.
 
+This list is about product sprawl, not backend seriousness. Keep hardening if the work touches archived/deleted resource access, owner scoping, storage failure handling, export/delete consistency, job recovery or quota semantics, WORM audit enforcement, provider-key provenance, upload validation, key rotation, secret guards, or CI coverage for those behaviours.
+
 ---
 
 ## 7. Current Public Copy Alignment
@@ -410,4 +415,4 @@ Do not scatter more public-copy edits while backend work is mid-flight unless a 
 
 ## 8. Suggested Hand-Off Line
 
-> Read `docs/HANDOVER_SERIOUS_BACKEND.md`. Stop feature work. Implement the serious backend substrate in this order: real S3/R2 storage, durable jobs, migration discipline, hosted evaluation limits, matter export/delete, WORM audit groundwork, key rotation, observability. Preserve current UX and current modules. Legalise is open source; legalise.dev is a limited evaluation environment. Do not add server model keys or billing.
+> Read `docs/HANDOVER_SERIOUS_BACKEND.md`. Stop feature work. Implement and keep hardening the serious backend substrate: real S3/R2 storage, durable jobs, migration discipline, hosted evaluation limits, matter export/delete, WORM audit groundwork, key rotation, observability, and any trust-boundary gaps uncovered while doing that work. Preserve current UX and current modules. Legalise is open source; legalise.dev is a limited evaluation environment. Do not add server model keys or billing.

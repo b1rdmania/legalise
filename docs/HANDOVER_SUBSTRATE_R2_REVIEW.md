@@ -4,10 +4,12 @@ Repo head: `385ce41` (launch operations checklists on top of substrate fixes).
 Code head under review: `3d89ed4`.
 Prior review-fix handover: `docs/HANDOVER_SUBSTRATE_REVIEW_FIXES.md`.
 
-This is a reviewer handover for the next agent. It is intentionally narrow:
-review and implement the two issues opened by the substrate review re-check.
-Do not reopen the full production-readiness plan, public copy, landing page, or
-v0.6 eval work from this document.
+This is a reviewer handover for the next agent. It starts with the two concrete
+issues opened by the substrate review re-check, but the backend-hardening ethos
+has changed: anything affecting trust boundaries, deletion, export, storage,
+jobs, audit, provider keys, upload validation, limits, or operational failure
+modes is in scope now. Public copy and launch narrative can wait; backend
+correctness should not be version-bucketed if the fix is bounded.
 
 ## TL;DR
 
@@ -15,8 +17,8 @@ The substrate fix batch materially closed the original three P1 findings:
 enqueue failures now mark jobs failed, delete fails closed on storage failure,
 and tabular review exports write through the object-storage abstraction.
 
-Two follow-up implementation items remain before I would call the backend
-substrate clean:
+Two immediate follow-up implementation items remain before I would call the
+backend substrate clean:
 
 1. Archived/deleted matters are still reachable through several module, job,
    and export routes because their matter resolvers do not exclude
@@ -24,9 +26,15 @@ substrate clean:
 2. The active-job limit has two sources of truth: `/api/me/usage` reports the
    env-configured value, but actual enforcement still uses a hard-coded `3`.
 
-There is also one policy note: Redis enqueue failures currently count against
-`workflow_runs_per_day`. That is acceptable if the limit means "attempts"; if
-not, exclude `error_code="enqueue_failed"` from the daily run count.
+There is also one policy note to decide while hardening: Redis enqueue failures
+currently count against `workflow_runs_per_day`. That is acceptable if the
+limit means "attempts"; if not, exclude `error_code="enqueue_failed"` from the
+daily run count.
+
+Once those are closed, keep going through the backend trust-boundary queue:
+route access control, export/delete consistency, upload validation, provider-key
+failure audit completeness, WORM role verification, storage retry semantics,
+key-rotation smoke, and CI coverage for those behaviours.
 
 ## What Was Checked
 
@@ -100,8 +108,9 @@ Reviewer note:
 
 - There is still the standard distributed-system caveat: if storage deletion
   succeeds but the later DB commit fails, storage has gone while the DB matter
-  remains open. That is not introduced by this patch and is not worth blocking
-  v0.4 over. v0.5 can use an outbox/delete-state machine if needed.
+  remains open. That is not introduced by this patch. It should be logged as a
+  hardening follow-up if the next agent has capacity, with an outbox/delete-state
+  machine as the likely durable shape.
 
 ### Original P1: Tabular review export writes local filesystem
 
@@ -169,7 +178,8 @@ What changed:
 
 Reviewer note:
 
-- Good Path A implementation. v0.5 can expand scope when ready.
+- Good Path A implementation. Full export scope remains a hardening item when
+  the backend team is ready to widen the bundle.
 
 ## Issue 1 - Archived Matter Access Sweep
 
@@ -331,35 +341,49 @@ status == "failed" and error_code == "enqueue_failed"
 
 Recommendation:
 
-Keep current behaviour for v0.4 unless Andy explicitly wants the more generous
-semantics. It is simpler, and enqueue failure should be rare in production if
-Redis is healthy. If this changes, update both `check_workflow_run(...)` and
+Decide explicitly. Simpler default: keep counting attempts because it is easy
+to explain and enqueue failure should be rare in production if Redis is healthy.
+More user-friendly default: exclude `enqueue_failed` rows because no workflow
+actually ran. If this changes, update both `check_workflow_run(...)` and
 `/api/me/usage.workflow_runs_today` together.
 
-## What Not To Do In This Batch
+## Backend Hardening In Scope
 
-Do not take on:
+After the two immediate items, the next agent should keep backend hardening in
+scope. This does not mean rewriting the product. It means following the trust
+edges until they are defensible.
+
+Current hardening queue:
+
+- Archived-matter access sweep across every route.
+- Active-job limit single source of truth.
+- Route access-control sweep for all owner-scoped resources.
+- Export/delete consistency, including whether exports should remain
+  downloadable after matter tombstone or must be downloaded before delete.
+- Job quota semantics around enqueue failure.
+- Storage retry/failure semantics beyond the first delete failure case.
+- WORM role split verification in production-like Postgres.
+- Provider-key failure audit completeness.
+- Upload magic-byte validation.
+- Key-rotation CLI smoke, not just existence.
+- CI coverage for the above behaviours.
+
+Still separate from this backend-hardening lane:
 
 - Landing page copy.
 - README philosophy rewrite.
-- v0.6 evals / shroud.
-- Full export expansion.
-- Full job-orchestrator replacement.
-- Public docs pre-launch sweep.
-- Claim-boundary rewrite.
+- Social launch copy.
+- Broad module-system product redesign.
 
-Those are already tracked elsewhere:
-
-- `docs/LAUNCH_ISSUES.md`
-- `docs/PRODUCTION_SMOKE.md`
-- `docs/CLAIM_BOUNDARY.md`
-- `docs/HANDOVER_PRE_LAUNCH.md`
-- `docs/HANDOVER_SUBSTRATE_DONE.md`
+Public docs can receive a pre-launch sweep after backend behaviour settles. If a
+backend claim becomes false while hardening, fix the claim at the end of the
+hardening pass rather than scattering public-copy churn mid-flight.
 
 ## Suggested Hand-Off Line
 
-> Read `docs/HANDOVER_SUBSTRATE_R2_REVIEW.md` at repo head `385ce41`.
-> Implement the archived-matter access sweep and active-job limit
-> single-source fix. Original substrate P1s are confirmed materially closed.
-> Do not reopen public docs or v0.6 evals from this handover.
-
+> Read `docs/HANDOVER_SUBSTRATE_R2_REVIEW.md`. Treat it as the first slice of
+> full backend production hardening, not a narrow version patch. Start with
+> archived-matter access and active-job limit consistency, then continue through
+> backend trust boundaries: deletion, export, jobs, storage, audit, provider
+> keys, upload validation, limits, and operational failure modes. Public copy
+> can wait; backend hardening is in scope.
