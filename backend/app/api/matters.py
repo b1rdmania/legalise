@@ -34,7 +34,13 @@ from app.core.matter_fs import (
     record_document,
 )
 from app.core.model_gateway import PrivilegePaused
-from app.core.storage import get_storage_backend, uploaded_key, matter_prefix
+from app.core.storage import (
+    get_storage_backend,
+    uploaded_key,
+    matter_prefix,
+    StorageWriteError,
+    StorageDeleteError,
+)
 from app.core.text_extraction import extract as extract_text
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
@@ -397,15 +403,39 @@ async def upload_document(
         sha256=sha,
     )
     storage = get_storage_backend()
-    storage.put_bytes(
-        obj_key,
-        contents,
-        content_type=file.content_type or "application/octet-stream",
-        metadata={
-            "filename": (file.filename or "untitled")[:200],
-            "sha256": sha,
-        },
-    )
+    try:
+        storage.put_bytes(
+            obj_key,
+            contents,
+            content_type=file.content_type or "application/octet-stream",
+            metadata={
+                "filename": (file.filename or "untitled")[:200],
+                "sha256": sha,
+            },
+        )
+    except StorageWriteError as exc:
+        await _write_audit(
+            session,
+            actor=user,
+            matter=matter,
+            action="storage.put_bytes.failed",
+            module="storage",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "storage_key": obj_key,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        # Do not commit — rolls back the flushed doc row so no orphan Document exists.
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_write_failed",
+                "message": "Failed to write document to object storage.",
+            },
+        ) from exc
     doc.storage_uri = obj_key
 
     # Establish the v1 `upload` version row immediately. Downstream
@@ -1006,7 +1036,7 @@ async def delete_matter(
         storage = get_storage_backend()
         prefix = matter_prefix(user.id, matter.id)
         storage.delete_prefix(prefix)
-    except Exception as exc:
+    except StorageDeleteError as exc:
         # No commit has been issued on this path yet; the request
         # session will roll back via the dependency teardown when
         # HTTPException propagates. We deliberately do NOT call

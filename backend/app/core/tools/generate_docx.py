@@ -25,7 +25,7 @@ from docx.enum.section import WD_ORIENTATION
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit
-from app.core.storage import get_storage_backend, generated_key
+from app.core.storage import get_storage_backend, generated_key, StorageWriteError
 from app.core.tools.schemas import GenerateDocxInput, GenerateDocxOutput
 
 
@@ -102,12 +102,29 @@ async def handle_generate_docx(
         key = f"generated/_orphan/{file_uuid}/{filename}"
 
     storage = get_storage_backend()
-    storage.put_bytes(
-        key,
-        docx_bytes,
-        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        metadata={"title": inputs.title[:200], "orientation": orientation},
-    )
+    try:
+        storage.put_bytes(
+            key,
+            docx_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            metadata={"title": inputs.title[:200], "orientation": orientation},
+        )
+    except StorageWriteError as exc:
+        await audit.log(
+            session,
+            "storage.put_bytes.failed",
+            actor_id=actor_id,
+            matter_id=effective_matter_id,
+            module="storage",
+            resource_type="document",
+            resource_id=str(file_uuid),
+            payload={
+                "storage_key": key,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        raise
 
     storage_uri = key
 

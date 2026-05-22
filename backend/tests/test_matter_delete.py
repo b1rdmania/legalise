@@ -248,11 +248,17 @@ async def test_delete_matter_storage_failure_fails_closed(
     from sqlalchemy import select as sa_select
 
     from app.api import matters as matters_api
+    from app.core.storage import StorageDeleteError
     from app.models import AuditEntry, Matter
 
     class _ExplodingStorage:
         def delete_prefix(self, prefix):
-            raise RuntimeError("simulated R2 outage")
+            raise StorageDeleteError(
+                "simulated R2 outage",
+                key=prefix,
+                backend="s3",
+                error_code="boto_client_error",
+            )
 
         def put_bytes(self, *a, **k):
             raise RuntimeError("unused")

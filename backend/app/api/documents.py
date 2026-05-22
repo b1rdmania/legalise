@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
-from app.core.storage import get_storage_backend
+from app.core.storage import get_storage_backend, StorageReadError
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
@@ -288,6 +288,29 @@ async def download_generated_docx(
         data = storage.get_bytes(storage_uri)
     except KeyError:
         raise HTTPException(404, "generated document not found")
+    except StorageReadError as exc:
+        await audit.log(
+            session,
+            "storage.get_bytes.failed",
+            actor_id=user.id,
+            matter_id=entry.matter_id,
+            module="storage",
+            resource_type="document",
+            resource_id=str(file_uuid),
+            payload={
+                "storage_key": storage_uri,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        await session.commit()
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_read_failed",
+                "message": "Failed to read generated document from object storage.",
+            },
+        ) from exc
 
     filename = _safe_filename((entry.payload or {}).get("title"), str(file_uuid))
     return StreamingResponse(
