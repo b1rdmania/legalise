@@ -1,7 +1,7 @@
 # Handover — R2 Hardening Batch Done + CI Green
 
 **For:** the reviewer agent (and Andy for context).
-**As of:** 2026-05-22 (updated post-R3 review). Repo head: `bd4a20c`. Pushed to `origin/master`.
+**As of:** 2026-05-22 (updated post-R3 review round-2). Repo head: `7342fd8`. Pushed to `origin/master`.
 **Prior handover:** [`HANDOVER_SUBSTRATE_R2_REVIEW.md`](./HANDOVER_SUBSTRATE_R2_REVIEW.md) at `2aab5e6` — the R2 reviewer pass that opened the hardening queue.
 **Scope:** four of seven items from the R2 backend hardening queue shipped, one scaffolded (worker smoke, key assertion still xfail), and the audit-persistence P1 from the R3 review pass closed via a separate-session `audit_failure` helper. Two queue items remain on Andy's / your desk (#5 policy, #7 deploy-time). All CI green on real Postgres.
 
@@ -275,7 +275,7 @@ From `HANDOVER_SERIOUS_BACKEND.md §2` — all still hold after this batch:
 
 ## 11. Suggested Reviewer Hand-Off Line
 
-> Read `docs/HANDOVER_R2_HARDENING_DONE.md`. Four of seven items from `HANDOVER_SUBSTRATE_R2_REVIEW.md` §Backend Hardening Queue shipped at `bd4a20c`; #11 worker smoke is scaffolded only (key assertion xfail). R3 reviewer's P1 (provider failure audit rows not persisting across rollback) closed via a new `app.core.api.audit_failure` helper — see §12. The route ACL sweep caught six real vulnerabilities listed in §2. Two queue items remain on Andy's desk: #5 enqueue-counting policy (his call) and #7 WORM role split (deploy-time). CI green on real Postgres.
+> Read `docs/HANDOVER_R2_HARDENING_DONE.md`. Four of seven items from `HANDOVER_SUBSTRATE_R2_REVIEW.md` §Backend Hardening Queue shipped at `7342fd8`; #11 worker smoke is scaffolded only (key assertion xfail). R3 reviewer's P1 (provider failure audit rows not persisting across rollback) closed via a new `app.core.api.audit_failure` helper, then R3 round-2 caught two more sites in `generate_docx.py` + `tabular_review/export.py` and closed those too — see §12. Six failure paths now route through `audit_failure`. The route ACL sweep caught six real vulnerabilities listed in §2. Two queue items remain on Andy's desk: #5 enqueue-counting policy (his call) and #7 WORM role split (deploy-time). CI green on real Postgres.
 
 ---
 
@@ -301,20 +301,27 @@ NEW `app.core.api.audit_failure(request_session, action, **kwargs)`:
 
 The fresh connection is independent of the request session's transaction. Commit on it is real. Survives any subsequent rollback by the caller.
 
-**Wired into four failure paths:**
+**Wired into six failure paths:**
 
 - `backend/app/core/model_gateway.py` — ProviderKeyMissing audit row
 - `backend/app/core/model_gateway.py` — ProviderUpstreamError audit row
 - `backend/app/api/matters.py` — upload StorageWriteError audit row
 - `backend/app/api/documents.py` — download StorageReadError audit row
+- `backend/app/core/tools/generate_docx.py` — generated-docx StorageWriteError (R3 round-2)
+- `backend/app/modules/tabular_review/export.py` — tabular-review StorageWriteError (R3 round-2)
+
+**R3 round-2:** the reviewer caught two more failure-write sites that used `audit.log(session, ...)` then re-raised: the generated-docx tool (called from letters / pre_motion / contract_review routers) and the tabular-review export. Same rollback bug. Closed at `7342fd8` with the same `audit_failure` helper. Two new tests with the capturing pattern verify each call site.
 
 **Test patterns:**
 
 Capturing-helper pattern for failure-path tests. `_CapturingAuditFailure` fake patched into `app.core.api` records invocations; assertions read from the recorded calls list. Used by `test_provider_audit_completeness.py`, `test_provider_upstream_errors.py`, `test_storage_failure_envelopes.py`. End-to-end persistence assertion is impossible against the conftest test DB because the audit_failure's separate connection can't see User/Matter rows scoped to the test's outer transaction (FK violation). The capturing pattern verifies the wiring is correct at every failure-path call site; the helper itself is the persistence guarantor in production.
 
-**R3 commits in order:**
+**R3 commits in order (round 1 + round 2):**
 
 ```
+7342fd8 Merge: R3 extend audit_failure to generate_docx + tabular_review
+5439ee1 R3 extend: audit_failure for generate_docx + tabular_review exports
+2e0b087 HANDOVER_R2_HARDENING_DONE: R3 reviewer corrections applied
 bd4a20c storage failure tests: assert audit_failure called, not row persisted
 235928e audit_failure: walk Connection -> engine to escape outer transaction
 c81dd14 Merge: R3 audit persistence fix (separate-session audit_failure)
@@ -323,4 +330,4 @@ c81dd14 Merge: R3 audit persistence fix (separate-session audit_failure)
 
 Six iterations to land cleanly: the first attempt put `session.commit()` inside the handler and tripped the conftest SAVEPOINT pattern; the second attempt used `session.bind` directly and the Connection-not-Engine issue caused the new session to join the outer transaction; the third iteration walked to the engine and hit the FK violation on actor_id (User row in conftest outer transaction); the final fix aligned the storage tests to the capturing-helper pattern that the provider-audit tests already used successfully.
 
-**R3 status: closed.** Provider failure and storage failure audit rows now reach the DB in production. The R2 §6 "documented non-blocking" gap was real and is now closed.
+**R3 status: closed (both rounds).** Provider failure and storage failure audit rows now reach the DB in production at six distinct call sites: ProviderKeyMissing, ProviderUpstreamError, upload StorageWriteError, download StorageReadError, generated-docx StorageWriteError (letters/pre_motion/contract_review), tabular-review StorageWriteError. The R2 §6 "documented non-blocking" gap was real and the round-2 review caught two more sites I'd missed; all closed now.
