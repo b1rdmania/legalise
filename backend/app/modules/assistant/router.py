@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.limits import check_assistant_message
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import Matter, User
@@ -31,12 +32,9 @@ router = APIRouter()
 
 
 async def _resolve_matter(session: AsyncSession, slug: str, user_id) -> Matter:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-    return matter
+    """Delegate to the shared archived-aware resolver — assistant
+    surfaces are not reachable on tombstoned matters."""
+    return await resolve_owned_open_matter(session, slug, user_id)
 
 
 def _to_schema(row: AssistantMessageRow) -> AssistantMessage:

@@ -25,7 +25,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
 from app.models.job import (
-    ACTIVE_JOB_LIMIT,
     JOB_ACTIVE_STATUSES,
     JOB_STATUS_CANCELLED,
     JOB_STATUS_FAILED,
@@ -36,13 +35,20 @@ from app.models.job import (
 
 
 class ActiveJobLimitReached(Exception):
-    """Raised when a user has too many queued/running jobs."""
+    """Raised when a user has too many queued/running jobs.
 
-    def __init__(self, user_id: uuid.UUID, count: int) -> None:
+    The ``limit`` field carries the resolved cap at the time of the
+    exception (from `get_limits().active_jobs`). Callers should use
+    this to construct the 429 envelope rather than re-reading the
+    limit, so the reported value matches the value that was enforced.
+    """
+
+    def __init__(self, user_id: uuid.UUID, count: int, limit: int) -> None:
         self.user_id = user_id
         self.count = count
+        self.limit = limit
         super().__init__(
-            f"User {user_id} already has {count} active jobs (limit {ACTIVE_JOB_LIMIT})."
+            f"User {user_id} already has {count} active jobs (limit {limit})."
         )
 
 
@@ -69,10 +75,20 @@ async def create_job(
 
     Raises ActiveJobLimitReached if the user is at the cap.
     Caller must commit the session after this returns.
+
+    The cap is read from `get_limits().active_jobs` at call time so
+    env overrides and test monkeypatches take effect — per
+    HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 2, enforcement and the
+    `/api/me/usage` reporting endpoint now share one source of truth.
     """
+    # Local import: avoid a top-level cycle with core.limits which
+    # itself imports from app.models.job for ACTIVE_JOBS_LIMIT.
+    from app.core.limits import get_limits
+
+    cap = get_limits().active_jobs
     active = await get_active_job_count(session, created_by_id)
-    if active >= ACTIVE_JOB_LIMIT:
-        raise ActiveJobLimitReached(created_by_id, active)
+    if active >= cap:
+        raise ActiveJobLimitReached(created_by_id, active, cap)
 
     job = Job(
         id=uuid.uuid4(),

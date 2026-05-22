@@ -23,6 +23,7 @@ from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.limits import check_generated_artefact
 from app.core.model_gateway import (
     PrivilegePaused,
@@ -30,7 +31,7 @@ from app.core.model_gateway import (
     gateway as model_gateway,
 )
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError, get_user_provider_key
-from app.models import Matter, User
+from app.models import STATUS_ARCHIVED, Matter, User
 
 from .pdf import render_pre_motion_pdf
 from .pipeline import run_pre_motion
@@ -56,12 +57,7 @@ async def run_pre_motion_endpoint(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> PreMotionRunResult:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     body = inputs or PreMotionRunInputs()
 
     try:
@@ -123,11 +119,14 @@ async def run_pre_motion_stream(
                 select(
                     Matter.id, Matter.privilege_posture, Matter.default_model_id
                 ).where(
-                    Matter.slug == slug, Matter.created_by_id == user.id
+                    Matter.slug == slug,
+                    Matter.created_by_id == user.id,
+                    Matter.status != STATUS_ARCHIVED,
                 )
             )
         ).first()
         if row is None:
+            # Missing, cross-user, or archived — 404 per repo convention.
             raise HTTPException(404, f"matter not found: {slug}")
         _, posture_value, default_model_id = row
         if PrivilegePosture(posture_value) is PrivilegePosture.C_PAUSED:
@@ -179,9 +178,15 @@ async def run_pre_motion_stream(
         # FastAPI to start streaming.
         try:
             async with factory() as bg_session:
+                # Re-resolve on the background session. If the matter
+                # was archived between the preflight and the pipeline
+                # start, treat it the same as "vanished" — the user
+                # tombstoned it; the pipeline must not run.
                 matter = await bg_session.scalar(
                     select(Matter).where(
-                        Matter.slug == slug, Matter.created_by_id == user.id
+                        Matter.slug == slug,
+                        Matter.created_by_id == user.id,
+                        Matter.status != STATUS_ARCHIVED,
                     )
                 )
                 if matter is None:
@@ -274,12 +279,7 @@ async def export_pre_motion_pdf(
     count + verdict + envelope hash) so the export is forensically visible
     without needing a persisted runs table.
     """
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     if result.matter_slug != slug:
         raise HTTPException(
             400,
@@ -415,12 +415,7 @@ async def export_pre_motion_docx(
     — runs are not persisted, so the frontend POSTs back the envelope it
     received from `/run`. Writes `module.pre_motion.docx.exported`.
     """
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     if result.matter_slug != slug:
         raise HTTPException(
             400,

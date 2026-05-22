@@ -27,6 +27,7 @@ from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.limits import check_generated_artefact
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit
@@ -52,12 +53,7 @@ async def letter_catalogue(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> LetterCatalogueResponse:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     eligible = catalogue_for_matter_type(matter.matter_type)
     return LetterCatalogueResponse(
         matter_slug=matter.slug,
@@ -83,12 +79,7 @@ async def draft_letter(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> LetterDraftResponse:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     try:
         lt = resolve(body.letter_type, matter.matter_type)
     except ValueError as exc:
@@ -158,12 +149,7 @@ async def draft_letter_docx(
     for one model call to get this text. Returns a download handle and
     writes a `module.letters.docx.exported` audit row.
     """
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     await check_generated_artefact(user.id, session)
 
     try:

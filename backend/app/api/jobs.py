@@ -34,10 +34,10 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.core.jobs import ActiveJobLimitReached, create_job, update_status
 from app.core.limits import check_workflow_run
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePosture, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, get_user_provider_key
 from app.models import (
-    ACTIVE_JOB_LIMIT,
     JOB_KIND_CONTRACT_REVIEW,
     JOB_KIND_PRE_MOTION,
     JOB_STATUS_FAILED,
@@ -78,12 +78,10 @@ def _job_row(job: Job) -> dict[str, Any]:
 async def _resolve_matter(
     session: AsyncSession, slug: str, user_id: uuid.UUID
 ) -> Matter:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-    return matter
+    """Delegate to the shared archived-aware resolver. Archived matters
+    return 404 — per HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 1, job
+    surfaces must not be reachable for tombstoned matters."""
+    return await resolve_owned_open_matter(session, slug, user_id)
 
 
 async def _preflight_provider(
@@ -188,7 +186,7 @@ async def create_pre_motion_job(
     await _preflight_provider(session, matter, user.id, "Pre-Motion")
 
     # Daily workflow-run cap (Pre-Motion + Contract Review combined,
-    # exports excluded). Distinct from ACTIVE_JOB_LIMIT which guards
+    # exports excluded). Distinct from the active-jobs cap which guards
     # parallelism within the moment.
     await check_workflow_run(user.id, session)
 
@@ -201,14 +199,14 @@ async def create_pre_motion_job(
             kind=JOB_KIND_PRE_MOTION,
             input_payload=body.model_dump(),
         )
-    except ActiveJobLimitReached:
+    except ActiveJobLimitReached as exc:
         raise HTTPException(
             429,
             detail={
                 "error": "active_job_limit_reached",
-                "limit": ACTIVE_JOB_LIMIT,
+                "limit": exc.limit,
                 "message": (
-                    f"You already have {ACTIVE_JOB_LIMIT} active jobs. "
+                    f"You already have {exc.limit} active jobs. "
                     "Wait for one to complete before starting another."
                 ),
             },
@@ -248,14 +246,14 @@ async def create_contract_review_job(
             kind=JOB_KIND_CONTRACT_REVIEW,
             input_payload=inputs.model_dump(),
         )
-    except ActiveJobLimitReached:
+    except ActiveJobLimitReached as exc:
         raise HTTPException(
             429,
             detail={
                 "error": "active_job_limit_reached",
-                "limit": ACTIVE_JOB_LIMIT,
+                "limit": exc.limit,
                 "message": (
-                    f"You already have {ACTIVE_JOB_LIMIT} active jobs. "
+                    f"You already have {exc.limit} active jobs. "
                     "Wait for one to complete before starting another."
                 ),
             },
@@ -314,13 +312,11 @@ async def job_events(
     """
     factory = request.app.state.session_factory
 
-    # Validate matter ownership before opening the stream
+    # Validate matter ownership before opening the stream. Archived
+    # matters return 404 here too — SSE channel is a job-status
+    # transport on a live matter.
     async with factory() as preflight:
-        matter = await preflight.scalar(
-            select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-        )
-        if matter is None:
-            raise HTTPException(404, f"matter not found: {slug}")
+        matter = await resolve_owned_open_matter(preflight, slug, user.id)
         job = await preflight.scalar(
             select(Job).where(Job.id == job_id, Job.matter_id == matter.id)
         )

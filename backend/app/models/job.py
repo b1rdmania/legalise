@@ -41,8 +41,11 @@ JOB_KIND_PRE_MOTION = "pre_motion"
 JOB_KIND_CONTRACT_REVIEW = "contract_review"
 JOB_KIND_EXPORT = "export"
 
-# Per-user active-job ceiling (configurable in core/jobs.py)
-ACTIVE_JOB_LIMIT = 3
+# Per-user active-job ceiling is canonical at `app.core.limits.get_limits().active_jobs`
+# (env-overridable via `LEGALISE_LIMIT_ACTIVE_JOBS`). The hard-coded constant
+# that used to live here was a second source of truth that diverged from the
+# reporting endpoint when the env var was set — see
+# HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 2.
 
 
 class Job(Base):

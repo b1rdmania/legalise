@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.api import audit as audit_api
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import Document, Matter, User
@@ -49,11 +50,7 @@ router = APIRouter()
 async def _require_matter(
     session: AsyncSession, slug: str, user: User
 ) -> Matter:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user.id)
     return matter
 
 

@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.limits import check_generated_artefact
 from app.core.model_gateway import (
     PrivilegePaused,
@@ -32,7 +33,7 @@ from app.core.model_gateway import (
 )
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError, get_user_provider_key
 from app.core.api import audit
-from app.models import Matter, User
+from app.models import STATUS_ARCHIVED, Matter, User
 
 from .export import render_contract_review_markdown
 from .pipeline import run_contract_review
@@ -50,11 +51,7 @@ def _sse_format(event: str, data: dict[str, Any]) -> bytes:
 
 
 async def _resolve_matter(session: AsyncSession, slug: str, user_id) -> Matter:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user_id)
     return matter
 
 
@@ -125,11 +122,14 @@ async def run_stream_endpoint(
                 select(
                     Matter.id, Matter.privilege_posture, Matter.default_model_id
                 ).where(
-                    Matter.slug == slug, Matter.created_by_id == user.id
+                    Matter.slug == slug,
+                    Matter.created_by_id == user.id,
+                    Matter.status != STATUS_ARCHIVED,
                 )
             )
         ).first()
         if row is None:
+            # Missing, cross-user, or archived — 404 per repo convention.
             raise HTTPException(404, f"matter not found: {slug}")
         _, posture_value, default_model_id = row
         if PrivilegePosture(posture_value) is PrivilegePosture.C_PAUSED:
@@ -172,9 +172,13 @@ async def run_stream_endpoint(
     async def run_bg() -> None:
         try:
             async with factory() as bg_session:
+                # Re-resolve on the background session. Archived between
+                # preflight and pipeline start = treat as vanished.
                 matter = await bg_session.scalar(
                     select(Matter).where(
-                        Matter.slug == slug, Matter.created_by_id == user.id
+                        Matter.slug == slug,
+                        Matter.created_by_id == user.id,
+                        Matter.status != STATUS_ARCHIVED,
                     )
                 )
                 if matter is None:

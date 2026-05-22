@@ -36,8 +36,8 @@ from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.jobs import ActiveJobLimitReached, create_job, update_status
+from app.core.matter_access import resolve_owned_open_matter
 from app.models import (
-    ACTIVE_JOB_LIMIT,
     JOB_STATUS_FAILED,
     Job,
     Matter,
@@ -57,13 +57,10 @@ router = APIRouter()
 async def _resolve_matter_owned(
     session: AsyncSession, slug: str, user_id: uuid.UUID
 ) -> Matter:
-    """Return the matter if it exists and is owned by user. Always 404 on miss."""
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user_id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-    return matter
+    """Delegate to the shared archived-aware resolver. Archived matters
+    return 404 — per HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 1, export
+    routes must not be reachable for tombstoned matters."""
+    return await resolve_owned_open_matter(session, slug, user_id)
 
 
 async def _enqueue_job(job_id: uuid.UUID) -> None:
@@ -153,14 +150,14 @@ async def create_export_job(
             kind=JOB_KIND_EXPORT,
             input_payload={"matter_id": str(matter.id)},
         )
-    except ActiveJobLimitReached:
+    except ActiveJobLimitReached as exc:
         raise HTTPException(
             429,
             detail={
                 "error": "active_job_limit_reached",
-                "limit": ACTIVE_JOB_LIMIT,
+                "limit": exc.limit,
                 "message": (
-                    f"You already have {ACTIVE_JOB_LIMIT} active jobs. "
+                    f"You already have {exc.limit} active jobs. "
                     "Wait for one to complete before starting another."
                 ),
             },

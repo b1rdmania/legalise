@@ -27,7 +27,6 @@ from app.core.jobs import (
     get_active_job_count,
 )
 from app.models.job import (
-    ACTIVE_JOB_LIMIT,
     JOB_ACTIVE_STATUSES,
     JOB_KIND_CONTRACT_REVIEW,
     JOB_KIND_PRE_MOTION,
@@ -49,9 +48,15 @@ KHAN_SLUG = "khan-v-acme-trading-2026"
 
 
 class TestActiveJobLimit:
-    def test_limit_constant(self) -> None:
-        # Surfaces the launch-time cap; matches limits.ACTIVE_JOBS_LIMIT.
-        assert ACTIVE_JOB_LIMIT == 3
+    def test_limit_default_via_canonical_source(self) -> None:
+        """Per HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 2: enforcement and
+        reporting must read the same value. The canonical source is
+        `app.core.limits.get_limits().active_jobs`, env-overridable via
+        `LEGALISE_LIMIT_ACTIVE_JOBS`."""
+        from app.core.limits import Limits
+
+        # Fresh dataclass — guarantees a non-cached read.
+        assert Limits().active_jobs == 3
 
     def test_active_statuses(self) -> None:
         # Queued and running count toward the cap; terminal states do not.
@@ -61,11 +66,15 @@ class TestActiveJobLimit:
 
 
 class TestActiveJobLimitReached:
-    def test_carries_user_and_count(self) -> None:
+    def test_carries_user_count_and_limit(self) -> None:
+        """The exception carries the resolved limit so 429 envelopes
+        report the value that was actually enforced — no second
+        re-read that could diverge."""
         user_id = uuid.uuid4()
-        exc = ActiveJobLimitReached(user_id, count=3)
+        exc = ActiveJobLimitReached(user_id, count=3, limit=3)
         assert exc.user_id == user_id
         assert exc.count == 3
+        assert exc.limit == 3
         assert str(user_id) in str(exc)
 
 
@@ -182,3 +191,63 @@ async def test_enqueue_failed_job_does_not_consume_active_slot(
 
     active = await get_active_job_count(db_session, user.id)
     assert active == 0, f"expected 0 active jobs, got {active}"
+
+
+# ---------------------------------------------------------------------------
+# Active-job limit single source of truth — R2 review Issue 2
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_active_job_limit_enforcement_matches_reporting(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 2: the cap enforced at
+    create_job must match the value reported by /api/me/usage. Set
+    limits.active_jobs=1, confirm:
+      - first job queues (201/200)
+      - second job 429s
+      - /api/me/usage.active_jobs.max == 1
+      - 429 envelope reports limit=1
+    """
+    from app.core import limits as limits_module
+
+    monkeypatch.setattr(
+        limits_module, "_limits", limits_module.Limits(active_jobs=1)
+    )
+
+    # Patch the Redis enqueue so we don't actually need Redis.
+    from app.api import jobs as jobs_api
+
+    async def _noop_enqueue(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(jobs_api, "_enqueue_job", _noop_enqueue)
+    await _signup_and_login(client)
+
+    # First job — succeeds.
+    r1 = await client.post(
+        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
+        json={"depth": "fast"},
+    )
+    assert r1.status_code == 200, r1.text
+
+    # Second job — over the cap.
+    r2 = await client.post(
+        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
+        json={"depth": "fast"},
+    )
+    assert r2.status_code == 429, r2.text
+    detail = r2.json()["detail"]
+    assert detail["error"] == "active_job_limit_reached"
+    assert detail["limit"] == 1, (
+        "429 envelope must report the enforced value (1), not the old "
+        "hard-coded 3 from models/job.py"
+    )
+
+    # Reporting endpoint surfaces the same value.
+    usage = await client.get("/api/me/usage")
+    assert usage.status_code == 200, usage.text
+    assert usage.json()["active_jobs"]["max"] == 1, (
+        "/api/me/usage.active_jobs.max must match enforcement"
+    )
