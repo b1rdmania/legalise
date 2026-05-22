@@ -300,8 +300,12 @@ async def test_worker_export_job_round_trip(
 
     # arq CLI: `arq app.worker.WorkerSettings --burst`
     # Runs from the backend/ directory so `app.worker` is importable.
+    # Wrap subprocess.run in asyncio.to_thread so the event loop stays
+    # alive while the worker runs; otherwise the AsyncSession's greenlet
+    # context gets torn down and the post-run DB reads MissingGreenlet.
     backend_dir = os.path.join(os.path.dirname(__file__), "..")
-    result = subprocess.run(
+    result = await asyncio.to_thread(
+        subprocess.run,
         [sys.executable, "-m", "arq", "app.worker.WorkerSettings", "--burst"],
         env=env,
         cwd=os.path.abspath(backend_dir),
