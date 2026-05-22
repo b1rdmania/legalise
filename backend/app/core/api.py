@@ -34,7 +34,7 @@ import uuid
 from dataclasses import dataclass
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.adapters import plugin_bridge as _plugin_bridge_module
 from app.core.model_gateway import gateway as _gateway
@@ -113,6 +113,76 @@ class _AuditAPI:
 audit = _AuditAPI()
 
 
+async def audit_failure(
+    request_session: AsyncSession,
+    action: str,
+    *,
+    actor_id: uuid.UUID | None = None,
+    matter_id: uuid.UUID | None = None,
+    module: str | None = None,
+    resource_type: str | None = None,
+    resource_id: str | None = None,
+    payload: dict | None = None,
+    model_used: str | None = None,
+    prompt_hash: str | None = None,
+    response_hash: str | None = None,
+    token_count: int | None = None,
+    latency_ms: int | None = None,
+) -> None:
+    """Write a failure-provenance audit row in its own committed transaction.
+
+    Use this from any failure path that will raise HTTPException (or
+    propagate an exception) before the caller's request session has a
+    chance to commit. `audit.log` adds the row to the request session,
+    which is correct for success/blocked rows that commit alongside
+    the semantic work — but on failure the request session gets rolled
+    back, taking the audit row with it.
+
+    `audit_failure` opens a fresh `AsyncSession` bound to the same
+    engine as the request session, writes the row, and commits before
+    returning. It does NOT participate in the request session's
+    transaction, so the row survives any subsequent rollback.
+
+    Required because the reviewer R3 pass surfaced that ProviderKeyMissing
+    + ProviderUpstreamError audit rows in `model_gateway.py` and the
+    storage upload/download failure audit rows were being lost to
+    rollback (see HANDOVER_R2_HARDENING_DONE.md §6 for the original gap
+    framing). All failure-provenance audit writes must use this helper.
+
+    Implementation note: the conftest test pattern wraps the request
+    session in a SAVEPOINT inside an outer transaction. A separate
+    session opened on the same engine connects via its own pooled
+    connection, so its commit is independent of the SAVEPOINT.
+    """
+    if request_session.bind is None:
+        # Test or fixture context where the session isn't bound to an
+        # engine. Best-effort: drop the audit row rather than crash.
+        # In production, sessions always have a bind.
+        return
+
+    factory = async_sessionmaker(
+        request_session.bind, expire_on_commit=False
+    )
+    async with factory() as audit_session:
+        audit_session.add(
+            AuditEntry(
+                actor_id=actor_id,
+                matter_id=matter_id,
+                action=action,
+                module=module,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                model_used=model_used,
+                prompt_hash=prompt_hash,
+                response_hash=response_hash,
+                token_count=token_count,
+                latency_ms=latency_ms,
+                payload=payload or {},
+            )
+        )
+        await audit_session.commit()
+
+
 # AI gateway
 # ----------
 # Re-exports the module-level singleton from app.core.model_gateway.
@@ -160,6 +230,7 @@ __all__ = [
     "require_matter",
     "get_matter",
     "audit",
+    "audit_failure",
     "model_gateway",
     "plugin_bridge",
     "storage",

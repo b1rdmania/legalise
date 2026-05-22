@@ -398,13 +398,15 @@ class ModelGateway:
                 if not fallback_allowed:
                     # Unit 8: emit scrubbed operational event — no key material logged.
                     record_key_missing(provider=provider.name)
-                    # Audit provenance for key-missing failures: write a row
-                    # before raising so forensic timelines never have invisible
-                    # failures. Provider name, model id, and posture are safe
-                    # to log; no prompt or key material is included.
+                    # Audit provenance for key-missing failures. R3 review
+                    # surfaced that `audit.log(session, ...)` from a failure
+                    # path is rolled back when the caller raises HTTPException
+                    # — the row never reaches the DB. `audit_failure` opens
+                    # an independent committed transaction so the row
+                    # survives any subsequent rollback.
                     _km_module = caller_module or "unknown"
-                    from app.core.api import audit as _audit_api
-                    await _audit_api.log(
+                    from app.core.api import audit_failure as _audit_failure
+                    await _audit_failure(
                         session,
                         f"module.{_km_module}.model.key_missing",
                         actor_id=actor_id,
@@ -432,10 +434,10 @@ class ModelGateway:
             response_text, tokens = await provider.call(prompt, system=system, **provider_kwargs)
         except ProviderUpstreamError as exc:
             # Audit provenance is mandatory on failure: a failed model call
-            # is just as accountable as a successful one. Write the row
-            # with the same shape we use on success (prompt hash, requested
-            # model, posture) plus the structured upstream error code, then
-            # re-raise. Routers translate to 502.
+            # is just as accountable as a successful one. R3 review: use
+            # `audit_failure` (separate committed session) so the row
+            # survives the caller's rollback when the exception bubbles
+            # up to the HTTPException handler.
             latency_ms = int((time.perf_counter() - start) * 1000)
             # Unit 8: emit scrubbed operational event — provider name and
             # error code only; no request body or prompt text logged.
@@ -444,9 +446,9 @@ class ModelGateway:
                 code=exc.code,
                 upstream_status=exc.upstream_status,
             )
-            from app.core.api import audit  # lazy import, see success path
+            from app.core.api import audit_failure  # lazy import, see success path
 
-            await audit.log(
+            await audit_failure(
                 session,
                 "model.call.error",
                 actor_id=actor_id,

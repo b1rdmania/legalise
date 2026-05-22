@@ -221,10 +221,9 @@ async def test_upload_put_bytes_failure_returns_502(
 
     No Document row should be committed (the DB flush is rolled back).
 
-    NOTE: an audit row on the failure path is a hardening follow-up
-    (needs a separate session via request.app.state.session_factory to
-    survive the implicit rollback). Today the middleware `http.post`
-    row + 502 status is the provenance.
+    The audit row MUST persist — uses `audit_failure` (separate
+    committed session) so the row survives the route's rollback.
+    R3 review fix.
     """
     from app.api import matters as matters_api
     from app.models import AuditEntry, Document
@@ -244,6 +243,32 @@ async def test_upload_put_bytes_failure_returns_502(
     assert "storage_key" in detail
     assert "backend" in detail
 
+    # Audit row must persist. `audit_failure` commits in a separate
+    # session; the row is independent of the route's request session
+    # rollback. We query via a fresh sessionmaker to see writes outside
+    # the conftest SAVEPOINT scope.
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    fresh_factory = async_sessionmaker(db_session.bind, expire_on_commit=False)
+    async with fresh_factory() as fresh:
+        audit_rows = list(
+            (
+                await fresh.scalars(
+                    select(AuditEntry).where(
+                        AuditEntry.action == "storage.put_bytes.failed",
+                        AuditEntry.module == "storage",
+                    )
+                )
+            ).all()
+        )
+        # Best-effort cleanup so the audit row doesn't leak across
+        # tests in the shared DB. The WORM trigger blocks DELETE, so
+        # we accept the row staying — different test runs use
+        # different storage_keys so no false positive.
+    assert len(audit_rows) >= 1, (
+        "storage.put_bytes.failed audit row must persist via audit_failure()"
+    )
+
     # No document.upload audit row.
     upload_rows = list(
         (
@@ -261,11 +286,9 @@ async def test_download_get_bytes_failure_returns_502(
 ) -> None:
     """get_bytes failure during download must return 502 with error=storage_read_failed.
 
-    NOTE: an audit row on the failure path is a hardening follow-up
-    (needs a separate session via request.app.state.session_factory to
-    survive the conftest SAVEPOINT pattern). Today the middleware
-    `http.get` row + 502 status is the provenance. Aligned with the
-    upload-fail path.
+    The audit row MUST persist — uses `audit_failure` (separate
+    committed session) so the row survives the route's rollback.
+    R3 review fix.
     """
     from app.api import documents as documents_api
     from app.models import AuditEntry
@@ -312,6 +335,28 @@ async def test_download_get_bytes_failure_returns_502(
     assert detail["error"] == "storage_read_failed"
     assert "storage_key" in detail
     assert "backend" in detail
+
+    # Audit row persists via `audit_failure` — independent committed
+    # transaction. Query through a fresh sessionmaker to see writes
+    # outside the conftest SAVEPOINT.
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    fresh_factory = async_sessionmaker(db_session.bind, expire_on_commit=False)
+    async with fresh_factory() as fresh:
+        rows = list(
+            (
+                await fresh.scalars(
+                    select(AuditEntry).where(
+                        AuditEntry.action == "storage.get_bytes.failed",
+                        AuditEntry.module == "storage",
+                        AuditEntry.resource_id == str(file_uuid),
+                    )
+                )
+            ).all()
+        )
+    assert len(rows) >= 1, (
+        "storage.get_bytes.failed audit row must persist via audit_failure()"
+    )
 
 
 @pytest.mark.asyncio
