@@ -18,6 +18,11 @@ export default {
         rule: '#E5E5E5',
         muted: '#9CA3AF',
         prose: '#4B5563',
+        // Tertiary accent — sealing wax. Used SPARINGLY: hero underline,
+        // nav hover, privilege C_paused, audit blocked rows, chronology
+        // CPR 31.22 flag, destructive confirms. Never as a background,
+        // never on body prose, never on the brand mark.
+        seal: '#8B0000',
       },
       maxWidth: {
         page: '1440px',
