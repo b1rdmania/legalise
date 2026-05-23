@@ -78,7 +78,7 @@ export function TopBar({
                 <a
                   href="#/matters"
                   className={
-                    "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                    "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
                   Matters
@@ -86,7 +86,7 @@ export function TopBar({
                 <a
                   href="#/modules"
                   className={
-                    "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                    "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
                   Modules
@@ -94,7 +94,7 @@ export function TopBar({
                 <a
                   href="#/settings/profile"
                   className={
-                    "transition-colors " + (route.name === "settings" ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                    "transition-colors " + (route.name === "settings" ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
                   Settings
@@ -107,7 +107,7 @@ export function TopBar({
                   href={DEMO_HREF_UNAUTHED}
                   className={
                     "transition-colors " +
-                    (isDemo ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                    (isDemo ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
                   Demo
@@ -116,14 +116,14 @@ export function TopBar({
                   href="#/modules"
                   className={
                     "transition-colors " +
-                    (isModules ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                    (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
                   Modules
                 </a>
                 <a
                   href="#/manifesto"
-                  className="text-ink hover:text-muted transition-colors"
+                  className="text-ink hover:text-seal transition-colors"
                 >
                   Manifesto
                 </a>
@@ -131,7 +131,7 @@ export function TopBar({
                   href="https://github.com/b1rdmania/legalise"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-ink hover:text-muted transition-colors"
+                  className="text-ink hover:text-seal transition-colors"
                 >
                   GitHub
                 </a>
@@ -139,7 +139,7 @@ export function TopBar({
                   href="https://github.com/b1rdmania/legalise/tree/master/docs"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-ink hover:text-muted transition-colors"
+                  className="text-ink hover:text-seal transition-colors"
                 >
                   Docs
                 </a>

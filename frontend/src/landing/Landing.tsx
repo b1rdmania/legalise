@@ -11,14 +11,35 @@ export function Landing() {
 
   return (
     <div className="max-w-page mx-auto">
-      {/* Hero: two-column above the fold */}
-      <section className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20 grid grid-cols-1 lg:grid-cols-[minmax(0,42rem)_minmax(22rem,1fr)] gap-12 lg:gap-16 items-start border-b border-rule">
+      {/* Hero: two-column above the fold, with a one-shot signature
+          flourish ambient behind the text (animation by Olga Zamaraeva
+          on LottieFiles, recoloured toward seal via CSS filter). */}
+      <section className="relative overflow-hidden border-b border-rule">
+        <div
+          className="pointer-events-none absolute inset-0 z-0 hidden md:block"
+          aria-hidden="true"
+          style={{
+            opacity: 0.12,
+            filter: "sepia(1) saturate(7) hue-rotate(-30deg) brightness(0.55)",
+          }}
+        >
+          <lottie-player
+            src="/animations/signature.json"
+            autoplay
+            speed="0.5"
+            background="transparent"
+            style={{ width: "100%", height: "100%" }}
+          />
+        </div>
+        <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20 grid grid-cols-1 lg:grid-cols-[minmax(0,42rem)_minmax(22rem,1fr)] gap-12 lg:gap-16 items-start">
         {/* Left column: text + CTAs */}
         <div>
           <div className="eyebrow text-muted mb-5">v0.4 evaluation release</div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
             An open-source workspace for AI-augmented legal work.
           </h1>
+          {/* Combo C accent — short seal tick pressed under the headline. */}
+          <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
             Built so a solicitor can show a regulator what the AI did, what
             it touched, and who signed off.
@@ -116,6 +137,7 @@ export function Landing() {
               </dd>
             </div>
           </dl>
+        </div>
         </div>
       </section>
 
