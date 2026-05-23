@@ -135,14 +135,6 @@ export function TopBar({
                 >
                   GitHub
                 </a>
-                <a
-                  href="https://github.com/b1rdmania/legalise/tree/master/docs"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-ink hover:text-seal transition-colors"
-                >
-                  Docs
-                </a>
               </>
             )}
           </nav>

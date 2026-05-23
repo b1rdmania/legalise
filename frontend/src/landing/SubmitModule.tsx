@@ -584,7 +584,7 @@ function Field({
       {hint && (
         <span
           className={`text-xs mt-1 block ${
-            invalid ? "text-[#B5390F]" : "text-muted"
+            invalid ? "text-seal" : "text-muted"
           }`}
         >
           {hint}
@@ -596,7 +596,7 @@ function Field({
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="bg-[#FBE9E1] border-l-4 border-[#B5390F] px-4 py-3 text-sm">
+    <div className="bg-paper border border-rule border-l-[3px] border-l-seal px-4 py-3 text-sm text-seal">
       {message}
     </div>
   );

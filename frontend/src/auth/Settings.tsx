@@ -440,7 +440,7 @@ function SettingsKeys() {
                 <button
                   type="button"
                   onClick={() => remove(k.provider)}
-                  className="text-[#D9304F] text-xs hover:underline justify-self-end"
+                  className="text-seal text-xs hover:underline justify-self-end"
                 >
                   Remove
                 </button>

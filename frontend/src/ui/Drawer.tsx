@@ -6,7 +6,6 @@ import { WAITLIST_HREF } from "../lib/access";
 
 const DEMO_HREF_UNAUTHED = "#/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
-const GITHUB_DOCS = "https://github.com/b1rdmania/legalise/tree/master/docs";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
 
@@ -86,12 +85,11 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing nav: Demo · Manifesto · GitHub · Docs.
+    // Unauth marketing nav: Demo · Manifesto · GitHub.
     primary = [
       { href: DEMO_HREF_UNAUTHED, label: "Demo" },
       { href: "#/manifesto", label: "Manifesto" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
-      { href: GITHUB_DOCS, label: "Docs", external: true },
     ];
     secondary = [
       { href: WAITLIST_HREF, label: "Request hosted access" },
@@ -196,7 +194,7 @@ function DrawerItem({
     "px-4 py-3 text-[16px] text-left " +
     (item.active
       ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
-      : "text-muted hover:text-ink hover:bg-wash");
+      : "text-muted hover:text-seal hover:bg-wash");
   const cls = tone === "primary" ? primaryCls : secondaryCls;
 
   if (item.onClick) {

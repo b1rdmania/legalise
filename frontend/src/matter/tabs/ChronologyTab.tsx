@@ -81,7 +81,7 @@ function ChronologyTable({
             <span className="text-ink z-10 font-bold">{e.event_date}</span>
             <span className="text-muted z-10">{e.significance}</span>
             {e.redacted ? (
-              <span className="text-[#D9304F] italic z-10 truncate">{e.description}</span>
+              <span className="text-seal italic z-10 truncate">{e.description}</span>
             ) : (
               <span className="text-ink z-10 truncate">{e.description}</span>
             )}

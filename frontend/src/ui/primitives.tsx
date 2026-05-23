@@ -31,7 +31,7 @@ export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
 export function ErrorCallout({ message, compact = false }: { message: string; compact?: boolean }) {
   const { status, body } = parseError(message);
   return (
-    <div className={`bg-[#FEF2F2] border border-[#D9304F] ${compact ? "p-3" : "p-4"} text-[#B91C1C] text-sm my-3`}>
+    <div className={`bg-paper border border-seal ${compact ? "p-3" : "p-4"} text-seal text-sm my-3`}>
       <div className="font-semibold mb-1">
         Error{status ? ` · HTTP ${status}` : ""}
       </div>

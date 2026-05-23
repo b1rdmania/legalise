@@ -178,7 +178,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
         )}
         {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
         {error && (
-          <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-xs p-2">
+          <div className="border border-seal bg-paper text-seal text-xs p-2">
             {error}
           </div>
         )}

@@ -1,8 +1,38 @@
+import { Github } from "lucide-react";
 import { navigate } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
 import { Footer } from "../ui/Footer";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
+
+// "What is already here" — six surfaces laid out as a 3×2 grid below
+// the hero. Numbered eyebrows ("01 / 06") give a quiet specimen feel.
+const SURFACES: { title: string; body: string }[] = [
+  {
+    title: "Matter workspace",
+    body: "Every model call lives inside a matter. Documents, chronology, posture, audit.",
+  },
+  {
+    title: "Privilege posture",
+    body: "A_cleared, B_mixed, C_paused. The gateway reads the posture before every model call and refuses what isn't permitted.",
+  },
+  {
+    title: "Capability gates",
+    body: "Modules declare what they need. The workspace grants. The runtime enforces, every call.",
+  },
+  {
+    title: "Modules",
+    body: "Legal skills installed as plugins. Open catalogue. No vendor lock to ours.",
+  },
+  {
+    title: "Bring your own model keys",
+    body: "Anthropic, OpenAI, or local Ollama. No shared keys, no resale, no provider liability we shouldn't carry.",
+  },
+  {
+    title: "Audit trail",
+    body: "Who saw what, when, under what permission. Every call. Every denial. Append-only.",
+  },
+];
 
 export function Landing() {
   const auth = useAuth();
@@ -30,9 +60,7 @@ export function Landing() {
             style={{ width: "100%", height: "100%" }}
           />
         </div>
-        <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20 grid grid-cols-1 lg:grid-cols-[minmax(0,42rem)_minmax(22rem,1fr)] gap-12 lg:gap-16 items-start">
-        {/* Left column: text + CTAs */}
-        <div>
+        <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-24 max-w-3xl">
           <div className="eyebrow text-muted mb-5">v0.4 evaluation release</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
             An open-source workspace for AI-augmented legal work.
@@ -82,55 +110,40 @@ export function Landing() {
                 href="https://github.com/b1rdmania/legalise"
                 target="_blank"
                 rel="noreferrer"
-                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+                className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center gap-2"
               >
-                Fork on GitHub
+                <Github size={16} strokeWidth={1.75} aria-hidden="true" />
+                GitHub
               </a>
             </div>
           )}
         </div>
+      </section>
 
-        {/* Right column: proof panel */}
-        <div className="border border-rule bg-paper p-8">
-          <div className="eyebrow text-muted mb-6">What is already here</div>
-          <dl className="space-y-5 text-sm">
-            <div>
-              <dt className="font-semibold text-ink mb-1">Matter workspace</dt>
-              <dd className="text-prose leading-relaxed">
-                Every model call lives inside a matter. Documents,
-                chronology, posture, audit.
-              </dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-ink mb-1">Runtime gates</dt>
-              <dd className="text-prose leading-relaxed">
-                Permission and privilege posture checked before every AI
-                call. Denials are logged, not silenced.
-              </dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-ink mb-1">Modules</dt>
-              <dd className="text-prose leading-relaxed">
-                Modules declare what they need. Workspace grants. Runtime
-                enforces.
-              </dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-ink mb-1">Bring your own model keys</dt>
-              <dd className="text-prose leading-relaxed">
-                Anthropic, OpenAI, or local Ollama. No shared keys, no
-                resale.
-              </dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-ink mb-1">Audit trail</dt>
-              <dd className="text-prose leading-relaxed">
-                Who saw what, when, under what permission. Every call.
-                Every denial.
-              </dd>
-            </div>
-          </dl>
-        </div>
+      {/* "What is already here" — Warp-style 6-card specimen grid.
+          Thin grid lines via gap-px on a rule-coloured wrapper. */}
+      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
+        <div className="max-w-page mx-auto">
+          <div className="eyebrow text-muted mb-3">What is already here</div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
+            Six surfaces. One workspace.
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
+            {SURFACES.map((s, i) => (
+              <div
+                key={s.title}
+                className="bg-paper p-6 md:p-8 hover:bg-wash transition-colors"
+              >
+                <div className="font-mono text-xs text-muted mb-4">
+                  {String(i + 1).padStart(2, "0")} / 06
+                </div>
+                <h3 className="text-lg font-bold text-ink mb-3 tracking-tight2">
+                  {s.title}
+                </h3>
+                <p className="text-sm text-prose leading-relaxed">{s.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

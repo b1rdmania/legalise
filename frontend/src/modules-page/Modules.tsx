@@ -179,8 +179,8 @@ export function Modules() {
       {isAuthed && !data && !error && <LoadingLine label="loading modules" />}
 
       {data && data.broken.length > 0 && (
-        <div className="mb-10 border border-rule bg-yellow-100 p-4">
-          <div className="eyebrow mb-2">Broken manifests</div>
+        <div className="mb-10 border border-rule border-l-[3px] border-l-seal bg-paper p-4">
+          <div className="eyebrow mb-2 text-seal">Broken manifests</div>
           <ul className="text-sm text-ink space-y-2">
             {data.broken.map((b, i) => (
               <li key={`${b.plugin}-${b.skill}-${i}`} title={b.errors.map((e) => `${e.path} ${e.message}`).join("\n")}>
@@ -196,7 +196,7 @@ export function Modules() {
       )}
 
       {data && data.skills.length === 0 && data.broken.length === 0 && (
-        <div className="bg-yellow-100 border border-rule p-4 text-ink text-sm">
+        <div className="bg-paper border border-rule border-l-[3px] border-l-seal p-4 text-ink text-sm">
           No SKILL.md files found under {data.plugins_root}.
         </div>
       )}
