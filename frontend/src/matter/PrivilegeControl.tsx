@@ -1,7 +1,11 @@
 // PrivilegeControl - monochrome posture selector.
-// v0.3: no semantic colour fills. Reads as a plain mono dropdown
-// sitting inline with the surrounding sidebar text. No coloured pill,
-// no coloured square. Matches the document-as-product idiom.
+// v0.3: no semantic colour fills for A_cleared / B_mixed. Reads as a
+// plain mono dropdown sitting inline with the surrounding sidebar text.
+// Matches the document-as-product idiom.
+//
+// v0.4: C_paused is the single exception — text turns seal because
+// posture C refuses cloud calls, and the gateway refusal is itself an
+// audited event. The seal hint flags it before any action is attempted.
 
 export function PrivilegeControl({
   value,
@@ -10,12 +14,16 @@ export function PrivilegeControl({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const isPaused = value === "C_paused";
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label="Privilege posture"
-      className="bg-transparent text-sm font-semibold font-mono text-ink border-none outline-none cursor-pointer p-0 -ml-0.5 focus-visible:underline focus-visible:underline-offset-4"
+      className={
+        "bg-transparent text-sm font-semibold font-mono border-none outline-none cursor-pointer p-0 -ml-0.5 focus-visible:underline focus-visible:underline-offset-4 " +
+        (isPaused ? "text-seal" : "text-ink")
+      }
     >
       <option value="A_cleared">A_cleared</option>
       <option value="B_mixed">B_mixed</option>

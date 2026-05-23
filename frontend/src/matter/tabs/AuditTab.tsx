@@ -89,6 +89,13 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
             </div>
             {visible.map((e) => {
               const isSelected = selectedId === e.id;
+              // Blocked / refused / denied actions are the audit-trail
+              // events that matter most for "what didn't happen and why".
+              // Surface them with the seal accent so they're scannable.
+              const isBlocked =
+                e.action.includes(".blocked") ||
+                e.action.includes(".refused") ||
+                e.action.includes(".denied");
               return (
                 <button
                   type="button"
@@ -101,7 +108,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
                 >
                   <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
                   <span className="text-prose truncate">{e.module ?? "-"}</span>
-                  <span className="text-ink font-bold truncate">{e.action}</span>
+                  <span className={(isBlocked ? "text-seal" : "text-ink") + " font-bold truncate"}>{e.action}</span>
                   <span className="text-prose truncate">{e.model_used ?? "-"}</span>
                   <span className="text-ink">{e.token_count ?? "-"}</span>
                   <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "-"}</span>

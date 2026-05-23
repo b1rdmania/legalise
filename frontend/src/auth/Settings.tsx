@@ -302,14 +302,14 @@ function SettingsProfile({
 
       {/* Danger zone */}
       <div>
-        <div className="eyebrow mb-4 mt-12 text-[#D9304F]">Danger Zone</div>
+        <div className="eyebrow mb-4 mt-12 text-seal">Danger zone</div>
         <p className="text-sm text-muted mb-4">
           Deleting your account removes all matters and audit history. This action cannot be undone.
         </p>
         <button
           type="button"
           onClick={onDeleteAccount}
-          className="border border-[#D9304F] text-[#D9304F] hover:bg-[#FEF2F2] px-4 py-2 transition-colors text-sm font-medium min-h-[44px]"
+          className="border border-seal text-seal hover:bg-seal hover:text-paper px-4 py-2 transition-colors text-sm font-medium min-h-[44px]"
         >
           Delete account
         </button>
