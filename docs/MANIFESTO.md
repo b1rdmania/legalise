@@ -4,7 +4,7 @@ Commitments that don't move.
 
 ## The wedge
 
-Legal AI in the UK has a regulatory shape that most products are not built around. Heppner made that shape concrete. Privileged material has to be handled with provable care, and the firm has to be able to reconstruct, after the fact, what was disclosed to which provider under what protection.
+UK legal AI sits under rules most products ignore. Heppner made it concrete. A firm using AI must show, later and on demand, what privileged material the AI saw, who held it, and under what protection.
 
 The audit log is not a nice-to-have. It is the canonical record. Privilege posture is not a preference. It is a constraint on dispatch.
 
@@ -50,7 +50,7 @@ Three states. `A_cleared`, `B_mixed`, `C_paused`. Each matter carries one. The g
 
 Cloud providers are commodities behind the gateway, not direct dependencies of any module. Local models (Ollama) exist from day one for `C_paused` matters.
 
-If the posture rules and the providers configured for a matter cannot serve a call, the call is refused. The refusal is audited. Privilege is not a soft setting.
+If the posture rules and the providers configured for a matter cannot serve a call, the gateway refuses it. The refusal is audited. Privilege is not a soft setting.
 
 ## Providers are commodity
 
@@ -69,6 +69,14 @@ The novelty is the composition. Privilege-aware gateway. Adversarial premortem p
 Every output is a draft. A qualified solicitor reviews, verifies, and takes professional responsibility.
 
 Drafts and accelerants, yes. Substitutes, no. A constraint on the product surface, not an aspiration.
+
+## What this release is not
+
+This is not a law firm. It is not legal advice. It is not for live client matters. The hosted site is a limited evaluation environment, and real model calls require the operator's own provider keys.
+
+The current release proves the matter workspace, modules, privilege posture, capability gates, BYO keys, and audit trail. The supervisor-gate primitive is the next step, not a claim already made.
+
+Some hard problems are deliberately staged: durable job recovery, formal WORM database roles, richer evals, hallucination controls, prompt shrouding, and production-grade regulator reconstruction. Those are engineering gates, not ignored problems.
 
 ## UK-jurisdiction-aware, not US-shaped
 

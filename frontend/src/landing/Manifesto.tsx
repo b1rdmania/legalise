@@ -21,11 +21,10 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <p className="prose-p">
-          Legal AI in the UK has a regulatory shape that most products are
-          not built around. Heppner made that shape concrete. Privileged
-          material has to be handled with provable care, and the firm has
-          to be able to reconstruct, after the fact, what was disclosed to
-          which provider under what protection.
+          UK legal AI sits under rules most products ignore. Heppner made
+          it concrete. A firm using AI must show, later and on demand,
+          what privileged material the AI saw, who held it, and under
+          what protection.
         </p>
         <p className="prose-p">
           The audit log is not a nice-to-have. It is the canonical record.
@@ -181,7 +180,7 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           If the posture rules and the providers configured for a matter
-          cannot serve a call, the call is refused. The refusal is
+          cannot serve a call, the gateway refuses it. The refusal is
           audited. Privilege is not a soft setting.
         </p>
       </>
@@ -347,8 +346,7 @@ export function Manifesto() {
             Commitments that don't move.
           </h1>
           <p className="text-xl text-muted leading-relaxed max-w-2xl">
-            The lines this project will hold. The shape of the work, the
-            constraints on the surface, and the things we will not ship.
+            What we believe. How we built it. What we will not ship.
           </p>
           <div className="mt-8">
             <a
