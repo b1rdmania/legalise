@@ -113,6 +113,15 @@ export function TopBar({
                   Demo
                 </a>
                 <a
+                  href="#/modules"
+                  className={
+                    "transition-colors " +
+                    (isModules ? "text-ink font-semibold" : "text-ink hover:text-muted")
+                  }
+                >
+                  Modules
+                </a>
+                <a
                   href="#/manifesto"
                   className="text-ink hover:text-muted transition-colors"
                 >

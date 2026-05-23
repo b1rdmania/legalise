@@ -17,15 +17,15 @@ export function Landing() {
         <div>
           <div className="eyebrow text-muted mb-5">v0.4 evaluation release</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-6 leading-[1.05]">
-            Open-source substrate for supervised legal AI.
+            An open-source workspace for AI-augmented legal work.
           </h1>
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            Matter files, legal modules, privilege posture, capability gates,
-            and an audit trail you can inspect.
+            Built so a solicitor can show a regulator what the AI did, what
+            it touched, and who signed off.
           </p>
           <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
-            Legalise shows the workspace layer first. The supervisor-gate
-            primitive lands next. Not for live client matters.
+            v0.4 ships the workspace. The supervisor-gate primitive lands
+            next. Not for live client matters.
           </p>
 
           {/* CTAs */}
@@ -83,27 +83,36 @@ export function Landing() {
             <div>
               <dt className="font-semibold text-ink mb-1">Matter workspace</dt>
               <dd className="text-prose leading-relaxed">
-                Documents, chronology, assistant, modules, posture, audit.
+                Every model call lives inside a matter. Documents,
+                chronology, posture, audit.
               </dd>
             </div>
             <div>
               <dt className="font-semibold text-ink mb-1">Runtime gates</dt>
               <dd className="text-prose leading-relaxed">
-                Capability grants and privilege posture checked before
-                privileged operations.
+                Permission and privilege posture checked before every AI
+                call. Denials are logged, not silenced.
               </dd>
             </div>
             <div>
-              <dt className="font-semibold text-ink mb-1">BYO model keys</dt>
+              <dt className="font-semibold text-ink mb-1">Modules</dt>
               <dd className="text-prose leading-relaxed">
-                Users bring their own Anthropic, OpenAI, or local Ollama path.
+                Modules declare what they need. Workspace grants. Runtime
+                enforces.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-ink mb-1">Bring your own model keys</dt>
+              <dd className="text-prose leading-relaxed">
+                Anthropic, OpenAI, or local Ollama. No shared keys, no
+                resale.
               </dd>
             </div>
             <div>
               <dt className="font-semibold text-ink mb-1">Audit trail</dt>
               <dd className="text-prose leading-relaxed">
-                Model calls, module actions, denials, mutations, and failures
-                leave rows.
+                Who saw what, when, under what permission. Every call.
+                Every denial.
               </dd>
             </div>
           </dl>
