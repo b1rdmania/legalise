@@ -1,7 +1,6 @@
 import { navigate } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
 import { Footer } from "../ui/Footer";
-import { WAITLIST_HREF } from "../lib/access";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 
@@ -86,12 +85,6 @@ export function Landing() {
                 className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 Fork on GitHub
-              </a>
-              <a
-                href={WAITLIST_HREF}
-                className="text-sm text-muted hover:text-ink transition-colors"
-              >
-                Request hosted access
               </a>
             </div>
           )}

@@ -110,7 +110,6 @@ export function DemoMatter() {
   return (
     <>
       <div>
-        <DemoBanner />
         {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
       </div>
       <div className="flex">
@@ -224,30 +223,6 @@ export function DemoMatter() {
         </div>
       </div>
     </>
-  );
-}
-
-// -- Banner -----------------------------------------------------------------
-
-function DemoBanner() {
-  return (
-    <div className="border-b border-rule bg-wash px-4 sm:px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-      <div className="flex items-center gap-2">
-        <span className="inline-block w-1.5 h-1.5 bg-ink" aria-hidden />
-        <span className="font-mono uppercase tracking-track2 text-[10px] font-bold text-ink">
-          Read-only demo
-        </span>
-      </div>
-      <p className="text-sm text-prose">
-        Khan v Acme. Worked unfair-dismissal matter, mutations disabled. Hosted access is waitlisted.
-      </p>
-      <a
-        href={WAITLIST_HREF}
-        className="ml-auto bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-sm font-medium min-h-[36px] inline-flex items-center"
-      >
-        Join waitlist →
-      </a>
-    </div>
   );
 }
 
