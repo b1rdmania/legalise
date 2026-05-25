@@ -290,11 +290,41 @@ async def test_canonical_valid_path(db_session, db_connection) -> None:
 
 
 @pytest.mark.asyncio
-async def test_canonical_denied_capability(db_session, db_connection) -> None:
+async def test_canonical_denied_capability(
+    db_session, db_connection, monkeypatch
+) -> None:
     """Transition requiring a capability the user does NOT hold.
     Expect: state unchanged + blocked transition row +
     dual audit rows (legacy module.capability.denied + Phase 1
-    state_machine.transition.blocked)."""
+    state_machine.transition.blocked).
+
+    Round-4 Reviewer fix: ``audit_failure`` is patched to write via
+    the request session instead of a fresh pool connection. The
+    production path commits independently; in the conftest SAVEPOINT
+    pattern that independent commit cannot see the test's uncommitted
+    user and FK-violates. Mirrors the existing codebase pattern from
+    ``test_provider_audit_completeness.py``.
+    """
+    # Mock audit_failure to write via the request session.
+    async def _fake_audit_failure(request_session, action, **kwargs):
+        from app.core.api import audit
+
+        await audit.log(
+            request_session,
+            action,
+            actor_id=kwargs.get("actor_id"),
+            matter_id=kwargs.get("matter_id"),
+            module=kwargs.get("module"),
+            resource_type=kwargs.get("resource_type"),
+            resource_id=kwargs.get("resource_id"),
+            payload=kwargs.get("payload"),
+        )
+
+    monkeypatch.setattr(
+        "app.core.phase1_runtime.capability_check.audit_failure",
+        _fake_audit_failure,
+    )
+
     user = await _make_user(db_session)
     await _register_intake_definition(db_session)
     instance = await create_instance(

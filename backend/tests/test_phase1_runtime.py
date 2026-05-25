@@ -310,22 +310,65 @@ async def test_check_or_block_success_returns_none(db_session) -> None:
 
 @pytest.mark.asyncio
 async def test_check_or_block_denied_writes_dual_audit_and_raises(
-    db_session, db_connection
+    db_session, monkeypatch
 ) -> None:
-    """Denial path: BOTH audit rows must exist after the call, and
-    Phase1Blocked carries the BlockedPayload with CAPABILITY_DENIED
-    + the requested capability string.
+    """Denial path:
 
-    Per architectural decision #2 in PHASE_1_BUILD_PLAN.md:
-    - `module.capability.denied` written by require_capability
-      (existing behaviour)
-    - `<block_action>` written by check_or_block via audit_failure
-      (Phase 1 canonical row, survives rollback)
+    1. ``require_capability`` writes the legacy
+       ``module.capability.denied`` row through the request session
+       (visible inside the test transaction once savepoint releases).
+    2. ``check_or_block`` catches ``CapabilityDenied`` and calls
+       ``audit_failure`` with the canonical ``*.blocked`` action +
+       ``BlockedPayload``.
+    3. ``check_or_block`` re-raises ``Phase1Blocked`` with the
+       canonical payload.
+
+    Round-4 Reviewer fix: ``audit_failure`` is mocked here rather than
+    invoked against a real fresh-pool connection. The production path
+    writes to a fresh connection that commits independently; in the
+    conftest SAVEPOINT pattern that fresh connection cannot see the
+    test's uncommitted user, so the ``audit_entries.actor_id`` FK
+    fails. Mocking matches the existing codebase pattern for
+    audit-failure tests (see ``test_provider_audit_completeness.py``).
+
+    The mock both records the invocation and writes the row via the
+    request session so the canonical-shape assertion still runs
+    against a real ``AuditEntry`` row.
     """
     user = await _make_user(db_session)
-    # Do NOT grant the capability.
-
     capability = "matter.context.legalise_memory.facts.write"
+
+    # Mock audit_failure: write to the request session (visible in the
+    # test's outer transaction) and record the call args.
+    captured_calls: list[dict] = []
+
+    async def _fake_audit_failure(
+        request_session,
+        action,
+        **kwargs,
+    ):
+        captured_calls.append({"action": action, **kwargs})
+        # Mirror the row that audit_failure would have written, but
+        # via the request session so the row lives inside the test's
+        # outer transaction and the FK check resolves.
+        from app.core.api import audit
+
+        await audit.log(
+            request_session,
+            action,
+            actor_id=kwargs.get("actor_id"),
+            matter_id=kwargs.get("matter_id"),
+            module=kwargs.get("module"),
+            resource_type=kwargs.get("resource_type"),
+            resource_id=kwargs.get("resource_id"),
+            payload=kwargs.get("payload"),
+        )
+
+    monkeypatch.setattr(
+        "app.core.phase1_runtime.capability_check.audit_failure",
+        _fake_audit_failure,
+    )
+
     with pytest.raises(Phase1Blocked) as exc_info:
         await check_or_block(
             db_session,
@@ -340,46 +383,44 @@ async def test_check_or_block_denied_writes_dual_audit_and_raises(
     assert err.payload.blocked_reason == BlockedReason.CAPABILITY_DENIED
     assert err.payload.denied_capability == capability
 
-    # Both audit rows must be queryable. The legacy
-    # `module.capability.denied` row is on the db_session because
-    # require_capability commits it through the request session. The
-    # Phase 1 `*.blocked` row was written via audit_failure on a
-    # separate session, so we have to query it through a different
-    # session bound to the same outer transaction.
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+    # audit_failure was invoked exactly once with the canonical action
+    # and a payload carrying the BlockedPayload + module_id + capability_id.
+    assert len(captured_calls) == 1
+    call = captured_calls[0]
+    assert call["action"] == "matter_context.write.blocked"
+    assert call["module"] == "core.matter_context"
+    assert call["actor_id"] == user.id
+    payload = call["payload"]
+    assert payload["status"] == "blocked"
+    assert payload["blocked_reason"] == "capability_denied"
+    assert payload["denied_capability"] == capability
+    assert payload["module_id"] == "core"
+    assert payload["capability_id"] == capability
 
-    factory = async_sessionmaker(
-        bind=db_connection,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        join_transaction_mode="create_savepoint",
+    # The legacy row (from require_capability via the request session)
+    # is queryable on db_session.
+    await db_session.flush()
+    legacy_row = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.actor_id == user.id,
+            AuditEntry.action == "module.capability.denied",
+        )
     )
-    async with factory() as verify_session:
-        legacy_row = await verify_session.scalar(
-            select(AuditEntry).where(
-                AuditEntry.actor_id == user.id,
-                AuditEntry.action == "module.capability.denied",
-            )
-        )
-        assert legacy_row is not None, "legacy module.capability.denied row missing"
-        assert legacy_row.payload["capability"] == capability
+    assert legacy_row is not None
+    assert legacy_row.payload["capability"] == capability
 
-        phase1_row = await verify_session.scalar(
-            select(AuditEntry).where(
-                AuditEntry.actor_id == user.id,
-                AuditEntry.action == "matter_context.write.blocked",
-            )
+    # The mirrored *.blocked row (written by our mock via session) is
+    # queryable on the same session.
+    phase1_row = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.actor_id == user.id,
+            AuditEntry.action == "matter_context.write.blocked",
         )
-        assert phase1_row is not None, (
-            "phase 1 canonical *.blocked row missing — check_or_block "
-            "must always emit this in addition to the legacy row"
-        )
-        assert phase1_row.module == "core.matter_context"
-        assert phase1_row.payload["status"] == "blocked"
-        assert phase1_row.payload["blocked_reason"] == "capability_denied"
-        assert phase1_row.payload["denied_capability"] == capability
-        assert phase1_row.payload["module_id"] == "core"
-        assert phase1_row.payload["capability_id"] == capability
+    )
+    assert phase1_row is not None
+    assert phase1_row.module == "core.matter_context"
+    assert phase1_row.payload["status"] == "blocked"
+    assert phase1_row.payload["blocked_reason"] == "capability_denied"
 
 
 @pytest.mark.asyncio

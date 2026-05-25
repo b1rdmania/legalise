@@ -276,7 +276,35 @@ async def test_canonical_valid_write_and_read(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_canonical_write_denied_capability(db_session, db_connection) -> None:
+async def test_canonical_write_denied_capability(
+    db_session, db_connection, monkeypatch
+) -> None:
+    """Round-4 Reviewer fix: mock ``audit_failure`` so the Phase 1
+    canonical *.blocked row writes via the request session instead of
+    a fresh pool connection. Production behaviour writes independently
+    and survives caller rollback; in the conftest SAVEPOINT pattern
+    that independent commit FK-violates against the uncommitted test
+    user. Mirrors test_provider_audit_completeness pattern.
+    """
+    async def _fake_audit_failure(request_session, action, **kwargs):
+        from app.core.api import audit
+
+        await audit.log(
+            request_session,
+            action,
+            actor_id=kwargs.get("actor_id"),
+            matter_id=kwargs.get("matter_id"),
+            module=kwargs.get("module"),
+            resource_type=kwargs.get("resource_type"),
+            resource_id=kwargs.get("resource_id"),
+            payload=kwargs.get("payload"),
+        )
+
+    monkeypatch.setattr(
+        "app.core.phase1_runtime.capability_check.audit_failure",
+        _fake_audit_failure,
+    )
+
     user = await _make_user(db_session)
     matter = await _make_matter(db_session, user)
     namespace = "memory.facts"
