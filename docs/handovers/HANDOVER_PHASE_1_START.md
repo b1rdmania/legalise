@@ -3,8 +3,11 @@
 **From:** Andy
 **To:** Reviewer
 **Branch:** `runtime-rewrite`
-**Base commit:** `f9b411c` (canonical runtime rewrite plan with substrate/domain split applied)
+**Base commit:** `124a516` (canonical runtime rewrite plan with substrate/domain split applied; includes MCP portability addendum)
 **Status:** Phase 0 docs complete. Phase 1 starts here. Phase 2 does not start until Phase 1 is reviewed.
+
+**Patch history:**
+- 2026-05-25: Patched after Reviewer review at `86e4062`. Five findings resolved: (1) capability grammar aligned to canonical `<scope>.<resource>.<action>` per `MANIFEST_V2_SCHEMA.md` and `MATTER_CONTEXT_STORE.md`; (2) state-machine models expanded to three tables per `STATE_MACHINE_PRIMITIVE.md`; (3) matter-context schema registry added and endpoints made matter-scoped per `MATTER_CONTEXT_STORE.md`; (4) advice-boundary Phase 1 scope clarified — primitive + callable gate/check API, manifest integration deferred to Phase 2; (5) audit events aligned with architecture docs.
 
 ---
 
@@ -40,51 +43,93 @@ Patch the docs in the same branch before coding further. Do not start Phase 2 un
 
 Code (substrate primitives only, no domain schemas):
 
-- `backend/app/core/state_machine/` — generic primitive. Modules declare states + transitions + per-state gates under their namespace. Runtime enforces transitions, fires gates, emits audit. Not legal-domain-specific.
-- `backend/app/core/matter_context/` — generic structured context store. Modules declare typed schemas under their namespace, capability-scoped reads/writes, generic JSONB-backed store. Runtime enforces capability scope on access.
-- `backend/app/core/advice_boundary/` — opinion/advice tier gate primitive. Five tiers: `factual_extraction → legal_information → draft_advice → supervised_legal_advice → approved_final_advice`. Runtime-enforced on every output via `advice_tier_max` manifest field. Tier transitions require explicit human approval and emit audit.
+- `backend/app/core/state_machine/` — generic primitive per `docs/architecture/STATE_MACHINE_PRIMITIVE.md`. Modules declare definitions (states, transitions, per-transition gates, per-transition required_capabilities) under their namespace. Runtime owns definition registry, instance lifecycle, transition validation, gate execution, audit. Not legal-domain-specific. Does not introduce its own capability strings — enforces module-declared capabilities on each transition.
+- `backend/app/core/matter_context/` — generic structured context store per `docs/architecture/MATTER_CONTEXT_STORE.md`. Modules register typed schemas (namespace + JSON schema + version) under their module id. Runtime owns schema registry, schema validation, item storage, capability-scoped reads/writes, source-reference enforcement, audit emission.
+- `backend/app/core/advice_boundary/` — opinion/advice tier gate primitive. Five tiers: `factual_extraction → legal_information → draft_advice → supervised_legal_advice → approved_final_advice`. **Phase 1 scope:** primitive logic + callable gate/check API exposed as `core.advice_boundary.check(output_id, requested_tier, declared_tier_max)`. **Deferred to Phase 2:** wiring this gate to the `advice_tier_max` manifest field (manifest v2 lands in Phase 2). Tier transitions emit audit unconditionally in Phase 1; manifest-driven enforcement activates in Phase 2.
 
-Models:
+> **Note for Reviewer:** `docs/architecture/` does not yet contain a dedicated `ADVICE_BOUNDARY.md`. The tier vocabulary lives in `MANIFEST_V2_SCHEMA.md` (`advice_tier_max`) and `OUTPUT_LIFECYCLE.md` (transition gates). Authoring `ADVICE_BOUNDARY.md` may be necessary before Phase 1 — at minimum to lock the five tier names, the transition rules between tiers, and the gate API surface. Patch in this branch if needed.
 
-- `models/state_machine_instance.py` — `(namespace, instance_id, current_state, history JSONB, created_at, updated_at)`
-- `models/matter_context_item.py` — `(matter_id, namespace, schema_id, key, value JSONB, created_by_module_id, created_by_capability_id, created_at, updated_at, superseded_by_id)`
-- `models/advice_boundary_decision.py` — `(output_id, from_tier, to_tier, actor_id, module_id, capability_id, gate_state, audited_at)`
+Models (per architecture docs):
+
+State machine (three tables per `STATE_MACHINE_PRIMITIVE.md` §Storage):
+
+- `models/state_machine_definition.py` — `(id, module_id, version, states JSONB, initial_state, terminal_states JSONB, transitions JSONB, created_at)`. Versioned per `STATE_MACHINE_PRIMITIVE.md` §56 ("Definitions are versioned. Instances record the definition version they were created under.").
+- `models/state_machine_instance.py` — `(id, definition_id, definition_version, owner_scope, owner_id, current_state, created_at, updated_at)`. `(owner_scope, owner_id)` carries matter_id / workspace_id / prospect_id depending on the consuming module.
+- `models/state_machine_transition.py` — `(id, instance_id, from_state, to_state, actor_id, module_id, capability_id, reason, metadata JSONB, gate_state JSONB, status, occurred_at)`. `status ∈ {requested, completed, blocked, failed}`. Append-only.
+
+Matter context (two tables per `MATTER_CONTEXT_STORE.md` §Storage):
+
+- `models/matter_context_schema.py` — `(id, namespace, module_id, version, json_schema JSONB, registered_at, registered_by_module_id)`. Schema registry per `MATTER_CONTEXT_STORE.md` §29.
+- `models/matter_context_item.py` — `(id, matter_id, namespace, payload JSONB, source_type, source_id, created_by_user_id, created_by_module_id, created_at, updated_at, superseded_by_id)`. Fields per `MATTER_CONTEXT_STORE.md` §55.
+
+Advice boundary:
+
+- `models/advice_boundary_decision.py` — `(id, output_id, from_tier, to_tier, actor_id, module_id, capability_id, gate_state JSONB, status, decided_at)`. `status ∈ {requested, completed, blocked, denied, failed}`. Append-only.
 
 Migrations:
 
-- new tables for the three primitives
+- new tables for all six models (three state-machine, two matter-context, one advice-boundary)
 - backfill not required (no existing data uses these primitives)
 
-API surfaces (minimal contracts; UI lands in Phase 12):
+API surfaces (minimal contracts; UI lands in Phase 12). All endpoints capability-checked and audit-emitting:
 
-- `POST /api/state/{namespace}/{instance_id}/transition` — transition request, capability-checked, gate-fired, audited
-- `GET /api/state/{namespace}/{instance_id}` — read current state + history (capability-scoped)
-- `POST /api/matter-context/{namespace}/{schema_id}` — write item (capability-scoped, audited)
-- `GET /api/matter-context/{namespace}/{schema_id}` — read items (capability-scoped)
-- `POST /api/advice-boundary/transition` — request tier transition on an output, gate-fired, audited
+State machine:
 
-Capability grammar additions (per `MANIFEST_V2_SCHEMA.md`):
+- `POST /api/state-machine/definitions` — register a definition (caller's module asserted via auth context; idempotent on `(module_id, id, version)`)
+- `GET /api/state-machine/definitions/{id}/versions/{version}` — read a definition
+- `POST /api/state-machine/instances` — create an instance from a definition
+- `GET /api/state-machine/instances/{instance_id}` — read current state, available transitions, history
+- `POST /api/state-machine/instances/{instance_id}/transitions` — request a transition (capability-checked, gate-fired, audited)
 
-- `<scope>.state_machine.<namespace>.read`
-- `<scope>.state_machine.<namespace>.transition`
-- `<scope>.matter_context.<namespace>.<schema_id>.read`
-- `<scope>.matter_context.<namespace>.<schema_id>.write`
-- `<scope>.advice_boundary.transition`
+Matter context (matter-scoped — Reviewer P1.3):
 
-Audit events emitted:
+- `POST /api/matter-context/schemas` — register a schema (idempotent on `(namespace, version)`)
+- `GET /api/matter-context/schemas/{namespace}` — read a schema
+- `POST /api/matters/{matter_id}/context/{namespace}` — write item (capability `matter.context.<namespace>.write` required, schema-validated, audited)
+- `GET /api/matters/{matter_id}/context/{namespace}` — read items (capability `matter.context.<namespace>.read` required, audited per `MATTER_CONTEXT_STORE.md` §109)
+- `PATCH /api/matters/{matter_id}/context/items/{item_id}` — supersede / update (capability-checked, audited)
 
+Advice boundary:
+
+- `POST /api/advice-boundary/check` — invoke the gate programmatically with `(output_id, requested_tier, declared_tier_max, actor, module_id, capability_id)`. Returns `{allowed, gate_state, decision_id}`. Manifest-driven enforcement deferred to Phase 2.
+
+Capability grammar (aligned to canonical `<scope>.<resource>.<action>` shape per `MANIFEST_V2_SCHEMA.md` §107):
+
+Phase 1 substrate primitives do not introduce per-namespace capability strings of their own — modules declare capability strings under their own namespace, and the runtime enforces them at transition / read / write boundaries. The substrate adds only the *enforcement-point* capabilities used by the primitives' own APIs:
+
+- `matter.context.<namespace>.read` — read items in the given context namespace (per `MATTER_CONTEXT_STORE.md` §74)
+- `matter.context.<namespace>.write` — write items in the given context namespace (per `MATTER_CONTEXT_STORE.md` §74)
+- For state-machine transitions, the `required_capabilities` field on each transition declaration (per `STATE_MACHINE_PRIMITIVE.md` §42) carries the module-owned capability string that the runtime checks. The substrate does not invent its own state-machine grammar.
+- For advice-boundary, Phase 1 invokes the gate directly via API; manifest-driven enforcement via `advice_tier_max` lands in Phase 2.
+
+Schema-registry and definition-registry endpoints (admin-level operations) are scoped to module identity asserted via auth context, not via capability strings — modules can only register schemas / definitions under their own `module_id`.
+
+Audit events emitted (aligned with architecture docs):
+
+State machine (per `STATE_MACHINE_PRIMITIVE.md` §82):
+
+- `state_machine.instance.created`
 - `state_machine.transition.requested`
 - `state_machine.transition.completed`
 - `state_machine.transition.blocked`
-- `state_machine.transition.denied`
+- `state_machine.transition.failed`
+
+Matter context (per `MATTER_CONTEXT_STORE.md` §102):
+
+- `matter_context.schema.registered`
 - `matter_context.item.created`
 - `matter_context.item.updated`
 - `matter_context.item.superseded`
+- `matter_context.item.withdrawn`
+- `matter_context.item.read`
 - `matter_context.read.denied`
-- `advice_boundary.transition.requested`
-- `advice_boundary.transition.completed`
-- `advice_boundary.transition.blocked`
-- `advice_boundary.transition.denied`
+
+Advice boundary:
+
+- `advice_boundary.check.requested`
+- `advice_boundary.check.completed`
+- `advice_boundary.check.blocked`
+- `advice_boundary.check.denied`
 
 Tests (every primitive, all paths):
 
