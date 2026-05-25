@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -39,9 +39,13 @@ class WorkspaceSkillCapabilityGrant(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    plugin: Mapped[str] = mapped_column(String(64), nullable=False)
+    plugin: Mapped[str] = mapped_column(String(128), nullable=False)
     skill: Mapped[str] = mapped_column(String(128), nullable=False)
-    capability: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Widened from String(64) to String(256) in migration 0015 — v2
+    # capability strings are longer than the 7-string v1 vocabulary
+    # (e.g. `matter.context.legalise_memory.accepted_facts.write`).
+    # Matches the capability_id field on state_machine_transitions.
+    capability: Mapped[str] = mapped_column(String(256), nullable=False)
     granted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
     )
@@ -49,6 +53,33 @@ class WorkspaceSkillCapabilityGrant(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+    )
+
+    # Phase 2 v2 manifest support — all three columns nullable so
+    # existing v1 grants (capability_version=NULL,
+    # granted_at_module_version=NULL, granted_permissions_snapshot=NULL)
+    # continue to resolve via require_capability unchanged.
+
+    # Semver of the capability vocabulary the grant was made under.
+    # v2 grants carry the module's manifest schema_version here so
+    # Phase 4 grant-lifecycle can detect grammar drift.
+    capability_version: Mapped[str | None] = mapped_column(
+        String(32), nullable=True
+    )
+
+    # The module's version at grant time. Phase 4 reads this on
+    # module update to detect whether the grant set has changed and
+    # whether a re-prompt is required.
+    granted_at_module_version: Mapped[str | None] = mapped_column(
+        String(32), nullable=True
+    )
+
+    # Snapshot of what was granted (reads, writes, gates, data_movement,
+    # advice_tier_max, external_destinations). Phase 4 diffs this
+    # against the new manifest on update to detect permission
+    # expansion. Empty/NULL for legacy v1 grants.
+    granted_permissions_snapshot: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True
     )
 
     __table_args__ = (
