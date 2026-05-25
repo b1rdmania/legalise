@@ -1095,5 +1095,41 @@ async def delete_matter(
 
     matter.status = STATUS_ARCHIVED
 
+    # Phase 4 — cascade grant revocation. Per
+    # PHASE_4_BUILD_PLAN.md §Step 4: when a matter archives, revoke
+    # every WorkspaceSkillCapabilityGrant scoped to that matter. The
+    # scoping check looks at granted_permissions_snapshot.matter_id
+    # so v1 legacy grants (snapshot=NULL) are not affected.
+    from app.models import WorkspaceSkillCapabilityGrant as _WSCG_Phase4
+
+    grants_to_revoke = (
+        await session.scalars(
+            select(_WSCG_Phase4).where(
+                _WSCG_Phase4.granted_permissions_snapshot[
+                    "matter_id"
+                ].astext
+                == str(matter.id),
+            )
+        )
+    ).all()
+    revoked_count = 0
+    for grant_row in grants_to_revoke:
+        await session.delete(grant_row)
+        revoked_count += 1
+    if revoked_count:
+        await audit.log(
+            session,
+            "module.grant.revoked",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module=None,
+            resource_type="capability_grant",
+            resource_id=matter.slug,
+            payload={
+                "count": revoked_count,
+                "reason": "matter_archived",
+            },
+        )
+
     await session.commit()
     return Response(status_code=204)
