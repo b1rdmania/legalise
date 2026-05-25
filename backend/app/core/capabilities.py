@@ -27,6 +27,7 @@ audit row unconditionally.
 
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Iterable
 
@@ -52,6 +53,75 @@ CAPABILITY_VOCABULARY: frozenset[str] = frozenset(
         "citation.write",
     }
 )
+
+
+# Phase 2 capability-grammar extension.
+#
+# v1 vocabulary above is a flat set of seven strings. v2 introduces a
+# typed grammar ``<scope>.<resource>.<action>`` (with optional deeper
+# segments for nested resources, e.g.
+# ``matter.context.legalise_memory.facts.write``).
+#
+# Scope is one of ``matter``, ``workspace``, ``global``. Resource +
+# action segments are lowercase identifiers using only [a-z0-9_].
+#
+# The runtime accepts either form. Existing v1 strings continue to
+# validate via membership in CAPABILITY_VOCABULARY above; new modules
+# declare v2 grammar strings.
+#
+# The grant table and ``require_capability`` lookup are not changed by
+# this extension — the capability column is a free-form String(64).
+# What changes is what callers will *write* as a capability string and
+# what helpers like ``is_valid_capability_string`` consider syntactically
+# valid.
+_V2_GRAMMAR_RE = re.compile(
+    r"^(matter|workspace|global)\.[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$"
+)
+
+
+def is_valid_capability_string(value: str) -> bool:
+    """True if ``value`` is a valid capability string.
+
+    Valid means either:
+    - exact membership in ``CAPABILITY_VOCABULARY`` (v1 legacy set), or
+    - matches the v2 grammar
+      ``<scope>.<resource>.<action>`` with one or more action/resource
+      segments. Scope is restricted to ``matter | workspace | global``.
+
+    Returns False for empty/None/non-string input.
+    """
+    if not isinstance(value, str) or not value:
+        return False
+    if value in CAPABILITY_VOCABULARY:
+        return True
+    return bool(_V2_GRAMMAR_RE.match(value))
+
+
+def assert_capability_string(value: str) -> None:
+    """Raise ``ValueError`` if ``value`` is not a valid capability
+    string. Used by registry validators when a module declares
+    capabilities that the runtime should accept.
+    """
+    if not is_valid_capability_string(value):
+        raise ValueError(
+            f"invalid capability string: {value!r} "
+            "(must be a legacy v1 capability or match "
+            "the v2 grammar <scope>.<resource>.<action>)"
+        )
+
+
+def capability_scope(value: str) -> str | None:
+    """Return the scope segment of a v2-grammar capability, or None for
+    legacy v1 strings (which have no canonical scope).
+
+    Examples:
+    - ``capability_scope("matter.documents.body.read")`` → ``"matter"``
+    - ``capability_scope("workspace.providers.invoke")`` → ``"workspace"``
+    - ``capability_scope("matter.read")`` → ``None`` (legacy v1)
+    """
+    if value not in CAPABILITY_VOCABULARY and _V2_GRAMMAR_RE.match(value):
+        return value.split(".", 1)[0]
+    return None
 
 
 def declared_capabilities_for_skill(
@@ -314,7 +384,10 @@ async def auto_grant_declared_for_user(
 __all__ = [
     "CAPABILITY_VOCABULARY",
     "CapabilityDenied",
+    "assert_capability_string",
+    "capability_scope",
     "declared_capabilities_for_skill",
+    "is_valid_capability_string",
     "require_capability",
     "list_granted",
     "grant",
