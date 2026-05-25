@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, UTC
 
-from sqlalchemy import String, DateTime, ForeignKey, Integer
+from sqlalchemy import String, DateTime, ForeignKey, Integer, BigInteger, CHAR
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,6 +47,19 @@ class AuditEntry(Base):
     response_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Phase 5 — first-class cost metadata for ``model.invoked`` rows.
+    # Populated by ``core.audit_cost.audit_emit_model_invoked``; left
+    # NULL for non-cost rows. Currency in ISO 4217. Cost is integer
+    # micros (1 GBP = 100_000_000 micros) so sub-penny calls do not
+    # silently round. Check constraint at migration 0017 enforces
+    # ``(cost_micros NULL) = (currency NULL)`` — they move together.
+    tokens_in: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    tokens_out: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    cost_micros: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    currency: Mapped[str | None] = mapped_column(CHAR(3), nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    model_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     # Free-form payload (request shape, params, etc.)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
