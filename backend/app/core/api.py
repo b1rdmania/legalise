@@ -91,6 +91,14 @@ class _AuditAPI:
         response_hash: str | None = None,
         token_count: int | None = None,
         latency_ms: int | None = None,
+        # Phase 5 cost columns. Populated by audit_emit_model_invoked
+        # for model.invoked rows; left None for everything else.
+        tokens_in: int | None = None,
+        tokens_out: int | None = None,
+        cost_micros: int | None = None,
+        currency: str | None = None,
+        provider: str | None = None,
+        model_id: str | None = None,
     ) -> None:
         session.add(
             AuditEntry(
@@ -106,6 +114,12 @@ class _AuditAPI:
                 token_count=token_count,
                 latency_ms=latency_ms,
                 payload=payload or {},
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                cost_micros=cost_micros,
+                currency=currency,
+                provider=provider,
+                model_id=model_id,
             )
         )
 
