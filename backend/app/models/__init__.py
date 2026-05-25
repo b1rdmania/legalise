@@ -100,6 +100,9 @@ from app.models.advice_boundary_decision import (
     DECISION_STATUS_VALUES,
 )
 
+# Phase 3 — installed modules registry.
+from app.models.installed_module import InstalledModule
+
 __all__ = [
     "Base",
     "User",
@@ -177,4 +180,6 @@ __all__ = [
     "DECISION_STATUS_DENIED",
     "DECISION_STATUS_FAILED",
     "DECISION_STATUS_VALUES",
+    # Phase 3 — installed modules.
+    "InstalledModule",
 ]
