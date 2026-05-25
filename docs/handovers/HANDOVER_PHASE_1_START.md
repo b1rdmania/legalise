@@ -3,7 +3,7 @@
 **From:** Andy
 **To:** Reviewer
 **Branch:** `runtime-rewrite`
-**Base commit:** `124a516` (canonical runtime rewrite plan with substrate/domain split applied; includes MCP portability addendum)
+**Base commit:** `148cdad` (cleared head — all Reviewer findings closed; ADVICE_BOUNDARY.md authored; matter-context schema-version linkage added; denied/blocked convention canonical)
 **Status:** Phase 0 docs complete. Phase 1 starts here. Phase 2 does not start until Phase 1 is reviewed.
 
 **Patch history:**
@@ -47,8 +47,6 @@ Code (substrate primitives only, no domain schemas):
 - `backend/app/core/state_machine/` — generic primitive per `docs/architecture/STATE_MACHINE_PRIMITIVE.md`. Modules declare definitions (states, transitions, per-transition gates, per-transition required_capabilities) under their namespace. Runtime owns definition registry, instance lifecycle, transition validation, gate execution, audit. Not legal-domain-specific. Does not introduce its own capability strings — enforces module-declared capabilities on each transition.
 - `backend/app/core/matter_context/` — generic structured context store per `docs/architecture/MATTER_CONTEXT_STORE.md`. Modules register typed schemas (namespace + JSON schema + version) under their module id. Runtime owns schema registry, schema validation, item storage, capability-scoped reads/writes, source-reference enforcement, audit emission.
 - `backend/app/core/advice_boundary/` — opinion/advice tier gate primitive. Five tiers: `factual_extraction → legal_information → draft_advice → supervised_legal_advice → approved_final_advice`. **Phase 1 scope:** primitive logic + callable gate/check API exposed as `core.advice_boundary.check(output_id, requested_tier, declared_tier_max)`. **Deferred to Phase 2:** wiring this gate to the `advice_tier_max` manifest field (manifest v2 lands in Phase 2). Tier transitions emit audit unconditionally in Phase 1; manifest-driven enforcement activates in Phase 2.
-
-> **Note for Reviewer:** `docs/architecture/` does not yet contain a dedicated `ADVICE_BOUNDARY.md`. The tier vocabulary lives in `MANIFEST_V2_SCHEMA.md` (`advice_tier_max`) and `OUTPUT_LIFECYCLE.md` (transition gates). Authoring `ADVICE_BOUNDARY.md` may be necessary before Phase 1 — at minimum to lock the five tier names, the transition rules between tiers, and the gate API surface. Patch in this branch if needed.
 
 Models (per architecture docs):
 
