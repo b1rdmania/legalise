@@ -190,7 +190,7 @@ Replace direct `audit_emit(action="model.invoked", payload={…})` calls with `a
 Implementation:
 - One SQL query per source, all filtered by `matter_id` + time window.
 - In-memory merge sort by `(timestamp, source_order)`.
-- Cursor encoding: `base64(json({"ts": iso, "id": uuid}))`.
+- Cursor encoding: `base64(json({"source": str, "occurred_at": iso, "source_row_id": uuid}))` — matches Decision #2.
 - DB-side `LIMIT limit + 1` per source to bound memory.
 
 Pure-functional. No mutation. No external calls.

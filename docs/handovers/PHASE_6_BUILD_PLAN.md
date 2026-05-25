@@ -29,11 +29,11 @@ When a capability is invoked via `MCPHost.invoke_tool()`, the host returns an `i
 Reviewer redline (R3 P1): the `non-negotiable "Redis never holds matter content"` rules out any event payload that carries privileged content. Streaming model tokens and document chunks ARE matter content. Phase 6 events are therefore strictly metadata + references to canonical sources of truth (audit rows, artifact rows, document rows in Postgres).
 
 Event types (final):
-- `progress` — `{percent: 0-100, message: str}` (message is short status text — no document content, no model output)
+- `progress` — `{percent: 0-100, message: str}` — **`message` is host-controlled.** Modules call `report_progress(percent)` with a numeric percent only; the host derives the message from a fixed catalogue keyed by the current capability lifecycle phase (e.g. "validating manifest", "running gate", "invoking provider", "writing artifact"). Module-provided free-form text would bypass the `_FORBIDDEN_KEYS` guard and could leak document or model content through the `message` field.
 - `audit_row` — `{audit_entry_id: uuid, action: str, ts: iso}` — pointer to the freshly-written audit row; the client re-fetches the full row from Postgres if it wants the payload
 - `gate_decision` — `{gate: str, decision: "allow"|"block", advice_boundary_decision_id: uuid}` — pointer to the WORM row
 - `artifact_ready` — `{artifact_id: uuid, kind: str}` — pointer to a freshly-written artifact in the matter store (e.g. a citation pack, a generated document)
-- `terminal` — `{status: "completed"|"blocked"|"failed"|"cancelled", audit_entry_id: uuid, error_code?: str}` — never carries the result payload
+- `terminal` — `{status: "completed"|"blocked"|"failed"|"cancelled"|"deadline_exceeded", audit_entry_id: uuid, error_code?: str}` — never carries the result payload. `deadline_exceeded` is emitted by the worker when `now > deadline_at` per Step 10; included here so the enum is complete in one place.
 
 `partial_result` is **explicitly out of scope** for Phase 6. Token streaming from model APIs, when the user has supplied keys, lands directly in Postgres as an artifact row; the SSE channel emits `artifact_ready` when the streamed write completes. Phase 7+ may add a separate per-user direct-stream channel that bypasses Redis entirely.
 
@@ -235,7 +235,7 @@ FastAPI `StreamingResponse` helper with correct headers (`Content-Type: text/eve
 
 `invoke_tool` already emits audit rows. Phase 6 adds a parallel `event_bus.publish` for the metadata-only event types in Decision #1 (`progress`, `audit_row`, `gate_decision`, `artifact_ready`, `terminal`). The audit row remains the source of truth; events are pointers to it.
 
-Module authors get a thin `report_progress(percent, message)` helper passed in as part of the invocation context. The host wraps every audit-row emission so the corresponding `audit_row` event fires automatically — module authors don't choose what to send to Redis. The `_FORBIDDEN_KEYS` guard in `event_bus` is the second line of defence.
+Module authors get a thin `report_progress(percent: int)` helper passed in as part of the invocation context. **`percent` is the only module-controlled field** — the `message` is derived by the host from a fixed catalogue keyed off the current capability lifecycle phase (per Decision #1, nit #3 from Reviewer ratification). The host wraps every audit-row emission so the corresponding `audit_row` event fires automatically — module authors don't choose what to send to Redis. The `_FORBIDDEN_KEYS` guard in `event_bus` is the second line of defence.
 
 ~120 LOC delta.
 
@@ -363,6 +363,15 @@ Worker tests need an arq fake — use `arq.connections.create_pool` against the 
 - Connector proof set (Phase 11)
 
 ---
+
+## Reviewer ratification nits applied (v2.1)
+
+After v2 was ratified, Reviewer flagged three doc/spec nits:
+
+1. **`deadline_exceeded` added to terminal enum** (Decision #1) — was emitted by Step 10 but missing from the enum-of-record. Enum now complete in one place.
+2. **Progress `message` made host-controlled** (Decision #1 + Step 5) — `report_progress()` takes `percent: int` only; the host derives the message from a fixed lifecycle-phase catalogue. Prevents content leakage through a field the `_FORBIDDEN_KEYS` guard cannot see.
+
+(The Phase 5 cursor-encoding example, nit #1, is fixed in `PHASE_5_BUILD_PLAN.md`.)
 
 ## Reviewer redlines applied
 
