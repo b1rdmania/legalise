@@ -32,6 +32,7 @@ from app.api.matter_context import (
     schema_router as matter_context_schema_router,
     items_router as matter_context_items_router,
 )
+from app.api.advice_boundary import router as advice_boundary_router
 from app.core.audit import AuditMiddleware
 from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
@@ -268,6 +269,11 @@ app.include_router(
     matter_context_items_router,
     prefix="/api/matters",
     tags=["matter-context"],
+)
+app.include_router(
+    advice_boundary_router,
+    prefix="/api/advice-boundary",
+    tags=["advice-boundary"],
 )
 
 # Chronology module nests its routes under /api/matters/{slug}/chronology
