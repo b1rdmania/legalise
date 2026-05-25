@@ -11,11 +11,13 @@ are unchanged so existing clients continue to function.
 from __future__ import annotations
 
 import json
+import uuid as _uuid
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import PlainTextResponse
@@ -525,26 +527,6 @@ async def get_v2_module(
         is_valid=is_valid,
         validation_errors=errors,
     )
-@router.get("/{plugin}/{skill}", response_class=PlainTextResponse)
-async def get_skill_body(
-    plugin: str,
-    skill: str,
-    user: User = Depends(current_user),
-) -> PlainTextResponse:
-    """Return the reviewable prompt body for one installed skill.
-
-    Auth-gated to match the catalogue view. Disabled skills remain
-    inspectable so users can review before re-enabling.
-    """
-    if not (_safe_part(plugin) and _safe_part(skill)):
-        raise HTTPException(400, "invalid plugin or skill identifier")
-    path = _plugins_root() / plugin / "skills" / skill / "SKILL.md"
-    if not path.exists():
-        raise HTTPException(404, f"skill not found: {plugin}/{skill}")
-    manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
-    return PlainTextResponse(manifest.body.strip())
-
-
 # ---------------------------------------------------------------------------
 # Phase 3 — trust ceremony / install endpoints
 # ---------------------------------------------------------------------------
@@ -648,7 +630,7 @@ async def _persist_install(
         "capabilities": card.capabilities,
     }
     row = InstalledModule(
-        id=uuid.uuid4(),
+        id=_uuid.uuid4(),
         module_id=manifest.get("id", ceremony.module_id),
         version=manifest.get("version", "0.0.0"),
         publisher=manifest.get("publisher", "unknown"),
@@ -754,7 +736,7 @@ async def start_install_endpoint(
     response_model=CeremonyResponse,
 )
 async def advance_install_endpoint(
-    ceremony_id: uuid.UUID,
+    ceremony_id: UUID,
     body: AdvanceCeremonyRequest,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
@@ -797,7 +779,7 @@ async def advance_install_endpoint(
     response_model=CeremonyResponse,
 )
 async def get_install_endpoint(
-    ceremony_id: uuid.UUID,
+    ceremony_id: UUID,
     user: User = Depends(current_user),
 ) -> CeremonyResponse:
     """Read the current state of an in-flight ceremony.
@@ -815,4 +797,24 @@ async def get_install_endpoint(
             },
         )
     return _ceremony_to_response(ceremony)
+
+@router.get("/{plugin}/{skill}", response_class=PlainTextResponse)
+async def get_skill_body(
+    plugin: str,
+    skill: str,
+    user: User = Depends(current_user),
+) -> PlainTextResponse:
+    """Return the reviewable prompt body for one installed skill.
+
+    Auth-gated to match the catalogue view. Disabled skills remain
+    inspectable so users can review before re-enabling.
+    """
+    if not (_safe_part(plugin) and _safe_part(skill)):
+        raise HTTPException(400, "invalid plugin or skill identifier")
+    path = _plugins_root() / plugin / "skills" / skill / "SKILL.md"
+    if not path.exists():
+        raise HTTPException(404, f"skill not found: {plugin}/{skill}")
+    manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
+    return PlainTextResponse(manifest.body.strip())
+
 
