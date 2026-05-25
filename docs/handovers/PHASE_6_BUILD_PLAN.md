@@ -1,387 +1,291 @@
-# Phase 6 Build Plan — Streaming + Async Runtime
+# Phase 6 Build Plan — Vertical Slice (Contract Review)
 
 **Builder:** Claude (this session)
 **Branch:** `runtime-rewrite`
-**Base:** Phase 5 handover commit (TBC; this plan assumes Phase 5 closed and ratified)
-**Goal:** Phase 6 turns long-running capability invocations from blocking-HTTP-call into observable async work. Two deliverables:
-1. Server-sent events for long-running capability invocations — citation extraction over a bundle, multi-doc bundling, model invocations with streaming tokens.
-2. Background job runner — extract-on-upload, batch reindex, scheduled re-evaluation. Reuses the existing arq/Redis worker, but routes capability invocations through the same MCP host so audit + scoping + grant enforcement all still apply.
+**Base:** Phase 5 v3 handover commit (TBC; this plan assumes Phase 5 v3 closed and ratified)
+**Replaces:** The original async-runtime Phase 6 plan, now parked at `PHASE_7_ASYNC_RUNTIME_PLAN_PARKED.md`.
 
-Phase 6 is architecturally bigger than 5. Two halves built sequentially — SSE first (smaller, lower-risk), then the background runner.
+**Goal:** Ship the narrowest complete vertical slice of the v2 runtime. One matter, one installed module, one permission card, one supervised/gated action, one output, one audit reconstruction. Prove the substrate; do not add breadth.
+
+**Acceptance bar (Andy's words):**
+
+> Install/enable module, grant capabilities, run against Khan NDA, hit any required gate, produce output/artifact, and reconstruct the full trail. No new breadth until that path is boring.
+
+---
+
+## Why Contract Review (not Pre-Motion)
+
+Per Andy's redirect:
+- Reads a document
+- Invokes a provider/model
+- Produces a concrete legal output
+- Creates an artifact/citation pack
+- Exercises permissions, model access, document access, output lifecycle, audit, advice boundary
+- Single-actor flow — easier to reason about than Pre-Motion's multi-agent orchestration
+
+Pre-Motion is the second module, *after* Contract Review proves the shape.
 
 ---
 
 ## Pre-build findings
 
-Already known:
-- An arq worker exists in `backend/app/workers/` (Phase 0 stack-up; runs against the Upstash Redis instance in prod, the compose Redis in dev).
-- Capability invocations are dispatched through `MCPHost.invoke_tool()` (Phase 3). Today every call is synchronous over HTTP.
-- Frontend (Phase 12, not yet built) has no realtime channel.
-- `audit_entries` carries an `invocation_id` field on `module.capability.invoked` / `*.completed` rows — Phase 6 uses this as the SSE channel id.
-- Existing Redis usage in the codebase is **only** for short-lived task state — per the non-negotiables (memory: *"Redis never holds matter content"*), Phase 6 must not break this.
+Already known from earlier phases:
+- Phases 1–5 ship the substrate: matter context, advice boundary, capability registry, manifest v2, signed modules + sandbox, MCP host, trust ceremony, grant lifecycle, dependency resolver, audit reconstruction, cost metadata.
+- Sample matter `khan-v-acme` is seeded by the existing demo-mode fixtures. The NDA document is the natural pick because it's a single self-contained contract — Contract Review on a longer commercial agreement is the next-step expansion.
+- Phase 2's example module path (`examples/modules/`) is where the Contract Review module belongs — `examples/modules/contract-review/`. This is a **reference module**, not a built-in. The intent is that an external author could read this and write their own.
+- The provider modules from Phase 1 expose model invocations through MCP tools. Contract Review's provider call routes through whichever provider the matter's `default_model_id` points to. **No server-paid keys** (non-negotiable from memory) — user supplies their own key in the workspace settings.
+- Privilege posture (`privilege_posture` on `Matter`) is the gate this slice exercises. `mixed` and `legally_privileged` mattter postures require the user to have a qualified_solicitor role *or* explicit acknowledgement that they're inspecting privileged content under a documented purpose.
 
 ### Architectural decisions taken pre-code
 
-**Decision #1 — SSE channel keyed by `invocation_id`. Events are metadata-only.**
+**Decision #1 — The module is a real signed manifest, not a stub.**
 
-When a capability is invoked via `MCPHost.invoke_tool()`, the host returns an `invocation_id` immediately. The client opens `GET /api/invocations/{invocation_id}/events` (SSE).
+`examples/modules/contract-review/module.json` is a complete v2 manifest:
+- `id: "examples.contract-review"`
+- `publisher: "legalise"` (uses the existing first-party verified publisher entry from Phase 3)
+- `signature: <real signature over canonical manifest hash>` — produced by a tiny `scripts/sign_example_module.py` helper that uses the same `compute_manifest_hash` from `core/signing.py`. Phase 3 left structural verification in place; Phase 11 deferred real sigstore/Rekor lookup. The signed example exercises the structural path.
+- One capability: `id: "review"`, `kind: skill`, `scope: matter`, `reads: ["matter.document.read"]`, `writes: ["matter.artifact.write"]`, `model_access: required`, `external_network: false`, `gates: ["privilege_posture"]`, `advice_tier_max: "draft_advice"`.
+- One MCP tool: `review_contract(document_id) -> {findings: [...]}`.
 
-Reviewer redline (R3 P1): the `non-negotiable "Redis never holds matter content"` rules out any event payload that carries privileged content. Streaming model tokens and document chunks ARE matter content. Phase 6 events are therefore strictly metadata + references to canonical sources of truth (audit rows, artifact rows, document rows in Postgres).
+No new module shape. Reuses Phase 2 manifest v2 + Phase 3 install ceremony + Phase 4 grant lifecycle exactly as built.
 
-Event types (final):
-- `progress` — `{percent: 0-100, message: str}` — **`message` is host-controlled.** Modules call `report_progress(percent)` with a numeric percent only; the host derives the message from a fixed catalogue keyed by the current capability lifecycle phase (e.g. "validating manifest", "running gate", "invoking provider", "writing artifact"). Module-provided free-form text would bypass the `_FORBIDDEN_KEYS` guard and could leak document or model content through the `message` field.
-- `audit_row` — `{audit_entry_id: uuid, action: str, ts: iso}` — pointer to the freshly-written audit row; the client re-fetches the full row from Postgres if it wants the payload
-- `gate_decision` — `{gate: str, decision: "allow"|"block", advice_boundary_decision_id: uuid}` — pointer to the WORM row
-- `artifact_ready` — `{artifact_id: uuid, kind: str}` — pointer to a freshly-written artifact in the matter store (e.g. a citation pack, a generated document)
-- `terminal` — `{status: "completed"|"blocked"|"failed"|"cancelled"|"deadline_exceeded", audit_entry_id: uuid, error_code?: str}` — never carries the result payload. `deadline_exceeded` is emitted by the worker when `now > deadline_at` per Step 10; included here so the enum is complete in one place.
+**Decision #2 — Acceptance is end-to-end, scripted, and rerunnable.**
 
-`partial_result` is **explicitly out of scope** for Phase 6. Token streaming from model APIs, when the user has supplied keys, lands directly in Postgres as an artifact row; the SSE channel emits `artifact_ready` when the streamed write completes. Phase 7+ may add a separate per-user direct-stream channel that bypasses Redis entirely.
+`backend/tests/test_phase6_vertical_slice.py` is a single integration test that walks the entire acceptance bar in one Python function:
 
-The connection closes on `terminal`. Disconnect-and-reconnect uses `Last-Event-ID` — see Decision #2a for replay semantics across API instances.
+1. Register a qualified_solicitor user.
+2. Confirm Khan v Acme matter exists with the NDA document attached.
+3. Start install ceremony for `examples.contract-review`.
+4. Trust → trust → trust → grant (verified fast path).
+5. Confirm grant row + `InstalledModule` row written.
+6. Invoke the `review` capability against the NDA.
+7. Confirm the privilege gate fires + records its decision.
+8. Confirm the artifact row is written.
+9. Pull the reconstruction view for the matter.
+10. Assert the timeline contains: ceremony events, grant write, capability invocation, gate decision, model invocation (with cost columns), artifact write — all in canonical order.
 
-**Decision #2 — Event transport is Redis Streams keyed by `invocation_id`.**
+That single test is the contract. It must pass under the same sweep as everything else, with no DEMO_MODE shortcuts, no test-only branches in production code.
 
-Reviewer redline (R3 P2): an in-memory per-API-process ring buffer cannot support replay when the reconnect lands on a different API machine. Hosted-eval already runs 2 app machines on Fly; production will grow. Replay is required, not optional.
+**Decision #3 — No new infrastructure.**
 
-Phase 6 uses **Redis Streams** (`XADD invocation:{id} *`, consumer reads via `XREAD`) — keyed by `invocation_id`, capped per-stream at 200 entries via `XADD ... MAXLEN ~ 200`, TTL 5 min via `EXPIRE invocation:{id} 300` set on first publish.
+The slice runs synchronously over HTTP. No SSE. No async runtime. No new tables beyond what Phases 1–5 already ship. If the synchronous call times out at the HTTP layer, that's the signal to unpark Phase 7+ async runtime — not the trigger to inline async machinery here.
 
-Streams give us three things pub/sub doesn't:
-1. **Replay across instances.** Any API machine can `XREAD` from any stream. `Last-Event-ID` maps to the stream entry id.
-2. **Bounded memory.** `MAXLEN ~ 200` is enforced by Redis, not by an app-side sweeper.
-3. **Audit consistency.** Stream events are metadata-only references to Postgres rows (see Decision #1) — the canonical row is always the source of truth; the stream is the live notification channel. **No matter content ever lands in Redis.**
+**Decision #4 — Artifact storage reuses the matter file store.**
 
-**Decision #2a — Replay semantics.**
+`Matter` already has the matter filesystem path (`matter_fs`). Artifacts written by capabilities land at `{matter_fs}/artifacts/{capability_id}/{invocation_id}.json` + a Postgres row in a new lightweight `matter_artifacts` table. The row is the authoritative reference; the file is the payload.
 
-- `Last-Event-ID` header → `XREAD COUNT N STREAMS invocation:{id} <last-id>` returns everything after.
-- Stream TTL is 5 min; reconnects after that get a `replay_unavailable` event and must rebuild state from `GET /api/matters/.../audit/reconstruction` (Phase 5).
-- Cap of 200 entries: if a client falls more than 200 events behind during an active invocation, they get a `replay_truncated` event and the same fallback applies.
-
-Both gaps documented as "best-effort live UX with authoritative Postgres fallback" — Reviewer explicitly flagged this as acceptable provided it is documented; Phase 5's reconstruction view is the always-correct surface.
-
-**Decision #3 — Background runner is a thin wrapper around the existing arq worker.**
-
-`enqueue_capability(invocation_id, module_id, capability_id, args, *, matter_id, actor_user_id, deadline)` writes:
-- A `module.capability.enqueued` audit row (synchronous, in caller's DB session).
-- An arq job whose handler calls `MCPHost.invoke_tool(...)` with the same args — meaning grants, scope, signature checks, advice-boundary gates all still apply at execution time.
-
-The arq handler runs in a fresh DB session, dispatches the capability, and emits the usual audit rows (`*.invoked` → `*.completed` / `*.blocked`).
-
-**Decision #4 — Deadlines and cancellation are first-class.**
-
-Every enqueued job carries a `deadline` (default 5 min). Worker checks deadline at three points: enqueue, dequeue, mid-execution. Cancellation:
-- `POST /api/invocations/{invocation_id}/cancel` flips a flag in Redis (`invocation:{id}:cancel` SETEX 1h).
-- Worker polls the flag at well-defined breakpoints (between document chunks, between MCP tool calls).
-- On cancel: emits `module.capability.cancelled`; SSE channel closes with `terminal{status:"cancelled"}`.
-
-Cancellation is **cooperative** — workers that ignore the flag finish their work. Phase 6 documents the breakpoints; module authors honour them.
-
-**Decision #5 — Grants checked at execution, re-checked, not snapshot at enqueue. Via the existing lifecycle helper.**
-
-A capability enqueued at T₀ that runs at T₅ must re-check the grant exists and the matter is still open. Revocation during the wait window MUST cause the job to fail with `module.capability.blocked{reason:"grant_revoked_post_enqueue"}` rather than execute with stale authority.
-
-Reviewer redline (R3 P2): the re-check must call the canonical grant-enforcement helper, NOT embed raw SQL against `granted_permissions_snapshot`. The raw-SQL approach would drift from Phase 4's grant semantics (matter-scoped vs workspace-scoped, snapshot interpretation, revocation cascades). Phase 6 routes through `core/grants_lifecycle.assert_grant_active(session, *, user_id, plugin, capability, matter_id) -> None | raise GrantRevoked` — if that helper doesn't exist yet, Phase 6 Step 0 extracts it from the existing matters/modules call sites first, then Phase 6's worker calls it.
-
-This is the load-bearing decision for honouring the supervised-autonomy claim once jobs run async. Phase 6 cannot defer this to Phase 7.
-
-**Decision #6 — Persisted invocation registry is the source of truth.**
-
-Reviewer redline (R3 P1): SSE + cancel + worker re-check all need an authoritative answer to "who started this invocation, against which matter and module, in what status." Inferring this from scattered audit rows is fragile (audit ids are append-only and the registry needs UPDATE for status transitions).
-
-Phase 6 ships migration `0018_capability_invocations.py`:
-
+`matter_artifacts` is the only new table Phase 6 adds:
 ```
-capability_invocations
+matter_artifacts
   id              UUID PK
-  module_id       VARCHAR(128) NOT NULL
-  capability_id   VARCHAR(256) NOT NULL
   matter_id       UUID NOT NULL REFERENCES matters(id)
-  actor_user_id   UUID NOT NULL REFERENCES users(id)
-  status          VARCHAR(32) NOT NULL  -- enqueued|running|completed|blocked|failed|cancelled|deadline_exceeded
-  enqueued_at     TIMESTAMPTZ NOT NULL
-  started_at      TIMESTAMPTZ NULL
-  finished_at     TIMESTAMPTZ NULL
-  deadline_at     TIMESTAMPTZ NOT NULL
-  grant_id        UUID NULL REFERENCES workspace_skill_capability_grants(id)
-  args_hash       VARCHAR(64) NOT NULL  -- sha256 of canonical args
-  cancel_requested_at TIMESTAMPTZ NULL
-  cancel_requested_by UUID NULL REFERENCES users(id)
+  capability_id   VARCHAR(256) NOT NULL
+  module_id       VARCHAR(128) NOT NULL
+  invocation_id   UUID NOT NULL
+  kind            VARCHAR(64) NOT NULL  -- "findings_pack" for Contract Review
+  storage_path    TEXT NOT NULL
+  created_by_id   UUID NOT NULL REFERENCES users(id)
+  created_at      TIMESTAMPTZ NOT NULL
+  size_bytes      BIGINT NOT NULL
 
-  INDEX (matter_id, enqueued_at DESC)
-  INDEX (actor_user_id, enqueued_at DESC)
-  INDEX (status) WHERE status IN ('enqueued','running')
+  INDEX (matter_id, created_at DESC)
+  INDEX (invocation_id)
 ```
 
-NOT WORM — this table has UPDATE access (status transitions, finished_at). The append-only record stays in `audit_entries`.
+WORM trigger on this table (artifacts are append-only; new versions get new rows).
 
-`/api/invocations/{id}/events` + `/cancel` authorise by reading the row: `matter_access(matter_id) OR actor_user_id == current_user`. The worker reads + updates this row at dequeue / completion. The SSE event-bus channel id is the row's `id`.
+**Decision #5 — Privilege gate uses the existing advice_boundary surface.**
 
-**Decision #7 — No streaming of model tokens from server-paid keys.**
+`gates: ["privilege_posture"]` in the manifest wires up to the existing `check_or_block(gate="privilege_posture", ...)` from Phase 1. The gate inspects the matter's `privilege_posture` and the caller's role:
+- `privilege_posture in {"mixed", "legally_privileged"}` AND caller role != `qualified_solicitor` → block, emit `module.capability.blocked{reason: "privilege_gate_failed"}`.
+- Otherwise → allow, emit `advice_boundary_decisions` row (Phase 1 WORM table).
 
-Honours the non-negotiable: *"no server-paid model keys in prod"*. Provider modules that the user has supplied keys for can stream tokens; built-in providers (hosted-eval shipped without server-paid keys) emit a single `terminal` event after the full response is in hand. Phase 6 doesn't change the auth model.
+No new gate code. Phase 1 already shipped this; the slice exercises it.
+
+**Decision #6 — The provider call is real, but the model can be a deterministic stub in tests.**
+
+In production: the user-supplied provider key is used, the actual LLM API is called.
+
+In the integration test: the provider module is monkey-patched to return a fixed canned `{findings: [...]}`. The cost columns get populated by the helper from Phase 5 with the same shape they'd have for a real call.
+
+This is the only place test seams matter. The runtime code path is identical to production.
 
 ---
 
 ## Critical path
 
 ```
-Step 0: extract assert_grant_active() from existing call sites
-        into core/grants_lifecycle.py (R3 P2 prerequisite)
+Step 1: scripts/sign_example_module.py — minimal CLI signer
    ↓
-Step 1: migration 0018 — capability_invocations table
+Step 2: examples/modules/contract-review/ — manifest + entry stub
    ↓
-Step 2: core/event_bus.py — Redis Streams publisher + XREAD subscriber
+Step 3: migration 0018 — matter_artifacts table + WORM trigger
    ↓
-Step 3: core/sse.py — FastAPI SSE response helper
+Step 4: core/matter_artifacts.py — write_artifact helper
    ↓
-Step 4: api/invocations.py — GET /events, POST /cancel
-        (authorised via capability_invocations row)
+Step 5: Contract Review capability implementation
    ↓
-Step 5: MCPHost integration — emit metadata-only events alongside audit rows
+Step 6: Ensure Khan v Acme seed includes the NDA document
    ↓
-Step 6: First reference module wired to progress (test fixture)
+Step 7: The single vertical-slice integration test
    ↓
-Step 7: workers/capability_runner.py — arq job handler
+Step 8: Targeted unit tests for the new helper + manifest discovery
    ↓
-Step 8: enqueue_capability() in core/runtime.py — writes invocation row + arq job
+Step 9: Full sweep green
    ↓
-Step 9: Re-check via assert_grant_active() at dequeue
-   ↓
-Step 10: Cancellation polling + deadline enforcement
-   ↓
-Step 11: Tests
-   ↓
-Step 12: Full sweep green
-   ↓
-Step 13: HANDOVER_PHASE_6_DONE.md
+Step 10: HANDOVER_PHASE_6_DONE.md
 ```
 
 ---
 
-## Step 0 — extract `assert_grant_active()`
+## Step 1 — `scripts/sign_example_module.py`
 
-**File:** `backend/app/core/grants_lifecycle.py` (extend)
+**File:** `backend/scripts/sign_example_module.py` (new)
 
-**Public surface:**
-- `async def assert_grant_active(session, *, user_id: UUID, plugin: str, capability: str, matter_id: UUID) -> WorkspaceSkillCapabilityGrant | None`
-- Raises `GrantRevoked` if no active grant matches the matter scope.
-- Mirrors the predicate already in use at the synchronous call sites (matters API + modules API), now lifted into a single helper.
+CLI: `python -m scripts.sign_example_module examples/modules/contract-review/module.json`.
 
-Phase 6 needs this BEFORE Step 9 worker re-check can be implemented without raw SQL.
+Reads the manifest, computes `compute_manifest_hash` from `core/signing.py`, writes a `signature` field back to the file. Idempotent — rewrites the same signature given the same input. Phase 11 swaps this out for real sigstore/Rekor signing; this is the structural placeholder.
 
-~80 LOC + 4 tests.
+~50 LOC.
 
 ---
 
-## Step 1 — Migration `0018_capability_invocations.py`
+## Step 2 — `examples/modules/contract-review/`
 
-**File:** `backend/alembic/versions/0018_capability_invocations.py` (new)
+**Files (new):**
+- `examples/modules/contract-review/module.json` — full v2 manifest per Decision #1.
+- `examples/modules/contract-review/__init__.py` — Python entrypoint declared by the manifest.
+- `examples/modules/contract-review/capability.py` — `review_contract(document_id) -> {findings: [...]}` implementation.
+- `examples/modules/contract-review/README.md` — short description for the catalogue + a copy of Decision #1 so external authors can read it standalone.
 
-Creates `capability_invocations` per Decision #6. NOT WORM (status transitions need UPDATE).
+~250 LOC across all four files.
+
+---
+
+## Step 3 — Migration `0018_matter_artifacts.py`
+
+**File:** `backend/alembic/versions/0018_matter_artifacts.py` (new)
+
+Per Decision #4. Creates `matter_artifacts` + WORM trigger (mirrors the existing audit/state-machine/advice-boundary triggers).
 
 ~60 LOC.
 
 ---
 
-## Step 2 — `core/event_bus.py`
+## Step 4 — `core/matter_artifacts.py`
 
-**File:** `backend/app/core/event_bus.py` (new)
-
-**Public surface:**
-- `publish(invocation_id: uuid, event_type: str, data: dict) -> str`  (returns stream entry id)
-- `subscribe(invocation_id: uuid, *, last_event_id: str | None = None) -> AsyncIterator[Event]`
-- `Event` dataclass: `event_id: str` (Redis Streams id), `event_type: str`, `data: dict`, `timestamp: datetime`
-
-Implementation:
-- `publish` → `XADD invocation:{id} MAXLEN ~ 200 * type <t> data <json>` + `EXPIRE invocation:{id} 300`
-- `subscribe` → `XREAD BLOCK 15000 COUNT 50 STREAMS invocation:{id} <last_event_id or 0>`; loops; yields `replay_truncated` or `replay_unavailable` per Decision #2a when entries are gone.
-- No in-memory state. Every API instance can serve any invocation's stream.
-
-**Belt-and-braces metadata guard:** `publish` rejects any `data` dict containing a key in `_FORBIDDEN_KEYS = {"chunk", "tokens", "content", "text", "document"}` with a runtime assertion. Drift protection so module authors cannot accidentally smuggle matter content into Redis.
-
-~280 LOC.
-
----
-
-## Step 3 — `core/sse.py`
-
-**File:** `backend/app/core/sse.py` (new)
-
-FastAPI `StreamingResponse` helper with correct headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no` for Cloudflare). Heartbeat every 15 s (comment-only event line).
-
-~80 LOC.
-
----
-
-## Step 4 — `api/invocations.py`
-
-**File:** `backend/app/api/invocations.py` (new)
-
-- `GET /api/invocations/{invocation_id}/events` (SSE)
-  - Authorisation: load `capability_invocations` row by id; allow if `actor_user_id == current_user` OR `matter_access(matter_id)` (Phase 5's canonical predicate). 404 if no row exists.
-  - Honours `Last-Event-ID` header → `event_bus.subscribe(..., last_event_id=...)`.
-  - Emits `invocation.events.viewed` audit row on connect.
-- `POST /api/invocations/{invocation_id}/cancel`
-  - Same authorisation.
-  - Sets `cancel_requested_at` + `cancel_requested_by` on the row AND a fast-path flag in Redis (`invocation:{id}:cancel` SETEX 3600) so worker doesn't have to round-trip to Postgres on every poll.
-  - Emits `module.capability.cancel_requested` audit row.
-
-~170 LOC.
-
----
-
-## Step 5 — `MCPHost` integration
-
-**File:** `backend/app/core/mcp_host/host.py` (extend)
-
-`invoke_tool` already emits audit rows. Phase 6 adds a parallel `event_bus.publish` for the metadata-only event types in Decision #1 (`progress`, `audit_row`, `gate_decision`, `artifact_ready`, `terminal`). The audit row remains the source of truth; events are pointers to it.
-
-Module authors get a thin `report_progress(percent: int)` helper passed in as part of the invocation context. **`percent` is the only module-controlled field** — the `message` is derived by the host from a fixed catalogue keyed off the current capability lifecycle phase (per Decision #1, nit #3 from Reviewer ratification). The host wraps every audit-row emission so the corresponding `audit_row` event fires automatically — module authors don't choose what to send to Redis. The `_FORBIDDEN_KEYS` guard in `event_bus` is the second line of defence.
-
-~120 LOC delta.
-
----
-
-## Step 6 — First reference module wired
-
-**File:** `backend/tests/fixtures/test_streaming_module.py` (new fixture)
-
-A synthetic capability that calls `report_progress(...)` five times then completes. Used by the SSE tests. No real work, just enough for the integration tests to exercise the channel.
-
-~60 LOC.
-
----
-
-## Step 7 — `workers/capability_runner.py`
-
-**File:** `backend/app/workers/capability_runner.py` (new)
-
-arq job `run_capability_job(ctx, *, invocation_id, module_id, capability_id, args, matter_id, actor_user_id, deadline)`:
-- Open fresh DB session from worker context.
-- Load `capability_invocations` row by id; flip status to `running`, set `started_at`.
-- Re-check grant + matter status (Step 9).
-- Check cancel flag.
-- Dispatch via `MCPHost.invoke_tool(...)`.
-- On terminal: flip status to `completed`/`blocked`/`failed`, set `finished_at`, emit terminal event.
-
-~200 LOC.
-
----
-
-## Step 8 — `enqueue_capability` in `core/runtime.py`
-
-**File:** `backend/app/core/runtime.py` (new or extend)
+**File:** `backend/app/core/matter_artifacts.py` (new)
 
 **Public surface:**
-- `enqueue_capability(session, *, module_id, capability_id, args, matter_id, actor_user_id, deadline) -> UUID`
+- `async def write_artifact(session, *, matter, capability_id, module_id, invocation_id, kind, payload: bytes | dict, actor_user_id) -> MatterArtifact`
+- Resolves storage path (`{matter_fs}/artifacts/{capability_id}/{invocation_id}.json`).
+- Writes the file atomically (write to `.tmp`, fsync, rename).
+- Inserts the `matter_artifacts` row.
+- Returns the row.
 
-Inside the caller's DB session:
-1. Resolve the active grant for `(actor_user_id, module_id, capability_id, matter_id)` via `assert_grant_active`.
-2. Insert a `capability_invocations` row with `status='enqueued'`, generated `id`, `args_hash`, `deadline_at`, `grant_id`.
-3. Emit `module.capability.enqueued` audit row referencing the invocation_id.
-4. Enqueue the arq job carrying the invocation_id.
-5. Return the invocation_id so the client can immediately open the SSE channel.
+Used by Contract Review and by any future capability that produces an artifact.
 
-If step 1 raises → no row written, 403 surfaces to the caller.
-
-~100 LOC.
+~120 LOC.
 
 ---
 
-## Step 9 — Re-check at dequeue
+## Step 5 — Capability implementation
 
-**File:** `backend/app/workers/capability_runner.py` (extend Step 7)
+**File:** `examples/modules/contract-review/capability.py`
 
-Before dispatch, in the worker's fresh DB session:
-- `await assert_grant_active(session, user_id=..., plugin=..., capability=..., matter_id=...)` — must NOT raise `GrantRevoked`.
-- `matter = await session.get(Matter, matter_id); assert matter.status in ACTIVE_STATUSES` — matter must still be open.
-- If either fails → flip the `capability_invocations.status` to `blocked`, emit `module.capability.blocked{reason: "grant_revoked_post_enqueue" | "matter_closed_post_enqueue"}` + terminal SSE event, return.
+`review_contract(document_id: UUID)`:
+1. Resolve document via `matter_context` (reads scoped to grant).
+2. Check the privilege gate via `check_or_block(...)`.
+3. Build a prompt from the document text.
+4. Call the matter's default provider (model_access=required → provider module dispatched via MCP host).
+5. Parse the model output into the findings shape: `[{clause_id, severity, comment, citation}]`.
+6. Write a findings artifact via `write_artifact(...)`.
+7. Return `{findings_artifact_id, findings_count}`.
 
-No raw SQL — both checks go through canonical Phase 4 helpers (Decision #5 + R3 P2 redline).
+Audit emissions along the way (`module.capability.invoked` → `model.invoked` → `module.capability.completed`) all happen via the MCP host wrappers established in Phases 1–3.
 
-~60 LOC.
-
----
-
-## Step 10 — Cancellation + deadlines
-
-**Files:**
-- `backend/app/workers/capability_runner.py` (extend)
-- `backend/app/core/runtime.py` (extend)
-
-- Worker polls `invocation:{id}:cancel` Redis flag at the breakpoints documented in Decision #4.
-- Worker checks `now > deadline_at` at the same breakpoints.
-- Both → flip `capability_invocations.status` → `cancelled` or `deadline_exceeded`, emit corresponding audit row + terminal SSE event, return.
-
-~80 LOC.
+~180 LOC.
 
 ---
 
-## Step 11 — Tests
+## Step 6 — Khan v Acme NDA seed
 
-- `test_phase6_grants_helper.py` (~4 tests) — Step 0 extraction: `assert_grant_active` honours matter scoping, raises on revoked, raises on closed matter.
-- `test_phase6_invocations_migration.py` (~3 tests) — Step 1: table shape, indexes, no WORM trigger.
-- `test_phase6_event_bus.py` (~10 tests) — XADD/XREAD round-trip, MAXLEN cap, EXPIRE, `Last-Event-ID` replay, `replay_truncated` past cap, `replay_unavailable` past TTL, multi-instance read (subscribe from a different connection), `_FORBIDDEN_KEYS` guard rejects matter content.
-- `test_phase6_sse_api.py` (~10 tests) — connection, heartbeat, Last-Event-ID, authorisation via invocation row, 404 on unknown id, cancel endpoint.
-- `test_phase6_capability_runner.py` (~12 tests) — enqueue → dequeue → complete, grant re-check via helper, matter-closed re-check, deadline, cooperative cancel, audit + invocation-row state transitions.
-- `test_phase6_runtime.py` (~6 tests) — `enqueue_capability` writes row + audit + arq job; rejects when caller lacks grant; returns invocation_id.
+**File:** `backend/app/seed/khan_v_acme.py` (existing — verify or extend)
 
-~45 new tests (revised up from 36 to cover the new helper + registry surface).
+Confirm the seeded matter includes an NDA document. If missing, add a deterministic NDA text file referenced by a `Document` row. Fixture text only — no real privileged content.
 
-Worker tests need an arq fake — use `arq.connections.create_pool` against the compose Redis with a unique queue name per test.
+~30 LOC delta.
 
 ---
 
-## Step 12 — Full sweep
+## Step 7 — The single vertical-slice integration test
 
-- Phase 6 only: ~45 tests
-- Phases 1–6 combined: ~625 tests
+**File:** `backend/tests/test_phase6_vertical_slice.py` (new)
+
+Single test function `test_contract_review_vertical_slice` walking Decision #2 step-by-step. Hits real HTTP endpoints. Hits real Postgres. The provider model call is monkey-patched at the provider-module level only — every other code path is production.
+
+Acceptance assertions (in order, in the same test):
+- Ceremony reaches `enabled` after the canonical 3 trusts + 1 grant.
+- `InstalledModule` row written with `signature_status='verified'`.
+- Grant row written with the correct snapshot.
+- Capability invocation returns success.
+- `advice_boundary_decisions` row written for the privilege gate.
+- `matter_artifacts` row written; storage_path file exists and parses as JSON.
+- `model.invoked` audit row populated with `cost_micros`, `currency`, `tokens_in`, `tokens_out`.
+- `GET /audit/reconstruction` returns a timeline containing all of: `module.installed`, `module.granted`, `module.capability.invoked`, `gate.decided{gate:"privilege_posture"}`, `model.invoked`, `artifact.created`, `module.capability.completed`. Order matches timestamp.
+
+If this single test passes against `runtime-rewrite` head, the vertical slice is real.
+
+~250 LOC.
+
+---
+
+## Step 8 — Targeted unit tests
+
+- `test_phase6_sign_example_module.py` (~3 tests) — signer is deterministic, signature roundtrips through `verify_manifest_signature`.
+- `test_phase6_matter_artifacts.py` (~5 tests) — WORM rejects UPDATE/DELETE, atomic write survives crash mid-write (use a fault-injection mock), storage path scopes to matter_fs.
+- `test_phase6_example_module_discovery.py` (~3 tests) — Phase 2 discovery picks up `examples/modules/contract-review/`, manifest validates, capability_catalogue includes it.
+
+~11 supporting unit tests + the single integration test = **12 new tests total**.
+
+---
+
+## Step 9 — Full sweep
+
+- Phase 6 only: 12 tests
+- Phases 1–6 combined: ~570 tests
 - Entire backend stays green.
 
 ---
 
-## Step 13 — Handover
+## Step 10 — Handover
 
 `HANDOVER_PHASE_6_DONE.md` covers:
-- Phase 6 deliverables ledger
-- Architectural decisions (6) requesting Reviewer ratification
-- Combined test counts
-- SSE behavioural contract (events, ordering, replay semantics)
-- Async-runtime contract (grants re-checked, deadlines, cooperative cancel)
+- Phase 6 vertical-slice deliverables ledger
+- Six architectural decisions requesting Reviewer ratification
+- The integration test as the canonical proof artifact
+- Walkthrough output: the actual JSON the reconstruction view returns for one real run (so Reviewer can read the timeline without spinning the stack)
 - Hand-off line for Reviewer
+- Explicit list of what is **still** out of scope at the end of Phase 6 (async runtime, second reference module, marketplace, admin console, frontend)
 
 ---
 
-## Out of scope (deferred)
+## Out of scope (intentional)
 
-- Streaming token responses from server-paid model keys (the non-negotiable forbids server-paid keys in prod)
-- Cross-invocation event aggregation (Phase 7 admin console)
-- WebSocket transport (SSE is sufficient; WS adds bidirectional channel we don't need yet)
-- Worker autoscaling (deploy-layer concern; Fly machine count handled outside the app)
-- Cancellation via UI (Phase 12 frontend)
-- Job priority lanes (one queue for Phase 6; lanes are a Phase 7+ concern)
-- Reference module ports (Phase 7–10)
-- Connector proof set (Phase 11)
+This is where the framing earns its keep. All of the following are explicitly NOT in Phase 6:
 
----
+- Async runtime / SSE / background jobs → parked at `PHASE_7_ASYNC_RUNTIME_PLAN_PARKED.md`
+- Second reference module (Pre-Motion) → Phase 8+
+- Marketplace UI, publisher economy → Phase 9+
+- Connector breadth (Companies House, legislation.gov.uk) → Phase 10+
+- Admin console / cross-matter view → later
+- Frontend timeline UI → Phase 12
+- Sigstore/Rekor real verification → Phase 11
+- Cost dashboards → reopen with a real spending signal
+- New gates beyond `privilege_posture` → reopen with a real second module
 
-## Reviewer ratification nits applied (v2.1)
-
-After v2 was ratified, Reviewer flagged three doc/spec nits:
-
-1. **`deadline_exceeded` added to terminal enum** (Decision #1) — was emitted by Step 10 but missing from the enum-of-record. Enum now complete in one place.
-2. **Progress `message` made host-controlled** (Decision #1 + Step 5) — `report_progress()` takes `percent: int` only; the host derives the message from a fixed lifecycle-phase catalogue. Prevents content leakage through a field the `_FORBIDDEN_KEYS` guard cannot see.
-
-(The Phase 5 cursor-encoding example, nit #1, is fixed in `PHASE_5_BUILD_PLAN.md`.)
-
-## Reviewer redlines applied
-
-Phase 6 plan v2 incorporates the Reviewer redline (post v1, pre-Step 0):
-
-1. **R3 P1 — `partial_result` removed.** Decision #1 events are strictly metadata + pointers to canonical Postgres rows. `_FORBIDDEN_KEYS` runtime guard in `event_bus.publish` rejects any payload containing matter content. Streaming model tokens deferred to Phase 7 via a non-Redis path.
-2. **R3 P1 — Persisted invocation registry.** New Decision #6 + migration `0018_capability_invocations` create the authoritative table mapping `invocation_id → (actor_user_id, matter_id, module_id, status)`. SSE and cancel authorise by reading this row, not by scanning audit.
-3. **R3 P2 — Replay across API instances solved.** Decision #2 replaces in-memory ring buffer with Redis Streams (`XADD MAXLEN ~ 200`, `EXPIRE 300`). Decision #2a documents the gap semantics (`replay_truncated`, `replay_unavailable`) with Phase 5 reconstruction as the authoritative fallback.
-4. **R3 P2 — Grant re-check via lifecycle helper.** Decision #5 + Step 0 + Step 9 wire the worker through `assert_grant_active(...)` (extracted from existing call sites) instead of raw SQL against `granted_permissions_snapshot`.
+If any of these creep in during Phase 6 build, push back. The framing is "ship the smallest real proof of the big thesis." Breadth is the failure mode.
 
 ---
 
-*End of Phase 6 build plan v2. Builder commits this together with Phase 5 plan v2, then waits for Reviewer ratification of both redlines before starting Phase 5 Step 0.*
+*End of Phase 6 vertical-slice build plan. Builder commits this together with Phase 5 v3, then waits for Reviewer ratification before starting Phase 5 Step 0.*
