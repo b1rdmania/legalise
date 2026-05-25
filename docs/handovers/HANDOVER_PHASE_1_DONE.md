@@ -357,9 +357,17 @@ Reviewer's second pass at `e33991c` confirmed the round-1 fixes hold but surface
 - Updated `test_require_admin_rejects_non_superuser` and `test_require_admin_permits_superuser` to use the shared `require_admin` with `action_label`.
 - New `test_require_admin_for_state_machine_definition_registration` — verifies the same envelope on the state-machine path with a distinct action label.
 
-### Total test count after round 2
+### Final test count after all rounds (Phase 1 ratified)
 
-80 (round 1) + 2 (P1#1 round 2: supervised + final not permitted as initial) + 1 (P1#2 round 2: state-machine admin gate) = **83 tests** across 6 test files. (Existing `test_initial_tier_supervised_requires_solicitor` was rewritten in place rather than added, so it doesn't bump the count.)
+83 (after round 2) + 5 (test-fixture mocks + integration coverage added in rounds 4-5) = **88 tests across 6 test files**. Verified green locally and via CI run `26409661942` on `runtime-rewrite` at `4267e59`:
+
+- Backend pytest (alembic against real Postgres, lockfile + cryptography checks): green
+- Storage MinIO smoke: green
+- Worker smoke (arq + export job): green
+- Frontend build: green
+- Voice check: green
+
+**Phase 1 ratified at `4267e59`.**
 
 ---
 
