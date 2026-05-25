@@ -169,7 +169,11 @@ Both `STATE_MACHINE_PRIMITIVE.md` §Audit Events and `ADVICE_BOUNDARY.md` §Stor
 
 ### Gap 3 — Initial-tier creation in advice boundary (no `from_tier`)
 
-`ADVICE_BOUNDARY.md` §Transition Rules lists allowed transitions but doesn't define what happens when an output is first created (no `from_tier`). The implementation introduces `INITIAL_TIER_ROLE_REQUIREMENTS` for this case: any-authenticated for `factual_extraction` / `legal_information` / `draft_advice`; qualified_solicitor/workspace_admin for `supervised_legal_advice` / `approved_final_advice`. **Action requested:** ratify the initial-tier rules in `ADVICE_BOUNDARY.md` or counter.
+`ADVICE_BOUNDARY.md` §Transition Rules lists allowed transitions but doesn't define what happens when an output is first created (no `from_tier`).
+
+**Resolved in round 2 (Reviewer P1#1):** `INITIAL_TIER_ROLE_REQUIREMENTS` is now capped at `draft_advice` — `factual_extraction`, `legal_information`, and `draft_advice` only. `supervised_legal_advice` and `approved_final_advice` are intentionally absent; the gate explicitly rejects them as initial tiers with `blocked_reason=invalid_transition`, `reason=tier_not_permitted_as_initial`. Even workspace_admin or qualified_solicitor cannot direct-create supervised or final outputs — they must go through the transition path. Output-lifecycle reference module in Phase 7+ may revisit this cap when it can prove prior state.
+
+**Action requested:** add the initial-tier rules to `ADVICE_BOUNDARY.md` so the cap is canonical in the architecture doc, not just in code + this handover.
 
 ### Gap 4 — Owner scope vocabulary on state-machine instances
 
