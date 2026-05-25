@@ -9,6 +9,32 @@ This document is the implementation contract. If anything changes during build (
 
 ---
 
+## Pre-build findings (read pass completed 2026-05-25)
+
+Six adjustments to the implementation approach surfaced during the read pass. Build plan updated accordingly:
+
+1. **No `TimestampMixin`** — `models/base.py` is just `Base(DeclarativeBase)`. Models inline timestamps:
+   ```python
+   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False)
+   ```
+   All Phase 1 models follow this pattern.
+
+2. **`require_capability` is plugin/skill-coupled.** Existing signature: `(session, *, user_id, plugin, skill, capability)`. The substrate primitives use a convention to fit cleanly: `plugin="core"`, `skill="<primitive_name>"` (e.g. `"state_machine"`, `"matter_context"`, `"advice_boundary"`). When modules later use state machines, they pass their own `(plugin, skill)` identity. Substrate-level checks use `plugin="core"` so the existing capability grant table works without schema changes.
+
+3. **`CapabilityDenied` already writes its own audit row** (`module.capability.denied`) and is handled globally in `main.py` with a structured 403. The `check_or_block` helper in shared infrastructure just calls `require_capability` and lets `CapabilityDenied` propagate; my primitives' canonical `*.blocked` audit row is emitted *in addition* to the existing `module.capability.denied` row, carrying the `BlockedPayload` shape for Phase 1 reconstruction. Both rows are needed: one is the standard capability denial record (existing), one is the Phase 1 primitive's structured blocked event.
+
+4. **Audit table** (`audit_entries`) has fixed columns: `action`, `module` (String 64), `resource_type`, `resource_id`, `payload` JSONB, plus model-call provenance fields (`model_used`, `prompt_hash`, `response_hash`, `token_count`, `latency_ms`). Phase 1 audit emissions pack `module_id`, `capability_id`, `BlockedPayload` into the `payload` JSONB. `action` uses canonical event names from the architecture docs (`state_machine.transition.completed`, etc.). `module` field is set to e.g. `"core.state_machine"`.
+
+5. **Migration numbering** — next migration is `0012_phase1_state_machine.py`, then `0013_phase1_matter_context.py`, then `0014_phase1_advice_boundary.py`. Each migration includes WORM trigger for its append-only table (state_machine_transitions, advice_boundary_decisions) matching the existing pattern from `0011_audit_worm.py`.
+
+6. **Tests directory is `backend/tests/`** (flat), not `tests/core/...`. Test files follow `test_<thing>.py` naming. Phase 1 test files: `test_phase1_state_machine.py`, `test_phase1_matter_context.py`, `test_phase1_advice_boundary.py`, `test_phase1_integration.py`, plus `test_phase1_runtime.py` for shared infrastructure.
+
+7. **`jsonschema>=4.21`** already in `backend/pyproject.toml`. No new dependency for matter-context schema validation.
+
+8. **Router paths** — `/api/state-machine/...`, `/api/matter-context/schemas/...` for workspace-scoped surfaces; `/api/matters/{matter_id}/context/...` for matter-scoped surfaces. Routers register in `app/main.py`. The audit middleware auto-logs mutations on `/api/matters/*` so matter-scoped writes get an `http.*` row in addition to the semantic event.
+
+---
+
 ## Pre-build: codebase ground-in
 
 Single read pass before any new code. Files to confirm shape and conventions:
