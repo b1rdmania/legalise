@@ -6,7 +6,9 @@
 **Acceptance gate:** awaiting Reviewer ratification
 **Phase 2 status:** blocked until this handover is reviewed
 
-**Update 2026-05-25 (post-review round):** Reviewer's first pass at `f171b4f` flagged three P1 security findings, one P2 doctrine divergence, and one P3 nit. All five fixed before this re-submission. See §Reviewer findings + fixes below for the change log.
+**Update 2026-05-25 (post-review round 1):** Reviewer's first pass at `f171b4f` flagged three P1 security findings, one P2 doctrine divergence, and one P3 nit. All five fixed at `e33991c`.
+
+**Update 2026-05-25 (post-review round 2):** Reviewer's second pass at `e33991c` confirmed the round-1 fixes but flagged two new P1 trust-boundary holes (initial-tier advice bypass; state-machine definition registry globally writable). Both resolved in this commit. See §Reviewer findings + fixes — round 2 below.
 
 ---
 
@@ -295,9 +297,51 @@ Reviewer pass at commit `f171b4f` returned five findings. All resolved.
 
 Plus the two existing role-requirement tests in `test_phase1_advice_boundary.py` were updated to assert the tightened sets.
 
-### Total test count after this round
+### Total test count after round 1
 
 62 + 17 (new security tests) + 1 (P2 verification) = **80 tests** across 6 new test files.
+
+---
+
+## Reviewer findings + fixes — round 2 (2026-05-25)
+
+Reviewer's second pass at `e33991c` confirmed the round-1 fixes hold but surfaced two more P1 trust-boundary holes. Both fixed in this commit.
+
+### P1#1 — Initial-tier advice boundary allowed supervised / final without prior tier
+
+**Reviewer:** "A workspace admin can call `/api/advice-boundary/check` with `requested_tier=approved_final_advice` and no `from_tier`, producing an allowed final decision with no supervised history. That reopens the supervision bypass in a different path. Initial creation should probably be capped at `draft_advice`."
+
+**Fix:** `backend/app/core/advice_boundary/tiers.py`:
+- `INITIAL_TIER_ROLE_REQUIREMENTS` now contains only `factual_extraction`, `legal_information`, `draft_advice`. The supervised and final tiers are intentionally absent — they cannot be set as initial tier.
+- New `initial_tier_is_permitted(tier)` helper.
+
+`backend/app/core/advice_boundary/gate.py`:
+- The `from_tier=None` branch now explicitly checks `initial_tier_is_permitted(requested_tier)` before role evaluation. If not permitted, the gate writes a `BLOCKED` decision with `blocked_reason=invalid_transition`, `reason=tier_not_permitted_as_initial`, `max_initial_tier=draft_advice`. Audit `advice_boundary.check.blocked` emitted.
+
+**Phase 1 consequence:** initial-tier creation is capped at `draft_advice`. Even a workspace admin or qualified solicitor cannot direct-create a `supervised_legal_advice` or `approved_final_advice` output via the gate without going through the transition path. When the output-lifecycle reference module ships in Phase 7+ and can prove prior state, this cap can be revisited.
+
+**Tests added in `tests/test_phase1_advice_boundary.py`:**
+- `test_initial_tier_supervised_is_not_permitted` — replaces the old `test_initial_tier_supervised_requires_solicitor`; proves even a solicitor cannot direct-create supervised.
+- `test_initial_tier_approved_final_is_not_permitted` — new; proves even workspace_admin cannot direct-create approved final.
+
+### P1#2 — State-machine definition registration globally writable
+
+**Reviewer:** "`POST /api/state-machine/definitions` still accepts `module_id` from the body and registers it for any authenticated user. That lets a normal user publish definitions under first-party or firm-private module IDs."
+
+**Fix:** Admin gate consolidated into a shared helper and applied uniformly:
+- New `backend/app/core/admin_check.py` exports `require_admin(user, *, action_label)`. Same 403 `admin_required` envelope as the round-1 fix, with `action_label` interpolated into the message so different endpoints surface a distinct reason.
+- `backend/app/api/matter_context.py`: replaces local `_require_admin` with `require_admin(user, action_label="matter-context schema registration")`.
+- `backend/app/api/state_machine.py`: `register_definition_endpoint` now calls `require_admin(user, action_label="state-machine definition registration")` before doing anything else.
+
+**Phase 1 consequence:** state-machine definitions and matter-context schemas now share the same workspace-admin trust gate. End users cannot publish under first-party or firm-private module IDs in either registry.
+
+**Tests in `tests/test_phase1_security_fixes.py`:**
+- Updated `test_require_admin_rejects_non_superuser` and `test_require_admin_permits_superuser` to use the shared `require_admin` with `action_label`.
+- New `test_require_admin_for_state_machine_definition_registration` — verifies the same envelope on the state-machine path with a distinct action label.
+
+### Total test count after round 2
+
+80 (round 1) + 2 (P1#1 round 2: supervised + final not permitted as initial) + 1 (P1#2 round 2: state-machine admin gate) = **83 tests** across 6 test files. (Existing `test_initial_tier_supervised_requires_solicitor` was rewritten in place rather than added, so it doesn't bump the count.)
 
 ---
 

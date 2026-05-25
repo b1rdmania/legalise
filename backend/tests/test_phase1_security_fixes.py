@@ -28,13 +28,13 @@ from sqlalchemy import select
 from fastapi import HTTPException
 
 from app.api.advice_boundary import _derive_actor_role
-from app.api.matter_context import _require_admin
 from app.api.state_machine import (
     _OWNER_SCOPE_MATTER,
     _OWNER_SCOPE_WORKSPACE,
     _assert_instance_access,
     _resolve_owner_for_create,
 )
+from app.core.admin_check import require_admin
 from app.core.state_machine import (
     create_instance,
     register_definition,
@@ -408,9 +408,12 @@ def test_require_admin_rejects_non_superuser() -> None:
         is_superuser=False,
     )
     with pytest.raises(HTTPException) as exc:
-        _require_admin(user)
+        require_admin(user, action_label="matter-context schema registration")
     assert exc.value.status_code == 403
     assert exc.value.detail["error"] == "admin_required"
+    assert (
+        "matter-context schema registration" in exc.value.detail["message"]
+    )
 
 
 def test_require_admin_permits_superuser() -> None:
@@ -423,4 +426,27 @@ def test_require_admin_permits_superuser() -> None:
         is_superuser=True,
     )
     # No raise.
-    _require_admin(user)
+    require_admin(user, action_label="anything")
+
+
+def test_require_admin_for_state_machine_definition_registration() -> None:
+    """Reviewer P1#2 round 2: state-machine definition registration
+    uses the same admin gate. The action_label interpolation surfaces
+    a distinct message in the 403 envelope."""
+    user = User(
+        id=uuid.uuid4(),
+        email="x@x",
+        hashed_password="x" * 32,
+        is_active=True,
+        is_verified=True,
+        is_superuser=False,
+    )
+    with pytest.raises(HTTPException) as exc:
+        require_admin(
+            user, action_label="state-machine definition registration"
+        )
+    assert exc.value.status_code == 403
+    assert (
+        "state-machine definition registration"
+        in exc.value.detail["message"]
+    )

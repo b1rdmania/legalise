@@ -30,6 +30,7 @@ from app.core.advice_boundary.tiers import (
     ROLE_REQUIREMENTS,
     InvalidTierError,
     assert_tier,
+    initial_tier_is_permitted,
     is_allowed_transition,
     is_terminal_tier,
     role_satisfies,
@@ -256,7 +257,45 @@ async def check(
             }
         role_requirement = ROLE_REQUIREMENTS[(from_tier, requested_tier)]
     else:
-        # Initial-tier case.
+        # Initial-tier case — Reviewer P1#1 round 2: cap at draft_advice.
+        # supervised_legal_advice and approved_final_advice cannot be
+        # set as initial tier; they require a transition path through
+        # prior tiers. This closes the supervision-bypass path where a
+        # caller with workspace_admin role could direct-create an
+        # approved final advice with no supervised history.
+        if not initial_tier_is_permitted(requested_tier):
+            blocked = BlockedPayload(
+                blocked_reason=BlockedReason.INVALID_TRANSITION,
+                gate_state={
+                    "to_tier": requested_tier,
+                    "reason": "tier_not_permitted_as_initial",
+                    "max_initial_tier": "draft_advice",
+                },
+            )
+            decision = await _append_decision(
+                session,
+                output_id=output_id,
+                from_tier=from_tier,
+                to_tier=requested_tier,
+                actor_user_id=actor_user_id,
+                actor_role=actor_role,
+                module_id=module_id,
+                capability_id=capability_id,
+                declared_tier_max=declared_tier_max,
+                gate_state=blocked.to_dict(),
+                status=DECISION_STATUS_BLOCKED,
+            )
+            await _emit(
+                session,
+                action="advice_boundary.check.blocked",
+                decision=decision,
+                blocked=blocked,
+            )
+            return {
+                "allowed": False,
+                "decision_id": str(decision.id),
+                "gate_state": decision.gate_state,
+            }
         role_requirement = INITIAL_TIER_ROLE_REQUIREMENTS[requested_tier]
 
     # Role check.

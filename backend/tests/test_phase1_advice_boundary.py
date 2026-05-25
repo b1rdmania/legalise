@@ -457,20 +457,24 @@ async def test_initial_tier_creation_with_any_authenticated(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_initial_tier_supervised_requires_solicitor(db_session) -> None:
-    """Creating an output directly at supervised_legal_advice requires
-    qualified_solicitor or workspace_admin even though there's no
-    from_tier."""
+async def test_initial_tier_supervised_is_not_permitted(db_session) -> None:
+    """Reviewer P1#1 round 2: supervised_legal_advice cannot be set as
+    initial tier (from_tier=None). It requires a transition path
+    through prior tiers. Closes the supervision-bypass path where
+    direct creation could yield a supervised output with no draft
+    history."""
     user = await _make_user(db_session)
     output_id = f"output-{uuid.uuid4().hex[:8]}"
 
+    # Try as solicitor — still blocked because the tier itself is not
+    # permitted as initial.
     result = await check(
         db_session,
         output_id=output_id,
         requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
         from_tier=None,
         actor_user_id=user.id,
-        actor_role="paralegal",
+        actor_role="qualified_solicitor",
     )
     assert result["allowed"] is False
     decision = await db_session.scalar(
@@ -478,8 +482,37 @@ async def test_initial_tier_supervised_requires_solicitor(db_session) -> None:
             AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
         )
     )
-    assert decision.status == DECISION_STATUS_DENIED
-    assert result["gate_state"]["blocked_reason"] == "role_denied"
+    assert decision.status == DECISION_STATUS_BLOCKED
+    assert result["gate_state"]["blocked_reason"] == "invalid_transition"
+    assert result["gate_state"]["reason"] == "tier_not_permitted_as_initial"
+
+
+@pytest.mark.asyncio
+async def test_initial_tier_approved_final_is_not_permitted(db_session) -> None:
+    """Reviewer P1#1 round 2: approved_final_advice cannot be set as
+    initial tier, even for workspace_admin. This closes the bypass
+    where an admin could direct-create final advice with no supervised
+    history."""
+    user = await _make_user(db_session)
+    output_id = f"output-{uuid.uuid4().hex[:8]}"
+
+    result = await check(
+        db_session,
+        output_id=output_id,
+        requested_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
+        from_tier=None,
+        actor_user_id=user.id,
+        actor_role="workspace_admin",
+    )
+    assert result["allowed"] is False
+    decision = await db_session.scalar(
+        select(AdviceBoundaryDecision).where(
+            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
+        )
+    )
+    assert decision.status == DECISION_STATUS_BLOCKED
+    assert result["gate_state"]["blocked_reason"] == "invalid_transition"
+    assert result["gate_state"]["reason"] == "tier_not_permitted_as_initial"
 
 
 # ---------------------------------------------------------------------------

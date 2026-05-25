@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.admin_check import require_admin
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_access import resolve_owned_open_matter
@@ -47,29 +48,11 @@ schema_router = APIRouter()
 items_router = APIRouter()
 
 
-def _require_admin(user: User) -> None:
-    """Schema registration is module-host / workspace-admin work, not
-    end-user work. Reviewer P1#3 fix: any authenticated user could
-    previously register or shadow a namespace, poisoning validation
-    for first-party / reference module writes. Phase 1 gates on
-    ``is_superuser`` as the workspace-admin proxy; Phase 2 may
-    introduce a finer-grained workspace role.
-
-    Raises 403 with ``error=admin_required``. Same shape as the
-    advice-boundary 403 envelopes so the frontend can treat all
-    Phase 1 admin gates uniformly.
-    """
-    if not user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "admin_required",
-                "message": (
-                    "matter-context schema registration requires "
-                    "workspace administrator privileges"
-                ),
-            },
-        )
+# Admin gate now lives in ``app.core.admin_check`` so both
+# matter-context schema registration and state-machine definition
+# registration use the same envelope. See Reviewer P1#2 round 2 — the
+# state-machine endpoint was missing this gate and has been brought
+# under the same helper.
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +169,7 @@ async def register_schema_endpoint(
     cannot squat or poison namespaces used by first-party / reference
     modules.
     """
-    _require_admin(user)
+    require_admin(user, action_label="matter-context schema registration")
     try:
         schema = await register_schema(
             session,

@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.admin_check import require_admin
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_access import resolve_owned_open_matter
@@ -356,7 +357,13 @@ async def register_definition_endpoint(
     Idempotent on ``(module_id, definition_key, version)`` — re-posting
     the same triple returns the existing row unchanged. To ship a new
     shape, bump the ``version`` field.
+
+    Reviewer P1#2 round 2: registration is workspace-admin only —
+    matches the matter-context schema gate. End users cannot publish
+    definitions under first-party or firm-private module IDs and so
+    cannot squat on the module supply-chain registry.
     """
+    require_admin(user, action_label="state-machine definition registration")
     try:
         definition = await register_definition(
             session,

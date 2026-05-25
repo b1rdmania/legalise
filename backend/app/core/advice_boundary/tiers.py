@@ -107,18 +107,41 @@ ROLE_REQUIREMENTS: dict[tuple[str, str], frozenset[str]] = {
 
 
 # Initial-creation case: setting a tier on a brand-new output (no
-# ``from_tier``). Mirrors the transition rules — supervised tier
-# requires solicitor only (admin override does not apply); final tier
-# requires solicitor OR admin.
+# ``from_tier``).
+#
+# Reviewer P1#1 round 2: capped at draft_advice.
+# ``supervised_legal_advice`` and ``approved_final_advice`` are
+# intentionally absent from this table — they cannot be set as initial
+# tier. They require a transition path through prior tiers.
+#
+# Without this cap, a workspace admin could direct-create an output at
+# ``approved_final_advice`` with no supervised history, bypassing the
+# entire supervision primitive. The architecture doc is explicit that
+# approved advice must not skip supervised. Initial-tier setting is a
+# distinct code path that needs the same guarantee.
+#
+# When the output-lifecycle reference module ships in Phase 7+ and can
+# prove prior state, this table may be revisited so a solicitor can
+# directly create an output at supervised tier if there's a documented
+# prior-tier history elsewhere. For Phase 1 the safe default is no
+# initial-tier creation above draft_advice.
 INITIAL_TIER_ROLE_REQUIREMENTS: dict[str, frozenset[str]] = {
     ADVICE_TIER_FACTUAL_EXTRACTION: frozenset({"any_authenticated"}),
     ADVICE_TIER_LEGAL_INFORMATION: frozenset({"any_authenticated"}),
     ADVICE_TIER_DRAFT_ADVICE: frozenset({"any_authenticated"}),
-    ADVICE_TIER_SUPERVISED_LEGAL_ADVICE: frozenset({"qualified_solicitor"}),
-    ADVICE_TIER_APPROVED_FINAL_ADVICE: frozenset(
-        {"qualified_solicitor", "workspace_admin"}
-    ),
+    # supervised_legal_advice / approved_final_advice intentionally
+    # absent — see module-level comment above.
 }
+
+
+def initial_tier_is_permitted(tier: str) -> bool:
+    """True if ``tier`` may be set as the initial tier of a new output
+    (i.e. with ``from_tier=None``).
+
+    Per Reviewer P1#1 round 2 this caps initial-tier creation at
+    ``draft_advice``; supervised and final tiers cannot be direct-created.
+    """
+    return tier in INITIAL_TIER_ROLE_REQUIREMENTS
 
 
 class InvalidTierError(ValueError):
