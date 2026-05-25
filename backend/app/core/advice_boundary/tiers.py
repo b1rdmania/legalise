@@ -76,6 +76,16 @@ TERMINAL_TIERS: frozenset[str] = frozenset({ADVICE_TIER_APPROVED_FINAL_ADVICE})
 
 
 # Role required per transition per ADVICE_BOUNDARY.md §Transition Rules.
+#
+# Doctrine alignment (Reviewer P2):
+# - draft_advice -> supervised_legal_advice: qualified_solicitor only.
+#   The architecture doc is explicit that admin override does NOT apply
+#   to the supervised-promotion step; admins cannot self-promote draft
+#   advice to supervised state. Only a qualified solicitor's clinical
+#   review can promote.
+# - supervised_legal_advice -> approved_final_advice: qualified_solicitor
+#   OR workspace_admin. The architecture doc permits admin override
+#   here for the final-approval step.
 ROLE_REQUIREMENTS: dict[tuple[str, str], frozenset[str]] = {
     (ADVICE_TIER_FACTUAL_EXTRACTION, ADVICE_TIER_LEGAL_INFORMATION): frozenset(
         {"any_authenticated"}
@@ -87,7 +97,7 @@ ROLE_REQUIREMENTS: dict[tuple[str, str], frozenset[str]] = {
         {"any_authenticated"}
     ),
     (ADVICE_TIER_DRAFT_ADVICE, ADVICE_TIER_SUPERVISED_LEGAL_ADVICE): frozenset(
-        {"qualified_solicitor", "workspace_admin"}
+        {"qualified_solicitor"}
     ),
     (
         ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
@@ -97,17 +107,14 @@ ROLE_REQUIREMENTS: dict[tuple[str, str], frozenset[str]] = {
 
 
 # Initial-creation case: setting a tier on a brand-new output (no
-# ``from_tier``). Allowed only up to ``draft_advice`` for non-solicitor
-# actors; ``supervised_legal_advice`` requires solicitor; final tier
-# requires solicitor + supervision history (not enforced in Phase 1,
-# documented as a deferred check for Phase 7+).
+# ``from_tier``). Mirrors the transition rules — supervised tier
+# requires solicitor only (admin override does not apply); final tier
+# requires solicitor OR admin.
 INITIAL_TIER_ROLE_REQUIREMENTS: dict[str, frozenset[str]] = {
     ADVICE_TIER_FACTUAL_EXTRACTION: frozenset({"any_authenticated"}),
     ADVICE_TIER_LEGAL_INFORMATION: frozenset({"any_authenticated"}),
     ADVICE_TIER_DRAFT_ADVICE: frozenset({"any_authenticated"}),
-    ADVICE_TIER_SUPERVISED_LEGAL_ADVICE: frozenset(
-        {"qualified_solicitor", "workspace_admin"}
-    ),
+    ADVICE_TIER_SUPERVISED_LEGAL_ADVICE: frozenset({"qualified_solicitor"}),
     ADVICE_TIER_APPROVED_FINAL_ADVICE: frozenset(
         {"qualified_solicitor", "workspace_admin"}
     ),

@@ -126,9 +126,25 @@ def test_role_satisfies_literal_membership() -> None:
     )
 
 
-def test_role_requirements_for_supervised_transition() -> None:
+def test_role_requirements_for_supervised_transition_is_solicitor_only() -> None:
+    """Reviewer P2 — admin override does NOT apply to the
+    draft -> supervised step. Per ADVICE_BOUNDARY.md only a qualified
+    solicitor's clinical review can promote draft advice to supervised
+    state. Admin override is permitted only for the final approval
+    step."""
     req = ROLE_REQUIREMENTS[
         (ADVICE_TIER_DRAFT_ADVICE, ADVICE_TIER_SUPERVISED_LEGAL_ADVICE)
+    ]
+    assert req == frozenset({"qualified_solicitor"})
+
+
+def test_role_requirements_for_final_approval_includes_admin() -> None:
+    """Final approval permits admin override per ADVICE_BOUNDARY.md."""
+    req = ROLE_REQUIREMENTS[
+        (
+            ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            ADVICE_TIER_APPROVED_FINAL_ADVICE,
+        )
     ]
     assert "qualified_solicitor" in req
     assert "workspace_admin" in req
@@ -252,6 +268,33 @@ async def test_canonical_downward_transition(db_session) -> None:
     )
     assert decision.status == DECISION_STATUS_BLOCKED
     assert result["gate_state"]["blocked_reason"] == "invalid_transition"
+
+
+# ---------------------------------------------------------------------------
+# Reviewer P2: workspace_admin cannot promote draft -> supervised
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_workspace_admin_cannot_promote_draft_to_supervised(db_session) -> None:
+    """Per ADVICE_BOUNDARY.md, admin override does not apply to the
+    draft -> supervised promotion step. Only a qualified solicitor's
+    clinical review can promote."""
+    user = await _make_user(db_session)
+    output_id = f"output-{uuid.uuid4().hex[:8]}"
+
+    result = await check(
+        db_session,
+        output_id=output_id,
+        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+        from_tier=ADVICE_TIER_DRAFT_ADVICE,
+        actor_user_id=user.id,
+        actor_role="workspace_admin",  # NOT solicitor
+    )
+    assert result["allowed"] is False
+    assert result["gate_state"]["blocked_reason"] == "role_denied"
+    assert "workspace_admin" not in result["gate_state"]["required"]
+    assert "qualified_solicitor" in result["gate_state"]["required"]
 
 
 # ---------------------------------------------------------------------------

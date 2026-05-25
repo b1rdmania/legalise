@@ -47,6 +47,31 @@ schema_router = APIRouter()
 items_router = APIRouter()
 
 
+def _require_admin(user: User) -> None:
+    """Schema registration is module-host / workspace-admin work, not
+    end-user work. Reviewer P1#3 fix: any authenticated user could
+    previously register or shadow a namespace, poisoning validation
+    for first-party / reference module writes. Phase 1 gates on
+    ``is_superuser`` as the workspace-admin proxy; Phase 2 may
+    introduce a finer-grained workspace role.
+
+    Raises 403 with ``error=admin_required``. Same shape as the
+    advice-boundary 403 envelopes so the frontend can treat all
+    Phase 1 admin gates uniformly.
+    """
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "admin_required",
+                "message": (
+                    "matter-context schema registration requires "
+                    "workspace administrator privileges"
+                ),
+            },
+        )
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -156,7 +181,12 @@ async def register_schema_endpoint(
     """Register a new schema under ``(namespace, version)``.
 
     Idempotent — re-posting the same triple returns the existing row.
+
+    Reviewer P1#3: registration is workspace-admin only. End users
+    cannot squat or poison namespaces used by first-party / reference
+    modules.
     """
+    _require_admin(user)
     try:
         schema = await register_schema(
             session,

@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.phase1_runtime import Phase1Blocked, Phase1Failed
 from app.core.state_machine import (
     DefinitionNotFoundError,
@@ -40,7 +41,16 @@ from app.core.state_machine import (
     register_definition,
     request_transition,
 )
-from app.models import User
+from app.models import STATUS_ARCHIVED, Matter, User
+from sqlalchemy import select
+
+
+# Server-side owner-scope vocabulary. Reviewer P1#2 fix — the HTTP layer
+# enforces a closed set; substrate runtime still accepts any string for
+# internal callers, but the HTTP API restricts to known scopes.
+_OWNER_SCOPE_MATTER = "matter"
+_OWNER_SCOPE_WORKSPACE = "workspace"
+_ALLOWED_OWNER_SCOPES = frozenset({_OWNER_SCOPE_MATTER, _OWNER_SCOPE_WORKSPACE})
 
 
 router = APIRouter()
@@ -83,12 +93,28 @@ class DefinitionResponse(BaseModel):
 
 
 class CreateInstanceRequest(BaseModel):
+    """Create-instance request.
+
+    ``owner_scope`` must be one of the HTTP-allowed scopes (``matter``
+    or ``workspace``).
+
+    ``owner_ref`` semantics:
+      - ``owner_scope="matter"`` — required; must be a matter slug
+        owned by the authenticated user.
+      - ``owner_scope="workspace"`` — ignored; the server forces
+        ``owner_id`` to the authenticated user's id.
+
+    Reviewer P1#2 fix: the runtime accepts any ``(owner_scope, owner_id)``
+    pair, so without this HTTP-layer enforcement an authenticated user
+    could mint instances bound to arbitrary matters or users.
+    """
+
     definition_id: uuid.UUID | None = None
     module_id: str | None = None
     definition_key: str | None = None
     version: str | None = None
     owner_scope: str
-    owner_id: str
+    owner_ref: str | None = None
 
 
 class InstanceResponse(BaseModel):
@@ -121,6 +147,147 @@ class TransitionResponse(BaseModel):
     status: str
     gate_state: dict[str, Any]
     current_state: str
+
+
+# ---------------------------------------------------------------------------
+# Access control helpers (Reviewer P1#2 fix)
+# ---------------------------------------------------------------------------
+
+
+async def _resolve_owner_for_create(
+    session: AsyncSession,
+    *,
+    user: User,
+    owner_scope: str,
+    owner_ref: str | None,
+) -> str:
+    """Resolve the storable ``owner_id`` for a new instance.
+
+    Returns the string to persist on the instance's ``owner_id`` column.
+
+    Raises ``HTTPException(404)`` to match the codebase convention for
+    cross-user / archived / missing matter access (avoid leaking
+    existence). Raises 422 for malformed input that is the caller's
+    fault (unknown scope, missing owner_ref for matter scope).
+    """
+    if owner_scope not in _ALLOWED_OWNER_SCOPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error": "invalid_owner_scope",
+                "message": (
+                    f"owner_scope={owner_scope!r} not in "
+                    f"{sorted(_ALLOWED_OWNER_SCOPES)}"
+                ),
+            },
+        )
+
+    if owner_scope == _OWNER_SCOPE_MATTER:
+        if not owner_ref:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "error": "missing_owner_ref",
+                    "message": "owner_ref (matter slug) is required for "
+                    "owner_scope='matter'",
+                },
+            )
+        # resolve_owned_open_matter raises 404 if matter is missing/
+        # archived/cross-user — same shape as the rest of the codebase.
+        matter = await resolve_owned_open_matter(session, owner_ref, user.id)
+        return str(matter.id)
+
+    # workspace scope — owner_ref ignored; server forces user.id.
+    return str(user.id)
+
+
+async def _assert_instance_access(
+    session: AsyncSession,
+    *,
+    user: User,
+    instance,
+) -> None:
+    """Verify ``user`` is allowed to read/operate on ``instance``.
+
+    Raises ``HTTPException(404)`` if not — same shape as
+    ``resolve_owned_open_matter`` so leaked instance UUIDs don't reveal
+    ownership state.
+    """
+    if instance.owner_scope == _OWNER_SCOPE_WORKSPACE:
+        if instance.owner_id != str(user.id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "instance_not_found",
+                    "message": f"instance {instance.id} not found",
+                },
+            )
+        return
+
+    if instance.owner_scope == _OWNER_SCOPE_MATTER:
+        try:
+            matter_uuid = uuid.UUID(instance.owner_id)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "instance_not_found",
+                    "message": f"instance {instance.id} not found",
+                },
+            )
+        matter = await session.scalar(
+            select(Matter).where(
+                Matter.id == matter_uuid,
+                Matter.created_by_id == user.id,
+                Matter.status != STATUS_ARCHIVED,
+            )
+        )
+        if matter is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "instance_not_found",
+                    "message": f"instance {instance.id} not found",
+                },
+            )
+        return
+
+    # Unknown scope on an existing instance: deny by default.
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={
+            "error": "instance_not_found",
+            "message": f"instance {instance.id} not found",
+        },
+    )
+
+
+async def _load_and_authorize_instance(
+    session: AsyncSession,
+    *,
+    user: User,
+    instance_id: uuid.UUID,
+):
+    """Load an instance, raising 404 if missing OR if the caller does
+    not own it under its declared scope. Single entry point for the
+    read + transition endpoints."""
+    from app.models import StateMachineInstance
+
+    instance = await session.scalar(
+        select(StateMachineInstance).where(
+            StateMachineInstance.id == instance_id
+        )
+    )
+    if instance is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "instance_not_found",
+                "message": f"instance {instance_id} not found",
+            },
+        )
+    await _assert_instance_access(session, user=user, instance=instance)
+    return instance
 
 
 # ---------------------------------------------------------------------------
@@ -284,6 +451,15 @@ async def create_instance_endpoint(
                 ),
             },
         )
+    # Reviewer P1#2: resolve owner_id server-side. The caller cannot
+    # supply arbitrary owner_id and bind the instance to another user
+    # or matter.
+    resolved_owner_id = await _resolve_owner_for_create(
+        session,
+        user=user,
+        owner_scope=body.owner_scope,
+        owner_ref=body.owner_ref,
+    )
     try:
         instance = await create_instance(
             session,
@@ -292,7 +468,7 @@ async def create_instance_endpoint(
             definition_key=body.definition_key,
             version=body.version,
             owner_scope=body.owner_scope,
-            owner_id=body.owner_id,
+            owner_id=resolved_owner_id,
             actor_id=user.id,
         )
     except DefinitionNotFoundError as exc:
@@ -314,7 +490,17 @@ async def get_instance_endpoint(
     user: User = Depends(current_user),
 ) -> InstanceDetailResponse:
     """Read instance, definition, available next transitions, and
-    recent history."""
+    recent history.
+
+    Reviewer P1#2: ownership check via ``_load_and_authorize_instance``
+    runs before any state is returned. Leaked instance UUIDs do not
+    reveal ownership or history.
+    """
+    # Authorize first — raises 404 if the caller doesn't own the
+    # instance's matter/workspace.
+    await _load_and_authorize_instance(
+        session, user=user, instance_id=instance_id
+    )
     try:
         result = await read_instance(session, instance_id=instance_id)
     except InstanceNotFoundError as exc:
@@ -346,7 +532,14 @@ async def transition_endpoint(
     On a non-system block (invalid transition, capability denied, gate
     blocked), returns ``403`` with the canonical ``BlockedPayload``.
     On system failure, returns ``500`` with an error envelope.
+
+    Reviewer P1#2: ownership check runs before the transition fires.
+    A leaked instance UUID cannot be used to drive transitions on
+    matters/workspaces the caller does not own.
     """
+    await _load_and_authorize_instance(
+        session, user=user, instance_id=instance_id
+    )
     try:
         transition_row, instance = await request_transition(
             session,

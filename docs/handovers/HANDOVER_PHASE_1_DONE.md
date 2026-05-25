@@ -2,9 +2,11 @@
 
 **Builder:** Claude (this session)
 **Branch:** `runtime-rewrite`
-**Head:** `926b1fa` after Phase 1 land
+**Head:** current branch head (latest security-fix commit; see git log)
 **Acceptance gate:** awaiting Reviewer ratification
 **Phase 2 status:** blocked until this handover is reviewed
+
+**Update 2026-05-25 (post-review round):** Reviewer's first pass at `f171b4f` flagged three P1 security findings, one P2 doctrine divergence, and one P3 nit. All five fixed before this re-submission. See §Reviewer findings + fixes below for the change log.
 
 ---
 
@@ -211,6 +213,91 @@ Per the build plan's out-of-scope section:
 - Connector proof set (Phase 11)
 - Intake / output lifecycle / matter memory as core domain schemas (Phases 7-11 reference modules)
 - SRA roll verification for `qualified_solicitor` role (Phase 1 uses generic workspace role check per `ADVICE_BOUNDARY.md` §Phase 1 Scope)
+
+---
+
+## Reviewer findings + fixes (round 1, 2026-05-25)
+
+Reviewer pass at commit `f171b4f` returned five findings. All resolved.
+
+### P1#1 — Advice boundary trusted `actor_role` from request body
+
+**Reviewer:** "Any authenticated user can submit `qualified_solicitor` or `workspace_admin` and obtain a permitted supervised/final advice decision. This defeats the load-bearing supervision primitive."
+
+**Fix:** `backend/app/api/advice_boundary.py` rewritten:
+- `CheckRequest` no longer has an `actor_role` field. Pydantic ignores extra fields by default, so even a client that sends `actor_role` in the body has it dropped.
+- New `_derive_actor_role(user)` helper derives the role server-side from `User.is_superuser`:
+  - `is_superuser=True` → `"workspace_admin"`
+  - otherwise → `"any_authenticated"`
+- The HTTP handler calls `_derive_actor_role` and passes its return value to `core.advice_boundary.check()`.
+- Internal callers (workflows / reference modules) that have already verified solicitor status keep the ability to pass `actor_role` to the programmatic `check()` API.
+
+**Phase 1 consequence:** the HTTP endpoint cannot reach the `qualified_solicitor`-only `draft_advice → supervised_legal_advice` transition. Phase 1 has no SRA roll verification (deferred to Phase 7 per `ADVICE_BOUNDARY.md` §Phase 1 Scope). Workspace admins can reach the final-approval step but not the supervised-promotion step.
+
+### P1#2 — State-machine instances had IDOR-style access gaps
+
+**Reviewer:** "A leaked instance UUID is enough to read history or request transitions, especially for definitions with no required capability."
+
+**Fix:** `backend/app/api/state_machine.py`:
+- New `_resolve_owner_for_create(session, user, owner_scope, owner_ref)` helper:
+  - `owner_scope` restricted to `{"matter", "workspace"}`; unknown scopes 422.
+  - `owner_scope="matter"` requires `owner_ref` (a matter slug); server resolves via `resolve_owned_open_matter` (404 on cross-user/archived/missing — codebase convention).
+  - `owner_scope="workspace"` forces `owner_id` to `str(user.id)`; the caller's `owner_ref` is ignored.
+- New `_assert_instance_access(session, user, instance)` helper:
+  - workspace scope → instance.owner_id must equal `str(user.id)`; else 404.
+  - matter scope → look up the matter by UUID with ownership + non-archived check; else 404.
+  - malformed owner_id or unknown scope → 404.
+- New `_load_and_authorize_instance(session, user, instance_id)` combines instance load + access check.
+- `create_instance_endpoint` calls `_resolve_owner_for_create` before creating.
+- `get_instance_endpoint` calls `_load_and_authorize_instance` before reading state.
+- `transition_endpoint` calls `_load_and_authorize_instance` before invoking the transition.
+- `CreateInstanceRequest.owner_id` renamed to `owner_ref` to clarify the input is not stored verbatim (matter slug for matter scope; ignored for workspace scope).
+
+**Phase 1 consequence:** leaked instance UUIDs return 404 from /api endpoints. Internal programmatic callers (`core.state_machine.request_transition` etc.) remain unscoped — they're substrate-level and trusted; the HTTP layer is where the trust boundary lives.
+
+### P1#3 — Matter-context schema registration globally mutable by any authenticated user
+
+**Reviewer:** "A normal user can squat or poison a namespace used by first-party/reference modules, affecting validation for future writes that default to latest schema."
+
+**Fix:** `backend/app/api/matter_context.py`:
+- New `_require_admin(user)` helper raising 403 `admin_required` if `user.is_superuser` is False.
+- `register_schema_endpoint` calls `_require_admin(user)` before doing anything else.
+
+**Phase 1 consequence:** only workspace admins (currently `is_superuser=True`) can register schemas. Phase 2 may introduce a finer-grained workspace role.
+
+### P2 — Advice role rules diverged from architecture doc
+
+**Reviewer:** "ADVICE_BOUNDARY.md says draft_advice → supervised_legal_advice is only for qualified_solicitor at line 64. The implementation allows both qualified_solicitor and workspace_admin."
+
+**Fix:** `backend/app/core/advice_boundary/tiers.py`:
+- `ROLE_REQUIREMENTS[(draft_advice, supervised_legal_advice)]` tightened from `{qualified_solicitor, workspace_admin}` to `{qualified_solicitor}`.
+- `INITIAL_TIER_ROLE_REQUIREMENTS[supervised_legal_advice]` tightened from `{qualified_solicitor, workspace_admin}` to `{qualified_solicitor}`.
+- Workspace admin override remains for the `supervised_legal_advice → approved_final_advice` final-approval step (matches the architecture doc).
+
+**Test:** new `test_workspace_admin_cannot_promote_draft_to_supervised` in `tests/test_phase1_advice_boundary.py` proves the tightening; existing `test_role_requirements_for_supervised_transition` updated to `test_role_requirements_for_supervised_transition_is_solicitor_only`.
+
+### P3 — Handover head stale
+
+**Reviewer:** Header said head was `926b1fa` but the branch was at `f171b4f`.
+
+**Fix:** header now references "current branch head" generically rather than a specific commit, plus an update timestamp noting the round-1 review pass.
+
+### New tests in this round
+
+`backend/tests/test_phase1_security_fixes.py` — 17 tests covering the security fixes:
+
+- `_derive_actor_role` returns `workspace_admin` for superuser; `any_authenticated` otherwise
+- `CheckRequest` no longer carries `actor_role` and silently drops client-supplied values
+- `_resolve_owner_for_create`: workspace forces user.id; matter requires owned non-archived slug; unknown scope → 422; missing owner_ref for matter → 422; cross-user slug → 404; archived → 404
+- `_assert_instance_access`: workspace owner passes; workspace cross-user → 404; matter owner passes; matter cross-user → 404; matter archived → 404; malformed owner_id → 404; unknown scope → 404
+- `_require_admin`: superuser passes; non-superuser → 403 `admin_required`
+- `test_workspace_admin_cannot_promote_draft_to_supervised` (in test_phase1_advice_boundary.py) — proves P2 fix
+
+Plus the two existing role-requirement tests in `test_phase1_advice_boundary.py` were updated to assert the tightened sets.
+
+### Total test count after this round
+
+62 + 17 (new security tests) + 1 (P2 verification) = **80 tests** across 6 new test files.
 
 ---
 

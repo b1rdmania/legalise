@@ -7,14 +7,36 @@ One endpoint per ``HANDOVER_PHASE_1_START.md`` and
 
 Phase 1: the gate is invokable directly. Phase 2 will wire it from
 manifest ``advice_tier_max``.
+
+**Role derivation policy (Phase 1):** the actor's workspace role is
+derived server-side from the authenticated ``User`` row, not accepted
+from the request body. Without this, any authenticated user could
+submit ``qualified_solicitor`` and approve supervised/final advice
+transitions — which would defeat the entire supervision primitive.
+
+The Phase 1 derivation:
+
+- ``user.is_superuser`` → ``workspace_admin``
+- otherwise            → ``any_authenticated``
+
+Phase 1 has no SRA roll verification (per ``ADVICE_BOUNDARY.md``
+§Phase 1 Scope — deferred to Phase 7+ with the intake reference
+module). As a consequence, supervised-legal-advice and
+approved-final-advice transitions are reachable via the HTTP API
+*only* by workspace admins in Phase 1, and only for the
+``supervised_legal_advice → approved_final_advice`` step (the
+``draft_advice → supervised_legal_advice`` step requires
+``qualified_solicitor`` per the architecture doc and Phase 1 cannot
+yet assign that role). Internal callers (workflows, reference modules)
+that have already verified solicitor status can still invoke
+``core.advice_boundary.check()`` directly with an explicit ``actor_role``.
 """
 
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,12 +49,32 @@ from app.models import User
 router = APIRouter()
 
 
+# Role tokens — must match ROLE_REQUIREMENTS in
+# ``app.core.advice_boundary.tiers``.
+_ROLE_WORKSPACE_ADMIN = "workspace_admin"
+_ROLE_ANY_AUTHENTICATED = "any_authenticated"
+
+
+def _derive_actor_role(user: User) -> str:
+    """Server-side role derivation. Never trust client input for this."""
+    if user.is_superuser:
+        return _ROLE_WORKSPACE_ADMIN
+    return _ROLE_ANY_AUTHENTICATED
+
+
 class CheckRequest(BaseModel):
+    """Request body for the advice-boundary check.
+
+    Note: ``actor_role`` is intentionally NOT a field. The HTTP layer
+    derives role from the authenticated user (see module docstring).
+    Internal callers that need to specify role explicitly should use
+    the programmatic ``core.advice_boundary.check()`` API.
+    """
+
     output_id: str
     requested_tier: str
     from_tier: str | None = None
     declared_tier_max: str | None = None
-    actor_role: str | None = None
     module_id: str | None = None
     capability_id: str | None = None
 
@@ -57,6 +99,7 @@ async def check_endpoint(
     No HTTP 4xx on blocked/denied because the call itself succeeded —
     the gate's *decision* is the return value, not an exception.
     """
+    actor_role = _derive_actor_role(user)
     result = await check(
         session,
         output_id=body.output_id,
@@ -64,7 +107,7 @@ async def check_endpoint(
         from_tier=body.from_tier,
         declared_tier_max=body.declared_tier_max,
         actor_user_id=user.id,
-        actor_role=body.actor_role,
+        actor_role=actor_role,
         module_id=body.module_id,
         capability_id=body.capability_id,
     )
