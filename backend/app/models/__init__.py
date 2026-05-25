@@ -59,6 +59,22 @@ from app.models.job import (
     JOB_KIND_EXPORT,
 )
 
+# Phase 1 substrate primitives.
+from app.models.state_machine_definition import StateMachineDefinition
+from app.models.state_machine_instance import (
+    StateMachineInstance,
+    OWNER_SCOPE_MATTER,
+    OWNER_SCOPE_WORKSPACE,
+    OWNER_SCOPE_PROSPECT,
+)
+from app.models.state_machine_transition import (
+    StateMachineTransition,
+    TRANSITION_STATUS_COMPLETED,
+    TRANSITION_STATUS_BLOCKED,
+    TRANSITION_STATUS_FAILED,
+    TRANSITION_STATUS_VALUES,
+)
+
 __all__ = [
     "Base",
     "User",
@@ -102,4 +118,15 @@ __all__ = [
     "EXTRACTION_METHOD_VALUES",
     "VERSION_KIND_VALUES",
     "EDIT_STATUS_VALUES",
+    # Phase 1 — state machine primitive.
+    "StateMachineDefinition",
+    "StateMachineInstance",
+    "StateMachineTransition",
+    "OWNER_SCOPE_MATTER",
+    "OWNER_SCOPE_WORKSPACE",
+    "OWNER_SCOPE_PROSPECT",
+    "TRANSITION_STATUS_COMPLETED",
+    "TRANSITION_STATUS_BLOCKED",
+    "TRANSITION_STATUS_FAILED",
+    "TRANSITION_STATUS_VALUES",
 ]

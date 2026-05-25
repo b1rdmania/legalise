@@ -27,6 +27,7 @@ from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
 from app.api.usage import router as usage_router
 from app.api.workspace import router as workspace_router
+from app.api.state_machine import router as state_machine_router
 from app.core.audit import AuditMiddleware
 from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
@@ -245,6 +246,13 @@ app.include_router(documents_router, prefix="/api/documents", tags=["documents"]
 app.include_router(submissions_router, prefix="/api/modules", tags=["submissions"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
+
+# Phase 1 substrate primitives.
+app.include_router(
+    state_machine_router,
+    prefix="/api/state-machine",
+    tags=["state-machine"],
+)
 
 # Chronology module nests its routes under /api/matters/{slug}/chronology
 # (and .../chronology/gate) so the audit middleware's matter-path matcher
