@@ -11,7 +11,27 @@ This document is the implementation contract. If anything changes during build (
 
 ## Pre-build findings (read pass completed 2026-05-25)
 
-Six adjustments to the implementation approach surfaced during the read pass. Build plan updated accordingly:
+Eight adjustments to the implementation approach surfaced during the read pass. **Two are architectural decisions taken by the builder pre-code (#2 and #3); six are tactical.** All captured here and will be re-surfaced in `HANDOVER_PHASE_1_DONE.md` for Reviewer ratification at end of Phase 1. If Reviewer counters either architectural decision, the relevant primitive(s) get refactored.
+
+### Architectural decisions taken (Reviewer ratification deferred to end of Phase 1)
+
+**Architectural decision #1 — `plugin="core"` convention for substrate capabilities.**
+
+The existing `require_capability(user_id, plugin, skill, capability)` infrastructure is plugin/skill-coupled. Substrate primitives reuse this by passing `plugin="core"`, `skill="<primitive_name>"` (e.g. `"state_machine"`, `"matter_context"`, `"advice_boundary"`). When modules later use the primitives, they pass their own `(plugin, skill)` identity.
+
+Alternative considered: build a separate `substrate_capability_grants` table. Rejected for Phase 1 because it would (a) double the capability infrastructure, (b) require Phase 1 to touch core capability code paths I committed not to modify, (c) defer a clean decision to Phase 2 anyway when manifest v2 lands.
+
+Risk: permanently couples substrate capabilities to the plugin/skill grant model. Phase 2 manifest v2 must decide whether substrate-level capability grants are conceptually a `plugin="core"` namespace or get promoted to a separate substrate table at that point. If Reviewer counters this decision at end of Phase 1, the substrate's capability check call sites are localised to ~3 files and refactorable in <100 LOC of changes.
+
+**Architectural decision #2 — Dual-audit pattern on capability denial.**
+
+The existing `require_capability` writes a `module.capability.denied` audit row when a grant is missing and commits it. Phase 1 primitives additionally write `<primitive>.<verb>.blocked` (e.g. `state_machine.transition.blocked`) carrying the canonical `BlockedPayload` shape. Two audit rows per denial.
+
+Alternative considered: modify `require_capability` itself to optionally emit `BlockedPayload`. Rejected because it would modify existing code paths and the doctrine in `core/capabilities.py` docstring says "audit emission is not a capability. Audit is mandatory provenance" — adding a second emission shape there would muddy that.
+
+Trade-off: clean separation between legacy and Phase 1 audit shapes; redundant rows on denial. The dual rows are not deduplicated; both carry the same denied_capability and actor_id. Audit reconstruction (Phase 5) handles the dedup as a presentation concern, not a write-time concern. If Reviewer counters at end of Phase 1, consolidation is a small change in `check_or_block` helper.
+
+### Tactical findings (no Reviewer signoff needed)
 
 1. **No `TimestampMixin`** — `models/base.py` is just `Base(DeclarativeBase)`. Models inline timestamps:
    ```python
