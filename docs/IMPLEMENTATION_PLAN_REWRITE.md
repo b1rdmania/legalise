@@ -407,7 +407,8 @@ A module qualifies as a reference module when:
   - `kind: workflow`
   - `scope: matter`
   - `reads: [matter.documents.body, matter.metadata, matter.memory.assumptions]`
-  - `writes: [matter.documents.generated, matter.audit.entry, matter.memory.open_questions]`
+  - `writes: [matter.documents.generated, matter.memory.open_questions]`
+  - `audit_events: [contract_review.run.started, contract_review.model_call, contract_review.output.generated, contract_review.run.completed]`
   - `model_access: required`
   - `gates: [privilege_posture, advice_boundary]`
   - `advice_tier_max: draft_advice`
@@ -438,7 +439,8 @@ A module qualifies as a reference module when:
   - `kind: workflow`
   - `scope: matter`
   - `reads: [matter.documents.body, matter.events.read, matter.metadata, matter.memory.disputed_facts, matter.memory.assumptions]`
-  - `writes: [matter.documents.generated, matter.events.write, matter.audit.entry, matter.memory.open_questions]`
+  - `writes: [matter.documents.generated, matter.events.write, matter.memory.open_questions]`
+  - `audit_events: [pre_motion.run.started, pre_motion.stage.completed, pre_motion.model_call, pre_motion.output.generated, pre_motion.run.completed]`
   - `model_access: required`
   - `gates: [privilege_posture, multi_agent_throttle, advice_boundary]`
   - `advice_tier_max: draft_advice`
@@ -484,7 +486,8 @@ A module qualifies as a reference module when:
   - `kind: workflow`
   - `scope: matter`
   - `reads: [matter.documents.body]`
-  - `writes: [matter.documents.generated, matter.notes.write, matter.audit.entry]`
+  - `writes: [matter.documents.generated, matter.notes.write]`
+  - `audit_events: [redline.proposed, redline.accepted, redline.declined, redline.edited_and_accepted, document.generated]`
   - `model_access: required`
   - `gates: [privilege_posture, advice_boundary]`
   - `advice_tier_max: draft_advice`
