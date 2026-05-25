@@ -93,22 +93,36 @@ Three substrate primitives implemented end-to-end per
 The 62 new tests have not been run against a live Postgres container in this session — the build was executed in a worktree without `docker compose` access. Per `backend/tests/conftest.py`, DB-backed tests skip cleanly if Postgres at `TEST_DATABASE_URL` is unreachable, so a partial run is safe but the full validation needs:
 
 ```bash
+# 1. Start the compose stack so Postgres is up.
+docker compose -f infra/docker-compose.yml up -d db
+
+# 2. (One-shot) Install dev deps inside the running backend container.
+#    The runtime image is built without pytest; this brings in the
+#    `dev` extra defined in backend/pyproject.toml. Skip if you have
+#    a separately-built test image with dev deps baked in.
+docker compose -f infra/docker-compose.yml exec -T backend pip install -e '.[dev]'
+
+# 3. Migrate the test database to head.
 docker compose -f infra/docker-compose.yml exec -T \
   -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
   backend python -m alembic upgrade head
 
+# 4. Run the Phase 1 sweep.
 docker compose -f infra/docker-compose.yml exec -T \
   -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
   backend python -m pytest tests/test_phase1_runtime.py \
     tests/test_phase1_state_machine.py \
     tests/test_phase1_matter_context.py \
     tests/test_phase1_advice_boundary.py \
-    tests/test_phase1_integration.py -x
+    tests/test_phase1_integration.py \
+    tests/test_phase1_security_fixes.py -x
 ```
 
 **Reviewer should run this and report any failures before clearing Phase 2.**
 
 The pure-unit tests in each file (BlockedPayload structure, tier ordering, transition rule sets, role requirements) pass in any environment — about 18 of the 62 tests are pure unit tests.
+
+**Note on the dev-deps step:** if you run the sweep repeatedly, prefer either (a) building a separate test image with `.[dev]` baked in and using it as a `backend-test` service, or (b) running the install once and keeping the container up between sweeps. The one-shot install above is the simplest unblock; the cleaner setup is a v0.2 ops follow-up that does not block Phase 1 ratification.
 
 ---
 

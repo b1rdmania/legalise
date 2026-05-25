@@ -24,7 +24,13 @@ from app.core.phase1_runtime import (
     audit_phase1,
     check_or_block,
 )
-from app.models import AuditEntry, User
+from app.models import (
+    AuditEntry,
+    Matter,
+    PRIVILEGE_MIXED,
+    STATUS_OPEN,
+    User,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -132,19 +138,43 @@ async def _make_user(db_session) -> User:
     return user
 
 
+async def _make_matter(db_session, user) -> Matter:
+    """Real ``Matter`` row so audit rows referencing ``matter_id``
+    satisfy the FK constraint on ``audit_entries.matter_id``. Round-3
+    Reviewer fix — earlier tests passed a phantom UUID which real
+    Postgres correctly rejected."""
+    matter = Matter(
+        id=uuid.uuid4(),
+        slug=f"matter-{uuid.uuid4().hex[:8]}",
+        title="Phase1 Runtime Test Matter",
+        matter_type="employment_tribunal",
+        status=STATUS_OPEN,
+        privilege_posture=PRIVILEGE_MIXED,
+        default_model_id="claude-opus-4-7",
+        created_by_id=user.id,
+    )
+    db_session.add(matter)
+    await db_session.flush()
+    return matter
+
+
 @pytest.mark.asyncio
 async def test_audit_phase1_writes_row_with_canonical_shape(db_session) -> None:
     """audit_phase1 writes an AuditEntry row with the `module` column
     set to `core.<primitive>` and the payload carrying `module_id` +
-    `capability_id` packed alongside the user-supplied payload."""
+    `capability_id` packed alongside the user-supplied payload.
+
+    Uses a real ``Matter`` so the audit row's ``matter_id`` FK
+    constraint is satisfied (round-3 Reviewer fix).
+    """
     user = await _make_user(db_session)
-    matter_id = uuid.uuid4()
+    matter = await _make_matter(db_session, user)
     await audit_phase1(
         db_session,
         action="matter_context.item.created",
         primitive="matter_context",
         actor_id=user.id,
-        matter_id=matter_id,
+        matter_id=matter.id,
         module_id="core",
         capability_id="matter.context.legalise_memory.facts.write",
         resource_type="matter_context_item",
