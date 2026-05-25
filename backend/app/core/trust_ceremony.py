@@ -78,6 +78,11 @@ _TERMINAL_FAILURES: frozenset[CeremonyState] = frozenset(
     }
 )
 
+# Canonical action set for advance_ceremony. The API layer also enforces
+# this via Literal on AdvanceCeremonyRequest.action; this set is the
+# defence-in-depth check for any internal caller bypassing HTTP.
+_VALID_ACTIONS: frozenset[str] = frozenset({"trust", "reject", "grant"})
+
 
 @dataclass
 class PermissionCard:
@@ -349,6 +354,19 @@ async def advance_ceremony(
     ceremony = _CEREMONIES.get(ceremony_id)
     if ceremony is None:
         raise KeyError(f"unknown ceremony {ceremony_id}")
+
+    # Round-2 residual P2: ceremony actions must be explicit and
+    # machine-checkable. The API layer enforces this via a Literal
+    # on AdvanceCeremonyRequest.action, but defence-in-depth — any
+    # internal caller that bypasses the HTTP boundary is still held
+    # to the same set, so unknown actions can never silently fall
+    # through to the "trust" default branch.
+    if action not in _VALID_ACTIONS:
+        raise InvalidCeremonyTransition(
+            f"unknown ceremony action '{action}'; "
+            f"valid actions: {sorted(_VALID_ACTIONS)}"
+        )
+
     if ceremony.state in _TERMINAL_FAILURES or ceremony.state == CeremonyState.ENABLED:
         # Terminal — no further transitions.
         return ceremony

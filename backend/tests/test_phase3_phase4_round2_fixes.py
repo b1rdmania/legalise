@@ -385,3 +385,77 @@ async def test_repeated_grant_does_not_double_insert(client) -> None:
             )
         ).all()
         assert len(rows) == 1
+
+
+# ---------------------------------------------------------------------------
+# P2 residual — invalid ceremony actions must be rejected, not silently
+# treated as "trust"
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_unknown_ceremony_action_rejected_at_api(client) -> None:
+    """Round-2 residual P2: AdvanceCeremonyRequest.action is now a
+    Literal. ``{"action":"banana"}`` must return 422 from FastAPI
+    validation, never advance the ceremony as ``trust``."""
+    clear_ceremonies()
+    email = f"r2-action-{uuid.uuid4().hex[:8]}@example.com"
+    password = "round2-2026"
+    await client.post(
+        "/auth/register", json={"email": email, "password": password}
+    )
+
+    from app.main import app
+    factory = app.state.session_factory
+    async with factory() as session:
+        u = await session.scalar(select(User).where(User.email == email))
+        u.is_superuser = True
+        await session.commit()
+
+    await client.post(
+        "/auth/login",
+        data={"username": email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+
+    install_start = await client.post(
+        "/api/modules/install",
+        json={
+            "source": "manifest",
+            "manifest": _verified_manifest(module_id="legalise.banana"),
+        },
+    )
+    assert install_start.status_code == 201
+    ceremony_id = install_start.json()["ceremony_id"]
+    initial_state = install_start.json()["state"]
+
+    resp = await client.post(
+        f"/api/modules/install/{ceremony_id}/advance",
+        json={"action": "banana"},
+    )
+    assert resp.status_code == 422, resp.text
+
+    # Confirm the ceremony was NOT advanced.
+    status = await client.get(f"/api/modules/install/{ceremony_id}")
+    assert status.json()["state"] == initial_state
+
+
+@pytest.mark.asyncio
+async def test_unknown_ceremony_action_rejected_in_core(db_session) -> None:
+    """Round-2 residual P2: even an internal caller that bypasses the
+    Pydantic boundary cannot smuggle an unknown action through —
+    ``advance_ceremony`` raises ``InvalidCeremonyTransition``."""
+    clear_ceremonies()
+    user = await _make_user(db_session)
+    ceremony = await start_ceremony(
+        db_session,
+        manifest=_verified_manifest(module_id="legalise.core-banana"),
+        actor_user_id=user.id,
+    )
+    with pytest.raises(InvalidCeremonyTransition):
+        await advance_ceremony(
+            db_session,
+            ceremony_id=ceremony.id,
+            action="banana",
+            actor_user_id=user.id,
+        )

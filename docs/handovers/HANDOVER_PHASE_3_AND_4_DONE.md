@@ -194,9 +194,17 @@ The state machine's `grant` action previously fired from any non-terminal state,
 A repeated `grant` advance after the ceremony reached `ENABLED` would try to insert the `InstalledModule` row a second time, hitting the UNIQUE (module_id, version) constraint and 500ing.
 *Fix:* `Ceremony` dataclass gains a `persisted: bool = False` flag. The advance endpoint persists only on the first transition into `ENABLED`; subsequent calls hit the guard and return the cached state idempotently.
 
+### Residual P2 — invalid ceremony actions
+
+**Finding:** `AdvanceCeremonyRequest.action` was a plain `str`, so anything other than `reject` / `grant` fell through to the default `trust` branch — `{"action":"banana"}` would advance the ceremony.
+
+*Fix:*
+- `AdvanceCeremonyRequest.action: Literal["trust", "reject", "grant"]` — FastAPI returns 422 on anything else.
+- `_VALID_ACTIONS` set + `InvalidCeremonyTransition` guard at the top of `advance_ceremony` — defence-in-depth so internal callers cannot smuggle unknown actions through either.
+
 ### Round-2 test file
 
-`backend/tests/test_phase3_phase4_round2_fixes.py` — 8 tests:
+`backend/tests/test_phase3_phase4_round2_fixes.py` — 10 tests:
 - `test_grant_from_discovered_raises`
 - `test_grant_from_publisher_checked_raises`
 - `test_grant_from_granted_succeeds`
@@ -205,6 +213,8 @@ A repeated `grant` advance after the ceremony reached `ENABLED` would try to ins
 - `test_install_rejects_missing_dependency`
 - `test_update_rejects_missing_dependency`
 - `test_repeated_grant_does_not_double_insert`
+- `test_unknown_ceremony_action_rejected_at_api`
+- `test_unknown_ceremony_action_rejected_in_core`
 
 ---
 

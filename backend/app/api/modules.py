@@ -15,7 +15,7 @@ import uuid as _uuid
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import quote
 from uuid import UUID
 
@@ -568,7 +568,12 @@ class CeremonyResponse(BaseModel):
 
 
 class AdvanceCeremonyRequest(BaseModel):
-    action: str  # "trust" | "reject" | "grant"
+    # Round-2 residual P2: trust-ceremony transitions must be explicit
+    # and machine-checkable. A free-form string previously fell through
+    # to the default `trust` branch in `advance_ceremony()`, meaning
+    # `{"action":"banana"}` would advance the ceremony. Pydantic now
+    # rejects anything outside the canonical set with HTTP 422.
+    action: Literal["trust", "reject", "grant"]
 
 
 def _ceremony_to_response(ceremony: Ceremony) -> CeremonyResponse:
