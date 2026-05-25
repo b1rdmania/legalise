@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import PlainTextResponse
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
@@ -28,6 +28,7 @@ from app.adapters.plugin_bridge import _parse_skill_md
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.admin_check import require_admin
 from app.core.registry import (
     ManifestNotFoundError,
     UISlotRegistry,
@@ -37,7 +38,21 @@ from app.core.registry import (
     load_manifest,
     validate_manifest_v2,
 )
-from app.models import User, WorkspaceDisabledSkill, WorkspaceSkillCapabilityGrant
+from app.core.signing import verify_manifest_signature
+from app.core.trust_ceremony import (
+    Ceremony,
+    CeremonyState,
+    advance_ceremony,
+    build_permission_card,
+    get_ceremony,
+    start_ceremony,
+)
+from app.models import (
+    InstalledModule,
+    User,
+    WorkspaceDisabledSkill,
+    WorkspaceSkillCapabilityGrant,
+)
 
 
 router = APIRouter()
@@ -528,4 +543,276 @@ async def get_skill_body(
         raise HTTPException(404, f"skill not found: {plugin}/{skill}")
     manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
     return PlainTextResponse(manifest.body.strip())
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — trust ceremony / install endpoints
+# ---------------------------------------------------------------------------
+#
+# POST /api/modules/install          start a new ceremony
+# POST /api/modules/install/{id}/advance  drive the state machine
+# GET  /api/modules/install/{id}     read current ceremony state
+#
+# All admin-gated via require_admin (same pattern as schema +
+# definition registration — Phase 2 Reviewer P1#3 + P1#2 round 2).
+
+
+class StartInstallRequest(BaseModel):
+    """Body for ``POST /api/modules/install``.
+
+    Phase 3 ships two source modes:
+    - ``"registry"`` — install a module already discoverable via
+      ``core.registry.discover_modules`` (by id)
+    - ``"manifest"`` — install from an inline v2 manifest payload
+      (used by tests + admin tooling)
+    """
+
+    source: str  # "registry" | "manifest"
+    module_id: str | None = None
+    manifest: dict[str, Any] | None = None
+    signature: str | None = None
+
+
+class CeremonyResponse(BaseModel):
+    """Snapshot of an in-flight ceremony."""
+
+    ceremony_id: str
+    module_id: str
+    state: str
+    fast_path: bool
+    is_terminal: bool
+    permission_card: dict[str, Any]
+    history: list[dict[str, Any]]
+
+
+class AdvanceCeremonyRequest(BaseModel):
+    action: str  # "trust" | "reject" | "grant"
+
+
+def _ceremony_to_response(ceremony: Ceremony) -> CeremonyResponse:
+    terminal_states = {
+        CeremonyState.ENABLED,
+        CeremonyState.REJECTED_BY_USER,
+        CeremonyState.SIGNATURE_FAILED,
+        CeremonyState.PUBLISHER_BLOCKED,
+        CeremonyState.DEPENDENCY_MISSING,
+        CeremonyState.PERMISSION_DENIED,
+        CeremonyState.SANDBOX_PROFILE_MISSING,
+    }
+    return CeremonyResponse(
+        ceremony_id=str(ceremony.id),
+        module_id=ceremony.module_id,
+        state=ceremony.state.value,
+        fast_path=ceremony.fast_path,
+        is_terminal=ceremony.state in terminal_states,
+        permission_card={
+            "module_id": ceremony.permission_card.module_id,
+            "module_name": ceremony.permission_card.module_name,
+            "publisher": ceremony.permission_card.publisher,
+            "publisher_verified": ceremony.permission_card.publisher_verified,
+            "signature_status": ceremony.permission_card.signature_status,
+            "visibility": ceremony.permission_card.visibility,
+            "version": ceremony.permission_card.version,
+            "capabilities": ceremony.permission_card.capabilities,
+            "data_movement_summary": ceremony.permission_card.data_movement_summary,
+            "gates": ceremony.permission_card.gates,
+            "advice_tier_max": ceremony.permission_card.advice_tier_max,
+            "audit_events": ceremony.permission_card.audit_events,
+            "dependencies": ceremony.permission_card.dependencies,
+        },
+        history=list(ceremony.history),
+    )
+
+
+async def _persist_install(
+    session: AsyncSession,
+    *,
+    ceremony: Ceremony,
+    user: User,
+) -> InstalledModule:
+    """Write the installed_modules row at the end of a ceremony.
+
+    Called when the ceremony reaches ``enabled``. The manifest +
+    permissions snapshots are captured here for Phase 4 lifecycle.
+    """
+    from datetime import datetime, timezone
+
+    manifest = ceremony.manifest
+    card = ceremony.permission_card
+    # Aggregated permissions for Phase 4 fast-diff.
+    permissions_snapshot = {
+        "data_movement": card.data_movement_summary,
+        "gates": card.gates,
+        "advice_tier_max": card.advice_tier_max,
+        "audit_events": card.audit_events,
+        "capabilities": card.capabilities,
+    }
+    row = InstalledModule(
+        id=uuid.uuid4(),
+        module_id=manifest.get("id", ceremony.module_id),
+        version=manifest.get("version", "0.0.0"),
+        publisher=manifest.get("publisher", "unknown"),
+        visibility=manifest.get("visibility", "community"),
+        signature_status=card.signature_status,
+        signed_by=manifest.get("signed_by"),
+        verified_at=(
+            datetime.now(timezone.utc) if ceremony.fast_path else None
+        ),
+        install_path=manifest.get("source_url") or "<inline>",
+        manifest_snapshot=manifest,
+        permissions_snapshot=permissions_snapshot,
+        installed_by_user_id=user.id,
+        enabled=True,
+    )
+    session.add(row)
+    await session.flush()
+    return row
+
+
+@router.post(
+    "/install",
+    response_model=CeremonyResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def start_install_endpoint(
+    body: StartInstallRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> CeremonyResponse:
+    """Begin a trust ceremony for installing a module.
+
+    Admin-gated. Two source modes:
+    - ``source="registry"``: install a discoverable module by id
+    - ``source="manifest"``: install from an inline v2 manifest
+
+    Returns the initial ceremony state + permission card. The
+    frontend (Phase 12) drives the ceremony to completion via
+    ``POST /install/{id}/advance``.
+    """
+    require_admin(user, action_label="module install")
+
+    if body.source == "registry":
+        if not body.module_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "error": "missing_module_id",
+                    "message": "source='registry' requires module_id",
+                },
+            )
+        try:
+            entry = load_manifest(body.module_id)
+        except ManifestNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": "module_not_found", "message": str(exc)},
+            )
+        manifest = _entry_to_v2_manifest(entry)
+    elif body.source == "manifest":
+        if not body.manifest:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "error": "missing_manifest",
+                    "message": "source='manifest' requires manifest payload",
+                },
+            )
+        manifest = body.manifest
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error": "invalid_source",
+                "message": (
+                    f"source={body.source!r} not in 'registry' | 'manifest'"
+                ),
+            },
+        )
+
+    is_valid, errors = validate_manifest_v2(manifest)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error": "invalid_manifest",
+                "validation_errors": errors,
+            },
+        )
+
+    ceremony = await start_ceremony(
+        session,
+        manifest=manifest,
+        actor_user_id=user.id,
+        signature=body.signature,
+    )
+    await session.commit()
+    return _ceremony_to_response(ceremony)
+
+
+@router.post(
+    "/install/{ceremony_id}/advance",
+    response_model=CeremonyResponse,
+)
+async def advance_install_endpoint(
+    ceremony_id: uuid.UUID,
+    body: AdvanceCeremonyRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> CeremonyResponse:
+    """Drive the trust ceremony state machine.
+
+    Actions:
+    - ``"trust"`` — accept and continue
+    - ``"reject"`` — terminal: rejected_by_user
+    - ``"grant"`` — final commit; persists InstalledModule + emits
+      module.enabled
+    """
+    require_admin(user, action_label="module install")
+
+    try:
+        ceremony = await advance_ceremony(
+            session,
+            ceremony_id=ceremony_id,
+            action=body.action,
+            actor_user_id=user.id,
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "ceremony_not_found",
+                "message": str(exc),
+            },
+        )
+
+    if ceremony.state == CeremonyState.ENABLED:
+        # Persist the installed_modules row.
+        await _persist_install(session, ceremony=ceremony, user=user)
+    await session.commit()
+    return _ceremony_to_response(ceremony)
+
+
+@router.get(
+    "/install/{ceremony_id}",
+    response_model=CeremonyResponse,
+)
+async def get_install_endpoint(
+    ceremony_id: uuid.UUID,
+    user: User = Depends(current_user),
+) -> CeremonyResponse:
+    """Read the current state of an in-flight ceremony.
+
+    Auth-gated (any authenticated user) so the install UI can poll
+    without admin privileges. The advance endpoint remains admin-only.
+    """
+    ceremony = get_ceremony(ceremony_id)
+    if ceremony is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "ceremony_not_found",
+                "message": f"ceremony {ceremony_id} not found",
+            },
+        )
+    return _ceremony_to_response(ceremony)
 
