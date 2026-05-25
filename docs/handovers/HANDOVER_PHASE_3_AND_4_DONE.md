@@ -172,4 +172,40 @@ docker compose -f infra/docker-compose.yml exec -T \
 
 ---
 
+## Round-2 Reviewer fixes (post round-1 audit)
+
+Reviewer returned four runtime-contract findings on the first ratification pass. All four are now fixed and tested. Full backend sweep green at **536 passed, 8 skipped, 0 failed**.
+
+### Findings + fixes
+
+**P1 #1 — Trust ceremony allowed `grant` to skip straight to `ENABLED`.**
+The state machine's `grant` action previously fired from any non-terminal state, letting an admin bypass the ceremony entirely.
+*Fix:* `core/trust_ceremony.py` adds an `InvalidCeremonyTransition` exception. `_next_state` now requires `current is CeremonyState.GRANTED` before honouring `action == "grant"`. The API endpoint translates the exception to HTTP 409.
+
+**P1 #2 — Update diff missed advice-tier expansion in raw v2 manifests.**
+`detect_expansion` only read the top-level `advice_tier_max` rollup, which is built by `build_permission_card` but absent from raw v2 manifests handed to `update_module_endpoint`. A draft → supervised raise was silently passing without re-prompt.
+*Fix:* `core/grants_lifecycle.py::_highest_tier` now scans `snapshot["capabilities"][*].advice_tier_max` and returns the max regardless of snapshot shape.
+
+**P1 #3 — Dependency resolver never called from install/update.**
+`api/modules.py` had `resolve_dependencies` available but never invoked it; manifests with missing or cyclic `requires` were silently installed.
+*Fix:* `start_install_endpoint` and `update_module_endpoint` now call `resolve_dependencies()` against the in-flight session and return HTTP 422 with `{error: "dependencies_unsatisfied", resolution: {...}}` when unsatisfied.
+
+**P2 #4 — Duplicate persist on retried final `grant`.**
+A repeated `grant` advance after the ceremony reached `ENABLED` would try to insert the `InstalledModule` row a second time, hitting the UNIQUE (module_id, version) constraint and 500ing.
+*Fix:* `Ceremony` dataclass gains a `persisted: bool = False` flag. The advance endpoint persists only on the first transition into `ENABLED`; subsequent calls hit the guard and return the cached state idempotently.
+
+### Round-2 test file
+
+`backend/tests/test_phase3_phase4_round2_fixes.py` — 8 tests:
+- `test_grant_from_discovered_raises`
+- `test_grant_from_publisher_checked_raises`
+- `test_grant_from_granted_succeeds`
+- `test_detect_expansion_picks_up_tier_increase_in_capabilities`
+- `test_detect_expansion_handles_multi_capability_tier`
+- `test_install_rejects_missing_dependency`
+- `test_update_rejects_missing_dependency`
+- `test_repeated_grant_does_not_double_insert`
+
+---
+
 *End of combined Phase 3 + Phase 4 handover.*

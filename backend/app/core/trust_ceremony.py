@@ -120,6 +120,22 @@ class Ceremony:
     permission_card: PermissionCard
     actor_user_id: uuid.UUID | None
     history: list[dict[str, Any]] = field(default_factory=list)
+    # Round-2 Reviewer P2: set True after _persist_install runs.
+    # advance_ceremony / endpoint check this to avoid double-insert
+    # on retried final-grant requests.
+    persisted: bool = False
+
+
+class InvalidCeremonyTransition(ValueError):
+    """Raised when an ``advance_ceremony`` action is not valid for
+    the current ceremony state. The HTTP endpoint translates this to
+    409 Conflict.
+
+    Round-2 Reviewer P1#1 fix: previously ``action == "grant"`` would
+    transition to ENABLED from any state, allowing an admin to skip
+    the inspection / signature / publisher / permissions review by
+    POSTing grant directly on a freshly-started ceremony.
+    """
 
 
 # In-process registry of ceremonies in flight. Phase 4 may move to a
@@ -361,11 +377,24 @@ async def advance_ceremony(
 
 
 def _next_state(ceremony: Ceremony, action: str) -> CeremonyState:
-    """Compute the next state given the current state + action."""
+    """Compute the next state given the current state + action.
+
+    Raises ``InvalidCeremonyTransition`` if the action is not valid
+    for the current state.
+    """
     current = ceremony.state
     fast = ceremony.fast_path
 
     if action == "grant":
+        # Round-2 Reviewer P1#1: grant is only allowed from GRANTED.
+        # Previously this allowed any state → ENABLED, letting admins
+        # skip the inspection / signature / publisher / permissions
+        # review by POSTing grant immediately.
+        if current is not CeremonyState.GRANTED:
+            raise InvalidCeremonyTransition(
+                f"action='grant' is only valid from state='granted', "
+                f"current state='{current.value}'"
+            )
         return CeremonyState.ENABLED
 
     # action == "trust" by default.
@@ -429,6 +458,7 @@ __all__ = [
     "CeremonyState",
     "PermissionCard",
     "Ceremony",
+    "InvalidCeremonyTransition",
     "build_permission_card",
     "start_ceremony",
     "advance_ceremony",

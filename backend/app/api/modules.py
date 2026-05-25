@@ -721,6 +721,23 @@ async def start_install_endpoint(
             },
         )
 
+    # Round-2 Reviewer P1#3: enforce dependency resolution BEFORE
+    # the ceremony starts. The architecture doc says
+    # DEPENDENCY_MISSING is a terminal failure state of the ceremony;
+    # previously we never reached it because resolve_dependencies was
+    # never called.
+    from app.core.dependency_resolver import resolve_dependencies
+
+    resolution = await resolve_dependencies(manifest, session=session)
+    if not resolution.is_satisfied:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error": "dependencies_unsatisfied",
+                "resolution": resolution.to_dict(),
+            },
+        )
+
     ceremony = await start_ceremony(
         session,
         manifest=manifest,
@@ -751,6 +768,11 @@ async def advance_install_endpoint(
     """
     require_admin(user, action_label="module install")
 
+    # Round-2 Reviewer P1#1: InvalidCeremonyTransition → 409 Conflict.
+    # Prevents an admin from skipping straight to enabled via
+    # ``action="grant"`` on a freshly-started ceremony.
+    from app.core.trust_ceremony import InvalidCeremonyTransition
+
     try:
         ceremony = await advance_ceremony(
             session,
@@ -766,10 +788,22 @@ async def advance_install_endpoint(
                 "message": str(exc),
             },
         )
+    except InvalidCeremonyTransition as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "invalid_ceremony_transition",
+                "message": str(exc),
+            },
+        )
 
-    if ceremony.state == CeremonyState.ENABLED:
-        # Persist the installed_modules row.
+    # Round-2 Reviewer P2: persist only on the transition INTO enabled,
+    # not on every poll of an already-enabled ceremony. Without this
+    # guard a double-click on the final grant would attempt a second
+    # insert and fail the UNIQUE (module_id, version) constraint.
+    if ceremony.state == CeremonyState.ENABLED and not ceremony.persisted:
         await _persist_install(session, ceremony=ceremony, user=user)
+        ceremony.persisted = True
     await session.commit()
     return _ceremony_to_response(ceremony)
 
@@ -978,6 +1012,22 @@ async def update_module_endpoint(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"error": "invalid_manifest", "validation_errors": errors},
+        )
+
+    # Round-2 Reviewer P1#3: enforce dependency resolution on update
+    # too. An update can introduce new dependencies (or change
+    # version ranges); we resolve them up-front the same way as
+    # install does.
+    from app.core.dependency_resolver import resolve_dependencies
+
+    resolution = await resolve_dependencies(new_manifest, session=session)
+    if not resolution.is_satisfied:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error": "dependencies_unsatisfied",
+                "resolution": resolution.to_dict(),
+            },
         )
 
     from app.core.grants_lifecycle import detect_expansion, requires_reprompt

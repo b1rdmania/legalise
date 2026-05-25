@@ -95,9 +95,30 @@ def _flatten_capability_strings(snapshot: dict, key: str) -> set[str]:
 
 
 def _highest_tier(snapshot: dict) -> str:
-    """Highest advice_tier_max across the snapshot's capabilities."""
-    highest = snapshot.get("advice_tier_max") or ADVICE_TIER_FACTUAL_EXTRACTION
-    return highest
+    """Highest advice_tier_max across the snapshot's capabilities.
+
+    Round-2 Reviewer P1#2: previously this only read the top-level
+    ``advice_tier_max`` key. Aggregated InstalledModule snapshots
+    (built by ``trust_ceremony.build_permission_card``) have the
+    top-level key — but raw v2 manifests passed directly into
+    ``detect_expansion`` (e.g. from ``update_module_endpoint``) carry
+    tier per-capability with no top-level rollup. Without the
+    capability scan, a manifest update from ``draft_advice`` to
+    ``supervised_legal_advice`` would silently NOT trigger
+    re-prompt. Now we scan capabilities and take the max regardless
+    of which shape the snapshot is in.
+    """
+    candidates: list[str] = []
+    top_level = snapshot.get("advice_tier_max")
+    if isinstance(top_level, str):
+        candidates.append(top_level)
+    for cap in snapshot.get("capabilities") or []:
+        tier = cap.get("advice_tier_max")
+        if isinstance(tier, str):
+            candidates.append(tier)
+    if not candidates:
+        return ADVICE_TIER_FACTUAL_EXTRACTION
+    return max(candidates, key=tier_rank)
 
 
 def _max_model_access(snapshot: dict) -> str:
