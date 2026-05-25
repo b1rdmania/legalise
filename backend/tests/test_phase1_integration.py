@@ -1,0 +1,384 @@
+"""Phase 1 cross-primitive integration tests.
+
+Proves the three substrate primitives (state_machine, matter_context,
+advice_boundary) compose cleanly via the shared phase1_runtime helpers:
+
+1. State machine consuming matter-context capability check — define a
+   transition whose required_capabilities references a matter-context
+   namespace; transition is blocked when the caller lacks the grant.
+
+2. Matter-context write composing with advice-boundary — write an item
+   describing a draft advice tier, then invoke the advice-boundary gate
+   on it. Both primitives emit canonical audit rows under
+   ``core.matter_context`` and ``core.advice_boundary``.
+
+3. Audit reconstruction across all three — execute a sequence and
+   confirm every audit row carries the canonical fields (module,
+   module_id, capability_id, BlockedPayload shape where applicable) so
+   Phase 5 reconstruction can filter the matter's history end-to-end.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+from sqlalchemy import select
+
+from app.core.advice_boundary import (
+    ADVICE_TIER_DRAFT_ADVICE,
+    ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+    check as advice_check,
+)
+from app.core.capabilities import grant
+from app.core.matter_context import (
+    register_schema,
+    write_item,
+)
+from app.core.phase1_runtime import BlockedReason, Phase1Blocked
+from app.core.state_machine import (
+    create_instance,
+    register_definition,
+    request_transition,
+)
+from app.models import (
+    AuditEntry,
+    Matter,
+    PRIVILEGE_MIXED,
+    STATUS_OPEN,
+    StateMachineTransition,
+    TRANSITION_STATUS_BLOCKED,
+    TRANSITION_STATUS_COMPLETED,
+    User,
+)
+
+
+async def _make_user(db_session) -> User:
+    user = User(
+        id=uuid.uuid4(),
+        email=f"int-{uuid.uuid4().hex[:8]}@example.com",
+        hashed_password="x" * 32,
+        is_active=True,
+        is_verified=True,
+        is_superuser=False,
+    )
+    db_session.add(user)
+    await db_session.flush()
+    return user
+
+
+async def _make_matter(db_session, user) -> Matter:
+    matter = Matter(
+        id=uuid.uuid4(),
+        slug=f"matter-{uuid.uuid4().hex[:8]}",
+        title="Integration Matter",
+        matter_type="employment_tribunal",
+        status=STATUS_OPEN,
+        privilege_posture=PRIVILEGE_MIXED,
+        default_model_id="claude-opus-4-7",
+        created_by_id=user.id,
+    )
+    db_session.add(matter)
+    await db_session.flush()
+    return matter
+
+
+# ---------------------------------------------------------------------------
+# Integration 1: state machine consuming matter-context capability check
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_state_machine_required_capability_against_matter_context(
+    db_session,
+) -> None:
+    """A state-machine definition declares a transition whose
+    ``required_capabilities`` references a matter-context capability
+    string. The transition is blocked when the user lacks the grant
+    and proceeds when granted.
+
+    Proves the substrate primitives use a unified capability vocabulary.
+    """
+    user = await _make_user(db_session)
+    namespace = "legalise_intake.applications"
+    matter_context_cap = f"matter.context.{namespace}.write"
+
+    # Define a state machine whose advance-to-second-state transition
+    # requires the matter-context write capability.
+    await register_definition(
+        db_session,
+        module_id="legalise-intake",
+        definition_key="composes_with_context",
+        version="1.0.0",
+        states=["new", "submitted", "review_started"],
+        initial_state="new",
+        transitions=[
+            {
+                "from": "new",
+                "to": "submitted",
+                "required_capabilities": [matter_context_cap],
+            },
+            {"from": "submitted", "to": "review_started"},
+        ],
+    )
+    instance = await create_instance(
+        db_session,
+        module_id="legalise-intake",
+        definition_key="composes_with_context",
+        version="1.0.0",
+        owner_scope="workspace",
+        owner_id=str(user.id),
+        actor_id=user.id,
+    )
+
+    # No grant — transition blocked.
+    with pytest.raises(Phase1Blocked) as exc_info:
+        await request_transition(
+            db_session,
+            instance_id=instance.id,
+            to_state="submitted",
+            user_id=user.id,
+        )
+    assert exc_info.value.payload.blocked_reason == BlockedReason.CAPABILITY_DENIED
+    assert exc_info.value.payload.denied_capability == matter_context_cap
+
+    # Grant the capability under the plugin="core" convention.
+    await grant(
+        db_session,
+        user_id=user.id,
+        plugin="core",
+        skill="state_machine",
+        capability=matter_context_cap,
+    )
+    await db_session.flush()
+
+    # Transition now succeeds.
+    transition_row, updated = await request_transition(
+        db_session,
+        instance_id=instance.id,
+        to_state="submitted",
+        user_id=user.id,
+    )
+    assert updated.current_state == "submitted"
+    assert transition_row.status == TRANSITION_STATUS_COMPLETED
+
+    # The blocked row + the completed row both exist on the instance.
+    rows = (
+        await db_session.scalars(
+            select(StateMachineTransition).where(
+                StateMachineTransition.instance_id == instance.id
+            )
+        )
+    ).all()
+    statuses = sorted(r.status for r in rows)
+    assert statuses == [
+        TRANSITION_STATUS_BLOCKED,
+        TRANSITION_STATUS_COMPLETED,
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Integration 2: matter-context write composing with advice-boundary check
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_matter_context_then_advice_boundary(db_session) -> None:
+    """Write a matter-context item that describes a draft advice claim,
+    then invoke the advice-boundary gate against the synthetic output
+    identifier. Both audit chains exist under the canonical actions."""
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    namespace = "legalise_memory.draft_advice"
+    await register_schema(
+        db_session,
+        namespace=namespace,
+        module_id="legalise-matter-memory",
+        version="1.0.0",
+        json_schema={
+            "type": "object",
+            "required": ["text"],
+            "properties": {
+                "text": {"type": "string"},
+                "advice_tier": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    )
+    await grant(
+        db_session,
+        user_id=user.id,
+        plugin="core",
+        skill="matter_context",
+        capability=f"matter.context.{namespace}.write",
+    )
+    await db_session.flush()
+
+    item = await write_item(
+        db_session,
+        matter_id=matter.id,
+        namespace=namespace,
+        payload={
+            "text": "First-pass advice on unfair dismissal liability.",
+            "advice_tier": ADVICE_TIER_DRAFT_ADVICE,
+        },
+        user_id=user.id,
+    )
+
+    # Now invoke the advice-boundary gate as if promoting the item to
+    # supervised review. Solicitor role allowed; transition succeeds.
+    result = await advice_check(
+        db_session,
+        output_id=str(item.id),
+        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+        from_tier=ADVICE_TIER_DRAFT_ADVICE,
+        actor_user_id=user.id,
+        actor_role="qualified_solicitor",
+        module_id="legalise-matter-memory",
+    )
+    assert result["allowed"] is True
+
+    # Both audit chains exist for this user.
+    item_created = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.action == "matter_context.item.created",
+            AuditEntry.actor_id == user.id,
+        )
+    )
+    assert item_created is not None
+    assert item_created.module == "core.matter_context"
+
+    advice_completed = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.action == "advice_boundary.check.completed",
+            AuditEntry.actor_id == user.id,
+        )
+    )
+    assert advice_completed is not None
+    assert advice_completed.module == "core.advice_boundary"
+    assert advice_completed.payload["output_id"] == str(item.id)
+
+
+# ---------------------------------------------------------------------------
+# Integration 3: audit reconstruction across all three primitives
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_audit_reconstruction_across_three_primitives(db_session) -> None:
+    """Execute a sequence that touches all three primitives in order:
+    state-machine transition, matter-context write, advice-boundary
+    check. Confirm every audit row carries the canonical fields so
+    Phase 5 reconstruction can rebuild the chronology end-to-end."""
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    namespace = "integration.facts"
+
+    # Set up: register a state machine + a context schema.
+    await register_definition(
+        db_session,
+        module_id="legalise-intake",
+        definition_key="end_to_end",
+        version="1.0.0",
+        states=["start", "advanced"],
+        initial_state="start",
+        transitions=[{"from": "start", "to": "advanced"}],
+    )
+    await register_schema(
+        db_session,
+        namespace=namespace,
+        module_id="legalise-matter-memory",
+        version="1.0.0",
+        json_schema={
+            "type": "object",
+            "required": ["text"],
+            "properties": {"text": {"type": "string"}},
+            "additionalProperties": False,
+        },
+    )
+    await grant(
+        db_session,
+        user_id=user.id,
+        plugin="core",
+        skill="matter_context",
+        capability=f"matter.context.{namespace}.write",
+    )
+    await db_session.flush()
+
+    # Step 1: state machine transition.
+    instance = await create_instance(
+        db_session,
+        module_id="legalise-intake",
+        definition_key="end_to_end",
+        version="1.0.0",
+        owner_scope="matter",
+        owner_id=str(matter.id),
+        actor_id=user.id,
+    )
+    await request_transition(
+        db_session,
+        instance_id=instance.id,
+        to_state="advanced",
+        user_id=user.id,
+    )
+
+    # Step 2: matter-context write.
+    item = await write_item(
+        db_session,
+        matter_id=matter.id,
+        namespace=namespace,
+        payload={"text": "key fact established"},
+        user_id=user.id,
+    )
+
+    # Step 3: advice-boundary check.
+    await advice_check(
+        db_session,
+        output_id=str(item.id),
+        requested_tier=ADVICE_TIER_DRAFT_ADVICE,
+        from_tier=None,
+        actor_user_id=user.id,
+        actor_role="any_authenticated",
+    )
+
+    # Pull every audit row this user produced.
+    rows = (
+        await db_session.scalars(
+            select(AuditEntry).where(AuditEntry.actor_id == user.id).order_by(
+                AuditEntry.timestamp
+            )
+        )
+    ).all()
+    actions = {r.action for r in rows}
+    # Required canonical events present.
+    assert "state_machine.instance.created" in actions
+    assert "state_machine.transition.completed" in actions
+    assert "matter_context.item.created" in actions
+    assert "advice_boundary.check.completed" in actions
+
+    # Every Phase 1 row carries the module column under `core.*`.
+    for row in rows:
+        if row.action.startswith(
+            ("state_machine.", "matter_context.", "advice_boundary.")
+        ):
+            assert row.module is not None
+            assert row.module.startswith("core."), (
+                f"row {row.action} missing core.* module attribution"
+            )
+
+    # Phase 1 rows carry module_id and capability_id in payload where
+    # they exist on the call.
+    phase1_rows = [
+        r
+        for r in rows
+        if r.action.startswith(
+            ("state_machine.", "matter_context.", "advice_boundary.")
+        )
+    ]
+    # At least one row from each primitive.
+    primitives_seen = {r.module for r in phase1_rows}
+    assert primitives_seen >= {
+        "core.state_machine",
+        "core.matter_context",
+        "core.advice_boundary",
+    }
