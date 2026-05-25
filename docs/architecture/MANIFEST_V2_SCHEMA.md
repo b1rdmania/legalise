@@ -65,7 +65,7 @@ Optional top-level fields:
   "kind": "tool",
   "scope": "matter",
   "reads": ["matter.parties.read"],
-  "writes": ["matter.memory.accepted_facts.write"],
+  "writes": ["matter.context.legalise_memory.accepted_facts.write"],
   "model_access": "none",
   "external_network": true,
   "data_movement": {
@@ -117,8 +117,8 @@ Examples:
 - `matter.metadata.read`
 - `matter.documents.body.read`
 - `matter.documents.generated.write`
-- `matter.memory.accepted_facts.read`
-- `matter.memory.open_questions.write`
+- `matter.context.legalise_memory.accepted_facts.read`
+- `matter.context.legalise_memory.open_questions.write`
 - `matter.redlines.write`
 - `workspace.providers.invoke`
 - `workspace.intake.prospects.write`

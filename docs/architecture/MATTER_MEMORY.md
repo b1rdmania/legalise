@@ -1,12 +1,25 @@
-# Matter Memory
+# Matter Memory Reference Module
 
-Matter memory is structured matter knowledge. It is not chat history and not a prompt dump.
+Matter memory is not a hardcoded core ontology. It is a first-party reference module built on the generic matter-context store.
 
-Capabilities read and write matter memory under explicit permissions.
+The runtime supplies typed context namespaces, schema validation, capability-scoped reads/writes, and audit. The `legalise-matter-memory` module supplies the legal-domain categories.
 
-## Memory Categories
+## Module Target
 
-V1 categories:
+```text
+examples/modules/reference/legalise-matter-memory/
+```
+
+Runtime:
+
+- `kind: tool`
+- `scope: matter`
+- consumes `core/matter_context`
+- exposes structured matter knowledge to modules and the assistant
+
+## Domain Categories
+
+The reference module declares schemas for:
 
 - accepted facts
 - disputed facts
@@ -17,78 +30,50 @@ V1 categories:
 - user decisions
 - concessions
 
-## Data Model
+These categories are not core runtime constants. They are module-declared context schemas.
 
-One table per category is acceptable, but a unified table is simpler for V1.
+## Context Schema Pattern
 
-Suggested unified table: `matter_memory_items`.
+Each category registers a JSON Schema under a namespace.
 
-Fields:
+Example:
 
-- `id`
-- `matter_id`
-- `category`
-- `text`
-- `status`
-- `source_type`
-- `source_id`
-- `created_by_user_id`
-- `created_by_module_id`
-- `confidence`
-- `tags`
-- `metadata`
-- `created_at`
-- `updated_at`
-- `superseded_by_id`
+```text
+legalise-matter-memory.accepted_facts
+```
 
-Category-specific fields can live in `metadata` initially.
+Fields can include:
 
-## Status Values
-
-General:
-
-- `active`
-- `disputed`
-- `superseded`
-- `withdrawn`
-- `needs_review`
-
-Facts:
-
-- `accepted`
-- `disputed`
-
-Questions:
-
-- `open`
-- `answered`
-- `irrelevant`
-
-Deadlines:
-
-- `pending`
-- `met`
-- `missed`
-- `extended`
+- text
+- source type
+- source id
+- status
+- confidence
+- tags
+- created by user
+- created by module
+- superseded by id
 
 ## Capability Grammar
 
-- `matter.memory.accepted_facts.read`
-- `matter.memory.accepted_facts.write`
-- `matter.memory.disputed_facts.read`
-- `matter.memory.disputed_facts.write`
-- `matter.memory.assumptions.read`
-- `matter.memory.assumptions.write`
-- `matter.memory.open_questions.read`
-- `matter.memory.open_questions.write`
-- `matter.memory.deadlines.read`
-- `matter.memory.deadlines.write`
-- `matter.memory.authorities.read`
-- `matter.memory.authorities.write`
-- `matter.memory.decisions.read`
-- `matter.memory.decisions.write`
-- `matter.memory.concessions.read`
-- `matter.memory.concessions.write`
+The reference module registers namespaced capabilities:
+
+- `matter.context.legalise_memory.accepted_facts.read`
+- `matter.context.legalise_memory.accepted_facts.write`
+- `matter.context.legalise_memory.disputed_facts.read`
+- `matter.context.legalise_memory.disputed_facts.write`
+- `matter.context.legalise_memory.assumptions.read`
+- `matter.context.legalise_memory.assumptions.write`
+- `matter.context.legalise_memory.open_questions.read`
+- `matter.context.legalise_memory.open_questions.write`
+- `matter.context.legalise_memory.deadlines.read`
+- `matter.context.legalise_memory.deadlines.write`
+- `matter.context.legalise_memory.authorities.read`
+- `matter.context.legalise_memory.authorities.write`
+- `matter.context.legalise_memory.decisions.read`
+- `matter.context.legalise_memory.decisions.write`
+- `matter.context.legalise_memory.concessions.read`
+- `matter.context.legalise_memory.concessions.write`
 
 ## Audit Events
 
@@ -103,7 +88,7 @@ Module-created memory items must record module id and capability id.
 
 ## Assistant Context
 
-Assistant context should include structured memory sections:
+Assistant context may include the reference module's categories when granted:
 
 - accepted facts
 - disputed facts
@@ -117,7 +102,7 @@ The assistant should not silently promote generated claims into accepted facts. 
 
 ## UI Requirements
 
-Matter memory sidebar:
+The reference module UI should provide a structured matter memory sidebar:
 
 - grouped by category
 - source visible
@@ -127,5 +112,5 @@ Matter memory sidebar:
 
 ## Relationship To Evidence Packs
 
-Evidence packs can cite memory items, but memory items need source references. A conclusion without source should remain an assumption or open question, not accepted fact.
+Evidence packs can cite matter-memory items, but memory items need source references. A conclusion without source should remain an assumption or open question, not accepted fact.
 

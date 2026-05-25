@@ -1,10 +1,25 @@
-# Output Lifecycle
+# Output Lifecycle Reference Module
 
-Generated legal outputs need explicit state. A generated draft, reviewed draft, cleared letter, sent document, and withdrawn output are not the same thing.
+Output lifecycle is not a hardcoded core state machine. It is a first-party reference module built on the generic state-machine primitive.
 
-Output lifecycle belongs to Matter OS.
+The runtime supplies state definitions, guarded transitions, gates, and audit. The `legalise-output-lifecycle` module supplies the legal-domain lifecycle states for generated outputs.
 
-## State Machine
+## Module Target
+
+```text
+examples/modules/reference/legalise-output-lifecycle/
+```
+
+Runtime:
+
+- `kind: workflow`
+- `scope: matter`
+- consumes `core/state_machine`
+- applies to generated legal outputs
+
+## Domain State Machine
+
+The reference module declares:
 
 ```text
 draft
@@ -32,7 +47,11 @@ Allowed transitions:
 - `draft|reviewed|cleared|sent|signed → superseded`
 - `draft → failed`
 
+These states are module-declared and runtime-enforced, not built into Matter OS as legal-domain constants.
+
 ## Output Types
+
+The module can manage:
 
 - generated document
 - letter
@@ -43,35 +62,32 @@ Allowed transitions:
 - review table
 - case-law note
 
-## Core Fields
+## Data Ownership
 
-Extend generated document/output records with:
+The module owns lifecycle metadata:
 
-- `lifecycle_state`
-- `lifecycle_history`
-- `created_by_module_id`
-- `created_by_capability_id`
-- `cleared_by_user_id`
-- `cleared_at`
-- `sent_at`
-- `signed_at`
-- `superseded_by_id`
-- `withdrawn_at`
-- `withdrawal_reason`
-- `advice_tier`
+- lifecycle state
+- lifecycle history
+- cleared by
+- sent/signed timestamps
+- supersession link
+- withdrawal reason
+- advice tier at transition
+
+Core stores generic state-machine instances and transitions. The module maps those instances to generated outputs.
 
 ## Transition Gates
 
-Transitions may require gates:
+The module declares transition gates:
 
 - `draft → reviewed`: human review
-- `reviewed → cleared`: advice boundary gate
+- `reviewed → cleared`: advice-boundary gate
 - `cleared → sent`: supervisor approval if configured
-- any transition involving disclosed material: CPR/privilege gates as configured
+- any transition involving disclosed material: CPR/privilege gates if configured
 
-## Module Manifest Field
+## Manifest Fields Used
 
-Capabilities can declare:
+Output-producing modules can declare:
 
 ```json
 {
@@ -79,7 +95,7 @@ Capabilities can declare:
 }
 ```
 
-The runtime prevents a module from creating an output above its declared target.
+The output-lifecycle module interprets this target and prevents the module from creating outputs above its declared state.
 
 ## Audit Events
 
@@ -113,15 +129,15 @@ Every generated output shows:
 - available next actions
 - audit history
 
-Actions that require gates should show the gate before transition.
+Actions requiring gates show the gate before transition.
 
-## Relationship To Redliner
+## Document Redliner Relationship
 
-Document Redliner produces:
+Document Redliner is the key proof consumer:
 
-- proposed redlines in `draft`
-- accepted edited document in `reviewed`
-- exported final document can move to `cleared` after human approval
+- proposed redlines begin as draft output
+- accepted edited document becomes reviewed output
+- cleared export requires human approval
 
-Every accept/reject/edit decision is separate audit.
+This relationship belongs in the Redliner reference module and tests the lifecycle module. It is not a core runtime dependency.
 

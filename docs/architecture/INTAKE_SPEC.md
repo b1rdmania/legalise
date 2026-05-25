@@ -1,10 +1,25 @@
-# Intake Spec
+# Intake Reference Module
 
-Intake is the pre-matter state machine. It controls when a matter exists and records the assumptions under which it was opened.
+Intake is not a core Legalise state machine. It is a first-party reference module built on the generic state-machine primitive.
 
-Specific intake workflows are modules. The state machine belongs to Matter OS.
+The runtime supplies state definitions, guarded transitions, capability enforcement, gates, and audit. The `legalise-intake` module supplies the legal-domain states and workflow.
 
-## State Machine
+## Module Target
+
+```text
+examples/modules/reference/legalise-intake/
+```
+
+Runtime:
+
+- `kind: workflow`
+- `scope: workspace`
+- consumes `core/state_machine`
+- writes prospect records and, after completion, opens a matter
+
+## Domain State Machine
+
+The reference module declares:
 
 ```text
 prospect
@@ -25,6 +40,8 @@ scope_rejected
 verification_failed
 ```
 
+These states are not hardcoded into core. They are module-declared states validated and enforced by the generic state-machine primitive.
+
 ## State Meanings
 
 - `prospect`: initial contact or imported lead. No matter exists.
@@ -33,42 +50,37 @@ verification_failed
 - `client_verified`: KYC/AML/client identity requirements complete for this workspace's policy.
 - `matter_opened`: matter exists and receives matter id/slug.
 
-## Core Data Model
+## Module Data
 
-`prospects` table:
+The module owns prospect-specific schema:
 
-- `id`
-- `workspace_id`
-- `created_by_id`
-- `source`
-- `contact_name`
-- `contact_email`
-- `contact_phone`
-- `status`
-- `matter_type`
-- `jurisdiction`
-- `summary`
-- `adverse_parties`
-- `conflict_check_status`
-- `scope_check_status`
-- `kyc_status`
-- `scope_agreed_at`
-- `client_verified_at`
-- `matter_id`
-- `created_at`
-- `updated_at`
+- contact name
+- contact email
+- contact phone
+- matter type
+- jurisdiction
+- summary
+- adverse parties
+- conflict check status
+- scope status
+- KYC status
+- linked matter id
+
+Implementation can store this through module-owned tables or through `core/matter_context` once the prospect becomes matter-linked. Core should not own these fields.
 
 ## Transition Rules
 
-- Only `client_verified` can transition to `matter_opened`.
-- `conflict_blocked` cannot transition to `matter_opened`.
-- `scope_rejected` cannot transition to `matter_opened`.
-- `declined`, `withdrawn`, and `duplicate` are terminal unless admin reopens.
-- Every transition emits audit.
+The module declares rules consumed by `core/state_machine`:
 
-## Module Plug-Points
+- only `client_verified` can transition to `matter_opened`
+- `conflict_blocked` cannot transition to `matter_opened`
+- `scope_rejected` cannot transition to `matter_opened`
+- terminal states require admin reopen
+- every transition emits audit
 
-Intake modules can attach to:
+## Plug-Points
+
+Other modules can attach to:
 
 - `intake.prospect.created`
 - `intake.conflict_check`
@@ -76,7 +88,7 @@ Intake modules can attach to:
 - `intake.kyc`
 - `intake.open_matter`
 
-Example modules:
+Examples:
 
 - employment intake questionnaire
 - divorce intake questionnaire
@@ -85,6 +97,8 @@ Example modules:
 - KYC/AML connector
 
 ## Capability Grammar
+
+The reference module registers namespaced capabilities:
 
 - `workspace.intake.prospects.read`
 - `workspace.intake.prospects.write`
@@ -109,7 +123,7 @@ Matter-scoped modules cannot read prospects unless granted workspace intake capa
 
 ## UI Requirements
 
-The intake UI should show:
+The reference module UI should show:
 
 - current state
 - missing requirements
@@ -120,11 +134,5 @@ The intake UI should show:
 
 ## Khan Demo
 
-Khan must include intake history:
-
-```text
-prospect → conflict_check → scope_check → client_verified → matter_opened
-```
-
-The audit reconstruction view should show each intake transition.
+Khan should include an intake reference-module history, but the Khan-specific data belongs in seed/demo docs, not this substrate spec.
 

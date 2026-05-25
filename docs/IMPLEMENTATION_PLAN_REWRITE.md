@@ -25,7 +25,7 @@ This pipeline drives the plan. Each phase serves one or more stages of the pipel
 
 ### Three-layer architecture (unchanged from v1)
 
-- **Matter OS** — substrate (matter, documents, chronology, parties, intake state, output lifecycle, structured matter memory, opinion/advice boundary, audit log, privilege posture, retention, users/roles)
+- **Matter OS** — substrate (matter, documents, chronology, parties, generic state machines, structured matter context, opinion/advice boundary, audit log, privilege posture, retention, users/roles)
 - **Capability Runtime** — MCP-first host with Legalise-native primitives MCP doesn't provide (workflows, gates, audit, matter scoping, supply-chain enforcement)
 - **Extension Ecosystem** — native modules + MCP servers + first-party reference modules + community + firm-private
 
@@ -47,13 +47,12 @@ This pipeline drives the plan. Each phase serves one or more stages of the pipel
 - `schemas/module.json` — replaced by `schemas/module.v2.json` (richer declaration)
 - First-party module dispatch path — direct skill rendering → MCP server invocation
 - Frontend module catalogue + permission UI — rewrite for capability cards, trust ceremony, audit reconstruction
-- Document tagging — promoted to proper output lifecycle state machine
+- Document tagging — becomes a domain module concern over the generic state-machine primitive
 
 ### What gets added (new)
 
-- `core/intake/` — intake state machine (prospect → conflict_check → scope_check → client_verified → matter_opened)
-- `core/output_lifecycle/` — output state machine (draft → reviewed → cleared → sent/signed → superseded/withdrawn)
-- `core/matter_memory/` — structured matter memory (accepted facts, disputed facts, assumptions, open questions, deadlines, authorities, user decisions, concessions)
+- `core/state_machine/` — generic state-machine primitive consumed by intake, output lifecycle, and future operational modules
+- `core/matter_context/` — generic structured matter context store consumed by matter-memory and future knowledge modules
 - `core/advice_boundary/` — opinion/advice tier system (factual extraction → legal information → draft advice → supervised legal advice → approved final advice) — first-class gate primitive
 - `core/mcp_host/` — MCP transport, sandboxing, tool/resource proxies
 - `core/registry.py` — module discovery, manifest validation, capability registration
@@ -74,9 +73,9 @@ Cut a dedicated `runtime-rewrite` branch from master at the start of Phase 0. Ho
 ## Critical path (dependencies)
 
 ```
-Phase 0 (branch + decisions + 10 architecture docs)
+Phase 0 (branch + decisions + 12 architecture docs)
    ↓
-Phase 1 (Matter OS primitives: intake / output lifecycle / matter memory / advice boundary)
+Phase 1 (Substrate primitives: state machine / matter context / advice boundary)
    ↓
 Phase 2 (manifest v2 + capability registry)
    ↓
@@ -110,9 +109,9 @@ Phases 0-6 are sequential foundation. Phases 7-12 can run in parallel once found
 
 ---
 
-## Phase 0 — Foundation: branch + decisions + ten architecture docs
+## Phase 0 — Foundation: branch + decisions + twelve architecture docs
 
-**Goal:** Cut the rewrite branch. Lock all open architectural calls. Author the ten Phase 0 architecture docs before any code is written.
+**Goal:** Cut the rewrite branch. Lock all open architectural calls. Author the twelve Phase 0 architecture docs before any code is written.
 
 **Deliverables:**
 
@@ -131,16 +130,18 @@ Locked architectural calls (per Reviewer brief, ratified 2026-05-25):
 - Practice management connector for first community demo: deferred decision (Clio vs LEAP, pick when community track opens)
 - Frontend state pattern for plug-points: extend existing React Context patterns; introduce dedicated module-slot context
 
-Ten architecture docs (all in `docs/architecture/`):
+Twelve architecture docs (all in `docs/architecture/`):
 - `MANIFEST_V2_SCHEMA.md` — full capability declaration grammar
 - `TRUST_CEREMONY.md` — verified vs unverified flows, state machine
 - `SANDBOX_STRATEGY.md` — subprocess + seccomp/AppArmor profiles, future WASM path
 - `SIGNING.md` — sigstore integration, publisher verification, key management
 - `AUDIT_RECONSTRUCTION.md` — nine-dimension filter design, storage strategy
 - `MIGRATION_TEMPLATE.md` — canonical `MIGRATION.md` template
-- `INTAKE_SPEC.md` — pre-matter state machine (NEW)
-- `OUTPUT_LIFECYCLE.md` — generated-output state machine (NEW)
-- `MATTER_MEMORY.md` — structured matter memory schema (NEW)
+- `STATE_MACHINE_PRIMITIVE.md` — generic state-machine primitive consumed by intake and output lifecycle (NEW)
+- `MATTER_CONTEXT_STORE.md` — generic structured matter context store consumed by matter memory (NEW)
+- `INTAKE_SPEC.md` — first-party intake reference module over the state-machine primitive (NEW)
+- `OUTPUT_LIFECYCLE.md` — first-party output-lifecycle reference module over the state-machine primitive (NEW)
+- `MATTER_MEMORY.md` — first-party matter-memory reference module over the context-store primitive (NEW)
 - `REFERENCE_MODULES.md` — reference module taxonomy + explicit acceptance bars (NEW)
 
 `REFERENCE_MODULES.md` acceptance bars (per Andy's addition to v2 brief):
@@ -152,80 +153,48 @@ A module qualifies as a reference module when:
 5. Failure semantics documented (what happens when module errors mid-run)
 6. Runnable against Khan (executes end-to-end against the canonical demo matter)
 
-**Acceptance:** Branch cut. All ten architecture docs reviewed and signed off by Reviewer. Phase 1 starts.
+**Acceptance:** Branch cut. All twelve architecture docs reviewed and signed off by Reviewer. Phase 1 starts.
 
 **Dependencies:** None. Starts after v2 plan replaces v1.
 
 ---
 
-## Phase 1 — Matter OS primitives
+## Phase 1 — Substrate primitives
 
-**Goal:** Build the four V1 core primitives Matter OS needs before the capability runtime can govern legal work properly. These are not modules — they are substrate.
+**Goal:** Build only the generic runtime/governance primitives the ecosystem needs. Do not bake operational-backbone domain schemas into core. Intake, matter memory, and output lifecycle are first-party reference modules that consume these primitives.
 
-### 1.1 — Intake state machine
+### 1.1 — Generic state-machine primitive
 
-**Why:** Matter creation is currently arbitrary. Real legal work starts before the matter exists: conflict checks, KYC, scope agreement. The state machine controls *when* a matter exists and *what assumptions it was opened under*.
-
-**States:** `prospect → conflict_check → scope_check → client_verified → matter_opened`
+**Why:** Multiple legal workflows need controlled state transitions, but core should not own every domain state. The runtime should let modules declare states, transitions, required gates, terminal states, and audit semantics under their namespace.
 
 **Deliverables:**
-- `backend/app/core/intake/` package (`states.py`, `transitions.py`, `models.py`)
-- New DB table: `prospects` (id, source, contact_info, status, intake_module_id, created_at, conflict_check_status, scope_agreed_at, kyc_verified_at, matter_id when opened)
-- Transition functions enforce ordering (cannot open matter without `client_verified`)
-- Intake-specific audit events emitted (`intake.prospect.created`, `intake.conflict.checked`, `intake.scope.agreed`, `intake.kyc.verified`, `intake.matter.opened`)
-- Modules can declare `kind: workflow, scope: workspace` to participate in intake (e.g. an intake-conflicts-check module reads `prospect.contact_info` and writes `prospect.conflict_check_status`)
+- `backend/app/core/state_machine/` package (`definitions.py`, `transitions.py`, `guards.py`, `audit.py`)
+- New DB tables: `state_machine_definitions`, `state_machine_instances`, `state_machine_transitions`
+- Manifest support for state-machine declarations and transition gates
+- Runtime transition function that enforces legal transitions, checks gates, emits audit, and records current state
+- Generic UI data contract for rendering state and available transitions
 
 **Files:**
-- New: `backend/app/core/intake/*`, `backend/app/models/prospect.py`
-- Extended: `backend/app/api/matters.py` (matter creation now goes through intake state transition)
+- New: `backend/app/core/state_machine/*`
 - DB migration
 
-### 1.2 — Output lifecycle
+### 1.2 — Generic matter context store
 
-**Why:** Generated outputs (letters, drafts, redlines, contract reviews) need proper lifecycle states. Current `document.tag` (draft|cleared|signed) is too thin.
-
-**States:** `draft → reviewed → cleared → sent/signed → superseded/withdrawn`
+**Why:** Capabilities need structured matter context, but the runtime should not hardcode a legal-domain ontology such as accepted facts/disputed facts/deadlines in core. Modules should declare schemas and read/write them under capability scope.
 
 **Deliverables:**
-- `backend/app/core/output_lifecycle/` package
-- Extend `models/document.py` — new fields: `lifecycle_state`, `lifecycle_history` (JSONB), `superseded_by_id`, `cleared_by_user_id`, `cleared_at`, `signed_at`, `withdrawn_at`, `withdrawal_reason`
-- Transition functions enforce ordering
-- Each transition emits audit events
-- UI surfaces lifecycle state on every generated document
-- Module manifests can declare `output_lifecycle_target: cleared | signed` so capabilities know which state their output should reach
+- `backend/app/core/matter_context/` package (`schema.py`, `store.py`, `permissions.py`)
+- New DB tables: `matter_context_schemas`, `matter_context_items`
+- JSON Schema validation for module-declared context item types
+- Capability-scoped reads/writes against context namespaces
+- Assistant context builder reads only granted context namespaces
 
 **Files:**
-- New: `backend/app/core/output_lifecycle/*`
-- Extended: `backend/app/models/document.py`
-- DB migration (backfill existing documents to `draft` state)
-
-### 1.3 — Matter memory
-
-**Why:** Capabilities need to read structured matter context, not just chat history or current state. Today the matter assistant has limited memory; a real legal substrate needs structured memory.
-
-**Schema:**
-- `accepted_facts` — facts both parties (or this firm + client) agree on
-- `disputed_facts` — facts in dispute
-- `assumptions` — assumptions the matter is operating under
-- `open_questions` — things still to resolve
-- `deadlines` — time-bound obligations
-- `authorities` — cited cases/statutes/regulations
-- `user_decisions` — decisions the lawyer has made + rationale
-- `concessions` — concessions made (or refused) on this matter
-
-**Deliverables:**
-- `backend/app/core/matter_memory/` package
-- New DB tables: `matter_facts` (id, matter_id, fact_text, status [accepted|disputed], source, added_by_id, added_at), `matter_assumptions`, `matter_open_questions`, `matter_deadlines`, `matter_authorities`, `matter_decisions`, `matter_concessions`
-- Capabilities declare what memory they read/write (e.g. `reads: [matter.memory.accepted_facts, matter.memory.deadlines]`)
-- UI surfaces matter memory as a structured sidebar
-- Assistant pulls from matter memory in context construction (extend `plugin_bridge._render_matter_block()`)
-
-**Files:**
-- New: `backend/app/core/matter_memory/*`, `backend/app/models/matter_memory.py` (combined)
-- Extended: `backend/app/adapters/plugin_bridge.py` (matter context construction)
+- New: `backend/app/core/matter_context/*`
+- Extended: `backend/app/adapters/plugin_bridge.py` or successor context builder
 - DB migration
 
-### 1.4 — Opinion/advice boundary
+### 1.3 — Opinion/advice boundary
 
 **Why:** Legal AI output must be classified by advice tier. This is load-bearing for SRA / PI insurance / regulatory framing. Different gates apply to different tiers.
 
@@ -249,7 +218,7 @@ A module qualifies as a reference module when:
 - Extended: `backend/app/core/capabilities.py` (manifest schema includes advice_tier_max)
 - DB migration
 
-**Acceptance for Phase 1:** All four primitives ship with: DB migrations applied, audit events emitting, UI surfaces (even if minimal), test coverage on state transitions. Phase 2 can build the capability registry on top.
+**Acceptance for Phase 1:** The generic state-machine primitive, generic matter-context store, and advice-boundary gate ship with migrations, audit events, capability checks, minimal UI/API surfaces, and tests. No intake-specific, output-lifecycle-specific, or matter-memory-specific domain states live in core.
 
 **Dependencies:** Phase 0 complete.
 
@@ -262,7 +231,7 @@ A module qualifies as a reference module when:
 **Deliverables:**
 - `schemas/module.v2.json` — JSON Schema for v2 manifest. Required fields: `id`, `name`, `version`, `runtime` (mcp|native), `kind`, `scope`, `reads`, `writes`, `model_access`, `external_network`, `gates`, `ui.slot`, `entrypoint`. Optional: `requires`, `jurisdictions`, `advice_tier_max`, `visibility` (public|firm_private), `output_lifecycle_target`, `streaming_mode` (sync|streaming|async).
 - `backend/app/core/registry.py` — new module; discovers manifests in `backend/app/modules/`, `examples/modules/`, and user-installed paths; validates against schema; exposes capability catalogue.
-- `backend/app/core/capabilities.py` — extend vocabulary from 7 flat strings to full grammar: `<scope>.<resource>.<action>` (e.g. `matter.documents.read`, `matter.memory.facts.write`, `workspace.providers.invoke`, `workspace.intake.prospects.write`).
+- `backend/app/core/capabilities.py` — extend vocabulary from 7 flat strings to full grammar: `<scope>.<resource>.<action>` (e.g. `matter.documents.read`, `matter.context.legalise_memory.facts.write`, `workspace.providers.invoke`, `workspace.intake.prospects.write`).
 - v1 → v2 manifest auto-derivation shim: existing SKILL.md files get auto-promoted (kind=skill, scope=matter, reads/writes inferred from existing capability grants).
 - DB migration: extend `workspace_skill_capability_grants` table — add `capability_version`, `granted_at_module_version`, `granted_permissions_snapshot` (JSONB) for permission expansion detection.
 - Updated `backend/app/api/modules.py` — exposes v2 manifest, capability grammar, registry surface.
@@ -294,7 +263,7 @@ A module qualifies as a reference module when:
 - Backend dependency: add `mcp` Python SDK (Anthropic-published)
 - Per-call enforcement: every MCP tool invocation routed through `require_capability()` — denial raises `CapabilityDenied`, captured in audit
 - New MCP boundary audit events: `mcp.tool.invoked`, `mcp.resource.read`, `mcp.prompt.expanded`, with payload including module_id, capability, advice_tier, token usage if model called
-- Resource proxy enforces matter memory permissions (e.g. `matter.memory.disputed_facts.read` only returns disputed facts if granted)
+- Resource proxy enforces matter-context permissions (e.g. a module can only read the context namespaces granted to it)
 
 ### 3.2 — Sandboxing
 
@@ -406,8 +375,8 @@ A module qualifies as a reference module when:
 - Manifest at `backend/app/modules/contract_review/legalise.module.json`:
   - `kind: workflow`
   - `scope: matter`
-  - `reads: [matter.documents.body, matter.metadata, matter.memory.assumptions]`
-  - `writes: [matter.documents.generated, matter.memory.open_questions]`
+  - `reads: [matter.documents.body, matter.metadata, matter.context.legalise_memory.assumptions.read]`
+  - `writes: [matter.documents.generated, matter.context.legalise_memory.open_questions.write]`
   - `audit_events: [contract_review.run.started, contract_review.model_call, contract_review.output.generated, contract_review.run.completed]`
   - `model_access: required`
   - `gates: [privilege_posture, advice_boundary]`
@@ -438,8 +407,8 @@ A module qualifies as a reference module when:
 - Manifest:
   - `kind: workflow`
   - `scope: matter`
-  - `reads: [matter.documents.body, matter.events.read, matter.metadata, matter.memory.disputed_facts, matter.memory.assumptions]`
-  - `writes: [matter.documents.generated, matter.events.write, matter.memory.open_questions]`
+  - `reads: [matter.documents.body, matter.events.read, matter.metadata, matter.context.legalise_memory.disputed_facts.read, matter.context.legalise_memory.assumptions.read]`
+  - `writes: [matter.documents.generated, matter.events.write, matter.context.legalise_memory.open_questions.write]`
   - `audit_events: [pre_motion.run.started, pre_motion.stage.completed, pre_motion.model_call, pre_motion.output.generated, pre_motion.run.completed]`
   - `model_access: required`
   - `gates: [privilege_posture, multi_agent_throttle, advice_boundary]`
@@ -497,9 +466,9 @@ A module qualifies as a reference module when:
 - Schema mapping:
   - counsel-mvp `documents` → Legalise `Document` (already exists)
   - counsel-mvp `clauses` → new Legalise table `matter_clauses` (clause-level extraction per document)
-  - counsel-mvp `analyses` → matter memory `disputed_facts` + `open_questions` (or dedicated `matter_clause_analyses` if cleaner)
+  - counsel-mvp `analyses` → module-declared matter-context items (or dedicated `matter_clause_analyses` if cleaner)
   - counsel-mvp `redlines` → new Legalise table `matter_redlines` (linked to clause, with priority + status [proposed|accepted|declined|edited])
-  - counsel-mvp `summaries` → matter memory + `Document` of kind `generated`
+  - counsel-mvp `summaries` → module-declared matter-context items + `Document` of kind `generated`
 - Evidence pack emission: proposed amendments with risk_score + priority + plain-English explanations
 - Human decision loop produces explicit audit entries per redline (`redline.proposed`, `redline.accepted`, `redline.declined`, `redline.edited_and_accepted`)
 - `MIGRATION.md` documents the port: what was kept, what was rewritten, why
@@ -543,8 +512,8 @@ Each fills: module id, runtime, kind, scope, UI slot, reads, writes, model acces
 **Deliverables:**
 
 Runnable proof set (ship at launch):
-- `examples/modules/connectors/legalise-companies-house/` — MCP server wrapping Companies House Public Data API. Manifest: `kind: tool, scope: workspace, external_network: true, gates: [external_data_consent], reads: [], writes: [matter.notes.write, matter.memory.accepted_facts.write], jurisdictions: [england-wales]`. Capabilities: party diligence (search, officers, charges, filings).
-- `examples/modules/connectors/legalise-legislation-gov-uk/` — MCP server wrapping legislation.gov.uk API. Manifest: `kind: tool, scope: workspace, external_network: true, reads: [], writes: [matter.citations.write, matter.memory.authorities.write], jurisdictions: [united-kingdom]`. Capabilities: statute lookup, version diff, section retrieval.
+- `examples/modules/connectors/legalise-companies-house/` — MCP server wrapping Companies House Public Data API. Manifest: `kind: tool, scope: workspace, external_network: true, gates: [external_data_consent], reads: [], writes: [matter.notes.write, matter.context.companies_house.write], jurisdictions: [england-wales]`. Capabilities: party diligence (search, officers, charges, filings).
+- `examples/modules/connectors/legalise-legislation-gov-uk/` — MCP server wrapping legislation.gov.uk API. Manifest: `kind: tool, scope: workspace, external_network: true, reads: [], writes: [matter.citations.write, matter.context.legalise_memory.authorities.write], jurisdictions: [united-kingdom]`. Capabilities: statute lookup, version diff, section retrieval.
 - `examples/modules/connectors/legalise-local-document-reader/` — MCP server wrapping local pdfplumber + optional OCR (Tesseract). Manifest: `kind: tool, scope: matter, external_network: false, gates: [privilege_posture], reads: [matter.documents.body], writes: [matter.documents.generated.annotations]`. Capabilities: PDF text extraction, table extraction, structured-form parsing, local OCR. **This is the strategic proof**: Legalise governs document intelligence, doesn't own it.
 - `examples/modules/providers/` — wrap existing `backend/app/providers/anthropic_provider.py`, `openai_provider.py`, `ollama_provider.py` as `kind: provider` modules. Existing logic preserved; manifest layer added.
 
@@ -586,10 +555,12 @@ Mike is a peer/inspiration, not a dependency. Likely AGPL licensing, no stable e
 - `frontend/src/modules-page/Modules.tsx` — overhaul; capability cards (declared reads/writes/gates/external network/scope/advice tier); badges (`bundled | example | first-party | community | firm-private`); install / enable / revoke / update UI
 - New: `frontend/src/trust-ceremony/` — modal flow for install. Verified fast path (3 steps) and unverified full inspection (7 steps). Permission card component used in both.
 - New: `frontend/src/audit/` — audit reconstruction view. Nine-dimension filter sidebar. Event list with click-through detail panel. Cost summary per module, per matter, per user.
-- New: `frontend/src/workspace/plug-points/` — named UI slots that modules surface in. Initial slots: `matter.workflows`, `matter.documents.actions`, `matter.chronology.augment`, `matter.memory.augment`, `assistant.tools`, `gate.interruption`, `intake.module`, `output.lifecycle.action`.
-- New: `frontend/src/intake/` — intake state machine UI (prospect → conflict_check → scope_check → client_verified → matter_opened with module plug-points for each stage)
-- New: `frontend/src/matter-memory/` — structured matter memory sidebar (facts, assumptions, deadlines, authorities, decisions)
-- New: `frontend/src/output-lifecycle/` — lifecycle state badges + transition controls on every generated document
+- New: `frontend/src/workspace/plug-points/` — named UI slots that modules surface in. Initial slots: `matter.workflows`, `matter.documents.actions`, `matter.chronology.augment`, `matter.context.augment`, `assistant.tools`, `gate.interruption`, `intake.module`, `output.lifecycle.action`.
+- New: `frontend/src/state-machine/` — generic state-machine renderer used by intake and output-lifecycle reference modules
+- New: `frontend/src/matter-context/` — generic structured context renderer used by matter-memory reference module
+- New: `frontend/src/intake/` — first-party intake reference module UI over the state-machine primitive
+- New: `frontend/src/matter-memory/` — first-party matter-memory reference module UI over the context-store primitive
+- New: `frontend/src/output-lifecycle/` — first-party output-lifecycle reference module UI over the state-machine primitive
 - New: `frontend/src/advice-boundary/` — advice tier badge on every output, transition gates
 - Frontend state pattern: dedicated `ModuleSlotContext` for plug-point rendering, sitting alongside existing React Query patterns
 - Per-module React UI in `frontend/src/modules/*` — preserve existing surfaces; future modules opt into standard plug-point rendering by `kind`
@@ -611,7 +582,7 @@ Mike is a peer/inspiration, not a dependency. Likely AGPL licensing, no stable e
 **Goal:** Khan v Acme is the canonical test/demo matter for the full legal work pipeline. Treat as product surface, not seed data. Every reference module runs visibly useful against Khan.
 
 **Deliverables:**
-- **Intake history** — Khan opened via the new intake state machine: prospect record → conflict check passed → scope agreed → KYC verified → matter opened. All five intake events visible in audit.
+- **Intake history** — Khan opened via the first-party `legalise-intake` reference module using the generic state-machine primitive: prospect record → conflict check passed → scope agreed → KYC verified → matter opened. All five intake events visible in audit.
 - **Comprehensive chronology** — 20+ events across the dispute timeline (employment start → performance reviews → grievance → dismissal → ACAS conciliation → ET1 lodged)
 - **Full disclosure bundle** — 10+ real-shape documents (employment contract, performance reviews, dismissal letter, internal emails, witness statements, correspondence)
 - **Parties** — claimant (Khan), respondent (Acme Ltd), witnesses, solicitors on record, expert witnesses
@@ -623,7 +594,7 @@ Mike is a peer/inspiration, not a dependency. Likely AGPL licensing, no stable e
 
 **Files touched:**
 - Extended: `backend/app/core/seed.py` (large extension)
-- New: `backend/seed_data/khan_v_acme/` (markdown documents, structured chronology JSON, intake history JSON, matter memory JSON, audit history JSON)
+- New: `backend/seed_data/khan_v_acme/` (markdown documents, structured chronology JSON, intake reference-module history JSON, matter-context JSON, audit history JSON)
 
 **Acceptance:** Fresh install + Khan matter load + any reference module run produces visibly useful output within 30 seconds. Audit reconstruction view shows real data immediately. Intake history fully populated. Matter memory sidebar shows substantive content.
 
@@ -638,7 +609,7 @@ Mike is a peer/inspiration, not a dependency. Likely AGPL licensing, no stable e
 **Deliverables:**
 - `cli/legalise.py` — `legalise module add | inspect | enable | disable | revoke | update | validate | test | audit-preview`. Python entry point via `pyproject.toml`.
 - `examples/modules/hello-matter/` — toy module (echoes matter name, demonstrates manifest)
-- `examples/modules/limitation-checker/` — useful module (reads chronology + matter memory deadlines, flags upcoming limitation dates)
+- `examples/modules/limitation-checker/` — useful module (reads chronology + matter-context deadlines, flags upcoming limitation dates)
 - `docs/BUILD_YOUR_FIRST_MODULE.md` — 10-minute quickstart guide
 - `legalise module validate` runs manifest schema check + dry-run capability check
 - `legalise module test --matter khan` runs module against Khan in test mode, prints audit rows
@@ -683,7 +654,7 @@ Mike is a peer/inspiration, not a dependency. Likely AGPL licensing, no stable e
 **Goal:** Survive contact with users, regulators, and attackers. Open-source release tagged.
 
 **Deliverables:**
-- Extended `docs/handovers/PRE_FLIGHT.md` — adds new surfaces (trust ceremony, audit reconstruction, module install, capability enforcement, intake, output lifecycle, matter memory, advice boundary)
+- Extended `docs/handovers/PRE_FLIGHT.md` — adds new surfaces (trust ceremony, audit reconstruction, module install, capability enforcement, state-machine primitive, matter-context store, intake/output-lifecycle/matter-memory reference modules, advice boundary)
 - Browser smoke walk run end-to-end against `runtime-rewrite` branch deployed to staging covering all surfaces + new module surfaces
 - Sandbox penetration testing — escape attempts (filesystem traversal, network exfil, fork bomb, memory exhaustion, syscall fuzzing). Document in `docs/security/SANDBOX_PEN_TEST.md`.
 - Audit reconstruction validation — regulator-grade scenarios ("Show me everything AI did on Khan matter between dates X-Y filtered by external provider"). Verify completeness, integrity, tamper-evidence.
@@ -728,7 +699,7 @@ This taxonomy is canonical in `docs/architecture/REFERENCE_MODULES.md` (authored
 - Document Edit
 
 **Experimental / reference (build alongside critical path, not blocking):**
-- Matter Plan / next-action layer (reads matter state + matter memory, writes tasks/notes/recommended next actions)
+- Matter Plan / next-action layer (reads matter state + matter context, writes tasks/notes/recommended next actions)
 - Evidence Pack composer (consumes outputs from Contract Review / Pre-Motion / Document Redliner, composes a regulator-legible evidence bundle)
 - Kramer v AI / dual-party amicable divorce (dual-party flow, settlement bands, emotional-discovery gates, provider plurality — does NOT dictate core runtime unless it exposes a generalised primitive)
 
@@ -798,4 +769,4 @@ All previously open calls are now resolved (per Reviewer's ratification in v2 br
 
 ---
 
-*End of plan v2. Reviewer begins Phase 0: cut `runtime-rewrite` branch from master, author the ten architecture docs in `docs/architecture/`, lock the remaining configuration calls. Phase 1 starts when Phase 0 ships.*
+*End of plan. Reviewer begins Phase 0: cut `runtime-rewrite` branch from master, author the twelve architecture docs in `docs/architecture/`, lock the remaining configuration calls. Phase 1 starts when Phase 0 ships.*
