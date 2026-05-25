@@ -27,7 +27,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.adapters.plugin_bridge import _parse_skill_md
+import frontmatter
+
 from app.core.config import settings
 
 
@@ -149,6 +150,18 @@ def _scan_v1_module_json(root: Path) -> list[DiscoveredModule]:
 def _scan_skill_md(root: Path) -> list[DiscoveredModule]:
     """Look for SKILL.md files. Each SKILL.md is a single-skill module
     in the v1 plugin layout: ``<plugin>/skills/<slug>/SKILL.md``.
+
+    Round-2 Reviewer P1 fix: this used to call
+    ``_parse_skill_md(Path)`` and unpack the result as a tuple — both
+    wrong (``_parse_skill_md`` expects file text, returns a
+    ``SkillManifest`` dataclass), and the broad ``except Exception:
+    continue`` silently dropped every SKILL.md from the v2 catalogue.
+
+    Current behaviour: read the file text, parse the frontmatter with
+    ``frontmatter.loads`` directly so we can access the full metadata
+    dict (the SkillManifest dataclass doesn't expose
+    ``capabilities``). Exception handling is narrowed: malformed
+    YAML or unreadable file logs and skips; everything else bubbles.
     """
     out: list[DiscoveredModule] = []
     for candidate in root.rglob("SKILL.md"):
@@ -162,28 +175,35 @@ def _scan_skill_md(root: Path) -> list[DiscoveredModule]:
         plugin_id = parts[-4]
         skill_id = parts[-2]
         try:
-            frontmatter, _body = _parse_skill_md(candidate)
+            text = candidate.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if not text.startswith("---"):
+            # SKILL.md must start with YAML frontmatter; if it doesn't,
+            # treat as broken and skip silently (caller behaviour
+            # before, but now narrowed to the actual structural check).
+            continue
+        try:
+            post = frontmatter.loads(text)
         except Exception:
+            # Malformed YAML — skip rather than crash the whole
+            # discovery walk.
             continue
-        if not isinstance(frontmatter, dict):
-            continue
+        metadata: dict[str, Any] = post.metadata or {}
         # Conservative declared-capabilities extraction. SKILL.md
         # frontmatter conventionally has ``capabilities`` or
         # ``declared_capabilities``.
         declared: list[str] = []
-        if isinstance(frontmatter.get("capabilities"), list):
-            declared = [
-                c for c in frontmatter["capabilities"] if isinstance(c, str)
-            ]
-        elif isinstance(frontmatter.get("declared_capabilities"), list):
-            declared = [
-                c
-                for c in frontmatter["declared_capabilities"]
-                if isinstance(c, str)
-            ]
+        raw_caps = metadata.get("capabilities")
+        if isinstance(raw_caps, list):
+            declared = [c for c in raw_caps if isinstance(c, str)]
+        else:
+            raw_declared = metadata.get("declared_capabilities")
+            if isinstance(raw_declared, list):
+                declared = [c for c in raw_declared if isinstance(c, str)]
         skill_payload = {
-            "name": frontmatter.get("name", skill_id),
-            "description": frontmatter.get("description", ""),
+            "name": str(metadata.get("name", skill_id)),
+            "description": str(metadata.get("description", "") or ""),
             "declared_capabilities": declared,
         }
         out.append(

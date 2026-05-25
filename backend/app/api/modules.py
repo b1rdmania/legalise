@@ -383,6 +383,7 @@ class V2CapabilityEntry(BaseModel):
     external_network: bool | None
     advice_tier_max: str | None
     ui_slot: str | None
+    manifest_valid: bool = True
 
 
 class V2RegistryResponse(BaseModel):

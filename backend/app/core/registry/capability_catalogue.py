@@ -20,6 +20,7 @@ from typing import Any
 
 from app.core.registry.discovery import DiscoveredModule, discover_modules
 from app.core.registry.shim import auto_derive_v2_from_v1
+from app.core.registry.validator import validate_manifest_v2
 
 
 def _to_v2(entry: DiscoveredModule) -> dict[str, Any]:
@@ -42,7 +43,7 @@ def _to_v2(entry: DiscoveredModule) -> dict[str, Any]:
     raise ValueError(f"unknown source_kind: {entry.source_kind!r}")
 
 
-def list_capabilities() -> list[dict[str, Any]]:
+def list_capabilities(*, include_invalid: bool = False) -> list[dict[str, Any]]:
     """Return one entry per declared capability across all discovered
     modules, with module attribution.
 
@@ -73,6 +74,17 @@ def list_capabilities() -> list[dict[str, Any]]:
             manifest = _to_v2(entry)
         except ValueError:
             continue
+        # Round-2 Reviewer P2 fix: skip manifests that fail v2
+        # validation so the catalogue cannot expose ungrantable
+        # capabilities. Phase 4 grant lifecycle relies on every
+        # entry being a real grant target; Phase 12 frontend renders
+        # the grant UI from this list. Invalid manifests must not
+        # leak into either.
+        #
+        # ``include_invalid=True`` is a debug/admin escape hatch.
+        is_valid, _errors = validate_manifest_v2(manifest)
+        if not is_valid and not include_invalid:
+            continue
         module_id = manifest.get("id") or entry.module_id
         module_version = manifest.get("version")
         publisher = manifest.get("publisher")
@@ -93,6 +105,7 @@ def list_capabilities() -> list[dict[str, Any]]:
                     "external_network": cap.get("external_network"),
                     "advice_tier_max": cap.get("advice_tier_max"),
                     "ui_slot": (cap.get("ui") or {}).get("slot"),
+                    "manifest_valid": is_valid,
                 }
             )
     return out
