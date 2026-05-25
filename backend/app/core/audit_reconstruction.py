@@ -115,14 +115,96 @@ def decode_cursor(cursor: str) -> dict[str, Any]:
 
     Returns ``{source, occurred_at, source_row_id}``. Caller is
     responsible for filtering rows strictly AFTER the cursor.
+
+    Raises ``ValueError`` on ANY malformed input — bad base64, bad
+    JSON, missing keys, bad timestamp. The API layer (``api/audit.py``)
+    catches ``ValueError`` and translates to HTTP 422. Without the
+    catch-all, base64/JSON/datetime errors leaked as HTTP 500
+    (Reviewer Phase 5 R2 P2).
     """
-    raw = base64.urlsafe_b64decode(cursor.encode("ascii"))
-    payload = json.loads(raw)
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode("ascii"))
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"cursor is not valid base64: {exc}") from exc
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"cursor base64 does not decode to JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"cursor JSON must be an object; got {type(payload).__name__}"
+        )
+    try:
+        source = payload["source"]
+        occurred_at_iso = payload["occurred_at"]
+        source_row_id = payload["source_row_id"]
+    except KeyError as exc:
+        raise ValueError(f"cursor missing required key: {exc}") from exc
+    if not isinstance(source, str) or not isinstance(source_row_id, str):
+        raise ValueError("cursor source/source_row_id must be strings")
+    try:
+        occurred_at = datetime.fromisoformat(occurred_at_iso)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"cursor occurred_at is not ISO-8601: {occurred_at_iso!r}"
+        ) from exc
+    # source_row_id must be a uuid string — the per-source SQL
+    # filters cast it to UUID; let's catch malformed early with a
+    # clean ValueError so the 422 says something useful.
+    try:
+        uuid.UUID(source_row_id)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"cursor source_row_id is not a UUID: {source_row_id!r}"
+        ) from exc
     return {
-        "source": payload["source"],
-        "occurred_at": datetime.fromisoformat(payload["occurred_at"]),
-        "source_row_id": payload["source_row_id"],
+        "source": source,
+        "occurred_at": occurred_at,
+        "source_row_id": source_row_id,
     }
+
+
+def _cursor_predicate(
+    cursor_key: tuple | None,
+    self_source: str,
+    ts_col,
+    id_col,
+):
+    """Build a SQL predicate that filters rows strictly AFTER the
+    global cursor key for this source.
+
+    Reviewer Phase 5 R2 P1: the previous implementation only applied
+    the strict-after filter to the cursor's own source. Other sources
+    re-queried from the start of the window with LIMIT N — so when
+    a non-cursor source had many pre-cursor rows, the first N all
+    sorted BEFORE the cursor and got dropped in memory. Later rows
+    from that source were never fetched. The reconstruction view
+    then silently omitted them.
+
+    Fix: every source's SQL applies the cursor key, adapted via
+    SOURCE_ORDER for cross-source tie-breaking:
+
+    - SOURCE_ORDER[self] > cursor_source_order
+      → rows at ``ts == cursor_ts`` count as "after" (this source
+        sorts later within a tie), so ``ts >= cursor_ts``.
+    - SOURCE_ORDER[self] < cursor_source_order
+      → rows at ``ts == cursor_ts`` count as "before", so ``ts > cursor_ts``.
+    - SOURCE_ORDER[self] == cursor_source_order
+      → standard strict-after on the same source:
+        ``(ts > cursor_ts) OR (ts == cursor_ts AND id > cursor_row_id)``.
+    """
+    if cursor_key is None:
+        return None
+    cursor_ts, cursor_source_order, cursor_row_id = cursor_key
+    self_order = SOURCE_ORDER[self_source]
+    if self_order > cursor_source_order:
+        return ts_col >= cursor_ts
+    if self_order < cursor_source_order:
+        return ts_col > cursor_ts
+    # Same source as the cursor.
+    return (ts_col > cursor_ts) | (
+        (ts_col == cursor_ts) & (id_col > uuid.UUID(cursor_row_id))
+    )
 
 
 async def _query_audit_rows(
@@ -131,7 +213,7 @@ async def _query_audit_rows(
     matter_id: uuid.UUID,
     since: datetime | None,
     until: datetime | None,
-    after: tuple[datetime, str] | None,
+    cursor_key: tuple | None,
     limit: int,
 ) -> list[TimelineEntry]:
     stmt = select(AuditEntry).where(AuditEntry.matter_id == matter_id)
@@ -139,13 +221,11 @@ async def _query_audit_rows(
         stmt = stmt.where(AuditEntry.timestamp >= since)
     if until is not None:
         stmt = stmt.where(AuditEntry.timestamp <= until)
-    if after is not None:
-        ts, rid = after
-        # Strictly after the cursor: (timestamp > ts) OR (timestamp == ts AND id > rid).
-        stmt = stmt.where(
-            (AuditEntry.timestamp > ts)
-            | ((AuditEntry.timestamp == ts) & (AuditEntry.id > uuid.UUID(rid)))
-        )
+    pred = _cursor_predicate(
+        cursor_key, "audit", AuditEntry.timestamp, AuditEntry.id
+    )
+    if pred is not None:
+        stmt = stmt.where(pred)
     stmt = stmt.order_by(AuditEntry.timestamp, AuditEntry.id).limit(limit)
     rows = (await session.scalars(stmt)).all()
     return [_audit_to_entry(r) for r in rows]
@@ -194,12 +274,9 @@ async def _query_state_machine_rows(
     matter_id: uuid.UUID,
     since: datetime | None,
     until: datetime | None,
-    after: tuple[datetime, str] | None,
+    cursor_key: tuple | None,
     limit: int,
 ) -> list[TimelineEntry]:
-    # State machine instances scope by (owner_scope='matter', owner_id=str).
-    # definition_key lives on StateMachineDefinition, joined via
-    # StateMachineInstance.definition_id.
     stmt = (
         select(StateMachineTransition, StateMachineDefinition.definition_key)
         .join(
@@ -219,15 +296,14 @@ async def _query_state_machine_rows(
         stmt = stmt.where(StateMachineTransition.occurred_at >= since)
     if until is not None:
         stmt = stmt.where(StateMachineTransition.occurred_at <= until)
-    if after is not None:
-        ts, rid = after
-        stmt = stmt.where(
-            (StateMachineTransition.occurred_at > ts)
-            | (
-                (StateMachineTransition.occurred_at == ts)
-                & (StateMachineTransition.id > uuid.UUID(rid))
-            )
-        )
+    pred = _cursor_predicate(
+        cursor_key,
+        "state_machine",
+        StateMachineTransition.occurred_at,
+        StateMachineTransition.id,
+    )
+    if pred is not None:
+        stmt = stmt.where(pred)
     stmt = stmt.order_by(
         StateMachineTransition.occurred_at, StateMachineTransition.id
     ).limit(limit)
@@ -268,12 +344,9 @@ async def _query_advice_boundary_rows(
     matter_id: uuid.UUID,
     since: datetime | None,
     until: datetime | None,
-    after: tuple[datetime, str] | None,
+    cursor_key: tuple | None,
     limit: int,
 ) -> list[TimelineEntry]:
-    # advice_boundary_decisions has no matter_id column; the gate
-    # caller stores it in gate_state JSONB. We filter by
-    # gate_state->>'matter_id' = matter_id::text.
     stmt = select(AdviceBoundaryDecision).where(
         AdviceBoundaryDecision.gate_state["matter_id"].astext == str(matter_id)
     )
@@ -281,15 +354,14 @@ async def _query_advice_boundary_rows(
         stmt = stmt.where(AdviceBoundaryDecision.decided_at >= since)
     if until is not None:
         stmt = stmt.where(AdviceBoundaryDecision.decided_at <= until)
-    if after is not None:
-        ts, rid = after
-        stmt = stmt.where(
-            (AdviceBoundaryDecision.decided_at > ts)
-            | (
-                (AdviceBoundaryDecision.decided_at == ts)
-                & (AdviceBoundaryDecision.id > uuid.UUID(rid))
-            )
-        )
+    pred = _cursor_predicate(
+        cursor_key,
+        "advice_boundary",
+        AdviceBoundaryDecision.decided_at,
+        AdviceBoundaryDecision.id,
+    )
+    if pred is not None:
+        stmt = stmt.where(pred)
     stmt = stmt.order_by(
         AdviceBoundaryDecision.decided_at, AdviceBoundaryDecision.id
     ).limit(limit)
@@ -388,22 +460,16 @@ async def reconstruct(
                 f"unknown sources: {sorted(unknown)}; valid={sorted(VALID_SOURCES)}"
             )
 
-    # Decode cursor → per-source "after" tuple. Only the source the
-    # cursor came from gets the strict-after filter; the other sources
-    # still pull from their natural start within the time window, then
-    # the merge-sort drops anything ≤ the cursor's key.
-    cursor_after_by_source: dict[str, tuple[datetime, str] | None] = {
-        s: None for s in VALID_SOURCES
-    }
+    # Decode cursor → global key applied to EVERY source's SQL via
+    # _cursor_predicate. Reviewer Phase 5 R2 P1 fix: the previous
+    # implementation applied the strict-after filter only to the
+    # cursor's own source. Non-cursor sources with many pre-cursor
+    # rows could permanently lose later rows to the LIMIT N cap.
     cursor_key: tuple | None = None
     if cursor is not None:
         decoded = decode_cursor(cursor)
         if decoded["source"] not in VALID_SOURCES:
             raise ValueError(f"cursor names unknown source {decoded['source']}")
-        cursor_after_by_source[decoded["source"]] = (
-            decoded["occurred_at"],
-            decoded["source_row_id"],
-        )
         cursor_key = (
             decoded["occurred_at"],
             SOURCE_ORDER[decoded["source"]],
@@ -411,7 +477,7 @@ async def reconstruct(
         )
 
     # Pull limit+1 from each source so the merge has enough overlap to
-    # produce a correct ordering for the page boundary.
+    # decide a correct page boundary.
     pulls: list[TimelineEntry] = []
     for src in sources:
         rows = await _QUERY_FNS[src](
@@ -419,16 +485,18 @@ async def reconstruct(
             matter_id=matter_id,
             since=since,
             until=until,
-            after=cursor_after_by_source[src],
+            cursor_key=cursor_key,
             limit=limit + 1,
         )
         pulls.extend(rows)
 
     pulls.sort(key=_entry_sort_key)
 
-    # If a cursor was supplied, drop anything ≤ the cursor's key.
-    # The same-source query already filtered strict-after — this
-    # handles other sources whose rows interleave around the cursor.
+    # Belt-and-braces: the SQL predicate already guarantees rows are
+    # strict-after the cursor across all sources, but keep the
+    # in-memory filter as defence-in-depth — cheap, and any future
+    # source whose predicate has a bug fails closed (omits a row)
+    # instead of failing open (returns duplicates).
     if cursor_key is not None:
         pulls = [e for e in pulls if _entry_sort_key(e) > cursor_key]
 

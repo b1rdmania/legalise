@@ -171,7 +171,32 @@ docker compose -f infra/docker-compose.yml exec -T \
 
 ## Hand-off line for Reviewer
 
-> *Phase 5 v3 (trimmed) implemented end-to-end on `runtime-rewrite`. Full sweep green: 564 passed, 8 skipped. 22 new tests across 4 files; 26 files modernised (`datetime.utcnow` → `datetime.now(UTC)`). Reconstruction endpoint live at `/api/matters/{slug}/audit/reconstruction` with strict matter-access auth. Five architectural decisions request ratification (Decision #1 auth tightening + Decision #3 micros+currency are the load-bearing ones). Phase 6 (Contract Review vertical slice) starts after this handover lands.*
+> *Phase 5 v3 (trimmed) implemented end-to-end on `runtime-rewrite`. Full sweep green: 573 passed, 8 skipped. 31 new tests; 26 files modernised (`datetime.utcnow` → `datetime.now(UTC)`). Reconstruction endpoint live at `/api/matters/{slug}/audit/reconstruction` with strict matter-access auth. Five architectural decisions request ratification. R2 fixes for cursor-pagination + malformed-cursor-422 applied. Phase 6 (Contract Review vertical slice) starts after this handover lands.*
+
+---
+
+## R2 fixes applied (post-handover Reviewer pass)
+
+Reviewer flagged one P1 + one P2 on the first ratification pass; both fixed in `core/audit_reconstruction.py` with 9 new tests in `test_phase5_audit_reconstruction_r2_fixes.py`.
+
+**P1 — Pagination silently skipped rows from non-cursor sources.**
+
+The pre-fix shape: when the cursor lived on source X, only source X's SQL applied the strict-after filter. Sources Y/Z re-queried from the window start with LIMIT N — so a source with many pre-cursor rows could have the first N rows all sorted BEFORE the cursor, get dropped in memory, and later rows from that source never get fetched (capped by LIMIT N).
+
+Fix: new `_cursor_predicate()` helper builds a per-source SQL predicate that applies the global cursor key, adapted via `SOURCE_ORDER` for cross-source tie-breaking:
+- `SOURCE_ORDER[self] > cursor_source_order` → `ts >= cursor_ts` (ties on this source count as later)
+- `SOURCE_ORDER[self] < cursor_source_order` → `ts > cursor_ts` (ties on this source count as earlier)
+- `SOURCE_ORDER[self] == cursor_source_order` → standard `(ts > cursor_ts) OR (ts == cursor_ts AND id > cursor_row_id)`
+
+The in-memory filter survives as defence-in-depth so any future-source bug fails closed (omits) rather than open (duplicates).
+
+**P2 — Malformed cursor returned 500, not 422.**
+
+The pre-fix `decode_cursor` raised `base64.binascii.Error`, `json.JSONDecodeError`, `KeyError`, or `ValueError` from `datetime.fromisoformat` — only the last was caught by the API's `ValueError` translator. Bad client cursors leaked as HTTP 500.
+
+Fix: `decode_cursor` wraps every failure mode into a `ValueError` with a useful message. Six failure paths covered: bad base64, bad JSON, non-dict payload, missing keys, non-string source/source_row_id, bad timestamp, non-UUID row id. The API translation to HTTP 422 was already in place.
+
+**Sweep after R2 fixes:** 573 passed, 8 skipped, 0 failed.
 
 ---
 
