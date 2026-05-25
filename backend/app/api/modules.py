@@ -2,6 +2,10 @@
 
 This is the v0.1 Discovery layer: a read-only view over the SKILL.md files
 present at PLUGINS_ROOT. Install and approval remain a Git workflow.
+
+Phase 2 adds three new endpoints exposing the v2 manifest surface
+(`/v2`, `/v2/{module_id}`, `/v2/capabilities`). Existing v1 endpoints
+are unchanged so existing clients continue to function.
 """
 
 from __future__ import annotations
@@ -10,6 +14,7 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -23,6 +28,15 @@ from app.adapters.plugin_bridge import _parse_skill_md
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.registry import (
+    ManifestNotFoundError,
+    UISlotRegistry,
+    auto_derive_v2_from_v1,
+    discover_modules,
+    list_capabilities,
+    load_manifest,
+    validate_manifest_v2,
+)
 from app.models import User, WorkspaceDisabledSkill, WorkspaceSkillCapabilityGrant
 
 
@@ -352,3 +366,166 @@ async def get_skill_body(
         raise HTTPException(404, f"skill not found: {plugin}/{skill}")
     manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
     return PlainTextResponse(manifest.body.strip())
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 — v2 manifest surface
+# ---------------------------------------------------------------------------
+#
+# Three new endpoints that expose discovered modules in their v2
+# manifest shape. v1 endpoints above are untouched. Phase 12 frontend
+# work will read these endpoints; existing v1 clients keep working.
+
+
+class V2ManifestEntry(BaseModel):
+    """One discovered module in its v2 shape, with provenance info."""
+
+    module_id: str
+    source_kind: str  # "v2" | "v1_module_json" | "v1_skill"
+    manifest: dict[str, Any]
+    is_valid: bool
+    validation_errors: list[dict[str, Any]] = []
+
+
+class V2CapabilityEntry(BaseModel):
+    """One capability declared by a discovered module."""
+
+    module_id: str
+    module_version: str | None
+    publisher: str | None
+    visibility: str | None
+    capability_id: str | None
+    kind: str | None
+    scope: str | None
+    reads: list[str]
+    writes: list[str]
+    model_access: str | None
+    external_network: bool | None
+    advice_tier_max: str | None
+    ui_slot: str | None
+
+
+class V2RegistryResponse(BaseModel):
+    """Workspace-level view of the v2 registry."""
+
+    modules: list[V2ManifestEntry]
+    ui_slots: list[str]
+
+
+def _entry_to_v2_manifest(entry) -> dict[str, Any]:
+    """Coerce a DiscoveredModule into its v2 manifest payload, running
+    the v1 → v2 shim where needed."""
+    if entry.source_kind == "v2":
+        return entry.payload
+    if entry.source_kind == "v1_module_json":
+        return auto_derive_v2_from_v1(
+            source_kind="v1_module_json",
+            payload=entry.payload,
+        )
+    if entry.source_kind == "v1_skill":
+        return auto_derive_v2_from_v1(
+            source_kind="v1_skill",
+            skill_md=entry.payload,
+            plugin_id=entry.extra.get("plugin_id"),
+            skill_id=entry.extra.get("skill_id"),
+        )
+    return {}
+
+
+@router.get("/v2", response_model=V2RegistryResponse)
+async def list_v2_modules(
+    user: User = Depends(current_user),
+) -> V2RegistryResponse:
+    """List all discovered modules in their v2 manifest shape.
+
+    Includes both natively-v2 manifests (``legalise.module.json``) and
+    v1 manifests auto-derived via the shim. Each entry reports
+    ``is_valid`` and any structural validation errors so the frontend
+    can surface "broken" modules.
+    """
+    entries: list[V2ManifestEntry] = []
+    for entry in discover_modules():
+        try:
+            manifest = _entry_to_v2_manifest(entry)
+        except ValueError:
+            entries.append(
+                V2ManifestEntry(
+                    module_id=entry.module_id,
+                    source_kind=entry.source_kind,
+                    manifest={},
+                    is_valid=False,
+                    validation_errors=[
+                        {
+                            "path": "/",
+                            "message": "shim could not derive v2 manifest",
+                        }
+                    ],
+                )
+            )
+            continue
+        is_valid, errors = validate_manifest_v2(manifest)
+        entries.append(
+            V2ManifestEntry(
+                module_id=entry.module_id,
+                source_kind=entry.source_kind,
+                manifest=manifest,
+                is_valid=is_valid,
+                validation_errors=errors,
+            )
+        )
+    return V2RegistryResponse(
+        modules=entries,
+        ui_slots=UISlotRegistry.all_slots(),
+    )
+
+
+@router.get("/v2/capabilities", response_model=list[V2CapabilityEntry])
+async def list_v2_capabilities(
+    user: User = Depends(current_user),
+) -> list[V2CapabilityEntry]:
+    """Flat catalogue of capabilities declared across all discovered
+    modules.
+
+    Used by Phase 4 grant lifecycle (snapshot storage) and Phase 12
+    frontend (grant UI / module catalogue).
+    """
+    catalogue = list_capabilities()
+    return [V2CapabilityEntry(**cap) for cap in catalogue]
+
+
+@router.get("/v2/{module_id}", response_model=V2ManifestEntry)
+async def get_v2_module(
+    module_id: str,
+    user: User = Depends(current_user),
+) -> V2ManifestEntry:
+    """Detail view for one module by id, in v2 manifest shape."""
+    try:
+        entry = load_manifest(module_id)
+    except ManifestNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "module_not_found", "message": str(exc)},
+        )
+    try:
+        manifest = _entry_to_v2_manifest(entry)
+    except ValueError:
+        return V2ManifestEntry(
+            module_id=entry.module_id,
+            source_kind=entry.source_kind,
+            manifest={},
+            is_valid=False,
+            validation_errors=[
+                {
+                    "path": "/",
+                    "message": "shim could not derive v2 manifest",
+                }
+            ],
+        )
+    is_valid, errors = validate_manifest_v2(manifest)
+    return V2ManifestEntry(
+        module_id=entry.module_id,
+        source_kind=entry.source_kind,
+        manifest=manifest,
+        is_valid=is_valid,
+        validation_errors=errors,
+    )
