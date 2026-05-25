@@ -60,6 +60,17 @@ from app.models.job import (
 )
 
 # Phase 1 substrate primitives.
+from app.models.matter_context_schema import MatterContextSchema
+from app.models.matter_context_item import (
+    MatterContextItem,
+    SOURCE_TYPE_DOCUMENT,
+    SOURCE_TYPE_EVENT,
+    SOURCE_TYPE_AUDIT_ENTRY,
+    SOURCE_TYPE_USER_ASSERTION,
+    SOURCE_TYPE_CONNECTOR_RESULT,
+    SOURCE_TYPE_GENERATED_OUTPUT,
+    SOURCE_TYPE_VALUES,
+)
 from app.models.state_machine_definition import StateMachineDefinition
 from app.models.state_machine_instance import (
     StateMachineInstance,
@@ -118,6 +129,16 @@ __all__ = [
     "EXTRACTION_METHOD_VALUES",
     "VERSION_KIND_VALUES",
     "EDIT_STATUS_VALUES",
+    # Phase 1 — matter context primitive.
+    "MatterContextSchema",
+    "MatterContextItem",
+    "SOURCE_TYPE_DOCUMENT",
+    "SOURCE_TYPE_EVENT",
+    "SOURCE_TYPE_AUDIT_ENTRY",
+    "SOURCE_TYPE_USER_ASSERTION",
+    "SOURCE_TYPE_CONNECTOR_RESULT",
+    "SOURCE_TYPE_GENERATED_OUTPUT",
+    "SOURCE_TYPE_VALUES",
     # Phase 1 — state machine primitive.
     "StateMachineDefinition",
     "StateMachineInstance",

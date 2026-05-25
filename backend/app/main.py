@@ -28,6 +28,10 @@ from app.api.submissions import router as submissions_router
 from app.api.usage import router as usage_router
 from app.api.workspace import router as workspace_router
 from app.api.state_machine import router as state_machine_router
+from app.api.matter_context import (
+    schema_router as matter_context_schema_router,
+    items_router as matter_context_items_router,
+)
 from app.core.audit import AuditMiddleware
 from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
@@ -252,6 +256,18 @@ app.include_router(
     state_machine_router,
     prefix="/api/state-machine",
     tags=["state-machine"],
+)
+app.include_router(
+    matter_context_schema_router,
+    prefix="/api/matter-context",
+    tags=["matter-context"],
+)
+# Matter-scoped item endpoints sit under /api/matters/{slug}/context/...
+# so AuditMiddleware picks them up via its /api/matters/* matcher.
+app.include_router(
+    matter_context_items_router,
+    prefix="/api/matters",
+    tags=["matter-context"],
 )
 
 # Chronology module nests its routes under /api/matters/{slug}/chronology
