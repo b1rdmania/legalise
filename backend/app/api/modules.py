@@ -582,7 +582,6 @@ def _ceremony_to_response(ceremony: Ceremony) -> CeremonyResponse:
         CeremonyState.REJECTED_BY_USER,
         CeremonyState.SIGNATURE_FAILED,
         CeremonyState.PUBLISHER_BLOCKED,
-        CeremonyState.DEPENDENCY_MISSING,
         CeremonyState.PERMISSION_DENIED,
         CeremonyState.SANDBOX_PROFILE_MISSING,
     }
@@ -681,7 +680,7 @@ async def start_install_endpoint(
     if body.source == "registry":
         if not body.module_id:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "error": "missing_module_id",
                     "message": "source='registry' requires module_id",
@@ -698,7 +697,7 @@ async def start_install_endpoint(
     elif body.source == "manifest":
         if not body.manifest:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "error": "missing_manifest",
                     "message": "source='manifest' requires manifest payload",
@@ -707,7 +706,7 @@ async def start_install_endpoint(
         manifest = body.manifest
     else:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "invalid_source",
                 "message": (
@@ -719,7 +718,7 @@ async def start_install_endpoint(
     is_valid, errors = validate_manifest_v2(manifest)
     if not is_valid:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "invalid_manifest",
                 "validation_errors": errors,
@@ -727,16 +726,15 @@ async def start_install_endpoint(
         )
 
     # Round-2 Reviewer P1#3: enforce dependency resolution BEFORE
-    # the ceremony starts. The architecture doc says
-    # DEPENDENCY_MISSING is a terminal failure state of the ceremony;
-    # previously we never reached it because resolve_dependencies was
-    # never called.
+    # the ceremony starts. Phase 5 carry-over tidy removed the
+    # CeremonyState.DEPENDENCY_MISSING terminal — the 422 here is the
+    # canonical signal; the state machine carries no dead transition.
     from app.core.dependency_resolver import resolve_dependencies
 
     resolution = await resolve_dependencies(manifest, session=session)
     if not resolution.is_satisfied:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "dependencies_unsatisfied",
                 "resolution": resolution.to_dict(),
@@ -1001,7 +999,7 @@ async def update_module_endpoint(
     new_manifest = body.new_manifest
     if new_manifest.get("id") != module_id:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "module_id_mismatch",
                 "message": (
@@ -1015,7 +1013,7 @@ async def update_module_endpoint(
     is_valid, errors = validate_manifest_v2(new_manifest)
     if not is_valid:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"error": "invalid_manifest", "validation_errors": errors},
         )
 
@@ -1028,7 +1026,7 @@ async def update_module_endpoint(
     resolution = await resolve_dependencies(new_manifest, session=session)
     if not resolution.is_satisfied:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "dependencies_unsatisfied",
                 "resolution": resolution.to_dict(),

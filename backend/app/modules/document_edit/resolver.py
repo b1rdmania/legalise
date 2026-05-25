@@ -29,7 +29,7 @@ text → v4 next assistant_edit (against v3 text) → ...
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Literal
 
 from sqlalchemy import func, select, text, update
@@ -243,7 +243,7 @@ async def _maybe_close_version(
         version_number=(latest or 0) + 1,
         kind=kind,
         created_by_id=actor_id,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
         storage_uri=None,
         notes=(
             f"resolved version_id={version.id} accepted={len(accepted)} "
@@ -331,7 +331,7 @@ async def resolve_edit(
     # version from both closing it.
     await _take_advisory_lock(session, version.id)
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     result = await session.execute(
         update(DocumentEdit)
         .where(DocumentEdit.id == edit_id, DocumentEdit.status == EDIT_STATUS_PENDING)
@@ -398,7 +398,7 @@ async def resolve_bulk(
 
     await _take_advisory_lock(session, version_id)
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     result = await session.execute(
         update(DocumentEdit)
         .where(
@@ -473,7 +473,7 @@ async def resolve_bulk(
                     else VERSION_KIND_USER_REJECT
                 ),
                 created_by_id=actor_id,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
                 storage_uri=None,
                 notes=f"bulk {action} on already-resolved version {version_id}",
                 resolved_text=base_text,

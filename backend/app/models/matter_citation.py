@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import String, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -30,7 +30,7 @@ class MatterCitation(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     added_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
 
     def __repr__(self) -> str:

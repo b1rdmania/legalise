@@ -173,7 +173,7 @@ async def _resolve_owner_for_create(
     """
     if owner_scope not in _ALLOWED_OWNER_SCOPES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "invalid_owner_scope",
                 "message": (
@@ -186,7 +186,7 @@ async def _resolve_owner_for_create(
     if owner_scope == _OWNER_SCOPE_MATTER:
         if not owner_ref:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "error": "missing_owner_ref",
                     "message": "owner_ref (matter slug) is required for "
@@ -377,7 +377,7 @@ async def register_definition_endpoint(
         )
     except InvalidDefinitionError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"error": "invalid_definition", "message": str(exc)},
         )
     await session.commit()
@@ -449,7 +449,7 @@ async def create_instance_endpoint(
         body.module_id and body.definition_key and body.version
     ):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
                 "error": "missing_definition_reference",
                 "message": (

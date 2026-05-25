@@ -22,7 +22,7 @@ from __future__ import annotations
 import hashlib
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -170,7 +170,7 @@ async def propose_edits(
         version_number=version_number,
         kind=VERSION_KIND_ASSISTANT_EDIT,
         created_by_id=actor_id,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
         storage_uri=None,
         notes=f"edit-instruction mode={mode} model={result.model_used}",
     )
@@ -192,7 +192,7 @@ async def propose_edits(
             context_after=str(change.get("context_after", ""))[:2000],
             rationale=(str(change.get("rationale"))[:2000] if change.get("rationale") else None),
             status=EDIT_STATUS_PENDING,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         session.add(edit)
         pending.append(edit)

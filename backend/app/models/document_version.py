@@ -9,7 +9,7 @@ accept/reject flows (`user_accept`/`user_reject`), pure generation
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -53,7 +53,7 @@ class DocumentVersion(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     storage_uri: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

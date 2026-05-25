@@ -8,7 +8,7 @@ C_paused gates which model providers can be called.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, UTC
 
 from sqlalchemy import String, DateTime, Date, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -56,7 +56,7 @@ class Matter(Base):
     # Free-form key/value bag for matter-type-specific fields (EDT, ACAS dates, etc.)
     facts: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
-    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     retention_until: Mapped[date | None] = mapped_column(Date, nullable=True)
 

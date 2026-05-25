@@ -21,7 +21,7 @@ Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 6.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -74,7 +74,7 @@ class InstalledModule(Base):
 
     installed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.utcnow(),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     installed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(

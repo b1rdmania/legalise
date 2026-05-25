@@ -19,7 +19,7 @@ audit trails (NULL for system auto-grants at signup).
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -47,7 +47,7 @@ class WorkspaceSkillCapabilityGrant(Base):
     # Matches the capability_id field on state_machine_transitions.
     capability: Mapped[str] = mapped_column(String(256), nullable=False)
     granted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     granted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

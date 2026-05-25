@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 
 from sqlalchemy import select
@@ -570,7 +570,7 @@ async def request_transition(
         status=TRANSITION_STATUS_COMPLETED,
     )
     instance.current_state = to_state
-    instance.updated_at = datetime.utcnow()
+    instance.updated_at = datetime.now(UTC)
     session.add(instance)
     await session.flush()
 

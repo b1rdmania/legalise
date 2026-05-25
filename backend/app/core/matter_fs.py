@@ -23,7 +23,7 @@ events; binary document writes are stretch (Week 1 Day 5+).
 from __future__ import annotations
 
 import os
-from datetime import datetime, date
+from datetime import datetime, date, UTC
 from pathlib import Path
 
 import frontmatter
@@ -146,7 +146,7 @@ def materialise_matter(matter: Matter) -> Path:
 def append_history(slug: str, user_id, event: str, detail: str | None = None) -> None:
     """Append a line to `matters/{user-shard}/{slug}/history.md`. Creates file if absent."""
     d = matter_dir(slug, user_id)
-    line = f"- {datetime.utcnow().isoformat(timespec='seconds')}Z  {event}"
+    line = f"- {datetime.now(UTC).isoformat(timespec='seconds')}Z  {event}"
     if detail:
         line += f"  —  {detail}"
     line += "\n"

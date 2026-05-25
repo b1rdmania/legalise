@@ -12,7 +12,7 @@ Per docs/architecture/MATTER_CONTEXT_STORE.md.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import String, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -54,7 +54,7 @@ class MatterContextSchema(Base):
 
     registered_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.utcnow(),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
     # Soft attribution for who registered the schema. For substrate

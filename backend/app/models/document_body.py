@@ -8,7 +8,7 @@ schema growth on `documents`.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import String, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -38,7 +38,7 @@ class DocumentBody(Base):
     extracted_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
     extraction_method: Mapped[str] = mapped_column(String(32), nullable=False)
     extracted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     char_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)

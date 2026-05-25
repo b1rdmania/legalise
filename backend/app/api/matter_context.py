@@ -181,7 +181,7 @@ async def register_schema_endpoint(
         )
     except InvalidSchemaError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={"error": "invalid_schema", "message": str(exc)},
         )
     await session.commit()
@@ -318,7 +318,7 @@ async def patch_item_endpoint(
     if body.action == "supersede":
         if body.new_payload is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "error": "missing_input",
                     "message": "new_payload is required for action='supersede'",
@@ -348,7 +348,7 @@ async def patch_item_endpoint(
         await session.commit()
         return _item_to_response(new)
     raise HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail={
             "error": "unsupported_action",
             "message": f"action={body.action!r} not supported in Phase 1; "

@@ -58,10 +58,14 @@ class CeremonyState(str, Enum):
     GRANTED = "granted"
     ENABLED = "enabled"
     # Terminal failure states.
+    # Phase 5 Step 0 carry-over tidy: DEPENDENCY_MISSING removed. The
+    # ceremony state machine never reached it — Phase 4's R2 fix runs
+    # resolve_dependencies BEFORE start_ceremony and returns 422
+    # outright, so the terminal state was unreachable. Dead transitions
+    # in the state machine confuse readers and ratification.
     REJECTED_BY_USER = "rejected_by_user"
     SIGNATURE_FAILED = "signature_failed"
     PUBLISHER_BLOCKED = "publisher_blocked"
-    DEPENDENCY_MISSING = "dependency_missing"
     PERMISSION_DENIED = "permission_denied"
     SANDBOX_PROFILE_MISSING = "sandbox_profile_missing"
 
@@ -72,7 +76,6 @@ _TERMINAL_FAILURES: frozenset[CeremonyState] = frozenset(
         CeremonyState.REJECTED_BY_USER,
         CeremonyState.SIGNATURE_FAILED,
         CeremonyState.PUBLISHER_BLOCKED,
-        CeremonyState.DEPENDENCY_MISSING,
         CeremonyState.PERMISSION_DENIED,
         CeremonyState.SANDBOX_PROFILE_MISSING,
     }

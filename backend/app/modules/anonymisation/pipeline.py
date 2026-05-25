@@ -18,7 +18,7 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -312,7 +312,7 @@ async def anonymise_document(
             )
 
     latency_ms = int((time.perf_counter() - started) * 1000)
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     char_count = len(outcome.redacted)
 
     if existing is None:

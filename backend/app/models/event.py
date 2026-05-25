@@ -6,7 +6,7 @@ Used by the chronology module. Day 2 lands the table; live extraction is v0.2.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, UTC
 
 from sqlalchemy import String, DateTime, Date, ForeignKey, Text, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
@@ -28,7 +28,7 @@ class Event(Base):
     source_doc_ids: Mapped[list[uuid.UUID]] = mapped_column(ARRAY(UUID(as_uuid=True)), nullable=False, default=list)
     priv_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     created_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     def __repr__(self) -> str:

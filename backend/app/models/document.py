@@ -7,7 +7,7 @@ trail can refer to documents by content hash, not just filename.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import String, DateTime, ForeignKey, BigInteger, Boolean
 from sqlalchemy.dialects.postgresql import UUID
@@ -40,7 +40,7 @@ class Document(Base):
     from_disclosure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     disclosure_proceedings_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow(), nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     uploaded_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     def __repr__(self) -> str:
