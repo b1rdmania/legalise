@@ -104,6 +104,45 @@ Tests (every primitive, all paths):
 - Does not implement signing or sandbox (Phase 3)
 - Does not implement frontend UI surfaces beyond the API contracts the primitives expose (Phase 12)
 
+## Addendum — strategic context for later phases (does not change Phase 1)
+
+Anthropic's Claude for Legal (released 12 May 2026, repo at `github.com/anthropics/claude-for-legal`, Apache 2.0) validates the runtime direction. MCP is now the shared legal-AI connector substrate, not just our architectural preference. Anthropic donated MCP to the Linux Foundation's Agentic AI Foundation on 9 December 2025 (co-founded with Block and OpenAI; supported by Google, Microsoft, AWS, Cloudflare, Bloomberg). Vendor MCP servers (DocuSign, iManage, Harvey, CourtListener, Trellis, Solve Intelligence, Thomson Reuters CoCounsel, etc.) are vendor-published, host-agnostic by design, and demonstrably portable to non-Claude hosts.
+
+Legalise should treat vendor-published MCP servers as portable capability modules where possible, rather than rebuilding every connector itself.
+
+**This does not change Phase 1.** Phase 1 still builds generic state machine, generic matter context store, and advice-boundary gate. Substrate primitives only.
+
+**It does affect later phases:**
+
+- Phase 2/3 manifest + runtime should support host-agnostic MCP servers cleanly. The MCP host abstraction must not bake in Legalise-authored assumptions about the server side.
+- Phase 3 trust ceremony should assume third-party vendor MCP servers as a first-class install path, not just Legalise-authored modules. Verified publisher registry needs to accommodate vendor-published servers (DocuSign, iManage, etc.) under their own publisher identities.
+- Phase 11 connector proof set should **prefer installing existing vendor MCP servers** where they exist. Do not build a Legalise-authored DocuSign module if DocuSign already publishes one — install theirs through the trust ceremony.
+- Legalise-built connectors should focus on sources **without** MCP servers, especially UK public data: Companies House, legislation.gov.uk, BAILII, Land Registry, Charity Commission. That is where Legalise adds real connector value.
+
+**Positioning to preserve:**
+
+Claude for Legal is validation, not the enemy. Legalise differentiates on:
+
+- multi-provider routing (Anthropic / OpenAI / Gemini / local Ollama by privilege posture)
+- self-hosting (no matter data to Anthropic infrastructure)
+- UK / SRA posture (Anthropic is US-centric)
+- firm-private modules (`visibility: private`)
+- audit/gate governance around any MCP server (sandbox, signing, capability scope, audit reconstruction, advice-boundary tiers)
+
+## Architecture review criteria (add to every phase review)
+
+> Do not accidentally make Legalise a Claude-for-Legal clone. Legalise is the governance host around MCP capabilities: any tool, any model, any skill, matter-scoped, permissioned, auditable.
+
+## MCP portability spike (required before Phase 11)
+
+Before Phase 11 connector proof set begins, run a portability spike:
+
+- install one real external MCP server (preferably DocuSign or CourtListener — both are well-documented and host-agnostic) through the Legalise trust ceremony
+- prove end-to-end: install ceremony → permission card → capability grant → invocation → audit row → cost attribution → revocation
+- document the result in `docs/handovers/HANDOVER_MCP_PORTABILITY_SPIKE.md` including: which authentication model worked, any vendor ToS gotchas, any places the Legalise manifest assumed too much about the server side, any places the trust ceremony UX broke for a non-Legalise-authored module
+
+If the spike reveals architectural assumptions that need correcting, patch on `runtime-rewrite` before Phase 11 begins. This is the single most important validation of the whole ecosystem claim — if vendor MCP servers cannot run through Legalise cleanly, the substrate story collapses.
+
 ## Branch hygiene
 
 - All Phase 1 work commits to `runtime-rewrite`
