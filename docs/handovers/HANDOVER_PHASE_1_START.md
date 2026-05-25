@@ -7,13 +7,14 @@
 **Status:** Phase 0 docs complete. Phase 1 starts here. Phase 2 does not start until Phase 1 is reviewed.
 
 **Patch history:**
-- 2026-05-25: Patched after Reviewer review at `86e4062`. Five findings resolved: (1) capability grammar aligned to canonical `<scope>.<resource>.<action>` per `MANIFEST_V2_SCHEMA.md` and `MATTER_CONTEXT_STORE.md`; (2) state-machine models expanded to three tables per `STATE_MACHINE_PRIMITIVE.md`; (3) matter-context schema registry added and endpoints made matter-scoped per `MATTER_CONTEXT_STORE.md`; (4) advice-boundary Phase 1 scope clarified — primitive + callable gate/check API, manifest integration deferred to Phase 2; (5) audit events aligned with architecture docs.
+- 2026-05-25 round 1 (commit `f39d3d1`): Patched after Reviewer review at `86e4062`. Five findings resolved: (1) capability grammar aligned to canonical `<scope>.<resource>.<action>` per `MANIFEST_V2_SCHEMA.md` and `MATTER_CONTEXT_STORE.md`; (2) state-machine models expanded to three tables per `STATE_MACHINE_PRIMITIVE.md`; (3) matter-context schema registry added and endpoints made matter-scoped per `MATTER_CONTEXT_STORE.md`; (4) advice-boundary Phase 1 scope clarified — primitive + callable gate/check API, manifest integration deferred to Phase 2; (5) audit events aligned with architecture docs.
+- 2026-05-25 round 2: Patched after second Reviewer review. Three findings resolved: (1) `docs/architecture/ADVICE_BOUNDARY.md` authored — five tiers, transition rules, role constraints, immutability of terminal tier, gate API surface, audit semantics, Phase 1 scope; (2) matter-context items extended with `schema_id` + `schema_version` so every item is bound to the schema it was validated against, with write policy (default latest, optional explicit version, no auto-migration); (3) stale `f9b411c` references replaced with "current branch head" throughout; (4) canonical denied/blocked payload convention added (denied capability = `blocked` with `blocked_reason: "capability_denied"`); explicit `matter_context.write.blocked` and `matter_context.read.blocked` events added.
 
 ---
 
 ## Instruction
 
-Work on `runtime-rewrite` from `f9b411c`. Public launch is held until v2 is real. Do not optimise for time or backwards-compatible v0.4 launch polish.
+Work on `runtime-rewrite` from current branch head (see header for latest patch commit). Public launch is held until v2 is real. Do not optimise for time or backwards-compatible v0.4 launch polish.
 
 First, review `docs/IMPLEMENTATION_PLAN_REWRITE.md` and all `docs/architecture/*.md`.
 
@@ -60,7 +61,14 @@ State machine (three tables per `STATE_MACHINE_PRIMITIVE.md` §Storage):
 Matter context (two tables per `MATTER_CONTEXT_STORE.md` §Storage):
 
 - `models/matter_context_schema.py` — `(id, namespace, module_id, version, json_schema JSONB, registered_at, registered_by_module_id)`. Schema registry per `MATTER_CONTEXT_STORE.md` §29.
-- `models/matter_context_item.py` — `(id, matter_id, namespace, payload JSONB, source_type, source_id, created_by_user_id, created_by_module_id, created_at, updated_at, superseded_by_id)`. Fields per `MATTER_CONTEXT_STORE.md` §55.
+- `models/matter_context_item.py` — `(id, matter_id, namespace, schema_id, schema_version, payload JSONB, source_type, source_id, created_by_user_id, created_by_module_id, created_at, updated_at, superseded_by_id)`. Fields per `MATTER_CONTEXT_STORE.md` §55, extended with `schema_id` + `schema_version` so every item is bound to the exact schema it was validated against (Reviewer P1.2 from round 2 review).
+
+**Schema-version write policy:**
+
+- Writes accept an optional `schema_version` parameter. If omitted, the runtime resolves to the **latest registered schema version for that namespace** at write time, and stores both `schema_id` and `schema_version` on the item.
+- Writes that specify an explicit `schema_version` are validated against that specific version. The runtime stores both `schema_id` and `schema_version`.
+- Reads return items with their bound `schema_version`. Reconstruction across schema evolutions remains possible because the originating schema is permanently linked.
+- When a new schema version is registered, existing items are not migrated. The runtime supports reading items at their original schema version indefinitely. Migration is a module-level concern (a future schema-migration module may sweep items forward, but that is not a core responsibility).
 
 Advice boundary:
 
@@ -106,15 +114,30 @@ Schema-registry and definition-registry endpoints (admin-level operations) are s
 
 Audit events emitted (aligned with architecture docs):
 
+**Canonical denied/blocked convention (Reviewer P2 round 2):**
+
+The architecture docs (`STATE_MACHINE_PRIMITIVE.md`, `MATTER_CONTEXT_STORE.md`) use `blocked` as the umbrella status for any non-success outcome that is not a system failure. Denied capability is represented as `blocked` with a canonical payload shape:
+
+```json
+{
+  "status": "blocked",
+  "blocked_reason": "capability_denied | gate_blocked | invalid_transition | schema_violation | role_denied | missing_input | tier_exceeded | tier_disallowed",
+  "denied_capability": "<capability string if applicable>",
+  "gate_state": "<gate-specific state if applicable>"
+}
+```
+
+No separate `*.denied` events. All denial paths use `*.blocked` with `blocked_reason: "capability_denied"`. This is the unifying pattern across all three primitives.
+
 State machine (per `STATE_MACHINE_PRIMITIVE.md` §82):
 
 - `state_machine.instance.created`
 - `state_machine.transition.requested`
 - `state_machine.transition.completed`
-- `state_machine.transition.blocked`
-- `state_machine.transition.failed`
+- `state_machine.transition.blocked` (covers capability denial, gate block, invalid transition; `blocked_reason` carries the cause)
+- `state_machine.transition.failed` (system error only)
 
-Matter context (per `MATTER_CONTEXT_STORE.md` §102):
+Matter context (per `MATTER_CONTEXT_STORE.md` §102, extended with explicit blocked events for write and read paths since the architecture doc is positive-path only):
 
 - `matter_context.schema.registered`
 - `matter_context.item.created`
@@ -122,14 +145,16 @@ Matter context (per `MATTER_CONTEXT_STORE.md` §102):
 - `matter_context.item.superseded`
 - `matter_context.item.withdrawn`
 - `matter_context.item.read`
-- `matter_context.read.denied`
+- `matter_context.write.blocked` (covers capability denial, schema violation)
+- `matter_context.read.blocked` (covers capability denial)
 
-Advice boundary:
+Advice boundary (per `docs/architecture/ADVICE_BOUNDARY.md` §Audit Events — note that ADVICE_BOUNDARY uses both `blocked` and `denied` as separate statuses because the distinction matters for SRA framing: `blocked` = transition rules violated; `denied` = caller authority insufficient):
 
 - `advice_boundary.check.requested`
 - `advice_boundary.check.completed`
-- `advice_boundary.check.blocked`
-- `advice_boundary.check.denied`
+- `advice_boundary.check.blocked` (transition not allowed by rules)
+- `advice_boundary.check.denied` (caller lacks role / tier exceeds declared max)
+- `advice_boundary.check.failed` (system error)
 
 Tests (every primitive, all paths):
 
@@ -203,4 +228,4 @@ When Phase 1 is complete:
 
 ---
 
-*End of handover. Reviewer begins Phase 1 implementation on `runtime-rewrite` from `f9b411c`.*
+*End of handover. Reviewer begins Phase 1 implementation on `runtime-rewrite` from current branch head.*
