@@ -532,7 +532,30 @@ async def test_schema_version_write_policy(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_canonical_read_denied_capability(db_session) -> None:
+async def test_canonical_read_denied_capability(
+    db_session, monkeypatch
+) -> None:
+    """Round-5: read denial also exercises check_or_block → audit_failure.
+    Same mock pattern as the write-denied test above."""
+    async def _fake_audit_failure(request_session, action, **kwargs):
+        from app.core.api import audit
+
+        await audit.log(
+            request_session,
+            action,
+            actor_id=kwargs.get("actor_id"),
+            matter_id=kwargs.get("matter_id"),
+            module=kwargs.get("module"),
+            resource_type=kwargs.get("resource_type"),
+            resource_id=kwargs.get("resource_id"),
+            payload=kwargs.get("payload"),
+        )
+
+    monkeypatch.setattr(
+        "app.core.phase1_runtime.capability_check.audit_failure",
+        _fake_audit_failure,
+    )
+
     user = await _make_user(db_session)
     matter = await _make_matter(db_session, user)
     namespace = "memory.facts"

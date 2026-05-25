@@ -90,7 +90,7 @@ async def _make_matter(db_session, user) -> Matter:
 
 @pytest.mark.asyncio
 async def test_state_machine_required_capability_against_matter_context(
-    db_session,
+    db_session, monkeypatch
 ) -> None:
     """A state-machine definition declares a transition whose
     ``required_capabilities`` references a matter-context capability
@@ -98,7 +98,31 @@ async def test_state_machine_required_capability_against_matter_context(
     and proceeds when granted.
 
     Proves the substrate primitives use a unified capability vocabulary.
+
+    Round-5: mock audit_failure to write via the request session
+    instead of a fresh pool connection (the SAVEPOINT pattern breaks
+    fresh-pool FK visibility for uncommitted test users). Same mock
+    used in the per-primitive denied-capability tests.
     """
+    async def _fake_audit_failure(request_session, action, **kwargs):
+        from app.core.api import audit
+
+        await audit.log(
+            request_session,
+            action,
+            actor_id=kwargs.get("actor_id"),
+            matter_id=kwargs.get("matter_id"),
+            module=kwargs.get("module"),
+            resource_type=kwargs.get("resource_type"),
+            resource_id=kwargs.get("resource_id"),
+            payload=kwargs.get("payload"),
+        )
+
+    monkeypatch.setattr(
+        "app.core.phase1_runtime.capability_check.audit_failure",
+        _fake_audit_failure,
+    )
+
     user = await _make_user(db_session)
     namespace = "legalise_intake.applications"
     matter_context_cap = f"matter.context.{namespace}.write"

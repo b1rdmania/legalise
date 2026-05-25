@@ -50,6 +50,40 @@ from app.models import (
 )
 
 
+def _blocked_to_decision_gate_state(blocked: BlockedPayload) -> dict[str, Any]:
+    """Flatten a ``BlockedPayload`` into the shape the decision row's
+    ``gate_state`` JSONB column expects.
+
+    The audit row uses the canonical nested ``BlockedPayload.to_dict()``
+    shape (so Phase 5 audit reconstruction can detect blocked rows by
+    the top-level ``status`` key). The decision row's ``gate_state``
+    column is the gate's *execution* state, not a wrapped audit
+    payload, so the BlockedPayload's inner ``gate_state`` dict is
+    flattened into the top level here.
+
+    Result shape::
+
+        {
+            "status": "blocked",
+            "blocked_reason": "<reason>",
+            "denied_capability": "<cap>",      # if applicable
+            # ... merged from BlockedPayload.gate_state ...
+            "actor_role": ...,
+            "required": [...],
+            ...
+        }
+    """
+    out: dict[str, Any] = {
+        "status": "blocked",
+        "blocked_reason": blocked.blocked_reason.value,
+    }
+    if blocked.denied_capability is not None:
+        out["denied_capability"] = blocked.denied_capability
+    if blocked.gate_state:
+        out.update(blocked.gate_state)
+    return out
+
+
 async def _append_decision(
     session: AsyncSession,
     *,
@@ -203,7 +237,7 @@ async def check(
             module_id=module_id,
             capability_id=capability_id,
             declared_tier_max=declared_tier_max,
-            gate_state=blocked.to_dict(),
+            gate_state=_blocked_to_decision_gate_state(blocked),
             status=DECISION_STATUS_BLOCKED,
         )
         await _emit(
@@ -241,7 +275,7 @@ async def check(
                 module_id=module_id,
                 capability_id=capability_id,
                 declared_tier_max=declared_tier_max,
-                gate_state=blocked.to_dict(),
+                gate_state=_blocked_to_decision_gate_state(blocked),
                 status=DECISION_STATUS_BLOCKED,
             )
             await _emit(
@@ -282,7 +316,7 @@ async def check(
                 module_id=module_id,
                 capability_id=capability_id,
                 declared_tier_max=declared_tier_max,
-                gate_state=blocked.to_dict(),
+                gate_state=_blocked_to_decision_gate_state(blocked),
                 status=DECISION_STATUS_BLOCKED,
             )
             await _emit(
@@ -319,7 +353,7 @@ async def check(
             module_id=module_id,
             capability_id=capability_id,
             declared_tier_max=declared_tier_max,
-            gate_state=blocked.to_dict(),
+            gate_state=_blocked_to_decision_gate_state(blocked),
             status=DECISION_STATUS_DENIED,
         )
         await _emit(
@@ -356,7 +390,7 @@ async def check(
                 module_id=module_id,
                 capability_id=capability_id,
                 declared_tier_max=declared_tier_max,
-                gate_state=blocked.to_dict(),
+                gate_state=_blocked_to_decision_gate_state(blocked),
                 status=DECISION_STATUS_DENIED,
             )
             await _emit(
