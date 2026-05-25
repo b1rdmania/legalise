@@ -792,6 +792,24 @@ async def advance_install_endpoint(
             },
         )
     except InvalidCeremonyTransition as exc:
+        # Phase 5 Step 6: emit a module.ceremony.rejected audit row so
+        # bypass attempts are observable in the reconstruction view.
+        # Use audit_failure (independent committed session) because the
+        # HTTPException below will roll back the request session.
+        from app.core.api import audit_failure
+
+        await audit_failure(
+            session,
+            "module.ceremony.rejected",
+            actor_id=user.id,
+            module="core.trust_ceremony",
+            payload={
+                "ceremony_id": str(ceremony_id),
+                "requested_action": body.action,
+                "reason": "invalid_transition",
+                "message": str(exc),
+            },
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={

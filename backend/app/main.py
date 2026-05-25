@@ -22,6 +22,7 @@ from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
+from app.api.audit import router as audit_router
 from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
@@ -185,6 +186,58 @@ app.add_middleware(
 app.add_middleware(AuditMiddleware)
 
 
+from fastapi.exceptions import RequestValidationError
+
+
+@app.exception_handler(RequestValidationError)
+async def _request_validation_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Default 422 response + Phase 5 ceremony-rejection audit emission.
+
+    FastAPI's default RequestValidationError handler returns 422 with
+    the field errors. We preserve that behaviour, but additionally
+    emit a ``module.ceremony.rejected`` audit row when the path is a
+    ceremony-advance endpoint and the validator rejected the
+    ``action`` field. This catches the ``{"action":"banana"}`` path
+    that ``InvalidCeremonyTransition`` does NOT cover (the value is
+    rejected by Pydantic before reaching the route handler).
+    """
+    # Best-effort path match — guard against the audit emission ever
+    # blowing up the 422 response.
+    path = request.url.path
+    if "/install/" in path and path.endswith("/advance"):
+        try:
+            from app.core.api import audit_failure
+
+            parts = path.split("/")
+            ceremony_id = (
+                parts[parts.index("install") + 1] if "install" in parts else None
+            )
+            actor_id = getattr(request.state, "user_id", None)
+
+            session_factory = request.app.state.session_factory
+            async with session_factory() as audit_session:
+                await audit_failure(
+                    audit_session,
+                    "module.ceremony.rejected",
+                    actor_id=actor_id,
+                    module="core.trust_ceremony",
+                    payload={
+                        "ceremony_id": ceremony_id,
+                        "reason": "schema_validation_failed",
+                        "errors": exc.errors(),
+                    },
+                )
+        except Exception:
+            # Never let audit emission break the 422 response.
+            pass
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+
+
 @app.exception_handler(CapabilityDenied)
 async def _capability_denied_handler(request: Request, exc: CapabilityDenied) -> JSONResponse:
     """Return a structured 403 for any uncaught CapabilityDenied.
@@ -239,6 +292,13 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(usage_router, prefix="/api", tags=["usage"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
+# Phase 5 audit reconstruction. Mounted UNDER /api/matters but
+# registered AFTER the broad matters router so the catch-all
+# /{slug} route in matters_router doesn't shadow this specific
+# /{slug}/audit/reconstruction path. FastAPI matches longest
+# specific path first per route, but registration order is the
+# canonical tiebreaker — keep this line where it is.
+app.include_router(audit_router, prefix="/api/matters", tags=["audit"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
