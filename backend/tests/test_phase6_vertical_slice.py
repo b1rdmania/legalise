@@ -200,13 +200,10 @@ async def test_contract_review_vertical_slice(client) -> None:
     assert final.status_code == 200
     assert final.json()["state"] == "enabled"
 
-    # ------- (3) confirm InstalledModule + grant capabilities -------
-    # Install writes InstalledModule but not per-user grants —
-    # that's a deliberate Phase 3/4 separation (install = admin
-    # action; grant = per-user action). The frontend (Phase 12) or
-    # an explicit /grant endpoint will close this loop; for the
-    # vertical slice we write the grants directly to model the
-    # post-install per-user opt-in.
+    # ------- (3) confirm InstalledModule, then grant capabilities -------
+    # Phase 7: the user-facing grant surface is real. The vertical
+    # slice now walks the public HTTP endpoint between install and
+    # invoke — no fixture writes grant rows directly any more.
     async with factory() as session:
         installed = await session.scalar(
             select(InstalledModule).where(
@@ -217,31 +214,37 @@ async def test_contract_review_vertical_slice(client) -> None:
         assert installed is not None
         assert installed.signature_status == "verified"
 
-        # Write the per-user grants the capability needs at invoke
-        # time. Two reads + two writes derived from the manifest's
-        # `review` capability declarations.
-        for cap_string in [
-            "matter.document.read",
-            "matter.artifact.write",
-        ]:
-            session.add(
-                WorkspaceSkillCapabilityGrant(
-                    id=uuid.uuid4(),
-                    user_id=user_id,
-                    plugin="examples.contract-review",
-                    skill="review",
-                    capability=cap_string,
-                    capability_version="2.0.0",
-                    granted_at_module_version="1.0.0",
-                    granted_permissions_snapshot={
-                        "matter_id": str(matter_id),
-                    },
-                    scope_type="matter",
-                    scope_id=matter_id,
-                )
-            )
-        await session.commit()
+    # POST /api/matters/{slug}/grants — real HTTP grant.
+    grant_resp = await client.post(
+        f"/api/matters/{matter_slug}/grants",
+        json={
+            "module_id": "examples.contract-review",
+            "capability_id": "review",
+        },
+    )
+    assert grant_resp.status_code == 201, grant_resp.text
+    grant_body = grant_resp.json()
+    assert grant_body["was_idempotent_noop"] is False
+    granted_capabilities = {g["capability"] for g in grant_body["grants"]}
+    assert "matter.document.read" in granted_capabilities
+    assert "matter.artifact.write" in granted_capabilities
 
+    # Idempotent re-post returns 200 with the same row ids and zero
+    # new audit rows (Phase 7 v2 Decision #4).
+    redo = await client.post(
+        f"/api/matters/{matter_slug}/grants",
+        json={
+            "module_id": "examples.contract-review",
+            "capability_id": "review",
+        },
+    )
+    assert redo.status_code == 200, redo.text
+    assert redo.json()["was_idempotent_noop"] is True
+    assert {g["id"] for g in redo.json()["grants"]} == {
+        g["id"] for g in grant_body["grants"]
+    }
+
+    async with factory() as session:
         grants = (
             await session.scalars(
                 select(WorkspaceSkillCapabilityGrant).where(

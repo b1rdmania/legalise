@@ -23,6 +23,7 @@ from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
 from app.api.audit import router as audit_router
+from app.api.grants import router as grants_router
 from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
@@ -299,6 +300,10 @@ app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
 # specific path first per route, but registration order is the
 # canonical tiebreaker — keep this line where it is.
 app.include_router(audit_router, prefix="/api/matters", tags=["audit"])
+# Phase 7 grants endpoints — same nest-under-matters pattern as
+# Phase 5 audit. Registered AFTER the broad matters router so
+# /{slug}/grants doesn't collide with the catch-all matter detail.
+app.include_router(grants_router, prefix="/api/matters", tags=["grants"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])

@@ -16,8 +16,12 @@ how to proceed.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.advice_boundary.tiers import ADVICE_TIER_FACTUAL_EXTRACTION, tier_rank
 
@@ -238,8 +242,270 @@ def requires_reprompt(report: ExpansionReport) -> bool:
     return report.any_expansion
 
 
+# ---------------------------------------------------------------------------
+# Phase 7 — grant creation / revocation helpers used by /api/matters/{slug}/grants
+# ---------------------------------------------------------------------------
+
+
+class CapabilityScopeUnsupported(Exception):
+    """Raised when a matter-scoped grant is requested for a capability
+    whose manifest declares ``scope: workspace`` or ``scope: global``.
+
+    The matter-scoped endpoint must refuse to silently create
+    workspace authority — Reviewer Phase 7 v2 P1#2. The API layer
+    catches this and returns HTTP 422 with the structured error
+    code ``capability_scope_not_supported_here``.
+    """
+
+    def __init__(self, capability_id: str, capability_scope: str) -> None:
+        self.capability_id = capability_id
+        self.capability_scope = capability_scope
+        super().__init__(
+            f"capability {capability_id!r} has scope {capability_scope!r}; "
+            f"matter-scoped grant endpoint accepts 'matter' scope only"
+        )
+
+
+@dataclass
+class GrantCreationResult:
+    """What ``create_grants_for_capability`` returns.
+
+    Splits newly-written rows from already-existing rows so the
+    endpoint knows whether to emit ``module.grant.created`` audit
+    rows (per Phase 7 v2 Decision #4: idempotent no-op emits no
+    audit). ``all_rows`` is the full set the client should see in
+    the response.
+    """
+
+    created: list  # newly-inserted WorkspaceSkillCapabilityGrant rows
+    existing: list  # rows that were already present
+    parent_capability_id: str
+
+    @property
+    def all_rows(self) -> list:
+        return [*self.created, *self.existing]
+
+    @property
+    def was_idempotent_noop(self) -> bool:
+        return not self.created
+
+
+def _find_capability_declaration(
+    manifest: dict[str, Any], capability_id: str
+) -> dict[str, Any] | None:
+    """Locate the capability declaration in a v2 manifest snapshot.
+
+    The snapshot stored on InstalledModule.manifest_snapshot mirrors
+    the original module.json. Returns the inner dict or None.
+    """
+    for cap in manifest.get("capabilities") or []:
+        if cap.get("id") == capability_id:
+            return cap
+    return None
+
+
+async def create_grants_for_capability(
+    session: AsyncSession,
+    *,
+    user,
+    matter,
+    installed_module,
+    capability_id: str,
+) -> GrantCreationResult:
+    """Create per-user, matter-scoped grants for every capability
+    string declared in a capability's reads + writes.
+
+    Idempotent on ``(user, plugin, skill, capability, scope_type='matter', scope_id=matter.id)``
+    via the Phase 7 v2 unique constraint.
+
+    Raises ``CapabilityScopeUnsupported`` if the capability's manifest
+    declaration is anything other than ``scope: matter`` — matter
+    endpoints must not produce workspace/global authority.
+
+    The grants the user-facing surface depends on are:
+    - One row per capability string in ``capability.reads``
+    - One row per capability string in ``capability.writes``
+
+    Each row carries ``granted_permissions_snapshot`` for provenance
+    (matter_id, parent capability_id, the reads/writes the user
+    accepted at grant time) so audit reconstruction has the full
+    context.
+
+    The function does NOT commit. The caller commits — keeps the
+    grant write in the same transaction as the audit emission.
+    """
+    from app.models import (
+        SCOPE_TYPE_MATTER,
+        WorkspaceSkillCapabilityGrant,
+    )
+
+    manifest = installed_module.manifest_snapshot or {}
+    capability = _find_capability_declaration(manifest, capability_id)
+    if capability is None:
+        raise ValueError(
+            f"capability {capability_id!r} not declared in module "
+            f"{installed_module.module_id!r} v{installed_module.version}"
+        )
+    capability_scope = capability.get("scope", "workspace")
+    if capability_scope != SCOPE_TYPE_MATTER:
+        raise CapabilityScopeUnsupported(
+            capability_id=capability_id, capability_scope=capability_scope
+        )
+
+    capability_strings: list[str] = []
+    for c in capability.get("reads") or []:
+        if isinstance(c, str):
+            capability_strings.append(c)
+    for c in capability.get("writes") or []:
+        if isinstance(c, str):
+            capability_strings.append(c)
+
+    plugin = installed_module.module_id
+    skill = capability_id  # convention: skill column carries the parent capability id
+    module_version = installed_module.version
+    manifest_schema_version = manifest.get("schema_version")
+
+    created: list = []
+    existing: list = []
+    for cap_string in capability_strings:
+        existing_row = await session.scalar(
+            select(WorkspaceSkillCapabilityGrant).where(
+                WorkspaceSkillCapabilityGrant.user_id == user.id,
+                WorkspaceSkillCapabilityGrant.plugin == plugin,
+                WorkspaceSkillCapabilityGrant.skill == skill,
+                WorkspaceSkillCapabilityGrant.capability == cap_string,
+                WorkspaceSkillCapabilityGrant.scope_type == SCOPE_TYPE_MATTER,
+                WorkspaceSkillCapabilityGrant.scope_id == matter.id,
+            )
+        )
+        if existing_row is not None:
+            existing.append(existing_row)
+            continue
+        new_row = WorkspaceSkillCapabilityGrant(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            plugin=plugin,
+            skill=skill,
+            capability=cap_string,
+            granted_by_user_id=user.id,
+            capability_version=manifest_schema_version,
+            granted_at_module_version=module_version,
+            granted_permissions_snapshot={
+                "matter_id": str(matter.id),
+                "capability_id": capability_id,
+                "parent_reads": capability.get("reads") or [],
+                "parent_writes": capability.get("writes") or [],
+            },
+            scope_type=SCOPE_TYPE_MATTER,
+            scope_id=matter.id,
+        )
+        session.add(new_row)
+        created.append(new_row)
+    if created:
+        await session.flush()
+
+    # Emit module.grant.created ONLY for newly-written rows. Phase 7
+    # v2 Decision #4 + Andy's note #4: an idempotent no-op POST must
+    # not produce duplicate audit rows.
+    if created:
+        from app.core.api import audit
+
+        for row in created:
+            await audit.log(
+                session,
+                "module.grant.created",
+                actor_id=user.id,
+                matter_id=matter.id,
+                module=plugin,
+                resource_type="capability_grant",
+                resource_id=str(row.id),
+                payload={
+                    "module_id": plugin,
+                    "capability_id": capability_id,
+                    "granted_capability": row.capability,
+                    "scope_type": SCOPE_TYPE_MATTER,
+                    "scope_id": str(matter.id),
+                    "module_version": module_version,
+                },
+            )
+
+    return GrantCreationResult(
+        created=created,
+        existing=existing,
+        parent_capability_id=capability_id,
+    )
+
+
+async def revoke_grant(
+    session: AsyncSession,
+    *,
+    user,
+    matter,
+    grant_id: uuid.UUID,
+):
+    """Revoke a single per-user grant by row id.
+
+    Returns the deleted row, or None if no row with that id exists,
+    belongs to the user, AND is scoped to the given matter. The
+    triple check is what stops a user from revoking another user's
+    grant or a grant on a different matter — the endpoint relies on
+    None to translate to 404.
+
+    Emits ``module.grant.revoked`` on success. Does not commit.
+    """
+    from app.models import (
+        SCOPE_TYPE_MATTER,
+        WorkspaceSkillCapabilityGrant,
+    )
+
+    row = await session.scalar(
+        select(WorkspaceSkillCapabilityGrant).where(
+            WorkspaceSkillCapabilityGrant.id == grant_id,
+            WorkspaceSkillCapabilityGrant.user_id == user.id,
+            WorkspaceSkillCapabilityGrant.scope_type == SCOPE_TYPE_MATTER,
+            WorkspaceSkillCapabilityGrant.scope_id == matter.id,
+        )
+    )
+    if row is None:
+        return None
+
+    plugin = row.plugin
+    capability_id = (row.granted_permissions_snapshot or {}).get(
+        "capability_id"
+    )
+    granted_capability = row.capability
+
+    await session.delete(row)
+    await session.flush()
+
+    from app.core.api import audit
+
+    await audit.log(
+        session,
+        "module.grant.revoked",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module=plugin,
+        resource_type="capability_grant",
+        resource_id=str(grant_id),
+        payload={
+            "module_id": plugin,
+            "capability_id": capability_id,
+            "granted_capability": granted_capability,
+            "scope_type": SCOPE_TYPE_MATTER,
+            "scope_id": str(matter.id),
+            "reason": "explicit_revoke",
+        },
+    )
+    return row
+
+
 __all__ = [
+    "CapabilityScopeUnsupported",
     "ExpansionReport",
+    "GrantCreationResult",
+    "create_grants_for_capability",
     "detect_expansion",
     "requires_reprompt",
+    "revoke_grant",
 ]
