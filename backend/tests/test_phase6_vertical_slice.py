@@ -67,19 +67,6 @@ def _capture_audit_failures(monkeypatch):
     monkeypatch.setattr(api_module, "audit_failure", _capture)
 
 
-@dataclass
-class _StubResponse:
-    """Deterministic provider response shape used by the test seam."""
-
-    text: str
-    model_id: str
-    provider: str
-    tokens_in: int
-    tokens_out: int
-    cost_micros: int
-    currency: str
-
-
 def _stub_findings_json() -> str:
     return json.dumps(
         {
@@ -101,16 +88,41 @@ def _stub_findings_json() -> str:
     )
 
 
-async def _stub_provider_call(prompt, *, system):
-    return _StubResponse(
-        text=_stub_findings_json(),
-        model_id="claude-opus-4-7",
-        provider="anthropic",
-        tokens_in=1500,
-        tokens_out=350,
-        cost_micros=2_750_000,  # £0.0275
-        currency="GBP",
-    )
+@pytest.fixture
+def stub_model_gateway(monkeypatch):
+    """Phase 10 test seam: replace model_gateway.call with a stub
+    that returns a canned ModelResult. The HTTP invoke endpoint
+    runs the real adapter; the adapter calls model_gateway; the
+    gateway returns this stub instead of hitting a real provider.
+    """
+    from app.core.api import model_gateway as gateway_singleton
+    from app.core.model_gateway import ModelResult
+
+    async def _stub_call(
+        *,
+        session,
+        matter_id,
+        actor_id,
+        prompt,
+        model=None,
+        posture=None,
+        system=None,
+        resource_type=None,
+        resource_id=None,
+        payload=None,
+        caller_module=None,
+    ):
+        return ModelResult(
+            text=_stub_findings_json(),
+            model_used="anthropic",
+            prompt_hash="x" * 64,
+            response_hash="x" * 64,
+            token_count=1850,
+            latency_ms=120,
+        )
+
+    monkeypatch.setattr(gateway_singleton, "call", _stub_call)
+    return gateway_singleton
 
 
 def _verified_manifest_for_install() -> dict:
@@ -131,7 +143,7 @@ def _verified_manifest_for_install() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_contract_review_vertical_slice(client) -> None:
+async def test_contract_review_vertical_slice(client, stub_model_gateway) -> None:
     """The Phase 6 acceptance bar walks end-to-end."""
     clear_ceremonies()
 
@@ -258,41 +270,24 @@ async def test_contract_review_vertical_slice(client) -> None:
         ).all()
         assert len(grants) == 2
 
-    # ------- (4) invoke the capability via direct call -------
-    # The vertical slice bypasses the MCP host runtime entry point
-    # (Phase 7+ wires that) and exercises the capability through the
-    # public review_contract entrypoint. Every substrate primitive
-    # the capability touches is production code.
-    from examples.modules.contract_review.capability import (
-        InvocationContext,
-        review_contract,
+    # ------- (4) invoke the capability via the real HTTP endpoint -------
+    # Phase 10: install + grant + INVOKE all walk through public HTTP
+    # endpoints. No direct Python imports of capability functions.
+    invoke_resp = await client.post(
+        f"/api/matters/{matter_slug}/invocations",
+        json={
+            "module_id": "examples.contract-review",
+            "capability_id": "review",
+            "args": {"document_id": str(nda_id)},
+        },
     )
-
-    invocation_id = uuid.uuid4()
-    async with factory() as session:
-        # Re-fetch matter + user so they're bound to this session.
-        matter = await session.scalar(
-            select(Matter).where(Matter.id == matter_id)
-        )
-        user = await session.scalar(select(User).where(User.id == user_id))
-        # Build the InvocationContext from the SERVER-trusted user
-        # record. Reviewer R2 P1 #3: the module receives actor_role
-        # via this struct and cannot self-assert solicitor status.
-        context = InvocationContext(
-            actor_user_id=user_id,
-            actor_role=user.role,  # server-derived; default "solicitor"
-            invocation_id=invocation_id,
-        )
-        result = await review_contract(
-            session=session,
-            matter=matter,
-            context=context,
-            document_id=nda_id,
-            provider_call=_stub_provider_call,
-        )
-        await session.commit()
-
-    assert result.findings_count == 2
+    assert invoke_resp.status_code == 200, invoke_resp.text
+    invoke_body = invoke_resp.json()
+    invocation_id = uuid.UUID(invoke_body["invocation_id"])
+    assert invoke_body["module_id"] == "examples.contract-review"
+    assert invoke_body["capability_id"] == "review"
+    assert invoke_body["matter_id"] == str(matter_id)
+    assert invoke_body["result"]["findings_count"] == 2
 
     # ------- (5) confirm advice_boundary_decision row -------
     async with factory() as session:
@@ -328,7 +323,13 @@ async def test_contract_review_vertical_slice(client) -> None:
         assert len(parsed["findings"]) == 2
         assert parsed["findings"][0]["clause_id"] == "5.2"
 
-    # ------- (7) confirm model.invoked carries cost columns -------
+    # ------- (7) confirm model.invoked carries provider/model + tokens -------
+    # Phase 10 adapter mapping (Decision #4 v3):
+    #   tokens_in   = gateway result.token_count (combined)
+    #   tokens_out  = 0 (sentinel; honest until providers split)
+    #   cost_micros = None (gateway doesn't price yet)
+    #   currency    = None (paired)
+    # See PHASE_10_INVOKE_ENDPOINT_BUILD_PLAN.md Decision #4.
     async with factory() as session:
         model_row = await session.scalar(
             select(AuditEntry).where(
@@ -337,10 +338,10 @@ async def test_contract_review_vertical_slice(client) -> None:
             )
         )
         assert model_row is not None
-        assert model_row.cost_micros == 2_750_000
-        assert model_row.currency == "GBP"
-        assert model_row.tokens_in == 1500
-        assert model_row.tokens_out == 350
+        assert model_row.cost_micros is None
+        assert model_row.currency is None
+        assert model_row.tokens_in == 1850
+        assert model_row.tokens_out == 0
         assert model_row.provider == "anthropic"
         assert model_row.model_id == "claude-opus-4-7"
 

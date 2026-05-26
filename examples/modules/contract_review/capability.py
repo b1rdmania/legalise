@@ -34,6 +34,7 @@ from app.core.capabilities import require_capability
 from app.core.matter_artifacts import write_artifact
 from app.core.phase1_runtime import audit_phase1
 from app.core.posture_gate import PostureBlocked, check_posture
+from app.core.runtime import InvocationContext, ProviderResponse
 from app.models import Document, DocumentBody, Matter
 
 
@@ -43,27 +44,6 @@ CAPABILITY_ID = "review"
 # Server-trusted capability strings this module exercises at runtime.
 CAP_READ = "matter.document.read"
 CAP_WRITE = "matter.artifact.write"
-
-
-@dataclass
-class InvocationContext:
-    """Trusted invocation envelope, populated by the host (not the module).
-
-    Reviewer Phase 6 R2 P1 #3: a module must not self-assert the
-    caller's legal role. The host derives ``actor_role`` from the
-    server-authoritative user record (``User.role``) and hands it
-    to the module via this struct. The module reads it; it cannot
-    construct one with elevated values because the host is the only
-    legitimate producer.
-
-    In Phase 6 the host indirection is the test fixture +
-    ``review_contract``'s public signature requiring this struct.
-    Phase 7+ wires the same struct through the real MCP host.
-    """
-
-    actor_user_id: uuid.UUID
-    actor_role: str
-    invocation_id: uuid.UUID
 
 
 @dataclass

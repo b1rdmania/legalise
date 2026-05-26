@@ -1,0 +1,328 @@
+"""Phase 10 — HTTP invoke endpoint.
+
+Single endpoint:
+
+  POST /api/matters/{slug}/invocations
+
+…body ``{module_id, capability_id, args}``, runs the capability
+synchronously, returns its result. Closes the last fake step in the
+demo sentence: install → grant → **run** → reconstruct, all via HTTP.
+
+Endpoint flow (Phase 10 v3 plan, Steps 3 + Decisions #5 v2 + #7):
+
+1. Strict matter-access predicate (owner OR superuser; uniform 404)
+2. Load InstalledModule → 404 module_not_installed; 409 module_disabled
+3. Find capability declaration in manifest → 404 capability_not_declared
+4. Decision #7 scope check → 422 capability_scope_not_supported_here
+5. Decision #7 kind check → 422 capability_kind_not_invokable
+6. Build provider_call adapter
+7. Build InvocationContext from authenticated user + fresh invocation_id
+8. dispatch_capability(...)
+9. Translate exceptions per Decision #5 v2
+10. Commit + return
+
+Audit emission stays inside the capability — the endpoint adds no
+audit row of its own. The capability's
+``module.capability.invoked`` + ``model.invoked`` +
+``module.capability.completed`` chain renders identically through
+reconstruction regardless of who called it.
+"""
+
+from __future__ import annotations
+
+import uuid
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.auth import current_user
+from app.core.capabilities import CapabilityDenied
+from app.core.db import get_session
+from app.core.grants_lifecycle import CapabilityScopeUnsupported
+from app.core.model_gateway import ProviderKeyMissing, ProviderUpstreamError
+from app.core.phase1_runtime.exceptions import Phase1Blocked
+from app.core.posture_gate import PostureBlocked
+from app.core.runtime import (
+    CapabilityNotDeclared,
+    EntrypointResolutionError,
+    InvocationContext,
+    _find_capability_declaration,
+    dispatch_capability,
+    make_provider_call,
+)
+from app.models import InstalledModule, Matter, User
+from app.models.matter import STATUS_ARCHIVED
+
+
+router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
+
+
+class InvocationRequest(BaseModel):
+    module_id: str
+    capability_id: str
+    args: dict[str, Any] = {}
+
+
+class InvocationResponse(BaseModel):
+    invocation_id: str
+    module_id: str
+    capability_id: str
+    matter_id: str
+    result: dict[str, Any]
+
+
+# ---------------------------------------------------------------------------
+# Matter-access predicate — same shape as Phase 5 reconstruction + Phase 7 grants
+# ---------------------------------------------------------------------------
+
+
+async def _load_matter_or_404(
+    session: AsyncSession, *, slug: str, user: User
+) -> Matter:
+    matter = await session.scalar(
+        select(Matter).where(
+            Matter.slug == slug, Matter.created_by_id == user.id
+        )
+    )
+    if matter is None and user.is_superuser:
+        matter = await session.scalar(
+            select(Matter).where(Matter.slug == slug)
+        )
+    if matter is None or matter.status == STATUS_ARCHIVED:
+        # Uniform 404 — never leak which matters exist for other users.
+        raise HTTPException(
+            status_code=404, detail=f"matter not found: {slug}"
+        )
+    return matter
+
+
+# ---------------------------------------------------------------------------
+# POST /api/matters/{slug}/invocations
+# ---------------------------------------------------------------------------
+
+
+_INVOKABLE_KINDS: frozenset[str] = frozenset({"skill", "tool", "workflow"})
+
+
+@router.post(
+    "/{slug}/invocations",
+    response_model=InvocationResponse,
+)
+async def invoke_capability_endpoint(
+    slug: str,
+    body: InvocationRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> InvocationResponse:
+    matter = await _load_matter_or_404(session, slug=slug, user=user)
+
+    # 1. Module must be installed AND enabled.
+    installed = await session.scalar(
+        select(InstalledModule)
+        .where(InstalledModule.module_id == body.module_id)
+        .order_by(InstalledModule.installed_at.desc())
+    )
+    if installed is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": "module_not_installed",
+                "module_id": body.module_id,
+            },
+        )
+    if not installed.enabled:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "module_disabled",
+                "module_id": body.module_id,
+            },
+        )
+
+    # 2. Capability must be declared in the manifest.
+    manifest = installed.manifest_snapshot or {}
+    declaration = _find_capability_declaration(manifest, body.capability_id)
+    if declaration is None:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": "capability_not_declared",
+                "module_id": body.module_id,
+                "capability_id": body.capability_id,
+            },
+        )
+
+    # 3. Decision #7 — scope must be matter (the matter URL only
+    #    produces matter authority; workspace/global capabilities
+    #    get a dedicated future endpoint).
+    declared_scope = declaration.get("scope", "workspace")
+    if declared_scope != "matter":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "capability_scope_not_supported_here",
+                "capability_id": body.capability_id,
+                "capability_scope": declared_scope,
+                "message": (
+                    "POST /api/matters/{slug}/invocations only invokes "
+                    "matter-scope capabilities."
+                ),
+            },
+        )
+
+    # 4. Decision #7 — kind must be directly invokable.
+    declared_kind = declaration.get("kind", "skill")
+    if declared_kind not in _INVOKABLE_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "capability_kind_not_invokable",
+                "capability_id": body.capability_id,
+                "capability_kind": declared_kind,
+                "message": (
+                    f"capability kind {declared_kind!r} is dispatched "
+                    f"by the substrate, not via direct invocation"
+                ),
+            },
+        )
+
+    # 5. Build invocation context + provider adapter.
+    invocation_id = uuid.uuid4()
+    context = InvocationContext(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        invocation_id=invocation_id,
+    )
+    provider_call = make_provider_call(
+        session=session,
+        matter=matter,
+        actor_user_id=user.id,
+        module_id=body.module_id,
+        capability_id=body.capability_id,
+        invocation_id=invocation_id,
+    )
+
+    # 6. Dispatch. Exception → HTTP translation per Decision #5 v2.
+    try:
+        result = await dispatch_capability(
+            session,
+            installed_module=installed,
+            capability_declaration=declaration,
+            matter=matter,
+            context=context,
+            args=body.args,
+            provider_call=provider_call,
+        )
+    except PostureBlocked as exc:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "posture_gate_blocked",
+                "posture": exc.result.posture,
+                "required_role": exc.result.required_role,
+                "actor_role": exc.result.actor_role,
+                "reason": exc.result.reason,
+            },
+        )
+    except CapabilityScopeUnsupported as exc:
+        # Defence-in-depth — the endpoint already filters scope=matter
+        # above. A module that internally enforces scope and re-raises
+        # this signals a manifest/runtime mismatch.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "capability_scope_not_supported_here",
+                "capability_id": exc.capability_id,
+                "capability_scope": exc.capability_scope,
+            },
+        )
+    except CapabilityDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "capability_denied",
+                "plugin": exc.plugin,
+                "skill": exc.skill,
+                "capability": exc.capability,
+                "matter_id": str(matter.id),
+                "scope": "matter",
+            },
+        )
+    except Phase1Blocked as exc:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "phase1_blocked",
+                "blocked_reason": exc.payload.blocked_reason.value,
+                "gate_state": exc.payload.gate_state,
+            },
+        )
+    except ProviderKeyMissing as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "provider_key_missing",
+                "provider": getattr(exc, "provider", None),
+                "message": (
+                    "User has not configured an API key for the "
+                    "selected provider."
+                ),
+            },
+        )
+    except ProviderUpstreamError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "provider_upstream_error",
+                "provider": getattr(exc, "provider", None),
+                "code": getattr(exc, "code", None),
+                "upstream_status": getattr(exc, "upstream_status", None),
+            },
+        )
+    except CapabilityNotDeclared as exc:
+        # The dispatcher disagreed with the endpoint's pre-check
+        # (e.g. the module-author's invoke() rejects the capability
+        # name even though it's in the manifest). 404 — same shape.
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": "capability_not_declared",
+                "module_id": exc.module_id,
+                "capability_id": exc.capability_id,
+            },
+        )
+    except EntrypointResolutionError as exc:
+        # The manifest is installed but its entrypoint can't be
+        # imported — install-side data problem. 500.
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "entrypoint_resolution_failed",
+                "message": str(exc),
+            },
+        )
+    except ValueError as exc:
+        # The capability raised on bad args (or unknown claim_type,
+        # empty document_ids, etc.).
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"error": "invalid_args", "message": str(exc)},
+        )
+
+    await session.commit()
+
+    return InvocationResponse(
+        invocation_id=str(invocation_id),
+        module_id=body.module_id,
+        capability_id=body.capability_id,
+        matter_id=str(matter.id),
+        result=result,
+    )

@@ -115,6 +115,62 @@ def _stub_provider_factory(doc_ids: list[str]):
     return _call
 
 
+@pytest.fixture
+def stub_model_gateway_pre_motion(monkeypatch):
+    """Phase 10 test seam — replaces model_gateway.call with a canned
+    ModelResult carrying the Pre-Motion stub findings JSON. The
+    capability runs through the real HTTP endpoint + adapter."""
+    from app.core.api import model_gateway as gateway_singleton
+    from app.core.model_gateway import ModelResult
+
+    canned_text = json.dumps(
+        {
+            "motion": {
+                "markdown": "# Pre-motion (draft)\n\n1. Dismissal was procedurally unfair…",
+                "claim_summary": "Khan v Acme — unfair dismissal claim outline",
+            },
+            "evidence": [
+                {
+                    "document_id": "primary",
+                    "relevance": "primary evidence of dismissal",
+                    "citation_hint": "dismissal letter §1",
+                },
+                {
+                    "document_id": "supporting",
+                    "relevance": "supporting witness account",
+                    "citation_hint": "witness statement §3",
+                },
+            ],
+        }
+    )
+
+    async def _stub_call(
+        *,
+        session,
+        matter_id,
+        actor_id,
+        prompt,
+        model=None,
+        posture=None,
+        system=None,
+        resource_type=None,
+        resource_id=None,
+        payload=None,
+        caller_module=None,
+    ):
+        return ModelResult(
+            text=canned_text,
+            model_used="anthropic",
+            prompt_hash="x" * 64,
+            response_hash="x" * 64,
+            token_count=2720,
+            latency_ms=180,
+        )
+
+    monkeypatch.setattr(gateway_singleton, "call", _stub_call)
+    return gateway_singleton
+
+
 async def _empty_evidence_provider(prompt, *, system):
     return _StubResponse(
         text=json.dumps(
@@ -197,7 +253,7 @@ async def _install_pre_motion(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pre_motion_vertical_slice(client) -> None:
+async def test_pre_motion_vertical_slice(client, stub_model_gateway_pre_motion) -> None:
     """The Phase 9 acceptance bar: install (via ceremony) → grant
     (via /grants endpoint) → invoke against the existing Khan
     dismissal letter + witness statement → confirm both artifacts
@@ -250,35 +306,26 @@ async def test_pre_motion_vertical_slice(client) -> None:
     grant_caps = {g["capability"] for g in grant.json()["grants"]}
     assert grant_caps == {"matter.document.read", "matter.artifact.write"}
 
-    # Invoke the capability directly — Phase 10+ wraps this in an
-    # HTTP invoke endpoint; for now the slice exercises the
-    # capability boundary directly.
-    from examples.modules.pre_motion.capability import (
-        InvocationContext,
-        draft_motion,
+    # Phase 10: invoke via the real HTTP endpoint, not a direct call.
+    # The provider stays canned via the gateway monkeypatch fixture.
+    invoke_resp = await client.post(
+        f"/api/matters/{matter_slug}/invocations",
+        json={
+            "module_id": "examples.pre-motion",
+            "capability_id": "draft_motion",
+            "args": {
+                "claim_type": "unfair_dismissal",
+                "document_ids": [str(dismissal_id), str(witness_id)],
+            },
+        },
     )
-
-    invocation_id = uuid.uuid4()
-    async with factory() as session:
-        matter = await session.scalar(select(Matter).where(Matter.id == matter_id))
-        context = InvocationContext(
-            actor_user_id=user_id,
-            actor_role="qualified_solicitor",
-            invocation_id=invocation_id,
-        )
-        result = await draft_motion(
-            session=session,
-            matter=matter,
-            context=context,
-            claim_type="unfair_dismissal",
-            document_ids=[dismissal_id, witness_id],
-            provider_call=_stub_provider_factory(
-                [str(dismissal_id), str(witness_id)]
-            ),
-        )
-        await session.commit()
-
-    assert result.evidence_count == 2
+    assert invoke_resp.status_code == 200, invoke_resp.text
+    invoke_body = invoke_resp.json()
+    invocation_id = uuid.UUID(invoke_body["invocation_id"])
+    assert invoke_body["module_id"] == "examples.pre-motion"
+    assert invoke_body["capability_id"] == "draft_motion"
+    assert invoke_body["matter_id"] == str(matter_id)
+    assert invoke_body["result"]["evidence_count"] == 2
 
     # Confirm both artifacts landed with distinct kinds.
     async with factory() as session:
@@ -322,8 +369,11 @@ async def test_pre_motion_vertical_slice(client) -> None:
             )
         )
         assert model_row is not None
-        assert model_row.cost_micros == 3_900_000
-        assert model_row.currency == "GBP"
+        # Phase 10 adapter pins cost_micros/currency to None (gateway
+        # doesn't price yet); tokens_out = 0 sentinel; tokens_in =
+        # gateway's combined token_count. See Decision #4 v3.
+        assert model_row.cost_micros is None
+        assert model_row.currency is None
 
     # Reconstruction view returns the canonical Pre-Motion timeline.
     recon = await client.get(

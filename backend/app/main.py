@@ -24,6 +24,7 @@ from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
 from app.api.audit import router as audit_router
 from app.api.grants import router as grants_router
+from app.api.invocations import router as invocations_router
 from app.api.modules import router as modules_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
@@ -304,6 +305,13 @@ app.include_router(audit_router, prefix="/api/matters", tags=["audit"])
 # Phase 5 audit. Registered AFTER the broad matters router so
 # /{slug}/grants doesn't collide with the catch-all matter detail.
 app.include_router(grants_router, prefix="/api/matters", tags=["grants"])
+# Phase 10 invoke endpoint. Same nest-under-matters pattern as
+# Phase 5 audit + Phase 7 grants. Registered AFTER the broad matters
+# router so /{slug}/invocations doesn't collide with the catch-all
+# matter detail route.
+app.include_router(
+    invocations_router, prefix="/api/matters", tags=["invocations"]
+)
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
