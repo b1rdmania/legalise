@@ -241,6 +241,66 @@ describe("GrantsPanel — create", () => {
   });
 });
 
+describe("GrantsPanel — capability filtering (matter-scope only)", () => {
+  it("hides non-matter-scope capabilities and modules with no matter caps", async () => {
+    // Module A: one matter cap + one workspace cap → only the matter
+    //           cap should appear in the capability select.
+    // Module B: only a workspace cap → module itself must not appear
+    //           in the module select.
+    const MODULE_A = {
+      module_id: "module-a",
+      source_kind: "v2",
+      manifest: {
+        name: "Module A",
+        capabilities: [
+          { id: "matter-cap", scope: "matter" },
+          { id: "workspace-cap", scope: "workspace" },
+        ],
+      },
+      is_valid: true,
+      validation_errors: [],
+    };
+    const MODULE_B = {
+      module_id: "module-b",
+      source_kind: "v2",
+      manifest: {
+        name: "Module B",
+        capabilities: [{ id: "global-cap", scope: "global" }],
+      },
+      is_valid: true,
+      validation_errors: [],
+    };
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MODULE_A, MODULE_B],
+      ui_slots: [],
+    });
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Module/i)).toBeInTheDocument();
+    });
+
+    // Module-B is filtered out entirely.
+    const moduleSelect = screen.getByLabelText(/Module/i) as HTMLSelectElement;
+    const moduleValues = Array.from(moduleSelect.options).map((o) => o.value);
+    expect(moduleValues).toContain("module-a");
+    expect(moduleValues).not.toContain("module-b");
+
+    // Pick Module-A and inspect the capability select.
+    fireEvent.change(moduleSelect, { target: { value: "module-a" } });
+    const capSelect = screen.getByLabelText(/Capability/i) as HTMLSelectElement;
+    const capValues = Array.from(capSelect.options).map((o) => o.value);
+    expect(capValues).toContain("matter-cap");
+    // The workspace cap is hidden — the matter endpoint would reject
+    // it with 422; the UI must not offer impossible options.
+    expect(capValues).not.toContain("workspace-cap");
+  });
+});
+
 describe("GrantsPanel — revoke", () => {
   it("DELETEs the grant and refreshes", async () => {
     vi.spyOn(api, "listGrants")

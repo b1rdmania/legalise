@@ -14,11 +14,13 @@ The substrate's `posture_gate.check_posture()` (Phase 8) emits a structured 403 
 
 ## UX matrix — what the user sees on the matter workspace
 
-| | `solicitor` (default role) | `qualified_solicitor` | `workspace_admin` |
+**Substrate truth (load-bearing):** `app/core/posture_gate.py:POSTURE_POLICY` compares the actor's `role` string verbatim against the policy. `is_superuser` is NOT consulted. `workspace_admin` does NOT satisfy `B_mixed` — only `qualified_solicitor` does. Any UI that gives admins a pass here diverges from substrate behaviour and will lead to a confusing 403 from Phase 10 at invocation time.
+
+| | `solicitor` (default role) | `qualified_solicitor` | `workspace_admin` / superuser |
 | --- | --- | --- | --- |
 | `A_cleared` | full UI, no banner | full UI, no banner | full UI, no banner |
-| `B_mixed` | banner: "This matter is marked B_mixed. Only qualified solicitors can run modules. View audit trail." Modules panel renders read-only (capabilities visible, "Run" buttons disabled with tooltip). | full UI, no banner | full UI, no banner |
-| `C_paused` | banner: "This matter is paused. No modules can run regardless of role." Modules panel renders read-only with all CTAs disabled. | same | same |
+| `B_mixed` | banner: "This matter is marked B_mixed. Only qualified solicitors can run modules. View audit trail." Modules panel renders read-only (capabilities visible, "Run" buttons disabled with tooltip). | full UI, no banner | **banner** — admin status does NOT satisfy posture. Admins see the same restriction as a `solicitor`. They retain admin-only privileges elsewhere (e.g. `PATCH /privilege` to change the matter's posture), but they cannot smuggle past the posture check itself. |
+| `C_paused` | banner: "This matter is paused. No modules can run regardless of role." Modules panel renders read-only with all CTAs disabled. | same | same — even admins. Admins additionally see an "Unpause via `PATCH /api/matters/{slug}/privilege`" hint, since they're the only role that can change posture. |
 
 ### Banner shape
 

@@ -10,7 +10,11 @@
  *
  * UX matrix (rows = actor role; cols = posture):
  *   A_cleared : no banner, full UI
- *   B_mixed   : banner ONLY when actor is not qualified_solicitor/admin
+ *   B_mixed   : banner unless actor.role === "qualified_solicitor"
+ *               (substrate uses the role string verbatim; is_superuser
+ *               does NOT bypass the posture check — Phase 10 builds
+ *               InvocationContext.actor_role from user.role only, not
+ *               from is_superuser)
  *   C_paused  : banner ALWAYS — even admins can't run on paused matters
  *
  * Reviewer-narrow per the Phase 14 C brief: no reconstruction deep-link
@@ -32,10 +36,12 @@ interface Props {
   user: CurrentUser | null;
 }
 
-const ROLES_THAT_SATISFY_B_MIXED = new Set([
-  "qualified_solicitor",
-  "workspace_admin",
-]);
+// Only `qualified_solicitor` satisfies B_mixed in the substrate.
+// `workspace_admin` / `is_superuser` is NOT a bypass — Phase 10
+// posture_gate.check_posture compares POSTURE_POLICY[posture] against
+// the actor_role string only. Anything else here would diverge from
+// substrate behaviour (ACCEPTANCE.md §14).
+const ROLE_THAT_SATISFIES_B_MIXED = "qualified_solicitor";
 
 export function PostureBanner({ posture, user }: Props) {
   // A_cleared is the no-banner case. Anyone authenticated may run; the
@@ -70,9 +76,7 @@ export function PostureBanner({ posture, user }: Props) {
   // B_mixed (or any unknown posture — fail closed). Only show the
   // banner when the actor's role doesn't satisfy the requirement.
   if (posture === "B_mixed") {
-    const satisfies =
-      !!user &&
-      (user.is_superuser || ROLES_THAT_SATISFY_B_MIXED.has(user.role));
+    const satisfies = !!user && user.role === ROLE_THAT_SATISFIES_B_MIXED;
     if (satisfies) return null;
 
     return (

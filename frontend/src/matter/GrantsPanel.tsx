@@ -131,13 +131,18 @@ export function GrantsPanel({ slug }: { slug: string }) {
     };
   }, []);
 
+  // This is the matter-scoped grants UI. The substrate's
+  // create_grants_for_capability rejects scope ≠ "matter" with 422 by
+  // design (Phase 7 Decision #5), so workspace/global capabilities
+  // can never be granted via this endpoint. Filter them out here so
+  // the user is never offered an impossible choice. The 422 path is
+  // retained server-side as defence-in-depth.
   const moduleOptions = useMemo(() => {
     if (catalog.status !== "ready") return [];
-    // Only modules with at least one declared capability are useful
-    // here. Grant-scope filtering (matter vs workspace) is enforced
-    // server-side at create_grants_for_capability; the UI just picks.
     return catalog.modules.filter(
-      (m) => m.is_valid && capabilitiesOf(m).length > 0,
+      (m) =>
+        m.is_valid &&
+        capabilitiesOf(m).some((c) => c.scope === "matter"),
     );
   }, [catalog]);
 
@@ -147,7 +152,10 @@ export function GrantsPanel({ slug }: { slug: string }) {
   );
 
   const capOptions = useMemo<ManifestCapability[]>(
-    () => (selectedManifest ? capabilitiesOf(selectedManifest) : []),
+    () =>
+      selectedManifest
+        ? capabilitiesOf(selectedManifest).filter((c) => c.scope === "matter")
+        : [],
     [selectedManifest],
   );
 

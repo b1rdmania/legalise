@@ -14,8 +14,8 @@ Two new components inserted into the existing `MatterDetail` page, plus the API 
 Renders the (actor role × matter posture) cell from `POSTURE_GATE_UX.md`. Substrate truth (`app/core/posture_gate.py:POSTURE_POLICY`):
 
 - `A_cleared` → any authenticated → **no banner**, full UI.
-- `B_mixed` (default) → requires `qualified_solicitor`. Banner renders only when the actor's role doesn't satisfy. Superuser bypasses the role check (mirrors substrate behaviour for admin operations).
-- `C_paused` → sentinel `matter_paused`; nobody satisfies. **Banner always renders**, even for admins. Admin viewers also see a hint about `PATCH /api/matters/{slug}/privilege` to unpause; non-admins don't.
+- `B_mixed` (default) → requires `qualified_solicitor`. Banner renders unless `user.role === "qualified_solicitor"`. **`is_superuser` does NOT bypass posture** — `app/core/posture_gate.py:POSTURE_POLICY` checks the role string verbatim and Phase 10 builds `InvocationContext.actor_role` from `user.role` only. A superuser whose role is `solicitor` sees the banner just like any other `solicitor`. (Pre-redline this component gave admins a false pass; the v2 fix matches substrate truth.)
+- `C_paused` → sentinel `matter_paused`; nobody satisfies. **Banner always renders**, even for admins. Admin viewers also see a hint about `PATCH /api/matters/{slug}/privilege` to unpause; non-admins don't. (Admin status here lets them *change* the posture, not satisfy it.)
 - Unknown posture → fail-closed banner naming the unknown value. Mirrors substrate `POSTURE_POLICY.get(posture)` default-deny.
 
 Banner shell uses two tones: amber for `B_mixed`, red-sealed for `C_paused`. The posture badge pill names the substrate posture string verbatim per ACCEPTANCE.md §14.
@@ -31,7 +31,7 @@ Embedded as a section at the bottom of the matter workspace `<main>`, visible ac
 
 **List:** `GET /api/matters/{slug}/grants` rendered as a table — plugin / skill / capability / granted_at / Revoke. Empty state when no grants exist; row-level revoke spinner; structured error on fetch failure.
 
-**Create:** Two-select form (module + capability) sourced from `GET /api/modules/v2` filtered to manifests with at least one declared capability. Submit hits `POST /api/matters/{slug}/grants {module_id, capability_id}`. Result states:
+**Create:** Two-select form (module + capability) sourced from `GET /api/modules/v2`. **Filtered to matter-scope capabilities only** — modules without a `scope: "matter"` capability are hidden from the module select, and within a selected module only `scope === "matter"` capabilities appear in the capability select. The matter endpoint rejects non-matter scopes with 422 by design (Phase 7 Decision #5); the UI honours that contract rather than offering impossible choices. The 422 path is retained server-side as defence-in-depth. Submit hits `POST /api/matters/{slug}/grants {module_id, capability_id}`. Result states:
 
 - `was_idempotent_noop=true` → "Already granted — no change. Idempotent grants do not emit audit rows." This explicitly names the Phase 7 Decision #4 contract.
 - `was_idempotent_noop=false` → "Granted. N row(s) created."

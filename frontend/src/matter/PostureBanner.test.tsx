@@ -61,11 +61,28 @@ describe("PostureBanner — B_mixed", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders nothing for superuser regardless of role string", () => {
-    const { container } = render(
+  it("STILL renders for a superuser whose role is not qualified_solicitor", () => {
+    // Substrate truth: posture_gate checks the role string verbatim;
+    // is_superuser is not consulted. A superuser-but-not-qualified
+    // user CANNOT smuggle past posture. Pre-redline UI gave them a
+    // false pass; this test pins the fix.
+    render(
       <PostureBanner
         posture="B_mixed"
         user={user("solicitor", { is_superuser: true })}
+      />,
+    );
+    expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
+  });
+
+  it("renders for a superuser whose role IS qualified_solicitor only when… no it does not", () => {
+    // Sanity check the orthogonal axis: if the role string itself is
+    // qualified_solicitor, the banner is silent regardless of
+    // is_superuser. This is the right substrate-aligned bypass.
+    const { container } = render(
+      <PostureBanner
+        posture="B_mixed"
+        user={user("qualified_solicitor", { is_superuser: true })}
       />,
     );
     expect(container.firstChild).toBeNull();
