@@ -25,6 +25,53 @@ describe("ArtifactPreview", () => {
     expect(screen.getByText("unfair_dismissal")).toBeInTheDocument();
   });
 
+  it("renders findings_pack as a table with severity badge", () => {
+    // Contract Review writes this kind. Shape per
+    // examples/modules/contract_review/capability.py:Finding.to_dict.
+    render(
+      <ArtifactPreview
+        kindHint="findings_pack"
+        payload={{
+          findings: [
+            {
+              clause_id: "12.3",
+              severity: "high",
+              comment: "Unilateral termination without notice.",
+              citation: "Clause 12.3, line 4",
+            },
+            {
+              clause_id: "7.1",
+              severity: "medium",
+              comment: "IP assignment is broader than market norm.",
+              citation: "Clause 7.1, schedule B",
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("findings-pack-view")).toBeInTheDocument();
+    expect(screen.getByText("12.3")).toBeInTheDocument();
+    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Unilateral termination/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Clause 7.1/)).toBeInTheDocument();
+  });
+
+  it("auto-detects findings_pack when no kindHint given", () => {
+    render(
+      <ArtifactPreview
+        kindHint={null}
+        payload={{
+          findings: [
+            { clause_id: "1", severity: "low", comment: "ok", citation: "x" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("findings-pack-view")).toBeInTheDocument();
+  });
+
   it("renders evidence_list as a table with document/relevance/citation", () => {
     render(
       <ArtifactPreview

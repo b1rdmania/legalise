@@ -5,11 +5,14 @@
  * pretty-printed JSON for anything else. Substrate stores artifact
  * payloads opaquely; rendering rules live entirely on the frontend.
  *
- * Known kinds today (per Phase 9 + examples/modules/pre_motion):
+ * Known kinds today (per Phase 9 + examples/modules):
  *   - motion_draft: { markdown: string, claim_summary?: string,
  *                     claim_type?: string }
  *   - evidence_list: { evidence: [{ document_id, relevance,
  *                                   citation_hint }] }
+ *   - findings_pack: { findings: [{ clause_id, severity, comment,
+ *                                   citation }] } — Contract Review
+ *                    (see examples/modules/contract_review/capability.py)
  *
  * Unknown kinds OR payloads that don't match the known shape fall
  * through to a JSON block. Substrate-stored payloads should never
@@ -32,6 +35,17 @@ interface EvidenceListPayload {
   evidence: EvidenceItem[];
 }
 
+interface Finding {
+  clause_id?: string;
+  severity?: string;
+  comment?: string;
+  citation?: string;
+}
+
+interface FindingsPackPayload {
+  findings: Finding[];
+}
+
 function looksLikeMotionDraft(p: unknown): p is MotionDraftPayload {
   if (!p || typeof p !== "object") return false;
   const v = (p as Record<string, unknown>).markdown;
@@ -41,6 +55,12 @@ function looksLikeMotionDraft(p: unknown): p is MotionDraftPayload {
 function looksLikeEvidenceList(p: unknown): p is EvidenceListPayload {
   if (!p || typeof p !== "object") return false;
   const v = (p as Record<string, unknown>).evidence;
+  return Array.isArray(v);
+}
+
+function looksLikeFindingsPack(p: unknown): p is FindingsPackPayload {
+  if (!p || typeof p !== "object") return false;
+  const v = (p as Record<string, unknown>).findings;
   return Array.isArray(v);
 }
 
@@ -58,12 +78,17 @@ export function ArtifactPreview({
     kindHint ??
     (looksLikeMotionDraft(payload)
       ? "motion_draft"
-      : looksLikeEvidenceList(payload)
-        ? "evidence_list"
-        : null);
+      : looksLikeFindingsPack(payload)
+        ? "findings_pack"
+        : looksLikeEvidenceList(payload)
+          ? "evidence_list"
+          : null);
 
   if (kind === "motion_draft" && looksLikeMotionDraft(payload)) {
     return <MotionDraftView payload={payload} />;
+  }
+  if (kind === "findings_pack" && looksLikeFindingsPack(payload)) {
+    return <FindingsPackView payload={payload} />;
   }
   if (kind === "evidence_list" && looksLikeEvidenceList(payload)) {
     return <EvidenceListView payload={payload} />;
@@ -128,6 +153,68 @@ function EvidenceListView({ payload }: { payload: EvidenceListPayload }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function FindingsPackView({ payload }: { payload: FindingsPackPayload }) {
+  if (payload.findings.length === 0) {
+    return (
+      <p className="mt-3 text-sm text-muted">No findings recorded.</p>
+    );
+  }
+  return (
+    <div
+      className="mt-3 overflow-x-auto rounded-md border border-line"
+      data-testid="findings-pack-view"
+    >
+      <table className="min-w-full text-sm">
+        <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
+          <tr>
+            <th className="px-3 py-2 text-left">Clause</th>
+            <th className="px-3 py-2 text-left">Severity</th>
+            <th className="px-3 py-2 text-left">Comment</th>
+            <th className="px-3 py-2 text-left">Citation</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payload.findings.map((f, i) => (
+            <tr key={i} className="border-t border-line align-top">
+              <td className="px-3 py-2 font-mono text-xs">
+                {f.clause_id ?? "—"}
+              </td>
+              <td className="px-3 py-2">
+                <SeverityBadge severity={f.severity} />
+              </td>
+              <td className="px-3 py-2 text-sm">{f.comment ?? "—"}</td>
+              <td className="px-3 py-2 text-sm text-muted">
+                {f.citation ?? "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SeverityBadge({ severity }: { severity?: string }) {
+  if (!severity) return <span className="text-muted">—</span>;
+  // Substrate vocabulary verbatim ("low" | "medium" | "high"); the
+  // badge colour is the only translation.
+  const tone =
+    severity === "high"
+      ? "bg-seal text-paper"
+      : severity === "medium"
+        ? "bg-amber-500 text-paper"
+        : severity === "low"
+          ? "bg-line text-ink"
+          : "bg-paper-sunken text-muted";
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}
+    >
+      {severity}
+    </span>
   );
 }
 

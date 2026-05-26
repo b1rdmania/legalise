@@ -301,6 +301,149 @@ describe("GrantsPanel — capability filtering (matter-scope only)", () => {
   });
 });
 
+describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
+  // Capabilities with reads + writes shape — substrate expansion at
+  // grants_lifecycle.py:355-389 creates one WorkspaceSkillCapabilityGrant
+  // row per string in reads ∪ writes. Run must require ALL of them
+  // on this matter, with plugin/skill/capability matching strictly.
+  const MULTI_CAP_MANIFEST = {
+    module_id: "contract-review",
+    source_kind: "v2",
+    manifest: {
+      name: "Contract Review",
+      capabilities: [
+        {
+          id: "review",
+          scope: "matter",
+          reads: ["matter.document.read"],
+          writes: ["matter.artifact.write"],
+        },
+        {
+          id: "summary",
+          scope: "matter",
+          reads: ["matter.document.read"],
+          writes: ["matter.artifact.write"],
+        },
+      ],
+    },
+    is_valid: true,
+    validation_errors: [],
+  };
+
+  function grant(
+    plugin: string,
+    skill: string,
+    capability: string,
+  ): api.GrantRow {
+    return {
+      id: `g-${plugin}-${skill}-${capability}`,
+      plugin,
+      skill,
+      capability,
+      scope_type: "matter",
+      scope_id: "m-1",
+      granted_at: "2026-05-26T12:00:00",
+    };
+  }
+
+  it("shows Run only for the capability whose required strings are all granted", async () => {
+    // Granted: review (read+write). Not granted: summary (no rows).
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "review", "matter.document.read"),
+        grant("contract-review", "review", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MULTI_CAP_MANIFEST],
+      ui_slots: [],
+    });
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(screen.getByTestId("runnable-capabilities")).toBeInTheDocument();
+    });
+    // The runnable section names review, not summary.
+    expect(screen.getByText(/contract-review · review/)).toBeInTheDocument();
+    expect(screen.queryByText(/contract-review · summary/)).toBeNull();
+    // The Run button for review exists.
+    expect(
+      screen.getByTestId("run-contract-review-review"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("run-contract-review-summary"),
+    ).toBeNull();
+  });
+
+  it("does NOT show Run when a required write has been revoked", async () => {
+    // Only the read remains — write was revoked. Substrate would 403
+    // at dispatch (potentially after a provider call). UI must hide.
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [grant("contract-review", "review", "matter.document.read")],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MULTI_CAP_MANIFEST],
+      ui_slots: [],
+    });
+
+    render(<GrantsPanel slug="khan" />);
+    // Wait for the panel to settle (the catalog + grants both
+    // resolve, but no runnable-capabilities block should render).
+    await waitFor(() => {
+      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
+    expect(
+      screen.queryByTestId("run-contract-review-review"),
+    ).toBeNull();
+  });
+
+  it("shows Run when both read + write grants are present", async () => {
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "review", "matter.document.read"),
+        grant("contract-review", "review", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MULTI_CAP_MANIFEST],
+      ui_slots: [],
+    });
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("run-contract-review-review"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("does NOT show Run when a grant row exists for the wrong skill", async () => {
+    // Row exists but skill mismatch — pre-redline UI showed Run
+    // because plugin matched. Post-redline: strict skill check.
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "other-skill", "matter.document.read"),
+        grant("contract-review", "other-skill", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MULTI_CAP_MANIFEST],
+      ui_slots: [],
+    });
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
+  });
+});
+
 describe("GrantsPanel — revoke", () => {
   it("DELETEs the grant and refreshes", async () => {
     vi.spyOn(api, "listGrants")

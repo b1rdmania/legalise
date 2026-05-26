@@ -63,6 +63,20 @@ interface ManifestCapability {
   id: string;
   scope?: string;
   kind?: string;
+  // Substrate-truth: when a capability is granted via
+  // create_grants_for_capability (grants_lifecycle.py:355-389), it
+  // creates one WorkspaceSkillCapabilityGrant row per string in
+  // `reads + writes`. Each row's `capability` column carries the
+  // string verbatim; `plugin` = module_id; `skill` = capability_id.
+  // The frontend mirrors this expansion so we never offer Run for
+  // a capability whose required strings aren't all granted.
+  reads: string[];
+  writes: string[];
+}
+
+function stringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === "string");
 }
 
 function capabilitiesOf(entry: V2ManifestEntry): ManifestCapability[] {
@@ -82,6 +96,8 @@ function capabilitiesOf(entry: V2ManifestEntry): ManifestCapability[] {
         id,
         scope: typeof c.scope === "string" ? c.scope : undefined,
         kind: typeof c.kind === "string" ? c.kind : undefined,
+        reads: stringArray(c.reads),
+        writes: stringArray(c.writes),
       };
     })
     .filter((c): c is ManifestCapability => c !== null);
@@ -203,21 +219,44 @@ export function GrantsPanel({ slug }: { slug: string }) {
     }
   };
 
-  // Phase 14 D — derive runnable (module_id, capability_id) pairs
-  // from the cross-product of catalog and grant list. A pair is
-  // runnable when:
+  // Phase 14 D Reviewer-fix — runnable pairs are derived strictly,
+  // not from plugin membership.
+  //
+  // A capability is runnable iff:
   //   1. The module is in the v2 catalog (= discoverable).
   //   2. The capability is scope === "matter".
-  //   3. At least one grant on this matter matches `plugin == module_id`.
-  // The plugin-to-module-id link is loose by design; substrate
-  // enforces the real (module, capability) at invocation time.
-  // We never invent runnable pairs from the catalog alone — the user
-  // must have actively granted on this matter first.
+  //   3. The capability declares at least one entry in reads ∪ writes
+  //      (capabilities with no required strings cannot be granted in
+  //      the substrate sense; Phase 7 expansion would create zero
+  //      grant rows).
+  //   4. EVERY string in reads ∪ writes has a corresponding grant
+  //      row on this matter where:
+  //         g.plugin === module_id
+  //         g.skill  === capability_id
+  //         g.capability === required_string
+  //         g.scope_type === "matter"
+  //   This mirrors the Phase 7 expansion at
+  //   grants_lifecycle.py:355-389 (plugin = installed_module.module_id,
+  //   skill = capability_id, capability = each entry from
+  //   reads + writes). A partially-revoked capability — where one of
+  //   the required strings has been deleted — must NOT be runnable;
+  //   the substrate would 403 at dispatch, potentially after a
+  //   provider call.
   const runnablePairs = useMemo<
     Array<{ moduleId: string; capabilityId: string; moduleName: string }>
   >(() => {
     if (catalog.status !== "ready" || grants.status !== "ready") return [];
-    const grantedPlugins = new Set(grants.grants.map((g) => g.plugin));
+    const matterGrantsBySkill = new Map<string, Set<string>>();
+    for (const g of grants.grants) {
+      if (g.scope_type !== "matter") continue;
+      const key = `${g.plugin}::${g.skill}`;
+      let bag = matterGrantsBySkill.get(key);
+      if (bag === undefined) {
+        bag = new Set<string>();
+        matterGrantsBySkill.set(key, bag);
+      }
+      bag.add(g.capability);
+    }
     const out: Array<{
       moduleId: string;
       capabilityId: string;
@@ -225,10 +264,15 @@ export function GrantsPanel({ slug }: { slug: string }) {
     }> = [];
     for (const m of catalog.modules) {
       if (!m.is_valid) continue;
-      if (!grantedPlugins.has(m.module_id)) continue;
       const name = manifestName(m);
       for (const c of capabilitiesOf(m)) {
         if (c.scope !== "matter") continue;
+        const required = [...c.reads, ...c.writes];
+        if (required.length === 0) continue;
+        const bag = matterGrantsBySkill.get(`${m.module_id}::${c.id}`);
+        if (bag === undefined) continue;
+        const allGranted = required.every((s) => bag.has(s));
+        if (!allGranted) continue;
         out.push({
           moduleId: m.module_id,
           capabilityId: c.id,
