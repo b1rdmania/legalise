@@ -199,7 +199,7 @@ Same pattern Phase 5/6/8/10 used (capture audit_failure via monkeypatch) — the
 - HTTP endpoint variant of bootstrap — CLI only
 - User registration via the CLI — registration stays on the auth surface
 - Bulk bootstrap — one user per invocation
-- Superuser demotion via CLI — use Phase 11's HTTP role endpoint
+- Superuser demotion / `is_superuser` toggling — Phase 11's HTTP endpoint changes `User.role`, NOT `is_superuser`; neither phase ships an HTTP path for demoting an admin off `is_superuser`. Off-boarding stays on direct DB for now.
 - Web admin console → Phase 13+
 - YAML config file — args only
 - Audit-log surface for past bootstraps — `/audit/reconstruction` covers it

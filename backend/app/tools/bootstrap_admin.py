@@ -116,10 +116,11 @@ async def _bootstrap(
             ),
         )
 
-    # Idempotent — if the target is already a superuser AND no role
-    # change was requested, exit cleanly with the same audit shape
-    # but a no-op payload. (We still write an audit row for the
-    # invocation so reconstruction sees the operator's gesture.)
+    # Capture the pre-mutation state for the audit row's
+    # from-to payload. The "any superuser exists" check above
+    # guarantees is_superuser_was is False on this code path
+    # (unless --force was supplied), so the audit row honestly
+    # records the transition.
     is_superuser_was = target.is_superuser
     role_was = target.role
 
