@@ -11,11 +11,15 @@
 
 The plan defined three success criteria. The build met all three:
 
+Phase 9's clean base is `eb2d71d` (Phase 8 ratified + the
+posture-gate manifest follow-up that the Reviewer asked for before
+ratification).
+
 | Criterion | Result |
 | --- | --- |
-| No `core/` / `api/` / `models/` / `alembic/` edits | **Zero.** `git diff --stat 872d84c..HEAD -- backend/app/core backend/app/api backend/app/models backend/alembic` is empty. |
+| No `core/` / `api/` / `models/` / `alembic/` edits | **Zero.** `git diff --stat eb2d71d..HEAD -- backend/app/core backend/app/api backend/app/models backend/alembic` is empty. |
 | No new vocabulary (capabilities, audit actions, BlockedReason, postures) | **Zero new.** Pre-Motion reuses `matter.document.read` + `matter.artifact.write` + the four canonical audit actions Phase 6 + Phase 8 produced. |
-| No edits to existing tests | **Zero.** `git diff --stat 872d84c..HEAD -- backend/tests` is empty. |
+| No edits to existing tests | **Zero.** The only new file under `backend/tests/` is `test_phase9_pre_motion_vertical_slice.py`; no pre-existing test file was modified. (Confirm via `git diff --name-only eb2d71d..HEAD -- backend/tests`: only the new file is listed.) |
 
 Pre-Motion ships entirely from module-author code under
 `examples/modules/pre_motion/` plus the dedicated integration test

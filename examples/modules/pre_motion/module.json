@@ -6,7 +6,6 @@
         "module.capability.invoked",
         "model.invoked",
         "advice_boundary.decision.completed",
-        "artifact.created",
         "module.capability.completed",
         "posture_gate.check.blocked"
       ],
@@ -67,7 +66,7 @@
   "publisher": "legalise",
   "runtime": "native",
   "schema_version": "2.0.0",
-  "signature": "896f0e0960a5d3422e6378119eb501ef82d3fb7d1f531c3beccc42bc8d00e3fd",
+  "signature": "c961747b59a610258658fafd1b8171b172f845f0b4bdb9e7537e1222cb22c58a",
   "signed_by": "legalise",
   "version": "1.0.0",
   "visibility": "example"

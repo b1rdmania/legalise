@@ -5,8 +5,7 @@
       "audit_events": [
         "module.capability.invoked",
         "model.invoked",
-        "advice_boundary.decision.allowed",
-        "artifact.created",
+        "advice_boundary.decision.completed",
         "module.capability.completed",
         "posture_gate.check.blocked"
       ],
@@ -67,7 +66,7 @@
   "publisher": "legalise",
   "runtime": "native",
   "schema_version": "2.0.0",
-  "signature": "5d7de05a26ce95ebc422c0ba01bfa620c340403d6dac6de25b02c583d1e56f82",
+  "signature": "457563eb887783d802c27229d15c782442ce68f61026cdf177c274e809a16875",
   "signed_by": "legalise",
   "version": "1.0.0",
   "visibility": "example"
