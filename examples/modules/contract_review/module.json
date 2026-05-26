@@ -7,7 +7,8 @@
         "model.invoked",
         "advice_boundary.decision.allowed",
         "artifact.created",
-        "module.capability.completed"
+        "module.capability.completed",
+        "posture_gate.check.blocked"
       ],
       "data_movement": {
         "external_destinations": [],
@@ -66,7 +67,7 @@
   "publisher": "legalise",
   "runtime": "native",
   "schema_version": "2.0.0",
-  "signature": "1d5129f236146996ab277f0fcc9ebbe46c15f122595c5590ab5ab6f517fdfa1d",
+  "signature": "5d7de05a26ce95ebc422c0ba01bfa620c340403d6dac6de25b02c583d1e56f82",
   "signed_by": "legalise",
   "version": "1.0.0",
   "visibility": "example"
