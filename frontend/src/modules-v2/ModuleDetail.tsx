@@ -13,6 +13,15 @@
  *   - Install CTA POSTs to /api/modules/install and navigates to
  *     /modules/install/{ceremony_id}. The stepper UI lives in
  *     InstallCeremony.tsx — this page does NOT inline the ceremony.
+ *
+ * Authority gating (load-bearing — no smuggled authority per
+ * ACCEPTANCE.md §12):
+ *   - Install   → superuser only (substrate enforces via
+ *                 require_admin at modules.py:678)
+ *   - Update    → superuser only (require_admin at modules.py:997)
+ *   - Revoke    → superuser only (require_admin at modules.py:911)
+ *   Non-admins see an explainer and the CTAs are hidden / disabled —
+ *   we don't render an Install button that 403s.
  */
 
 import { useEffect, useState } from "react";
@@ -279,16 +288,16 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           Lifecycle
         </h2>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onInstall}
-            disabled={life.kind === "installing" || !entry.is_valid}
-            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
-          >
-            {life.kind === "installing" ? "Starting ceremony…" : "Install"}
-          </button>
-          {isAdmin && (
+          {isAdmin ? (
             <>
+              <button
+                type="button"
+                onClick={onInstall}
+                disabled={life.kind === "installing" || !entry.is_valid}
+                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+              >
+                {life.kind === "installing" ? "Starting ceremony…" : "Install"}
+              </button>
               <button
                 type="button"
                 onClick={() => setUpdateOpen((v) => !v)}
@@ -305,11 +314,10 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
                 {life.kind === "revoking" ? "Revoking…" : "Revoke"}
               </button>
             </>
-          )}
-          {!isAdmin && (
-            <p className="text-xs text-muted">
-              Install starts the trust ceremony. Update / Revoke are
-              admin-only.
+          ) : (
+            <p className="text-sm text-muted">
+              Install, update, and revoke require superuser. Ask your
+              workspace administrator to install this module.
             </p>
           )}
         </div>

@@ -148,7 +148,7 @@ describe("InstallCeremony — advance actions", () => {
 });
 
 describe("InstallCeremony — 409 invalid-transition", () => {
-  it("renders a structured banner with the audit deep-link", async () => {
+  it("renders a structured banner naming the substrate audit row", async () => {
     vi.spyOn(api, "getCeremony").mockResolvedValue(makeCeremony());
     vi.spyOn(api, "advanceCeremony").mockRejectedValueOnce(
       new api.InvalidCeremonyTransitionError(
@@ -169,17 +169,18 @@ describe("InstallCeremony — 409 invalid-transition", () => {
         screen.getByText(/invalid ceremony transition/i),
       ).toBeInTheDocument();
     });
-    // The banner references the substrate's audit row.
+    // The banner references the substrate's audit row by name.
     expect(screen.getByText(/module\.ceremony\.rejected/)).toBeInTheDocument();
-    // Deep-link uses the stable query-param shape Phase 14 E will
-    // honour.
-    const auditLink = screen.getByRole("link", {
-      name: /view in audit trail/i,
-    });
-    expect(auditLink.getAttribute("href")).toMatch(
-      /action=module\.ceremony\.rejected/,
-    );
-    expect(auditLink.getAttribute("href")).toMatch(/ceremony=cer-1/);
+    // The banner does NOT render a deep-link. Ceremonies are
+    // workspace-scoped; the existing /matters/{slug}/audit surface
+    // (Phase 14 E target) would not surface a ceremony rejection.
+    // A global audit reconstruction view is filed as
+    // BACKEND_GAP_AUDIT 14-B-#2; until that ships, no link is rendered.
+    expect(
+      screen.queryByRole("link", { name: /view in audit trail/i }),
+    ).toBeNull();
+    // The placeholder we previously shipped must NOT be reintroduced.
+    expect(document.body.innerHTML).not.toMatch(/\/admin\/audit/);
   });
 });
 

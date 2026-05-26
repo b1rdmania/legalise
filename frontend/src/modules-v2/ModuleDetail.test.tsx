@@ -81,7 +81,12 @@ afterEach(() => {
 describe("ModuleDetail", () => {
   it("renders the manifest header + capabilities table", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
-    vi.spyOn(api, "getCurrentUser").mockResolvedValue(null);
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: "u-1",
+      email: "admin@example.com",
+      role: "qualified_solicitor",
+      is_superuser: true,
+    } as never);
     mountAt("contract-review");
     await waitFor(() => {
       expect(screen.getByText("Contract Review")).toBeInTheDocument();
@@ -95,9 +100,14 @@ describe("ModuleDetail", () => {
     expect(screen.getByText("tier_2")).toBeInTheDocument();
   });
 
-  it("Install CTA starts a ceremony and navigates to the stepper", async () => {
+  it("admin: Install CTA starts a ceremony and navigates to the stepper", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
-    vi.spyOn(api, "getCurrentUser").mockResolvedValue(null);
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: "u-1",
+      email: "admin@example.com",
+      role: "qualified_solicitor",
+      is_superuser: true,
+    } as never);
     const start = vi.spyOn(api, "startInstall").mockResolvedValue({
       ceremony_id: "cer-abc",
       module_id: "contract-review",
@@ -125,7 +135,7 @@ describe("ModuleDetail", () => {
     });
   });
 
-  it("hides Update + Revoke for non-admins", async () => {
+  it("non-admin: Install button is hidden and startInstall cannot be triggered", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -133,17 +143,25 @@ describe("ModuleDetail", () => {
       role: "solicitor",
       is_superuser: false,
     } as never);
+    const start = vi.spyOn(api, "startInstall");
+
     mountAt("contract-review");
+    // Manifest header must still render — non-admins can read the
+    // catalog detail, they just can't install.
     await waitFor(() => {
-      expect(screen.getByText("Install")).toBeInTheDocument();
+      expect(screen.getByText("Contract Review")).toBeInTheDocument();
     });
+    // None of the admin-only CTAs are present.
+    expect(screen.queryByText("Install")).toBeNull();
     expect(screen.queryByText("Update")).toBeNull();
     expect(screen.queryByText("Revoke")).toBeNull();
-    // The non-admin explainer is present.
-    expect(screen.getByText(/admin-only/i)).toBeInTheDocument();
+    // The substrate-truth explainer IS present.
+    expect(screen.getByText(/require superuser/i)).toBeInTheDocument();
+    // And the network is never poked — no smuggled authority.
+    expect(start).not.toHaveBeenCalled();
   });
 
-  it("shows Update + Revoke for superusers", async () => {
+  it("admin: shows Install + Update + Revoke", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",

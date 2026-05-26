@@ -138,6 +138,20 @@ Either lets the catalog render without N+1. B is fewer LOC backend but couples v
 
 **Status:** filed Phase 14 B (frontend ships catalog without installed-status badges; UX degrades gracefully — "Open" is the affordance on every card). Phase 14 D may depend on this for invocation-ready check; revisit there if not closed first.
 
+### Finding 14-B-#2 — no global / workspace-scoped audit reconstruction surface
+
+**Expected:** a reconstruction view that surfaces workspace-scoped audit rows (ceremony events, settings key operations, admin role mutations) — i.e. events that are not bound to a specific matter and therefore don't appear in `GET /api/matters/{slug}/audit/reconstruction`.
+
+**Verification:** the only reconstruction endpoint is `GET /api/matters/{slug}/audit/reconstruction` (`backend/app/api/audit.py:108`), matter-scoped by design. Phase 14 B emits `module.ceremony.rejected` from the substrate when an invalid transition is requested; the UI surfaces a banner naming that row but cannot deep-link to a reconstruction view that doesn't exist.
+
+**Used by:** Phase 14 B trust-ceremony invalid-transition banner; Phase 14 G settings + admin pages would benefit too.
+
+**Proposed shape:** either
+- new endpoint `GET /api/admin/audit/reconstruction` (superuser-only) returning workspace-scoped rows with the same shape as the matter endpoint; OR
+- a `scope=workspace` query param on the existing reconstruction endpoint (admin-only) that returns rows where `matter_id IS NULL`.
+
+**Status:** filed Phase 14 B. Frontend banner ships without a deep-link (P1 redline fix). When this lands, the InstallCeremony invalid-transition banner can carry a real link without churn.
+
 Five real gaps the spec needs and the substrate doesn't ship today.
 
 ### Gap #1 — Artifact listing per matter (CLOSED — Phase 13b A)

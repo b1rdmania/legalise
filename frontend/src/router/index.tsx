@@ -231,13 +231,15 @@ const settingsPreferencesRoute = createRoute({
 });
 
 // ---------------------------------------------------------------------------
-// Phase 14 A-G placeholders — every new surface gets a route now so
-// deep-links resolve. Until its sub-step ratifies the route renders
-// `PlaceholderPage`. No feature-flag plumbing here; sub-steps swap
-// their placeholder for the real component when they land.
+// Phase 14 sub-step routes.
 //
-// All placeholders inherit the authed gate via __authed (except `/app`,
-// which is intentionally public — see appHomeRoute below).
+// Each Phase 14 A-G surface gets a route now so deep-links resolve from
+// day one. Sub-steps that have shipped (A, B) wire the real component.
+// Sub-steps still pending (C, D, E, F) keep `PlaceholderPage` until they
+// ratify; the route exists so links into them don't 404 mid-build.
+//
+// All routes here inherit the authed gate via __authed except `/app`,
+// which is intentionally public — see appHomeRoute below.
 // ---------------------------------------------------------------------------
 
 // `/app` is intentionally NOT under __authed. The first-run states
