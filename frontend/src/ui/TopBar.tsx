@@ -25,6 +25,12 @@ export function TopBar({
   const isModules = route.name === "modules";
   const isList = route.name === "list";
   const isDemo = route.name === "demo";
+  // Phase 14 G — admin nav anchor. Only superusers see it; the
+  // substrate enforces independently. Active state covers the two
+  // Phase 14 F surfaces.
+  const isAdmin =
+    route.name === "adminUsers" || route.name === "adminUserDetail";
+  const showAdminAnchor = auth.user?.is_superuser === true;
 
   const surfaceLabel =
     SIDEBAR_NAV.find((t) => t.key === drawerTab)?.label ??
@@ -99,6 +105,18 @@ export function TopBar({
                 >
                   Settings
                 </a>
+                {showAdminAnchor && (
+                  <a
+                    href="/admin/users"
+                    data-testid="admin-nav-anchor"
+                    className={
+                      "transition-colors " +
+                      (isAdmin ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                    }
+                  >
+                    Admin
+                  </a>
+                )}
                 <ProfileChip user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
               </>
             ) : (

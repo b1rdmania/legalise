@@ -373,6 +373,7 @@ export function MatterDetail({ slug }: { slug: string }) {
             <PostureBanner
               posture={matter.privilege_posture}
               user={auth.user}
+              onChangePosture={onPostureChange}
             />
           )}
           {tab === "assistant" && (

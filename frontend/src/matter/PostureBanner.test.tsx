@@ -5,8 +5,8 @@
  * matrix is the load-bearing UX contract; this test pins it.
  */
 
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PostureBanner } from "./PostureBanner";
 import type { CurrentUser } from "../lib/api";
 
@@ -95,7 +95,10 @@ describe("PostureBanner — B_mixed", () => {
 });
 
 describe("PostureBanner — C_paused", () => {
-  it("renders for any role including admin", () => {
+  it("renders the banner for an admin", () => {
+    // No admin-only inline hint anymore — Phase 14 G replaced the
+    // copy-only PATCH hint with the ChangePostureControl. Hint
+    // behaviour is now in the change-posture-CTA describe block.
     render(
       <PostureBanner
         posture="C_paused"
@@ -104,15 +107,14 @@ describe("PostureBanner — C_paused", () => {
     );
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
     expect(screen.getByText(/matter is paused/i)).toBeInTheDocument();
-    // Admins see the unpause hint.
-    expect(screen.getByText(/PATCH .*\/privilege/)).toBeInTheDocument();
   });
 
-  it("renders for solicitor without admin hint", () => {
+  it("renders for solicitor", () => {
     render(<PostureBanner posture="C_paused" user={user("solicitor")} />);
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
-    // No admin unpause hint for non-admins.
-    expect(screen.queryByText(/PATCH .*\/privilege/)).toBeNull();
+    // Without an onChangePosture callback, no control renders for
+    // any viewer including admins.
+    expect(screen.queryByTestId("change-posture-control")).toBeNull();
   });
 });
 
@@ -136,5 +138,77 @@ describe("PostureBanner — does NOT deep-link to reconstruction yet", () => {
     expect(
       screen.queryByRole("link", { name: /view.*audit/i }),
     ).toBeNull();
+  });
+});
+
+describe("PostureBanner — Phase 14 G admin posture-change CTA", () => {
+  it("shows change-posture control to superusers and forwards the new value", async () => {
+    const onChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PostureBanner
+        posture="B_mixed"
+        user={user("solicitor", { is_superuser: true })}
+        onChangePosture={onChange}
+      />,
+    );
+    // Superuser still sees the banner (P1 from C ratification — no
+    // posture bypass) AND now sees the admin change control.
+    expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("change-posture-control"),
+    ).toBeInTheDocument();
+    // Default select value mirrors current posture; submit disabled.
+    const select = screen.getByTestId(
+      "change-posture-select",
+    ) as HTMLSelectElement;
+    expect(select.value).toBe("B_mixed");
+    const submit = screen.getByTestId(
+      "change-posture-submit",
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.change(select, { target: { value: "A_cleared" } });
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(submit);
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith("A_cleared");
+    });
+  });
+
+  it("hides change-posture control from non-superusers", () => {
+    const onChange = vi.fn();
+    render(
+      <PostureBanner
+        posture="B_mixed"
+        user={user("solicitor")}
+        onChangePosture={onChange}
+      />,
+    );
+    expect(screen.queryByTestId("change-posture-control")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("renders change-posture control on C_paused for admins too", () => {
+    const onChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PostureBanner
+        posture="C_paused"
+        user={user("workspace_admin", { is_superuser: true })}
+        onChangePosture={onChange}
+      />,
+    );
+    expect(
+      screen.getByTestId("change-posture-control"),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the control when onChangePosture is not provided (caller opt-in)", () => {
+    render(
+      <PostureBanner
+        posture="B_mixed"
+        user={user("solicitor", { is_superuser: true })}
+      />,
+    );
+    expect(screen.queryByTestId("change-posture-control")).toBeNull();
   });
 });

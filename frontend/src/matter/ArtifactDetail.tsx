@@ -119,7 +119,7 @@ export function ArtifactDetail({
           href={auditHref}
           className="text-muted underline underline-offset-4 hover:text-ink"
         >
-          See audit trail for this invocation (Phase 14 E)
+          See audit trail for this invocation
         </a>
       </section>
     </div>

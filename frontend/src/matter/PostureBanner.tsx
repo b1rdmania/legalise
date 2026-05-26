@@ -27,6 +27,7 @@
  * settings touchpoint per the build plan.
  */
 
+import { useState } from "react";
 import type { CurrentUser } from "../lib/api";
 
 type Posture = "A_cleared" | "B_mixed" | "C_paused" | string;
@@ -34,7 +35,19 @@ type Posture = "A_cleared" | "B_mixed" | "C_paused" | string;
 interface Props {
   posture: Posture;
   user: CurrentUser | null;
+  // Phase 14 G — admin posture change. Optional so non-matter
+  // callers (tests, future surfaces) can omit. When provided AND
+  // the viewer is a superuser, an inline "Change posture" control
+  // renders inside the banner. The callback receives the new
+  // posture string and is responsible for the PATCH + refetch.
+  onChangePosture?: (next: Posture) => Promise<void>;
 }
+
+const ALL_POSTURES: ReadonlyArray<Posture> = [
+  "A_cleared",
+  "B_mixed",
+  "C_paused",
+];
 
 // Only `qualified_solicitor` satisfies B_mixed in the substrate.
 // `workspace_admin` / `is_superuser` is NOT a bypass — Phase 10
@@ -43,7 +56,10 @@ interface Props {
 // substrate behaviour (ACCEPTANCE.md §14).
 const ROLE_THAT_SATISFIES_B_MIXED = "qualified_solicitor";
 
-export function PostureBanner({ posture, user }: Props) {
+export function PostureBanner({ posture, user, onChangePosture }: Props) {
+  const adminCanChange =
+    onChangePosture !== undefined && user?.is_superuser === true;
+
   // A_cleared is the no-banner case. Anyone authenticated may run; the
   // banner is intentionally silent.
   if (posture === "A_cleared") return null;
@@ -58,17 +74,13 @@ export function PostureBanner({ posture, user }: Props) {
         <p className="mt-1 text-sm text-muted">
           Requires <code className="font-mono text-xs">matter_paused</code>{" "}
           (no role satisfies — this is a hard stop).
-          {user?.is_superuser && (
-            <>
-              {" "}
-              An administrator can unpause via{" "}
-              <code className="font-mono text-xs">
-                PATCH /api/matters/&#123;slug&#125;/privilege
-              </code>
-              .
-            </>
-          )}
         </p>
+        {adminCanChange && (
+          <ChangePostureControl
+            current={posture}
+            onChange={onChangePosture!}
+          />
+        )}
       </BannerShell>
     );
   }
@@ -96,6 +108,12 @@ export function PostureBanner({ posture, user }: Props) {
             </>
           )}
         </p>
+        {adminCanChange && (
+          <ChangePostureControl
+            current={posture}
+            onChange={onChangePosture!}
+          />
+        )}
       </BannerShell>
     );
   }
@@ -116,6 +134,69 @@ export function PostureBanner({ posture, user }: Props) {
 // ---------------------------------------------------------------------------
 // Banner shell — colour-coded by tone.
 // ---------------------------------------------------------------------------
+
+// Phase 14 G — admin-only inline posture change. Wired against the
+// existing `PATCH /api/matters/{slug}/privilege` (Phase 4) via the
+// onChangePosture callback. Banner re-renders against the new
+// posture once the parent refetches the matter.
+function ChangePostureControl({
+  current,
+  onChange,
+}: {
+  current: Posture;
+  onChange: (next: Posture) => Promise<void>;
+}) {
+  const [next, setNext] = useState<Posture>(current);
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onSubmit = async () => {
+    if (next === current) return;
+    setErr(null);
+    setSubmitting(true);
+    try {
+      await onChange(next);
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-2" data-testid="change-posture-control">
+      <label className="flex flex-col text-xs text-muted">
+        <span className="mb-1">Change posture</span>
+        <select
+          data-testid="change-posture-select"
+          value={next}
+          onChange={(e) => setNext(e.target.value as Posture)}
+          className="rounded-md border border-line bg-paper px-3 py-1 text-sm text-ink"
+        >
+          {ALL_POSTURES.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        data-testid="change-posture-submit"
+        onClick={onSubmit}
+        disabled={next === current || submitting}
+        className="inline-flex items-center rounded-md border border-ink px-3 py-1 text-xs text-ink hover:bg-ink hover:text-paper disabled:opacity-50"
+      >
+        {submitting ? "Submitting…" : "Apply"}
+      </button>
+      {err && (
+        <p className="text-xs text-seal" data-testid="change-posture-error">
+          {err}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function BannerShell({
   tone,
