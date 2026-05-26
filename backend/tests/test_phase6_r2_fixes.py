@@ -34,6 +34,7 @@ from app.models import (
     DocumentBody,
     Matter,
     MatterArtifact,
+    PRIVILEGE_CLEARED,
     PRIVILEGE_MIXED,
     STATUS_OPEN,
     User,
@@ -58,13 +59,18 @@ async def _make_user(db_session, *, role: str = "solicitor") -> User:
 
 
 async def _make_matter(db_session, user) -> Matter:
+    # R2 tests target grant/role mechanics, NOT posture. We use
+    # A_cleared so the Phase 8 posture gate passes regardless of
+    # the user's default 'solicitor' role and the test's actual
+    # concern (missing grant, wrong matter, smuggled role) fires.
+    # Posture-specific behaviour is covered by test_phase8_posture_gate.py.
     matter = Matter(
         id=uuid.uuid4(),
         slug=f"r2-{uuid.uuid4().hex[:8]}",
         title="R2 Test",
         matter_type="employment_tribunal",
         status=STATUS_OPEN,
-        privilege_posture=PRIVILEGE_MIXED,
+        privilege_posture=PRIVILEGE_CLEARED,
         default_model_id="claude-opus-4-7",
         created_by_id=user.id,
     )

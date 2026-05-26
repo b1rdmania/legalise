@@ -144,10 +144,13 @@ async def test_contract_review_vertical_slice(client) -> None:
     from app.main import app
     factory = app.state.session_factory
 
-    # Promote to superuser so the module install gate passes.
+    # Promote to superuser so the module install gate passes, AND
+    # to qualified_solicitor so the Phase 8 posture gate passes on
+    # the default-posture (B_mixed) Khan v Acme matter.
     async with factory() as session:
         user = await session.scalar(select(User).where(User.email == email))
         user.is_superuser = True
+        user.role = "qualified_solicitor"
         await session.commit()
         user_id = user.id
 

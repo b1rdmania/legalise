@@ -33,6 +33,7 @@ from app.core.audit_cost import audit_emit_model_invoked
 from app.core.capabilities import require_capability
 from app.core.matter_artifacts import write_artifact
 from app.core.phase1_runtime import audit_phase1
+from app.core.posture_gate import PostureBlocked, check_posture
 from app.models import Document, DocumentBody, Matter
 
 
@@ -160,6 +161,20 @@ async def review_contract(
     """
     actor_user_id = context.actor_user_id
     invocation_id = context.invocation_id
+
+    # 0. Posture gate — fires BEFORE require_capability so a
+    #    non-solicitor on a B_mixed matter gets a posture-shaped
+    #    denial, not a grant-shaped one. Phase 8 v2 Decision #5.
+    posture = await check_posture(
+        session,
+        matter=matter,
+        actor_user_id=actor_user_id,
+        actor_role=context.actor_role,
+        module_id=MODULE_ID,
+        capability_id=CAPABILITY_ID,
+    )
+    if not posture.allowed:
+        raise PostureBlocked(posture)
 
     # 1. Enforce read grant BEFORE touching the document. require_capability
     #    raises CapabilityDenied (caught upstream as 403) and writes the
