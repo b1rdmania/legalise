@@ -21,11 +21,13 @@ import {
 import { AppShell } from "../app/AppShell";
 import { AppHome } from "../app/AppHome";
 import { AuthGate } from "../app/AuthGate";
+import { ModulesCatalog } from "../modules-v2/ModulesCatalog";
+import { ModuleDetail } from "../modules-v2/ModuleDetail";
+import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
 import { SubmitModule } from "../landing/SubmitModule";
-import { Modules } from "../modules-page/Modules";
 import { SignIn } from "../auth/SignIn";
 import { SignUp } from "../auth/SignUp";
 import { ForgotPassword } from "../auth/ForgotPassword";
@@ -121,10 +123,14 @@ const verifyRoute = createRoute({
   }),
 });
 
+// Phase 14 B — /modules is now the v2 catalog (ModulesCatalog).
+// The pre-Phase-14 Modules component (v1 skill enable/disable) is
+// retained in the codebase under src/modules-page/ for reference but
+// no longer mounted on a route. Importing it elsewhere still works.
 const modulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/modules",
-  component: Modules,
+  component: ModulesCatalog,
 });
 
 const submitModuleRoute = createRoute({
@@ -226,11 +232,12 @@ const settingsPreferencesRoute = createRoute({
 
 // ---------------------------------------------------------------------------
 // Phase 14 A-G placeholders — every new surface gets a route now so
-// deep-links resolve. Each renders a "Coming in Phase 14 X" placeholder
-// gated by VITE_FEATURE_FLAGS. Until its sub-step lands the route is
-// reachable but inert.
+// deep-links resolve. Until its sub-step ratifies the route renders
+// `PlaceholderPage`. No feature-flag plumbing here; sub-steps swap
+// their placeholder for the real component when they land.
 //
-// All placeholders inherit the authed gate via __authed.
+// All placeholders inherit the authed gate via __authed (except `/app`,
+// which is intentionally public — see appHomeRoute below).
 // ---------------------------------------------------------------------------
 
 // `/app` is intentionally NOT under __authed. The first-run states
@@ -246,21 +253,19 @@ const appHomeRoute = createRoute({
 const moduleDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/modules/$moduleId",
-  component: () => (
-    <PlaceholderPage phase="B" route="/modules/{moduleId}" title="Module detail" />
-  ),
+  component: () => {
+    const { moduleId } = moduleDetailRoute.useParams();
+    return <ModuleDetail moduleId={moduleId} />;
+  },
 });
 
 const moduleInstallRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/modules/install/$ceremonyId",
-  component: () => (
-    <PlaceholderPage
-      phase="B"
-      route="/modules/install/{ceremonyId}"
-      title="Trust ceremony"
-    />
-  ),
+  component: () => {
+    const { ceremonyId } = moduleInstallRoute.useParams();
+    return <InstallCeremony ceremonyId={ceremonyId} />;
+  },
 });
 
 const matterAuditRoute = createRoute({

@@ -214,7 +214,11 @@ describe("AppHome — State 3: has_superuser, viewer authed", () => {
     await waitFor(() => {
       expect(screen.getByText("Home")).toBeInTheDocument();
     });
-    expect(screen.getByText("Kramer v AI")).toBeInTheDocument();
+    // listMatters is a second fetch behind the bootstrap+auth gates;
+    // wait for the row before asserting on the content alongside.
+    await waitFor(() => {
+      expect(screen.getByText("Kramer v AI")).toBeInTheDocument();
+    });
     // Khan CTA only when it's NOT already in the recent list — here
     // it isn't, so the CTA should render.
     expect(

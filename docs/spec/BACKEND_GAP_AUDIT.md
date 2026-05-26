@@ -105,6 +105,39 @@ Phase 13 reads `backend/app/api/*.py` + the route registration in `backend/app/m
 
 All five v2 endpoint gaps closed; audit-shape gap-fill complete.
 
+## Phase 14 findings
+
+Phase 14 B surfaced one gap. Not blocking the sub-step — frontend ships without the at-a-glance indicator and Reviewer decides whether to fill before Phase 14 D depends on it.
+
+### Finding 14-B-#1 — no listing of installed modules
+
+**Expected:** an authenticated endpoint returning `[{module_id, installed_version, publisher, enabled, ...}]` so the `/modules` catalog page can render "Installed vX.Y" / "Available" badges per module without N+1 requests.
+
+**Verification:** `grep -rn "InstalledModule" backend/app/api/*.py` shows `select(InstalledModule)` in `grants.py`, `invocations.py`, `modules.py` revoke + update — every call site filters by a known `module_id`. No listing endpoint.
+
+**Used by:** Phase 14 B catalog. Without it the catalog lists discovered modules but cannot surface "installed" vs "available" status. The detail page (`/modules/{id}`) avoids the gap because admins click Update / Revoke and surface 404 errors inline.
+
+**Proposed shape (two options for Reviewer):**
+
+Option A — new endpoint:
+```
+GET /api/modules/installed
+  → 200 [{module_id, version, publisher, enabled, installed_at, installed_by_user_id}]
+  → 401 if anon
+```
+
+Option B — augment V2ManifestEntry:
+```
+class V2ManifestEntry:
+    ...
+    installed_version: str | None      # set if a corresponding InstalledModule row exists
+    installed_enabled: bool             # the row's enabled flag
+```
+
+Either lets the catalog render without N+1. B is fewer LOC backend but couples v2-discovery to install-state queries; A keeps surfaces orthogonal.
+
+**Status:** filed Phase 14 B (frontend ships catalog without installed-status badges; UX degrades gracefully — "Open" is the affordance on every card). Phase 14 D may depend on this for invocation-ready check; revisit there if not closed first.
+
 Five real gaps the spec needs and the substrate doesn't ship today.
 
 ### Gap #1 — Artifact listing per matter (CLOSED — Phase 13b A)

@@ -207,6 +207,151 @@ export const getBootstrapState = () =>
     jsonOrThrow<BootstrapState>(r),
   );
 
+// ---------------------------------------------------------------------------
+// Phase 14 B — v2 module catalog + trust ceremony
+// ---------------------------------------------------------------------------
+
+export interface V2ManifestEntry {
+  module_id: string;
+  source_kind: string;
+  manifest: Record<string, unknown>;
+  is_valid: boolean;
+  validation_errors: Array<{ path: string; message: string }>;
+}
+
+export interface V2RegistryResponse {
+  modules: V2ManifestEntry[];
+  ui_slots: string[];
+}
+
+export const getModulesV2 = () =>
+  apiFetch(`${API}/modules/v2`).then((r) =>
+    jsonOrThrow<V2RegistryResponse>(r),
+  );
+
+export const getModuleV2 = (moduleId: string) =>
+  apiFetch(`${API}/modules/v2/${encodeURIComponent(moduleId)}`).then((r) =>
+    jsonOrThrow<V2ManifestEntry>(r),
+  );
+
+export interface CeremonyPermissionCard {
+  module_id: string;
+  module_name?: string;
+  publisher?: string;
+  publisher_verified?: boolean;
+  signature_status?: string;
+  visibility?: string;
+  version?: string;
+  capabilities?: unknown[];
+  data_movement_summary?: unknown;
+  gates?: unknown;
+  advice_tier_max?: string;
+  audit_events?: unknown[];
+  dependencies?: unknown[];
+}
+
+export interface CeremonyResponse {
+  ceremony_id: string;
+  module_id: string;
+  state: string;
+  fast_path: boolean;
+  is_terminal: boolean;
+  permission_card: CeremonyPermissionCard;
+  history: Array<Record<string, unknown>>;
+}
+
+export type CeremonyAction = "trust" | "reject" | "grant";
+
+export interface StartInstallRequest {
+  source: "registry" | "manifest";
+  module_id?: string;
+  manifest?: Record<string, unknown>;
+  signature?: string;
+}
+
+export const startInstall = (body: StartInstallRequest) =>
+  apiFetch(`${API}/modules/install`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<CeremonyResponse>(r));
+
+export const getCeremony = (ceremonyId: string) =>
+  apiFetch(`${API}/modules/install/${encodeURIComponent(ceremonyId)}`).then(
+    (r) => jsonOrThrow<CeremonyResponse>(r),
+  );
+
+/**
+ * Distinguishable error for the 409 invalid-transition path so the
+ * stepper can render a structured banner with the substrate's
+ * `module.ceremony.rejected` audit row in mind. The reason + message
+ * are populated from the substrate's structured detail body.
+ */
+export class InvalidCeremonyTransitionError extends Error {
+  readonly kind = "invalid_ceremony_transition" as const;
+  constructor(
+    message: string,
+    public readonly ceremonyId: string,
+    public readonly requestedAction: CeremonyAction,
+  ) {
+    super(message);
+    this.name = "InvalidCeremonyTransitionError";
+  }
+}
+
+export const advanceCeremony = async (
+  ceremonyId: string,
+  action: CeremonyAction,
+): Promise<CeremonyResponse> => {
+  const res = await apiFetch(
+    `${API}/modules/install/${encodeURIComponent(ceremonyId)}/advance`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    },
+  );
+  if (res.status === 409) {
+    let body: { detail?: { message?: string } } = {};
+    try {
+      body = (await res.json()) as typeof body;
+    } catch {
+      // fall through
+    }
+    throw new InvalidCeremonyTransitionError(
+      body?.detail?.message ?? "Invalid ceremony transition",
+      ceremonyId,
+      action,
+    );
+  }
+  return jsonOrThrow<CeremonyResponse>(res);
+};
+
+export interface UpdateModuleRequest {
+  new_manifest: Record<string, unknown>;
+  signature?: string;
+}
+
+export interface UpdateModuleResponse {
+  module_id: string;
+  new_version: string;
+  expansion_detected: boolean;
+  expansion_report: Record<string, unknown>;
+  ceremony_id: string | null;
+}
+
+export const updateModuleV2 = (moduleId: string, body: UpdateModuleRequest) =>
+  apiFetch(`${API}/modules/${encodeURIComponent(moduleId)}/update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<UpdateModuleResponse>(r));
+
+export const revokeModuleV2 = (moduleId: string) =>
+  apiFetch(`${API}/modules/${encodeURIComponent(moduleId)}/revoke`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<{ module_id: string; disabled_rows: number; revoked_grants: number }>(r));
+
 export const listMatters = () =>
   apiFetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
 
