@@ -102,6 +102,7 @@ from app.models.advice_boundary_decision import (
 
 # Phase 3 — installed modules registry.
 from app.models.installed_module import InstalledModule
+from app.models.matter_artifact import MatterArtifact
 
 __all__ = [
     "Base",
@@ -182,4 +183,5 @@ __all__ = [
     "DECISION_STATUS_VALUES",
     # Phase 3 — installed modules.
     "InstalledModule",
+    "MatterArtifact",
 ]

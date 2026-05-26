@@ -1,0 +1,73 @@
+{
+  "capabilities": [
+    {
+      "advice_tier_max": "draft_advice",
+      "audit_events": [
+        "module.capability.invoked",
+        "model.invoked",
+        "advice_boundary.decision.allowed",
+        "artifact.created",
+        "module.capability.completed"
+      ],
+      "data_movement": {
+        "external_destinations": [],
+        "local_only": true
+      },
+      "external_network": false,
+      "gates": [
+        "privilege_posture"
+      ],
+      "id": "review",
+      "kind": "skill",
+      "model_access": "required",
+      "reads": [
+        "matter.document.read"
+      ],
+      "scope": "matter",
+      "streaming_mode": "sync",
+      "ui": {
+        "label": "Review contract",
+        "slot": "matter.workflows"
+      },
+      "writes": [
+        "matter.artifact.write"
+      ]
+    },
+    {
+      "advice_tier_max": "factual_extraction",
+      "audit_events": [
+        "model.invoked"
+      ],
+      "data_movement": {
+        "external_destinations": [],
+        "local_only": true
+      },
+      "external_network": false,
+      "gates": [],
+      "id": "default-provider",
+      "kind": "provider",
+      "model_access": "none",
+      "reads": [],
+      "scope": "workspace",
+      "streaming_mode": "sync",
+      "ui": {
+        "label": "Provider (internal)",
+        "slot": "matter.workflows"
+      },
+      "writes": []
+    }
+  ],
+  "entrypoint": {
+    "entry": "ContractReviewModule",
+    "python_module": "examples.modules.contract_review"
+  },
+  "id": "examples.contract-review",
+  "name": "Contract Review",
+  "publisher": "legalise",
+  "runtime": "native",
+  "schema_version": "2.0.0",
+  "signature": "1d5129f236146996ab277f0fcc9ebbe46c15f122595c5590ab5ab6f517fdfa1d",
+  "signed_by": "legalise",
+  "version": "1.0.0",
+  "visibility": "example"
+}

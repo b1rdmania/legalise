@@ -69,6 +69,10 @@ services:
       # the capability-vocabulary parity test can both find the canonical
       # schemas/module.json from the repo root.
       - ../schemas:/schemas:ro
+      # Phase 6 reference modules — examples/modules/ at the repo root.
+      # The vertical-slice test reads contract_review/module.json from
+      # this path; future reference modules land alongside it.
+      - ../examples:/app/examples:ro
     depends_on:
       db:
         condition: service_healthy

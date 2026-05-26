@@ -154,6 +154,7 @@ async def check(
     actor_role: str | None = None,
     module_id: str | None = None,
     capability_id: str | None = None,
+    matter_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
     """Invoke the advice-boundary gate.
 
@@ -409,6 +410,16 @@ async def check(
         pass
 
     # All checks passed.
+    # Phase 5 reconstruction filters advice_boundary_decisions by
+    # ``gate_state->>'matter_id'`` — so when a caller supplies
+    # matter_id, inject it into the gate_state JSONB so the row
+    # shows up in the matter's timeline.
+    success_gate_state: dict[str, Any] = {
+        "allowed": True,
+        "declared_tier_max_supplied": declared_tier_max is not None,
+    }
+    if matter_id is not None:
+        success_gate_state["matter_id"] = str(matter_id)
     decision = await _append_decision(
         session,
         output_id=output_id,
@@ -419,7 +430,7 @@ async def check(
         module_id=module_id,
         capability_id=capability_id,
         declared_tier_max=declared_tier_max,
-        gate_state={"allowed": True, "declared_tier_max_supplied": declared_tier_max is not None},
+        gate_state=success_gate_state,
         status=DECISION_STATUS_COMPLETED,
     )
     await _emit(
