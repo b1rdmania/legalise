@@ -231,6 +231,89 @@ describe("ReconstructionView — source chips", () => {
   });
 });
 
+describe("ReconstructionView — partial-page honesty (filter + nextCursor)", () => {
+  // The reconstruction view is the deep-link target for B/C/D
+  // banners. When client-side filtering finds nothing on the loaded
+  // page BUT next_cursor exists, the UI must NOT claim "no rows
+  // match" absolutely. Doing so would tell users the event they
+  // were sent to investigate doesn't exist when it may just be on
+  // a later page (BACKEND_GAP_AUDIT 14-E-#1).
+  it("with active filter + no matches on page 1 + nextCursor present, copy is honest about partial scope and Load more is visible", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [
+        entry({
+          payload: { invocation_id: "inv-on-some-other-page" },
+          action: "model.call",
+          source_row_id: "r-irrelevant",
+        }),
+      ],
+      next_cursor: "page-2",
+      total_in_window_estimate: 200,
+    });
+
+    mountAt("/matters/khan/audit?invocation_id=inv-target");
+
+    // Empty state for filter+hasMore variant, NOT the absolute one.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("empty-loaded-not-all"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("empty-filter-no-match"),
+    ).toBeNull();
+    // Load more is visible so the user can keep searching.
+    expect(screen.getByText("Load more")).toBeInTheDocument();
+    // The honesty advisory also renders (the variant for when we
+    // DO have some visible rows + nextCursor isn't strictly the
+    // same case, but the partial-empty branch is the load-bearing
+    // one for false-negatives).
+  });
+
+  it("with active filter + rows visible + nextCursor, advisory renders to set expectations", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [
+        entry({
+          payload: { invocation_id: "inv-9999" },
+          source_row_id: "r-match",
+        }),
+      ],
+      next_cursor: "page-2",
+      total_in_window_estimate: 200,
+    });
+
+    mountAt("/matters/khan/audit?invocation_id=inv-9999");
+    await waitFor(() => {
+      expect(screen.getByTestId("timeline-row-r-match")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId("filter-partial-advisory"),
+    ).toBeInTheDocument();
+  });
+
+  it("with active filter + no matches + NO nextCursor, copy is the absolute 'no match' variant", async () => {
+    // Whole window loaded — claim "no rows match" honestly.
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [
+        entry({
+          payload: { invocation_id: "inv-other" },
+          source_row_id: "r-irrelevant",
+        }),
+      ],
+      next_cursor: null,
+      total_in_window_estimate: 1,
+    });
+
+    mountAt("/matters/khan/audit?invocation_id=inv-target");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("empty-filter-no-match"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Load more")).toBeNull();
+  });
+});
+
 describe("ReconstructionView — pagination", () => {
   it("loads more rows via the next_cursor", async () => {
     const spy = vi.spyOn(api, "getReconstruction");

@@ -227,10 +227,27 @@ export function ReconstructionView({ slug }: { slug: string }) {
               ? ` · ~${fetchState.totalEstimate} in window`
               : ""}
           </p>
-          {visibleEntries.length === 0 ? (
-            <p className="mt-4 text-sm text-muted">
-              No timeline rows match the current filters.
+
+          {/* Honesty advisory: filters apply client-side over loaded
+              rows only. As long as next_cursor exists, more matches
+              may surface after Load more. See BACKEND_GAP_AUDIT
+              14-E-#1 — substrate-side invocation_id/action filtering
+              would remove the need for this advisory. */}
+          {(invocationFilter || actionFilter) && fetchState.nextCursor && (
+            <p
+              className="mt-2 text-xs text-muted"
+              data-testid="filter-partial-advisory"
+            >
+              Filter applies to loaded rows only — more matches may
+              appear after loading more.
             </p>
+          )}
+
+          {visibleEntries.length === 0 ? (
+            <EmptyState
+              filtersActive={!!(invocationFilter || actionFilter)}
+              hasMore={!!fetchState.nextCursor}
+            />
           ) : (
             <ol className="mt-4 space-y-3">
               {visibleEntries.map((e) => (
@@ -264,6 +281,47 @@ export function ReconstructionView({ slug }: { slug: string }) {
 }
 
 // ---------------------------------------------------------------------------
+
+function EmptyState({
+  filtersActive,
+  hasMore,
+}: {
+  filtersActive: boolean;
+  hasMore: boolean;
+}) {
+  // When filters are active and we haven't seen the whole window yet,
+  // do NOT claim "no rows match" — only the loaded page is empty.
+  // The reconstruction page is the trustworthy deep-link target for
+  // B/C/D banners; a false "no rows match" would tell the user the
+  // event they were sent here for doesn't exist when it might just
+  // be on a later page (BACKEND_GAP_AUDIT 14-E-#1).
+  if (filtersActive && hasMore) {
+    return (
+      <p
+        className="mt-4 text-sm text-muted"
+        data-testid="empty-loaded-not-all"
+      >
+        No loaded rows match yet. The filter is currently applied to
+        loaded rows only; load more to continue searching.
+      </p>
+    );
+  }
+  if (filtersActive) {
+    return (
+      <p
+        className="mt-4 text-sm text-muted"
+        data-testid="empty-filter-no-match"
+      >
+        No timeline rows match the current filters.
+      </p>
+    );
+  }
+  return (
+    <p className="mt-4 text-sm text-muted" data-testid="empty-no-rows">
+      No timeline rows recorded for this matter yet.
+    </p>
+  );
+}
 
 function FilterChip({
   label,
