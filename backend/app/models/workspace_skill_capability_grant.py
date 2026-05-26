@@ -6,14 +6,31 @@ Doctrine, locked at HANDOVER_LAUNCH_QA.md:
     Runtime enforces capabilities.
 
 This table is the storage layer for the "Workspace grants" half. A row
-asserts that `user_id` has authorised `(plugin, skill)` to exercise
-`capability` at runtime. Absence is denial. The runtime check in
-`app.core.capabilities.require_capability` reads this table on every
-privileged boundary.
+asserts that ``user_id`` has authorised ``(plugin, skill)`` to exercise
+``capability`` at runtime AT THE SPECIFIED SCOPE. Absence is denial.
+The runtime check in ``app.core.capabilities.require_capability``
+reads this table on every privileged boundary.
 
-`(user_id, plugin, skill, capability)` is unique by composite constraint.
-`granted_by_user_id` records the actor who granted the capability for
-audit trails (NULL for system auto-grants at signup).
+Phase 7 added ``scope_type`` + ``scope_id`` as first-class columns
+(migration 0019) so the same user can hold the same capability at
+different scopes (e.g. matter A and matter B) without collision.
+Uniqueness is now the 6-tuple:
+
+    (user_id, plugin, skill, capability, scope_type, scope_id)
+
+…enforced via ``uq_grant_user_plugin_skill_cap_scope`` with the
+``NULLS NOT DISTINCT`` modifier so two workspace-scope grants for
+the same 4-tuple collide cleanly (Postgres 15+).
+
+``ck_grant_scope_pairing`` enforces ``(scope_type = 'matter') =
+(scope_id IS NOT NULL)``; ``ck_grant_scope_type_vocab`` (migration
+0020) pins ``scope_type`` to the two-value vocabulary.
+
+``granted_by_user_id`` records the actor who granted the capability
+for audit trails (NULL for system auto-grants at signup).
+``granted_permissions_snapshot`` carries provenance from the trust
+ceremony — what the user saw at grant time — but is no longer the
+uniqueness primitive.
 """
 
 from __future__ import annotations
@@ -121,6 +138,10 @@ class WorkspaceSkillCapabilityGrant(Base):
         CheckConstraint(
             "(scope_type = 'matter') = (scope_id IS NOT NULL)",
             name="ck_grant_scope_pairing",
+        ),
+        CheckConstraint(
+            "scope_type IN ('workspace', 'matter')",
+            name="ck_grant_scope_type_vocab",
         ),
         Index(
             "ix_capability_grants_user_plugin_skill",

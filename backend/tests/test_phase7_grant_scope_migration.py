@@ -147,6 +147,29 @@ async def test_check_constraint_rejects_matter_without_id(db_session):
 
 
 @pytest.mark.asyncio
+async def test_scope_type_vocab_rejects_arbitrary_string(db_session):
+    """Reviewer Phase 7 follow-up: scope_type must be one of the
+    canonical two values. Pre-fix, the pairing check stopped bad
+    null pairings but a row with scope_type='global', scope_id=NULL
+    would have slipped through with no DB-side rejection."""
+    user = await _make_user(db_session)
+    db_session.add(
+        WorkspaceSkillCapabilityGrant(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            plugin="examples.test",
+            skill="t",
+            capability="workspace.thing.do",
+            scope_type="global",  # not in the vocabulary
+            scope_id=None,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await db_session.commit()
+    await db_session.rollback()
+
+
+@pytest.mark.asyncio
 async def test_check_constraint_rejects_workspace_with_id(db_session):
     user = await _make_user(db_session)
     matter = await _make_matter(db_session, user)
