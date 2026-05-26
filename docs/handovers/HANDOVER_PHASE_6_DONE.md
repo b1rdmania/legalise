@@ -189,7 +189,54 @@ PYTHONPATH=backend python3 -m scripts.sign_example_module \
 
 ## Hand-off line for Reviewer
 
-> *Phase 6 (Contract Review vertical slice) implemented end-to-end on `runtime-rewrite`. Full sweep green: 583 passed, 8 skipped. Single integration test (`test_phase6_vertical_slice.py`) walks the whole acceptance bar — install → grant → invoke → gate → artifact → reconstruction. Six architectural decisions request ratification; two deliberate variances from the plan documented (post-install grant separation; posture-aware gate deferred to Phase 7+). Phase 7+ artifacts already parked (async runtime). Ready for ratification.*
+> *Phase 6 (Contract Review vertical slice) implemented end-to-end on `runtime-rewrite`. Full sweep green: 589 passed, 8 skipped. Single integration test (`test_phase6_vertical_slice.py`) walks the whole acceptance bar — install → grant → invoke → gate → artifact → reconstruction. Six architectural decisions request ratification; two deliberate variances from the plan documented (post-install grant separation; posture-aware gate deferred to Phase 7+). R2 fixes for artifact-overwrite, grant enforcement, host-derived actor role, and real document text in prompt applied. Phase 7+ artifacts already parked (async runtime). Ready for ratification.*
+
+---
+
+## R2 fixes applied (post-handover Reviewer pass)
+
+Reviewer flagged three P1s and one P2 on the first ratification pass. All four are now fixed and tested. Full sweep green at **589 passed, 8 skipped, 0 failed**.
+
+### Findings + fixes
+
+**P1 #1 — Artifact write could overwrite the WORM file before the DB UNIQUE rejected the duplicate.**
+
+The pre-fix shape: `{matter_dir}/artifacts/{capability_id}/{invocation_id}_{kind}.json` made the path deterministic by `(invocation_id, kind)`. A duplicate `write_artifact` call wrote the new payload, atomically replaced the file, then the DB `UNIQUE(invocation_id, kind)` constraint rejected the row. The WORM row survived intact — but the file it pointed at had different bytes.
+
+*Fix:* `_artifact_path` now keys the on-disk path by the new row's `uuid4`, not by `(invocation_id, kind)`. Two writes get two distinct paths; the first file is preserved; the second file becomes an orphan that a periodic Phase 7+ sweep can clean up. Row id is generated FIRST so the file write and DB insert agree on the path.
+
+**P1 #2 — Grants were inserted but never enforced at invocation time.**
+
+The pre-fix `review_contract` resolved the document and built the artifact assuming the host had already checked the read/write grants. But the vertical slice didn't go through the host — so the integration test proved grants could exist, not that they governed anything.
+
+*Fix:* `review_contract` now calls `require_capability` at two boundaries:
+- BEFORE document resolution → `matter.document.read`
+- BEFORE `write_artifact` → `matter.artifact.write`
+
+Either denial raises `CapabilityDenied` (HTTP 403), writes the canonical `module.capability.denied` audit row, and aborts BEFORE any artifact lands.
+
+**P1 #3 — The module was self-asserting `actor_role="qualified_solicitor"`.**
+
+A module that picks its own legal authority defeats the advice-boundary trust contract — it's the same shape the audit-bypass and gate-bypass earlier reviews already closed, repeated in module form.
+
+*Fix:* New `InvocationContext` dataclass carries `actor_user_id`, `actor_role`, `invocation_id`. The host populates this from the server-authoritative `User.role`; the module reads it but cannot construct one with elevated values inside the function body. `review_contract`'s public signature now requires the context, removing the path where a module could smuggle in its own role.
+
+**P2 — The prompt previously substituted "document text omitted" instead of reading the document body.**
+
+*Fix:* `review_contract` now loads `DocumentBody.extracted_text` and `_build_prompt(document, document_text)` embeds it. If no extracted body exists, the prompt explicitly notes that — never claims to have reviewed text that wasn't there.
+
+### Round-2 test file
+
+`backend/tests/test_phase6_r2_fixes.py` — 6 tests:
+
+- `test_duplicate_write_does_not_alter_original_file`
+- `test_missing_read_grant_blocks_with_no_artifact`
+- `test_missing_write_grant_blocks_after_read`
+- `test_module_cannot_smuggle_actor_role`
+- `test_prompt_contains_document_text`
+- `test_prompt_handles_missing_extraction`
+
+**Sweep after R2 fixes:** 589 passed, 8 skipped, 0 failed.
 
 ---
 

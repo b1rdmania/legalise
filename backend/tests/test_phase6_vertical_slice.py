@@ -255,19 +255,30 @@ async def test_contract_review_vertical_slice(client) -> None:
     # (Phase 7+ wires that) and exercises the capability through the
     # public review_contract entrypoint. Every substrate primitive
     # the capability touches is production code.
-    from examples.modules.contract_review.capability import review_contract
+    from examples.modules.contract_review.capability import (
+        InvocationContext,
+        review_contract,
+    )
 
     invocation_id = uuid.uuid4()
     async with factory() as session:
-        # Re-fetch matter so it's bound to this session.
+        # Re-fetch matter + user so they're bound to this session.
         matter = await session.scalar(
             select(Matter).where(Matter.id == matter_id)
+        )
+        user = await session.scalar(select(User).where(User.id == user_id))
+        # Build the InvocationContext from the SERVER-trusted user
+        # record. Reviewer R2 P1 #3: the module receives actor_role
+        # via this struct and cannot self-assert solicitor status.
+        context = InvocationContext(
+            actor_user_id=user_id,
+            actor_role=user.role,  # server-derived; default "solicitor"
+            invocation_id=invocation_id,
         )
         result = await review_contract(
             session=session,
             matter=matter,
-            actor_user_id=user_id,
-            invocation_id=invocation_id,
+            context=context,
             document_id=nda_id,
             provider_call=_stub_provider_call,
         )

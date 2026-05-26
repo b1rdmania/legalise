@@ -41,18 +41,30 @@ def _artifact_path(
     matter: Matter,
     *,
     capability_id: str,
-    invocation_id: uuid.UUID,
+    artifact_id: uuid.UUID,
     kind: str,
 ) -> Path:
+    """Compute the deterministic on-disk path for an artifact.
+
+    Reviewer Phase 6 R2 P1 #1: previously the path was derived from
+    ``(invocation_id, kind)``. That made the path collide for any
+    duplicate write — the file got overwritten BEFORE the DB
+    UNIQUE(invocation_id, kind) rejected the row. The WORM row
+    survived intact, but the file it pointed at had different bytes.
+
+    Fix: path keyed by ``artifact_id`` (the new row's uuid4). Two
+    writes for the same (invocation_id, kind) get two distinct
+    paths; the first file is preserved; the second insert fails the
+    UNIQUE constraint and the second file becomes an orphan that a
+    periodic Phase 7+ sweep can clean up.
+    """
     base = matter_dir(matter.slug, matter.created_by_id)
     # Sanitise capability_id so filesystem traversal is impossible.
-    # Capability ids follow the v2 grammar (lowercase alnum + dots +
-    # underscores); slashes would break that, but defence-in-depth.
     safe_cap = capability_id.replace("/", "_").replace("..", "_")
     artifact_root = base / "artifacts" / safe_cap
     artifact_root.mkdir(parents=True, exist_ok=True)
     safe_kind = kind.replace("/", "_").replace("..", "_")
-    return artifact_root / f"{invocation_id}_{safe_kind}.json"
+    return artifact_root / f"{artifact_id}_{safe_kind}.json"
 
 
 def _atomic_write_json(target: Path, payload: dict[str, Any]) -> int:
@@ -100,15 +112,18 @@ async def write_artifact(
       same invocation cannot write the same kind twice. Re-invocation
       requires a new invocation_id.
     """
+    # Generate the row id FIRST so the on-disk path is unique per
+    # row, not per (invocation_id, kind) (Reviewer R2 P1 #1).
+    artifact_id = uuid.uuid4()
     target = _artifact_path(
         matter,
         capability_id=capability_id,
-        invocation_id=invocation_id,
+        artifact_id=artifact_id,
         kind=kind,
     )
     size_bytes = _atomic_write_json(target, payload)
     row = MatterArtifact(
-        id=uuid.uuid4(),
+        id=artifact_id,
         matter_id=matter.id,
         module_id=module_id,
         capability_id=capability_id,

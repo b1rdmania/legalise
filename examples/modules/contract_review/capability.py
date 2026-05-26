@@ -30,13 +30,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.advice_boundary import check as advice_boundary_check
 from app.core.advice_boundary.tiers import ADVICE_TIER_DRAFT_ADVICE
 from app.core.audit_cost import audit_emit_model_invoked
+from app.core.capabilities import require_capability
 from app.core.matter_artifacts import write_artifact
 from app.core.phase1_runtime import audit_phase1
-from app.models import Document, Matter
+from app.models import Document, DocumentBody, Matter
 
 
 MODULE_ID = "examples.contract-review"
 CAPABILITY_ID = "review"
+
+# Server-trusted capability strings this module exercises at runtime.
+CAP_READ = "matter.document.read"
+CAP_WRITE = "matter.artifact.write"
+
+
+@dataclass
+class InvocationContext:
+    """Trusted invocation envelope, populated by the host (not the module).
+
+    Reviewer Phase 6 R2 P1 #3: a module must not self-assert the
+    caller's legal role. The host derives ``actor_role`` from the
+    server-authoritative user record (``User.role``) and hands it
+    to the module via this struct. The module reads it; it cannot
+    construct one with elevated values because the host is the only
+    legitimate producer.
+
+    In Phase 6 the host indirection is the test fixture +
+    ``review_contract``'s public signature requiring this struct.
+    Phase 7+ wires the same struct through the real MCP host.
+    """
+
+    actor_user_id: uuid.UUID
+    actor_role: str
+    invocation_id: uuid.UUID
 
 
 @dataclass
@@ -87,8 +113,7 @@ class ContractReviewModule:
         *,
         session: AsyncSession,
         matter: Matter,
-        actor_user_id: uuid.UUID,
-        invocation_id: uuid.UUID,
+        context: InvocationContext,
         args: dict[str, Any],
         provider_call,
     ) -> dict[str, Any]:
@@ -103,8 +128,7 @@ class ContractReviewModule:
         result = await review_contract(
             session=session,
             matter=matter,
-            actor_user_id=actor_user_id,
-            invocation_id=invocation_id,
+            context=context,
             document_id=uuid.UUID(str(document_id)),
             provider_call=provider_call,
         )
@@ -115,8 +139,7 @@ async def review_contract(
     *,
     session: AsyncSession,
     matter: Matter,
-    actor_user_id: uuid.UUID,
-    invocation_id: uuid.UUID,
+    context: InvocationContext,
     document_id: uuid.UUID,
     provider_call,
 ) -> ReviewResult:
@@ -128,10 +151,32 @@ async def review_contract(
     the MCP host injects the real model gateway; tests inject a
     deterministic stub at the provider-module level so audit
     column shape is identical to production.
+
+    ``context`` is an ``InvocationContext`` populated by the host.
+    The module reads ``actor_role`` from it; the module CANNOT
+    construct its own role claim. This closes the Reviewer R2 P1 #3
+    finding: a module that picked ``actor_role="qualified_solicitor"``
+    directly would have bypassed the advice-boundary trust contract.
     """
-    # 1. Resolve document. Read is scoped to the grant — the host
-    #    has already checked matter.document.read; we just fetch
-    #    the row.
+    actor_user_id = context.actor_user_id
+    invocation_id = context.invocation_id
+
+    # 1. Enforce read grant BEFORE touching the document. require_capability
+    #    raises CapabilityDenied (caught upstream as 403) and writes the
+    #    canonical module.capability.denied audit row. Reviewer R2 P1 #2:
+    #    grants must be enforced at the capability boundary, not assumed
+    #    from a host that the vertical slice doesn't go through yet.
+    await require_capability(
+        session,
+        user_id=actor_user_id,
+        plugin=MODULE_ID,
+        skill=CAPABILITY_ID,
+        capability=CAP_READ,
+    )
+
+    # 2. Resolve document + load its body. Reviewer R2 P2: previously
+    #    the prompt said "document text omitted" — the slice now reads
+    #    the extracted text so the model call is over real bytes.
     document = await session.scalar(
         select(Document).where(
             Document.id == document_id, Document.matter_id == matter.id
@@ -141,11 +186,16 @@ async def review_contract(
         raise ValueError(
             f"document {document_id} not found in matter {matter.id}"
         )
+    body = await session.scalar(
+        select(DocumentBody).where(
+            DocumentBody.document_id == document_id,
+        )
+    )
+    document_text = body.extracted_text if body is not None else ""
 
-    # 2. Privilege / advice-boundary gate. Records a tier-transition
-    #    decision (initial → draft_advice) in the advice_boundary
-    #    substrate; the matter's privilege_posture is captured in the
-    #    decision's gate_state so reconstruction can render it.
+    # 3. Privilege / advice-boundary gate. ``actor_role`` is the
+    #    host-derived value from InvocationContext — the module
+    #    does NOT pick its own role here.
     gate_result = await advice_boundary_check(
         session,
         output_id=str(invocation_id),
@@ -153,7 +203,7 @@ async def review_contract(
         from_tier=None,
         declared_tier_max=ADVICE_TIER_DRAFT_ADVICE,
         actor_user_id=actor_user_id,
-        actor_role="qualified_solicitor",
+        actor_role=context.actor_role,
         module_id=MODULE_ID,
         capability_id=CAPABILITY_ID,
         matter_id=matter.id,
@@ -163,9 +213,7 @@ async def review_contract(
             f"advice-boundary gate denied: {gate_result['gate_state']!r}"
         )
 
-    # 3. Capability invocation audit. The MCP host wrapper would
-    #    normally emit this; the vertical slice bypasses the host
-    #    for simplicity so we emit it here.
+    # 4. Capability invocation audit.
     await audit_phase1(
         session,
         action="module.capability.invoked",
@@ -177,10 +225,8 @@ async def review_contract(
         payload={"invocation_id": str(invocation_id), "document_id": str(document_id)},
     )
 
-    # 4. Provider call. The provider_call callable handles the actual
-    #    network/model invocation; this module just shapes the prompt
-    #    and parses the response.
-    prompt = _build_prompt(document)
+    # 5. Provider call over real document content.
+    prompt = _build_prompt(document, document_text)
     system = (
         "You are a UK contract review assistant. Identify clauses "
         "that warrant a solicitor's attention. Return STRICT JSON: "
@@ -208,7 +254,17 @@ async def review_contract(
     # 6. Parse findings.
     findings = _parse_findings(response.text)
 
-    # 7. Write findings_pack artifact.
+    # 7. Enforce write grant BEFORE creating the artifact. Same
+    #    Reviewer R2 P1 #2 fix as the read grant.
+    await require_capability(
+        session,
+        user_id=actor_user_id,
+        plugin=MODULE_ID,
+        skill=CAPABILITY_ID,
+        capability=CAP_WRITE,
+    )
+
+    # 8. Write findings_pack artifact.
     artifact = await write_artifact(
         session,
         matter=matter,
@@ -242,19 +298,31 @@ async def review_contract(
     )
 
 
-def _build_prompt(document: Document) -> str:
-    # Phase 6 keeps prompts inline. A real contract-review module
-    # would carry prompt templates as a separate file + version them
-    # alongside the module version.
+def _build_prompt(document: Document, document_text: str) -> str:
+    """Build the review prompt over the document's extracted text.
+
+    Reviewer R2 P2: previously the prompt template said "document
+    text omitted", which made the substantive-review claim false.
+    The slice now passes the DocumentBody.extracted_text into the
+    prompt — the model call is over real bytes, even though tests
+    monkey-patch the provider response.
+
+    If extraction never ran (``document_text`` is empty), the
+    prompt notes that explicitly so the model isn't misled. A
+    production module would raise instead; the slice tolerates
+    missing extraction because the integration test seeds a body
+    explicitly.
+    """
+    if not document_text:
+        body_block = "(no extracted text available for this document)"
+    else:
+        body_block = document_text
     return (
         f"Review the following contract for clauses warranting "
         f"attention.\n\n"
         f"Document: {document.filename}\n"
         f"Content begins below:\n---\n"
-        # Document.body is loaded by the host; the slice keeps it
-        # inline here. A real impl would pull from document_body
-        # via the matter_context primitive.
-        f"(document text omitted in vertical slice prompt template)\n---"
+        f"{body_block}\n---"
     )
 
 
