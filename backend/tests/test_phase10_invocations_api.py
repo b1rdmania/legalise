@@ -1,15 +1,22 @@
 """Phase 10 — POST /api/matters/{slug}/invocations endpoint tests.
 
-~20 endpoint tests covering:
+13 endpoint tests covering:
 
-- Happy paths (Contract Review + Pre-Motion already covered by
-  their vertical-slice tests; this file pins endpoint shape + status
-  codes for the negative paths)
-- Auth (non-owner, archived matter)
-- Module/capability resolution (not installed, disabled, capability_id missing)
-- Decision #7 — scope + kind rejection BEFORE dispatch
-- Error translation (PostureBlocked, CapabilityDenied, Phase1Blocked,
-  ValueError, ProviderKeyMissing, ProviderUpstreamError, generic 500)
+- Auth: non-owner; archived matter
+- Module/capability resolution: not installed; disabled; capability_id missing
+- Decision #7: scope + kind rejection BEFORE dispatch (workspace
+  scope; provider kind)
+- Error translation: PostureBlocked → 403; CapabilityDenied → 403;
+  ValueError invalid_args → 422; ProviderKeyMissing → 422;
+  ProviderUpstreamError → 502
+- Reconstruction integration: happy-path emits the canonical audit
+  chain
+
+Phase1Blocked → 403 and generic-RuntimeError → 500 paths are not
+exercised here. Phase1Blocked propagation through Contract Review +
+Pre-Motion is covered indirectly by the Phase 6/9 negatives. The
+generic-500 path is an untested branch — flagged for a future pass
+if a real call site hits it.
 """
 
 from __future__ import annotations

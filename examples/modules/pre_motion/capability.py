@@ -47,7 +47,7 @@ from app.core.capabilities import require_capability
 from app.core.matter_artifacts import write_artifact
 from app.core.phase1_runtime import audit_phase1
 from app.core.posture_gate import PostureBlocked, check_posture
-from app.core.runtime import InvocationContext, ProviderResponse
+from app.core.runtime import InvocationContext
 from app.models import Document, DocumentBody, Matter
 
 
