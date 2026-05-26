@@ -53,7 +53,7 @@ export function VerifyPending() {
         </form>
       )}
       <p className="text-sm text-muted mt-6">
-        <a href="#/auth/signin" className="hover:text-ink underline">
+        <a href="/auth/signin" className="hover:text-ink underline">
           Back to sign in
         </a>
       </p>

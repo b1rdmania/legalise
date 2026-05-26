@@ -31,7 +31,7 @@ export function ForgotPassword() {
         heading="Check your email"
         intro="If an account exists for that address, a reset link is on its way."
       >
-        <a href="#/auth/signin" className="text-sm text-muted hover:text-ink">
+        <a href="/auth/signin" className="text-sm text-muted hover:text-ink">
           Back to sign in
         </a>
       </AuthCard>
@@ -61,7 +61,7 @@ export function ForgotPassword() {
         </button>
       </form>
       <p className="text-sm text-muted mt-6">
-        <a href="#/auth/signin" className="hover:text-ink underline">
+        <a href="/auth/signin" className="hover:text-ink underline">
           Back to sign in
         </a>
       </p>

@@ -46,7 +46,7 @@ export function MatterBreadcrumb({
             </svg>
           </button>
         )}
-        <a href="#/matters" className="text-muted hover:text-ink transition-colors shrink-0">
+        <a href="/matters" className="text-muted hover:text-ink transition-colors shrink-0">
           Matters
         </a>
         <span className="text-muted mx-2 shrink-0">/</span>
@@ -59,7 +59,7 @@ export function MatterBreadcrumb({
             {isWorkflowSurface && (
               <>
                 <a
-                  href={`#/matters/${matter.slug}/workflows`}
+                  href={`/matters/${matter.slug}/workflows`}
                   className="text-muted hover:text-ink transition-colors shrink-0"
                 >
                   Workflows

@@ -7,6 +7,7 @@ import {
   signup,
   type CurrentUser,
 } from "../lib/api";
+import { setAuthSnapshot } from "./AuthSnapshot";
 
 export type AuthState = {
   user: CurrentUser | null;
@@ -48,6 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Mirror auth state into the module-level snapshot so TanStack Router's
+  // beforeLoad guards (which run outside React) read the same value.
+  useEffect(() => {
+    setAuthSnapshot({ user, loading });
+  }, [user, loading]);
 
   const doSignIn = useCallback(
     async (email: string, password: string) => {

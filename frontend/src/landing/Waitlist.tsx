@@ -35,7 +35,7 @@ export function Waitlist() {
           >
             Fork on GitHub
           </a>
-          <a href="#/demo" className="text-sm text-muted hover:text-ink transition-colors">
+          <a href="/demo" className="text-sm text-muted hover:text-ink transition-colors">
             Browse the demo
           </a>
         </div>

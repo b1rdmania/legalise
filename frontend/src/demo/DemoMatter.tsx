@@ -65,7 +65,7 @@ export function DemoMatter() {
     setTab(next);
     setMobileNavOpen(false);
     const target = `/demo/${next}`;
-    if (`#${target}` !== window.location.hash) navigate(target);
+    if (target !== window.location.pathname) navigate(target);
   };
 
   const flashCta = (msg: string) => {

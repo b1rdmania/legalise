@@ -101,7 +101,7 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
 
       <p className="text-xs text-muted mt-8">
         Browse all available modules in the{" "}
-        <a href="#/modules" className="text-[#0066CC] hover:underline">
+        <a href="/modules" className="text-[#0066CC] hover:underline">
           module catalogue
         </a>
         .
@@ -113,7 +113,7 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
 function WorkflowCard({ workflow, slug }: { workflow: WorkflowState; slug: string }) {
   return (
     <a
-      href={`#/matters/${slug}/${workflow.key}`}
+      href={`/matters/${slug}/${workflow.key}`}
       className="block border border-rule p-5 hover:border-ink hover:bg-wash transition-colors group"
       title={workflow.reason ?? undefined}
     >

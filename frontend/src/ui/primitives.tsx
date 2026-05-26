@@ -19,7 +19,7 @@ export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
         Add a {label} API key in Settings to use this model. Or switch to stub-echo for the demo.
       </p>
       <a
-        href="#/settings"
+        href="/settings"
         className="inline-block mt-2 text-ink underline underline-offset-2 hover:text-prose transition-colors"
       >
         Open Settings

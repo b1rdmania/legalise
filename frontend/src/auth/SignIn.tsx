@@ -59,14 +59,14 @@ export function SignIn() {
           <button type="submit" disabled={busy} className={primaryBtn}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
-          <a href="#/auth/forgot" className="text-sm text-muted hover:text-ink">
+          <a href="/auth/forgot" className="text-sm text-muted hover:text-ink">
             Forgot password?
           </a>
         </div>
       </form>
       <p className="text-sm text-muted mt-6">
         No account?{" "}
-        <a href="#/auth/signup" className="text-ink hover:text-muted underline">
+        <a href="/auth/signup" className="text-ink hover:text-muted underline">
           Sign up
         </a>
         .

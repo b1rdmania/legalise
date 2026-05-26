@@ -25,6 +25,7 @@ import {
   type PreMotionRunResult,
 } from "../lib/api";
 import { navigate, useRoute } from "../lib/route";
+import { useDrawer } from "../app/DrawerContext";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { MatterNav } from "./MatterNav";
 import { MatterBreadcrumb } from "./MatterBreadcrumb";
@@ -41,15 +42,14 @@ import { AuditTab } from "./tabs/AuditTab";
 import { AssistantTab } from "./tabs/AssistantTab";
 import { WorkflowsTab } from "./tabs/WorkflowsTab";
 
-export function MatterDetail({
-  slug,
-  onMatterLoaded,
-  onTabChange,
-}: {
-  slug: string;
-  onMatterLoaded: (m: Matter | null) => void;
-  onTabChange: (t: TabKey) => void;
-}) {
+export function MatterDetail({ slug }: { slug: string }) {
+  // Phase 14 A0 — drawer state is now in a context. Pre-A0 callers
+  // passed onMatterLoaded / onTabChange as props from App.tsx; with
+  // routed pages those callers no longer exist, so MatterDetail reads
+  // the same setters from DrawerContext directly.
+  const { setDrawerMatter, setDrawerTab } = useDrawer();
+  const onMatterLoaded = setDrawerMatter;
+  const onTabChange = setDrawerTab;
   const route = useRoute();
   const initialTab: TabKey =
     route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
@@ -76,7 +76,7 @@ export function MatterDetail({
     setTab(next);
     setMobileNavOpen(false);
     const target = `/matters/${slug}/${next}`;
-    if (`#${target}` !== window.location.hash) navigate(target);
+    if (target !== window.location.pathname) navigate(target);
   };
 
   const [matter, setMatter] = useState<Matter | null>(null);
@@ -314,7 +314,7 @@ export function MatterDetail({
       <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <ErrorCallout message={error} />
         <a
-          href="#/matters"
+          href="/matters"
           className="text-sm text-muted hover:text-ink transition-colors"
         >
           Back to matters

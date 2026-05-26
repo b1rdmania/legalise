@@ -146,7 +146,7 @@ export function Modules() {
         {!isAuthed && (
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <a
-              href="#/modules/submit"
+              href="/modules/submit"
               className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium"
             >
               Submit a module
@@ -158,7 +158,7 @@ export function Modules() {
               Join waitlist
             </a>
             <a
-              href="#/demo"
+              href="/demo"
               className="text-sm text-muted hover:text-ink transition-colors"
             >
               Open the demo

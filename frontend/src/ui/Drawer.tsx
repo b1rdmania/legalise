@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
 import { WAITLIST_HREF } from "../lib/access";
 
-const DEMO_HREF_UNAUTHED = "#/demo";
+const DEMO_HREF_UNAUTHED = "/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
@@ -54,41 +54,41 @@ export function Drawer({
     const currentTab = rawTab && isTabKey(rawTab) ? rawTab : "assistant";
     const activeKey = sidebarActiveFor(currentTab);
     primary = SIDEBAR_NAV.map((t) => ({
-      href: `#/matters/${matter.slug}/${t.key}`,
+      href: `/matters/${matter.slug}/${t.key}`,
       label: t.label,
       active: activeKey === t.key,
     }));
     secondary = [
-      { href: "#/modules", label: "Modules" },
-      { href: "#/settings/profile", label: "Settings" },
+      { href: "/modules", label: "Modules" },
+      { href: "/settings/profile", label: "Settings" },
       { label: "Sign out", onClick: onSignOut },
     ];
   } else if (isModules || isList || isSettings) {
     // Workspace no matter: Matters · Modules · - · Settings · Sign out
     primary = [
-      { href: "#/matters", label: "Matters", active: isList },
-      { href: "#/modules", label: "Modules", active: isModules },
+      { href: "/matters", label: "Matters", active: isList },
+      { href: "/modules", label: "Modules", active: isModules },
     ];
     secondary = [
-      { href: "#/settings/profile", label: "Settings", active: isSettings },
+      { href: "/settings/profile", label: "Settings", active: isSettings },
       { label: "Sign out", onClick: onSignOut },
     ];
   } else if (auth.user) {
     // Authed marketing/landing view: keep the authed workspace nav so the
     // user never sees marketing CTAs once signed in.
     primary = [
-      { href: "#/matters", label: "Matters" },
-      { href: "#/modules", label: "Modules" },
+      { href: "/matters", label: "Matters" },
+      { href: "/modules", label: "Modules" },
     ];
     secondary = [
-      { href: "#/settings/profile", label: "Settings" },
+      { href: "/settings/profile", label: "Settings" },
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
     // Unauth marketing nav: Demo · Manifesto · GitHub.
     primary = [
       { href: DEMO_HREF_UNAUTHED, label: "Demo" },
-      { href: "#/manifesto", label: "Manifesto" },
+      { href: "/manifesto", label: "Manifesto" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [

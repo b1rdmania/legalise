@@ -86,13 +86,13 @@ export function Landing() {
                 Open demo matter
               </button>
               <a
-                href="#/matters"
+                href="/matters"
                 className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 All matters
               </a>
               <a
-                href="#/modules"
+                href="/modules"
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
                 Modules
@@ -101,7 +101,7 @@ export function Landing() {
           ) : (
             <div className="flex flex-wrap items-center gap-4 mt-10">
               <a
-                href="#/demo"
+                href="/demo"
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 Open the demo
@@ -176,7 +176,7 @@ export function Landing() {
           </div>
           <div className="mt-8">
             <a
-              href="#/manifesto"
+              href="/manifesto"
               className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
               Read the full manifesto

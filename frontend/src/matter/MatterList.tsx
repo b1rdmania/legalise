@@ -40,7 +40,7 @@ export function MatterList() {
           )}
         </div>
         <a
-          href="#/matters/new"
+          href="/matters/new"
           className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
         >
           New matter
@@ -55,7 +55,7 @@ export function MatterList() {
           body="Create your first matter to begin."
           action={
             <a
-              href="#/matters/new"
+              href="/matters/new"
               className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
               New matter
@@ -78,7 +78,7 @@ export function MatterList() {
             {matters.map((m) => (
               <a
                 key={m.id}
-                href={`#/matters/${m.slug}/assistant`}
+                href={`/matters/${m.slug}/assistant`}
                 className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-4 border-b border-rule hover:bg-wash transition-colors items-center"
               >
                 <span className="min-w-0">

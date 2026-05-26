@@ -53,7 +53,7 @@ export function Verify({ token }: { token: string | null }) {
         heading="Email verified"
         intro="Your account is active. Open your workspace to get started."
       >
-        <a href="#/matters" className={primaryBtn + " inline-block"}>
+        <a href="/matters" className={primaryBtn + " inline-block"}>
           Open workspace
         </a>
       </AuthCard>
@@ -64,7 +64,7 @@ export function Verify({ token }: { token: string | null }) {
     <AuthCard eyebrow="AUTH - VERIFY EMAIL" heading="Verification failed">
       {error && <ErrorCallout message={error} />}
       <p className="text-sm text-muted mt-6">
-        <a href="#/auth/verify-pending" className="hover:text-ink underline">
+        <a href="/auth/verify-pending" className="hover:text-ink underline">
           Request a new link
         </a>
       </p>

@@ -5,7 +5,7 @@ import { ProfileChip } from "./ProfileChip";
 import { BrandMark } from "./BrandMark";
 import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
 
-const DEMO_HREF_UNAUTHED = "#/demo";
+const DEMO_HREF_UNAUTHED = "/demo";
 
 export function TopBar({
   route,
@@ -68,7 +68,7 @@ export function TopBar({
         }
       >
         <div className="max-w-page mx-auto px-4 sm:px-6 h-[64px] sm:h-[80px] flex items-center justify-between">
-          <a href="#/" className="flex items-center gap-3 group outline-none">
+          <a href="/" className="flex items-center gap-3 group outline-none">
             <BrandMark />
             <span className="font-semibold text-lg tracking-tight2 text-ink">legalise</span>
           </a>
@@ -76,7 +76,7 @@ export function TopBar({
             {auth.user ? (
               <>
                 <a
-                  href="#/matters"
+                  href="/matters"
                   className={
                     "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
@@ -84,7 +84,7 @@ export function TopBar({
                   Matters
                 </a>
                 <a
-                  href="#/modules"
+                  href="/modules"
                   className={
                     "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
@@ -92,7 +92,7 @@ export function TopBar({
                   Modules
                 </a>
                 <a
-                  href="#/settings/profile"
+                  href="/settings/profile"
                   className={
                     "transition-colors " + (route.name === "settings" ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
@@ -113,7 +113,7 @@ export function TopBar({
                   Demo
                 </a>
                 <a
-                  href="#/modules"
+                  href="/modules"
                   className={
                     "transition-colors " +
                     (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
@@ -122,7 +122,7 @@ export function TopBar({
                   Modules
                 </a>
                 <a
-                  href="#/manifesto"
+                  href="/manifesto"
                   className="text-ink hover:text-seal transition-colors"
                 >
                   Manifesto

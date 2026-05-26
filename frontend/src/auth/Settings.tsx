@@ -57,7 +57,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
             {sidebarItems.map((item) => (
               <a
                 key={item.key}
-                href={`#/settings/${item.key}`}
+                href={`/settings/${item.key}`}
                 className={
                   "py-2 lg:py-2 px-3 lg:px-4 text-sm transition-colors lg:border-l-2 -mb-px lg:-ml-px " +
                   (tab === item.key

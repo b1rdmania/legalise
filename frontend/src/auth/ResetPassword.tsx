@@ -35,7 +35,7 @@ export function ResetPassword({ token }: { token: string | null }) {
         heading="Missing token"
         intro="This page expects a one-time token from the reset email link."
       >
-        <a href="#/auth/forgot" className="text-sm text-muted hover:text-ink">
+        <a href="/auth/forgot" className="text-sm text-muted hover:text-ink">
           Request a new reset link
         </a>
       </AuthCard>
@@ -49,7 +49,7 @@ export function ResetPassword({ token }: { token: string | null }) {
         heading="Password updated"
         intro="Your new password is set. Sign in to continue."
       >
-        <a href="#/auth/signin" className={primaryBtn + " inline-block"}>
+        <a href="/auth/signin" className={primaryBtn + " inline-block"}>
           Sign in
         </a>
       </AuthCard>

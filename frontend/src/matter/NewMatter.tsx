@@ -109,7 +109,7 @@ export function NewMatter() {
             {submitting ? "Creating…" : "Create matter"}
           </button>
           <a
-            href="#/matters"
+            href="/matters"
             className="text-sm text-muted hover:text-ink transition-colors"
           >
             Cancel

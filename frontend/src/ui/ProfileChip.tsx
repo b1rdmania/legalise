@@ -58,7 +58,7 @@ export function ProfileChip({
             <div className="text-ink truncate">{user.email}</div>
           </div>
           <a
-            href="#/settings/profile"
+            href="/settings/profile"
             onClick={() => setOpen(false)}
             className="px-4 py-3 text-ink hover:bg-wash"
             role="menuitem"

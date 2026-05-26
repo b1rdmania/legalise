@@ -350,7 +350,7 @@ export function Manifesto() {
           </p>
           <div className="mt-8">
             <a
-              href="#/"
+              href="/"
               className="text-sm text-muted hover:text-ink transition-colors"
             >
               ← Back to Legalise
@@ -392,7 +392,7 @@ export function Manifesto() {
                 View source on GitHub
               </a>
               <a
-                href="#/"
+                href="/"
                 className="text-sm text-muted hover:text-ink transition-colors inline-flex items-center"
               >
                 ← Back to Legalise

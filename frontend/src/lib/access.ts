@@ -4,7 +4,7 @@ export const HOSTED_ACCESS_MODE =
 
 export const HOSTED_ACCESS_WAITLIST = HOSTED_ACCESS_MODE === "waitlist";
 
-export const WAITLIST_HREF = "#/waitlist";
+export const WAITLIST_HREF = "/waitlist";
 
 export const WAITLIST_EMAIL = "hello@legalise.dev";
 
