@@ -1,8 +1,9 @@
-# Phase 8 Build Plan — Posture-Aware Gate
+# Phase 8 Build Plan v2 — Posture-Aware Gate
 
 **Builder:** Claude (this session)
 **Branch:** `runtime-rewrite`
-**Base:** `33d7f64` (Phase 7 done; sweep 610/8)
+**Base:** `31578b9` (Phase 7 ratified + follow-ups; sweep 611/8)
+**Supersedes:** Phase 8 v1 (in this same file, pre-redline).
 **Goal:** Make the matter's `privilege_posture` actively gate capability invocations. Today it's recorded in audit rows but never blocks. Closes the legitimacy gap that turns "modular AI on a matter" into "modular **legal** AI on a matter".
 
 KISS rule (still): every change must make the Contract Review slice more truthful, or enable the next brutal reference module. Phase 8 makes the slice truthful: a non-solicitor running a capability on a mixed-privilege matter must be blocked, not waved through.
@@ -76,11 +77,54 @@ This is the whole policy. It lives in `posture_gate.py` as a constant dict, not 
 
 Phase 6 R2 P1#3 established the contract: modules cannot self-assert legal authority. The host populates `InvocationContext.actor_role` from `User.role` (server-authoritative); the module passes it through to the posture gate. No new shape — Phase 8 reuses the dataclass Phase 6 already built.
 
-**Decision #4 — Posture denial emits `module.capability.blocked` with `blocked_reason="posture_gate_failed"`.**
+**Decision #4 (v2) — Audit shape reuses canonical vocabulary; the action name is a deliberate new Phase 8 addition.**
 
-Same action name Phase 4 cascade uses for grant-revoked denials and the model gateway uses for paused-matter denials. Reconstruction renders all three identically. The `blocked_reason` field discriminates.
+Reviewer v1 surfaced that v1's claim "no new vocabulary" was false — both `module.capability.blocked` and `posture_gate_failed` were quietly invented. Patched in v2:
 
-A new dedicated `posture_gate.check.blocked` action would require Reviewer to learn one more vocabulary item; it would also bifurcate the reconstruction view's "what blocked this?" query. KISS says reuse the existing vocabulary.
+**`blocked_reason`** reuses the existing canonical enum value
+`BlockedReason.GATE_BLOCKED` (already in `core/phase1_runtime/blocked.py`).
+That's exactly what it's for. Inventing a ninth top-level enum
+value (`posture_gate_failed`) for every future gate would erode
+the shared blocked contract; the canonical enum carries
+*categories* of denial reason, not gate-specific labels.
+
+**Posture-specific detail** lives inside `BlockedPayload.gate_state`,
+a JSONB dict the existing payload type already carries:
+
+```python
+gate_state = {
+    "gate": "privilege_posture",
+    "posture": "B_mixed",
+    "required_role": "qualified_solicitor",
+    "actor_role": "solicitor",
+    "reason": "posture_gate_failed",
+}
+```
+
+Reconstruction view picks this up via the audit source; clients
+can render a posture-shaped error message by reading
+`gate_state.gate == "privilege_posture"`.
+
+**Audit action name** follows the existing primitive convention.
+The substrate uses `<primitive>.<operation>.blocked` for gate-style
+denials:
+
+- `matter_context.write.blocked`
+- `matter_context.read.blocked`
+- `advice_boundary.check.blocked`
+- `state_machine.transition.blocked`
+
+Phase 8 adds one more: `posture_gate.check.blocked`. This is a
+**deliberate new action**, deliberately named per the existing
+convention. The plan calls it out explicitly so it doesn't sneak
+in as "canonical existing shape" the way v1 claimed.
+
+(v1 also referenced `module.capability.blocked` — that action name
+is NOT emitted anywhere in code today; it never existed.)
+
+Reconstruction renders `posture_gate.check.blocked` alongside the
+sibling `*.blocked` actions through the standard audit source. No
+new audit table.
 
 **Decision #5 — The gate fires BEFORE `require_capability` in the capability body.**
 
@@ -159,8 +203,19 @@ async def check_posture(
 ) -> PostureGateResult:
     """Evaluate the matter's posture against the actor's role.
 
-    On block, emits a module.capability.blocked audit row with
-    blocked_reason='posture_gate_failed' AND returns the result.
+    On block, emits a ``posture_gate.check.blocked`` audit row
+    (new Phase 8 action, named per the existing primitive
+    convention). The row carries:
+
+      - blocked_reason = BlockedReason.GATE_BLOCKED  (canonical enum)
+      - gate_state = {
+            "gate": "privilege_posture",
+            "posture": <A_cleared|B_mixed|C_paused>,
+            "required_role": <token>,
+            "actor_role": <what the host supplied>,
+            "reason": "posture_gate_failed",
+        }
+
     On pass, emits nothing (capability.invoked covers it).
 
     The caller raises PostureBlocked(result) if not result.allowed.
@@ -169,7 +224,7 @@ async def check_posture(
 
 Reuses the existing `role_satisfies()` from `app.core.advice_boundary.tiers` — already maps role tokens to authority sets. No new role vocabulary.
 
-Audit emission via `audit_phase1` so it shares the canonical shape with everything else the substrate emits.
+Audit emission via `audit_failure` (independent transaction) so the row survives the HTTP-503-shaped rollback when the capability raises `PostureBlocked`. Same pattern Phase 1 `check_or_block` already uses for capability-denied audits.
 
 ~120 LOC + ~30 LOC of docstrings.
 
@@ -221,6 +276,30 @@ The capability already takes an `InvocationContext` with `actor_role`. No new pa
   - Contract Review on `A_cleared` matter + non-solicitor caller → success (cleared posture, no special role needed)
   - Contract Review on `C_paused` matter + `qualified_solicitor` caller → blocked
   - Reconstruction view picks up the posture-block audit row under the `audit` source
+
+---
+
+## Product implication — demo/seeded users need role setup
+
+Per Reviewer v2 P2: because `User.role` defaults to `"solicitor"`
+and Khan v Acme seeds with `privilege_posture = "B_mixed"`, the
+current happy path for Contract Review breaks under Phase 8 unless
+the seeded demo user is server-side promoted to
+`"qualified_solicitor"`.
+
+Until proper role management ships (Phase 9+ if a real use case
+emerges), there are two operational handles for `B_mixed` modules:
+
+1. The seed promotion path used by the vertical-slice test
+   (`user.role = "qualified_solicitor"` in the registration
+   hook for demo accounts), OR
+2. Seeded matters can ship with `A_cleared` posture for demo
+   purposes. Rejected for the vertical slice on grounds of
+   realism, but a fair operational choice for marketing demos.
+
+The handover document calls this out explicitly so the implication
+isn't a surprise the first time a non-developer tries the demo
+flow.
 
 ---
 
@@ -276,4 +355,32 @@ If anything new tries to creep in during build, push back. The posture gate is o
 
 ---
 
-*End of Phase 8 build plan. Builder commits this, then waits for Reviewer redline before Step 1.*
+## Reviewer redlines applied (v2)
+
+1. **P1 — Audit vocabulary tightened.** Pre-v2 the plan claimed
+   "no new vocabulary" while quietly inventing
+   `module.capability.blocked` (not emitted anywhere today) and
+   `posture_gate_failed` as a top-level `BlockedReason`. Patched:
+   - `blocked_reason` reuses the existing canonical
+     `BlockedReason.GATE_BLOCKED`.
+   - Posture-specific detail lives in `BlockedPayload.gate_state`
+     under canonical keys (`gate`, `posture`, `required_role`,
+     `actor_role`, `reason`).
+   - Audit action is `posture_gate.check.blocked` — a **deliberate
+     new action**, named per the existing
+     `<primitive>.<operation>.blocked` convention used by
+     `matter_context.write.blocked`,
+     `advice_boundary.check.blocked`, etc. v2 calls it out
+     explicitly rather than smuggling it past as "canonical".
+
+2. **P2 — Demo role implication called out.** New product-
+   implication section: `User.role` defaults to `"solicitor"`
+   and the seeded Khan v Acme matter defaults to `B_mixed`.
+   Under Phase 8 the existing happy path breaks unless the demo
+   user is server-side promoted to `"qualified_solicitor"`. Two
+   operational handles documented; vertical-slice test takes the
+   role-promotion path.
+
+---
+
+*End of Phase 8 build plan v2. Builder commits this, then waits for Reviewer ratification before Step 1.*
