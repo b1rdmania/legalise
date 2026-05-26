@@ -69,6 +69,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         # had no auth-shaped events. Now every register lands a row.
         from app.core.api import audit
 
+        # Audit payload deliberately carries no email — actor_id +
+        # resource_id are durable handles; the users table is the
+        # single source of PII. Don't duplicate raw email into the
+        # WORM audit log.
         await audit.log(
             self.user_db.session,
             "auth.user.registered",
@@ -76,7 +80,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             module="core.auth",
             resource_type="user",
             resource_id=str(user.id),
-            payload={"email": user.email},
         )
         # Note: session commit happens elsewhere in the flow (the
         # fastapi-users register handler commits before returning).

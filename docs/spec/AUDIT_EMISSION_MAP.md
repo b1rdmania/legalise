@@ -21,7 +21,7 @@ Phase 13 Decision #4: **a button that emits no audit row is a deliberate choice 
 
 | User action | API call | Status | Audit row | Reference |
 | --- | --- | --- | --- | --- |
-| Click "Register first account" | `POST /auth/register` | **VERIFIED** | `auth.user.registered` (payload.email) | `backend/app/core/auth.py:72` |
+| Click "Register first account" | `POST /auth/register` | **VERIFIED** | `auth.user.registered` — payload deliberately empty; `actor_id` + `resource_id` are the durable handles, the `users` table is the single PII source | `backend/app/core/auth.py:72` |
 | Auto-seed Khan v Acme on first register | (registration hook) | **VERIFIED** | `auth.user.demo_seeded` (actor_id=NULL, system-acting) | `backend/app/core/auth.py:147` |
 | Auto-grant declared capabilities | (registration hook) | **VERIFIED** | `auth.user.capabilities_auto_granted` (actor_id=NULL, payload.triple_count) | `backend/app/core/auth.py:181` |
 | Verify email (or dev autoverify) | `POST /auth/verify` (or hook) | **VERIFIED** | `auth.user.verified` — emitted from `_post_verify` so both real-verify and dev-autoverify paths land it | `backend/app/core/auth.py:130` |

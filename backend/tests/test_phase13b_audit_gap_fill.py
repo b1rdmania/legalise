@@ -6,8 +6,8 @@ Auth events (8):
   1. Register → auth.user.registered
   2. Verify (autoverify dev path) → auth.user.verified
   3. Verify also seeds demo + grants → auth.user.demo_seeded + auth.user.capabilities_auto_granted
-  4. Log in → auth.user.logged_in (middleware shim)
-  5. Log out → auth.user.logged_out (middleware shim)
+  4. Log in → auth.user.logged_in (via AuditingDatabaseStrategy.write_token)
+  5. Log out → auth.user.logged_out (via AuditingDatabaseStrategy.destroy_token)
   6. Forgot password → auth.user.password_reset_requested
   7. Reset password → auth.user.password_reset_completed
   8. Profile update → auth.user.profile_updated
@@ -65,7 +65,11 @@ async def test_register_emits_canonical_audit_row(client) -> None:
         )
         assert row is not None
         assert row.module == "core.auth"
-        assert row.payload["email"] == email
+        # Audit row must NOT duplicate raw email — actor_id + resource_id
+        # are durable handles, the users table is the single PII source.
+        payload = row.payload or {}
+        assert "email" not in payload
+        assert email not in json.dumps(payload)
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +144,7 @@ async def test_dev_autoverify_emits_three_audit_rows(client) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4 + 5. Login + logout (via AuditMiddleware shim)
+# 4 + 5. Login + logout (via AuditingDatabaseStrategy)
 # ---------------------------------------------------------------------------
 
 
