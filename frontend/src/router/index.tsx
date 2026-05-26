@@ -19,6 +19,7 @@ import {
 } from "@tanstack/react-router";
 
 import { AppShell } from "../app/AppShell";
+import { AppHome } from "../app/AppHome";
 import { AuthGate } from "../app/AuthGate";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
@@ -232,10 +233,14 @@ const settingsPreferencesRoute = createRoute({
 // All placeholders inherit the authed gate via __authed.
 // ---------------------------------------------------------------------------
 
+// `/app` is intentionally NOT under __authed. The first-run states
+// (user_count=0, bootstrap-required) must be reachable without a
+// session; AppHome handles its own auth gating when the workspace
+// is past bootstrap.
 const appHomeRoute = createRoute({
-  getParentRoute: () => authedRoute,
+  getParentRoute: () => rootRoute,
   path: "/app",
-  component: () => <PlaceholderPage phase="A" route="/app" title="App home" />,
+  component: AppHome,
 });
 
 const moduleDetailRoute = createRoute({
@@ -332,6 +337,7 @@ const routeTree = rootRoute.addChildren([
   submitModuleRoute,
   demoIndexRoute,
   demoTabRoute,
+  appHomeRoute,
   authedRoute.addChildren([
     mattersListRoute,
     newMatterRoute,
@@ -341,7 +347,6 @@ const routeTree = rootRoute.addChildren([
     settingsProfileRoute,
     settingsKeysRoute,
     settingsPreferencesRoute,
-    appHomeRoute,
     moduleDetailRoute,
     moduleInstallRoute,
     matterAuditRoute,

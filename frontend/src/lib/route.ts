@@ -164,6 +164,10 @@ export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "modules",
   "submitModule",
   "demo",
+  // /app is intentionally public — first-run (user_count=0) and
+  // bootstrap-required states must render without a session.
+  // AppHome owns its own auth gating once has_superuser=true.
+  "appHome",
 ]);
 
 export const isPublicRoute = (route: Route): boolean =>

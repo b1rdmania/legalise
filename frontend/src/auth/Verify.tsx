@@ -53,7 +53,7 @@ export function Verify({ token }: { token: string | null }) {
         heading="Email verified"
         intro="Your account is active. Open your workspace to get started."
       >
-        <a href="/matters" className={primaryBtn + " inline-block"}>
+        <a href="/app" className={primaryBtn + " inline-block"}>
           Open workspace
         </a>
       </AuthCard>

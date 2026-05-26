@@ -195,6 +195,18 @@ export function apiFetch(input: string, init: RequestInit = {}): Promise<Respons
   return fetch(input, { credentials: "include", ...init });
 }
 
+export interface BootstrapState {
+  user_count: number;
+  has_superuser: boolean;
+}
+
+// Phase 13b C — no auth required. The /app first-run screen reads this
+// to decide between empty-state / bootstrap-required / authed-home.
+export const getBootstrapState = () =>
+  apiFetch(`${API}/system/bootstrap-state`).then((r) =>
+    jsonOrThrow<BootstrapState>(r),
+  );
+
 export const listMatters = () =>
   apiFetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
 

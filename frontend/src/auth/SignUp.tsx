@@ -14,7 +14,7 @@ export function SignUp() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (auth.user) navigate("/matters");
+    if (auth.user) navigate("/app");
   }, [auth.user]);
 
   const submit = async (e: FormEvent) => {

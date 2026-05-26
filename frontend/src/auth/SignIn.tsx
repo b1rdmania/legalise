@@ -14,7 +14,7 @@ export function SignIn() {
 
   // If already authed, bounce to matters.
   useEffect(() => {
-    if (auth.user) navigate("/matters");
+    if (auth.user) navigate("/app");
   }, [auth.user]);
 
   const submit = async (e: FormEvent) => {
@@ -23,7 +23,7 @@ export function SignIn() {
     setError(null);
     try {
       await auth.signIn(email, password);
-      navigate("/matters");
+      navigate("/app");
     } catch (err) {
       setError(String(err));
     } finally {
