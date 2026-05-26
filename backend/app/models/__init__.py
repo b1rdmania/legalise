@@ -42,7 +42,12 @@ from app.models.document_version import DocumentVersion, VERSION_KIND_VALUES
 from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
 from app.models.tabular_review import TabularReview, TabularReviewRow
 from app.models.workspace_skill import WorkspaceDisabledSkill
-from app.models.workspace_skill_capability_grant import WorkspaceSkillCapabilityGrant
+from app.models.workspace_skill_capability_grant import (
+    SCOPE_TYPE_MATTER,
+    SCOPE_TYPE_VALUES,
+    SCOPE_TYPE_WORKSPACE,
+    WorkspaceSkillCapabilityGrant,
+)
 from app.models.matter_citation import MatterCitation
 from app.models.assistant import AssistantMessage
 from app.models.job import (
@@ -120,6 +125,9 @@ __all__ = [
     "TabularReviewRow",
     "WorkspaceDisabledSkill",
     "WorkspaceSkillCapabilityGrant",
+    "SCOPE_TYPE_WORKSPACE",
+    "SCOPE_TYPE_MATTER",
+    "SCOPE_TYPE_VALUES",
     "MatterCitation",
     "AssistantMessage",
     "Job",

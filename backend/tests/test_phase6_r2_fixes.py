@@ -247,6 +247,8 @@ async def test_missing_write_grant_blocks_after_read(db_session) -> None:
             capability_version="2.0.0",
             granted_at_module_version="1.0.0",
             granted_permissions_snapshot={"matter_id": str(matter.id)},
+            scope_type="matter",
+            scope_id=matter.id,
         )
     )
     await db_session.flush()
@@ -306,6 +308,8 @@ async def test_module_cannot_smuggle_actor_role(db_session) -> None:
                 capability_version="2.0.0",
                 granted_at_module_version="1.0.0",
                 granted_permissions_snapshot={"matter_id": str(matter.id)},
+                scope_type="matter",
+                scope_id=matter.id,
             )
         )
     await db_session.flush()
@@ -410,6 +414,8 @@ async def test_cross_matter_grant_does_not_authorize_other_matter(
                 capability_version="2.0.0",
                 granted_at_module_version="1.0.0",
                 granted_permissions_snapshot={"matter_id": str(matter_a.id)},
+                scope_type="matter",
+                scope_id=matter_a.id,
             )
         )
     await db_session.flush()
@@ -467,59 +473,79 @@ async def test_cross_matter_grant_does_not_authorize_other_matter(
 
 
 @pytest.mark.asyncio
-async def test_workspace_broad_check_unaffected_by_matter_scope(
+async def test_workspace_broad_and_matter_scoped_checks_are_strict(
     db_session,
 ) -> None:
-    """Defence-in-depth: when require_capability is called WITHOUT
-    matter_id (workspace-broad check), it still accepts both
-    scoped-snapshot grants AND legacy NULL-snapshot grants. The new
-    matter-scoping only kicks in when matter_id is supplied."""
+    """Phase 7 v2 (Andy's note #3): workspace-broad and matter-scoped
+    checks are strict and mutually exclusive. A workspace-broad call
+    (``matter_id=None``) accepts ONLY scope_type='workspace' grants;
+    a matter-scoped call accepts ONLY scope_type='matter' grants
+    matching that matter_id. Same (plugin, skill, capability) can
+    coexist at workspace + matter scope because the uniqueness key
+    now includes scope."""
     from app.core.capabilities import require_capability
 
     user = await _make_user(db_session)
     matter = await _make_matter(db_session, user)
 
-    # Two grants — one with matter scope, one legacy v1 (NULL snapshot).
+    # One workspace-scope grant and one matter-scope grant for the
+    # SAME (plugin, skill, capability).
     db_session.add(
         WorkspaceSkillCapabilityGrant(
             id=uuid.uuid4(),
             user_id=user.id,
-            plugin="examples.legacy",
-            skill="legacy-skill",
-            capability="workspace.thing.do",
-            # No snapshot — legacy v1 grant.
+            plugin="examples.test",
+            skill="t",
+            capability="matter.thing.do",
+            scope_type="workspace",
+            scope_id=None,
         )
     )
     db_session.add(
         WorkspaceSkillCapabilityGrant(
             id=uuid.uuid4(),
             user_id=user.id,
-            plugin="examples.scoped",
-            skill="scoped-skill",
+            plugin="examples.test",
+            skill="t",
             capability="matter.thing.do",
+            scope_type="matter",
+            scope_id=matter.id,
             granted_permissions_snapshot={"matter_id": str(matter.id)},
         )
     )
     await db_session.flush()
 
-    # Workspace-broad check on the legacy grant — must pass.
+    # Workspace-broad check matches the workspace grant.
     await require_capability(
         db_session,
         user_id=user.id,
-        plugin="examples.legacy",
-        skill="legacy-skill",
-        capability="workspace.thing.do",
-    )
-
-    # Workspace-broad check on the scoped grant — must also pass
-    # (the snapshot doesn't block a workspace-broad lookup).
-    await require_capability(
-        db_session,
-        user_id=user.id,
-        plugin="examples.scoped",
-        skill="scoped-skill",
+        plugin="examples.test",
+        skill="t",
         capability="matter.thing.do",
     )
+
+    # Matter-scoped check matches the matter grant.
+    await require_capability(
+        db_session,
+        user_id=user.id,
+        plugin="examples.test",
+        skill="t",
+        capability="matter.thing.do",
+        matter_id=matter.id,
+    )
+
+    # Matter-scoped check for a DIFFERENT matter denies — workspace
+    # grant does not satisfy a matter-scoped check (strict semantics).
+    other_matter = await _make_matter(db_session, user)
+    with pytest.raises(CapabilityDenied):
+        await require_capability(
+            db_session,
+            user_id=user.id,
+            plugin="examples.test",
+            skill="t",
+            capability="matter.thing.do",
+            matter_id=other_matter.id,
+        )
 
 
 @pytest.mark.asyncio

@@ -104,6 +104,8 @@ async def test_grant_with_matter_id_in_snapshot_revoked_on_archive(
                 "reads": [],
                 "writes": ["matter.context.test.write"],
             },
+            scope_type="matter",
+            scope_id=matter_id,
         )
         session.add(grant_row)
         await session.commit()
@@ -251,6 +253,8 @@ async def test_grant_for_other_matter_not_revoked(client) -> None:
                 skill="default",
                 capability="matter.context.a.write",
                 granted_permissions_snapshot={"matter_id": str(matter_a.id)},
+                scope_type="matter",
+                scope_id=matter_a.id,
             )
         )
         await session.commit()
@@ -314,6 +318,8 @@ async def test_audit_row_emitted_on_cascade(client) -> None:
                 skill="default",
                 capability="matter.context.audit.write",
                 granted_permissions_snapshot={"matter_id": str(matter.id)},
+                scope_type="matter",
+                scope_id=matter.id,
             )
         )
         await session.commit()

@@ -1095,20 +1095,22 @@ async def delete_matter(
 
     matter.status = STATUS_ARCHIVED
 
-    # Phase 4 — cascade grant revocation. Per
-    # PHASE_4_BUILD_PLAN.md §Step 4: when a matter archives, revoke
-    # every WorkspaceSkillCapabilityGrant scoped to that matter. The
-    # scoping check looks at granted_permissions_snapshot.matter_id
-    # so v1 legacy grants (snapshot=NULL) are not affected.
-    from app.models import WorkspaceSkillCapabilityGrant as _WSCG_Phase4
+    # Phase 4 — cascade grant revocation. Phase 7 v2 switches the
+    # scoping check from snapshot.matter_id JSONB reads to the
+    # first-class scope_type/scope_id columns. Migration 0019
+    # backfilled the columns from snapshot, so existing matter-
+    # scoped grants are picked up; legacy workspace grants
+    # (scope_type='workspace') are not.
+    from app.models import (
+        SCOPE_TYPE_MATTER,
+        WorkspaceSkillCapabilityGrant as _WSCG_Phase4,
+    )
 
     grants_to_revoke = (
         await session.scalars(
             select(_WSCG_Phase4).where(
-                _WSCG_Phase4.granted_permissions_snapshot[
-                    "matter_id"
-                ].astext
-                == str(matter.id),
+                _WSCG_Phase4.scope_type == SCOPE_TYPE_MATTER,
+                _WSCG_Phase4.scope_id == matter.id,
             )
         )
     ).all()

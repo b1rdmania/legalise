@@ -21,11 +21,25 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, UTC
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, Index
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
+
+
+# Scope vocabulary (Phase 7 v2 — per Andy's note #2: small constants,
+# not raw strings repeated across call sites).
+SCOPE_TYPE_WORKSPACE = "workspace"
+SCOPE_TYPE_MATTER = "matter"
+SCOPE_TYPE_VALUES = frozenset({SCOPE_TYPE_WORKSPACE, SCOPE_TYPE_MATTER})
 
 
 class WorkspaceSkillCapabilityGrant(Base):
@@ -82,14 +96,39 @@ class WorkspaceSkillCapabilityGrant(Base):
         JSONB, nullable=True
     )
 
+    # Phase 7 v2 — scope is first-class. Pre-Phase-7 the grant's
+    # matter scope lived inside granted_permissions_snapshot.matter_id;
+    # that made it impossible to hold the same (plugin, skill,
+    # capability) for two matters because the uniqueness primitive
+    # didn't include scope. The columns + the new uniqueness close
+    # that gap. ``granted_permissions_snapshot`` stays as provenance.
+    #
+    # ``scope_type`` is one of ``SCOPE_TYPE_VALUES``. ``scope_id``
+    # is NULL for workspace scope, the matter UUID for matter scope.
+    # The check constraint ensures they always move together.
+    scope_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=SCOPE_TYPE_WORKSPACE
+    )
+    scope_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "plugin", "skill", "capability",
-            name="uq_capability_grants_user_plugin_skill_capability",
+            "user_id", "plugin", "skill", "capability", "scope_type", "scope_id",
+            name="uq_grant_user_plugin_skill_cap_scope",
+        ),
+        CheckConstraint(
+            "(scope_type = 'matter') = (scope_id IS NOT NULL)",
+            name="ck_grant_scope_pairing",
         ),
         Index(
             "ix_capability_grants_user_plugin_skill",
             "user_id", "plugin", "skill",
+        ),
+        Index(
+            "ix_grant_user_plugin_skill_scope",
+            "user_id", "plugin", "skill", "scope_type", "scope_id",
         ),
     )
 

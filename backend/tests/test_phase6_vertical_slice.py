@@ -236,6 +236,8 @@ async def test_contract_review_vertical_slice(client) -> None:
                     granted_permissions_snapshot={
                         "matter_id": str(matter_id),
                     },
+                    scope_type="matter",
+                    scope_id=matter_id,
                 )
             )
         await session.commit()

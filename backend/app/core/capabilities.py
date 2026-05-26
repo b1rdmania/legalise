@@ -189,53 +189,50 @@ async def require_capability(
     """Raise CapabilityDenied if ``(user, plugin, skill)`` has not been
     granted ``capability``. Returns None on success.
 
-    Matter scoping (Reviewer Phase 6 R3 fix)
-    -----------------------------------------
-    When ``matter_id`` is supplied, the matching grant must carry
-    ``granted_permissions_snapshot["matter_id"] == str(matter_id)``.
-    A grant for matter A no longer authorises matter B — closes the
-    silent-cross-matter authorisation gap the R3 review surfaced.
+    Matter scoping (Phase 7 v2 — column-backed)
+    --------------------------------------------
+    Scope is now a first-class column pair on the grant row:
+    ``scope_type`` ("workspace" or "matter") + ``scope_id``
+    (matter UUID when scope_type='matter', NULL otherwise).
+    Migration 0019 backfilled legacy grants from the old
+    ``snapshot.matter_id`` JSONB shape, so this lookup never
+    touches the snapshot.
 
-    Three cases:
+    Two cases, strict (per Andy's note #3 on the Phase 7 plan):
 
-    1. ``matter_id`` is None → workspace-broad check (current
-       behaviour). Any matching grant satisfies regardless of
-       snapshot.
-    2. ``matter_id`` is set AND a grant exists with matching
-       snapshot.matter_id → allowed.
-    3. ``matter_id`` is set AND no grant has matching snapshot
-       matter_id → denied. Legacy v1 grants with NULL
-       ``granted_permissions_snapshot`` are NOT treated as
-       authorising matter-scoped capabilities; they're workspace-
-       broad only, so they cannot satisfy a matter-scoped check.
-       This matches Phase 4's matter-archive cascade convention
-       (legacy grants survive archive precisely because they're
-       NOT matter-scoped).
+    1. ``matter_id is None`` → workspace-broad check. Filter
+       ``scope_type='workspace' AND scope_id IS NULL``. Matter-
+       scoped grants do NOT satisfy a workspace-broad check.
+    2. ``matter_id`` is set → matter-scoped check. Filter
+       ``scope_type='matter' AND scope_id=matter_id``. Workspace-
+       broad grants do NOT satisfy a matter-scoped check.
 
-    The capability vocabulary is the source of truth for whether
-    a capability is matter-scoped — callers that pass ``matter_id``
-    are asserting "this is a matter-scoped check". The function
-    does not introspect the capability string itself; the caller
-    decides scope.
+    These two are mutually exclusive — the runtime never accepts
+    "any grant regardless of scope". The caller decides which check
+    applies (by passing matter_id or not); the grant row records
+    which scope it was issued at; the SQL enforces exact alignment.
 
-    Reads ``workspace_skill_capability_grants``; index on
-    ``(user_id, plugin, skill)`` keeps this a single point-lookup.
+    Reads ``workspace_skill_capability_grants``; the partial-shape
+    index ``ix_grant_user_plugin_skill_scope`` keeps this a
+    single point-lookup.
     """
+    from app.models import SCOPE_TYPE_MATTER, SCOPE_TYPE_WORKSPACE
+
     stmt = select(WorkspaceSkillCapabilityGrant.id).where(
         WorkspaceSkillCapabilityGrant.user_id == user_id,
         WorkspaceSkillCapabilityGrant.plugin == plugin,
         WorkspaceSkillCapabilityGrant.skill == skill,
         WorkspaceSkillCapabilityGrant.capability == capability,
     )
-    if matter_id is not None:
-        # The grant's snapshot must carry a matter_id matching the
-        # request. JSONB scalar comparison via ``->>`` returns the
-        # text form; NULL snapshots fail the comparison cleanly
-        # (a NULL JSON->>key is NULL, never equal to a string).
+    if matter_id is None:
         stmt = stmt.where(
-            WorkspaceSkillCapabilityGrant.granted_permissions_snapshot[
-                "matter_id"
-            ].astext == str(matter_id)
+            WorkspaceSkillCapabilityGrant.scope_type == SCOPE_TYPE_WORKSPACE,
+            WorkspaceSkillCapabilityGrant.scope_id.is_(None),
+        )
+    else:
+        stmt = stmt.where(
+            WorkspaceSkillCapabilityGrant.scope_type == SCOPE_TYPE_MATTER,
+            WorkspaceSkillCapabilityGrant.scope_id == matter_id,
         )
     row = await session.scalar(stmt)
     if row is None:
@@ -300,12 +297,24 @@ async def grant(
     skill: str,
     capability: str,
     granted_by_user_id: uuid.UUID | None = None,
+    scope_type: str | None = None,
+    scope_id: uuid.UUID | None = None,
 ) -> None:
     """Idempotent grant.
 
-    Uses Postgres `ON CONFLICT DO NOTHING` on the composite unique key so
-    concurrent grants and re-runs both no-op cleanly.
+    Uses Postgres `ON CONFLICT DO NOTHING` on the new composite
+    unique key ``(user_id, plugin, skill, capability, scope_type,
+    scope_id)`` so concurrent grants and re-runs both no-op cleanly.
+
+    Phase 7 v2: ``scope_type`` and ``scope_id`` default to workspace
+    scope so existing callers (auto-grant at signup, legacy
+    workflows) keep behaving identically. Phase 7 grant endpoints
+    pass ``scope_type='matter', scope_id=matter.id`` explicitly.
     """
+    from app.models import SCOPE_TYPE_MATTER, SCOPE_TYPE_WORKSPACE
+
+    effective_scope_type = scope_type or SCOPE_TYPE_WORKSPACE
+    effective_scope_id = scope_id if effective_scope_type == SCOPE_TYPE_MATTER else None
     stmt = (
         pg_insert(WorkspaceSkillCapabilityGrant)
         .values(
@@ -314,9 +323,11 @@ async def grant(
             skill=skill,
             capability=capability,
             granted_by_user_id=granted_by_user_id,
+            scope_type=effective_scope_type,
+            scope_id=effective_scope_id,
         )
         .on_conflict_do_nothing(
-            constraint="uq_capability_grants_user_plugin_skill_capability",
+            constraint="uq_grant_user_plugin_skill_cap_scope",
         )
     )
     await session.execute(stmt)
