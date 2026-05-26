@@ -78,13 +78,11 @@ describe("AdminUsersList — non-admin", () => {
       expect(screen.getByText(/Admin required/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("role-filter")).toBeNull();
-    // No smuggled authority: UI does not even attempt the call. The
-    // backend would also reject, but we don't rely on that for the
-    // gating story.
-    // (listAdminUsers may have been called by the not-yet-resolved
-    // initial render; tolerate up to one call but expect no second
-    // call once the gate flips.)
-    expect(listSpy.mock.calls.length).toBeLessThanOrEqual(1);
+    // No smuggled authority: the admin endpoint MUST never be called
+    // when the viewer is not a superuser. Previously the effect fired
+    // once before the render-gate kicked in; the Reviewer redline
+    // tightened the contract — zero calls, always.
+    expect(listSpy).not.toHaveBeenCalled();
   });
 });
 

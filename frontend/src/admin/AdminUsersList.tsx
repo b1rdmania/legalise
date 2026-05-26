@@ -40,7 +40,16 @@ export function AdminUsersList() {
   const [superFilter, setSuperFilter] = useState<SuperuserFilter>("");
   const [q, setQ] = useState<Query>({ status: "loading" });
 
+  // UI-side gate FIRST. The substrate enforces too — but firing the
+  // admin endpoint from a non-admin viewer is the smuggled-authority
+  // pattern ACCEPTANCE §12 forbids. Gate the fetch on the auth state
+  // BEFORE scheduling it.
   useEffect(() => {
+    if (auth.loading) return;
+    if (!auth.user || !auth.user.is_superuser) {
+      setQ({ status: "admin_required" });
+      return;
+    }
     let cancelled = false;
     setQ({ status: "loading" });
     listAdminUsers({
@@ -62,11 +71,12 @@ export function AdminUsersList() {
     return () => {
       cancelled = true;
     };
-  }, [roleFilter, superFilter]);
+  }, [auth.loading, auth.user, roleFilter, superFilter]);
 
-  // UI-side gate. The substrate enforces too — this is the
-  // belt-and-braces "don't render an admin shell to a non-admin"
-  // pattern from Phase 14 B / D.
+  // Render-time gate alongside the effect gate. Belt-and-braces with
+  // the effect — if auth.user resolves to non-admin mid-render, the
+  // shell renders immediately; the effect short-circuit ensures no
+  // call was ever fired.
   if (!auth.loading && auth.user && !auth.user.is_superuser) {
     return <AdminRequiredShell />;
   }

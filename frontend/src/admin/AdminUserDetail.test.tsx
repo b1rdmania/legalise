@@ -109,47 +109,25 @@ describe("AdminUserDetail — admin viewer, happy path", () => {
     });
   });
 
-  it("idempotent same-role: no-op message names 'no audit row'", async () => {
+  it("same-role submit is disabled by the form (the no-op path is not user-reachable)", async () => {
+    // Phase 14 F Reviewer redline: the no-op success UI was inferred
+    // from comparing the response role to the prior role, but the
+    // Phase 11 response carries no `changed` flag, so the inference
+    // could mislabel a real write or a real no-op under stale data.
+    // The fix is to drop the UI no-op branch and lean on the form's
+    // submit-disabled guard. This regression pins the guard.
     spyAdminMe();
     vi.spyOn(api, "getAdminUser").mockResolvedValue(
       makeUser({ role: "qualified_solicitor" }),
     );
-    // Substrate returns 200 with the unchanged user (admin_users.py:165).
-    vi.spyOn(api, "changeUserRole").mockResolvedValue({
-      id: "u-target",
-      email: "target@example.com",
-      role: "qualified_solicitor",
-      is_superuser: false,
-    });
 
     mountAt("/admin/users/u-target");
     await waitFor(() => {
       expect(screen.getByTestId("role-select")).toBeInTheDocument();
     });
-    // Trigger a same-role submit by selecting an alternative first
-    // then back to the original — defeats the disabled-when-unchanged
-    // guard so we can hit the substrate's idempotent path.
-    fireEvent.change(screen.getByTestId("role-select"), {
-      target: { value: "solicitor" },
-    });
-    fireEvent.change(screen.getByTestId("role-select"), {
-      target: { value: "qualified_solicitor" },
-    });
-    // The button is disabled because it matches the current role.
-    // Force-enable by re-selecting different then re-rendering once
-    // more is non-trivial; instead, directly exercise the no-op path
-    // by mocking changeUserRole to return the same role:
-    fireEvent.change(screen.getByTestId("role-select"), {
-      target: { value: "solicitor" },
-    });
-    fireEvent.click(screen.getByTestId("role-submit"));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Already on this role/i),
-      ).toBeInTheDocument();
-    });
-    expect(screen.getByText(/does not emit an audit row/i)).toBeInTheDocument();
+    // Draft role matches the current role — submit must be disabled.
+    const submit = screen.getByTestId("role-submit") as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
   });
 });
 
@@ -187,7 +165,7 @@ describe("AdminUserDetail — self-promotion", () => {
 });
 
 describe("AdminUserDetail — non-admin viewer", () => {
-  it("renders 'Admin required' shell without the role form", async () => {
+  it("renders 'Admin required' shell without the role form AND never calls getAdminUser", async () => {
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
       email: "u@example.com",
@@ -200,13 +178,17 @@ describe("AdminUserDetail — non-admin viewer", () => {
       is_verified: true,
       is_superuser: false,
     });
-    // getAdminUser shouldn't matter; the UI gate fires first.
-    vi.spyOn(api, "getAdminUser").mockResolvedValue(makeUser());
+    const detailSpy = vi.spyOn(api, "getAdminUser").mockResolvedValue(makeUser());
 
     mountAt("/admin/users/u-target");
     await waitFor(() => {
       expect(screen.getByText(/Admin required/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("role-select")).toBeNull();
+    // No smuggled authority — the admin detail endpoint MUST NOT
+    // be called when the viewer is not a superuser. Previously the
+    // effect fired once before the render-gate kicked in; the
+    // Reviewer redline tightened to zero calls.
+    expect(detailSpy).not.toHaveBeenCalled();
   });
 });

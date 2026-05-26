@@ -37,11 +37,19 @@ type Query =
 type Mutation =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "noop" }
   | { kind: "ok"; newRole: string }
   | { kind: "self_promotion_forbidden"; message: string }
   | { kind: "invalid_role"; supplied: string; allowed: string[] }
   | { kind: "error"; message: string };
+
+// No "noop" mutation kind. The Phase 11 endpoint returns
+// {id,email,role,is_superuser} with no `changed` flag, so the UI
+// cannot reliably distinguish a fresh write from an idempotent
+// no-op via the response. Same-role submit is disabled by the
+// form, and the substrate's idempotent contract is mentioned in
+// the explainer copy. If a backend phase adds `changed:bool` later
+// the UI can branch honestly; until then, claiming no-op from a
+// role-comparison inference would race against stale-data scenarios.
 
 export function AdminUserDetail({ userId }: { userId: string }) {
   const auth = useAuth();
@@ -50,6 +58,15 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   const [draftRole, setDraftRole] = useState<UserRole | "">("");
 
   useEffect(() => {
+    // Gate the fetch on auth BEFORE scheduling. Calling the admin
+    // endpoint from a non-admin viewer is the smuggled-authority
+    // pattern ACCEPTANCE §12 forbids — substrate would 403, but
+    // the call never gets to fire under this gate.
+    if (auth.loading) return;
+    if (!auth.user || !auth.user.is_superuser) {
+      setQ({ status: "admin_required" });
+      return;
+    }
     let cancelled = false;
     setQ({ status: "loading" });
     getAdminUser(userId)
@@ -78,7 +95,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [auth.loading, auth.user, userId]);
 
   if (!auth.loading && auth.user && !auth.user.is_superuser) {
     return <AdminRequiredShell />;
@@ -125,14 +142,15 @@ export function AdminUserDetail({ userId }: { userId: string }) {
     setM({ kind: "submitting" });
     try {
       const updated = await changeUserRole(userId, draftRole);
-      if (updated.role === user.role) {
-        // Substrate already had this role — Phase 11 idempotent path
-        // (200, no audit row). Be honest about it.
-        setM({ kind: "noop" });
-      } else {
-        setM({ kind: "ok", newRole: updated.role });
-        setQ({ status: "ready", user: { ...user, role: updated.role } });
-      }
+      // No noop branch here. The Phase 11 response carries no
+      // `changed` flag, so we can't honestly distinguish a fresh
+      // write from an idempotent no-op via the response alone. The
+      // submit button is disabled when draftRole === user.role, so
+      // the no-op path isn't normally reachable from this UI; any
+      // 200 we receive is treated as "substrate accepted the
+      // request" and reported as such.
+      setM({ kind: "ok", newRole: updated.role });
+      setQ({ status: "ready", user: { ...user, role: updated.role } });
     } catch (err) {
       if (err instanceof SelfPromotionForbiddenError) {
         setM({ kind: "self_promotion_forbidden", message: err.message });
@@ -174,8 +192,10 @@ export function AdminUserDetail({ userId }: { userId: string }) {
         <p className="mt-2 text-xs text-muted">
           Body is <code className="font-mono">{`{role}`}</code> only —
           the substrate hardcodes the audit reason to{" "}
-          <code className="font-mono">manual_admin_action</code>. Same-role
-          POST is a no-op; no audit row is written. Self-promotion is
+          <code className="font-mono">manual_admin_action</code>.
+          Same-role POSTs are idempotent server-side (no audit row);
+          this form blocks them client-side too by disabling submit
+          when the draft matches the current role. Self-promotion is
           forbidden — another superuser must act.
         </p>
         <form onSubmit={onSubmit} className="mt-4 flex flex-wrap items-end gap-3">
@@ -217,15 +237,13 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
         {m.kind === "ok" && (
           <p className="mt-3 text-sm text-muted">
-            Role changed to{" "}
-            <code className="font-mono">{m.newRole}</code>. Substrate
-            audit row: <code className="font-mono">user.role.changed</code>.
-          </p>
-        )}
-        {m.kind === "noop" && (
-          <p className="mt-3 text-sm text-muted">
-            Already on this role — no change. Idempotent POST does not
-            emit an audit row.
+            Role set to{" "}
+            <code className="font-mono">{m.newRole}</code>. If this
+            was a fresh write, the substrate emitted{" "}
+            <code className="font-mono">user.role.changed</code>; if
+            the role was already X, Phase 11's idempotent path
+            returned 200 without emitting. The response does not
+            distinguish; reconstruction is the source of truth.
           </p>
         )}
         {m.kind === "self_promotion_forbidden" && (
