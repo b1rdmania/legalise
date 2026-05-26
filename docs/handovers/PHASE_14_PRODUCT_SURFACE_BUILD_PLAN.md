@@ -13,7 +13,7 @@
 3. No curl-only step except first-admin bootstrap CLI.
 4. No unsupported marketing claim.
 
-**Stack (locked):** Vite + React 19 + TanStack Router + TanStack Query + Tailwind. Already in `frontend/`. Phase 14 does NOT migrate routers or rebuild auth; it extends the existing surface and closes the missing pages.
+**Stack (locked):** Vite + React 19 + TanStack Router + TanStack Query + Tailwind + existing `src/ui/primitives.tsx` + `lucide-react`. Already in `frontend/`. Phase 14 keeps auth as-is; router migration moves to the **front** of the build (sub-step A0) so every subsequent surface lands on the final route shape.
 
 ## Architectural discipline
 
@@ -45,7 +45,22 @@ Surveyed before drafting:
 
 ## Sub-phase ledger
 
-Seven sub-steps. Sequential dependency: F lands the router migration, so anything that adds new routes lands after F. Each sub-step is self-contained, each ships green tests + a Reviewer ratification cycle.
+Eight sub-steps. **A0 lands the router migration first** so every subsequent surface ships on the final route shape — no churn, no deep-link rewrites. Each sub-step is self-contained, each ships green tests + a Reviewer ratification cycle.
+
+### Phase 14 A0 — Router foundation (~1 day)
+
+**Surfaces:** none new — infrastructure only. Migrates the existing hash-based router at `src/lib/route.ts` to TanStack Router (file-based) with path-based routes per `PAGE_MAP.md`.
+
+**Builds:**
+- TanStack Router file routes covering every route currently in `src/lib/route.ts` (landing, manifesto, waitlist, signin, signup, forgot, reset, verify, verifyPending, modules, matters list/new/detail, settings). Stubs for the new routes Phase 14 A–G will add (`/app`, `/modules/{id}`, `/modules/install/{ceremony_id}`, `/matters/{slug}/audit`, `/matters/{slug}/artifacts`, `/matters/{slug}/artifacts/{id}`, `/admin/users`, `/admin/users/{id}`) — each as a 404 placeholder gated by `VITE_FEATURE_FLAGS` until its sub-step lands.
+- `__authed.tsx` layout that gates everything except `/auth/*` + marketing pages on `GET /auth/users/me`.
+- Hash → path redirects so existing `/legalise.dev/#/matters` deep-links continue to work for one release.
+- Deep-link query-param plumbing standardised (`?invocation_id=`, `?action=`, `?from=` etc.) so Phase 14 E can wire reconstruction filtering against a stable router contract.
+
+**Test bar:**
+- Every existing surface (auth, matters list/detail, settings) still works after migration. Smoke test per route. No regressions in audit emissions from the existing flows.
+
+**Acceptance:** every Phase 14 A–G sub-step builds on top of this; no rewrites required later.
 
 ### Phase 14 A — Bootstrap-state + first-run shell (~1 day)
 
@@ -54,12 +69,18 @@ Seven sub-steps. Sequential dependency: F lands the router migration, so anythin
 **Builds:**
 - `BootstrapStateProvider` (or query) hitting `GET /api/system/bootstrap-state`. No auth required.
 - `/app` home: post-login lands here. Shows recent matters + "Open Khan v Acme" CTA.
-- First-run branch on `/app`: if `user_count === 0`, render the Journey 00 §1 empty state ("No accounts yet. The first user becomes the workspace administrator.") with the "Register first account" CTA → `/auth/register`. Secondary anchor "Read the open-core README" → external (already-shipped marketing).
+- First-run branch on `/app` is a **three-state machine** mirroring the substrate, not a two-state oversimplification:
+  - `user_count === 0` → empty state: "No accounts yet. Register the first account." Primary CTA → `/auth/register`. Secondary anchor: README link. **Does NOT claim registration grants admin** — registration creates a normal user; admin status is a separate step.
+  - `user_count > 0 && has_superuser === false` → "Bootstrap administrator required" state. Renders the exact CLI command from Phase 12 (`python -m app.tools.bootstrap_admin <email>`) with the path (`backend/app/tools/bootstrap_admin.py`) and a one-line note that it must run on the host (no UI path — deliberate, per Phase 12 scope).
+  - `has_superuser === true` → normal authenticated flow. If not signed in, redirect to `/auth/login`.
 - Existing landing page (`legalise.dev`) is unaffected; this is the **in-app** first-run, hit when you log into a fresh fork.
 
 **Test bar:**
-- Integration: with `user_count=0`, `/app` renders the empty state. After register completes, `/app` renders the authenticated home.
-- Audit: no extra rows beyond the existing `auth.user.registered`.
+- Integration covers all three states:
+  - `user_count=0` → empty state with "Register first account" CTA; copy does NOT promise admin status.
+  - `user_count>0, has_superuser=false` → bootstrap-required state with the CLI command literal and the Phase 12 binary path.
+  - `has_superuser=true` → authenticated home (with redirect to `/auth/login` when no session).
+- Audit: no extra rows beyond the existing `auth.user.registered`. The bootstrap path emits `user.admin.bootstrapped` from the CLI, NOT from the UI.
 
 **Acceptance vs ACCEPTANCE.md:** §9 (first-run experience matches Journey 00).
 
@@ -135,24 +156,20 @@ Seven sub-steps. Sequential dependency: F lands the router migration, so anythin
 
 **Acceptance vs ACCEPTANCE.md:** §8 (reconstruction deep-linkable from every relevant page), §14 (no diverged vocabulary).
 
-### Phase 14 F — Router migration + admin lifecycle (~1.5 days)
+### Phase 14 F — Admin lifecycle (~1 day)
 
-**Surfaces:** `/admin/users`, `/admin/users/{id}`. Journey 12. Plus router migration as a precondition.
+**Surfaces:** `/admin/users`, `/admin/users/{id}`. Journey 12.
 
-**Sub-step F.1 — TanStack Router migration:**
-- Replace `src/lib/route.ts` hash-based switch with TanStack Router file-based routes.
-- Mount all routes from `PAGE_MAP.md` (path-based, not hash-based) — required for the deep-link query params in sub-step E to round-trip cleanly.
-- Existing route names map 1:1; `case`/`switch` patterns inside `App.tsx` become route loaders.
-- Auth gate: a single `__authed.tsx` layout protects everything except `/auth/*` and the marketing pages.
-
-**Sub-step F.2 — Admin pages:**
+**Builds:**
 - `/admin/users`: list page hitting `GET /api/admin/users` (superuser-only). Filters: role, is_superuser. Rendered as a table; row click → detail.
-- `/admin/users/{id}`: detail page hitting `GET /api/admin/users/{id}`. Role-mutation form posting `POST /api/admin/users/{id}/role` with a `reason` field (required by substrate). Self-promote attempt produces the 403 banner.
+- `/admin/users/{id}`: detail page hitting `GET /api/admin/users/{id}`. Role-mutation form posts `POST /api/admin/users/{id}/role` with body `{role}` only — that is the substrate's `RoleChangeRequest` shape (`backend/app/api/admin_users.py:57`). The substrate hardcodes the audit reason to `manual_admin_action` (`admin_users.py:182`); the UI does NOT collect an operator-supplied reason. If operator-supplied reasons become a requirement later, that lands as a backend phase, not a Phase 14 frontend invention.
+- Self-promote attempt produces the 403 banner.
 - Top-nav: "Admin" anchor appears only if `user.is_superuser`.
 
 **Test bar:**
-- Integration: every existing surface still works after migration. New admin pages call documented endpoints; `user.role.changed` row lands.
+- Integration: admin pages call documented endpoints; `user.role.changed` row lands with payload `{target_user_id, from_role, to_role, reason: "manual_admin_action"}`.
 - Idempotent same-role POST produces no row (substrate-verified).
+- The role POST body contains exactly `{role}` — no extra fields. A request asserting that extra fields are sent is a regression.
 
 **Acceptance vs ACCEPTANCE.md:** §10 (admin lifecycle coherent through UI).
 
@@ -193,19 +210,21 @@ These come back from Reviewer before the first line of code:
 
 | # | Decision | Default | Reviewer call |
 | --- | --- | --- | --- |
-| 1 | Router: TanStack Router (file-based) vs React Router 6 | TanStack Router — already in `package.json` | confirm |
-| 2 | Component primitive: shadcn/ui vs Radix Primitives + hand-built | shadcn/ui — fastest path; Tailwind already in stack | confirm |
+| 1 | Router: TanStack Router (file-based) vs React Router 6 | TanStack Router — already in `package.json`; landed first as sub-step A0 | confirm |
+| 2 | Component primitive set | **Existing `src/ui/primitives.tsx` + Tailwind + `lucide-react`.** No shadcn/ui, no Radix install — matches "extend, don't rewrite" posture and avoids re-themeing already-shipped surfaces | confirm |
 | 3 | Reconstruction table virtualisation library | TanStack Table + TanStack Virtual | confirm |
 | 4 | Deep-link query params: `?invocation_id=` vs path-segment | query param — preserves `PAGE_MAP.md` route shapes | confirm |
 | 5 | Per-sub-step ratification vs single phase-end ratification | per-sub-step (matches Phase 13b cadence) | confirm |
 | 6 | New audit rows from the UI side? | none — Phase 13b D is final | confirm |
 | 7 | Server-paid model keys ever from the UI side? | never — UI never sees server-paid keys (non-negotiable per memory) | confirm |
+| 8 | Admin role-change body shape | `{role}` only per substrate `RoleChangeRequest` at `admin_users.py:57`; reason is server-hardcoded to `manual_admin_action`. Operator-supplied reasons would be a backend phase. | confirm |
+| 9 | First-run state space | Three states (`user_count=0` / `has_superuser=false` / `has_superuser=true`), NOT two; registration never implies admin promotion | confirm |
 
 ## Total estimate
 
-≈ 11.5 days of focused frontend work across seven sub-steps. Each sub-step lands its own Reviewer cycle if decision #5 holds. Phase 14 closes when:
+≈ 12 days of focused frontend work across **eight** sub-steps (A0 + A–G). A0 adds ~1d for router migration; F shrinks by ~0.5d because router work moved up. Each sub-step lands its own Reviewer cycle if decision #5 holds. Phase 14 closes when:
 
-- All seven sub-steps have ratified handovers.
+- All eight sub-steps (A0 + A–G) have ratified handovers.
 - The cross-cutting acceptance from ACCEPTANCE.md (Andy's four + §5–§10 + §11–§15) holds end-to-end on a fresh fork.
 - A walkthrough video (or written transcript) demonstrates the first-run journey wall-clock under 10 minutes.
 
@@ -222,4 +241,4 @@ Each sub-step lands:
 - Updated `BACKEND_GAP_AUDIT.md` if findings surfaced
 - Reviewer ratification commit hash recorded
 
-Phase 14 closes with `docs/handovers/HANDOVER_PHASE_14_PRODUCT_SURFACE_DONE.md` summarising all seven and listing any findings that became Phase 14b candidates.
+Phase 14 closes with `docs/handovers/HANDOVER_PHASE_14_PRODUCT_SURFACE_DONE.md` summarising all eight sub-steps and listing any findings that became Phase 14b candidates.
