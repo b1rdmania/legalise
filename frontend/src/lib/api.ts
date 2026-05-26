@@ -352,6 +352,114 @@ export const revokeModuleV2 = (moduleId: string) =>
     method: "POST",
   }).then((r) => jsonOrThrow<{ module_id: string; disabled_rows: number; revoked_grants: number }>(r));
 
+// ---------------------------------------------------------------------------
+// Phase 14 C — matter-scoped grants
+// ---------------------------------------------------------------------------
+
+export interface GrantRow {
+  id: string;
+  plugin: string;
+  skill: string;
+  capability: string;
+  scope_type: string;
+  scope_id: string | null;
+  granted_at: string | null;
+}
+
+export interface GrantListResponse {
+  matter_id: string;
+  grants: GrantRow[];
+}
+
+export interface GrantCreateResponse {
+  matter_id: string;
+  parent_capability_id: string;
+  module_id: string;
+  grants: GrantRow[];
+  was_idempotent_noop: boolean;
+}
+
+export const listGrants = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/grants`).then((r) =>
+    jsonOrThrow<GrantListResponse>(r),
+  );
+
+/**
+ * Distinguishable errors for the substrate's two non-200 paths on
+ * grant creation. Phase 7 returns:
+ *   - 404 module_not_installed
+ *   - 409 module_disabled (installed but admin disabled it)
+ * Both carry structured bodies the substrate documents at
+ * backend/app/api/grants.py:156-175.
+ */
+export class ModuleNotInstalledError extends Error {
+  readonly kind = "module_not_installed" as const;
+  constructor(message: string, public readonly moduleId: string) {
+    super(message);
+    this.name = "ModuleNotInstalledError";
+  }
+}
+
+export class ModuleDisabledError extends Error {
+  readonly kind = "module_disabled" as const;
+  constructor(message: string, public readonly moduleId: string) {
+    super(message);
+    this.name = "ModuleDisabledError";
+  }
+}
+
+export const createGrant = async (
+  slug: string,
+  body: { module_id: string; capability_id: string },
+): Promise<GrantCreateResponse> => {
+  const res = await apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/grants`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (res.status === 404) {
+    let parsed: { detail?: { error?: string; module_id?: string } } = {};
+    try {
+      parsed = (await res.json()) as typeof parsed;
+    } catch {
+      // fall through
+    }
+    if (parsed?.detail?.error === "module_not_installed") {
+      throw new ModuleNotInstalledError(
+        `Module ${body.module_id} is not installed on this workspace.`,
+        body.module_id,
+      );
+    }
+  }
+  if (res.status === 409) {
+    let parsed: { detail?: { error?: string; message?: string } } = {};
+    try {
+      parsed = (await res.json()) as typeof parsed;
+    } catch {
+      // fall through
+    }
+    if (parsed?.detail?.error === "module_disabled") {
+      throw new ModuleDisabledError(
+        parsed.detail.message ?? "Module is currently disabled.",
+        body.module_id,
+      );
+    }
+  }
+  return jsonOrThrow<GrantCreateResponse>(res);
+};
+
+export const revokeGrant = (slug: string, grantId: string) =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/grants/${encodeURIComponent(grantId)}`,
+    { method: "DELETE" },
+  ).then((r) => {
+    if (r.status === 204) return;
+    return jsonOrThrow<unknown>(r).then(() => undefined);
+  });
+
 export const listMatters = () =>
   apiFetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
 

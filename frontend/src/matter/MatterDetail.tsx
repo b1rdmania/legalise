@@ -25,8 +25,11 @@ import {
   type PreMotionRunResult,
 } from "../lib/api";
 import { navigate, useRoute } from "../lib/route";
+import { useAuth } from "../auth/AuthProvider";
 import { useDrawer } from "../app/DrawerContext";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
+import { GrantsPanel } from "./GrantsPanel";
+import { PostureBanner } from "./PostureBanner";
 import { MatterNav } from "./MatterNav";
 import { MatterBreadcrumb } from "./MatterBreadcrumb";
 import { RightRailAssistant } from "./RightRailAssistant";
@@ -50,6 +53,8 @@ export function MatterDetail({ slug }: { slug: string }) {
   const { setDrawerMatter, setDrawerTab } = useDrawer();
   const onMatterLoaded = setDrawerMatter;
   const onTabChange = setDrawerTab;
+  // Phase 14 C — posture banner reads the current user role.
+  const auth = useAuth();
   const route = useRoute();
   const initialTab: TabKey =
     route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
@@ -364,6 +369,12 @@ export function MatterDetail({ slug }: { slug: string }) {
         <div className="flex">
         <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
           {error && matter && <ErrorCallout message={error} compact />}
+          {matter && (
+            <PostureBanner
+              posture={matter.privilege_posture}
+              user={auth.user}
+            />
+          )}
           {tab === "assistant" && (
             <AssistantTab
               matter={matter}
@@ -425,6 +436,7 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
           {tab === "research" && matter && <ResearchTab matter={matter} />}
+          {matter && <GrantsPanel slug={matter.slug} />}
         </main>
         {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
           <RightRailAssistant
