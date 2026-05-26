@@ -22,6 +22,7 @@ from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
+from app.api.admin_users import router as admin_users_router
 from app.api.audit import router as audit_router
 from app.api.grants import router as grants_router
 from app.api.invocations import router as invocations_router
@@ -312,6 +313,9 @@ app.include_router(grants_router, prefix="/api/matters", tags=["grants"])
 app.include_router(
     invocations_router, prefix="/api/matters", tags=["invocations"]
 )
+# Phase 11 admin role endpoint. Future admin endpoints land
+# alongside under /api/admin.
+app.include_router(admin_users_router, prefix="/api/admin", tags=["admin"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
