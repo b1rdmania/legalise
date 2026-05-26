@@ -184,21 +184,60 @@ async def require_capability(
     plugin: str,
     skill: str,
     capability: str,
+    matter_id: uuid.UUID | None = None,
 ) -> None:
-    """Raise CapabilityDenied if `(user, plugin, skill)` has not been
-    granted `capability`. Returns None on success.
+    """Raise CapabilityDenied if ``(user, plugin, skill)`` has not been
+    granted ``capability``. Returns None on success.
 
-    Reads `workspace_skill_capability_grants` directly; index on
-    `(user_id, plugin, skill)` keeps this a single point-lookup.
+    Matter scoping (Reviewer Phase 6 R3 fix)
+    -----------------------------------------
+    When ``matter_id`` is supplied, the matching grant must carry
+    ``granted_permissions_snapshot["matter_id"] == str(matter_id)``.
+    A grant for matter A no longer authorises matter B — closes the
+    silent-cross-matter authorisation gap the R3 review surfaced.
+
+    Three cases:
+
+    1. ``matter_id`` is None → workspace-broad check (current
+       behaviour). Any matching grant satisfies regardless of
+       snapshot.
+    2. ``matter_id`` is set AND a grant exists with matching
+       snapshot.matter_id → allowed.
+    3. ``matter_id`` is set AND no grant has matching snapshot
+       matter_id → denied. Legacy v1 grants with NULL
+       ``granted_permissions_snapshot`` are NOT treated as
+       authorising matter-scoped capabilities; they're workspace-
+       broad only, so they cannot satisfy a matter-scoped check.
+       This matches Phase 4's matter-archive cascade convention
+       (legacy grants survive archive precisely because they're
+       NOT matter-scoped).
+
+    The capability vocabulary is the source of truth for whether
+    a capability is matter-scoped — callers that pass ``matter_id``
+    are asserting "this is a matter-scoped check". The function
+    does not introspect the capability string itself; the caller
+    decides scope.
+
+    Reads ``workspace_skill_capability_grants``; index on
+    ``(user_id, plugin, skill)`` keeps this a single point-lookup.
     """
-    row = await session.scalar(
-        select(WorkspaceSkillCapabilityGrant.id).where(
-            WorkspaceSkillCapabilityGrant.user_id == user_id,
-            WorkspaceSkillCapabilityGrant.plugin == plugin,
-            WorkspaceSkillCapabilityGrant.skill == skill,
-            WorkspaceSkillCapabilityGrant.capability == capability,
-        )
+    stmt = select(WorkspaceSkillCapabilityGrant.id).where(
+        WorkspaceSkillCapabilityGrant.user_id == user_id,
+        WorkspaceSkillCapabilityGrant.plugin == plugin,
+        WorkspaceSkillCapabilityGrant.skill == skill,
+        WorkspaceSkillCapabilityGrant.capability == capability,
     )
+    if matter_id is not None:
+        # The grant's snapshot must carry a matter_id matching the
+        # request. JSONB scalar comparison via ``->>`` returns the
+        # text form; NULL snapshots fail the comparison cleanly
+        # (a NULL JSON->>key is NULL, never equal to a string).
+        stmt = stmt.where(
+            WorkspaceSkillCapabilityGrant.granted_permissions_snapshot[
+                "matter_id"
+            ].astext == str(matter_id)
+        )
+    row = await session.scalar(stmt)
     if row is None:
         # Write an audit row for the denied attempt. Lazy import breaks the
         # cycle between `core.api` and this module.
@@ -208,6 +247,7 @@ async def require_capability(
             session,
             "module.capability.denied",
             actor_id=user_id,
+            matter_id=matter_id,
             module=plugin,
             resource_type="capability",
             resource_id=f"{plugin}:{skill}:{capability}",
@@ -215,6 +255,8 @@ async def require_capability(
                 "plugin": plugin,
                 "skill": skill,
                 "capability": capability,
+                "matter_id": str(matter_id) if matter_id is not None else None,
+                "scope": "matter" if matter_id is not None else "workspace",
             },
         )
         # Commit the audit row before raising so the denial is persisted

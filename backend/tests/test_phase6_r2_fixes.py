@@ -236,7 +236,7 @@ async def test_missing_write_grant_blocks_after_read(db_session) -> None:
     user = await _make_user(db_session)
     matter = await _make_matter(db_session, user)
     doc = await _make_document(db_session, matter, text="some NDA text")
-    # Grant ONLY the read.
+    # Grant ONLY the read — scoped to this matter (Phase 6 R3).
     db_session.add(
         WorkspaceSkillCapabilityGrant(
             id=uuid.uuid4(),
@@ -246,6 +246,7 @@ async def test_missing_write_grant_blocks_after_read(db_session) -> None:
             capability="matter.document.read",
             capability_version="2.0.0",
             granted_at_module_version="1.0.0",
+            granted_permissions_snapshot={"matter_id": str(matter.id)},
         )
     )
     await db_session.flush()
@@ -293,7 +294,7 @@ async def test_module_cannot_smuggle_actor_role(db_session) -> None:
     user = await _make_user(db_session, role="solicitor")
     matter = await _make_matter(db_session, user)
     doc = await _make_document(db_session, matter, text="contract text")
-    # Both grants.
+    # Both grants — matter-scoped (Phase 6 R3).
     for cap in ("matter.document.read", "matter.artifact.write"):
         db_session.add(
             WorkspaceSkillCapabilityGrant(
@@ -304,6 +305,7 @@ async def test_module_cannot_smuggle_actor_role(db_session) -> None:
                 capability=cap,
                 capability_version="2.0.0",
                 granted_at_module_version="1.0.0",
+                granted_permissions_snapshot={"matter_id": str(matter.id)},
             )
         )
     await db_session.flush()
@@ -370,3 +372,187 @@ def test_prompt_handles_missing_extraction() -> None:
     doc = _D(filename="empty.pdf")
     prompt = _build_prompt(doc, "")
     assert "no extracted text" in prompt
+
+
+# -------------------- R3 — grants must be matter-scoped --------------------
+
+
+@pytest.mark.asyncio
+async def test_cross_matter_grant_does_not_authorize_other_matter(
+    db_session,
+) -> None:
+    """Reviewer Phase 6 R3 P1: a grant for matter A must NOT authorise
+    matter B. The denial must land BEFORE document resolution, BEFORE
+    the provider call, and produce no artifact."""
+    from examples.modules.contract_review.capability import (
+        InvocationContext,
+        review_contract,
+    )
+    from app.models import AuditEntry
+
+    user = await _make_user(db_session)
+    matter_a = await _make_matter(db_session, user)
+    matter_b = await _make_matter(db_session, user)
+    # Document lives on matter B (the target the test will try to invoke against).
+    doc_b = await _make_document(db_session, matter_b, text="text on matter B")
+
+    # Grants scoped to matter A ONLY. The user owns BOTH matters,
+    # so the only thing keeping them out of matter B's capabilities
+    # is the snapshot scope.
+    for cap in ("matter.document.read", "matter.artifact.write"):
+        db_session.add(
+            WorkspaceSkillCapabilityGrant(
+                id=uuid.uuid4(),
+                user_id=user.id,
+                plugin="examples.contract-review",
+                skill="review",
+                capability=cap,
+                capability_version="2.0.0",
+                granted_at_module_version="1.0.0",
+                granted_permissions_snapshot={"matter_id": str(matter_a.id)},
+            )
+        )
+    await db_session.flush()
+
+    # Instrument the provider so the test can prove the model was never called.
+    call_log: list[str] = []
+
+    async def _watching_provider(prompt, *, system):
+        call_log.append(prompt)
+        return _StubResponse(text=json.dumps({"findings": []}))
+
+    invocation_id = uuid.uuid4()
+    context = InvocationContext(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        invocation_id=invocation_id,
+    )
+
+    with pytest.raises(CapabilityDenied):
+        await review_contract(
+            session=db_session,
+            matter=matter_b,
+            context=context,
+            document_id=doc_b.id,
+            provider_call=_watching_provider,
+        )
+
+    # Provider was never called — denial landed before the model invoke step.
+    assert call_log == [], (
+        "model was invoked despite cross-matter grant; the denial must "
+        "fire BEFORE the provider call"
+    )
+
+    # No artifact landed.
+    artifact = await db_session.scalar(
+        select(MatterArtifact).where(
+            MatterArtifact.invocation_id == invocation_id
+        )
+    )
+    assert artifact is None
+
+    # The denial audit row references matter B (the requested scope)
+    # not matter A (where the grant exists). Provenance must record
+    # what was requested, not what the user happens to hold.
+    denial = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.action == "module.capability.denied",
+            AuditEntry.actor_id == user.id,
+            AuditEntry.matter_id == matter_b.id,
+        )
+    )
+    assert denial is not None
+    assert denial.payload["matter_id"] == str(matter_b.id)
+    assert denial.payload["scope"] == "matter"
+
+
+@pytest.mark.asyncio
+async def test_workspace_broad_check_unaffected_by_matter_scope(
+    db_session,
+) -> None:
+    """Defence-in-depth: when require_capability is called WITHOUT
+    matter_id (workspace-broad check), it still accepts both
+    scoped-snapshot grants AND legacy NULL-snapshot grants. The new
+    matter-scoping only kicks in when matter_id is supplied."""
+    from app.core.capabilities import require_capability
+
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+
+    # Two grants — one with matter scope, one legacy v1 (NULL snapshot).
+    db_session.add(
+        WorkspaceSkillCapabilityGrant(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            plugin="examples.legacy",
+            skill="legacy-skill",
+            capability="workspace.thing.do",
+            # No snapshot — legacy v1 grant.
+        )
+    )
+    db_session.add(
+        WorkspaceSkillCapabilityGrant(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            plugin="examples.scoped",
+            skill="scoped-skill",
+            capability="matter.thing.do",
+            granted_permissions_snapshot={"matter_id": str(matter.id)},
+        )
+    )
+    await db_session.flush()
+
+    # Workspace-broad check on the legacy grant — must pass.
+    await require_capability(
+        db_session,
+        user_id=user.id,
+        plugin="examples.legacy",
+        skill="legacy-skill",
+        capability="workspace.thing.do",
+    )
+
+    # Workspace-broad check on the scoped grant — must also pass
+    # (the snapshot doesn't block a workspace-broad lookup).
+    await require_capability(
+        db_session,
+        user_id=user.id,
+        plugin="examples.scoped",
+        skill="scoped-skill",
+        capability="matter.thing.do",
+    )
+
+
+@pytest.mark.asyncio
+async def test_legacy_grant_does_not_satisfy_matter_scoped_check(
+    db_session,
+) -> None:
+    """A v1 grant with NULL granted_permissions_snapshot cannot
+    satisfy a matter-scoped require_capability call. Legacy grants
+    are workspace-broad; they survive matter archive cascade
+    precisely because they were never scoped. The R3 fix honours
+    that: NULL snapshot != matching matter_id."""
+    from app.core.capabilities import require_capability
+
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    db_session.add(
+        WorkspaceSkillCapabilityGrant(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            plugin="examples.legacy",
+            skill="legacy",
+            capability="matter.thing.do",
+            # No snapshot.
+        )
+    )
+    await db_session.flush()
+
+    with pytest.raises(CapabilityDenied):
+        await require_capability(
+            db_session,
+            user_id=user.id,
+            plugin="examples.legacy",
+            skill="legacy",
+            capability="matter.thing.do",
+            matter_id=matter.id,
+        )

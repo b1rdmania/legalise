@@ -163,15 +163,20 @@ async def review_contract(
 
     # 1. Enforce read grant BEFORE touching the document. require_capability
     #    raises CapabilityDenied (caught upstream as 403) and writes the
-    #    canonical module.capability.denied audit row. Reviewer R2 P1 #2:
-    #    grants must be enforced at the capability boundary, not assumed
-    #    from a host that the vertical slice doesn't go through yet.
+    #    canonical module.capability.denied audit row.
+    #
+    #    Reviewer R2 P1 #2 + R3: grants must be enforced at the capability
+    #    boundary AND matter-scoped — a grant for matter A must not
+    #    authorise matter B. ``matter_id=matter.id`` makes the lookup
+    #    match grants whose ``granted_permissions_snapshot.matter_id``
+    #    equals this matter's id; cross-matter grants are denied.
     await require_capability(
         session,
         user_id=actor_user_id,
         plugin=MODULE_ID,
         skill=CAPABILITY_ID,
         capability=CAP_READ,
+        matter_id=matter.id,
     )
 
     # 2. Resolve document + load its body. Reviewer R2 P2: previously
@@ -254,14 +259,16 @@ async def review_contract(
     # 6. Parse findings.
     findings = _parse_findings(response.text)
 
-    # 7. Enforce write grant BEFORE creating the artifact. Same
-    #    Reviewer R2 P1 #2 fix as the read grant.
+    # 7. Enforce write grant BEFORE creating the artifact. Same matter
+    #    scoping as the read check (Reviewer R3): the write grant must
+    #    carry this matter's id in its snapshot.
     await require_capability(
         session,
         user_id=actor_user_id,
         plugin=MODULE_ID,
         skill=CAPABILITY_ID,
         capability=CAP_WRITE,
+        matter_id=matter.id,
     )
 
     # 8. Write findings_pack artifact.

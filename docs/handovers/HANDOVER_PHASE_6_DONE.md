@@ -240,4 +240,29 @@ A module that picks its own legal authority defeats the advice-boundary trust co
 
 ---
 
+## R3 fix applied (cross-matter authorisation)
+
+Reviewer's R2 pass closed the four R2 findings cleanly but exposed one remaining P1: grants were enforced now, but they were not **matter-scoped**. A grant for Matter A authorised the same user/module/capability against Matter B — cuts directly against the "matter-scoped, permissioned, auditable" launch claim.
+
+### Finding + fix
+
+**P1 — `require_capability()` ignored `granted_permissions_snapshot.matter_id`.**
+
+The pre-fix lookup matched on `(user_id, plugin, skill, capability)` only. The snapshot — where Phase 4 stores the per-grant matter id — was never inspected. A user with a grant scoped to Matter A could invoke the same capability on Matter B and get authorised.
+
+*Fix:*
+- `require_capability` gains an optional `matter_id` kwarg. When supplied, the SQL filter requires the grant's `granted_permissions_snapshot->>'matter_id' = str(matter_id)`. NULL-snapshot legacy grants do NOT satisfy a matter-scoped check (they're workspace-broad; this matches Phase 4's matter-archive cascade convention where legacy grants survive precisely because they're not matter-scoped).
+- `review_contract` passes `matter_id=matter.id` at both grant boundaries (read + write).
+- The denial audit row now carries the requested matter_id + `scope` field, so provenance records what was asked, not what the user happens to hold.
+
+### R3 test additions (3)
+
+- `test_cross_matter_grant_does_not_authorize_other_matter` — user owns Matter A and Matter B; grants scoped to A; invocation against B denies, no artifact, provider never called, denial audit references Matter B.
+- `test_workspace_broad_check_unaffected_by_matter_scope` — `require_capability` without `matter_id` still accepts both scoped and legacy grants.
+- `test_legacy_grant_does_not_satisfy_matter_scoped_check` — NULL-snapshot v1 grant cannot satisfy a matter-scoped check.
+
+**Sweep after R3 fix:** 592 passed, 8 skipped, 0 failed.
+
+---
+
 *End of Phase 6 handover.*
