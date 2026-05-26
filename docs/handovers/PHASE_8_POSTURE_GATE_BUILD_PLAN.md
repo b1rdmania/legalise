@@ -17,7 +17,7 @@ One new substrate primitive + one wiring change into Contract Review + tests. No
 **In:**
 - `core/posture_gate.py` — pure-functional + audit-emitting check
 - Contract Review capability calls it before `advice_boundary.check()`
-- Audit emission via the existing `module.capability.blocked` shape so reconstruction renders it identically to other denials
+- Audit emission via `posture_gate.check.blocked` (deliberate new action, named per the `<primitive>.<operation>.blocked` convention) with `blocked_reason=BlockedReason.GATE_BLOCKED` and posture detail (`gate`, `posture`, `required_role`, `actor_role`, `reason`) carried in `BlockedPayload.gate_state`. Full shape pinned in Decision #4.
 
 **Out (parked, KISS):**
 - Affirmative-consent override ("I acknowledge this is privileged") — Phase 9+ if a real use case appears
