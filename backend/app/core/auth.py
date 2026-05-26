@@ -31,7 +31,7 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.core.email import send_password_reset, send_verification
 from app.core.seed import seed_demo_matter_for_user
-from app.models import AccessToken, User
+from app.models import AccessToken, AuditEntry, User
 
 logger = structlog.get_logger()
 
@@ -64,6 +64,22 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         # Never log raw email — PII.
         # user_id is the durable handle; admins join via the users table.
         logger.info("auth.user.registered", user_id=str(user.id))
+        # Phase 13b D — canonical audit row alongside the structured log.
+        # The auth substrate previously emitted log lines only; reconstruction
+        # had no auth-shaped events. Now every register lands a row.
+        from app.core.api import audit
+
+        await audit.log(
+            self.user_db.session,
+            "auth.user.registered",
+            actor_id=user.id,
+            module="core.auth",
+            resource_type="user",
+            resource_id=str(user.id),
+            payload={"email": user.email},
+        )
+        # Note: session commit happens elsewhere in the flow (the
+        # fastapi-users register handler commits before returning).
         # Dev-only escape hatch: skip the email loop and mark verified on
         # register. Otherwise local signup→login is impossible without
         # standing up Resend just to test. Production environments always
@@ -109,10 +125,37 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         get the demo seeded should still be able to sign in and create
         their own matters.
         """
+        # Phase 13b D — auth.user.verified row emitted here (not in
+        # on_after_verify) so it lands on BOTH the dev autoverify path
+        # (which bypasses on_after_verify) and the real verify flow.
+        from app.core.api import audit
+
+        await audit.log(
+            self.user_db.session,
+            "auth.user.verified",
+            actor_id=user.id,
+            module="core.auth",
+            resource_type="user",
+            resource_id=str(user.id),
+        )
+
         try:
             session = self.user_db.session  # SQLAlchemyUserDatabase exposes its session
             matter = await seed_demo_matter_for_user(session, user)
             logger.info("auth.user.demo_seeded", user_id=str(user.id), slug=matter.slug)
+            # Phase 13b D — audit row alongside the structured log.
+            from app.core.api import audit
+
+            await audit.log(
+                session,
+                "auth.user.demo_seeded",
+                actor_id=None,  # system-acting, not the user
+                matter_id=matter.id,
+                module="core.auth",
+                resource_type="matter",
+                resource_id=str(matter.id),
+                payload={"user_id": str(user.id), "matter_slug": matter.slug},
+            )
         except Exception as exc:
             logger.warning(
                 "auth.user.demo_seed_failed",
@@ -129,12 +172,24 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
             session = self.user_db.session
             count = await auto_grant_declared_for_user(session, user_id=user.id)
-            await session.commit()
             logger.info(
                 "auth.user.capabilities_auto_granted",
                 user_id=str(user.id),
                 triples=count,
             )
+            # Phase 13b D — audit row.
+            from app.core.api import audit
+
+            await audit.log(
+                session,
+                "auth.user.capabilities_auto_granted",
+                actor_id=None,  # system-acting
+                module="core.auth",
+                resource_type="user",
+                resource_id=str(user.id),
+                payload={"user_id": str(user.id), "triple_count": count},
+            )
+            await session.commit()
         except Exception as exc:
             logger.warning(
                 "auth.user.capabilities_auto_grant_failed",
@@ -147,11 +202,59 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     ) -> None:
         link = f"{settings.password_reset_url_base}?token={token}"
         await send_password_reset(user.email, link)
+        from app.core.api import audit
+
+        await audit.log(
+            self.user_db.session,
+            "auth.user.password_reset_requested",
+            actor_id=user.id,
+            module="core.auth",
+            resource_type="user",
+            resource_id=str(user.id),
+        )
+        # fastapi-users forgot-password handler does not modify DB state,
+        # so it never commits — emit the commit ourselves.
+        await self.user_db.session.commit()
 
     async def on_after_reset_password(
         self, user: User, request: Request | None = None
     ) -> None:
         logger.info("auth.password.reset", user_id=str(user.id))
+        from app.core.api import audit
+
+        await audit.log(
+            self.user_db.session,
+            "auth.user.password_reset_completed",
+            actor_id=user.id,
+            module="core.auth",
+            resource_type="user",
+            resource_id=str(user.id),
+        )
+        await self.user_db.session.commit()
+
+    async def on_after_update(
+        self,
+        user: User,
+        update_dict: dict,
+        request: Request | None = None,
+    ) -> None:
+        """Phase 13b D — profile update audit row."""
+        from app.core.api import audit
+
+        # Don't log the values, just the field names.
+        fields = sorted(k for k in update_dict.keys() if k != "password")
+        await audit.log(
+            self.user_db.session,
+            "auth.user.profile_updated",
+            actor_id=user.id,
+            module="core.auth",
+            resource_type="user",
+            resource_id=str(user.id),
+            payload={"fields_changed": fields},
+        )
+        # fastapi-users update handler commits before on_after_update
+        # fires, so we commit the audit row ourselves.
+        await self.user_db.session.commit()
 
 
 async def get_user_manager(
@@ -172,10 +275,54 @@ cookie_transport = CookieTransport(
 )
 
 
+class AuditingDatabaseStrategy(DatabaseStrategy[User, uuid.UUID, AccessToken]):
+    """Phase 13b D — emits ``auth.user.logged_in`` / ``auth.user.logged_out``
+    audit rows using the same session that owns the AccessToken write/delete,
+    so the audit row commits alongside the token.
+
+    Middleware-based shimming was the obvious first try, but in
+    SAVEPOINT-bound tests a separately-opened session does not become
+    visible to the verifying session even though both share the same
+    connection. Emitting through the request-scoped session avoids the
+    cross-session visibility problem entirely.
+    """
+
+    async def write_token(self, user: User) -> str:
+        token = await super().write_token(user)
+        session = self.database.session
+        session.add(
+            AuditEntry(
+                actor_id=user.id,
+                action="auth.user.logged_in",
+                module="core.auth",
+                resource_type="user",
+                resource_id=str(user.id),
+                payload={"strategy": "cookie-db"},
+            )
+        )
+        await session.commit()
+        return token
+
+    async def destroy_token(self, token: str, user: User) -> None:
+        await super().destroy_token(token, user)
+        session = self.database.session
+        session.add(
+            AuditEntry(
+                actor_id=user.id,
+                action="auth.user.logged_out",
+                module="core.auth",
+                resource_type="user",
+                resource_id=str(user.id),
+                payload={"strategy": "cookie-db"},
+            )
+        )
+        await session.commit()
+
+
 def get_database_strategy(
     access_token_db: AccessTokenDatabase[AccessToken] = Depends(get_access_token_db),
 ) -> DatabaseStrategy[User, uuid.UUID, AccessToken]:
-    return DatabaseStrategy(access_token_db, lifetime_seconds=settings.session_lifetime_seconds)
+    return AuditingDatabaseStrategy(access_token_db, lifetime_seconds=settings.session_lifetime_seconds)
 
 
 auth_backend = AuthenticationBackend(

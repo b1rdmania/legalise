@@ -23,7 +23,7 @@ User clicks "Khan v Acme Trading Ltd" from `/matters` or from the app-home recen
      - `GET /api/matters/khan-v-acme-trading-2026` (matter row)
      - `GET /api/matters/khan-v-acme-trading-2026/documents` (3 seeded docs)
      - `GET /api/matters/khan-v-acme-trading-2026/grants` (per-user grants on this matter — Phase 7)
-     - `GET /api/matters/khan-v-acme-trading-2026/artifacts` ★ (gap)
+     - `GET /api/matters/khan-v-acme-trading-2026/artifacts`
    - Workspace renders with four panels:
      - Documents (3 — dismissal letter, witness statement, NDA)
      - Installed modules + their grants on this matter
@@ -32,8 +32,6 @@ User clicks "Khan v Acme Trading Ltd" from `/matters` or from the app-home recen
 3. **Posture banner (if applicable).**
    - Default seed posture is `B_mixed`.
    - If caller role is not `qualified_solicitor` → banner per `POSTURE_GATE_UX.md`.
-
-★ **Gap:** `GET /api/matters/{slug}/artifacts` does not exist; logged in `BACKEND_GAP_AUDIT.md`.
 
 ## Audit emissions
 

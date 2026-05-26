@@ -68,7 +68,30 @@ async def upsert_key(
 ) -> UserApiKey:
     if body.provider not in SUPPORTED_PROVIDERS:
         raise HTTPException(400, f"provider must be one of {SUPPORTED_PROVIDERS}")
+    # Detect whether this is a fresh insert or a rotation, before the upsert
+    # collapses the row.
+    existing = await session.scalar(
+        select(UserApiKey.provider).where(
+            UserApiKey.user_id == user.id, UserApiKey.provider == body.provider
+        )
+    )
+    is_rotation = existing is not None
     row = await upsert_user_provider_key(session, user.id, body.provider, body.api_key)
+    # Phase 13b D — audit row.
+    from app.core.api import audit
+
+    await audit.log(
+        session,
+        "user.key.configured",
+        actor_id=user.id,
+        module="core.settings",
+        resource_type="user_api_key",
+        resource_id=str(row.id),
+        payload={
+            "provider": body.provider,
+            "action": "rotated" if is_rotation else "added",
+        },
+    )
     await session.commit()
     await session.refresh(row)
     return row
@@ -93,5 +116,17 @@ async def delete_key(
     )
     if result.rowcount == 0:
         raise HTTPException(404, f"no key found for provider: {provider}")
+    # Phase 13b D — audit row.
+    from app.core.api import audit
+
+    await audit.log(
+        session,
+        "user.key.revoked",
+        actor_id=user.id,
+        module="core.settings",
+        resource_type="user_api_key",
+        resource_id=None,
+        payload={"provider": provider},
+    )
     await session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

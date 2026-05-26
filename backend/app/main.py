@@ -23,10 +23,12 @@ from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
 from app.api.admin_users import router as admin_users_router
+from app.api.artifacts import router as artifacts_router
 from app.api.audit import router as audit_router
 from app.api.grants import router as grants_router
 from app.api.invocations import router as invocations_router
 from app.api.modules import router as modules_router
+from app.api.system import router as system_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
 from app.api.usage import router as usage_router
@@ -313,9 +315,18 @@ app.include_router(grants_router, prefix="/api/matters", tags=["grants"])
 app.include_router(
     invocations_router, prefix="/api/matters", tags=["invocations"]
 )
+# Phase 13b A — artifact list/read. Same nest-under-matters pattern
+# as Phase 5 audit + Phase 7 grants. Registered AFTER the broad
+# matters router so /{slug}/artifacts doesn't collide.
+app.include_router(
+    artifacts_router, prefix="/api/matters", tags=["artifacts"]
+)
 # Phase 11 admin role endpoint. Future admin endpoints land
 # alongside under /api/admin.
 app.include_router(admin_users_router, prefix="/api/admin", tags=["admin"])
+# Phase 13b C — bootstrap-state endpoint. Open (no auth) — gate to
+# the first-auth flow.
+app.include_router(system_router, prefix="/api/system", tags=["system"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])

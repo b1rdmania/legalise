@@ -22,9 +22,7 @@ Evaluator navigates to the SPA root.
 
 - **User sees:** an empty-state page explaining: "No accounts yet. The first user becomes the workspace administrator."
 - **Actions:** primary CTA "Register first account"; secondary anchor "Read the open-core README".
-- **System:** `GET /api/admin/users/count` ★ returns `{count: 0}`.
-
-★ **Gap:** `GET /api/admin/users/count` does not exist. The app needs a low-privilege count endpoint to detect first-run state. Logged in `BACKEND_GAP_AUDIT.md`.
+- **System:** `GET /api/system/bootstrap-state` returns `{user_count: 0, has_superuser: false}` (no auth required). Phase 13b C; see `backend/app/api/system.py`.
 
 ### 2. Register first account
 

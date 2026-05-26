@@ -1,8 +1,8 @@
-# Backend Gap Audit (v2)
+# Backend Gap Audit (v3 — Phase 13b landed)
 
-Verified by reading the current substrate code as of `f03de48`. For each endpoint category the spec needs, names the file:line where it exists, or files it as a structured Phase 13b finding.
+Verified by reading the current substrate code. For each endpoint category the spec needs, names the file:line where it exists.
 
-**v2 patch (post-Reviewer):** v1 listed five endpoint gaps + an "audit-shape verification pass" as a soft follow-up. Reviewer's review surfaced that the audit-shape work is substantive substrate work — auth events, settings key operations, module update/revoke emissions all need real audit rows added before Phase 14 ships the corresponding UI surfaces. v2 formalises this as Phase 13b D and recommends **Option B (bundled)** as the Reviewer-preferred path.
+**v3 patch:** every gap v2 flagged is now closed. Phase 13b Option B shipped all five endpoint gaps + the audit-shape gap-fill in one bundle. Phase 14 unblocked.
 
 ## Verification methodology
 
@@ -80,17 +80,34 @@ Phase 13 reads `backend/app/api/*.py` + the route registration in `backend/app/m
 | Reconstruction | `GET /api/matters/{slug}/audit/reconstruction` | `backend/app/api/audit.py:108` |
 | Legacy audit feed | `GET /api/matters/{slug}/audit` | `backend/app/api/matters.py:937` |
 
-### Admin (Phase 11)
+### Admin (Phase 11 + 13b B)
 
 | Surface | Endpoint | Location |
 | --- | --- | --- |
+| List users | `GET /api/admin/users` (superuser-only, `role=` + `is_superuser=` filters) | `backend/app/api/admin_users.py` Phase 13b B |
+| User detail | `GET /api/admin/users/{user_id}` (superuser-only) | `backend/app/api/admin_users.py` Phase 13b B |
 | Change role | `POST /api/admin/users/{user_id}/role` | `backend/app/api/admin_users.py:77` |
 
-## Gap findings
+### Artifacts (Phase 13b A)
+
+| Surface | Endpoint | Location |
+| --- | --- | --- |
+| List artifacts | `GET /api/matters/{slug}/artifacts` | `backend/app/api/artifacts.py:111` |
+| Read artifact | `GET /api/matters/{slug}/artifacts/{id}` | `backend/app/api/artifacts.py:136` |
+
+### System (Phase 13b C)
+
+| Surface | Endpoint | Location |
+| --- | --- | --- |
+| Bootstrap state | `GET /api/system/bootstrap-state` (no auth) | `backend/app/api/system.py` |
+
+## Phase 13b — closed gaps
+
+All five v2 endpoint gaps closed; audit-shape gap-fill complete.
 
 Five real gaps the spec needs and the substrate doesn't ship today.
 
-### Gap #1 — Artifact listing per matter
+### Gap #1 — Artifact listing per matter (CLOSED — Phase 13b A)
 
 **Expected:** `GET /api/matters/{slug}/artifacts` returning an array of `MatterArtifact` rows (id, module_id, capability_id, invocation_id, kind, created_at, size_bytes).
 
@@ -107,7 +124,7 @@ GET /api/matters/{slug}/artifacts
 
 Authorisation: matter owner + superuser (Phase 5/7 shape).
 
-### Gap #2 — Artifact read
+### Gap #2 — Artifact read (CLOSED — Phase 13b A)
 
 **Expected:** `GET /api/matters/{slug}/artifacts/{artifact_id}` returning the row + parsed JSON payload.
 
@@ -124,7 +141,7 @@ GET /api/matters/{slug}/artifacts/{artifact_id}
 
 Open question for Reviewer: does reading a privileged artifact audit? See `AUDIT_EMISSION_MAP.md` open question.
 
-### Gap #3 — Admin user listing
+### Gap #3 — Admin user listing (CLOSED — Phase 13b B)
 
 **Expected:** `GET /api/admin/users` returning an array of user rows (id, email, role, is_superuser, created_at, last_active?).
 
@@ -139,7 +156,7 @@ GET /api/admin/users
   → 403 admin_required (if caller not is_superuser)
 ```
 
-### Gap #4 — Admin user detail
+### Gap #4 — Admin user detail (CLOSED — Phase 13b B)
 
 **Expected:** `GET /api/admin/users/{user_id}` for the per-user role-mutation page.
 
@@ -149,7 +166,7 @@ GET /api/admin/users
 
 **Proposed shape:** parallel to Gap #3 but single-row.
 
-### Gap #5 — First-run user count
+### Gap #5 — First-run user count (CLOSED — Phase 13b C)
 
 **Expected:** `GET /api/admin/users/count` (or `GET /api/system/state`) returning `{user_count, has_superuser}`.
 

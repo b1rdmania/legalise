@@ -19,18 +19,16 @@ User can list, open, and read an artifact's payload — with the matching audit/
 ## Steps
 
 1. **List.**
-   - System: `GET /api/matters/{slug}/artifacts` ★ → array of `{id, module_id, capability_id, invocation_id, kind, created_at, size_bytes}`.
+   - System: `GET /api/matters/{slug}/artifacts` → array of `{id, module_id, capability_id, invocation_id, kind, created_at, size_bytes}`.
    - Grouped by `kind` then sorted by `created_at` descending.
 2. **Open detail.**
-   - System: `GET /api/matters/{slug}/artifacts/{id}` ★ → `{...metadata, payload: <parsed json>}`.
+   - System: `GET /api/matters/{slug}/artifacts/{id}` → `{...metadata, payload: <parsed json>}`.
    - UI renders by `kind`:
      - `findings_pack` → table of findings (clause_id, severity, comment, citation)
      - `motion_draft` → rendered markdown + claim_summary + claim_type
      - `evidence_list` → table (document_id, relevance, citation_hint) with hyperlinks to the document view
 3. **Deep-link to reconstruction.**
    - Every artifact detail page has a "See audit trail for this invocation" link → `/matters/{slug}/audit?invocation_id={artifact.invocation_id}` (filter param TBD in `BACKEND_GAP_AUDIT.md`).
-
-★ **Gap:** Both `GET /api/matters/{slug}/artifacts` and `GET /api/matters/{slug}/artifacts/{id}` do not exist. Logged in `BACKEND_GAP_AUDIT.md` as a Phase 13b candidate.
 
 ## Audit emissions
 

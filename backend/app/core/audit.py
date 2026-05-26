@@ -70,7 +70,12 @@ async def _resolve_actor_id(request: Request, session) -> uuid.UUID | None:
 
 class AuditMiddleware(BaseHTTPMiddleware):
     """Records every mutation on `/api/matters/*` — including failed
-    attempts at the collection level — to the audit log."""
+    attempts at the collection level — to the audit log.
+
+    Login/logout audit rows are emitted by ``AuditingDatabaseStrategy``
+    in ``app.core.auth`` so they ride on the same session as the
+    AccessToken write/delete — not here.
+    """
 
     async def dispatch(self, request: Request, call_next) -> Response:
         start = time.perf_counter()

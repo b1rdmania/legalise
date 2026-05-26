@@ -18,10 +18,10 @@ Superuser navigates to `/admin/users` → clicks a target row.
 ## Steps
 
 1. **List users.**
-   - System: `GET /api/admin/users` ★ → array of `{id, email, role, is_superuser, ...}`.
+   - System: `GET /api/admin/users` → array of `{id, email, role, is_superuser, ...}`.
    - UI shows a table: email, role, is_superuser, last_active.
 2. **Open user detail.**
-   - System: `GET /api/admin/users/{user_id}` ★ → single user row.
+   - System: `GET /api/admin/users/{user_id}` → single user row.
 3. **Pick new role.**
    - UI shows a dropdown locked to `{solicitor, qualified_solicitor, workspace_admin}` (Phase 11 vocabulary).
 4. **Confirm + submit.**
@@ -29,8 +29,6 @@ Superuser navigates to `/admin/users` → clicks a target row.
    - Audit: `user.role.changed` with `from_role`, `to_role`, `target_user_id`, `actor_id=<superuser>`, `reason="manual_admin_action"`.
 5. **UI refreshes.**
    - The user-list row reflects the new role.
-
-★ **Gap:** `GET /api/admin/users` + `GET /api/admin/users/{user_id}` do not exist. Phase 11 ships only the POST role endpoint. Listed in `BACKEND_GAP_AUDIT.md`.
 
 ## Permission gates this exercises
 
