@@ -152,6 +152,26 @@ Either lets the catalog render without N+1. B is fewer LOC backend but couples v
 
 **Status:** filed Phase 14 B. Frontend banner ships without a deep-link (P1 redline fix). When this lands, the InstallCeremony invalid-transition banner can carry a real link without churn.
 
+### Finding 14-E-#1 — no server-side filter for `invocation_id` / `action` on reconstruction
+
+**Expected:** `GET /api/matters/{slug}/audit/reconstruction` accepts `invocation_id=<id>` and/or `action=<string>` as query params so the substrate returns only matching rows. Today only `since`, `until`, `include`, `cursor`, `limit` are honoured (`backend/app/api/audit.py:108`).
+
+**Used by:** Phase 14 E reconstruction page. Every Phase 14 sub-step pins deep-links to `/matters/{slug}/audit?invocation_id=…` or `?action=…`; the frontend filters client-side as a fallback.
+
+**Why a substrate-side filter matters:** client-side filtering is correct *within the loaded window*, but misses rows that haven't been paged in yet. A user deep-linking to a single `invocation_id` may see "0 rows" until they click "Load more" through enough pages to reach the row's `occurred_at`. For dense matter timelines this is a real UX hole.
+
+**Proposed shape:**
+```
+GET /api/matters/{slug}/audit/reconstruction
+  ?invocation_id=<uuid>           # match payload.invocation_id OR refs.invocation_id
+  &action=<string>                # exact match on action column
+  &since=…&until=…&include=…&cursor=…&limit=…
+```
+
+Backwards-compatible — both params optional. Implementation lives in `app.core.audit_reconstruction.reconstruct` since it already filters by `since/until/include`; the new filters compose with the existing ones.
+
+**Status:** filed Phase 14 E. Frontend ships client-side filtering as the fallback per the established pattern (POSTURE_GATE_UX.md flagged the same concern in advance). The chip + clear-link UX is identical regardless of where the filter is applied; if the substrate adds the param later, the frontend can swap to server-side without churn.
+
 Five real gaps the spec needs and the substrate doesn't ship today.
 
 ### Gap #1 — Artifact listing per matter (CLOSED — Phase 13b A)

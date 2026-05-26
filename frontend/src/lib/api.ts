@@ -665,6 +665,72 @@ export const readArtifact = (slug: string, artifactId: string) =>
     `${API}/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifactId)}`,
   ).then((r) => jsonOrThrow<ArtifactRead>(r));
 
+// ---------------------------------------------------------------------------
+// Phase 14 E — reconstruction (Phase 5 endpoint)
+// ---------------------------------------------------------------------------
+
+// The three legal source values per backend/app/core/audit_reconstruction.py.
+export type ReconstructionSource = "audit" | "state_machine" | "advice_boundary";
+
+export const ALL_RECONSTRUCTION_SOURCES: ReconstructionSource[] = [
+  "audit",
+  "state_machine",
+  "advice_boundary",
+];
+
+export interface TimelineActor {
+  user_id?: string;
+  role?: string;
+  email?: string;
+  // Substrate-side actor dict can carry arbitrary keys.
+  [k: string]: unknown;
+}
+
+export interface TimelineEntry {
+  source: ReconstructionSource;
+  occurred_at: string;
+  action: string;
+  actor: TimelineActor;
+  matter_id: string | null;
+  module_id: string | null;
+  capability_id: string | null;
+  payload: Record<string, unknown>;
+  refs: Record<string, unknown>;
+  source_row_id: string;
+}
+
+export interface ReconstructionResponse {
+  entries: TimelineEntry[];
+  next_cursor: string | null;
+  total_in_window_estimate: number;
+}
+
+export interface ReconstructionOptions {
+  since?: string;
+  until?: string;
+  include?: ReconstructionSource[];
+  cursor?: string;
+  limit?: number;
+}
+
+export const getReconstruction = (
+  slug: string,
+  opts: ReconstructionOptions = {},
+): Promise<ReconstructionResponse> => {
+  const params = new URLSearchParams();
+  if (opts.since) params.set("since", opts.since);
+  if (opts.until) params.set("until", opts.until);
+  if (opts.include && opts.include.length > 0) {
+    params.set("include", opts.include.join(","));
+  }
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/audit/reconstruction${qs ? `?${qs}` : ""}`,
+  ).then((r) => jsonOrThrow<ReconstructionResponse>(r));
+};
+
 export const listMatters = () =>
   apiFetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
 

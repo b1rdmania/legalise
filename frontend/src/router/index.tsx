@@ -26,6 +26,7 @@ import { ModuleDetail } from "../modules-v2/ModuleDetail";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
+import { ReconstructionView } from "../matter/ReconstructionView";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
@@ -272,16 +273,21 @@ const moduleInstallRoute = createRoute({
   },
 });
 
-const matterAuditRoute = createRoute({
+// Phase 14 E — reconstruction. Query-param contract pinned by
+// earlier sub-step deep-links: ?invocation_id=… (D), ?action=… (B/C).
+type MatterAuditSearch = { invocation_id?: string; action?: string };
+export const matterAuditRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/matters/$slug/audit",
-  component: () => (
-    <PlaceholderPage
-      phase="E"
-      route="/matters/{slug}/audit"
-      title="Reconstruction"
-    />
-  ),
+  validateSearch: (s: Record<string, unknown>): MatterAuditSearch => ({
+    invocation_id:
+      typeof s.invocation_id === "string" ? s.invocation_id : undefined,
+    action: typeof s.action === "string" ? s.action : undefined,
+  }),
+  component: () => {
+    const { slug } = matterAuditRoute.useParams();
+    return <ReconstructionView slug={slug} />;
+  },
 });
 
 const matterArtifactsRoute = createRoute({
