@@ -1,8 +1,9 @@
-# Phase 9 Build Plan — Pre-Motion (Second Reference Module)
+# Phase 9 Build Plan v2 — Pre-Motion (Second Reference Module)
 
 **Builder:** Claude (this session)
 **Branch:** `runtime-rewrite`
-**Base:** `872d84c` (Phase 8 done; sweep 623/8)
+**Base:** `eb2d71d` (Phase 8 ratified; sweep 623/8)
+**Supersedes:** Phase 9 v1 (in this same file, pre-redline).
 **Goal:** Prove the substrate is real, not theoretical. Build the second reference module — Pre-Motion — by following the Contract Review pattern with **no substrate changes**. If something has to give in the core, the substrate isn't reusable yet and Phase 9 surfaces it. If nothing has to give, the open-core thesis holds.
 
 The KISS rule still bites here: this phase exists to test substrate reusability through a real second module, NOT to ship a feature-complete pre-motion tool. Every divergence from "module-author work only, no core edits" is a finding.
@@ -106,29 +107,25 @@ This is the most important reusability test in Phase 9. If anything is awkward a
 
 Args are still passed via the existing `args: dict` shape the host already provides. No new wiring.
 
-**Decision #5 — Khan v Acme gets a second document.**
+**Decision #5 (v2) — Use existing Khan v Acme documents for multi-doc input.**
 
-The seed already includes the NDA. Phase 9 adds a deterministic chronology / supplementary document so Pre-Motion has multi-document context. Filename: `synthetic-chronology.md`, content fixture only.
+Reviewer Phase 9 v1 P2: the v1 plan was wrong on the seed premise — Khan v Acme already seeds with three documents (`khan-dismissal-letter.pdf`, `witness-statement-khan.docx`, `synthetic-mutual-nda.docx` at `backend/app/core/seed.py`). Adding a fourth `synthetic-chronology.md` would touch core seed code for no real reason, weakening the "no core edits" success criterion.
 
-This is a seed change, not a substrate change. It's documented because the vertical-slice equivalent for Pre-Motion needs two documents to be meaningful.
+v2 cut: Pre-Motion's vertical-slice test calls `draft_motion(claim_type="unfair_dismissal", document_ids=[dismissal_letter.id, witness_statement.id])`. Both documents are already in the seed; both have extracted bodies. Multi-doc input is realistic against the actual matter, not a fixture grafted on.
 
-**Decision #6 — `args_schema` is an optional manifest field, not a substrate primitive.**
+No seed change. The "core touched / not touched" ledger in the handover stays clean: ZERO core edits is the empirical claim.
 
-Phase 9 adds an OPTIONAL `args_schema` to capability declarations in the v2 manifest:
+**Decision #6 (v2) — Args are validated in the module, documented in the README. No `args_schema` manifest field.**
 
-```json
-{
-  "id": "draft_motion",
-  "args_schema": {
-    "claim_type": {"type": "string", "enum": [...]},
-    "document_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}}
-  }
-}
-```
+Reviewer Phase 9 v1 P1: the v1 plan proposed adding an OPTIONAL `args_schema` to capability declarations in the v2 manifest. Two problems:
 
-The manifest validator accepts but does not enforce the schema in Phase 9 — it's documentation for callers. The capability function itself raises `ValueError` on bad args. A full host-side JSON-Schema enforcement is a future phase if module authors start requesting it. Phase 9 keeps it as a documentation surface.
+1. `schemas/module.v2.json` has `additionalProperties: false` at the top level and no `args_schema` property declared — even if the per-capability item shape technically allows extras, the manifest validator surfaces would need code review to confirm. The v1 plan claimed "the validator already accepts it" which would have been a substrate-surface change discovered at build time.
 
-This avoids adding a new substrate runtime concern just to land the second module.
+2. The whole point of Phase 9 is to land a second module **with zero substrate edits**. Introducing a new manifest field — even an optional one — couples this phase to schema work. That's the wrong sequencing.
+
+v2 cut: drop the field. `draft_motion(claim_type, document_ids)` validates its arguments in code (`ValueError` on bad claim_type, on empty document_ids, on documents from a different matter). The `README.md` documents the args as the module-author surface.
+
+A future host-side JSON-Schema enforcement layer can land as a deliberate substrate phase if module authors start asking for it. Today, no module author has. Don't build for a hypothetical.
 
 ---
 
@@ -143,18 +140,19 @@ Step 2: Pre-Motion capability implementation
    ↓
 Step 3: Sign the manifest
    ↓
-Step 4: Khan v Acme seed gains a second document
+Step 4: Integration test — install → grant → invoke → reconstruction
+        against EXISTING Khan documents (dismissal letter +
+        witness statement). No seed change.
    ↓
-Step 5: Integration test — install → grant → invoke → reconstruction
+Step 5: Negative tests — posture block, missing grant, cross-matter,
+        document-not-in-matter, empty document_ids
    ↓
-Step 6: Negative tests — posture block, missing grant, cross-matter
+Step 6: Full sweep green
    ↓
-Step 7: Full sweep green
-   ↓
-Step 8: HANDOVER_PHASE_9_PRE_MOTION_DONE.md
+Step 7: HANDOVER_PHASE_9_PRE_MOTION_DONE.md
 ```
 
-~4 days at recent cadence; ~12 new tests.
+~3 days at recent cadence (v1 was ~4; dropping the seed change tightens it); ~12 new tests.
 
 ---
 
@@ -198,21 +196,11 @@ Manifest shape (load-bearing fields only):
       "audit_events": [
         "module.capability.invoked",
         "model.invoked",
-        "advice_boundary.decision.allowed",
+        "advice_boundary.decision.completed",
         "artifact.created",
-        "module.capability.completed"
-      ],
-      "args_schema": {
-        "claim_type": {
-          "type": "string",
-          "enum": ["breach_of_contract", "misrepresentation", "unfair_dismissal"]
-        },
-        "document_ids": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"type": "string", "format": "uuid"}
-        }
-      }
+        "module.capability.completed",
+        "posture_gate.check.blocked"
+      ]
     },
     {
       "id": "default-provider",
@@ -278,29 +266,17 @@ No tooling change. Existing CLI handles any v2 manifest.
 
 ---
 
-## Step 4 — Khan v Acme seed gains a second document
-
-**File:** `backend/app/core/seed.py` (extend)
-
-Adds `KHAN_CHRONOLOGY_BODY` constant + a second `Document` seeded alongside the NDA. Filename `synthetic-chronology.md`; content is a short timeline fixture sufficient for Pre-Motion to have multi-doc input.
-
-The vertical-slice test for Pre-Motion calls `draft_motion(claim_type=..., document_ids=[nda.id, chronology.id])`.
-
-~40 LOC delta.
-
----
-
-## Step 5 — Integration test
+## Step 4 — Integration test
 
 **File:** `backend/tests/test_phase9_pre_motion_vertical_slice.py` (new)
 
-Single integration test walking the entire flow against real Postgres:
+Single integration test walking the entire flow against real Postgres against the **existing** Khan v Acme documents (no seed change):
 
 1. Register user; promote to `qualified_solicitor` (Phase 8 posture); promote to `is_superuser` (install gate).
-2. Confirm Khan v Acme seeds with NDA + chronology documents.
+2. Resolve the seeded Khan documents — `khan-dismissal-letter.pdf` + `witness-statement-khan.docx` — by filename. Both already carry extracted bodies.
 3. Install `examples.pre-motion` via the trust ceremony (3 trusts + 1 grant).
 4. `POST /api/matters/{slug}/grants` with `{module_id, capability_id="draft_motion"}` — assert 201 and the two grants (read + write) land matter-scoped.
-5. Invoke `draft_motion(claim_type="breach_of_contract", document_ids=[nda_id, chronology_id])`.
+5. Invoke `draft_motion(claim_type="unfair_dismissal", document_ids=[dismissal_letter.id, witness_statement.id])`.
 6. Confirm:
    - `model.invoked` audit carries cost columns
    - Two `matter_artifacts` rows with `kind="motion_draft"` and `kind="evidence_list"` and the same `invocation_id`
@@ -319,7 +295,7 @@ Single integration test walking the entire flow against real Postgres:
 
 ---
 
-## Step 6 — Negative tests
+## Step 5 — Negative tests
 
 **Same file** — same setup helpers, different assertions:
 
@@ -329,12 +305,13 @@ Single integration test walking the entire flow against real Postgres:
 - Cross-matter grant: grants on Matter A, invocation on Matter B → `CapabilityDenied`, no artifacts
 - Document not in matter: `document_ids` includes a UUID belonging to a different matter → `ValueError` from the capability, no artifacts
 - Empty `document_ids` → `ValueError` before any side effect
+- Unknown `claim_type` → `ValueError` before any side effect
 
-~6 negative tests + the 1 happy path = **~7 tests**, plus ~5 unit tests on the capability's pure-functional helpers (prompt builder, finding parser, evidence-list parser). **~12 tests total**.
+~7 negative tests + the 1 happy path = **8 tests**, plus ~4 unit tests on the capability's pure-functional helpers (prompt builder, motion parser, evidence-list parser, claim-type validator). **~12 tests total**.
 
 ---
 
-## Step 7 — Full sweep
+## Step 6 — Full sweep
 
 - Phase 9 only: ~12 new tests
 - Phases 1–9 combined: ~635 tests
@@ -344,7 +321,7 @@ If any test requires a core change (not just module-author code), that's a subst
 
 ---
 
-## Step 8 — Handover
+## Step 7 — Handover
 
 `HANDOVER_PHASE_9_PRE_MOTION_DONE.md` covers:
 - Six architectural decisions for Reviewer ratification
@@ -386,4 +363,18 @@ If anything in this list creeps in during build, that's a sign the scope drifted
 
 ---
 
-*End of Pre-Motion build plan. Builder commits this, then waits for Reviewer redline before Step 1.*
+## Reviewer redlines applied (v2)
+
+Three Phase 9 v1 findings closed before build:
+
+1. **P1 — `args_schema` removed.** v1 proposed an OPTIONAL `args_schema` field on capability declarations, claiming the v2 schema accepted it. `schemas/module.v2.json` has `additionalProperties: false` at top level; the validator would need code review to confirm capability-item shape would accept it. Phase 9 is the **zero-substrate-edits test** — introducing a new manifest field even speculatively couples this phase to schema work. v2 drops the field entirely. Args are validated in code; the README documents them. JSON-Schema host-side enforcement is deferred until a real module author asks for it.
+
+2. **P1 — Audit event list corrected.** v1 copied Contract Review's *pre-Phase-8* event list verbatim:
+   - `advice_boundary.decision.allowed` → corrected to `advice_boundary.decision.completed` (matches what the substrate actually emits, and what the v1 integration test already expected)
+   - `posture_gate.check.blocked` added, since the module declares `gates: ["privilege_posture"]` (matches the Phase 8 follow-up patch Contract Review just shipped at `eb2d71d`)
+
+3. **P2 — Seed change dropped.** v1 was wrong on the premise. Khan v Acme already seeds with three documents (dismissal letter + witness statement + NDA) at `backend/app/core/seed.py`. Adding a fourth `synthetic-chronology.md` would have touched core code for no real gain. v2 uses the existing dismissal letter + witness statement for multi-doc input. Claim type aligns: `unfair_dismissal` over `breach_of_contract`. The "ZERO core edits" success criterion stays clean.
+
+---
+
+*End of Pre-Motion build plan v2. Builder commits this, then waits for Reviewer ratification before Step 1.*
