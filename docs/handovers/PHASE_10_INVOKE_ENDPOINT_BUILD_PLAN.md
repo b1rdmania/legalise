@@ -1,9 +1,9 @@
-# Phase 10 Build Plan v2 — HTTP Invoke Endpoint
+# Phase 10 Build Plan v3 — HTTP Invoke Endpoint
 
 **Builder:** Claude (this session)
 **Branch:** `runtime-rewrite`
 **Base:** `3d0d148` (Phase 9 Pre-Motion follow-up; sweep 636/8)
-**Supersedes:** Phase 10 v1 (in this same file, pre-redline).
+**Supersedes:** v1 (pre-redline) + v2 (Reviewer flagged the adapter-gateway shape mismatch).
 **Goal:** Close the last gap in the user-facing flow. Today the demo sentence
 > install → grant → **run** → reconstruct
 
@@ -87,23 +87,43 @@ v2 adds an explicit adapter contract:
 
 **`app.core.runtime.ProviderResponse`** — canonical dataclass with the seven fields modules access. Single point of truth; both reference modules import it (same convergence pattern as `InvocationContext`).
 
-**`app.core.runtime.make_provider_call(*, session, matter, actor_user_id, module_id, capability_id) -> Callable[..., Awaitable[ProviderResponse]]`** — returns the bound `provider_call` callable the dispatcher hands to modules. Internally:
+**`app.core.runtime.make_provider_call(*, session, matter, actor_user_id, module_id, capability_id) -> Callable[..., Awaitable[ProviderResponse]]`** — returns the bound `provider_call` callable the dispatcher hands to modules.
 
-1. Calls `model_gateway.call(prompt, system=..., requested_model=matter.default_model_id, actor_id=actor_user_id, matter_id=matter.id, module=module_id)`.
-2. Receives `ModelResult` back.
-3. Builds `ProviderResponse` mapping:
+The exact gateway invocation (v3 — pinned to the actual `ModelGateway.call` signature at `backend/app/core/model_gateway.py:320`):
 
-   | Module field | Gateway source |
-   | --- | --- |
-   | `text` | `ModelResult.text` |
-   | `model_id` | `ModelResult.model_used` |
-   | `provider` | resolved from the same provider record the gateway picked (re-exposed via `model_gateway.last_provider_used` or via a small return-tuple extension; see Step 1) |
-   | `tokens_in` | `ModelResult.token_count` (until providers report split counts) |
-   | `tokens_out` | `0` (placeholder — sentinel "not yet computed", see audit consequence below) |
-   | `cost_micros` | `None` (gateway doesn't compute cost yet) |
-   | `currency` | `None` (paired with cost_micros per `audit_emit_model_invoked` validation) |
+```python
+result: ModelResult = await model_gateway.call(
+    session=session,
+    matter_id=matter.id,
+    actor_id=actor_user_id,
+    prompt=prompt,
+    model=matter.default_model_id,        # NOT "requested_model"
+    system=system,
+    caller_module=module_id,              # NOT "module"
+    payload={
+        "capability_id": capability_id,
+        "invocation_id": str(context.invocation_id),
+    },
+)
+```
 
-   `tokens_in` carrying the combined `token_count` and `tokens_out=0` is the honest current shape — providers don't yet return split. A future provider-protocol extension lets the adapter split correctly without touching modules. `cost_micros` + `currency` stay `None` paired so the Phase 5 check constraint doesn't fire.
+**Critical: the `payload` must NOT contain `plugin` or `skill` keys.** Reviewer v3 P1 catch: at `model_gateway.py:364–378`, the gateway runs a legacy workspace-scope `require_capability("model.invoke", ...)` check whenever `payload["plugin"]` AND `payload["skill"]` are both set. Phase 7's grant lifecycle only creates matter-scoped grants from a capability's declared `reads` + `writes`; no `model.invoke` workspace grant exists for either reference module, so a naive adapter that wrote `payload={"plugin": ..., "skill": ...}` would make both Contract Review and Pre-Motion fail immediately at invoke time.
+
+The adapter's payload is therefore restricted to `capability_id` + `invocation_id` — informational keys that the gateway ignores for capability enforcement. Phase 12+ may revisit if a matter-scoped `model.invoke` rollout becomes desirable.
+
+**Field mapping** — using only what the gateway already returns (no `last_provider_used` accessor, no return-tuple extension):
+
+| `ProviderResponse` field | Source | Notes |
+| --- | --- | --- |
+| `text` | `result.text` | direct |
+| `model_id` | `matter.default_model_id` | the requested model — what the matter asked for, not the provider's internal name |
+| `provider` | `result.model_used` | the gateway sets this to `provider.name` at the end of a successful call |
+| `tokens_in` | `result.token_count` | combined count until provider protocol reports split |
+| `tokens_out` | `0` | sentinel — pinned at 0 so the resulting `model.invoked.token_count` (which the helper computes as `tokens_in + tokens_out`) honestly equals the gateway's combined count |
+| `cost_micros` | `None` | gateway doesn't price |
+| `currency` | `None` | paired with `cost_micros` per Phase 5 check constraint |
+
+`tokens_out=0` is the deliberate honest choice: the existing Phase 5 helper sums `tokens_in + tokens_out` into the audit row's `token_count`, so 0 keeps the visible total equal to the gateway's authoritative `result.token_count`. When a provider eventually returns split counts, the adapter populates them correctly without touching modules.
 
 **Audit consequence — dual emission accepted for now.**
 
@@ -272,7 +292,7 @@ async def dispatch_capability(
     """
 ```
 
-~140 LOC (up from ~80 to cover the adapter) + **~7 unit tests** (was ~4): entrypoint resolution, missing-entry handling, capability_id validation, args passthrough, adapter populates all seven fields, adapter pairs cost+currency as None correctly, adapter propagates `ProviderKeyMissing` + `ProviderUpstreamError` unchanged.
+~140 LOC (up from ~80 to cover the adapter) + **~8 unit tests** (was ~4): entrypoint resolution, missing-entry handling, capability_id validation, args passthrough, adapter populates all seven fields, adapter pairs cost+currency as None correctly, adapter propagates `ProviderKeyMissing` + `ProviderUpstreamError` unchanged, **and adapter does NOT trip the gateway's legacy workspace-scope `model.invoke` check** (the load-bearing v3 regression — assert that calling the adapter with the real reference-module manifests does not raise `CapabilityDenied` for `model.invoke`).
 
 ---
 
@@ -374,14 +394,14 @@ After this update, neither vertical-slice test directly imports a capability fun
 - **Audit integration (2):** invocation completes → reconstruction view includes `module.capability.invoked` + `model.invoked` + `module.capability.completed` (both `model.call` from the gateway and `model.invoked` from the module land — Phase 10 only asserts the canonical `model.invoked` row carries cost columns); invocation blocked by posture → reconstruction includes `posture_gate.check.blocked` only, no `module.capability.invoked`.
 - **Archived matter (1):** archive between install and invoke → 404 uniform.
 
-Plus the ~7 unit tests from Step 1 (extended for the adapter) on `test_phase10_runtime.py` = **~27 tests total** (was ~19; +8 for scope/kind/provider-error coverage).
+Plus the ~8 unit tests from Step 1 (extended for the adapter + the legacy-`model.invoke` non-trip regression) on `test_phase10_runtime.py` = **~28 tests total** (was ~19 in v1; +9 across the v2/v3 patches for scope/kind/provider-error coverage and the gateway-payload regression).
 
 ---
 
 ## Step 7 — Full sweep
 
-- Phase 10 only: ~20 endpoint tests + ~7 dispatcher/adapter unit tests = ~27
-- Phases 1–10 combined: ~663 tests
+- Phase 10 only: ~20 endpoint tests + ~8 dispatcher/adapter unit tests = ~28
+- Phases 1–10 combined: ~664 tests
 - Entire backend stays green.
 
 ---
@@ -429,4 +449,14 @@ Test count revised: ~19 → ~27 (+8 for the scope/kind/provider-error coverage).
 
 ---
 
-*End of HTTP invoke endpoint build plan v2. Builder commits this, then waits for Reviewer ratification before Step 1.*
+## Reviewer redlines applied (v3)
+
+One residual finding from the v2 review:
+
+**P1 — Adapter pinned to the real gateway contract.** v2 used kwargs (`requested_model=`, `module=`) that don't exist on `ModelGateway.call` (the real names are `model=` and `caller_module=`). v2 also speculated about a `model_gateway.last_provider_used` accessor that doesn't exist. v3 pins the adapter to the actual signature at `backend/app/core/model_gateway.py:320` and drops the speculation: `provider` comes from `result.model_used` (which the gateway already sets to `provider.name`), `model_id` comes from `matter.default_model_id` (the requested model), `tokens_in = result.token_count` + `tokens_out = 0` honestly maps to the gateway's combined-count contract.
+
+**Hidden-footgun closure.** v2 didn't address the legacy workspace-scope `model.invoke` check the gateway runs at `model_gateway.py:364–378` whenever `payload` carries `plugin` AND `skill`. Phase 7's grant lifecycle creates matter-scoped grants only from `reads` + `writes`; no `model.invoke` workspace grant exists for either reference module. v3 explicitly constrains the adapter's payload to `capability_id` + `invocation_id` (NOT `plugin` + `skill`) so the legacy check stays inactive. Decision #4 v3 calls this out in writing AND a dedicated unit test in Step 1's battery proves it — calling the adapter with the real reference-module manifests does not raise `CapabilityDenied` for `model.invoke`.
+
+---
+
+*End of HTTP invoke endpoint build plan v3. Builder commits this, then waits for Reviewer ratification before Step 1.*
