@@ -1,8 +1,9 @@
-# Phase 13 Build Plan — Product Surface Specification
+# Phase 13 Build Plan v2 — Product Surface Specification
 
 **Builder:** Claude (this session)
 **Branch:** `runtime-rewrite`
 **Base:** `f03de48` (Phase 12 follow-ups; sweep 676/8)
+**Supersedes:** Phase 13 v1 (in this same file, pre-redline).
 **Goal:** Produce the blueprint for the finished app. No frontend code. The deliverable is a written spec dense enough that Phase 14 (foundation) and Phase 15+ (feature surfaces) can build against it without re-deciding any user-journey, page, or contract question.
 
 The spec is **the source of truth** Phase 14+ implements. Reviewer red-lines the spec the same way every prior phase has been red-lined — before Phase 14 touches a tsx file.
@@ -11,7 +12,7 @@ The spec is **the source of truth** Phase 14+ implements. Reviewer red-lines the
 
 ## What "no implementation" means
 
-The phase ships markdown only:
+The phase ships **markdown only**:
 
 - Journey documents (one per major user journey)
 - Page map + route table
@@ -22,7 +23,9 @@ The phase ships markdown only:
 - Frontend stack appendix
 - Acceptance criteria
 
-The only allowed code-side change is **gap-audit annotations** — comments / TODO markers in existing backend code where the spec discovered a missing endpoint. If a gap requires a real endpoint to land, it becomes a Phase 13b plan (a small bridging substrate phase between 13 and 14). The Phase 13 spec itself names but does not implement.
+**No backend code is touched.** Not even TODO comments. Gap-audit findings are recorded as structured entries in `docs/spec/BACKEND_GAP_AUDIT.md`; if a gap requires a real endpoint to land, it becomes a Phase 13b plan (a small bridging substrate phase between 13 and 14). The Phase 13 spec itself names but does not implement, and does not annotate.
+
+(Reviewer Phase 13 v1 P1 — earlier draft said "only allowed code-side change is gap-audit annotations" which contradicted the acceptance criteria. v2 drops the carve-out entirely; the gap audit is markdown-only.)
 
 ---
 
@@ -49,7 +52,7 @@ The only allowed code-side change is **gap-audit annotations** — comments / TO
 - Mobile / responsive specifics — desktop-first; Phase 15+ adds responsive where it matters
 - Animation / motion design — out
 - Phase 13 does not name a stack (the appendix is tradeoffs, not a decision)
-- Marketing site copy — `legalise.dev` already shipped; this spec is the **app**, not the landing
+- Marketing site copy / manifesto page — `legalise.dev` already shipped with the brand seal + Warp grid; this spec is the **authenticated app surface**, not the public landing. The two never overlap in Phase 13.
 
 ---
 
@@ -159,7 +162,7 @@ The nine categories:
 
 | Category | Sample routes | Primary journey |
 | --- | --- | --- |
-| Landing / manifesto entry | `/` | first-run, marketing entry |
+| App home (authenticated entry / first-run) | `/app` (or `/` of the SPA build) | first-run / post-login redirect target |
 | Auth | `/auth/register`, `/auth/login` | login/signup |
 | Settings | `/settings`, `/settings/keys`, `/settings/profile` | BYO key setup |
 | Matters | `/matters` | matter list / open Khan |
@@ -170,6 +173,8 @@ The nine categories:
 | Admin | `/admin/users`, `/admin/users/{id}/role` | role promotion |
 
 The matter workspace `/matters/{slug}` is the load-bearing surface — most journeys pass through it. The spec treats it as a hub with installed-modules + artifacts + reconstruction-link panels.
+
+**App home vs marketing landing.** The "App home" row above is the **authenticated entry / first-run screen** inside the SPA — the page a logged-in user sees by default, and where a fresh-fork evaluator lands after the first-admin bootstrap. The public marketing site at `legalise.dev` (with the manifesto / brand seal / Warp 6-card grid copy) is already shipped and is **not** Phase 13's concern. Phase 13 specs the app only; if a Phase 15+ feature needs an in-app link out to the marketing page, that's a single anchor, not a spec deliverable.
 
 ~80 lines.
 
@@ -422,4 +427,12 @@ Plus criteria the journey docs accumulated:
 
 ---
 
-*End of Phase 13 build plan. Builder commits this, then waits for Reviewer ratification before Step 1.*
+## Reviewer redlines applied (v2)
+
+1. **P1 — Markdown-only, no code annotations.** v1 carved out "gap-audit annotations" as an allowed code touch, which contradicted the acceptance criterion of "Zero backend code changes". v2 drops the carve-out entirely. Gap-audit findings are recorded in `docs/spec/BACKEND_GAP_AUDIT.md`; no TODO comments, no annotations, no backend file is touched.
+
+2. **P2 — App home vs marketing landing separated.** v1 page map row read "Landing / manifesto entry" which collided with the scope rule "marketing site copy is out". v2 renames the row to "App home (authenticated entry / first-run)" and adds a clarifying paragraph: Phase 13 specs the **authenticated app surface**, not the public `legalise.dev` landing. The two never overlap in Phase 13; if a Phase 15+ feature needs an in-app anchor out to the marketing page, that's a single link, not a spec deliverable.
+
+---
+
+*End of Phase 13 build plan v2. Builder commits this, then starts Step 1 on Reviewer's greenlight.*
