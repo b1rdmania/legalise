@@ -24,7 +24,7 @@ The router has a single `__authed` parent route that wraps every authenticated p
 
 ### Placeholder routes for Phase 14 A–G
 
-Eight new routes resolved with `PlaceholderPage`:
+Eight new routes resolved with `PlaceholderPage`. The build plan mentioned a `VITE_FEATURE_FLAGS` short-circuit-to-404 mechanism — A0 deliberately does NOT implement that. Plain placeholders are sufficient for the deep-link contract and feature flags aren't load-bearing for any sub-step yet. If a sub-step needs a flag, it adds one then.
 
 | Route | Phase | Sub-step |
 | --- | --- | --- |

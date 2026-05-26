@@ -52,7 +52,7 @@ Eight sub-steps. **A0 lands the router migration first** so every subsequent sur
 **Surfaces:** none new — infrastructure only. Migrates the existing hash-based router at `src/lib/route.ts` to TanStack Router (file-based) with path-based routes per `PAGE_MAP.md`.
 
 **Builds:**
-- TanStack Router file routes covering every route currently in `src/lib/route.ts` (landing, manifesto, waitlist, signin, signup, forgot, reset, verify, verifyPending, modules, matters list/new/detail, settings). Stubs for the new routes Phase 14 A–G will add (`/app`, `/modules/{id}`, `/modules/install/{ceremony_id}`, `/matters/{slug}/audit`, `/matters/{slug}/artifacts`, `/matters/{slug}/artifacts/{id}`, `/admin/users`, `/admin/users/{id}`) — each as a 404 placeholder gated by `VITE_FEATURE_FLAGS` until its sub-step lands.
+- TanStack Router file routes covering every route currently in `src/lib/route.ts` (landing, manifesto, waitlist, signin, signup, forgot, reset, verify, verifyPending, modules, matters list/new/detail, settings). Stubs for the new routes Phase 14 A–G will add (`/app`, `/modules/{id}`, `/modules/install/{ceremony_id}`, `/matters/{slug}/audit`, `/matters/{slug}/artifacts`, `/matters/{slug}/artifacts/{id}`, `/admin/users`, `/admin/users/{id}`) — each a placeholder component until its sub-step lands.
 - `__authed.tsx` layout that gates everything except `/auth/*` + marketing pages on `GET /auth/users/me`.
 - Hash → path redirects so existing `/legalise.dev/#/matters` deep-links continue to work for one release.
 - Deep-link query-param plumbing standardised (`?invocation_id=`, `?action=`, `?from=` etc.) so Phase 14 E can wire reconstruction filtering against a stable router contract.
@@ -202,7 +202,7 @@ These are NOT sub-step-scoped — every sub-step honours them:
 
 5. **No new endpoints.** If a surface seems to need one, surface the gap as a Phase 14 finding (file in `BACKEND_GAP_AUDIT.md`); do not invent.
 
-6. **Lifecycle: feature-flag escape hatch.** A `VITE_FEATURE_FLAGS` env can short-circuit any one sub-step's new surface to a 404. Lets us ship sub-steps independently to hosted-eval without blocking each other.
+6. **Lifecycle: sub-step isolation.** Each sub-step lands placeholder → real component, gated by its own ratification. No global feature-flag plumbing — if a sub-step genuinely needs runtime flagging (e.g. to dark-launch a surface), it adds it then, scoped to its own surface. A0 deliberately did not introduce flag plumbing.
 
 ## Decisions to lock before build starts
 

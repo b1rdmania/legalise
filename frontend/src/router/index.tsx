@@ -15,11 +15,11 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  Outlet,
   redirect,
 } from "@tanstack/react-router";
 
 import { AppShell } from "../app/AppShell";
+import { AuthGate } from "../app/AuthGate";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
@@ -154,17 +154,19 @@ const authedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "__authed",
   beforeLoad: () => {
+    // Fast-path redirect when we *already know* the user is logged
+    // out at navigation time. The real gate is the AuthGate component
+    // below — it owns the loading state and the post-bootstrap redirect.
+    // beforeLoad cannot observe React state changes, so it never blocks
+    // the first render on auth bootstrap; AuthGate does.
     const snap = getAuthSnapshot();
-    // While auth is still loading we let the route render and let the
-    // page-level spinner take over. Once loading is false and there's
-    // no user, redirect.
     if (!snap.loading && !snap.user) {
       throw redirect({
         to: HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/signin",
       });
     }
   },
-  component: () => <Outlet />,
+  component: AuthGate,
 });
 
 const mattersListRoute = createRoute({
