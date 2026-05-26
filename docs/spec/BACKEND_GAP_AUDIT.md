@@ -1,6 +1,8 @@
-# Backend Gap Audit
+# Backend Gap Audit (v2)
 
 Verified by reading the current substrate code as of `f03de48`. For each endpoint category the spec needs, names the file:line where it exists, or files it as a structured Phase 13b finding.
+
+**v2 patch (post-Reviewer):** v1 listed five endpoint gaps + an "audit-shape verification pass" as a soft follow-up. Reviewer's review surfaced that the audit-shape work is substantive substrate work — auth events, settings key operations, module update/revoke emissions all need real audit rows added before Phase 14 ships the corresponding UI surfaces. v2 formalises this as Phase 13b D and recommends **Option B (bundled)** as the Reviewer-preferred path.
 
 ## Verification methodology
 
@@ -173,17 +175,47 @@ Beyond the missing endpoints, the audit-emission map flags these as "verify shap
 3. **Matter mutations** — whether create, upload-doc, change-posture emit canonical rows.
 4. **Artifact write** — Phase 9 follow-up confirmed `write_artifact` emits no audit row. Open whether to add one (`artifact.created`) in Phase 13b or leave reconstruction relying on `module.capability.completed.payload.{motion_artifact_id, evidence_artifact_id}`.
 
-## Phase 13b backlog (proposed)
+## Phase 13b — Option B (Reviewer ratified)
 
-Reviewer decides between (close now / defer / merge into Phase 14):
+**Bundled. One phase. All five endpoint gaps + the audit-shape gap-fill, before Phase 14 starts.**
 
-- **Phase 13b-A**: Gaps #1 + #2 (artifact endpoints) — small substrate phase, owner + tests; estimated ~2 days
-- **Phase 13b-B**: Gaps #3 + #4 (admin user listing + detail) — small substrate phase, ~1 day
-- **Phase 13b-C**: Gap #5 (first-run state endpoint) — tiny, ~0.5 days
-- **Phase 13b-D**: Audit-shape verification pass — confirm what fastapi-users + settings + matter mutations emit; gap-fill where needed; estimated ~2 days
+### Sub-step ledger
 
-Total: 3 small substrate phases + 1 audit verification pass = ~5.5 days of substrate work between Phase 13 and Phase 14.
+- **Phase 13b A** — Gaps #1 + #2 (artifact endpoints) — ~2 days
+  - `GET /api/matters/{slug}/artifacts`
+  - `GET /api/matters/{slug}/artifacts/{id}`
+  - Matter-access predicate (Phase 5/7 shape)
+  - Reviewer call: does artifact read audit? Default: no audit on read
 
-Alternatively: a single Phase 13b that bundles A + B + C + D, accepting all five gaps + the audit-verification pass as one ~5-day phase, then Phase 14 starts on a complete substrate.
+- **Phase 13b B** — Gaps #3 + #4 (admin user list + detail) — ~1 day
+  - `GET /api/admin/users` (superuser-only)
+  - `GET /api/admin/users/{user_id}` (superuser-only)
+  - Returns email, role, is_superuser, created_at — no plaintext keys
 
-Reviewer call.
+- **Phase 13b C** — Gap #5 (first-run state endpoint) — ~0.5 days
+  - `GET /api/system/bootstrap-state` → `{user_count, has_superuser}`
+  - No auth required (gate to the first auth flow)
+
+- **Phase 13b D** — Audit-shape gap-fill — ~2 days (substantive, not just verification)
+  - Add canonical audit rows to the auth flow: `auth.user.registered`, `auth.user.verified`, `auth.user.logged_in`, `auth.user.logged_out`, `auth.user.password_reset_requested`, `auth.user.password_reset_completed`. The substrate currently emits only structured log lines; Phase 13b D converts them to `audit_entries` rows.
+  - Add canonical audit rows to settings key operations: `user.key.configured`, `user.key.revoked`. Security-sensitive; the substrate emits nothing today.
+  - Verify Phase 4 module update + revoke emissions (`POST /api/modules/{id}/update`, `POST /api/modules/{id}/revoke`); gap-fill if missing.
+  - Decide + implement `auth.user.demo_seeded` and `auth.user.capabilities_auto_granted` audit rows if Reviewer wants them in reconstruction. Default: yes, demo seed is matter-creating and should audit.
+
+### Total scope
+
+~5.5 days of substrate work. Phase 14 starts only when all four sub-steps land.
+
+### Why Option B over Option A or C
+
+- **Option A (three small phases):** sequential delivery means Phase 14 keeps stalling. The substrate ships once, fully.
+- **Option C (merge into Phase 14):** couples frontend timeline to backend findings. Phase 14 needs a stable substrate to build against; discovering audit gaps during the frontend phase derails both.
+- **Option B:** one focused substrate phase, one ratification cycle, then a clean frontend phase against a complete substrate. Reviewer-preferred.
+
+### Out of scope for Phase 13b
+
+- Sigstore real verification — Phase 11 placeholder; deferred
+- Workspace-broad grant endpoint — `POST /api/workspace/grants` reserved; no caller needs it yet
+- Bulk endpoints — out
+- Async runtime — still parked
+- New reference module — Pre-Motion already proved reusability

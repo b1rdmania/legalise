@@ -1,4 +1,8 @@
-# Handover — Phase 13 Done (Product Surface Specification)
+# Handover — Phase 13 Done v2 (Product Surface Specification)
+
+**v2 patch (post-Reviewer):** Reviewer's first-pass review found one P1 (phantom audit actions in the audit map), two P2s (settings-key audits unverified; some matter rows already concrete), and one P3 (advice-boundary dual-name not documented). All four patched. Phase 13b shape locked to **Option B (bundled)** per Reviewer's call. See "Reviewer redlines applied (v2)" at the bottom.
+
+---
 
 **Builder:** Claude
 **Branch:** `runtime-rewrite`
@@ -168,4 +172,60 @@ When Phase 13 is ratified + Phase 13b lands, Phase 14 builds the foundation. The
 
 ---
 
-*End of Phase 13 handover.*
+---
+
+## Reviewer redlines applied (v2)
+
+Reviewer's first-pass review surfaced four findings; all patched in `AUDIT_EMISSION_MAP.md` v2 + `BACKEND_GAP_AUDIT.md` v2.
+
+### P1 — Phantom audit actions removed
+
+v1's audit map listed four action names that don't actually emit:
+
+- `auth.user.registered` — was claimed as substrate audit row; actually a `logger.info` structured log line at `backend/app/core/auth.py:66`. Now marked **GAP**.
+- `auth.user.demo_seeded` — same; structured log at `core/auth.py:115`. Now **GAP**.
+- `auth.user.capabilities_auto_granted` — same; structured log at `core/auth.py:134`. Now **GAP**.
+- `module.installed` — claimed to be a separate audit row after install; doesn't exist. The substrate emits `module.enabled` when the ceremony state machine reaches ENABLED (`backend/app/core/trust_ceremony.py:463`). Now **REMOVED**; the UI must assert against `module.enabled`.
+
+### P2 — Settings key audits flagged as substrate work, not Phase 14 follow-up
+
+`backend/app/api/settings.py` has no `audit.log` calls. Provider key add / rotate / remove all emit nothing. Reviewer marked this as a P2 blocker — BYO keys are security-sensitive; reconstruction must record key lifecycle. Phase 13b D adds `user.key.configured` + `user.key.revoked` rows before Phase 14 ships the settings surface.
+
+### P2 — Matter audit rows made concrete
+
+v1 had "verify shape" against matter create / upload / posture change / archive. v2 verified all four against `backend/app/api/matters.py`:
+
+- `matter.create` — `matters.py:280` (**VERIFIED**)
+- `document.upload` — `matters.py:467` (**VERIFIED**)
+- `privilege.set` — `matters.py:569` (**VERIFIED**)
+- `matter.deleted` — `matters.py:1074` (**VERIFIED**)
+
+### P3 — Advice-boundary dual-name documented
+
+The substrate exposes two names for the same logical event through different reconstruction sources:
+
+- `audit_entries.action = advice_boundary.check.{completed|blocked|denied|failed}` (written by `gate.py:_emit`; surfaced as `source="audit"` rows)
+- `advice_boundary.decision.{completed|blocked|denied|failed}` (synthesised by `audit_reconstruction.py:_abd_to_entry` from the `AdviceBoundaryDecision` table; surfaced as `source="advice_boundary"` rows; never written to `audit_entries`)
+
+Both appear in the reconstruction response. Frontend tests must match the source they're asserting on. Documented in `AUDIT_EMISSION_MAP.md` § "Advice-boundary dual-name clarification".
+
+---
+
+## Phase 13b shape (Reviewer ratified)
+
+**Option B (bundled).** One ~5.5-day substrate phase, then Phase 14 starts.
+
+| Sub-step | Scope | Estimate |
+| --- | --- | --- |
+| Phase 13b A | Artifact endpoints (list + read) | ~2 days |
+| Phase 13b B | Admin user list + detail | ~1 day |
+| Phase 13b C | First-run state endpoint | ~0.5 days |
+| Phase 13b D | **Audit-shape gap-fill** (8 auth events + 2-3 settings key events + module update/revoke verification + demo-seed audit decision) | ~2 days |
+
+Reviewer's reasoning: Option A (three small phases) keeps Phase 14 stalling on sequential delivery. Option C (merge into Phase 14) couples frontend timeline to backend discoveries. Option B ships the substrate once, fully, before Phase 14 starts.
+
+Full sub-step ledger in `docs/spec/BACKEND_GAP_AUDIT.md` v2.
+
+---
+
+*End of Phase 13 handover v2.*
