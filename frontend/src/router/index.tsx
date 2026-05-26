@@ -27,6 +27,8 @@ import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { ReconstructionView } from "../matter/ReconstructionView";
+import { AdminUsersList } from "../admin/AdminUsersList";
+import { AdminUserDetail } from "../admin/AdminUserDetail";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
@@ -44,7 +46,6 @@ import { MatterDetail } from "../matter/MatterDetail";
 import { DemoMatter } from "../demo/DemoMatter";
 import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
 import { getAuthSnapshot } from "../auth/AuthSnapshot";
-import { PlaceholderPage } from "./PlaceholderPage";
 
 // ---------------------------------------------------------------------------
 // Root: AppShell renders TopBar / Drawer / <Outlet />.
@@ -236,12 +237,11 @@ const settingsPreferencesRoute = createRoute({
 // ---------------------------------------------------------------------------
 // Phase 14 sub-step routes.
 //
-// Each Phase 14 A-G surface gets a route now so deep-links resolve from
-// day one. Sub-steps that have shipped (A, B) wire the real component.
-// Sub-steps still pending (C, D, E, F) keep `PlaceholderPage` until they
-// ratify; the route exists so links into them don't 404 mid-build.
+// A through F have shipped real components. G (settings polish) is
+// the last sub-step and reuses the existing /settings routes rather
+// than adding new ones, so no placeholder remains here.
 //
-// All routes here inherit the authed gate via __authed except `/app`,
+// All routes inherit the authed gate via __authed except `/app`,
 // which is intentionally public — see appHomeRoute below.
 // ---------------------------------------------------------------------------
 
@@ -311,21 +311,16 @@ const matterArtifactDetailRoute = createRoute({
 const adminUsersRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/admin/users",
-  component: () => (
-    <PlaceholderPage phase="F" route="/admin/users" title="Admin · users" />
-  ),
+  component: AdminUsersList,
 });
 
 const adminUserDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/admin/users/$userId",
-  component: () => (
-    <PlaceholderPage
-      phase="F"
-      route="/admin/users/{userId}"
-      title="Admin · user detail"
-    />
-  ),
+  component: () => {
+    const { userId } = adminUserDetailRoute.useParams();
+    return <AdminUserDetail userId={userId} />;
+  },
 });
 
 // ---------------------------------------------------------------------------
