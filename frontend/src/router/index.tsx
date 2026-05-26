@@ -24,6 +24,8 @@ import { AuthGate } from "../app/AuthGate";
 import { ModulesCatalog } from "../modules-v2/ModulesCatalog";
 import { ModuleDetail } from "../modules-v2/ModuleDetail";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
+import { ArtifactsList } from "../matter/ArtifactsList";
+import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
@@ -285,25 +287,19 @@ const matterAuditRoute = createRoute({
 const matterArtifactsRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/matters/$slug/artifacts",
-  component: () => (
-    <PlaceholderPage
-      phase="D"
-      route="/matters/{slug}/artifacts"
-      title="Artifacts"
-    />
-  ),
+  component: () => {
+    const { slug } = matterArtifactsRoute.useParams();
+    return <ArtifactsList slug={slug} />;
+  },
 });
 
 const matterArtifactDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/matters/$slug/artifacts/$artifactId",
-  component: () => (
-    <PlaceholderPage
-      phase="D"
-      route="/matters/{slug}/artifacts/{artifactId}"
-      title="Artifact detail"
-    />
-  ),
+  component: () => {
+    const { slug, artifactId } = matterArtifactDetailRoute.useParams();
+    return <ArtifactDetail slug={slug} artifactId={artifactId} />;
+  },
 });
 
 const adminUsersRoute = createRoute({

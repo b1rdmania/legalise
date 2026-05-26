@@ -1,0 +1,356 @@
+/**
+ * Phase 14 D — InvocationRunner.
+ *
+ * Renders a single granted (module_id, capability_id) pair as a "Run"
+ * affordance with an inline result panel. Each panel owns its own
+ * lifecycle — the matter workspace may host several runners
+ * concurrently (one per granted capability), but they don't share
+ * state.
+ *
+ * Substrate truth (backend/app/api/invocations.py):
+ *   POST /api/matters/{slug}/invocations with {module_id, capability_id, args}
+ *   Error paths are typed (see invokeCapability in lib/api.ts):
+ *     - 403 posture_gate_blocked
+ *     - 403 capability_denied
+ *     - 403 phase1_blocked (advice-boundary gate)
+ *     - 422 provider_key_missing (→ /settings/keys)
+ *     - 502 provider_upstream_error
+ *     - 422 invalid_args
+ *
+ * Per Reviewer-narrow brief, this component handles invocation +
+ * result rendering only. No reconstruction inline, no admin, no
+ * settings, no async. The "View in audit trail" link from the result
+ * panel points at /matters/{slug}/audit?invocation_id=… (Phase 14 E
+ * route is registered as a placeholder so the link doesn't 404;
+ * meaningful content lands when E ratifies).
+ */
+
+import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+import {
+  CapabilityDeniedError,
+  invokeCapability,
+  InvocationInvalidArgsError,
+  Phase1BlockedError,
+  PostureBlockedError,
+  ProviderKeyMissingForInvokeError,
+  ProviderUpstreamInvokeError,
+  type InvocationResponse,
+} from "../lib/api";
+import { ArtifactPreview } from "./ArtifactPreview";
+
+type RunnerState =
+  | { kind: "idle" }
+  | { kind: "running" }
+  | { kind: "success"; response: InvocationResponse }
+  | { kind: "posture_blocked"; err: PostureBlockedError }
+  | { kind: "capability_denied"; err: CapabilityDeniedError }
+  | { kind: "phase1_blocked"; err: Phase1BlockedError }
+  | { kind: "key_missing"; err: ProviderKeyMissingForInvokeError }
+  | { kind: "upstream"; err: ProviderUpstreamInvokeError }
+  | { kind: "invalid_args"; err: InvocationInvalidArgsError }
+  | { kind: "error"; message: string };
+
+interface Props {
+  slug: string;
+  moduleId: string;
+  capabilityId: string;
+}
+
+export function InvocationRunner({ slug, moduleId, capabilityId }: Props) {
+  const [state, setState] = useState<RunnerState>({ kind: "idle" });
+  const [argsOpen, setArgsOpen] = useState(false);
+  const [argsJson, setArgsJson] = useState("{}");
+
+  const onRun = async () => {
+    let parsedArgs: Record<string, unknown> = {};
+    if (argsOpen) {
+      try {
+        parsedArgs = JSON.parse(argsJson) as Record<string, unknown>;
+      } catch (err) {
+        setState({
+          kind: "error",
+          message: `Args is not valid JSON: ${String(err)}`,
+        });
+        return;
+      }
+    }
+    setState({ kind: "running" });
+    try {
+      const response = await invokeCapability(slug, {
+        module_id: moduleId,
+        capability_id: capabilityId,
+        args: parsedArgs,
+      });
+      setState({ kind: "success", response });
+    } catch (err) {
+      if (err instanceof PostureBlockedError) {
+        setState({ kind: "posture_blocked", err });
+        return;
+      }
+      if (err instanceof CapabilityDeniedError) {
+        setState({ kind: "capability_denied", err });
+        return;
+      }
+      if (err instanceof Phase1BlockedError) {
+        setState({ kind: "phase1_blocked", err });
+        return;
+      }
+      if (err instanceof ProviderKeyMissingForInvokeError) {
+        setState({ kind: "key_missing", err });
+        return;
+      }
+      if (err instanceof ProviderUpstreamInvokeError) {
+        setState({ kind: "upstream", err });
+        return;
+      }
+      if (err instanceof InvocationInvalidArgsError) {
+        setState({ kind: "invalid_args", err });
+        return;
+      }
+      setState({ kind: "error", message: String(err) });
+    }
+  };
+
+  return (
+    <div className="text-sm">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={state.kind === "running"}
+          className="inline-flex items-center rounded-md bg-ink px-3 py-1 text-xs text-paper hover:opacity-90 disabled:opacity-50"
+          data-testid={`run-${moduleId}-${capabilityId}`}
+        >
+          {state.kind === "running" ? "Running…" : "Run"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setArgsOpen((v) => !v)}
+          className="text-xs text-muted hover:text-ink underline underline-offset-4"
+        >
+          {argsOpen ? "Hide args" : "Args"}
+        </button>
+      </div>
+      {argsOpen && (
+        <div className="mt-2">
+          <textarea
+            value={argsJson}
+            onChange={(e) => setArgsJson(e.target.value)}
+            rows={4}
+            spellCheck={false}
+            className="w-full rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs"
+            placeholder='{"claim_type":"unfair_dismissal","document_ids":["doc-1","doc-2"]}'
+          />
+          <p className="mt-1 text-xs text-muted">
+            JSON args passed to the capability. Defaults to{" "}
+            <code className="font-mono">&#123;&#125;</code>; the
+            capability returns a structured 422 if required args are
+            missing.
+          </p>
+        </div>
+      )}
+      <ResultPanel state={state} slug={slug} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Result panel — pending / success / structured-error states.
+// ---------------------------------------------------------------------------
+
+function ResultPanel({
+  state,
+  slug,
+}: {
+  state: RunnerState;
+  slug: string;
+}) {
+  if (state.kind === "idle") return null;
+
+  if (state.kind === "running") {
+    return (
+      <div className="mt-3 rounded-md border border-line px-3 py-2 text-xs text-muted">
+        <span
+          className="mr-2 inline-block h-2 w-2 rounded-full border border-muted border-t-transparent animate-spin align-middle"
+          aria-hidden="true"
+        />
+        Invocation in flight…
+      </div>
+    );
+  }
+
+  if (state.kind === "success") {
+    const r = state.response;
+    return (
+      <div className="mt-3 rounded-md border border-line p-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-xs uppercase tracking-widest text-muted">
+            Invocation complete
+          </p>
+          <p className="text-xs font-mono text-muted">{r.invocation_id}</p>
+        </div>
+        <ArtifactPreview payload={r.result} kindHint={null} />
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          <Link
+            to="/matters/$slug/artifacts"
+            params={{ slug }}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            See all artifacts on this matter
+          </Link>
+          <a
+            href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(r.invocation_id)}`}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            See audit trail for this invocation (Phase 14 E)
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.kind === "posture_blocked") {
+    return (
+      <Banner tone="amber" title="Posture gate blocked invocation">
+        <p>
+          This matter's posture (
+          <code className="font-mono text-xs">{state.err.posture}</code>)
+          requires role{" "}
+          <code className="font-mono text-xs">{state.err.requiredRole}</code>.
+          Your role is{" "}
+          <code className="font-mono text-xs">{state.err.actorRole}</code>.
+        </p>
+        <p className="mt-1 text-xs">
+          Substrate audit row:{" "}
+          <code className="font-mono">posture_gate.check.blocked</code>.
+        </p>
+      </Banner>
+    );
+  }
+
+  if (state.kind === "capability_denied") {
+    return (
+      <Banner tone="seal" title="Capability denied">
+        <p>
+          The substrate denied{" "}
+          <code className="font-mono text-xs">{state.err.plugin}</code>/
+          <code className="font-mono text-xs">{state.err.skill}</code>/
+          <code className="font-mono text-xs">{state.err.capability}</code>.
+          A grant exists in policy but `require_capability` rejected at
+          dispatch time.
+        </p>
+        <p className="mt-1 text-xs">
+          Substrate audit row:{" "}
+          <code className="font-mono">module.capability.denied</code>.
+        </p>
+      </Banner>
+    );
+  }
+
+  if (state.kind === "phase1_blocked") {
+    return (
+      <Banner tone="seal" title="Advice-boundary gate blocked invocation">
+        <p>
+          Blocked reason:{" "}
+          <code className="font-mono text-xs">
+            {state.err.blockedReason}
+          </code>
+          .
+        </p>
+        <p className="mt-1 text-xs">
+          Substrate audit row:{" "}
+          <code className="font-mono">advice_boundary.check.blocked</code>.
+        </p>
+      </Banner>
+    );
+  }
+
+  if (state.kind === "key_missing") {
+    return (
+      <Banner tone="amber" title="Provider API key not configured">
+        <p>
+          {state.err.provider
+            ? `No key on file for provider ${state.err.provider}. `
+            : "No provider key on file. "}
+          BYO-key models can't run without a configured key.
+        </p>
+        <p className="mt-2 text-xs">
+          <Link
+            to="/settings/keys"
+            className="underline underline-offset-4 hover:text-ink"
+          >
+            Configure a provider key in settings →
+          </Link>
+        </p>
+      </Banner>
+    );
+  }
+
+  if (state.kind === "upstream") {
+    return (
+      <Banner tone="seal" title="Provider upstream error">
+        <p>
+          Provider{" "}
+          {state.err.provider ? (
+            <code className="font-mono text-xs">{state.err.provider}</code>
+          ) : (
+            "upstream"
+          )}{" "}
+          returned an error.
+          {state.err.upstreamStatus ? ` HTTP ${state.err.upstreamStatus}.` : ""}
+          {state.err.code ? (
+            <>
+              {" "}
+              Code:{" "}
+              <code className="font-mono text-xs">{state.err.code}</code>.
+            </>
+          ) : null}
+        </p>
+        <p className="mt-1 text-xs">
+          Substrate audit row:{" "}
+          <code className="font-mono">model.call.error</code>.
+        </p>
+      </Banner>
+    );
+  }
+
+  if (state.kind === "invalid_args") {
+    return (
+      <Banner tone="amber" title="Invalid args">
+        <p>{state.err.message}</p>
+        <p className="mt-1 text-xs">
+          Open the Args panel above to provide the required JSON.
+        </p>
+      </Banner>
+    );
+  }
+
+  // Unknown substrate envelope.
+  return (
+    <Banner tone="seal" title="Invocation failed">
+      <p>{state.message}</p>
+    </Banner>
+  );
+}
+
+function Banner({
+  tone,
+  title,
+  children,
+}: {
+  tone: "amber" | "seal";
+  title: string;
+  children: React.ReactNode;
+}) {
+  const cls =
+    tone === "seal"
+      ? "border-seal/40 bg-seal/5 text-ink"
+      : "border-amber-500/40 bg-amber-50 text-ink";
+  return (
+    <div className={`mt-3 rounded-md border px-3 py-2 ${cls}`}>
+      <p className="text-sm font-medium">{title}</p>
+      <div className="mt-1 text-sm text-muted">{children}</div>
+    </div>
+  );
+}

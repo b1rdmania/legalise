@@ -75,7 +75,7 @@ describe("PostureBanner — B_mixed", () => {
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
   });
 
-  it("renders for a superuser whose role IS qualified_solicitor only when… no it does not", () => {
+  it("renders nothing for superuser when role is qualified_solicitor", () => {
     // Sanity check the orthogonal axis: if the role string itself is
     // qualified_solicitor, the banner is silent regardless of
     // is_superuser. This is the right substrate-aligned bypass.

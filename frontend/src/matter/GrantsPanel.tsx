@@ -33,6 +33,7 @@ import {
   type GrantRow,
   type V2ManifestEntry,
 } from "../lib/api";
+import { InvocationRunner } from "./InvocationRunner";
 
 type GrantsQuery =
   | { status: "loading" }
@@ -202,6 +203,42 @@ export function GrantsPanel({ slug }: { slug: string }) {
     }
   };
 
+  // Phase 14 D — derive runnable (module_id, capability_id) pairs
+  // from the cross-product of catalog and grant list. A pair is
+  // runnable when:
+  //   1. The module is in the v2 catalog (= discoverable).
+  //   2. The capability is scope === "matter".
+  //   3. At least one grant on this matter matches `plugin == module_id`.
+  // The plugin-to-module-id link is loose by design; substrate
+  // enforces the real (module, capability) at invocation time.
+  // We never invent runnable pairs from the catalog alone — the user
+  // must have actively granted on this matter first.
+  const runnablePairs = useMemo<
+    Array<{ moduleId: string; capabilityId: string; moduleName: string }>
+  >(() => {
+    if (catalog.status !== "ready" || grants.status !== "ready") return [];
+    const grantedPlugins = new Set(grants.grants.map((g) => g.plugin));
+    const out: Array<{
+      moduleId: string;
+      capabilityId: string;
+      moduleName: string;
+    }> = [];
+    for (const m of catalog.modules) {
+      if (!m.is_valid) continue;
+      if (!grantedPlugins.has(m.module_id)) continue;
+      const name = manifestName(m);
+      for (const c of capabilitiesOf(m)) {
+        if (c.scope !== "matter") continue;
+        out.push({
+          moduleId: m.module_id,
+          capabilityId: c.id,
+          moduleName: name,
+        });
+      }
+    }
+    return out;
+  }, [catalog, grants]);
+
   return (
     <section className="mt-10">
       <h2 className="text-sm uppercase tracking-widest text-muted">
@@ -212,6 +249,42 @@ export function GrantsPanel({ slug }: { slug: string }) {
         to a plugin/skill/capability triple the substrate uses to gate
         invocations.
       </p>
+
+      {/* Phase 14 D — runnable capabilities */}
+      {runnablePairs.length > 0 && (
+        <div
+          className="mt-4 rounded-md border border-line p-4"
+          data-testid="runnable-capabilities"
+        >
+          <h3 className="text-xs uppercase tracking-widest text-muted">
+            Run a capability
+          </h3>
+          <ul className="mt-3 space-y-3">
+            {runnablePairs.map((p) => (
+              <li
+                key={`${p.moduleId}::${p.capabilityId}`}
+                className="border-t border-line pt-3 first:border-t-0 first:pt-0"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div>
+                    <p className="text-sm">{p.moduleName}</p>
+                    <p className="text-xs font-mono text-muted">
+                      {p.moduleId} · {p.capabilityId}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <InvocationRunner
+                    slug={slug}
+                    moduleId={p.moduleId}
+                    capabilityId={p.capabilityId}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Current grants */}
       {grants.status === "loading" && (

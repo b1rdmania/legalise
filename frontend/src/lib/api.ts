@@ -460,6 +460,211 @@ export const revokeGrant = (slug: string, grantId: string) =>
     return jsonOrThrow<unknown>(r).then(() => undefined);
   });
 
+// ---------------------------------------------------------------------------
+// Phase 14 D — invocation + artifacts
+// ---------------------------------------------------------------------------
+
+export interface InvocationResponse {
+  invocation_id: string;
+  module_id: string;
+  capability_id: string;
+  matter_id: string;
+  result: Record<string, unknown>;
+}
+
+/**
+ * Substrate truth (backend/app/api/invocations.py): every non-200 path
+ * returns a structured body with an `error` discriminator. Surfacing
+ * each as a typed error lets the runner branch on `instanceof` rather
+ * than parse strings.
+ */
+export class PostureBlockedError extends Error {
+  readonly kind = "posture_gate_blocked" as const;
+  constructor(
+    message: string,
+    public readonly posture: string,
+    public readonly requiredRole: string,
+    public readonly actorRole: string,
+    public readonly reason: string,
+  ) {
+    super(message);
+    this.name = "PostureBlockedError";
+  }
+}
+
+export class CapabilityDeniedError extends Error {
+  readonly kind = "capability_denied" as const;
+  constructor(
+    message: string,
+    public readonly plugin: string,
+    public readonly skill: string,
+    public readonly capability: string,
+  ) {
+    super(message);
+    this.name = "CapabilityDeniedError";
+  }
+}
+
+export class Phase1BlockedError extends Error {
+  readonly kind = "phase1_blocked" as const;
+  constructor(
+    message: string,
+    public readonly blockedReason: string,
+    public readonly gateState: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "Phase1BlockedError";
+  }
+}
+
+export class ProviderKeyMissingForInvokeError extends Error {
+  readonly kind = "provider_key_missing" as const;
+  constructor(message: string, public readonly provider: string | null) {
+    super(message);
+    this.name = "ProviderKeyMissingForInvokeError";
+  }
+}
+
+export class ProviderUpstreamInvokeError extends Error {
+  readonly kind = "provider_upstream_error" as const;
+  constructor(
+    message: string,
+    public readonly provider: string | null,
+    public readonly code: string | null,
+    public readonly upstreamStatus: number | null,
+  ) {
+    super(message);
+    this.name = "ProviderUpstreamInvokeError";
+  }
+}
+
+export class InvocationInvalidArgsError extends Error {
+  readonly kind = "invalid_args" as const;
+  constructor(message: string) {
+    super(message);
+    this.name = "InvocationInvalidArgsError";
+  }
+}
+
+interface ErrorEnvelope {
+  detail?: {
+    error?: string;
+    message?: string;
+    posture?: string;
+    required_role?: string;
+    actor_role?: string;
+    reason?: string;
+    plugin?: string;
+    skill?: string;
+    capability?: string;
+    blocked_reason?: string;
+    gate_state?: Record<string, unknown>;
+    provider?: string;
+    code?: string;
+    upstream_status?: number;
+  };
+}
+
+async function readInvocationEnvelope(
+  res: Response,
+): Promise<ErrorEnvelope> {
+  try {
+    return (await res.json()) as ErrorEnvelope;
+  } catch {
+    return {};
+  }
+}
+
+export const invokeCapability = async (
+  slug: string,
+  body: { module_id: string; capability_id: string; args?: Record<string, unknown> },
+): Promise<InvocationResponse> => {
+  const res = await apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/invocations`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ args: {}, ...body }),
+    },
+  );
+  if (res.ok) return jsonOrThrow<InvocationResponse>(res);
+
+  const env = await readInvocationEnvelope(res);
+  const d = env.detail ?? {};
+  switch (d.error) {
+    case "posture_gate_blocked":
+      throw new PostureBlockedError(
+        d.message ?? "Posture gate blocked invocation.",
+        d.posture ?? "unknown",
+        d.required_role ?? "unknown",
+        d.actor_role ?? "unknown",
+        d.reason ?? "posture_gate_failed",
+      );
+    case "capability_denied":
+      throw new CapabilityDeniedError(
+        d.message ?? "Capability denied.",
+        d.plugin ?? "",
+        d.skill ?? "",
+        d.capability ?? "",
+      );
+    case "phase1_blocked":
+      throw new Phase1BlockedError(
+        d.message ?? "Advice-boundary gate blocked invocation.",
+        d.blocked_reason ?? "unknown",
+        d.gate_state ?? {},
+      );
+    case "provider_key_missing":
+      throw new ProviderKeyMissingForInvokeError(
+        d.message ?? "Provider API key not configured.",
+        d.provider ?? null,
+      );
+    case "provider_upstream_error":
+      throw new ProviderUpstreamInvokeError(
+        d.message ?? "Provider upstream error.",
+        d.provider ?? null,
+        d.code ?? null,
+        d.upstream_status ?? null,
+      );
+    case "invalid_args":
+      throw new InvocationInvalidArgsError(
+        d.message ?? "Capability rejected the args.",
+      );
+    default:
+      // Unknown structured error — fall back to a plain Error with the
+      // full envelope so the runner UI can surface raw substrate text.
+      throw new Error(
+        `Invocation failed (${res.status}): ${d.error ?? "unknown"} — ${d.message ?? ""}`,
+      );
+  }
+};
+
+// Phase 13b A — matter artifacts
+export interface ArtifactSummary {
+  id: string;
+  matter_id: string;
+  module_id: string;
+  capability_id: string;
+  invocation_id: string;
+  kind: string;
+  created_by_id: string;
+  created_at: string;
+  size_bytes: number;
+}
+
+export interface ArtifactRead extends ArtifactSummary {
+  payload: Record<string, unknown>;
+}
+
+export const listArtifacts = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/artifacts`).then((r) =>
+    jsonOrThrow<ArtifactSummary[]>(r),
+  );
+
+export const readArtifact = (slug: string, artifactId: string) =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifactId)}`,
+  ).then((r) => jsonOrThrow<ArtifactRead>(r));
+
 export const listMatters = () =>
   apiFetch(`${API}/matters`).then((r) => jsonOrThrow<Matter[]>(r));
 
