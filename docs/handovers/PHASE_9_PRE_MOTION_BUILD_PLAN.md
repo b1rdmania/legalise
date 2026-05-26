@@ -45,7 +45,7 @@ If these three work without any core edit, the substrate is real. If a core edit
 
 **In:**
 - `examples/modules/pre_motion/` — full v2 manifest (signed), Python entrypoint, capability impl, README
-- A second seeded document on Khan v Acme so multi-doc input is realistic
+- Use two existing Khan seed documents (dismissal letter + witness statement) so multi-doc input is realistic without touching the seed code — see Decision #5 v2
 - Integration test that walks install → grant → invoke → reconstruction for Pre-Motion
 - Negative tests proving the substrate's existing guarantees still hold (posture, scope, missing grant)
 
@@ -64,7 +64,7 @@ If these three work without any core edit, the substrate is real. If a core edit
 ## Pre-build findings
 
 - Contract Review is the template. Its `capability.py` + `module.json` + `README.md` should function as a copy-paste-and-adjust starter; if they don't, the README needs to improve (a substrate finding).
-- The Khan v Acme seed has one NDA document today. Pre-Motion needs at least two documents to make "multi-doc read" a real test, not a decoration.
+- The Khan v Acme seed already includes three documents (`khan-dismissal-letter.pdf`, `witness-statement-khan.docx`, `synthetic-mutual-nda.docx`), each with extracted bodies. Pre-Motion picks two for the multi-doc test — no seed change needed.
 - The signer CLI from Phase 6 (`backend/scripts/sign_example_module.py`) handles any v2 manifest already — no changes.
 - The `POST /api/matters/{slug}/grants` endpoint (Phase 7) takes `module_id + capability_id` — works for any module/capability pair, no Pre-Motion-specific code needed.
 - The posture gate (Phase 8) is invoked from inside the capability via `check_posture(...)` with `actor_role` from `InvocationContext`. Pre-Motion follows the same pattern.
@@ -102,7 +102,7 @@ This is the most important reusability test in Phase 9. If anything is awkward a
 **Decision #4 — Multi-argument input, host-validated by Pydantic.**
 
 `draft_motion(claim_type: str, document_ids: list[UUID])`:
-- `claim_type` is one of a small enum: `"breach_of_contract"`, `"misrepresentation"`, `"unfair_dismissal"`. Module-defined vocabulary, declared in the manifest's `args_schema` (a new optional manifest field; see Decision #6).
+- `claim_type` is one of a small enum: `"breach_of_contract"`, `"misrepresentation"`, `"unfair_dismissal"`. Module-defined vocabulary; the capability body validates membership and raises `ValueError` on miss. Documented in `README.md` (see Decision #6 v2 — no `args_schema` manifest field).
 - `document_ids` is a list of UUIDs. Module validates they belong to the matter; the substrate does not need a new capability for "list of documents".
 
 Args are still passed via the existing `args: dict` shape the host already provides. No new wiring.
@@ -342,7 +342,7 @@ Phase 9 is the first phase where "success" is measured against the substrate, no
 
 If all three hold, Pre-Motion proves the substrate is real. If one breaks, the handover documents why.
 
-The only deliberate exception is the Khan v Acme seed gaining a second document — that's a fixture change, not a substrate change. Called out in the handover so the audit of "core touched" is clean.
+There are no deliberate exceptions. Zero touches outside `examples/modules/pre_motion/` + `backend/tests/test_phase9_*`. If the build needs anything else, that's a substrate finding the handover names.
 
 ---
 
