@@ -86,21 +86,57 @@ The doctrine:
 
 ## Try it
 
-The hosted evaluation environment at [legalise.dev](https://legalise.dev) is waitlisted while production smoke testing finishes. You can browse the Khan v Acme demo on the hosted site, or run the full workspace locally:
+The hosted evaluation environment at [legalise.dev](https://legalise.dev) is waitlisted while production smoke testing finishes. You can browse the Khan v Acme demo on the hosted site, or run the full workspace locally.
 
-```bash
-git clone https://github.com/b1rdmania/legalise
-cd legalise
-cp .env.example .env             # ANTHROPIC_API_KEY optional; stub-echo works without
-docker compose -f infra/docker-compose.yml up --build
-```
+Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
 
-Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React. One command. Open `http://localhost:3000`.
+### Local fork — clone to signed-in superuser
 
-Self-hosting notes:
+1. **Clone.**
+
+   ```bash
+   git clone https://github.com/b1rdmania/legalise
+   cd legalise
+   ```
+
+2. **Copy env.** Every variable has a working default for the Khan v Acme demo. The only decision is whether to set a provider key (Anthropic / OpenAI) or run the keyless `stub-echo` model.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Bring the stack up.**
+
+   ```bash
+   docker compose -f infra/docker-compose.yml up --build -d
+   ```
+
+4. **Check the stack with `legalise doctor`.** Inspection-only; verifies the database is reachable, migrations are current, MinIO is responding, plugins are mounted, and the v2 manifests validate.
+
+   ```bash
+   docker compose -f infra/docker-compose.yml exec backend python -m app.tools.doctor
+   ```
+
+   Pre-signup, `khan.demo_present` will soft-note `no users yet — seed lands on first signup`. That's expected.
+
+5. **Register an account.** Open <http://localhost:3000> and use the signup form. Dev-autoverify is on, so the link in the verification email is logged to the backend container's stdout — you don't need to wire SMTP yet. You'll land signed in as a non-superuser; the Khan demo matter seeds on first signup.
+
+6. **Promote yourself to superuser via the bootstrap CLI.** The CLI promotes an **existing** user — run it after step 5, not before.
+
+   ```bash
+   docker compose -f infra/docker-compose.yml exec backend \
+       python -m app.tools.bootstrap_admin --email you@example.com
+   ```
+
+7. **Reload the browser** so `AuthProvider` re-fetches `/auth/users/me`. Superuser context loads.
+
+8. **Re-run doctor** — `khan.demo_present` should now be `ok`. The full Khan v Acme demo is wired; see [`docs/DEMO.md`](./docs/DEMO.md) for the install → grant → run → audit walkthrough.
+
+### Self-hosting notes
 
 - If deploying your fork to Fly, change `app = "legalise-backend"` in `backend/fly.toml` before `fly deploy`.
 - The backend image vendors [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) at a pinned SHA. Forks can point at their own plugin catalogue with the Docker build args `PLUGINS_REPO` and `PLUGINS_REPO_REF`.
+- Common setup errors and their fixes live in [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md).
 
 ## Status
 
