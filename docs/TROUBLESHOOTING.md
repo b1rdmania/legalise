@@ -19,7 +19,7 @@ with remediation pointers.
 ## `POSTGRES_DSN` is set in my shell but the backend hits the default DB
 
 **Symptom.** You exported `POSTGRES_DSN=…` in your shell, ran
-`docker compose up`, and the backend is still talking to
+`docker compose -f infra/docker-compose.yml up`, and the backend is still talking to
 `legalise:legalise@db:5432/legalise`. `legalise doctor` says
 `db.reachable` is `ok` against the *default* DSN.
 
@@ -33,14 +33,14 @@ backend + worker, plus dropping the shadowing literals from the
 
 **Fix.** Either:
 
-- Export `POSTGRES_DSN` in the shell *before* `docker compose up`, so
+- Export `POSTGRES_DSN` in the shell *before* `docker compose -f infra/docker-compose.yml up`, so
   the `${…}` interpolation reads it; or
 - Put it in `.env` (which compose now passes through via `env_file`).
 
 Verify after starting:
 
 ```bash
-docker compose exec backend env | grep POSTGRES_DSN
+docker compose -f infra/docker-compose.yml exec backend env | grep POSTGRES_DSN
 ```
 
 ---
@@ -73,7 +73,7 @@ The full scope split is in
 **Symptom.**
 
 ```
-$ docker compose exec backend python -m app.tools.bootstrap_admin you@example.com
+$ docker compose -f infra/docker-compose.yml exec backend python -m app.tools.bootstrap_admin you@example.com
 usage: bootstrap_admin [-h] --email EMAIL [--role ROLE] [--force]
 bootstrap_admin: error: the following arguments are required: --email
 ```
@@ -84,7 +84,7 @@ argument. Caught in Phase 15 hardening (CI run `26507523312`).
 **Fix.**
 
 ```bash
-docker compose exec backend python -m app.tools.bootstrap_admin --email you@example.com
+docker compose -f infra/docker-compose.yml exec backend python -m app.tools.bootstrap_admin --email you@example.com
 ```
 
 ---
@@ -148,7 +148,7 @@ it soft-notes, post-signup it demands the seed.
 - If the matter is missing: register a fresh user (signup re-runs the
   seed for each new user).
 - If the matter exists but the audit row is missing: inspect backend
-  logs for seeding failures (`docker compose logs backend | grep
+  logs for seeding failures (`docker compose -f infra/docker-compose.yml logs backend | grep
   seed`), then either re-register or delete the matter row and try
   again.
 
@@ -171,7 +171,7 @@ time anything writes to it. You can proceed.
 **Fix (optional).** If you want the bucket pre-provisioned:
 
 ```bash
-docker compose exec backend python -m app.tools.doctor --create-bucket
+docker compose -f infra/docker-compose.yml exec backend python -m app.tools.doctor --create-bucket
 ```
 
 The `--create-bucket` flag is the one explicit mutation `doctor`
@@ -233,7 +233,7 @@ you want to invoke a real provider with your own key.
 **Diagnosis.** The frontend reads `VITE_HOSTED_ACCESS_MODE` at build
 time. Default is `waitlist` (correct for hosted prod). Phase 16 B
 bakes `VITE_HOSTED_ACCESS_MODE=open` into the **compose frontend
-service**, so a fresh `docker compose up` should render the signup
+service**, so a fresh `docker compose -f infra/docker-compose.yml up` should render the signup
 form.
 
 If you see the waitlist page locally, something is overriding the
