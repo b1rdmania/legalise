@@ -126,26 +126,18 @@ export function ReconstructionView({ slug }: { slug: string }) {
     });
   };
 
-  // Phase 14.5 A — filtering moved server-side. The page receives
-  // already-filtered rows from `getReconstruction`. Client-side
-  // filtering retained ONLY as defence-in-depth for unknown
-  // future deployments where the substrate didn't yet have 14.5 A
-  // — same predicate; cheap; fails closed on shape mismatches.
+  // Phase 14.5 A — filtering is server-authoritative. The substrate
+  // knows the per-source carrier columns (payload.invocation_id for
+  // audit, output_id for advice_boundary, etc.); the previous
+  // client-side defence-in-depth filter checked only
+  // payload.invocation_id + refs.invocation_id and would have
+  // dropped valid advice_boundary rows. Reviewer P1: remove the
+  // client filter entirely rather than enumerate every substrate
+  // carrier column on the frontend.
   const visibleEntries = useMemo(() => {
     if (fetchState.status !== "ready") return [];
-    if (!actionFilter && !invocationFilter) return fetchState.entries;
-    return fetchState.entries.filter((e) => {
-      if (actionFilter && e.action !== actionFilter) return false;
-      if (invocationFilter) {
-        const payloadInv = e.payload?.invocation_id;
-        const refsInv = e.refs?.invocation_id;
-        if (payloadInv !== invocationFilter && refsInv !== invocationFilter) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [fetchState, actionFilter, invocationFilter]);
+    return fetchState.entries;
+  }, [fetchState]);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">

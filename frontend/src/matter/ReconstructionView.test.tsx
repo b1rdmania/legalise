@@ -120,38 +120,39 @@ describe("ReconstructionView — basic render", () => {
   });
 });
 
-describe("ReconstructionView — invocation_id filter (client-side)", () => {
-  it("filters rows by payload.invocation_id", async () => {
-    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+describe("ReconstructionView — invocation_id filter (server-authoritative)", () => {
+  it("forwards the URL filter to the substrate and renders whatever the server returned", async () => {
+    // Phase 14.5 A — substrate is the source of truth for filtering.
+    // The server returns ONLY matching rows (per-source carrier
+    // semantics: payload.invocation_id for audit, output_id for
+    // advice_boundary, none for state_machine). The page renders
+    // them verbatim — no client-side narrowing that could drop
+    // valid rows.
+    const spy = vi.spyOn(api, "getReconstruction").mockResolvedValue({
       entries: [
         entry({
           payload: { invocation_id: "inv-9999" },
           action: "module.capability.invoked",
           source_row_id: "r-match",
         }),
-        entry({
-          payload: { invocation_id: "inv-other" },
-          action: "module.capability.invoked",
-          source_row_id: "r-other",
-        }),
       ],
       next_cursor: null,
-      total_in_window_estimate: 2,
+      total_in_window_estimate: 1,
     });
 
     mountAt("/matters/khan/audit?invocation_id=inv-9999");
     await waitFor(() => {
-      expect(
-        screen.getByTestId("timeline-row-r-match"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("timeline-row-r-match")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("timeline-row-r-other")).toBeNull();
     // Active filter chip names invocation_id verbatim.
     expect(screen.getByText("invocation_id=")).toBeInTheDocument();
     expect(screen.getByText("inv-9999")).toBeInTheDocument();
+    // URL filter forwarded to the substrate.
+    const lastCall = spy.mock.calls.at(-1)?.[1];
+    expect(lastCall?.invocation_id).toBe("inv-9999");
   });
 
-  it("also matches refs.invocation_id (substrate dual-name)", async () => {
+  it("also surfaces rows whose only invocation carrier is refs.invocation_id (substrate provides them)", async () => {
     vi.spyOn(api, "getReconstruction").mockResolvedValue({
       entries: [
         entry({
@@ -173,21 +174,17 @@ describe("ReconstructionView — invocation_id filter (client-side)", () => {
   });
 });
 
-describe("ReconstructionView — action filter", () => {
-  it("filters rows by exact action match", async () => {
-    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+describe("ReconstructionView — action filter (server-authoritative)", () => {
+  it("forwards the URL action filter to the substrate", async () => {
+    const spy = vi.spyOn(api, "getReconstruction").mockResolvedValue({
       entries: [
         entry({
           action: "posture_gate.check.blocked",
           source_row_id: "r-blocked",
         }),
-        entry({
-          action: "module.capability.invoked",
-          source_row_id: "r-other",
-        }),
       ],
       next_cursor: null,
-      total_in_window_estimate: 2,
+      total_in_window_estimate: 1,
     });
 
     mountAt(
@@ -198,7 +195,8 @@ describe("ReconstructionView — action filter", () => {
         screen.getByTestId("timeline-row-r-blocked"),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("timeline-row-r-other")).toBeNull();
+    const lastCall = spy.mock.calls.at(-1)?.[1];
+    expect(lastCall?.action).toBe("posture_gate.check.blocked");
   });
 });
 
@@ -255,17 +253,49 @@ describe("ReconstructionView — server-side filters (Phase 14.5 A)", () => {
     expect(lastCall?.action).toBe("model.call");
   });
 
-  it("with active filter + no matches, renders the absolute 'no match' variant (no partial-page advisory)", async () => {
-    // Whole window loaded — claim "no rows match" honestly.
+  it("renders advice_boundary rows whose payload.output_id matches the invocation filter (server is authoritative)", async () => {
+    // Phase 14.5 A Reviewer P1: the substrate's invocation_id filter
+    // matches per-source carriers — audit rows via
+    // payload.invocation_id, advice_boundary rows via
+    // AdviceBoundaryDecision.output_id (surfaced as
+    // payload.output_id on the synthesised TimelineEntry). A
+    // client-side filter that only looked at payload.invocation_id
+    // would drop valid advice_boundary rows. The fix: trust the
+    // server, no client-side narrowing.
     vi.spyOn(api, "getReconstruction").mockResolvedValue({
       entries: [
         entry({
-          payload: { invocation_id: "inv-other" },
-          source_row_id: "r-irrelevant",
+          source: "advice_boundary",
+          action: "advice_boundary.decision.completed",
+          // payload.invocation_id is NOT present; only output_id.
+          payload: { output_id: "inv-target", status: "completed" },
+          refs: { advice_boundary_decision_id: "abd-1" },
+          source_row_id: "abd-1",
         }),
       ],
       next_cursor: null,
       total_in_window_estimate: 1,
+    });
+
+    mountAt("/matters/khan/audit?invocation_id=inv-target");
+    await waitFor(() => {
+      // Row MUST render. Pre-redline a client filter on
+      // payload.invocation_id would have dropped it.
+      expect(screen.getByTestId("timeline-row-abd-1")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText("advice_boundary.decision.completed"),
+    ).toBeInTheDocument();
+  });
+
+  it("with active filter + substrate returns empty, renders the absolute 'no match' variant", async () => {
+    // Phase 14.5 A — substrate applies the filter before paginating,
+    // so an empty response with the filter active accurately means
+    // "no matching rows in window." No partial-page disclaimer.
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [],
+      next_cursor: null,
+      total_in_window_estimate: 0,
     });
 
     mountAt("/matters/khan/audit?invocation_id=inv-target");
