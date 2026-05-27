@@ -18,6 +18,14 @@ class feature for a legal-AI workspace. Every comparable
 evaluator-facing tool has a PDF → structured-text pipeline; we
 have Gotenberg for rendering but no parse layer.
 
+**Posture: we build this ourselves, informed by OmniParse, not
+based on it.** OmniParse demonstrates the value shape (local
+PDF → markdown, sidecar service, GenAI-ready output) but its
+scope is too broad (video / audio / web) and its licence is
+GPL-3.0. Zero OmniParse code in the Legalise tree. Engine
+choice (Marker) is a direct dependency on Marker's own
+library, not on OmniParse's wrapping of it.
+
 **Shape (consistent with the architecture-rewrite line):**
 
 - Capability module, not backend feature.
@@ -30,16 +38,18 @@ have Gotenberg for rendering but no parse layer.
 - Ships installed-by-default as the third reference module
   alongside Contract Review and Pre-Motion.
 
-**Engine choice:**
+**Engine choice (legal-document parsing only — not the
+everything-parser OmniParse is):**
 
-- **Marker (Apache 2.0)** is the recommended starting bet. Same
-  Surya OCR backend OmniParse uses underneath, but permissive
-  licence and tuned for dense PDF → markdown (closer to legal
-  bundle shape than Docling's table-heavy bias).
+- **Marker (Apache 2.0)** is the recommended starting bet for
+  dense PDF → markdown. Direct dependency on the Marker
+  library, not via OmniParse.
 - Docling (MIT, IBM) is the fallback if Marker proves wrong for
   legal docs in practice.
-- **Do not vendor OmniParse itself** — GPL-3.0, broader scope
-  than we need (video / audio / web), single-maintainer.
+- **Out of scope:** audio transcription, video, web scraping.
+  OmniParse bundles all of these; we don't need them. If we
+  later want any of them, they become their own capability
+  modules, not bolted onto this one.
 
 **Architecture:**
 
