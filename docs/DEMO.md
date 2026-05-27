@@ -6,9 +6,12 @@ superuser. If `legalise doctor` is green and `khan.demo_present` is
 `ok`, you are in the right place.
 
 The walkthrough drives the same end-to-end path that the Phase 15
-Playwright `first-run` spec drives in CI, so every substrate audit row
-named below is one the test suite already asserts. Nothing here is
-invented for marketing purposes.
+Playwright `first-run` spec drives in CI. The audit-row coverage split
+is recorded in [`docs/spec/AUDIT_COVERAGE_MATRIX.md`](./spec/AUDIT_COVERAGE_MATRIX.md):
+rows marked **e2e-covered** are asserted by name by the Phase 15 spec;
+rows marked **pytest-covered** are substrate-tested but not asserted
+by name in the e2e run — they still land on the matter timeline
+because the same substrate emits them. Nothing here is invented.
 
 ## What this proves
 
@@ -38,9 +41,9 @@ in an audit trail you can reconstruct.
 Audit rows the install emits (workspace scope — visible to a superuser
 in the admin reconstruction view at <http://localhost:3000/admin/audit>):
 
-| Action | Where it comes from |
-| --- | --- |
-| `module.enabled` | Ceremony completion, terminal state |
+| Action | Coverage | Where it comes from |
+| --- | --- | --- |
+| `module.enabled` | e2e-covered | Ceremony completion, terminal state |
 
 ## 2 — Grant Contract Review on the Khan v Acme matter
 
@@ -51,9 +54,9 @@ in the admin reconstruction view at <http://localhost:3000/admin/audit>):
 Audit row this emits (matter scope — visible on the matter's own
 Audit tab):
 
-| Action | Where it comes from |
-| --- | --- |
-| `module.grant.created` | The grant write |
+| Action | Coverage | Where it comes from |
+| --- | --- | --- |
+| `module.grant.created` | e2e-covered | The grant write |
 
 The grant is matter-scoped per the doctrine in
 [`README.md`](../README.md#trust-mechanics):
@@ -66,29 +69,34 @@ runtime enforces capabilities.*
    review capability.
 2. Watch the result panel render. The default model is `stub-echo` for
    the demo so the output is deterministic — no provider key needed.
-3. The result includes an invocation id; copy it for the next step.
+3. The result panel renders the invocation id alongside a **See audit
+   trail for this invocation** link that jumps straight to the
+   filtered timeline. (If you want to inspect the URL manually,
+   the displayed id is selectable.)
 
 Audit rows this emits (matter scope):
 
-| Action | Where it comes from |
-| --- | --- |
-| `module.capability.invoked` | Run is dispatched |
-| `model.call` | Gateway dispatched the call to `stub-echo` |
-| `module.capability.completed` | Result returned to the UI |
+| Action | Coverage | Where it comes from |
+| --- | --- | --- |
+| `module.capability.invoked` | e2e-covered | Run is dispatched |
+| `model.call` | e2e-covered | Gateway dispatched the call to `stub-echo` |
+| `model.invoked` | pytest-covered | `audit_cost` helper emits per model call; reconstruction source |
+| `advice_boundary.decision.completed` | pytest-covered | Substrate gate decision for matters at posture `B_mixed` / `C_paused`; reconstruction source |
+| `module.capability.completed` | e2e-covered | Result returned to the UI |
 
-If the matter's privilege posture is `B_mixed` or `C_paused` and the
-capability is gated, an `advice_boundary.decision.completed` row will
-also land. Khan v Acme defaults to `B_mixed` so this is the expected
-shape.
+`model.invoked` and `advice_boundary.decision.completed` are not
+asserted by name in the Phase 15 e2e run — pytest covers them
+directly — but they land on the matter timeline because the same
+substrate emits them. Khan v Acme defaults to `B_mixed` so the
+advice-boundary row is the expected shape.
 
 ## 4 — Read the Audit tab
 
-1. Navigate to
-   <http://localhost:3000/matters/khan-v-acme-trading-2026/audit>.
-2. Filter by the invocation id from step 3 (paste it into the
-   `invocation_id` filter or load
-   `/matters/khan-v-acme-trading-2026/audit?invocation_id=<id>`).
-3. You should see the three matter-scope rows from step 3, plus an
+1. Use the **See audit trail for this invocation** link from step 3,
+   or navigate to
+   <http://localhost:3000/matters/khan-v-acme-trading-2026/audit>
+   and paste the invocation id into the `invocation_id` filter.
+2. You should see the matter-scope rows from step 3, plus an
    `audit.reconstruction.viewed` row that the substrate emits when
    the timeline is read.
 
@@ -106,13 +114,15 @@ exercises the same install → grant → run → audit loop:
    through the ceremony.
 2. Khan v Acme → grant the Pre-Motion `draft_motion` capability.
 3. Run it from the matter page.
-4. The matter Audit tab shows a fresh
-   `module.capability.invoked` / `model.call` /
-   `module.capability.completed` triple alongside the Contract Review
-   rows.
+4. The matter Audit tab shows a fresh run with the same five rows
+   the Contract Review run produced:
+   `module.capability.invoked` (e2e-covered), `model.call`
+   (e2e-covered), `model.invoked` (pytest-covered),
+   `advice_boundary.decision.completed` (pytest-covered, posture
+   `B_mixed`), `module.capability.completed` (e2e-covered).
 
-Two modules, two grants, two invocations, eight substrate rows. The
-audit trail is the receipt.
+Two modules, two grants, two invocations. Same substrate, same
+contract, same receipts.
 
 ## If something looks wrong
 
