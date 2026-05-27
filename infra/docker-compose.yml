@@ -121,6 +121,15 @@ services:
 
   frontend:
     build: ../frontend
+    environment:
+      # Vite dev server reads VITE_* from process.env at request time.
+      # For local forks the signup form must render, so default the
+      # access mode to "open" here. Hosted prod (Cloudflare Pages)
+      # keeps "waitlist" via its own build env; this only affects
+      # `docker compose up`. R1 fix from the Phase 16 plan — without
+      # this, fresh forks hit the waitlist page on /auth/signin and
+      # cannot register.
+      VITE_HOSTED_ACCESS_MODE: ${VITE_HOSTED_ACCESS_MODE:-open}
     ports:
       - "3000:3000"
     volumes:
