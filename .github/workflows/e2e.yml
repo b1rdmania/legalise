@@ -143,10 +143,9 @@ jobs:
       - name: Build frontend
         # Vite env vars are baked in at build time.
         #
-        # VITE_HOSTED_ACCESS_MODE=open — the default in lib/access.ts
-        # is "waitlist", which routes /auth/signin to the Waitlist
-        # page (no email input). Without this every signInViaUi
-        # caller timed out waiting for getByLabel(/email/i).
+        # VITE_HOSTED_ACCESS_MODE=open — CI must render the real auth
+        # forms. lib/access.ts also gates waitlist mode to the hosted
+        # domain, but baking "open" keeps the test contract explicit.
         #
         # VITE_API_BASE_URL=http://localhost:8000/api — the preview
         # server (npm run preview) does NOT honour vite.config.ts's

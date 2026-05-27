@@ -2,7 +2,14 @@ export const HOSTED_ACCESS_MODE =
   (import.meta.env.VITE_HOSTED_ACCESS_MODE as "waitlist" | "open" | undefined) ??
   "open";
 
-export const HOSTED_ACCESS_WAITLIST = HOSTED_ACCESS_MODE === "waitlist";
+const HOSTED_ACCESS_HOST =
+  (import.meta.env.VITE_HOSTED_ACCESS_HOST as string | undefined) ?? "legalise.dev";
+
+const CURRENT_HOST =
+  typeof globalThis.location === "undefined" ? "" : globalThis.location.hostname;
+
+export const HOSTED_ACCESS_WAITLIST =
+  HOSTED_ACCESS_MODE === "waitlist" && CURRENT_HOST === HOSTED_ACCESS_HOST;
 
 export const WAITLIST_HREF = "/waitlist";
 

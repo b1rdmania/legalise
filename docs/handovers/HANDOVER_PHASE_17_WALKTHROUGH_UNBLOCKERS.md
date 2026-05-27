@@ -9,8 +9,9 @@ Phase 17A/B/C starts. This is not the CRM redesign pass.
 1. Local Vite dev now proxies `/auth` to the backend, matching `/api`
    and `/health`. This closes the signup 404 caused by the browser
    posting to the frontend dev server instead of FastAPI.
-2. Self-host/dev frontend access now defaults to `open`. Hosted prod
-   can still set `VITE_HOSTED_ACCESS_MODE=waitlist`.
+2. Self-host/dev frontend access now defaults to `open`. Waitlist mode
+   is also gated to the hosted domain, so localhost / CI preview cannot
+   accidentally hide the auth forms if an env layer drifts.
 3. Landing page now exposes explicit unauthenticated actions:
    `Sign in` and `Create account`. This closes L-1 from the
    walkthrough attempt.

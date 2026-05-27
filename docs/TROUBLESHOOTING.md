@@ -231,10 +231,12 @@ you want to invoke a real provider with your own key.
 "Join the waitlist" page with no email/password fields.
 
 **Diagnosis.** The frontend reads `VITE_HOSTED_ACCESS_MODE` at build
-time. Default is `waitlist` (correct for hosted prod). Phase 16 B
-bakes `VITE_HOSTED_ACCESS_MODE=open` into the **compose frontend
-service**, so a fresh `docker compose -f infra/docker-compose.yml up` should render the signup
-form.
+time. Waitlist mode is only honoured on the hosted domain
+(`legalise.dev` by default); localhost and self-hosted forks render the
+real auth forms. Phase 16 B also bakes `VITE_HOSTED_ACCESS_MODE=open`
+into the **compose frontend service**, so a fresh
+`docker compose -f infra/docker-compose.yml up` should render the
+signup form.
 
 If you see the waitlist page locally, something is overriding the
 compose default — most likely a stale `frontend/.env` or a host env
@@ -246,5 +248,5 @@ export of `VITE_HOSTED_ACCESS_MODE=waitlist`.
 docker compose -f infra/docker-compose.yml config | grep VITE_HOSTED_ACCESS_MODE
 ```
 
-Should print `open`. If it prints `waitlist`, find and unset the
-override.
+Should print `open`. If it prints `waitlist`, localhost should still
+render the auth form, but the override is stale and should be removed.
