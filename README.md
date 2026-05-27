@@ -119,7 +119,7 @@ Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
 
    Pre-signup, `khan.demo_present` will soft-note `no users yet — seed lands on first signup`. That's expected.
 
-5. **Register an account.** Open <http://localhost:3000> and use the signup form. Dev-autoverify is on, so the link in the verification email is logged to the backend container's stdout — you don't need to wire SMTP yet. You'll land signed in as a non-superuser; the Khan demo matter seeds on first signup.
+5. **Register an account.** Open <http://localhost:3000> and use the signup form. Dev-autoverify is on, so registration immediately verifies the account — no SMTP setup or email click is needed. You'll land signed in as a non-superuser; the Khan demo matter seeds on first signup.
 
 6. **Promote yourself to superuser via the bootstrap CLI.** The CLI promotes an **existing** user — run it after step 5, not before.
 
