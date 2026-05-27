@@ -51,7 +51,9 @@ Six sub-steps. Each lands its own Reviewer ratification per the established cade
 
 - `frontend/playwright.config.ts` — chromium-only default, retries=2 on CI, trace-on-first-retry, video-on-failure.
 - `frontend/e2e/fixtures/auth.ts` — register / login via real `/auth/*` endpoints; first-admin promotion via `docker compose exec backend python -m app.tools.bootstrap_admin <email>`; later role mutations via authenticated `POST /api/admin/users/{id}/role`.
-- `frontend/e2e/fixtures/db.ts` — between-test truncate of runtime tables (`audit_entries`, `state_machine_transitions`, `state_machine_instances`, `advice_boundary_decisions`, `matter_artifacts`, `installed_modules`, `workspace_skill_capability_grants`, `user_api_keys`, `access_token`, `users` minus the test-runner user). After truncate, calls the existing `seed_demo_matter_for_user` for each fresh user — same path the dev-autoverify uses. Module manifests on disk and their signatures are not touched.
+- `frontend/e2e/fixtures/db.ts` — two explicit reset modes:
+  - `first_run_reset` — truly empty app DB. Truncates `users`, `access_token`, and every runtime table named below. No preserved test-runner user. Used only by the Phase 15 B first-run scenario, which depends on `GET /api/system/bootstrap-state` returning `{user_count: 0, has_superuser: false}`. No Khan reseed runs here; the first-run scenario creates its user and Khan emerges from the dev-autoverify path.
+  - `standard_e2e_reset` — truncates the runtime tables (`audit_entries`, `state_machine_transitions`, `state_machine_instances`, `advice_boundary_decisions`, `matter_artifacts`, `installed_modules`, `workspace_skill_capability_grants`, `user_api_keys`, `access_token`). Leaves `users` intact and any persistent test-runner user; each test then registers / promotes / signs in through the real auth + Phase 11 operator endpoints to produce the user shape it needs. Khan is restored per-user by calling `seed_demo_matter_for_user` after registration — same path dev-autoverify uses. Module manifests on disk and their signatures are not touched in either mode.
 - `frontend/e2e/fixtures/api.ts` — typed substrate clients re-exported from `frontend/src/lib/api.ts`.
 - `frontend/package.json` — `e2e` + `e2e:headed` scripts.
 - `frontend/e2e/smoke.spec.ts` — single fixture-smoke test that exercises the harness end-to-end before real scenarios land.
@@ -65,13 +67,14 @@ One scenario, top-to-bottom, asserting the substrate audit row after every docum
 3. Post-register `/app` shows "Bootstrap admin required" with the literal CLI command.
 4. Test driver runs `docker compose exec backend python -m app.tools.bootstrap_admin <email>`. Substrate emits `user.admin.bootstrapped`.
 5. **Explicit auth refresh** — page reload (or sign-out / sign-in cycle). AuthProvider re-fetches `/auth/users/me`; `is_superuser` flips to true in the React context. Without this, the test passes/fails based on AuthProvider cache rather than product contract.
-6. `/settings/keys` — add a provider key. Substrate emits `user.key.configured`.
+6. **Keyless invocation path.** The auto-seeded Khan carries `default_model_id="claude-opus-4-7"`; running against that would hit `ProviderKeyMissing` unless a real provider key existed. The substrate already ships a keyless deterministic provider (`stub-echo` at `backend/app/core/model_gateway.py:126`), so the e2e first-run scenario opts into it via existing operator surfaces:
+   - Update the user's default via `PATCH /auth/users/me` with `{default_model_id: "stub-echo"}` — substrate emits `auth.user.profile_updated`.
+   - Create a fresh matter via `POST /api/matters` with `{default_model_id: "stub-echo"}` and run the journey against that matter.
+   No fake Anthropic/OpenAI key is added; the `user_key.*` path is exercised separately by Phase 15 C against `/settings/keys` without driving an invocation.
 7. `/modules` → Contract Review → Install → drive the trust ceremony state machine. Substrate emits the full ceremony chain ending in `module.enabled`.
-8. Open Khan matter. Add a grant for Contract Review's `review` capability. Substrate emits `module.grant.created`.
-9. Click Run. Result panel renders. Substrate emits the invocation chain (`module.capability.invoked`, `model.call`, `module.capability.completed`, `advice_boundary.check.completed`).
+8. Open the freshly-created stub-echo matter. Add a grant for Contract Review's `review` capability. Substrate emits `module.grant.created`.
+9. Click Run. Result panel renders deterministically via the stub-echo provider. Substrate emits the invocation chain (`module.capability.invoked`, `model.call`, `module.capability.completed`, `advice_boundary.check.completed`).
 10. Click "See audit trail" → reconstruction renders the filtered timeline. Substrate emits `audit.reconstruction.viewed` with `payload.scope="matter"` + `filters.invocation_id=<id>`.
-
-Wall-clock bar: 10 minutes per `ACCEPTANCE.md` §15-coverage. Test hard-fails past that.
 
 ### Phase 15 C — Audit-emission coverage matrix
 
