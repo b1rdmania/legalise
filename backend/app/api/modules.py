@@ -528,6 +528,101 @@ async def get_v2_module(
         validation_errors=errors,
     )
 # ---------------------------------------------------------------------------
+# Phase 14.5 B — installed-modules listing
+# ---------------------------------------------------------------------------
+#
+# GET /api/modules/installed
+#
+# Read-only listing of modules currently installed in the workspace.
+# One row per `module_id` (most recent by `installed_at`). Returns
+# the substrate fields the catalog UI needs to render an "Installed
+# vX.Y" / "Installed (disabled)" badge without N+1 fetches.
+#
+# Auth: any authenticated user (mirrors GET /api/modules/v2).
+# Audit: NONE — read endpoint, per Phase 13b Decision #1 reads don't
+#        emit audit rows.
+#
+# Frontend (Phase 14.5 B): this endpoint is the source of truth for
+# "is module X installed and enabled?" — feeding the catalog badge
+# and the GrantsPanel runnable-pair AND-gate. Capability shape
+# (reads/writes) still comes from the v2 manifest; grant existence
+# still comes from /api/matters/{slug}/grants; this endpoint adds
+# the third strict AND clause.
+
+
+class InstalledModuleOut(BaseModel):
+    module_id: str
+    version: str
+    publisher: str
+    visibility: str
+    signature_status: str
+    enabled: bool
+    installed_at: str  # ISO-8601
+    installed_by_user_id: str | None
+
+
+@router.get("/installed", response_model=list[InstalledModuleOut])
+async def list_installed_modules(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> list[InstalledModuleOut]:
+    """List currently-installed modules, one row per ``module_id``.
+
+    When a module has multiple ``InstalledModule`` rows (substrate
+    allows installing successive versions without deleting prior
+    rows), returns the most recent by ``installed_at``. Mirrors the
+    "most recent installed version" lookup in
+    :func:`revoke_module_endpoint` at ``modules.py`` so the catalog
+    UI and the revoke endpoint agree on which row represents
+    "installed".
+
+    Disabled rows (``enabled=False``) are returned with
+    ``enabled: false`` so the catalog can render a muted
+    "Installed (disabled)" badge.
+    """
+    # Window function: pick the latest row per module_id by
+    # installed_at desc. This dedupes the per-version history into
+    # one row per module without an N+1 group-by-then-fetch.
+    from sqlalchemy import desc as _desc, func as _func
+
+    rn = _func.row_number().over(
+        partition_by=InstalledModule.module_id,
+        order_by=_desc(InstalledModule.installed_at),
+    ).label("rn")
+    sub = select(InstalledModule, rn).subquery()
+    stmt = (
+        select(
+            sub.c.module_id,
+            sub.c.version,
+            sub.c.publisher,
+            sub.c.visibility,
+            sub.c.signature_status,
+            sub.c.enabled,
+            sub.c.installed_at,
+            sub.c.installed_by_user_id,
+        )
+        .where(sub.c.rn == 1)
+        .order_by(sub.c.module_id)
+    )
+    rows = (await session.execute(stmt)).all()
+    return [
+        InstalledModuleOut(
+            module_id=r.module_id,
+            version=r.version,
+            publisher=r.publisher,
+            visibility=r.visibility,
+            signature_status=r.signature_status,
+            enabled=r.enabled,
+            installed_at=r.installed_at.isoformat(),
+            installed_by_user_id=(
+                str(r.installed_by_user_id) if r.installed_by_user_id else None
+            ),
+        )
+        for r in rows
+    ]
+
+
+# ---------------------------------------------------------------------------
 # Phase 3 — trust ceremony / install endpoints
 # ---------------------------------------------------------------------------
 #

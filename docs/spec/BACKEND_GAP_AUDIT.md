@@ -109,7 +109,15 @@ All five v2 endpoint gaps closed; audit-shape gap-fill complete.
 
 Phase 14 B surfaced one gap. Not blocking the sub-step — frontend ships without the at-a-glance indicator and Reviewer decides whether to fill before Phase 14 D depends on it.
 
-### Finding 14-B-#1 — no listing of installed modules
+### Finding 14-B-#1 — no listing of installed modules (CLOSED — Phase 14.5 B)
+
+**Closed by Phase 14.5 B.** New endpoint `GET /api/modules/installed` returns one row per `module_id` (most recent by `installed_at`) with the substrate fields the catalog UI needs: version, publisher, visibility, signature_status, enabled, installed_at, installed_by_user_id. Read-only, any authenticated user, no audit emission (Phase 13b Decision #1). Frontend renders an "Installed vX.Y" badge per catalog card (muted "Installed (disabled)" variant for disabled rows) and `GrantsPanel.runnablePairs` now ANDs the installed-and-enabled state with the Phase 14 D strict per-string-grants derivation — the Phase 14 D P1 invariant (partial revocation hides Run) is preserved verbatim.
+
+Original problem statement preserved below for reference.
+
+---
+
+### Finding 14-B-#1 (original) — no listing of installed modules
 
 **Expected:** an authenticated endpoint returning `[{module_id, installed_version, publisher, enabled, ...}]` so the `/modules` catalog page can render "Installed vX.Y" / "Available" badges per module without N+1 requests.
 

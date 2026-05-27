@@ -9,6 +9,12 @@ import * as api from "../lib/api";
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  // Phase 14.5 B — every test that mounts GrantsPanel triggers a
+  // listInstalledModules fetch. Default-mock to an empty list; tests
+  // that assert Run buttons must override with the installed rows
+  // they expect. Tests that assert Run is ABSENT can rely on this
+  // default — no installed row → no runnable pair.
+  vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();
@@ -359,6 +365,17 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
       modules: [MULTI_CAP_MANIFEST],
       ui_slots: [],
     });
+    // Phase 14.5 B — module must be installed AND enabled.
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+      module_id: "contract-review",
+      version: "0.1.0",
+      publisher: "legalise",
+      visibility: "first_party",
+      signature_status: "verified",
+      enabled: true,
+      installed_at: "2026-01-01T00:00:00",
+      installed_by_user_id: null,
+    }]);
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
@@ -412,6 +429,16 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
       modules: [MULTI_CAP_MANIFEST],
       ui_slots: [],
     });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+      module_id: "contract-review",
+      version: "0.1.0",
+      publisher: "legalise",
+      visibility: "first_party",
+      signature_status: "verified",
+      enabled: true,
+      installed_at: "2026-01-01T00:00:00",
+      installed_by_user_id: null,
+    }]);
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
@@ -419,6 +446,71 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
         screen.getByTestId("run-contract-review-review"),
       ).toBeInTheDocument();
     });
+  });
+
+  it("does NOT show Run when the module is installed but disabled", async () => {
+    // Phase 14.5 B regression: enabled-AND gate. Grants are
+    // complete, capability is matter-scoped, manifest is valid —
+    // but the installed module's enabled=false. Substrate would
+    // 409 module_disabled on POST /grants and on invoke; the UI
+    // hides Run upstream.
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "review", "matter.document.read"),
+        grant("contract-review", "review", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MULTI_CAP_MANIFEST],
+      ui_slots: [],
+    });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+      module_id: "contract-review",
+      version: "0.1.0",
+      publisher: "legalise",
+      visibility: "first_party",
+      signature_status: "verified",
+      enabled: false,                 // ← the only difference
+      installed_at: "2026-01-01T00:00:00",
+      installed_by_user_id: null,
+    }]);
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
+    expect(
+      screen.queryByTestId("run-contract-review-review"),
+    ).toBeNull();
+  });
+
+  it("does NOT show Run when the module is not in the installed list at all", async () => {
+    // Phase 14.5 B regression: not-installed path. Grants are
+    // complete + capability matter-scoped, but no installed row
+    // exists for this module_id (catalog discovers it but the
+    // workspace hasn't run the install ceremony). UI hides Run.
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "review", "matter.document.read"),
+        grant("contract-review", "review", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MULTI_CAP_MANIFEST],
+      ui_slots: [],
+    });
+    // Empty installed list — default from the file-level beforeEach,
+    // pinned here for explicitness.
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
   });
 
   it("does NOT show Run when a grant row exists for the wrong skill", async () => {

@@ -43,6 +43,9 @@ function mountAt(path: string) {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  // Phase 14.5 B — every catalog mount fetches installed-modules.
+  // Default-mock to empty; badge tests override.
+  vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();
@@ -119,6 +122,94 @@ describe("ModulesCatalog", () => {
     mountAt("/modules");
     await waitFor(() => {
       expect(screen.getByText(/could not load modules/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Phase 14.5 B — installed badge", () => {
+    const CATALOG_MOD = {
+      module_id: "contract-review",
+      source_kind: "v2",
+      manifest: {
+        name: "Contract Review",
+        version: "0.2.1",
+        publisher: "legalise",
+        visibility: "first_party",
+        description: "Reviews contracts.",
+        capabilities: [{ id: "review" }],
+      },
+      is_valid: true,
+      validation_errors: [],
+    };
+
+    it("renders 'Installed vX.Y' badge for an installed+enabled module", async () => {
+      vi.spyOn(api, "getModulesV2").mockResolvedValue({
+        modules: [CATALOG_MOD],
+        ui_slots: [],
+      });
+      vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+        module_id: "contract-review",
+        version: "0.3.0",   // newer than manifest's discovery version
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      }]);
+      mountAt("/modules");
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("installed-badge-contract-review"),
+        ).toBeInTheDocument();
+      });
+      // Badge surfaces the installed version (which can differ from
+      // the discovered manifest version after an update).
+      expect(screen.getByText(/Installed v0\.3\.0/)).toBeInTheDocument();
+    });
+
+    it("renders 'Installed (disabled)' badge for a disabled installed module", async () => {
+      vi.spyOn(api, "getModulesV2").mockResolvedValue({
+        modules: [CATALOG_MOD],
+        ui_slots: [],
+      });
+      vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+        module_id: "contract-review",
+        version: "0.3.0",
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: false,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      }]);
+      mountAt("/modules");
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("installed-disabled-badge-contract-review"),
+        ).toBeInTheDocument();
+      });
+      // The enabled-badge variant must NOT also be rendered.
+      expect(
+        screen.queryByTestId("installed-badge-contract-review"),
+      ).toBeNull();
+    });
+
+    it("renders no badge when module is not installed", async () => {
+      vi.spyOn(api, "getModulesV2").mockResolvedValue({
+        modules: [CATALOG_MOD],
+        ui_slots: [],
+      });
+      // Default empty list from beforeEach — nothing installed.
+      mountAt("/modules");
+      await waitFor(() => {
+        expect(screen.getByText("Contract Review")).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByTestId("installed-badge-contract-review"),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId("installed-disabled-badge-contract-review"),
+      ).toBeNull();
     });
   });
 });

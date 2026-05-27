@@ -234,6 +234,25 @@ export const getModuleV2 = (moduleId: string) =>
     jsonOrThrow<V2ManifestEntry>(r),
   );
 
+// Phase 14.5 B — installed-modules listing. One row per module_id
+// (most recent installed_at). Frontend uses it for the catalog
+// badge and as one AND clause in GrantsPanel.runnablePairs.
+export interface InstalledModule {
+  module_id: string;
+  version: string;
+  publisher: string;
+  visibility: string;
+  signature_status: string;
+  enabled: boolean;
+  installed_at: string;
+  installed_by_user_id: string | null;
+}
+
+export const listInstalledModules = () =>
+  apiFetch(`${API}/modules/installed`).then((r) =>
+    jsonOrThrow<InstalledModule[]>(r),
+  );
+
 export interface CeremonyPermissionCard {
   module_id: string;
   module_name?: string;

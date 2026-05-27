@@ -16,12 +16,19 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { getModulesV2, type V2ManifestEntry } from "../lib/api";
+import {
+  getModulesV2,
+  listInstalledModules,
+  type InstalledModule,
+  type V2ManifestEntry,
+} from "../lib/api";
 
 type CatalogQuery =
   | { status: "loading" }
   | { status: "ready"; entries: V2ManifestEntry[] }
   | { status: "error"; message: string };
+
+type InstalledIndex = Map<string, InstalledModule>;
 
 function manifestField(m: V2ManifestEntry, key: string): string | undefined {
   const v = (m.manifest as Record<string, unknown>)[key];
@@ -35,6 +42,12 @@ function manifestCount(m: V2ManifestEntry, key: string): number {
 
 export function ModulesCatalog() {
   const [q, setQ] = useState<CatalogQuery>({ status: "loading" });
+  // Phase 14.5 B — installed state. Renders as a badge per card.
+  // The fetch is parallel with the catalog fetch; the badge
+  // gracefully omits if listInstalledModules fails (catalog still
+  // shows "Open" as the affordance — the gap is no worse than
+  // pre-14.5 B).
+  const [installed, setInstalled] = useState<InstalledIndex | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +57,17 @@ export function ModulesCatalog() {
       })
       .catch((err: unknown) => {
         if (!cancelled) setQ({ status: "error", message: String(err) });
+      });
+    listInstalledModules()
+      .then((rows) => {
+        if (cancelled) return;
+        const idx: InstalledIndex = new Map();
+        for (const row of rows) idx.set(row.module_id, row);
+        setInstalled(idx);
+      })
+      .catch(() => {
+        // Catalog still renders; badge just omits.
+        if (!cancelled) setInstalled(new Map());
       });
     return () => {
       cancelled = true;
@@ -76,7 +100,11 @@ export function ModulesCatalog() {
       {q.status === "ready" && q.entries.length > 0 && (
         <ul className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {q.entries.map((m) => (
-            <ModuleCard key={m.module_id} entry={m} />
+            <ModuleCard
+              key={m.module_id}
+              entry={m}
+              installed={installed?.get(m.module_id) ?? null}
+            />
           ))}
         </ul>
       )}
@@ -84,7 +112,13 @@ export function ModulesCatalog() {
   );
 }
 
-function ModuleCard({ entry }: { entry: V2ManifestEntry }) {
+function ModuleCard({
+  entry,
+  installed,
+}: {
+  entry: V2ManifestEntry;
+  installed: InstalledModule | null;
+}) {
   const name = manifestField(entry, "name") ?? entry.module_id;
   const version = manifestField(entry, "version");
   const publisher = manifestField(entry, "publisher");
@@ -119,6 +153,28 @@ function ModuleCard({ entry }: { entry: V2ManifestEntry }) {
           <span>
             {caps} capabilit{caps === 1 ? "y" : "ies"}
           </span>
+          {/* Phase 14.5 B — installed-state badge. Three states:
+              - installed + enabled: "Installed vX.Y" (ink-on-paper)
+              - installed + disabled: "Installed (disabled)" (muted)
+              - not installed: no badge (catalog cards default to
+                "Open" as the affordance) */}
+          {installed && installed.enabled && (
+            <span
+              data-testid={`installed-badge-${entry.module_id}`}
+              className="rounded-sm border border-ink bg-ink/5 px-1.5 py-0.5 text-ink"
+            >
+              Installed v{installed.version}
+            </span>
+          )}
+          {installed && !installed.enabled && (
+            <span
+              data-testid={`installed-disabled-badge-${entry.module_id}`}
+              className="rounded-sm border border-line bg-paper-sunken px-1.5 py-0.5 text-muted"
+              title={`Installed v${installed.version} but currently disabled`}
+            >
+              Installed (disabled)
+            </span>
+          )}
           {!entry.is_valid && (
             <span className="rounded-sm bg-seal/10 px-1.5 py-0.5 text-seal">
               manifest invalid

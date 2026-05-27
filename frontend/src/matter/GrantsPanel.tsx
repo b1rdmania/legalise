@@ -27,10 +27,12 @@ import {
   createGrant,
   getModulesV2,
   listGrants,
+  listInstalledModules,
   ModuleDisabledError,
   ModuleNotInstalledError,
   revokeGrant,
   type GrantRow,
+  type InstalledModule,
   type V2ManifestEntry,
 } from "../lib/api";
 import { InvocationRunner } from "./InvocationRunner";
@@ -111,6 +113,13 @@ function manifestName(entry: V2ManifestEntry): string {
 export function GrantsPanel({ slug }: { slug: string }) {
   const [grants, setGrants] = useState<GrantsQuery>({ status: "loading" });
   const [catalog, setCatalog] = useState<CatalogQuery>({ status: "loading" });
+  // Phase 14.5 B — installed-module state. ONE extra AND clause for
+  // runnablePairs: a capability is runnable only if its module is
+  // installed AND enabled. This SUPPLEMENTS the Phase 14 D strict
+  // manifest × per-string-grants derivation; it does not replace it.
+  const [installed, setInstalled] = useState<Map<string, InstalledModule> | null>(
+    null,
+  );
   const [createState, setCreateState] = useState<CreateState>({ kind: "idle" });
   const [revokeState, setRevokeState] = useState<RevokeState>({ kind: "idle" });
 
@@ -142,6 +151,20 @@ export function GrantsPanel({ slug }: { slug: string }) {
         if (!cancelled) {
           setCatalog({ status: "error", message: String(err) });
         }
+      });
+    listInstalledModules()
+      .then((rows) => {
+        if (cancelled) return;
+        const idx = new Map<string, InstalledModule>();
+        for (const row of rows) idx.set(row.module_id, row);
+        setInstalled(idx);
+      })
+      .catch(() => {
+        // Phase 14.5 B — if the installed-listing fetch fails (anon
+        // race, network blip), fail closed: empty map → no module
+        // looks installed → no runnable pairs render. Safer than
+        // assuming everything is installed.
+        if (!cancelled) setInstalled(new Map());
       });
     return () => {
       cancelled = true;
@@ -245,7 +268,17 @@ export function GrantsPanel({ slug }: { slug: string }) {
   const runnablePairs = useMemo<
     Array<{ moduleId: string; capabilityId: string; moduleName: string }>
   >(() => {
-    if (catalog.status !== "ready" || grants.status !== "ready") return [];
+    // Wait until installed state has resolved before deriving. Pre-
+    // resolution we don't know if a module is installed/enabled,
+    // and rendering Run for a row whose module is disabled would
+    // race-condition past the substrate's invocation 409 guard.
+    if (
+      catalog.status !== "ready" ||
+      grants.status !== "ready" ||
+      installed === null
+    ) {
+      return [];
+    }
     const matterGrantsBySkill = new Map<string, Set<string>>();
     for (const g of grants.grants) {
       if (g.scope_type !== "matter") continue;
@@ -264,6 +297,12 @@ export function GrantsPanel({ slug }: { slug: string }) {
     }> = [];
     for (const m of catalog.modules) {
       if (!m.is_valid) continue;
+      // Phase 14.5 B — extra AND clause: module must be installed
+      // AND enabled. Strictly an addition to the Phase 14 D
+      // derivation; per-capability reads/writes grant existence
+      // stays exactly as before.
+      const inst = installed.get(m.module_id);
+      if (!inst || !inst.enabled) continue;
       const name = manifestName(m);
       for (const c of capabilitiesOf(m)) {
         if (c.scope !== "matter") continue;
@@ -281,7 +320,7 @@ export function GrantsPanel({ slug }: { slug: string }) {
       }
     }
     return out;
-  }, [catalog, grants]);
+  }, [catalog, grants, installed]);
 
   return (
     <section className="mt-10">
