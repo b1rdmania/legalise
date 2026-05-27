@@ -127,7 +127,19 @@ export async function signIn(
  */
 export async function signInViaUi(page: Page, user: RegisteredUser): Promise<void> {
   await page.goto("/auth/signin");
-  await page.locator('input[name="email"]').fill(user.email);
+  const email = page.locator('input[name="email"]');
+  try {
+    await email.waitFor({ state: "visible", timeout: 5_000 });
+  } catch (err) {
+    const bodyText = ((await page.locator("body").innerText().catch(() => "")) || "")
+      .replace(/\s+/g, " ")
+      .slice(0, 1000);
+    throw new Error(
+      `Sign-in form did not render at ${page.url()}; body="${bodyText}"`,
+      { cause: err },
+    );
+  }
+  await email.fill(user.email);
   await page.locator('input[name="password"]').fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
   // SignIn navigates to /app on success. The chain is 3 async hops:
