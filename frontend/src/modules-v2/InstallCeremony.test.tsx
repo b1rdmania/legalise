@@ -171,16 +171,15 @@ describe("InstallCeremony — 409 invalid-transition", () => {
     });
     // The banner references the substrate's audit row by name.
     expect(screen.getByText(/module\.ceremony\.rejected/)).toBeInTheDocument();
-    // The banner does NOT render a deep-link. Ceremonies are
-    // workspace-scoped; the existing /matters/{slug}/audit surface
-    // (Phase 14 E target) would not surface a ceremony rejection.
-    // A global audit reconstruction view is filed as
-    // BACKEND_GAP_AUDIT 14-B-#2; until that ships, no link is rendered.
-    expect(
-      screen.queryByRole("link", { name: /view in audit trail/i }),
-    ).toBeNull();
-    // The placeholder we previously shipped must NOT be reintroduced.
-    expect(document.body.innerHTML).not.toMatch(/\/admin\/audit/);
+    // Phase 14.5 C — the deep-link is back. Action-filter only per
+    // the Phase 14.5 plan P1 redline (no ?ceremony= param).
+    const link = screen.getByRole("link", { name: /workspace audit/i });
+    expect(link.getAttribute("href")).toBe(
+      "/admin/audit?action=module.ceremony.rejected",
+    );
+    // The link MUST NOT carry a ceremony_id — that param doesn't
+    // exist on the backend.
+    expect(link.getAttribute("href")).not.toMatch(/ceremony=/);
   });
 });
 

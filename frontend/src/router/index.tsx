@@ -29,6 +29,7 @@ import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { ReconstructionView } from "../matter/ReconstructionView";
 import { AdminUsersList } from "../admin/AdminUsersList";
 import { AdminUserDetail } from "../admin/AdminUserDetail";
+import { AdminAuditView } from "../admin/AdminAuditView";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
@@ -323,6 +324,23 @@ const adminUserDetailRoute = createRoute({
   },
 });
 
+// Phase 14.5 C — workspace / admin audit reconstruction. Mirrors the
+// query-param contract from matterAuditRoute (Phase 14 E):
+// ?invocation_id=… + ?action=… both honoured. Substrate gates on
+// superuser; AdminAuditView mirrors the AdminUsersList belt-and-
+// braces UI gate.
+type AdminAuditSearch = { invocation_id?: string; action?: string };
+export const adminAuditRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/admin/audit",
+  validateSearch: (s: Record<string, unknown>): AdminAuditSearch => ({
+    invocation_id:
+      typeof s.invocation_id === "string" ? s.invocation_id : undefined,
+    action: typeof s.action === "string" ? s.action : undefined,
+  }),
+  component: AdminAuditView,
+});
+
 // ---------------------------------------------------------------------------
 // Route tree + router
 // ---------------------------------------------------------------------------
@@ -358,6 +376,7 @@ const routeTree = rootRoute.addChildren([
     matterArtifactDetailRoute,
     adminUsersRoute,
     adminUserDetailRoute,
+    adminAuditRoute,
   ]),
 ]);
 

@@ -896,6 +896,28 @@ export const changeUserRole = async (
   return jsonOrThrow<UserRoleOut>(res);
 };
 
+// Phase 14.5 C — workspace / admin reconstruction. Same shape as
+// the matter endpoint; no slug. Substrate gates on superuser; UI
+// also gates upstream to avoid pointless 403s.
+export const getAdminReconstruction = (
+  opts: ReconstructionOptions = {},
+): Promise<ReconstructionResponse> => {
+  const params = new URLSearchParams();
+  if (opts.since) params.set("since", opts.since);
+  if (opts.until) params.set("until", opts.until);
+  if (opts.include && opts.include.length > 0) {
+    params.set("include", opts.include.join(","));
+  }
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+  if (opts.invocation_id) params.set("invocation_id", opts.invocation_id);
+  if (opts.action) params.set("action", opts.action);
+  const qs = params.toString();
+  return apiFetch(
+    `${API}/admin/audit/reconstruction${qs ? `?${qs}` : ""}`,
+  ).then((r) => jsonOrThrow<ReconstructionResponse>(r));
+};
+
 export const getReconstruction = (
   slug: string,
   opts: ReconstructionOptions = {},

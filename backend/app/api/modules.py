@@ -585,9 +585,15 @@ async def list_installed_modules(
     # one row per module without an N+1 group-by-then-fetch.
     from sqlalchemy import desc as _desc, func as _func
 
+    # Phase 14.5 B ratification P3 — add `id DESC` as a deterministic
+    # tie-breaker. `installed_at` is high-resolution (timestamp with
+    # microseconds) so collisions are rare in practice, but window
+    # functions over a non-unique key are non-deterministic by SQL
+    # standard. The tie-breaker pins the "most recent" choice to a
+    # single row even if two installs share the exact same instant.
     rn = _func.row_number().over(
         partition_by=InstalledModule.module_id,
-        order_by=_desc(InstalledModule.installed_at),
+        order_by=(_desc(InstalledModule.installed_at), _desc(InstalledModule.id)),
     ).label("rn")
     sub = select(InstalledModule, rn).subquery()
     stmt = (

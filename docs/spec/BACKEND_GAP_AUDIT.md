@@ -146,7 +146,15 @@ Either lets the catalog render without N+1. B is fewer LOC backend but couples v
 
 **Status:** filed Phase 14 B (frontend ships catalog without installed-status badges; UX degrades gracefully — "Open" is the affordance on every card). Phase 14 D may depend on this for invocation-ready check; revisit there if not closed first.
 
-### Finding 14-B-#2 — no global / workspace-scoped audit reconstruction surface
+### Finding 14-B-#2 — no global / workspace-scoped audit reconstruction surface (CLOSED — Phase 14.5 C)
+
+**Closed by Phase 14.5 C.** New superuser-only endpoint `GET /api/admin/audit/reconstruction` returns workspace-scoped audit rows (`matter_id IS NULL`). Reuses `reconstruct()` from Phase 14.5 A with `matter_id=None`. Source-semantics locked per the plan: only `source="audit"` returns rows; `state_machine` + `advice_boundary` are matter-bound by substrate design and return empty cleanly (request accepted, no 422). Emits the same `audit.reconstruction.viewed` action with `payload.scope="workspace"` + `payload.matter_id=null` — unified payload schema with the matter endpoint. Frontend ships `/admin/audit` mirroring the matter reconstruction view, with the two non-audit source chips rendered disabled with a tooltip. `InstallCeremony`'s invalid-transition banner regains its deep-link (`/admin/audit?action=module.ceremony.rejected`, action-only per the plan's P1 redline).
+
+Original problem statement preserved below for reference.
+
+---
+
+### Finding 14-B-#2 (original) — no global / workspace-scoped audit reconstruction surface
 
 **Expected:** a reconstruction view that surfaces workspace-scoped audit rows (ceremony events, settings key operations, admin role mutations) — i.e. events that are not bound to a specific matter and therefore don't appear in `GET /api/matters/{slug}/audit/reconstruction`.
 

@@ -19,12 +19,10 @@
  *
  * 409 invalid-transition path (Phase 5 reviewer fix at modules.py:794):
  *   substrate emits module.ceremony.rejected via audit_failure; this
- *   UI surfaces a structured banner naming that audit row, but does
- *   NOT link out. Ceremonies are workspace-scoped, not matter-scoped,
- *   so the existing /matters/{slug}/audit reconstruction view (Phase
- *   14 E) wouldn't surface a ceremony rejection. A global/admin audit
- *   reconstruction surface is a backlog finding (BACKEND_GAP_AUDIT
- *   14-B-#2). Until that lands, the banner is informational only.
+ *   UI surfaces a structured banner naming that audit row + deep-
+ *   links to /admin/audit?action=module.ceremony.rejected (Phase 14.5 C
+ *   workspace audit surface). Action-only per the Phase 14.5 plan P1
+ *   redline — no ceremony_id query param.
  *
  * Reviewer-narrow: no install retry, no manifest editor here (Update
  * is on the detail page), no telemetry beyond the substrate audit rows.
@@ -320,11 +318,12 @@ function InvalidTransitionBanner({
 }: {
   state: Extract<AdvanceState, { kind: "invalid_transition" }>;
 }) {
-  // No audit deep-link here: ceremonies are workspace-scoped, not
-  // matter-scoped, and the only existing audit surface is the matter
-  // reconstruction page (Phase 14 E target). A global/admin audit
-  // reconstruction surface is filed as BACKEND_GAP_AUDIT 14-B-#2;
-  // until that ships, the banner names the audit row and stops.
+  // Phase 14.5 C — workspace audit surface exists, banner gets its
+  // deep-link back. Action-only per the Phase 14.5 plan P1 redline;
+  // no ?ceremony= query param (the backend only filters by
+  // invocation_id + action).
+  const auditHref =
+    "/admin/audit?action=module.ceremony.rejected";
   return (
     <div className="mt-6 rounded-md border border-seal/40 bg-seal/5 px-4 py-3">
       <p className="text-sm font-medium text-seal">
@@ -337,9 +336,14 @@ function InvalidTransitionBanner({
       <p className="mt-2 text-sm text-muted">
         The substrate wrote a{" "}
         <span className="font-mono">module.ceremony.rejected</span> audit
-        row for this attempt. A global audit-trail view is not yet
-        surfaced (tracked as BACKEND_GAP_AUDIT finding 14-B-#2); until
-        then the substrate row is the source of truth.
+        row for this attempt.{" "}
+        <a
+          href={auditHref}
+          className="underline underline-offset-4 hover:text-ink"
+        >
+          View workspace audit trail
+        </a>
+        .
       </p>
     </div>
   );

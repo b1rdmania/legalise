@@ -235,3 +235,168 @@ async def get_reconstruction(
         next_cursor=page.next_cursor,
         total_in_window_estimate=page.total_in_window_estimate,
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 14.5 C — workspace / admin reconstruction
+# ---------------------------------------------------------------------------
+#
+# Separate router because main.py mounts the matter `router` at
+# `/api/matters`. The admin endpoint lives under `/api/admin/audit`,
+# so it needs its own prefix when registered.
+
+admin_router = APIRouter()
+#
+# GET /api/admin/audit/reconstruction
+#
+# Returns workspace-scoped audit rows (matter_id IS NULL) for events
+# that are NOT bound to any specific matter — install ceremony
+# events, settings key operations, admin role mutations, etc.
+#
+# Reuses `reconstruct()` from Phase 14.5 A with matter_id=None.
+# Source semantics (substrate-truth per the plan):
+#   - `source="audit"` returns rows with matter_id IS NULL.
+#   - `source="state_machine"` returns []. StateMachineInstance
+#     always has a matter owner (workspace ceremonies don't exist).
+#   - `source="advice_boundary"` returns []. AdviceBoundaryDecision
+#     gate_state always carries matter_id.
+#   The endpoint accepts all three values in `include` (no 422
+#   churn); the empties surface honestly.
+#
+# Auth: superuser-only. Mirrors Phase 13b B + Phase 11.
+#
+# Audit: same action `audit.reconstruction.viewed` as the matter
+# endpoint, with `payload.scope="workspace"` + `payload.matter_id=null`.
+# One row schema across both surfaces; the unified payload contract
+# locked in Phase 14.5 A.
+
+
+def _require_superuser(user: User) -> None:
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "admin_required",
+                "message": (
+                    "GET /api/admin/audit/reconstruction requires superuser."
+                ),
+            },
+        )
+
+
+@admin_router.get(
+    "/reconstruction",
+    response_model=ReconstructionResponse,
+)
+async def get_admin_reconstruction(
+    since: datetime | None = Query(None),
+    until: datetime | None = Query(None),
+    include: str | None = Query(
+        None,
+        description=(
+            "Comma-separated source filter. Defaults to all three: "
+            "audit,state_machine,advice_boundary. Workspace scope only "
+            "yields rows from source=audit; state_machine + "
+            "advice_boundary are matter-bound by substrate design and "
+            "return empty here."
+        ),
+    ),
+    cursor: str | None = Query(None),
+    limit: int = Query(DEFAULT_LIMIT, gt=0, le=MAX_LIMIT),
+    invocation_id: str | None = Query(
+        None,
+        description=(
+            "Phase 14.5 A — filter rows to those matching this "
+            "invocation id. Audit rows match against "
+            "payload.invocation_id."
+        ),
+    ),
+    action: str | None = Query(
+        None,
+        description="Phase 14.5 A — exact-match filter on the action column.",
+    ),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ReconstructionResponse:
+    _require_superuser(user)
+
+    if include is not None:
+        wanted = {s.strip() for s in include.split(",") if s.strip()}
+        unknown = wanted - VALID_SOURCES
+        if unknown:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error": "unknown_source",
+                    "unknown": sorted(unknown),
+                    "valid": sorted(VALID_SOURCES),
+                },
+            )
+        sources = frozenset(wanted) if wanted else VALID_SOURCES
+    else:
+        sources = VALID_SOURCES
+
+    if invocation_id is not None:
+        try:
+            uuid.UUID(invocation_id)
+        except (ValueError, AttributeError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error": "invalid_invocation_id",
+                    "supplied": invocation_id,
+                    "message": "invocation_id must be a UUID string",
+                },
+            ) from exc
+
+    try:
+        page = await reconstruct(
+            session,
+            matter_id=None,  # ← workspace scope
+            since=since,
+            until=until,
+            sources=sources,
+            cursor=cursor,
+            limit=limit,
+            invocation_id=invocation_id,
+            action=action,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"error": "invalid_request", "message": str(exc)},
+        ) from exc
+
+    # Same action as the matter endpoint; same payload schema with
+    # scope="workspace" + matter_id=None. The matter endpoint's
+    # _load_matter_or_403 won't surface this row (matter_id IS NULL)
+    # — it lives only on the admin endpoint, audit-the-auditor
+    # preserved.
+    await audit.log(
+        session,
+        "audit.reconstruction.viewed",
+        actor_id=user.id,
+        matter_id=None,
+        module="core.audit",
+        payload={
+            "scope": "workspace",
+            "matter_id": None,
+            "filters": {
+                "invocation_id": invocation_id,
+                "action": action,
+                "sources": sorted(sources),
+                "since": since.isoformat() if since else None,
+                "until": until.isoformat() if until else None,
+            },
+            "limit": limit,
+            "cursor_supplied": cursor is not None,
+            "returned": len(page.entries),
+        },
+    )
+    await session.commit()
+
+    return ReconstructionResponse(
+        entries=[TimelineEntryOut(**e.to_dict()) for e in page.entries],
+        next_cursor=page.next_cursor,
+        total_in_window_estimate=page.total_in_window_estimate,
+    )
