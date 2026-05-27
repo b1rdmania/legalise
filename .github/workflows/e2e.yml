@@ -116,6 +116,15 @@ jobs:
             backend python -m alembic upgrade head
 
       - name: Build frontend
+        # Vite env vars are baked in at build time. The default
+        # HOSTED_ACCESS_MODE in lib/access.ts is "waitlist", which
+        # routes /auth/signin to the Waitlist page (no email
+        # input). The first e2e run caught this: every spec that
+        # called signInViaUi timed out waiting for getByLabel
+        # (/email/i). VITE_HOSTED_ACCESS_MODE=open forces the
+        # real SignIn form to render.
+        env:
+          VITE_HOSTED_ACCESS_MODE: "open"
         run: npm run build
 
       - name: Start preview server
