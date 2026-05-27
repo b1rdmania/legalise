@@ -69,6 +69,11 @@ jobs:
       # path inside the workspace.
       STORAGE_BACKEND: local
       LOCAL_STORAGE_ROOT: ${{ github.workspace }}/_storage
+      # Reference modules live at repo-root examples/modules and are
+      # imported by manifest entrypoint, e.g.
+      # examples.modules.contract_review.capability. The backend job
+      # runs from ./backend, so add the repo root explicitly.
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
 
     steps:
       - uses: actions/checkout@v4
