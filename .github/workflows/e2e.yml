@@ -7,8 +7,9 @@ on:
     branches: [runtime-rewrite, master]
 
 # Phase 15 F — Playwright e2e job. Spins the existing docker-
-# compose stack, runs `npm run e2e` against `npm run preview` for
-# production-parity. Trace + video artifacts uploaded on failure.
+# compose stack, runs `npm run e2e` against the built frontend served
+# by the e2e static preview server. Trace + video artifacts uploaded
+# on failure.
 #
 # Single job; single worker (tests share a DB per the v3 plan).
 
@@ -143,10 +144,9 @@ jobs:
       - name: Build frontend
         # Vite env vars are baked in at build time.
         #
-        # VITE_HOSTED_ACCESS_MODE=open — the default in lib/access.ts
-        # is "waitlist", which routes /auth/signin to the Waitlist
-        # page (no email input). Without this every signInViaUi
-        # caller timed out waiting for getByLabel(/email/i).
+        # VITE_HOSTED_ACCESS_MODE=open — CI must render the real auth
+        # forms. lib/access.ts also gates waitlist mode to the hosted
+        # domain, but baking "open" keeps the test contract explicit.
         #
         # VITE_API_BASE_URL=http://localhost:8000/api — the preview
         # server (npm run preview) does NOT honour vite.config.ts's
@@ -161,12 +161,17 @@ jobs:
         run: npm run build
 
       - name: Start preview server
-        run: nohup npm run preview -- --host 0.0.0.0 --port 4173 > preview.log 2>&1 &
+        # Use an explicit static SPA server instead of `vite preview`.
+        # CI caught `vite preview` returning a 500 + empty HTML body for
+        # deep links such as /auth/signin, which made the sign-in form
+        # invisible before React could mount. The e2e server serves the
+        # built dist assets and falls back to index.html for every route.
+        run: nohup npm run preview:e2e -- --host 0.0.0.0 --port 4173 > preview.log 2>&1 &
 
       - name: Wait for preview
         run: |
           for i in {1..30}; do
-            if curl -sf http://localhost:4173 >/dev/null; then
+            if curl -sf http://localhost:4173/auth/signin >/dev/null; then
               echo "preview up"
               break
             fi

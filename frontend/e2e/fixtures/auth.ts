@@ -126,9 +126,38 @@ export async function signIn(
  * browser context (not the API context).
  */
 export async function signInViaUi(page: Page, user: RegisteredUser): Promise<void> {
+  const diagnostics: string[] = [];
+  page.on("console", (message) => {
+    if (["error", "warning"].includes(message.type())) {
+      diagnostics.push(`console.${message.type()}: ${message.text()}`);
+    }
+  });
+  page.on("pageerror", (error) => {
+    diagnostics.push(`pageerror: ${error.message}`);
+  });
+  page.on("requestfailed", (request) => {
+    diagnostics.push(
+      `requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
+    );
+  });
   await page.goto("/auth/signin");
-  await page.getByLabel(/email/i).fill(user.email);
-  await page.getByLabel(/password/i).fill(user.password);
+  const email = page.locator('input[name="email"]');
+  try {
+    await email.waitFor({ state: "visible", timeout: 5_000 });
+  } catch (err) {
+    const bodyText = ((await page.locator("body").innerText().catch(() => "")) || "")
+      .replace(/\s+/g, " ")
+      .slice(0, 1000);
+    const html = ((await page.content().catch(() => "")) || "")
+      .replace(/\s+/g, " ")
+      .slice(0, 1000);
+    throw new Error(
+      `Sign-in form did not render at ${page.url()}; body="${bodyText}"; html="${html}"; diagnostics="${diagnostics.join(" | ")}"`,
+      { cause: err },
+    );
+  }
+  await email.fill(user.email);
+  await page.locator('input[name="password"]').fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
   // SignIn navigates to /app on success. The chain is 3 async hops:
   //   1. POST /auth/login (cookie set)

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "preview:e2e": "node scripts/serve-e2e-preview.mjs",
     "lint": "eslint . --ext ts,tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

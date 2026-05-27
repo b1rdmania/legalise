@@ -175,7 +175,7 @@ describe("AppHome — State 3: has_superuser, viewer unauthed", () => {
     mountAt("/app");
 
     // The redirect happens in a useEffect. Where it lands depends on
-    // HOSTED_ACCESS_WAITLIST (defaults to true in this build), but the
+    // HOSTED_ACCESS_WAITLIST (defaults to false in self-host/dev), but the
     // invariant is the same: AppHome must NOT render the authed home
     // for an unauthed viewer. Either stub is fine.
     await waitFor(() => {

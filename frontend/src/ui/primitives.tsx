@@ -106,14 +106,16 @@ export function InlineSpinner() {
 export function Field({
   label,
   hint,
+  htmlFor,
   children,
 }: {
   label: string;
   hint?: string;
+  htmlFor?: string;
   children: ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-2">
+    <label htmlFor={htmlFor} className="flex flex-col gap-2">
       <span className="eyebrow-sm">
         {label}
         {hint && <span className="text-muted text-xs normal-case tracking-normal ml-2">({hint})</span>}
