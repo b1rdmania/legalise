@@ -63,7 +63,7 @@ function spyAdminMe() {
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  global.fetch = vi.fn(() =>
+  globalThis.fetch = vi.fn(() =>
     Promise.resolve(
       new Response(
         JSON.stringify({ status: "ok", version: "", database: "", environment: "test" }),

@@ -59,7 +59,7 @@ function mountAt(initialPath: string) {
 beforeEach(() => {
   vi.restoreAllMocks();
   // The shell calls /health on mount; stub fetch broadly.
-  global.fetch = vi.fn(() =>
+  globalThis.fetch = vi.fn(() =>
     Promise.resolve(
       new Response(JSON.stringify({ status: "ok", version: "", database: "", environment: "test" }), {
         status: 200,
