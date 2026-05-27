@@ -28,6 +28,16 @@ jobs:
     # in-process async engine all consume the same DSN shape.
     env:
       POSTGRES_DSN: "postgresql+asyncpg://legalise:legalise@db:5432/legalise_test"
+      # The preview server (`npm run preview`) does NOT honour
+      # vite.config.ts's proxy block — only `vite dev` does. In CI
+      # the frontend serves on :4173 but the proxy that forwards
+      # /auth + /api to backend:8000 isn't there. The browser must
+      # hit the backend directly. CORS_ORIGINS adds the preview
+      # origin so credentialed fetch + cookie write works cross-
+      # port. Compose interpolates this into the backend service
+      # env via the same ${VAR:-default} mechanism that plumbs
+      # POSTGRES_DSN.
+      CORS_ORIGINS: '["http://localhost:3000","http://localhost:4173","https://legalise.dev"]'
     defaults:
       run:
         working-directory: frontend
@@ -92,6 +102,21 @@ jobs:
             sleep 2
           done
 
+      - name: Verify backend CORS_ORIGINS includes the preview origin
+        working-directory: ${{ github.workspace }}
+        # Same belt-and-braces as the DSN verify. If the compose
+        # CORS_ORIGINS interpolation regresses, browser-side fetches
+        # from :4173 silently fail in CORS preflight and every
+        # signInViaUi caller times out. Cheap to assert here.
+        run: |
+          actual=$(docker compose -f infra/docker-compose.yml exec -T backend \
+            sh -c 'echo "$CORS_ORIGINS"')
+          echo "backend CORS_ORIGINS=$actual"
+          if ! echo "$actual" | grep -q "localhost:4173"; then
+            echo "::error::backend CORS_ORIGINS does not include localhost:4173"
+            exit 1
+          fi
+
       - name: Verify backend is using the test DB
         working-directory: ${{ github.workspace }}
         # Sanity-check the load-bearing wire: read the backend's
@@ -116,15 +141,23 @@ jobs:
             backend python -m alembic upgrade head
 
       - name: Build frontend
-        # Vite env vars are baked in at build time. The default
-        # HOSTED_ACCESS_MODE in lib/access.ts is "waitlist", which
-        # routes /auth/signin to the Waitlist page (no email
-        # input). The first e2e run caught this: every spec that
-        # called signInViaUi timed out waiting for getByLabel
-        # (/email/i). VITE_HOSTED_ACCESS_MODE=open forces the
-        # real SignIn form to render.
+        # Vite env vars are baked in at build time.
+        #
+        # VITE_HOSTED_ACCESS_MODE=open — the default in lib/access.ts
+        # is "waitlist", which routes /auth/signin to the Waitlist
+        # page (no email input). Without this every signInViaUi
+        # caller timed out waiting for getByLabel(/email/i).
+        #
+        # VITE_API_BASE_URL=http://localhost:8000/api — the preview
+        # server (npm run preview) does NOT honour vite.config.ts's
+        # proxy block. Without this every browser-side fetch to
+        # /auth/* or /api/* would 404 against the preview server.
+        # Setting the absolute backend URL bakes the right origin
+        # into the build; the matching CORS_ORIGINS at the job
+        # level allows credentialed requests cross-port.
         env:
           VITE_HOSTED_ACCESS_MODE: "open"
+          VITE_API_BASE_URL: "http://localhost:8000/api"
         run: npm run build
 
       - name: Start preview server

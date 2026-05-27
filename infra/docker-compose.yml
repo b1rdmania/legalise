@@ -55,6 +55,12 @@ services:
       # CI exports POSTGRES_DSN before `compose up` so backend + alembic
       # + e2e reset all target the same database.
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
+      # CORS allow-list. Default covers Vite dev (:3000) + the
+      # shipped marketing host. Phase 15 e2e CI overrides this via
+      # the host env at `compose up` time so the preview server
+      # origin (:4173) is allowed for browser-side credentialed
+      # fetch calls. Same interpolation pattern as POSTGRES_DSN.
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","https://legalise.dev"]}
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT: http://minio:9000
       GOTENBERG_URL: http://gotenberg:3000
