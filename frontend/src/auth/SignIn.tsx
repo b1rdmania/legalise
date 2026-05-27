@@ -34,8 +34,10 @@ export function SignIn() {
   return (
     <AuthCard eyebrow="AUTH - SIGN IN" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
       <form className="flex flex-col gap-6" onSubmit={submit}>
-        <Field label="Email">
+        <Field label="Email" htmlFor="signin-email">
           <input
+            id="signin-email"
+            name="email"
             type="email"
             autoComplete="email"
             required
@@ -44,8 +46,10 @@ export function SignIn() {
             className={inputCls}
           />
         </Field>
-        <Field label="Password">
+        <Field label="Password" htmlFor="signin-password">
           <input
+            id="signin-password"
+            name="password"
             type="password"
             autoComplete="current-password"
             required

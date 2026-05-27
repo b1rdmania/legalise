@@ -127,8 +127,8 @@ export async function signIn(
  */
 export async function signInViaUi(page: Page, user: RegisteredUser): Promise<void> {
   await page.goto("/auth/signin");
-  await page.getByLabel(/email/i).fill(user.email);
-  await page.getByLabel(/password/i).fill(user.password);
+  await page.locator('input[name="email"]').fill(user.email);
+  await page.locator('input[name="password"]').fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
   // SignIn navigates to /app on success. The chain is 3 async hops:
   //   1. POST /auth/login (cookie set)
