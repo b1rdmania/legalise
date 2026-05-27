@@ -126,6 +126,20 @@ export async function signIn(
  * browser context (not the API context).
  */
 export async function signInViaUi(page: Page, user: RegisteredUser): Promise<void> {
+  const diagnostics: string[] = [];
+  page.on("console", (message) => {
+    if (["error", "warning"].includes(message.type())) {
+      diagnostics.push(`console.${message.type()}: ${message.text()}`);
+    }
+  });
+  page.on("pageerror", (error) => {
+    diagnostics.push(`pageerror: ${error.message}`);
+  });
+  page.on("requestfailed", (request) => {
+    diagnostics.push(
+      `requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
+    );
+  });
   await page.goto("/auth/signin");
   const email = page.locator('input[name="email"]');
   try {
@@ -134,8 +148,11 @@ export async function signInViaUi(page: Page, user: RegisteredUser): Promise<voi
     const bodyText = ((await page.locator("body").innerText().catch(() => "")) || "")
       .replace(/\s+/g, " ")
       .slice(0, 1000);
+    const html = ((await page.content().catch(() => "")) || "")
+      .replace(/\s+/g, " ")
+      .slice(0, 1000);
     throw new Error(
-      `Sign-in form did not render at ${page.url()}; body="${bodyText}"`,
+      `Sign-in form did not render at ${page.url()}; body="${bodyText}"; html="${html}"; diagnostics="${diagnostics.join(" | ")}"`,
       { cause: err },
     );
   }
