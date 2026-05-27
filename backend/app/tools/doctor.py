@@ -314,9 +314,9 @@ def check_manifests_valid() -> CheckResult:
     from app.core.registry import (
         InvalidManifestError,
         discover_modules,
-        validate_manifest_v2,
     )
     from app.core.registry.shim import auto_derive_v2_from_v1
+    from app.core.registry.validator import assert_manifest_v2
 
     try:
         discovered = discover_modules()
@@ -353,7 +353,11 @@ def check_manifests_valid() -> CheckResult:
                     f"{entry.module_id}: unknown source_kind {entry.source_kind!r}"
                 )
                 continue
-            validate_manifest_v2(manifest)
+            # assert_manifest_v2 raises InvalidManifestError on miss;
+            # validate_manifest_v2 returns (ok, errors) and is the
+            # wrong API for doctor — quietly returning is silently
+            # green. Use the raising form so the except branch fires.
+            assert_manifest_v2(manifest)
         except InvalidManifestError as exc:
             failures.append(f"{entry.module_id}: {exc}")
         except Exception as exc:  # noqa: BLE001
