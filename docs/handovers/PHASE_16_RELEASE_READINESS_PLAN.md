@@ -1,6 +1,6 @@
 # Phase 16 — Release Readiness / Forker Setup (PLAN)
 
-**Status:** plan v1, awaiting reviewer redline.
+**Status:** plan v2 (R1 patched: setup order, VITE_ prefix, v2 schema, S3 doctrine, doctor stateful).
 **Branch:** `runtime-rewrite` (continues from Phase 15 ratified at `f0b9914`).
 **Bar:** a fresh evaluator clones, follows the path, and gets to a working
 Khan demo without us narrating it. No new substrate, no new connectors, no
@@ -27,15 +27,22 @@ and the exact expected output. Steps:
 
 1. `git clone …` + `cd`
 2. `cp .env.example .env` and the **one** decision the forker has to
-   make (hosted-access mode + whether they want a provider key now or
-   stub-echo only)
+   make (provider key now or stub-echo only). Hosted-access mode is
+   set for local forks via `VITE_HOSTED_ACCESS_MODE=open` baked into
+   compose (see B) — no env decision required.
 3. `docker compose -f infra/docker-compose.yml up --build -d`
-4. Wait for `legalise doctor` (see C) to return green
-5. `docker compose exec backend python -m app.tools.bootstrap_admin
-   --email you@example.com` — the **real** Phase 12 CLI signature, with
-   the `--email` keyword caught in Phase 15 hardening
-6. Open `http://localhost:3000`, register the same email, sign in,
-   refresh — superuser context loads
+4. Wait for `legalise doctor` (see C) to return green at its
+   pre-user level (Khan demo check soft-notes pre-bootstrap; see C)
+5. Open `http://localhost:3000`, register an account via the real
+   signup form (e.g. `you@example.com`). Dev-autoverify is on; you
+   land signed in but as a non-superuser.
+6. `docker compose exec backend python -m app.tools.bootstrap_admin
+   --email you@example.com` — the Phase 12 CLI promotes the existing
+   user. The CLI exits `user_not_found` if you skipped step 5; this
+   order is load-bearing (R1 finding).
+7. Reload `http://localhost:3000/app` so `AuthProvider` re-fetches
+   `/auth/users/me`. Superuser context loads.
+8. Re-run `legalise doctor`; `khan.demo_present` should now be `ok`.
 
 This is the *only* path documented for v0.1. No `make` aliases, no
 shell scripts, no abstractions over compose.
@@ -46,14 +53,24 @@ One file, two sections clearly labelled:
 
 - **Required for local fork:** `POSTGRES_DSN`, `REDIS_URL`,
   `S3_ENDPOINT` (defaults to MinIO from compose), `CORS_ORIGINS`,
-  `HOSTED_ACCESS_MODE` (default `open` for forks; hosted is `waitlist`),
   encryption key seed.
 - **Optional / model providers:** `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
   `OLLAMA_URL`. With none set, the stub-echo keyless model still works
   for the Khan demo (Phase 15 first-run uses this path).
 
-Pin: every var the workflow file exports today must appear with an honest
-default. Anything the workflow overrides via env interpolation
+**Frontend access mode (R1 finding).** The frontend reads
+`VITE_HOSTED_ACCESS_MODE` (Vite build-time prefix), not
+`HOSTED_ACCESS_MODE`. Default in `lib/access.ts` is `waitlist`, which is
+right for hosted but wrong for a fresh fork (signup form never renders).
+Phase 16 fixes this by setting `VITE_HOSTED_ACCESS_MODE=open` in the
+**frontend service block** of `infra/docker-compose.yml` so forks get
+the open-signup path by default with zero env decisions. Hosted prod
+keeps `waitlist` via the Cloudflare Pages build env, unchanged. The
+e2e workflow already bakes `open` at build time; this just generalises
+that to local compose.
+
+Pin: every var the workflow file exports today must appear with an
+honest default. Anything the workflow overrides via env interpolation
 (`${POSTGRES_DSN:-…}`, `${CORS_ORIGINS:-…}`) must be reflected in
 `.env.example` so the forker doesn't have to read compose.
 
@@ -76,10 +93,10 @@ substrate already exposes:
 | `db.migrations_current` | Alembic head == DB version |
 | `db.audit_table_present` | `audit_entries` exists; WORM trigger present (just inspect `pg_trigger`) |
 | `redis.reachable` | `PING` returns `PONG` |
-| `s3.reachable` | `HEAD` the configured bucket; create on miss with a one-line note |
-| `plugins.root_mounted` | `PLUGINS_ROOT` resolves; at least one manifest discovered |
-| `manifests.valid` | Every discovered `module.json` validates against `schemas/module.json` |
-| `khan.demo_present` | Khan v Acme matter exists (post-bootstrap), seed audit row found |
+| `s3.reachable` | `HEAD` the configured bucket. On miss → `fail` with remediation: rerun with `--create-bucket`, or run `mc mb`. **No implicit writes** (R1 P2). |
+| `plugins.root_mounted` | `PLUGINS_ROOT` resolves; at least one manifest discovered via the existing Phase 2 discovery surface |
+| `manifests.valid` | Calls the existing registry/validator path against `schemas/module.v2.json` (R1 finding — reference modules are v2-shaped). No hand-rolled validation. |
+| `khan.demo_present` | **Stateful** (R1 P2): if `users` is empty → `note:not_yet_seeded` and exit 0 for this check. After a user exists, demand the Khan matter + seed audit row; `fail` if missing. |
 | `provider.mode` | Print which providers are configured + whether stub-echo is available; never fail |
 
 Output shape: `ok` / `fail` / `note` per row, plus a footer with the one
@@ -90,10 +107,16 @@ separate document.
 The provider check is **diagnostic, not gating**; a fork with zero
 provider keys is a fully valid state because stub-echo works.
 
+**Doctor doctrine: inspection-only by default.** No check writes,
+creates, migrates, or seeds anything. Mutations live behind explicit
+flags (`--create-bucket` for S3 today; future mutating helpers must
+follow the same pattern). A no-flag invocation only reads.
+
 ### D. Demo runbook — install → grant → run → audit
 
-One new doc, `docs/DEMO.md` (or a tightening of `docs/RUNBOOK.md` —
-reviewer call). One sequence the forker follows after the README path:
+New `docs/DEMO.md` (reviewer answer Q2: evaluator-facing, separate from
+the operational `docs/RUNBOOK.md`). Linked from both README and
+RUNBOOK. One sequence the forker follows after the README path:
 
 1. Sign in as the bootstrap superuser
 2. Navigate to `/modules`, install Contract Review via the real trust
@@ -136,10 +159,10 @@ proved are real.
 
 ### F. Final smoke — one command, asserts forker is usable
 
-New `scripts/smoke.sh` (or `make smoke` if the reviewer prefers a
-Makefile entry — currently none exists). Runs the **already-existing**
-e2e first-run spec against the local stack. No new test file. No
-duplicated assertions. Just:
+New `scripts/smoke.sh` (reviewer answer Q3: bare bash, no Makefile —
+no command surface introduced for one script). Runs the
+**already-existing** e2e first-run spec against the local stack. No
+new test file. No duplicated assertions. Just:
 
 ```bash
 ./scripts/smoke.sh   # internally: cd frontend && npx playwright test e2e/first-run.spec.ts
@@ -203,21 +226,15 @@ Each sub-step is its own PR / commit family; each ratifies independently.
 - **F**: `./scripts/smoke.sh` on a clean local stack passes; with the DB
   intentionally stopped it fails fast with a doctor-shaped message.
 
-## Open questions for the reviewer
+## Reviewer answers (R1, resolved)
 
-1. `legalise doctor` as a Python CLI (matches `bootstrap_admin`) or as
-   a thin shell wrapper that drives the Python CLI? Plan defaults to
-   Python module for consistency.
-2. Demo runbook: extend `docs/RUNBOOK.md` in place, or new
-   `docs/DEMO.md` with a link from RUNBOOK? Plan defaults to extending
-   RUNBOOK to avoid doc sprawl.
-3. Smoke script: bare bash invoking Playwright (current plan) or a
-   `Makefile` target? No Makefile exists today; adding one is a
-   one-off decision worth ratifying separately.
-4. Should the doctor's `khan.demo_present` check soft-fail (note only)
-   on a pre-bootstrap fresh DB, or hard-fail and tell the operator to
-   run the CLI? Plan currently soft-fails pre-bootstrap, hard-fails
-   post-bootstrap if the seed didn't land.
+1. `python -m app.tools.doctor`, sibling to `bootstrap_admin`. Python
+   module, no shell wrapper.
+2. New `docs/DEMO.md` (evaluator-facing), linked from README + RUNBOOK.
+   RUNBOOK stays operational.
+3. `scripts/smoke.sh`, bare bash, no Makefile.
+4. `khan.demo_present` soft-notes pre-signup; hard-fails only after a
+   user exists and the seed should have landed.
 
 ## Non-negotiables carried forward
 
