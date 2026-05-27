@@ -1,0 +1,105 @@
+name: e2e
+
+on:
+  push:
+    branches: [runtime-rewrite, master]
+  pull_request:
+    branches: [runtime-rewrite, master]
+
+# Phase 15 F — Playwright e2e job. Spins the existing docker-
+# compose stack, runs `npm run e2e` against `npm run preview` for
+# production-parity. Trace + video artifacts uploaded on failure.
+#
+# Single job; single worker (tests share a DB per the v3 plan).
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install Playwright chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Bring up docker-compose stack
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f infra/docker-compose.yml up -d --build
+          # Wait for backend health.
+          for i in {1..60}; do
+            if curl -sf http://localhost:8000/health >/dev/null; then
+              echo "backend up"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Provision test DB schema
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f infra/docker-compose.yml exec -T \
+            -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
+            backend python -m alembic upgrade head || true
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Start preview server
+        run: nohup npm run preview -- --host 0.0.0.0 --port 4173 > preview.log 2>&1 &
+
+      - name: Wait for preview
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:4173 >/dev/null; then
+              echo "preview up"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run Playwright
+        env:
+          CI: "true"
+          E2E_FRONTEND_URL: "http://localhost:4173"
+          E2E_BACKEND_URL: "http://localhost:8000"
+          E2E_COMPOSE_FILE: "infra/docker-compose.yml"
+          E2E_COMPOSE_CWD: "${{ github.workspace }}"
+        run: npm run e2e
+
+      - name: Upload trace + video on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 14
+
+      - name: Tear down docker-compose
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: docker compose -f infra/docker-compose.yml down -v
