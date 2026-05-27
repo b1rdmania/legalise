@@ -132,6 +132,8 @@ Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
 
 8. **Re-run doctor** — `khan.demo_present` should now be `ok`. The full Khan v Acme demo is wired; see [`docs/DEMO.md`](./docs/DEMO.md) for the install → grant → run → audit walkthrough.
 
+To prove the fork is healthy end-to-end without driving the UI by hand, run `./scripts/smoke.sh`. It executes the same Playwright first-run spec the CI workflow runs (truncates the local database — see the script's prompt).
+
 ### Self-hosting notes
 
 - If deploying your fork to Fly, change `app = "legalise-backend"` in `backend/fly.toml` before `fly deploy`.
