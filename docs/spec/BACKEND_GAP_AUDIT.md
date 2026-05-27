@@ -152,7 +152,15 @@ Either lets the catalog render without N+1. B is fewer LOC backend but couples v
 
 **Status:** filed Phase 14 B. Frontend banner ships without a deep-link (P1 redline fix). When this lands, the InstallCeremony invalid-transition banner can carry a real link without churn.
 
-### Finding 14-E-#1 — no server-side filter for `invocation_id` / `action` on reconstruction
+### Finding 14-E-#1 — no server-side filter for `invocation_id` / `action` on reconstruction (CLOSED — Phase 14.5 A)
+
+**Closed by Phase 14.5 A.** `GET /api/matters/{slug}/audit/reconstruction` now accepts `invocation_id=<uuid>` and `action=<string>` query params. Filters push into per-source SQL via `_query_*_rows` so the cursor + limit+1 over-fetch operates on the filtered set — the load-bearing "filters before pagination" contract is regressed in `tests/test_phase14_5_a_reconstruction_filters.py::test_invocation_id_filter_returns_target_on_page_one_through_dense_noise` (250 non-matching prefix rows + one matching at the tail → returned on page 1 with no Load more required). The endpoint's `audit.reconstruction.viewed` row carries the new locked payload shape (see `AUDIT_EMISSION_MAP.md`).
+
+Original problem statement preserved below for reference.
+
+---
+
+### Finding 14-E-#1 (original) — no server-side filter for `invocation_id` / `action` on reconstruction
 
 **Expected:** `GET /api/matters/{slug}/audit/reconstruction` accepts `invocation_id=<id>` and/or `action=<string>` as query params so the substrate returns only matching rows. Today only `since`, `until`, `include`, `cursor`, `limit` are honoured (`backend/app/api/audit.py:108`).
 

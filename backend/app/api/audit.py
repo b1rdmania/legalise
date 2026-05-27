@@ -122,6 +122,27 @@ async def get_reconstruction(
     ),
     cursor: str | None = Query(None),
     limit: int = Query(DEFAULT_LIMIT, gt=0, le=MAX_LIMIT),
+    invocation_id: str | None = Query(
+        None,
+        description=(
+            "Phase 14.5 A — filter rows to those matching this "
+            "invocation id. Audit rows match against "
+            "payload.invocation_id; advice_boundary rows match "
+            "against output_id; state_machine source returns empty "
+            "under this filter (substrate has no deterministic "
+            "invocation_id carrier on transitions)."
+        ),
+    ),
+    action: str | None = Query(
+        None,
+        description=(
+            "Phase 14.5 A — exact-match filter on the synthesised "
+            "action string. State_machine + advice_boundary sources "
+            "only match if the action carries their respective "
+            "`state_machine.transition.<status>` / "
+            "`advice_boundary.decision.<status>` prefix."
+        ),
+    ),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> ReconstructionResponse:
@@ -143,6 +164,23 @@ async def get_reconstruction(
     else:
         sources = VALID_SOURCES
 
+    # Phase 14.5 A — validate invocation_id is a UUID before passing
+    # it through to SQL. Substrate writes them as UUID strings; a
+    # caller passing junk should get a structured 422 here rather
+    # than a database-side cast error.
+    if invocation_id is not None:
+        try:
+            uuid.UUID(invocation_id)
+        except (ValueError, AttributeError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error": "invalid_invocation_id",
+                    "supplied": invocation_id,
+                    "message": "invocation_id must be a UUID string",
+                },
+            ) from exc
+
     try:
         page = await reconstruct(
             session,
@@ -152,6 +190,8 @@ async def get_reconstruction(
             sources=sources,
             cursor=cursor,
             limit=limit,
+            invocation_id=invocation_id,
+            action=action,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -162,6 +202,11 @@ async def get_reconstruction(
     # Emit the view-audit row so the inspector is themselves auditable.
     # This row will appear in subsequent reconstruction calls — that's
     # intentional; "who looked at the trail when" is itself provenance.
+    #
+    # Phase 14.5 A — unified payload shape across matter + workspace
+    # surfaces. `scope` + `matter_id` + `filters` is the documented
+    # contract; the admin endpoint (Phase 14.5 C) emits the same
+    # action with `scope="workspace"` + `matter_id=null`.
     await audit.log(
         session,
         "audit.reconstruction.viewed",
@@ -169,9 +214,15 @@ async def get_reconstruction(
         matter_id=matter.id,
         module="core.audit",
         payload={
-            "since": since.isoformat() if since else None,
-            "until": until.isoformat() if until else None,
-            "sources": sorted(sources),
+            "scope": "matter",
+            "matter_id": str(matter.id),
+            "filters": {
+                "invocation_id": invocation_id,
+                "action": action,
+                "sources": sorted(sources),
+                "since": since.isoformat() if since else None,
+                "until": until.isoformat() if until else None,
+            },
             "limit": limit,
             "cursor_supplied": cursor is not None,
             "returned": len(page.entries),

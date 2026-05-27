@@ -207,20 +207,42 @@ def _cursor_predicate(
     )
 
 
+_STATE_MACHINE_ACTION_PREFIX = "state_machine.transition."
+_ADVICE_BOUNDARY_ACTION_PREFIX = "advice_boundary.decision."
+
+
 async def _query_audit_rows(
     session: AsyncSession,
     *,
-    matter_id: uuid.UUID,
+    matter_id: uuid.UUID | None,
     since: datetime | None,
     until: datetime | None,
     cursor_key: tuple | None,
     limit: int,
+    invocation_id: str | None = None,
+    action: str | None = None,
 ) -> list[TimelineEntry]:
-    stmt = select(AuditEntry).where(AuditEntry.matter_id == matter_id)
+    if matter_id is None:
+        stmt = select(AuditEntry).where(AuditEntry.matter_id.is_(None))
+    else:
+        stmt = select(AuditEntry).where(AuditEntry.matter_id == matter_id)
     if since is not None:
         stmt = stmt.where(AuditEntry.timestamp >= since)
     if until is not None:
         stmt = stmt.where(AuditEntry.timestamp <= until)
+    # Phase 14.5 A — filters BEFORE pagination. Each filter pushes into
+    # SQL so the cursor + limit+1 over-fetch operates on the filtered
+    # set, not the full source. Without this, a target row at the tail
+    # of a dense non-matching window would never enter `pulls`.
+    if action is not None:
+        stmt = stmt.where(AuditEntry.action == action)
+    if invocation_id is not None:
+        # `payload.invocation_id` is the substrate's primary carrier
+        # (runtime.py:132 + audit_phase1 convention). Match the JSONB
+        # path via ->> 'invocation_id' = :inv.
+        stmt = stmt.where(
+            AuditEntry.payload["invocation_id"].astext == invocation_id
+        )
     pred = _cursor_predicate(
         cursor_key, "audit", AuditEntry.timestamp, AuditEntry.id
     )
@@ -271,12 +293,33 @@ def _audit_to_entry(r: AuditEntry) -> TimelineEntry:
 async def _query_state_machine_rows(
     session: AsyncSession,
     *,
-    matter_id: uuid.UUID,
+    matter_id: uuid.UUID | None,
     since: datetime | None,
     until: datetime | None,
     cursor_key: tuple | None,
     limit: int,
+    invocation_id: str | None = None,
+    action: str | None = None,
 ) -> list[TimelineEntry]:
+    # Phase 14.5 A — workspace scope (matter_id is None) has no
+    # state_machine rows by substrate design (StateMachineInstance
+    # rows always carry a matter owner). Return empty cleanly.
+    if matter_id is None:
+        return []
+    # Phase 14.5 A — invocation_id filter: state_machine transitions
+    # don't carry invocation_id as a deterministic column. Honest
+    # behaviour is to return empty when the caller filters by it.
+    if invocation_id is not None:
+        return []
+    # Phase 14.5 A — action filter: synthesised action is
+    # `state_machine.transition.<status>`. If the action filter
+    # doesn't start with that prefix the source matches nothing;
+    # if it does we push the status into SQL.
+    status_filter: str | None = None
+    if action is not None:
+        if not action.startswith(_STATE_MACHINE_ACTION_PREFIX):
+            return []
+        status_filter = action.removeprefix(_STATE_MACHINE_ACTION_PREFIX)
     stmt = (
         select(StateMachineTransition, StateMachineDefinition.definition_key)
         .join(
@@ -296,6 +339,8 @@ async def _query_state_machine_rows(
         stmt = stmt.where(StateMachineTransition.occurred_at >= since)
     if until is not None:
         stmt = stmt.where(StateMachineTransition.occurred_at <= until)
+    if status_filter is not None:
+        stmt = stmt.where(StateMachineTransition.status == status_filter)
     pred = _cursor_predicate(
         cursor_key,
         "state_machine",
@@ -341,12 +386,26 @@ def _smt_to_entry(
 async def _query_advice_boundary_rows(
     session: AsyncSession,
     *,
-    matter_id: uuid.UUID,
+    matter_id: uuid.UUID | None,
     since: datetime | None,
     until: datetime | None,
     cursor_key: tuple | None,
     limit: int,
+    invocation_id: str | None = None,
+    action: str | None = None,
 ) -> list[TimelineEntry]:
+    # Phase 14.5 A — workspace scope has no advice_boundary rows by
+    # substrate design (AdviceBoundaryDecision.gate_state always
+    # carries matter_id; the table is matter-bound).
+    if matter_id is None:
+        return []
+    # Phase 14.5 A — action filter parallel to state_machine: the
+    # synthesised action is `advice_boundary.decision.<status>`.
+    status_filter: str | None = None
+    if action is not None:
+        if not action.startswith(_ADVICE_BOUNDARY_ACTION_PREFIX):
+            return []
+        status_filter = action.removeprefix(_ADVICE_BOUNDARY_ACTION_PREFIX)
     stmt = select(AdviceBoundaryDecision).where(
         AdviceBoundaryDecision.gate_state["matter_id"].astext == str(matter_id)
     )
@@ -354,6 +413,13 @@ async def _query_advice_boundary_rows(
         stmt = stmt.where(AdviceBoundaryDecision.decided_at >= since)
     if until is not None:
         stmt = stmt.where(AdviceBoundaryDecision.decided_at <= until)
+    if status_filter is not None:
+        stmt = stmt.where(AdviceBoundaryDecision.status == status_filter)
+    if invocation_id is not None:
+        # Phase 9 convention: AdviceBoundaryDecision.output_id carries
+        # the invocation_id verbatim (string form). Test pin at
+        # test_phase9_pre_motion_vertical_slice.py:355.
+        stmt = stmt.where(AdviceBoundaryDecision.output_id == invocation_id)
     pred = _cursor_predicate(
         cursor_key,
         "advice_boundary",
@@ -410,14 +476,16 @@ def _entry_sort_key(e: TimelineEntry) -> tuple:
 async def reconstruct(
     session: AsyncSession,
     *,
-    matter_id: uuid.UUID,
+    matter_id: uuid.UUID | None,
     since: datetime | None = None,
     until: datetime | None = None,
     sources: frozenset[str] | set[str] | None = None,
     cursor: str | None = None,
     limit: int = DEFAULT_LIMIT,
+    invocation_id: str | None = None,
+    action: str | None = None,
 ) -> ReconstructionPage:
-    """Reconstruct the matter timeline.
+    """Reconstruct the timeline.
 
     Pure-functional. No mutation. No external calls. The endpoint
     that wraps this MUST authorise the caller separately — the
@@ -428,7 +496,8 @@ async def reconstruct(
     session
         Read-only AsyncSession.
     matter_id
-        Matter to scope to. Required.
+        Matter to scope to. ``None`` selects the workspace scope
+        (Phase 14.5 C — audit-source rows where matter_id IS NULL).
     since, until
         Optional ISO8601 time window. Defaults are open-ended.
     sources
@@ -438,6 +507,24 @@ async def reconstruct(
         the first page.
     limit
         Max entries per page. Capped at ``MAX_LIMIT``.
+    invocation_id
+        Phase 14.5 A — filter to rows matching this invocation. For
+        audit rows, matches ``payload.invocation_id``. For
+        advice_boundary rows, matches ``output_id`` (Phase 9
+        convention). State_machine rows have no deterministic
+        invocation_id carrier and return empty under this filter.
+    action
+        Phase 14.5 A — filter to rows where the synthesised action
+        equals this string verbatim. State_machine + advice_boundary
+        sources only match if the string carries their respective
+        ``state_machine.transition.<status>`` / ``advice_boundary.decision.<status>``
+        prefix.
+
+    Filters apply BEFORE pagination — both push into per-source SQL
+    so the cursor + limit+1 over-fetch operates on the filtered set.
+    A target row at the tail of a dense non-matching window enters
+    the first page rather than requiring the caller to chase
+    ``next_cursor`` through irrelevant rows.
 
     Returns
     -------
@@ -487,6 +574,8 @@ async def reconstruct(
             until=until,
             cursor_key=cursor_key,
             limit=limit + 1,
+            invocation_id=invocation_id,
+            action=action,
         )
         pulls.extend(rows)
 

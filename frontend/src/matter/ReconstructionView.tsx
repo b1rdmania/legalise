@@ -73,9 +73,15 @@ export function ReconstructionView({ slug }: { slug: string }) {
   const loadPage = useCallback(
     async (cursor: string | null) => {
       try {
+        // Phase 14.5 A — filters are server-pushdown now. The client
+        // no longer over-fetches and filters; the substrate applies
+        // invocation_id + action BEFORE pagination, so a deep-linked
+        // row enters page 1 even on dense timelines.
         const page = await getReconstruction(slug, {
           include: sources.length === 3 ? undefined : sources,
           cursor: cursor ?? undefined,
+          invocation_id: invocationFilter ?? undefined,
+          action: actionFilter ?? undefined,
         });
         if (cursor === null) {
           setFetchState({
@@ -100,7 +106,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
         setFetchState({ status: "error", message: String(err) });
       }
     },
-    [slug, sources],
+    [slug, sources, invocationFilter, actionFilter],
   );
 
   useEffect(() => {
@@ -120,13 +126,14 @@ export function ReconstructionView({ slug }: { slug: string }) {
     });
   };
 
-  // Phase 14 E client-side filtering: invocation_id + action. The
-  // substrate's reconstruction endpoint does NOT honour either as
-  // a query param yet (filed as 14-E-#1). Client-side is the fallback
-  // until that lands; it's correct within the current page but will
-  // miss rows that haven't been paged in yet.
+  // Phase 14.5 A — filtering moved server-side. The page receives
+  // already-filtered rows from `getReconstruction`. Client-side
+  // filtering retained ONLY as defence-in-depth for unknown
+  // future deployments where the substrate didn't yet have 14.5 A
+  // — same predicate; cheap; fails closed on shape mismatches.
   const visibleEntries = useMemo(() => {
     if (fetchState.status !== "ready") return [];
+    if (!actionFilter && !invocationFilter) return fetchState.entries;
     return fetchState.entries.filter((e) => {
       if (actionFilter && e.action !== actionFilter) return false;
       if (invocationFilter) {
@@ -228,25 +235,14 @@ export function ReconstructionView({ slug }: { slug: string }) {
               : ""}
           </p>
 
-          {/* Honesty advisory: filters apply client-side over loaded
-              rows only. As long as next_cursor exists, more matches
-              may surface after Load more. See BACKEND_GAP_AUDIT
-              14-E-#1 — substrate-side invocation_id/action filtering
-              would remove the need for this advisory. */}
-          {(invocationFilter || actionFilter) && fetchState.nextCursor && (
-            <p
-              className="mt-2 text-xs text-muted"
-              data-testid="filter-partial-advisory"
-            >
-              Filter applies to loaded rows only — more matches may
-              appear after loading more.
-            </p>
-          )}
+          {/* Phase 14.5 A — substrate now applies filters before
+              pagination. The partial-page advisory the Phase 14 E
+              P1 redline added is no longer needed; an empty filtered
+              page accurately means "no matching rows in window." */}
 
           {visibleEntries.length === 0 ? (
             <EmptyState
               filtersActive={!!(invocationFilter || actionFilter)}
-              hasMore={!!fetchState.nextCursor}
             />
           ) : (
             <ol className="mt-4 space-y-3">
@@ -282,30 +278,10 @@ export function ReconstructionView({ slug }: { slug: string }) {
 
 // ---------------------------------------------------------------------------
 
-function EmptyState({
-  filtersActive,
-  hasMore,
-}: {
-  filtersActive: boolean;
-  hasMore: boolean;
-}) {
-  // When filters are active and we haven't seen the whole window yet,
-  // do NOT claim "no rows match" — only the loaded page is empty.
-  // The reconstruction page is the trustworthy deep-link target for
-  // B/C/D banners; a false "no rows match" would tell the user the
-  // event they were sent here for doesn't exist when it might just
-  // be on a later page (BACKEND_GAP_AUDIT 14-E-#1).
-  if (filtersActive && hasMore) {
-    return (
-      <p
-        className="mt-4 text-sm text-muted"
-        data-testid="empty-loaded-not-all"
-      >
-        No loaded rows match yet. The filter is currently applied to
-        loaded rows only; load more to continue searching.
-      </p>
-    );
-  }
+function EmptyState({ filtersActive }: { filtersActive: boolean }) {
+  // Phase 14.5 A — substrate filters before paginating, so an
+  // empty filtered page is now substrate-truthful. No more
+  // partial-page disclaimer needed.
   if (filtersActive) {
     return (
       <p

@@ -117,7 +117,7 @@ Both appear in `GET /api/matters/{slug}/audit/reconstruction` under different `s
 
 | User action | API call | Status | Audit row | Reference |
 | --- | --- | --- | --- | --- |
-| View reconstruction | `GET /api/matters/{slug}/audit/reconstruction` | **VERIFIED** | `audit.reconstruction.viewed` ("audit the auditor") | `backend/app/api/audit.py:170` |
+| View reconstruction | `GET /api/matters/{slug}/audit/reconstruction` | **VERIFIED** | `audit.reconstruction.viewed` ("audit the auditor") — Phase 14.5 A locked payload shape: `{scope: "matter"\|"workspace", matter_id, filters: {invocation_id, action, sources, since, until}, limit, cursor_supplied, returned}`. Same action on the admin endpoint (Phase 14.5 C) with `scope="workspace"` + `matter_id=null`. | `backend/app/api/audit.py` Phase 14.5 A |
 | Apply filter | re-fetch | NONE (read) | — | — |
 | Paginate | re-fetch with cursor | NONE (read) | — | — |
 | Expand row | UI-only | NONE (UI) | — | — |

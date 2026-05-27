@@ -711,6 +711,12 @@ export interface ReconstructionOptions {
   include?: ReconstructionSource[];
   cursor?: string;
   limit?: number;
+  // Phase 14.5 A — substrate-side filters. Pre-14.5 the frontend
+  // filtered these client-side, which produced false-negatives on
+  // dense matter timelines (Phase 14 E P1 redline). They're now
+  // server-pushdown filters that apply BEFORE pagination.
+  invocation_id?: string;
+  action?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -883,6 +889,8 @@ export const getReconstruction = (
   }
   if (opts.cursor) params.set("cursor", opts.cursor);
   if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+  if (opts.invocation_id) params.set("invocation_id", opts.invocation_id);
+  if (opts.action) params.set("action", opts.action);
   const qs = params.toString();
   return apiFetch(
     `${API}/matters/${encodeURIComponent(slug)}/audit/reconstruction${qs ? `?${qs}` : ""}`,
