@@ -101,8 +101,9 @@ Salesforce / Linear / HubSpot record pages.
 ### Screen 2 — Modules page (`/modules`)
 
 The integrations marketplace / admin page. Currently it's a
-catalog grid that doesn't distinguish installed vs available, and
-the trust ceremony flow reads as bespoke. Cold evaluators will
+catalog grid that — though Phase 14.5 added installed-state
+badges — doesn't make installed vs available operationally
+obvious, and the trust ceremony flow reads as bespoke. Cold evaluators will
 expect this to look like the admin → integrations panel of any
 SaaS they've used.
 
@@ -199,7 +200,8 @@ Mirroring the Phase 16 cadence: each sub-step is its own PR /
 commit family; each ratifies independently.
 
 1. **Step 0 — cold walkthrough.** Reviewer commissions a
-   non-engineer; recording + writeup; produces
+   cold legal- or operator-adjacent evaluator (profiles per
+   §Step 0); recording + writeup; produces
    `PHASE_17_COLD_WALKTHROUGH.md`. Phase 17 does not advance
    without this artifact.
 2. **17A — matter detail redesign.** Targets the screen with
