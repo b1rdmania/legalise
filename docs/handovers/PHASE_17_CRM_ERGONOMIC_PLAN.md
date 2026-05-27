@@ -1,6 +1,6 @@
 # Phase 17 — CRM-Ergonomic UI Pass (PLAN)
 
-**Status:** plan v2, reviewer-ratified per redline (3 P1 + 2 P2 patched, 5 answers folded in).
+**Status:** plan v3 — Step 0 split into now-runnable operator-proxy walkthrough vs deferred solicitor launch-readiness gate (per reviewer redline on access constraints).
 **Branch:** `phase-17-crm-pass` off master @ `a364952`.
 **Bar:** the existing routes feel like a familiar CRM/admin workspace
 to a cold evaluator. Boring, dense, scannable, operational. No new
@@ -35,27 +35,53 @@ without compromising Legalise's bespoke governance substrate.
 > recognise where they are and what to do. The audit substrate
 > stays bespoke; the chrome around it should not be.
 
-## Step 0 — Cold walkthrough is the spec
+## Step 0 — Cold operator-proxy walkthrough is the spec
 
 Phase 17 does not start with redesign. It starts with a documented
 cold walkthrough. The walkthrough output **is** the design spec —
 without it, the redesign becomes taste-driven inside the first three
 screens.
 
-### What lands
+A solicitor walkthrough cannot be commissioned before Monday, and
+gating Phase 17 implementation on solicitor access would stall
+indefinitely. The plan therefore splits the walkthrough into two
+distinct gates with different timelines.
 
-A named **cold legal-or-operator-adjacent evaluator** follows
-`docs/DEMO.md` end-to-end on a fresh local fork. Acceptable
-profiles (per reviewer answer 1):
-- UK solicitor (best fit — closest to the actual evaluator audience)
-- Legal-ops practitioner
-- CRM-heavy SaaS operator (Salesforce / HubSpot / Linear power user)
-- YC-style evaluator with no prior project context
+### Step 0 — operator-proxy walkthrough (now-runnable, engineering gate)
 
-Not Andy, not the maintainer, not a builder on the project, not
-anyone who has been pre-briefed on the substrate. "Non-engineer"
-alone was too loose; the evaluator must approximate the real
-cold-evaluator audience.
+A named **cold operator-proxy evaluator** follows `docs/DEMO.md`
+end-to-end on a fresh local fork. Acceptable profiles, in
+preference order:
+
+1. **CRM-heavy SaaS operator / founder / product person** with no
+   prior Legalise context. Closest viable proxy for the
+   recognise-the-shape test the redesign is targeting.
+2. **YC-style evaluator** with no prior project context.
+3. **Fallback only** — Andy runs a self-recorded "fresh evaluator
+   script" (numbered steps, no improvisation, no operator
+   judgement during the run). Explicitly labelled **not cold**.
+   Surfaces obvious friction only. Later genuinely-cold findings
+   override anything this fallback produced.
+
+Not the maintainer except under the explicit fallback above. Not
+a builder on the project. Not anyone pre-briefed on the substrate.
+
+### Solicitor / legal-ops walkthrough (deferred, launch-readiness gate)
+
+A UK solicitor or legal-ops practitioner walkthrough is required
+**before public launch and before design-partner outreach**, not
+before Phase 17 implementation. It validates that the
+operator-proxy findings transfer to the real evaluator audience.
+
+If the solicitor walkthrough surfaces new P1 findings on the three
+target screens, those become a follow-up sub-step (17E or a
+hotfix family) — they do not invalidate work already shipped on
+the operator-proxy basis.
+
+This split is honest: the plan acknowledges that the
+operator-proxy is a proxy, names what it cannot tell us
+(domain-specific confusion patterns a solicitor would catch),
+and pins a hard later gate for the validation pass.
 Recorded screen-share. No operator on the call to coach. Per-screen
 the recorder captures:
 
@@ -199,11 +225,12 @@ Talent without re-implementation is out of scope.
 Mirroring the Phase 16 cadence: each sub-step is its own PR /
 commit family; each ratifies independently.
 
-1. **Step 0 — cold walkthrough.** Reviewer commissions a
-   cold legal- or operator-adjacent evaluator (profiles per
-   §Step 0); recording + writeup; produces
-   `PHASE_17_COLD_WALKTHROUGH.md`. Phase 17 does not advance
-   without this artifact.
+1. **Step 0 — operator-proxy walkthrough.** Reviewer commissions a
+   cold CRM/SaaS operator (or runs the Andy fallback per §Step 0);
+   recording + writeup; produces `PHASE_17_COLD_WALKTHROUGH.md`.
+   Phase 17 does not advance without this artifact. The deferred
+   solicitor walkthrough is a separate launch-readiness gate, not
+   blocking this sub-step.
 2. **17A — matter detail redesign.** Targets the screen with
    the highest dwell time in the walkthrough.
 3. **17B — modules page redesign.** Targets the installed-vs-
@@ -259,9 +286,12 @@ sub-step PR; a single matching path blocks ratification.
 
 ## Reviewer answers (resolved)
 
-1. **Walkthrough recorder.** Cold legal- or operator-adjacent
-   evaluator. UK solicitor best fit; legal-ops or CRM-heavy SaaS
-   operator acceptable. Not Andy, not maintainer, not pre-briefed.
+1. **Walkthrough recorder.** Now-runnable Step 0 uses a cold
+   CRM/SaaS operator, founder, or product person. Andy-as-fallback
+   is allowed but explicitly marked non-cold. UK solicitor /
+   legal-ops walkthrough deferred to the launch-readiness gate
+   before public release / design-partner outreach. Not the
+   maintainer (except under fallback), not pre-briefed.
 2. **Branch strategy.** Single long-running `phase-17-crm-pass`
    branch with sub-step commits.
 3. **40% threshold.** Target metric, not hard gate. Hard gate is

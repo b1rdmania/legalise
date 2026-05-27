@@ -9,13 +9,23 @@ numbered finding from this doc.
 ## Recorder identity
 
 - **Name / role:**
-- **Profile category** (per plan §Step 0): UK solicitor / legal-ops /
-  CRM-heavy SaaS operator / YC-style evaluator
+- **Profile category** (per plan §Step 0 — operator-proxy gate):
+  CRM-heavy SaaS operator / founder / product person /
+  YC-style evaluator / **Andy-fallback (NOT COLD)**
+- **Cold or fallback?** [ ] Cold operator-proxy   [ ] Andy fallback
+  (non-cold; surfaces obvious friction only; later cold findings
+  override)
 - **Pre-briefing on Legalise:** none beyond `README.md → Try it`.
-  The recorder MUST NOT have prior substrate context.
+  The recorder MUST NOT have prior substrate context (waived for
+  Andy-fallback only).
 - **Session date / time:**
 - **Recording link:**
 - **Local fork commit SHA used for the session:**
+
+> **Solicitor / legal-ops walkthrough is a separate later artifact**
+> (`PHASE_17_LAUNCH_READINESS_WALKTHROUGH.md` when the time comes),
+> gating public launch / design-partner outreach — not Phase 17
+> implementation. Do not conflate the two in this file.
 
 ## Method
 
