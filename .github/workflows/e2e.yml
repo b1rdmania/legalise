@@ -16,6 +16,18 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Job-level env so `compose up`, the alembic exec, the backend
+    # service (interpolated POSTGRES_DSN at compose-up time), and the
+    # Playwright run all see the same DSN. Without this the compose
+    # file's interpolation falls back to its default and the backend
+    # would run against `legalise` while the rest target `legalise_test`
+    # — the v2 P1 mismatch.
+    #
+    # Driver = +asyncpg to match the existing pytest pattern
+    # (backend/tests/conftest.py:47) so alembic, backend boot, and the
+    # in-process async engine all consume the same DSN shape.
+    env:
+      POSTGRES_DSN: "postgresql+asyncpg://legalise:legalise@db:5432/legalise_test"
     defaults:
       run:
         working-directory: frontend
@@ -44,15 +56,12 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Bring up docker-compose stack (backend pinned to legalise_test)
+      - name: Bring up db, create legalise_test, then bring up backend
         working-directory: ${{ github.workspace }}
-        env:
-          # Override the backend service's DB target so the running
-          # app, alembic, and the e2e reset fixture all hit the same
-          # database. Without this the workflow runs the app against
-          # `legalise` while reset truncates `legalise_test` — the
-          # P1 mismatch the previous version had.
-          POSTGRES_DSN: "postgresql+asyncpg://legalise:legalise@db:5432/legalise_test"
+        # POSTGRES_DSN is the job-level env above; docker-compose
+        # interpolates ${POSTGRES_DSN:-…} in the backend + worker
+        # service definitions, so when we `up backend` below, the
+        # backend container's POSTGRES_DSN is the CI value.
         run: |
           docker compose -f infra/docker-compose.yml up -d --build db
           # Wait for postgres to accept connections.
@@ -71,7 +80,8 @@ jobs:
           docker compose -f infra/docker-compose.yml exec -T db \
             psql -U legalise -d legalise -v ON_ERROR_STOP=1 -c \
             "CREATE DATABASE legalise_test OWNER legalise"
-          # Now start backend (inherits POSTGRES_DSN from the workflow env).
+          # Now start backend. Compose interpolates POSTGRES_DSN from
+          # the job env, so backend's container env is the CI value.
           docker compose -f infra/docker-compose.yml up -d --build backend
           # Wait for backend health.
           for i in {1..60}; do
@@ -82,11 +92,27 @@ jobs:
             sleep 2
           done
 
-      - name: Provision test DB schema
+      - name: Verify backend is using the test DB
+        working-directory: ${{ github.workspace }}
+        # Sanity-check the load-bearing wire: read the backend's
+        # actual env inside the container and assert it matches the
+        # job-level POSTGRES_DSN. Without this, a future compose
+        # change that drops the ${VAR:-…} interpolation would
+        # silently regress to the v2 P1 mismatch.
+        run: |
+          actual=$(docker compose -f infra/docker-compose.yml exec -T backend \
+            sh -c 'echo "$POSTGRES_DSN"')
+          echo "backend POSTGRES_DSN=$actual"
+          if [ "$actual" != "$POSTGRES_DSN" ]; then
+            echo "::error::backend container POSTGRES_DSN ($actual) does not match job env ($POSTGRES_DSN)"
+            exit 1
+          fi
+
+      - name: Provision test DB schema (alembic — fail-fast)
         working-directory: ${{ github.workspace }}
         run: |
           docker compose -f infra/docker-compose.yml exec -T \
-            -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
+            -e POSTGRES_DSN="$POSTGRES_DSN" \
             backend python -m alembic upgrade head
 
       - name: Build frontend
@@ -112,6 +138,11 @@ jobs:
           E2E_BACKEND_URL: "http://localhost:8000"
           E2E_COMPOSE_FILE: "infra/docker-compose.yml"
           E2E_COMPOSE_CWD: "${{ github.workspace }}"
+          # E2E_DB_NAME defaults to legalise_test in db.ts; pinned
+          # here for explicitness so a future change to the default
+          # doesn't silently drift the reset target away from the
+          # backend's DB.
+          E2E_DB_NAME: "legalise_test"
         run: npm run e2e
 
       - name: Upload trace + video on failure

@@ -71,9 +71,13 @@ Two paths filed as `not-coverable-yet`:
 ### Phase 15 F — CI wiring
 
 `.github/workflows/e2e.yml`:
-- **DB unification** (v2 P1 #1 fix). Workflow exports `POSTGRES_DSN=postgresql+asyncpg://legalise:legalise@db:5432/legalise_test` before `docker compose up`, so the backend service runs against the same DB the reset fixture truncates and alembic migrates. Explicitly creates the `legalise_test` DB before booting the backend (idempotent via `pg_database` lookup). Alembic migration failure no longer swallowed by `|| true`.
-- Spins the existing docker-compose stack (db first, then backend with the overridden DSN).
-- Provisions the test DB schema via alembic.
+- **DB unification** (v2 P1 #1 fix + v3 follow-up).
+  - `infra/docker-compose.yml` backend + worker services now interpolate `POSTGRES_DSN: ${POSTGRES_DSN:-…default…}`. The v2 version of this section exported `POSTGRES_DSN` from the workflow env but the compose file's hard-coded literal silently ignored it — backend would run against `legalise` while everything else targeted `legalise_test`. The v3 redline caught the mismatch; the compose change is the actual fix.
+  - **Job-level `env.POSTGRES_DSN` pins one DSN** for the whole job. Driver = `+asyncpg` to match `backend/tests/conftest.py:47` so alembic, backend boot, the in-process async engine, and the reset fixture all consume the same shape. The reset fixture uses psql which doesn't care about the Python driver.
+  - Explicit `CREATE DATABASE legalise_test` via psql before booting the backend (idempotent via `pg_database` lookup; docker-compose db service only seeds `legalise`).
+  - **New "Verify backend is using the test DB" step** reads `POSTGRES_DSN` inside the backend container and asserts it equals the job env. Without this guard, a future compose change that drops the `${VAR:-…}` interpolation would silently regress to the v2 P1 mismatch.
+  - Alembic migration failure no longer swallowed by `|| true`.
+- Spins the existing docker-compose stack (db first, then backend).
 - Builds the frontend + serves via `npm run preview` for production-parity.
 - Caches Playwright browser binary.
 - Runs `npm run e2e` with env-pinned URLs.

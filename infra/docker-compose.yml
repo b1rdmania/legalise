@@ -49,7 +49,12 @@ services:
     build: ../backend
     environment:
       ENVIRONMENT: development
-      POSTGRES_DSN: postgresql+psycopg://legalise:legalise@db:5432/legalise
+      # Interpolated so CI (and any dev who needs to point at a
+      # different DB) can override via the host env at `compose up`
+      # time. Default matches the current local-dev shape. Phase 15 F
+      # CI exports POSTGRES_DSN before `compose up` so backend + alembic
+      # + e2e reset all target the same database.
+      POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT: http://minio:9000
       GOTENBERG_URL: http://gotenberg:3000
@@ -86,7 +91,10 @@ services:
     command: ["python", "-m", "app.worker"]
     environment:
       ENVIRONMENT: development
-      POSTGRES_DSN: postgresql+psycopg://legalise:legalise@db:5432/legalise
+      # Same interpolation as backend so worker + app point at the
+      # same DB. worker.py also normalises +psycopg → +asyncpg at
+      # engine-create time.
+      POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT: http://minio:9000
       GOTENBERG_URL: http://gotenberg:3000
