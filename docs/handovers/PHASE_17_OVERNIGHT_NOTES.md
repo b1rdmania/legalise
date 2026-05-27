@@ -107,3 +107,16 @@ Branch state:
 - `phase-17-crm-pass` @ `beed150` — Phase 17 plan v3 ratified.
 - `runtime-rewrite` @ `a364952` — same as master, can probably
   be deleted next session.
+
+## 6. Smoke result — environmental quirk, not a product issue (added late)
+
+Ran `SMOKE_CONFIRM=1 ./scripts/smoke.sh` against the running stack at 21:00 BST after PR #10 merged. Smoke bailed at doctor pre-flight on two checks:
+
+- `plugins.root_mounted: no modules discovered under /plugins`
+- `khan.demo_present: Khan matter present but no seed.matter.created audit row`
+
+Root cause: the running Docker stack is bound to a different checkout. `docker inspect` on the backend container shows mounts from `/Users/andy/Documents/New project/legalise/`, not from this `/Users/andy/Cursor Projects 2026/legalise/` checkout. The sibling `claude-for-uk-legal` directory in the Documents tree is empty or missing → `/plugins` is empty inside the container → 0 modules.
+
+This is not a fork-wiring regression. The smoke from this checkout would have to be run after `docker compose down` + `compose up` from `Cursor Projects 2026/legalise/infra` to validate the current path's wiring. Worth a 5-minute cleanup task next session (or whenever the Documents stack isn't needed).
+
+Tomorrow's action: decide which checkout is canonical for active dev. The two-checkout pattern is fine as long as it's deliberate (e.g. one for builder, one for Reviewer). If only one is wanted, archive the other.
