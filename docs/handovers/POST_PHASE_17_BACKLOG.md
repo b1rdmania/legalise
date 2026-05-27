@@ -191,6 +191,123 @@ this or whether it's a distinct module.
 
 ---
 
+## P18-I — Lawve AI skill submissions
+
+**Trigger:** Anthropic launched Claude for the Legal Industry
+on 2026-05-20 with Lawve AI as the curated skill catalogue +
+MCP connector. Lawve manually reviews submissions; permissive
+licences (MIT / Apache 2.0 / AGPL) standard; submission via
+PR to `lawve-ai/awesome-legal-skills`.
+
+**Why submit:**
+
+1. Distribution: every Claude user who installs the Lawve
+   connector can discover the skills.
+2. Credibility signal for SRA pre-app + YC framing —
+   "practitioner-authored, curated" is the kind of marker that
+   travels.
+3. Free brand placement (Andy + Legalise link on each listing).
+4. Strategic alignment with the architecture-rewrite line —
+   Lawve is the spec layer (discovery/distribution), Legalise
+   is the runtime layer (matter-scoped, posture-aware, audited).
+   Submitting positions Legalise to add "installs Lawve skills
+   natively" as a future capability via MCP.
+
+**Precondition:** verify per-skill licence headers in
+`claude-for-uk-legal` repo. Repo root has a `LICENSE` — confirm
+it's permissive (Apache 2.0 or MIT) and add SPDX headers in
+each `SKILL.md` if missing. One-PR fix before submissions.
+
+### Submission batches
+
+The pattern: every batch carries one obvious-legal-procedure
+skill AND one esoteric methodology skill. That mix is what
+makes Andy-as-author distinctive vs another solicitor who just
+submits drafters.
+
+**Batch 1 (first 3 — establishes presence + range):**
+
+1. `pre-motion` (from claude-for-uk-legal) — adversarial
+   premortem on UK litigation matters. Biggest skill, most
+   distinctive methodology, narrates Legalise's thesis.
+2. `memo` (from `/Users/andy/Cursor Projects 2026/memo`) —
+   three-audience legal memo (client / junior / senior) with
+   cited claims + confidence levels. Practitioner-shaped,
+   unusual.
+3. `unfair-dismissal-screener` (claude-for-uk-legal) — decision
+   tree against s.94 ERA framework. Screeners are rarer +
+   higher-value than drafters.
+
+**Batch 2 (esoteric depth — once Batch 1 lands):**
+
+4. `acas-early-conciliation` — s.18A "stop the clock"
+   computation; checkable correctness.
+5. `disclosure-list` — Standard vs Extended Disclosure,
+   procedure-heavy.
+6. **Kramer v AI Nash settlement bands** — if the divorce
+   game-theory logic crystallises as a standalone skill
+   post-Lawhive Saturday, this is category-of-one in Lawve's
+   catalog. UK family law + Nash equilibrium = distinctive.
+7. **Courtless dispute-audit / settlement-band logic** —
+   consumer-dispute version of the same shape; could become
+   "structured negotiation envelope generator."
+8. `premortem` (generic Klein-method version from
+   `~/.claude/skills/premortem/`) — pre-motion is the legal
+   application; this is the meta-methodology. Lawve catalogues
+   both legal AND methodology skills.
+
+**Batch 3 (cross-cutting + canonical fillers):**
+
+9. `plain-english` — Orwell/Gowers methodology, strips AI tics.
+   Real value as "redraft this for a lay client."
+10. `date-diligence` re-cut — the 6-phase pipeline (social →
+    footprint → claims → steelman → brief) repositioned as
+    **opposing-party diligence** or **witness-statement
+    steelman**. Same methodology, legal context.
+11. `part-36-offer`, `without-prejudice-drafter`, `chronology`,
+    `settlement-agreement-review` — solid canonical fillers.
+12. `skill-auditor` — meta-methodology. Recursive value
+    (Lawve's reviewers may use something similar themselves).
+
+**Probably skip for Lawve specifically:**
+
+`find-case-law`, `citation-verifier`, `legislation-lookup`,
+`practice-direction-lookup` — tool wrappers around public APIs.
+Useful inside Legalise's integrated workflow; weaker as
+standalone Claude skills. Submit later if Lawve's catalogue
+direction includes tool wrappers.
+
+`et1-claim-drafter`, `lba-drafter`, `cpr-letter-drafter` —
+templated drafters; lower methodology signal. Submit after the
+distinctive ones if engagement is good.
+
+### Author framing
+
+Author = Andy Williams. Project affiliation = Legalise (with
+link to the repo + legalise.dev). Position skills as
+practitioner-authored UK methodology, NOT as "examples for a
+runtime." Legalise's runtime framing is the separate story;
+to Lawve, these are standalone Claude-native skills that happen
+to also work inside a matter-scoped runtime if anyone wants
+that.
+
+### Risks / caveats
+
+- Manual review may reject some submissions. Plan for it; the
+  first batch is the strongest, so rejection there would be a
+  signal to refine before the rest.
+- Engagement obligation: once listed, expect issues / questions
+  / update requests. Small ongoing cost.
+- Lawve is new (renamed from Lawvable; ~6 months old as a
+  product). If they pivot or fold, value diminishes — but
+  submitting is reversible.
+- IP: confirm the Kramer + Courtless skills are extractable
+  without leaking strategic IP (the Nash band methodology is
+  arguably valuable enough to be a Legalise-specific moat
+  rather than a Lawve giveaway). Reviewer's call.
+
+---
+
 ## Reviewer notes
 
 - This file is non-binding. Order, priority, and inclusion all
