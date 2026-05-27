@@ -84,45 +84,41 @@ Reviewer's call.
 
 ---
 
-## P18-B — Bug: signup form returns HTTP 404 (walkthrough finding L-2)
+## P18-B — Bug: signup form returns HTTP 404 (walkthrough finding L-2) — **CLOSED**
 
-**Trigger:** Andy-fallback walkthrough 2026-05-27 17:23 BST.
-Logged in `PHASE_17_COLD_WALKTHROUGH.md` as finding L-2.
+**Closed by PR #10 (`77e871f`) on 2026-05-27.**
 
-**Symptom:** POST from `/auth/signup` → `Error · HTTP 404`.
-Blocks new account creation.
+**Root cause:** `frontend/vite.config.ts` proxied `/api` and
+`/health` to backend:8000 but not `/auth`. fastapi-users mounts
+at bare `/auth`, so POSTs to `/auth/register` from the dev
+frontend hit Vite's own server, which 404'd because it doesn't
+serve that path.
 
-**Why it matters:** Phase 17 walkthrough is blocked until this
-is fixed (cold evaluator cannot register). Also a real
-forker-experience regression.
-
-**Not yet diagnosed.** Likely candidates: fastapi-users router
-prefix drift, frontend pointing at wrong endpoint path,
-`VITE_API_BASE_URL` mismatch with backend mount. Needs
-investigation before scoping.
+**Fix:** one-line addition to the proxy block. PR #10 also added
+a `serve-e2e-preview.mjs` SPA-fallback server replacing
+`vite preview` in CI, and L-1 (no landing affordance) was closed
+in the same PR via a Sign in / Create account button row in
+`Landing.tsx`.
 
 ---
 
-## P18-C — Bug: backend pytest red on master after Phase 16 merge
+## P18-C — Bug: backend pytest red on master after Phase 16 merge — **CLOSED**
 
-**Trigger:** CI run 26514572895 on master @ a364952.
+**Closed by PR #10 (`77e871f`) on 2026-05-27.**
 
-**Symptom:** `test_invoke_posture_block_returns_403` returns 500
-instead of 403. Server log surfaces `audit_entries is
-append-only` errors (UPDATE + DELETE attempts blocked by the
-WORM trigger).
+**Root cause:** simpler than the original diagnosis hypothesis.
+Backend CI runs pytest from `./backend`, but reference-module
+capability code imports through `examples.modules.contract_review.capability`
+(repo-root-relative). Without the repo root on `PYTHONPATH`,
+the import failed inside the test and surfaced as a `500`
+instead of the expected `403`. The `audit_entries is
+append-only` log lines were red-herring downstream symptoms of
+the import failure.
 
-**Diagnosis hypothesis:** the 500-path is attempting to mutate
-an existing audit row instead of appending a new one. Suggests a
-regression where a code path bypasses the
-`app.core.api.audit_failure` helper Phase R3 mandated. Six
-failure paths route through that helper today; this one likely
-doesn't.
-
-**Why it matters:** Phase 15 e2e remains green and is masking
-this in CI overall. Substrate doctrine ("audit_entries is
-append-only") is the regulator-facing claim — a test landing on
-this exact failure mode is a P0.
+**Fix:** PR #10 adds `PYTHONPATH=${{ github.workspace }}:${{ github.workspace }}/backend`
+to the Backend pytest job's env. Backend pytest green on the
+PR; original hypothesis about `audit_failure` helper bypass was
+wrong — substrate doctrine intact.
 
 ---
 
@@ -308,6 +304,27 @@ that.
 
 ---
 
+## P18-J — Host-aware waitlist logic needs a deployment note
+
+**Trigger:** PR #10 review note. `frontend/src/lib/access.ts`
+now derives `HOSTED_ACCESS_WAITLIST` from `(mode === "waitlist")
+&& (current hostname === HOSTED_ACCESS_HOST)` with default
+`HOSTED_ACCESS_HOST = "legalise.dev"`. Self-host-safe, but
+introduces an implicit hostname dependency.
+
+**Risk:** if the canonical hosted domain ever migrates (e.g.
+`legalise.dev` → `app.legalise.dev`) or staging environments
+need waitlist (e.g. `staging.legalise.dev` for SRA pre-app
+demos), the `VITE_HOSTED_ACCESS_HOST` env var must be set on
+the Cloudflare Pages build for those hosts.
+
+**Action (low priority):** add a one-line note to
+`docs/handovers/HANDOVER_HOSTED_PROD_LIVE.md` documenting the
+env var so it doesn't bite at a future migration. Not blocking
+anything today.
+
+---
+
 ## Reviewer notes
 
 - This file is non-binding. Order, priority, and inclusion all
@@ -315,6 +332,7 @@ that.
 - Anything added here should be specific enough that a planning
   conversation can pick it up cold — symptom, why-it-matters,
   candidate shape if known.
-- Bugs (P18-B, P18-C) probably should NOT be backlog — they
-  should jump the queue. Listed here for completeness while we
-  decide.
+- Bugs are usually queue-jumpers, not backlog candidates. P18-B
+  and P18-C both closed by PR #10 the same day they were
+  filed — kept in this file as a record of what surfaced and
+  how it was diagnosed.

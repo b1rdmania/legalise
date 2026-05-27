@@ -89,8 +89,8 @@ above.
 
 | Screen | # | Priority | Finding | Timestamp |
 | --- | --- | --- | --- | --- |
-| Landing `/` | L-1 | P1 | No visible Sign in / Sign up affordance on landing page. Cold user must guess `/auth/signin`. Every comparable SaaS puts these in the top-right of the landing page. | — |
-| Sign up `/auth/signup` | L-2 | **P0 (product bug, not redesign)** | Submitting the signup form returns `Error · HTTP 404` and blocks account creation. Surfaced during Andy-fallback walkthrough attempt 2026-05-27 17:23 BST. Endpoint regression, not a Phase 17 finding — log to bug tracker; Phase 17 cannot fully complete without the walkthrough being runnable. | 17:23 |
+| Landing `/` | L-1 | P1 | No visible Sign in / Sign up affordance on landing page. Cold user must guess `/auth/signin`. Every comparable SaaS puts these in the top-right of the landing page. **CLOSED by PR #10 (`77e871f`)** — Sign in / Create account row added top-right of landing, auth-aware. | — |
+| Sign up `/auth/signup` | L-2 | **P0 (product bug, not redesign)** | Submitting the signup form returns `Error · HTTP 404` and blocks account creation. Surfaced during Andy-fallback walkthrough attempt 2026-05-27 17:23 BST. **CLOSED by PR #10 (`77e871f`)** — Vite dev config now proxies `/auth/*` to backend:8000 (was only proxying `/api` + `/health`). Walkthrough can resume from `/`. | 17:23 |
 
 ## Post-walkthrough debrief (recorded)
 
