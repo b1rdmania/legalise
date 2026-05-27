@@ -1,8 +1,9 @@
 /**
  * Phase 15 A — Playwright scaffolding.
  *
- * Chromium-only default. Retries on CI; none locally. Trace +
- * video on failure for fast bisection. e2e dir lives at
+ * Chromium-only default. No retries: these flows are deterministic
+ * against a reset DB, and retrying broken setup triples feedback time.
+ * Trace + video on failure for fast bisection. e2e dir lives at
  * `frontend/e2e/`; vitest is unchanged and continues to own
  * `frontend/src/**\/*.test.{ts,tsx}`.
  *
@@ -30,7 +31,7 @@ export default defineConfig({
   testMatch: /.*\.spec\.ts$/,
   fullyParallel: false, // tests share a DB; serial keeps reset semantics simple
   forbidOnly: CI,
-  retries: CI ? 2 : 0,
+  retries: 0,
   workers: 1, // single worker — shared backend + shared DB
   reporter: CI ? [["github"], ["list"]] : "list",
   use: {
