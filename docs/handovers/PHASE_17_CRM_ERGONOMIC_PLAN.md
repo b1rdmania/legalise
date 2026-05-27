@@ -1,6 +1,6 @@
 # Phase 17 — CRM-Ergonomic UI Pass (PLAN)
 
-**Status:** plan v1, awaiting reviewer redline.
+**Status:** plan v2, reviewer-ratified per redline (3 P1 + 2 P2 patched, 5 answers folded in).
 **Branch:** `phase-17-crm-pass` off master @ `a364952`.
 **Bar:** the existing routes feel like a familiar CRM/admin workspace
 to a cold evaluator. Boring, dense, scannable, operational. No new
@@ -44,8 +44,18 @@ screens.
 
 ### What lands
 
-A named non-engineer (Reviewer's choice; not Andy, not the
-maintainer) follows `docs/DEMO.md` end-to-end on a fresh local fork.
+A named **cold legal-or-operator-adjacent evaluator** follows
+`docs/DEMO.md` end-to-end on a fresh local fork. Acceptable
+profiles (per reviewer answer 1):
+- UK solicitor (best fit — closest to the actual evaluator audience)
+- Legal-ops practitioner
+- CRM-heavy SaaS operator (Salesforce / HubSpot / Linear power user)
+- YC-style evaluator with no prior project context
+
+Not Andy, not the maintainer, not a builder on the project, not
+anyone who has been pre-briefed on the substrate. "Non-engineer"
+alone was too loose; the evaluator must approximate the real
+cold-evaluator audience.
 Recorded screen-share. No operator on the call to coach. Per-screen
 the recorder captures:
 
@@ -96,10 +106,14 @@ the trust ceremony flow reads as bespoke. Cold evaluators will
 expect this to look like the admin → integrations panel of any
 SaaS they've used.
 
-Target shape: two-column layout (installed | available), badge
-states for ceremony progress, install ceremony as a stepper inside
-a modal (not a route change). Pre-Motion + Contract Review as the
-first two installed.
+Candidate directions (the walkthrough decides which one, not the
+plan — per reviewer P1 #2): two-column installed-vs-available
+layout; badge states for ceremony progress; stepper-in-modal vs
+keep the route-change ceremony — whichever direction the
+walkthrough's friction data supports. The plan does **not**
+prescribe modal-vs-route or which modules appear installed first;
+those are downstream of the walkthrough's findings on what's
+actually confusing.
 
 ### Screen 3 — Audit reconstruction (`/matters/$slug/audit` + `/admin/audit`)
 
@@ -115,6 +129,15 @@ chips that survive page reload, link-out to artifact viewer
 where relevant. Substrate vocabulary stays — this is the
 regulator surface — but the chrome makes it readable.
 
+**Non-negotiable on this screen (reviewer P1 #3):** grouping is
+display-layer only. Raw rows must remain accessible — no row
+hiding, no client-side reinterpretation that changes substrate
+vocabulary, no synthesised rows that don't map 1:1 to a substrate
+event. The shape is "**group by default, expand to raw rows**",
+not "group instead of raw rows." A regulator who clicks expand
+must see exactly the rows the substrate emitted, with the
+substrate's own action strings and payload shapes.
+
 ### Why these three and not the others
 
 The remaining routes (admin/users, matters list, artifacts,
@@ -123,19 +146,30 @@ will surface their priority. If the cold walkthrough finds that
 `/admin/users` is more confusing than `/modules`, scope reshuffles.
 The three above are the **starting** scope, not the locked scope.
 
-## Acceptance bar — measurable, not narrative
+## Acceptance bar — gate vs target (reviewer P1 #1)
 
-"Cold evaluator can do X without coaching" is the right shape but
-unverifiable as written. The Reviewer's acceptance bar:
+Same-evaluator before/after has learning bias, and low baseline
+counts make percentages weird. So the hard ratification gate and
+the target metric are kept separate.
 
-> A named non-engineer, in a recorded screen-share, completes the
-> eight steps of `docs/DEMO.md` end-to-end with no operator on the
-> call. We count clicks, back-button presses, and "where's…?"
-> pauses for the three redesigned screens. The redesign is
-> ratifiable when the numbers are at least 40% lower than the
-> baseline walkthrough on each metric, and the same evaluator
-> reports the screens "feel familiar" in their post-walkthrough
-> debrief (recorded).
+### Hard gate (Phase 17 cannot close without all four)
+
+1. **Every P1 finding from the cold walkthrough is closed** — each
+   one cited by number in the closing PR / sub-step commit.
+2. **The acceptance walkthrough completes unaided** — the named
+   evaluator runs the eight `docs/DEMO.md` steps end-to-end with
+   no operator on the call. Stops on confusion are findings, not
+   passes.
+3. **Phase 15 e2e stays green** on the merge candidate.
+4. **No substrate touches** in any sub-step PR (tripwire below).
+
+### Target metric (evidence, not gate)
+
+A 40% reduction in clicks, back-button presses, and "where's…?"
+pauses on the three redesigned screens vs the cold-walkthrough
+baseline. The numbers go in `PHASE_17_ACCEPTANCE.md` either way;
+they are an honesty check on whether the redesign actually
+improved comprehension, not the line that decides ratification.
 
 Two walkthroughs total: one before (the cold walkthrough that
 produces the spec), one after (the acceptance run). Numbers
@@ -194,9 +228,17 @@ in `docs/handovers/PHASE_17_SUBSTRATE_BACKLOG.md` with a one-line
 description and the screen / finding number that surfaced them.
 They become Phase 18 candidates.
 
-The discipline: if a sub-step's PR touches a substrate file (`app/`
-backend, `app/core/`, schemas, migrations), it's out of scope.
-Reviewer's tripwire.
+The discipline (reviewer P2 #5 — precise paths): any sub-step PR
+that touches any of the following is automatically out of scope.
+
+- `backend/app/**` (any backend Python source)
+- `backend/alembic/**` (migrations)
+- `schemas/**` (manifest + capability schemas)
+- `examples/modules/**` (reference module manifests)
+
+Frontend application code at `frontend/src/**` is fully in scope.
+The tripwire is enforced by reviewer file-list scan on every
+sub-step PR; a single matching path blocks ratification.
 
 ## Explicitly out of scope
 
@@ -213,26 +255,21 @@ Reviewer's tripwire.
   if the walkthrough findings demand it.
 - Re-tokening or design-system reshuffle.
 
-## Open questions for the reviewer
+## Reviewer answers (resolved)
 
-1. **Walkthrough recorder.** Who is the named non-engineer?
-   Pre-vetted candidates: a colleague of Andy's outside the
-   project, a UK solicitor (better for cold-evaluator framing),
-   a YC alum unfamiliar with the codebase. Reviewer picks; the
-   walkthrough is the spec, so the recorder must not have any
-   prior context.
-2. **Branch strategy.** `phase-17-crm-pass` long-running branch
-   (Phase 14-16 model) or sub-step branches against master?
-   Plan defaults to a single long-running branch to keep the
-   redesign coherent.
-3. **Acceptance threshold.** 40% reduction in clicks /
-   back-buttons / pauses on the three target screens is the
-   plan's proposed bar. Reviewer can tighten or loosen.
-4. **Walkthrough output format.** Markdown writeup + video link
-   (plan default) or transcribed timestamps + screenshots?
-5. **Scope flex.** If the walkthrough surfaces a fourth screen
-   as higher priority than one of the three named here, does
-   Phase 17 expand to four, or do we swap?
+1. **Walkthrough recorder.** Cold legal- or operator-adjacent
+   evaluator. UK solicitor best fit; legal-ops or CRM-heavy SaaS
+   operator acceptable. Not Andy, not maintainer, not pre-briefed.
+2. **Branch strategy.** Single long-running `phase-17-crm-pass`
+   branch with sub-step commits.
+3. **40% threshold.** Target metric, not hard gate. Hard gate is
+   the four-item bar above.
+4. **Walkthrough output format.** Markdown writeup with
+   timestamped video link and screenshots for P1 findings. Full
+   transcript optional.
+5. **Scope flex.** Swap, don't expand by default. Three screens
+   max unless reviewer explicitly approves a fourth in a
+   sub-step ratify.
 
 ## Non-negotiables carried forward
 
