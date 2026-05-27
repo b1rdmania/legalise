@@ -72,20 +72,19 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   // share auth.
   await signIn(request, user);
 
-  // Substrate emits the four-row dev-autoverify chain on the
-  // user's auto-seeded Khan matter.
-  for (const action of [
-    "auth.user.registered",
-    "auth.user.verified",
+  // Substrate scope split (backend/app/core/auth.py:147-156):
+  //   - auth.user.demo_seeded is matter-scoped (passes
+  //     matter_id=matter.id because Khan was just created).
+  //   - auth.user.registered / .verified / .capabilities_auto_granted
+  //     land at workspace scope (matter_id IS NULL). Those rows can
+  //     only be read by a superuser via /admin/audit/reconstruction;
+  //     they're asserted further down once bootstrap has promoted
+  //     this user.
+  await expectMatterAuditRow(
+    request,
+    "khan-v-acme-trading-2026",
     "auth.user.demo_seeded",
-    "auth.user.capabilities_auto_granted",
-  ]) {
-    await expectMatterAuditRow(
-      request,
-      "khan-v-acme-trading-2026",
-      action,
-    );
-  }
+  );
 
   // ---------------------------------------------------------------
   // 3. /app now shows "Bootstrap admin required" because
@@ -118,6 +117,16 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   await signIn(request, user);
   await expectWorkspaceAuditRow(request, "user.admin.bootstrapped");
 
+  // Now that we have superuser, assert the three workspace-scoped
+  // auth rows from registration (see note above the matter
+  // assertion).
+  await expectWorkspaceAuditRow(request, "auth.user.registered");
+  await expectWorkspaceAuditRow(request, "auth.user.verified");
+  await expectWorkspaceAuditRow(
+    request,
+    "auth.user.capabilities_auto_granted",
+  );
+
   // ---------------------------------------------------------------
   // 5. EXPLICIT AUTH REFRESH. AuthProvider caches the user object;
   //    after a CLI promotion we need a reload so /auth/users/me
@@ -146,13 +155,10 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   });
   expect(matter.default_model_id).toBe(KEYLESS_MODEL);
 
-  // The PATCH emits auth.user.profile_updated; the matter create
-  // emits matter.create. Both substrate-verified.
-  await expectMatterAuditRow(
-    request,
-    "khan-v-acme-trading-2026",
-    "auth.user.profile_updated",
-  );
+  // PATCH /auth/users/me emits auth.user.profile_updated at
+  // workspace scope; matter create lands matter.create on the
+  // matter timeline.
+  await expectWorkspaceAuditRow(request, "auth.user.profile_updated");
   await expectMatterAuditRow(request, matter.slug, "matter.create");
 
   // ---------------------------------------------------------------
