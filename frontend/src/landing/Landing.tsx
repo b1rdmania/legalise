@@ -44,6 +44,31 @@ export function Landing() {
           flourish ambient behind the text (animation by Olga Zamaraeva
           on LottieFiles, recoloured toward seal via CSS filter). */}
       <section className="relative overflow-hidden border-b border-rule">
+        <div className="relative z-20 flex justify-end gap-3 px-4 pt-4 sm:px-6 md:px-16 lg:px-24">
+          {auth.user ? (
+            <a
+              href="/app"
+              className="border border-rule px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-wash"
+            >
+              Open app
+            </a>
+          ) : (
+            <>
+              <a
+                href="/auth/signin"
+                className="px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-ink"
+              >
+                Sign in
+              </a>
+              <a
+                href="/auth/signup"
+                className="border border-rule px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-wash"
+              >
+                Create account
+              </a>
+            </>
+          )}
+        </div>
         <div
           className="pointer-events-none absolute inset-0 z-0 hidden md:block"
           aria-hidden="true"

@@ -1,6 +1,6 @@
 export const HOSTED_ACCESS_MODE =
   (import.meta.env.VITE_HOSTED_ACCESS_MODE as "waitlist" | "open" | undefined) ??
-  "waitlist";
+  "open";
 
 export const HOSTED_ACCESS_WAITLIST = HOSTED_ACCESS_MODE === "waitlist";
 
