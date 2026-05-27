@@ -44,10 +44,35 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
-      - name: Bring up docker-compose stack
+      - name: Bring up docker-compose stack (backend pinned to legalise_test)
         working-directory: ${{ github.workspace }}
+        env:
+          # Override the backend service's DB target so the running
+          # app, alembic, and the e2e reset fixture all hit the same
+          # database. Without this the workflow runs the app against
+          # `legalise` while reset truncates `legalise_test` — the
+          # P1 mismatch the previous version had.
+          POSTGRES_DSN: "postgresql+asyncpg://legalise:legalise@db:5432/legalise_test"
         run: |
-          docker compose -f infra/docker-compose.yml up -d --build
+          docker compose -f infra/docker-compose.yml up -d --build db
+          # Wait for postgres to accept connections.
+          for i in {1..30}; do
+            if docker compose -f infra/docker-compose.yml exec -T db pg_isready -U legalise >/dev/null 2>&1; then
+              echo "db up"
+              break
+            fi
+            sleep 2
+          done
+          # Explicitly create legalise_test (the docker-compose db
+          # service only seeds `legalise`). Idempotent.
+          docker compose -f infra/docker-compose.yml exec -T db \
+            psql -U legalise -d legalise -v ON_ERROR_STOP=1 -c \
+            "SELECT 1 FROM pg_database WHERE datname='legalise_test'" | grep -q 1 || \
+          docker compose -f infra/docker-compose.yml exec -T db \
+            psql -U legalise -d legalise -v ON_ERROR_STOP=1 -c \
+            "CREATE DATABASE legalise_test OWNER legalise"
+          # Now start backend (inherits POSTGRES_DSN from the workflow env).
+          docker compose -f infra/docker-compose.yml up -d --build backend
           # Wait for backend health.
           for i in {1..60}; do
             if curl -sf http://localhost:8000/health >/dev/null; then
@@ -62,7 +87,7 @@ jobs:
         run: |
           docker compose -f infra/docker-compose.yml exec -T \
             -e POSTGRES_DSN="postgresql+asyncpg://legalise:legalise@db:5432/legalise_test" \
-            backend python -m alembic upgrade head || true
+            backend python -m alembic upgrade head
 
       - name: Build frontend
         run: npm run build

@@ -1,25 +1,27 @@
 /**
  * Phase 15 A — DB reset fixture.
  *
- * Two explicit modes per the v3 plan:
+ * Single reset path that truncates everything app-side (users +
+ * access_token + every runtime table). Module manifests on disk
+ * and their signatures are not touched.
  *
- *   first_run_reset — truly empty app DB. Truncates users +
- *     access_token + every runtime table. No preserved test-runner
- *     user. Used only by the Phase 15 B first-run scenario, which
- *     depends on GET /api/system/bootstrap-state returning
- *     {user_count: 0, has_superuser: false}. No Khan reseed runs
- *     here — the first-run scenario creates its user and Khan
- *     emerges from the dev-autoverify path.
+ * Why one path and not the two-mode split the v3 plan proposed:
+ * the split was supposed to make standard tests fast by leaving
+ * `users` intact. But several specs need to re-run the Phase 12
+ * bootstrap CLI between tests. The substrate's "superuser already
+ * exists" guard turns those into order-dependent failures if
+ * `users` survives. Truncating users everywhere is substrate-
+ * truthful; e2e performance impact is negligible.
  *
- *   standard_e2e_reset — truncates runtime tables only. Leaves
- *     `users` intact; each test registers / promotes / signs in
- *     through real auth + Phase 11 operator endpoints to produce
- *     the user shape it needs. Module manifests on disk and their
- *     signatures are not touched in either mode.
+ * Backward-compatible aliases (`firstRunReset`, `standardE2eReset`)
+ * are kept so the spec files don't need touching; both point at
+ * the same underlying truncation.
  *
  * Mechanism: `docker compose exec -T db psql` against the
- * `legalise_test` DB. No new substrate; no new CLI; the psql
- * binary lives in the existing db container.
+ * `legalise_test` DB. The CI workflow creates that DB explicitly
+ * and overrides the backend service's POSTGRES_DSN to match, so
+ * the running app + alembic + reset all hit the same target. No
+ * new substrate; no new CLI.
  */
 
 import { spawn } from "node:child_process";
@@ -31,8 +33,10 @@ const DB_NAME = process.env.E2E_DB_NAME ?? "legalise_test";
 const DB_USER = process.env.E2E_DB_USER ?? "legalise";
 const COMPOSE_CWD = process.env.E2E_COMPOSE_CWD ?? "..";
 
-// Runtime tables — truncated by both reset modes.
-const RUNTIME_TABLES = [
+// App-side tables truncated by every reset. Order doesn't matter
+// because CASCADE follows FK dependencies; RESTART IDENTITY resets
+// serial sequences.
+const APP_TABLES = [
   "matter_artifacts",
   "advice_boundary_decisions",
   "state_machine_transitions",
@@ -45,16 +49,10 @@ const RUNTIME_TABLES = [
   "audit_entries",
   "matters",
   "access_token",
+  "users",
 ] as const;
 
-// first_run_reset also truncates these; standard_e2e_reset leaves
-// them alone.
-const FIRST_RUN_ONLY_TABLES = ["users"] as const;
-
 async function runPsql(sql: string): Promise<void> {
-  // -T disables TTY; -v ON_ERROR_STOP halts on first error so a
-  // bad table name produces a real failure instead of a partial
-  // truncate.
   const args = [
     "compose",
     "-f",
@@ -91,27 +89,16 @@ async function runPsql(sql: string): Promise<void> {
   });
 }
 
-function truncateStatement(tables: readonly string[]): string {
-  // RESTART IDENTITY resets serial sequences; CASCADE follows FK
-  // dependencies so we don't have to topologically sort by hand.
-  return `TRUNCATE ${tables.join(", ")} RESTART IDENTITY CASCADE;`;
+/**
+ * Truncate every app-side table including users + access_token.
+ * Module manifests on disk and their signatures are not touched.
+ */
+export async function resetDb(): Promise<void> {
+  await runPsql(`TRUNCATE ${APP_TABLES.join(", ")} RESTART IDENTITY CASCADE;`);
 }
 
-/**
- * Truly empty app DB. Used only by the first-run scenario.
- * Truncates users + access_token + every runtime table; no
- * test-runner user survives.
- */
-export async function firstRunReset(): Promise<void> {
-  const all = [...RUNTIME_TABLES, ...FIRST_RUN_ONLY_TABLES];
-  await runPsql(truncateStatement(all));
-}
-
-/**
- * Per-test runtime reset. Leaves `users` intact (and any persistent
- * runner user the test suite creates); each test then registers /
- * promotes through real auth + Phase 11 surfaces.
- */
-export async function standardE2eReset(): Promise<void> {
-  await runPsql(truncateStatement(RUNTIME_TABLES));
-}
+// Back-compat aliases for the v1 plan's reset-mode names. Both
+// resolve to the same underlying truncation; the two-mode split
+// retired with the P1 #2 redline.
+export const firstRunReset = resetDb;
+export const standardE2eReset = resetDb;

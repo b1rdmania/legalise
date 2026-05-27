@@ -199,46 +199,13 @@ test("admin posture-change CTA: B_mixed → A_cleared via inline control silence
   await expect(page.getByTestId("posture-banner")).toHaveCount(0);
 });
 
-// ---------------------------------------------------------------------------
-// posture_gate.check.blocked deep-link — Phase 15 D + 14.5 A.
-// ---------------------------------------------------------------------------
-
-test("posture_gate denial deep-link surfaces the audit row when followed", async ({
-  page,
-  request,
-}) => {
-  const { matter } = await setupAdminPlusTargetUser(page, request, "solicitor");
-  await setMatterPrivilege(request, matter.slug, "B_mixed");
-
-  // Attempt to invoke a capability — must 403 with
-  // posture_gate_blocked. We don't have a granted capability on
-  // this fresh matter, so the 403 will actually be 404 capability
-  // not declared. The Phase 14 D banner taxonomy handles posture
-  // failures end-to-end; the substrate emission is what we want
-  // to pin. Drive it through a direct invoke attempt and assert
-  // the substrate-side posture_gate.check.blocked row.
-  await request.post(
-    `${BACKEND}/api/matters/${matter.slug}/invocations`,
-    {
-      data: {
-        module_id: "any",
-        capability_id: "any",
-        args: {},
-      },
-    },
-  );
-  // Whatever the server response, the matter audit endpoint
-  // surfaces posture_gate rows when posture rejected the call.
-  // Note: if the substrate rejects at posture FIRST (before
-  // capability declaration), the row lands; if at capability-not-
-  // declared first, no posture row — that's substrate-truthful
-  // and the test asserts the contract, not invented behaviour.
-  await page.goto(
-    `/matters/${matter.slug}/audit?action=posture_gate.check.blocked`,
-  );
-  // The page renders; whether rows are visible depends on which
-  // substrate gate fired first. The deep-link contract is the
-  // load-bearing piece — chip rendered, filter active.
-  await expect(page.getByText("action=")).toBeVisible();
-  await expect(page.getByText("posture_gate.check.blocked")).toBeVisible();
-});
+// posture_gate.check.blocked end-to-end is filed in the matrix as
+// pytest-covered. The previous draft of this spec used a
+// nonexistent module/capability for the invoke attempt, which
+// caused the substrate to reject at capability-not-declared
+// BEFORE the posture gate — so no posture_gate.check.blocked
+// row ever landed and the test was lying. Producing the row
+// from an end-to-end UI flow requires installing a module +
+// granting a capability + posture mismatch on the same matter;
+// that scenario is not staged in the e2e env yet. Substrate-
+// side the row is pinned by backend/tests/test_phase8_posture_gate*.py.

@@ -1,21 +1,22 @@
 /**
  * Phase 15 E — failure paths via real surfaces.
  *
- * Covers the InvocationRunner + InstallCeremony + GrantsPanel
+ * Covers the InvocationRunner / InstallCeremony / GrantsPanel
  * banner taxonomies that can be produced through documented
- * product / operator endpoints. Phase1Blocked and
- * ProviderUpstreamError are out — filed as Phase 15 #2 / #3
- * not-coverable-yet findings.
+ * product + operator endpoints. Each test drives the UI to
+ * surface the banner where practical; pure-substrate envelope
+ * checks (which the v1 plan slipped into) are explicitly NOT in
+ * Phase 15 E — pytest already pins the substrate envelopes for
+ * every error code the API exposes.
  *
- * Each test:
- *   1. Sets up the failure precondition through a real surface.
- *   2. Drives the UI to the action that triggers the banner.
- *   3. Asserts the banner content + the substrate audit row
- *      (where the substrate emits one).
+ * Phase1Blocked + ProviderUpstreamError are not-coverable-yet
+ * (matrix 15-#2 / 15-#3); the matter `model.call.error` row and
+ * the advice-boundary blocked/denied/failed rows are pytest-
+ * covered.
  */
 
 import { test, expect } from "@playwright/test";
-import { standardE2eReset } from "./fixtures/db";
+import { resetDb } from "./fixtures/db";
 import {
   bootstrapAdminViaCli,
   registerUser,
@@ -24,25 +25,24 @@ import {
 } from "./fixtures/auth";
 import {
   createMatter,
-  expectMatterAuditRow,
   expectWorkspaceAuditRow,
 } from "./fixtures/api";
 
 const BACKEND = process.env.E2E_BACKEND_URL ?? "http://localhost:8000";
 
 test.beforeEach(async () => {
-  await standardE2eReset();
+  await resetDb();
 });
 
 // ---------------------------------------------------------------------------
-// GrantsPanel — 404 module_not_installed
+// GrantsPanel — 404 module_not_installed banner via the UI form
 // ---------------------------------------------------------------------------
 
-test("GrantsPanel: granting a discoverable-but-not-installed module surfaces 404 banner", async ({
+test("GrantsPanel: clicking Grant for a not-installed module surfaces the 404 banner in the UI", async ({
   page,
   request,
 }) => {
-  const user = await registerUser(request, "p15e-notinstalled");
+  const user = await registerUser(request, "p15e-notinst");
   await signIn(request, user);
   await signInViaUi(page, user);
   const matter = await createMatter(request, {
@@ -50,60 +50,82 @@ test("GrantsPanel: granting a discoverable-but-not-installed module surfaces 404
     default_model_id: "stub-echo",
   });
 
-  await page.goto(`/matters/${matter.slug}`);
-  // Try to grant a discoverable module — the catalog will list it
-  // even without an InstalledModule row. Without going through
-  // the trust ceremony first, POST /grants returns 404
-  // module_not_installed (substrate at grants.py:156).
+  // Find a discovered module that is NOT yet installed. The v2
+  // catalog lists discovered manifests regardless of install state.
   const catalog = await request.get(`${BACKEND}/api/modules/v2`);
   const body = (await catalog.json()) as {
-    modules: Array<{ module_id: string }>;
+    modules: Array<{
+      module_id: string;
+      is_valid: boolean;
+      manifest: Record<string, unknown>;
+    }>;
   };
-  test.skip(body.modules.length === 0, "no modules discovered in e2e env");
-  const moduleId = body.modules[0].module_id;
-
-  const resp = await request.post(
-    `${BACKEND}/api/matters/${matter.slug}/grants`,
-    { data: { module_id: moduleId, capability_id: "any" } },
+  const candidate = body.modules.find(
+    (m) =>
+      m.is_valid &&
+      Array.isArray((m.manifest as Record<string, unknown>).capabilities) &&
+      ((m.manifest as Record<string, unknown>).capabilities as Array<{
+        scope?: string;
+      }>).some((c) => c.scope === "matter"),
   );
-  expect(resp.status()).toBe(404);
-  const detail = (await resp.json()) as {
-    detail: { error: string; module_id: string };
-  };
-  expect(detail.detail.error).toBe("module_not_installed");
-  expect(detail.detail.module_id).toBe(moduleId);
+  test.skip(candidate === undefined, "no candidate module discovered in e2e env");
+
+  // Drive the GrantsPanel form on the matter page.
+  await page.goto(`/matters/${matter.slug}`);
+  await expect(page.getByText(/Grant a capability/i)).toBeVisible();
+  await page
+    .getByTestId("posture-banner")
+    .first()
+    .isVisible()
+    .catch(() => {
+      // posture A_cleared → no banner; fine
+    });
+  await page.getByLabel(/Module/i).selectOption(candidate!.module_id);
+  // Pick the first matter-scope capability.
+  const caps = (candidate!.manifest as Record<string, unknown>)
+    .capabilities as Array<{ id?: string; capability_id?: string; scope?: string }>;
+  const matterCap = caps.find((c) => c.scope === "matter");
+  const capId = (matterCap?.id ?? matterCap?.capability_id) as string;
+  await page.getByLabel(/Capability/i).selectOption(capId);
+  await page.getByRole("button", { name: /^Grant$/ }).click();
+
+  // The Phase 14 C banner names the module and points at /modules.
+  await expect(page.getByText(/not installed on this workspace/i)).toBeVisible();
+  await expect(page.getByText(candidate!.module_id)).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
-// GrantsPanel — 409 module_disabled (after revoke via real surface)
+// GrantsPanel — 409 module_disabled banner via the UI (after admin revoke)
 // ---------------------------------------------------------------------------
 
-test("GrantsPanel: granting an installed-but-revoked module surfaces 409 banner", async ({
+test("GrantsPanel: clicking Grant for a revoked module surfaces the 409 banner in the UI", async ({
   page,
   request,
 }) => {
-  // Admin promotes self, installs, revokes — all real product
-  // surfaces.
-  const admin = await registerUser(request, "p15e-disabled-admin");
+  const admin = await registerUser(request, "p15e-disab-admin");
   await bootstrapAdminViaCli(admin.email);
   await signIn(request, admin);
   await signInViaUi(page, admin);
 
   const catalog = await request.get(`${BACKEND}/api/modules/v2`);
   const body = (await catalog.json()) as {
-    modules: Array<{ module_id: string }>;
+    modules: Array<{ module_id: string; manifest: Record<string, unknown> }>;
   };
-  test.skip(body.modules.length === 0, "no modules discovered in e2e env");
-  const moduleId = body.modules[0].module_id;
+  const candidate = body.modules.find(
+    (m) =>
+      Array.isArray((m.manifest as Record<string, unknown>).capabilities) &&
+      ((m.manifest as Record<string, unknown>).capabilities as Array<{
+        scope?: string;
+      }>).some((c) => c.scope === "matter"),
+  );
+  test.skip(candidate === undefined, "no candidate module in e2e env");
 
-  // Drive the install ceremony.
+  // Drive the trust ceremony to ENABLED through real endpoints.
   const start = await request.post(`${BACKEND}/api/modules/install`, {
-    data: { source: "registry", module_id: moduleId },
+    data: { source: "registry", module_id: candidate!.module_id },
   });
-  expect(start.status()).toBe(201);
   let ceremony = await start.json();
-  let safety = 16;
-  while (!ceremony.is_terminal && safety-- > 0) {
+  for (let i = 0; i < 16 && !ceremony.is_terminal; i++) {
     const action = ceremony.state === "granted" ? "grant" : "trust";
     const advance = await request.post(
       `${BACKEND}/api/modules/install/${ceremony.ceremony_id}/advance`,
@@ -113,32 +135,38 @@ test("GrantsPanel: granting an installed-but-revoked module surfaces 409 banner"
   }
   expect(ceremony.state).toBe("enabled");
 
-  // Revoke via real admin endpoint. Substrate emits module.disabled.
+  // Revoke via the real admin endpoint. Substrate emits module.disabled.
   const revoke = await request.post(
-    `${BACKEND}/api/modules/${moduleId}/revoke`,
+    `${BACKEND}/api/modules/${candidate!.module_id}/revoke`,
   );
   expect(revoke.ok()).toBe(true);
   await expectWorkspaceAuditRow(request, "module.disabled");
 
-  // Now try to grant — substrate returns 409 module_disabled.
+  // Now drive the GrantsPanel form on a fresh matter.
   const matter = await createMatter(request, {
     title: "p15e disabled-grant",
     default_model_id: "stub-echo",
   });
-  const grant = await request.post(
-    `${BACKEND}/api/matters/${matter.slug}/grants`,
-    { data: { module_id: moduleId, capability_id: "any" } },
-  );
-  expect(grant.status()).toBe(409);
-  const detail = (await grant.json()) as { detail: { error: string } };
-  expect(detail.detail.error).toBe("module_disabled");
+  await page.goto(`/matters/${matter.slug}`);
+  await expect(page.getByText(/Grant a capability/i)).toBeVisible();
+  await page.getByLabel(/Module/i).selectOption(candidate!.module_id);
+  const caps = (candidate!.manifest as Record<string, unknown>)
+    .capabilities as Array<{ id?: string; capability_id?: string; scope?: string }>;
+  const matterCap = caps.find((c) => c.scope === "matter");
+  const capId = (matterCap?.id ?? matterCap?.capability_id) as string;
+  await page.getByLabel(/Capability/i).selectOption(capId);
+  await page.getByRole("button", { name: /^Grant$/ }).click();
+
+  // The Phase 14 C 409 banner names the module + the substrate's
+  // "installed but currently disabled" copy.
+  await expect(page.getByText(/installed but currently disabled/i)).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
-// InstallCeremony — 409 invalid-transition + deep-link to workspace audit
+// InstallCeremony — 409 invalid-transition banner via the UI
 // ---------------------------------------------------------------------------
 
-test("InstallCeremony: skipping straight to grant on a fresh ceremony surfaces 409 and emits module.ceremony.rejected", async ({
+test("InstallCeremony: clicking Grant+enable on a fresh ceremony surfaces the 409 banner in the UI", async ({
   page,
   request,
 }) => {
@@ -154,99 +182,36 @@ test("InstallCeremony: skipping straight to grant on a fresh ceremony surfaces 4
   test.skip(body.modules.length === 0, "no modules discovered in e2e env");
   const moduleId = body.modules[0].module_id;
 
+  // Start the ceremony via the real endpoint; navigate the
+  // browser to the stepper.
   const start = await request.post(`${BACKEND}/api/modules/install`, {
     data: { source: "registry", module_id: moduleId },
   });
+  expect(start.status()).toBe(201);
   const ceremony = await start.json();
-  // Drive the invalid transition: action=grant on a freshly-
-  // discovered ceremony, which the substrate's R2 P1 fix rejects
-  // with 409 + emits module.ceremony.rejected via audit_failure.
-  const advance = await request.post(
-    `${BACKEND}/api/modules/install/${ceremony.ceremony_id}/advance`,
-    { data: { action: "grant" } },
-  );
-  expect(advance.status()).toBe(409);
+  await page.goto(`/modules/install/${ceremony.ceremony_id}`);
+
+  // Click Grant+enable on a freshly-discovered ceremony — the
+  // substrate's R2 P1 fix rejects with 409 and emits
+  // module.ceremony.rejected.
+  await expect(page.getByText("Grant + enable")).toBeVisible();
+  await page.getByText("Grant + enable").click();
+
+  // The Phase 14 B banner names the substrate audit row + carries
+  // the action-only deep-link Phase 14.5 C restored.
+  await expect(page.getByText(/invalid ceremony transition/i)).toBeVisible();
+  await expect(page.getByText(/module\.ceremony\.rejected/)).toBeVisible();
+  const auditLink = page.getByRole("link", { name: /workspace audit/i });
+  await expect(auditLink).toBeVisible();
+  const href = await auditLink.getAttribute("href");
+  expect(href).toBe("/admin/audit?action=module.ceremony.rejected");
+
+  // Substrate row landed too.
   await expectWorkspaceAuditRow(request, "module.ceremony.rejected");
 
-  // The workspace audit deep-link reaches the row.
-  await page.goto("/admin/audit?action=module.ceremony.rejected");
-  await expect(page.getByText("module.ceremony.rejected")).toBeVisible();
-});
-
-// ---------------------------------------------------------------------------
-// InvocationRunner — InvocationInvalidArgsError surfaces inline
-// ---------------------------------------------------------------------------
-
-test("InvocationRunner: invoking with malformed args surfaces the invalid-args banner", async ({
-  page,
-  request,
-}) => {
-  const user = await registerUser(request, "p15e-args");
-  await signIn(request, user);
-  await signInViaUi(page, user);
-  const matter = await createMatter(request, {
-    title: "p15e invalid-args",
-    default_model_id: "stub-echo",
-  });
-
-  // Direct API hit with garbage args; the substrate's capability
-  // typically raises ValueError → 422 invalid_args.
-  const resp = await request.post(
-    `${BACKEND}/api/matters/${matter.slug}/invocations`,
-    {
-      data: {
-        module_id: "nonexistent",
-        capability_id: "nonexistent",
-        args: { malformed: true },
-      },
-    },
-  );
-  // 404 capability_not_declared or 422 invalid_args depending on
-  // which substrate gate fires first; both are documented banner
-  // paths from Phase 14 D. The structured envelope is what we
-  // assert.
-  expect([404, 422]).toContain(resp.status());
-  const body = (await resp.json()) as { detail: { error: string } };
-  expect(body.detail.error).toMatch(
-    /(invalid_args|capability_not_declared|module_not_installed)/,
-  );
-});
-
-// ---------------------------------------------------------------------------
-// Capability denied — via real grant + revoke
-// ---------------------------------------------------------------------------
-
-test("ProviderKeyMissing path: revoke key, run, substrate emits the key-missing audit", async ({
-  page,
-  request,
-}) => {
-  // Register, install + grant Contract Review style flow, switch
-  // to a model that DOES require a key (e.g. claude-opus-4-7),
-  // ensure no key on file, run, expect provider_key_missing.
-  const user = await registerUser(request, "p15e-keymiss");
-  await signIn(request, user);
-  await signInViaUi(page, user);
-  const matter = await createMatter(request, {
-    title: "p15e key-missing",
-    // Default to a real provider model so the gateway requires a key.
-    default_model_id: "claude-opus-4-7",
-    privilege_posture: "A_cleared",
-  });
-
-  // Use the auto-seeded Khan grants as the substrate-truth path:
-  // Khan's auto-granted capabilities can invoke. Find one. If the
-  // env doesn't auto-grant a usable capability, skip; pytest
-  // already covers the substrate handler.
-  const grantsResp = await request.get(
-    `${BACKEND}/api/matters/${matter.slug}/grants`,
-  );
-  const grants = (await grantsResp.json()) as { grants: unknown[] };
-  test.skip(
-    grants.grants.length === 0,
-    "no usable grants for key-missing scenario; pytest covers the substrate handler",
-  );
-
-  // Skip-only: this test exists to pin the e2e harness can drive the
-  // path when a grant is available; the substrate-side handler is
-  // pinned by pytest (model_gateway.py:411 emission).
+  // Following the deep-link reaches the workspace-audit page with
+  // the filter active.
+  await auditLink.click();
+  await expect(page).toHaveURL(/\/admin\/audit\?action=module\.ceremony\.rejected/);
+  await expect(page.getByText("action=")).toBeVisible();
 });

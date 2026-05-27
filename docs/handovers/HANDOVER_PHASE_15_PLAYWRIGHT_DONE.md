@@ -9,10 +9,7 @@
 ### Phase 15 A — scaffolding
 
 - `frontend/playwright.config.ts` — chromium-only, CI retries=2, trace on first retry, video on failure. No `webServer` block; backend + frontend are expected up before `npm run e2e` (CI wires both in F).
-- `frontend/e2e/fixtures/db.ts` — two explicit reset modes per the v3 P1:
-  - `firstRunReset` — truly empty app DB (users + access_token + runtime tables truncated).
-  - `standardE2eReset` — runtime tables only; `users` survives.
-  Mechanism: `docker compose exec db psql` with `TRUNCATE … RESTART IDENTITY CASCADE`. No new substrate; no new CLI; psql lives in the existing db container. Module manifests on disk are never touched.
+- `frontend/e2e/fixtures/db.ts` — single reset path `resetDb()` truncating users + access_token + every runtime table. The v1 plan's two-mode split (`firstRunReset` / `standardE2eReset`) retired with the v2 redline P1 #2: several specs need to re-run the Phase 12 bootstrap CLI between tests, and the substrate's "superuser already exists" guard turns that into order-dependent failures if `users` survives. The old names are kept as aliases so spec files don't need touching. Mechanism: `docker compose exec db psql` with `TRUNCATE … RESTART IDENTITY CASCADE`. No new substrate; no new CLI. Module manifests on disk are never touched.
 - `frontend/e2e/fixtures/auth.ts` — real `/auth/register` + `/auth/login` (cookie transport); first-admin via the **real Phase 12 CLI** invoked by `docker compose exec backend python -m app.tools.bootstrap_admin <email>`; later role mutations via the real Phase 11 `POST /api/admin/users/{id}/role` from a signed-in superuser request context. No `app.tools.test_promote` was created.
 - `frontend/e2e/fixtures/api.ts` — typed substrate helpers for prerequisite setup + reconstruction-based assertions: `getBootstrapState`, `createMatter`, `setMatterPrivilege`, `setUserDefaultModel`, `readMatterReconstruction`, `readWorkspaceReconstruction`, `expectMatterAuditRow`, `expectWorkspaceAuditRow`.
 - `frontend/e2e/smoke.spec.ts` — fixture-smoke test that exercises every helper.
@@ -30,8 +27,8 @@ Key contract-preservation points pinned by the test:
 - Phase 12 CLI invoked via `docker compose exec`; substrate emits `user.admin.bootstrapped`.
 - **Explicit auth refresh** (`page.reload()`) after CLI bootstrap so AuthProvider re-fetches `/auth/users/me` and the React context flips `is_superuser=true` — addresses the v3 P2 redline.
 - Keyless invocation path: `PATCH /auth/users/me` with `default_model_id: "stub-echo"`, create a fresh matter that inherits it, run against the existing stub-echo provider at `backend/app/core/model_gateway.py:126`. No fake provider key required.
-- Trust ceremony drives state machine through `trust → … → grant` to ENABLED; substrate emits the full ceremony chain.
-- Grant + invoke + reconstruction deep-link — all real surfaces.
+- **Honest framing — install ceremony is substrate-driven, not UI-driven.** The first-run spec drives the trust ceremony state machine through real `POST /api/modules/install/{id}/advance` calls (the same calls the UI's stepper would issue), not by clicking through the InstallCeremony page. The UI-driven stepper is exercised separately in `e2e/failure-paths.spec.ts` (the 409 invalid-transition path). For the first-run journey, where the ceremony is one of the user actions, this is "browser + substrate" e2e, not pure-UI — be explicit about that. UI-driven ceremony coverage would add ~6 click-throughs (one per state) and is a follow-up if Reviewer wants it.
+- Grant + invoke + reconstruction deep-link — all UI-driven on real surfaces.
 - Unified `audit.reconstruction.viewed` payload shape verified (`scope: "matter"`, `matter_id`, `filters` block).
 
 Wall-clock budget removed from the test contract per the v3 P2; CI reports duration in the trace.
@@ -45,35 +42,37 @@ Four `not-coverable-yet` findings filed in the matrix doc (15-#1 through 15-#4):
 
 ### Phase 15 D — posture matrix
 
-`frontend/e2e/posture.spec.ts` — 7 cells:
+`frontend/e2e/posture.spec.ts` — banner cells per `POSTURE_GATE_UX.md`:
 
 - A_cleared × solicitor / qualified_solicitor — banner silent.
 - B_mixed × solicitor — banner with required-role + actor-role exact substrate strings.
 - B_mixed × qualified_solicitor — banner silent.
 - C_paused × solicitor / qualified_solicitor — banner always renders.
 - Phase 14 G admin posture-change CTA — superuser flips B_mixed → A_cleared via inline control; next page load silent. Pins the Phase 14 C P1 invariant that `is_superuser` does NOT bypass posture (admin sees the banner; admin can change posture; admin can't smuggle past).
-- `posture_gate.check.blocked` deep-link follow-through.
+
+The previous draft had a "posture_gate denial deep-link" test that called invoke with a nonexistent module/capability. Substrate rejected at capability-not-declared BEFORE the posture gate, so no `posture_gate.check.blocked` row ever landed — the test was lying. Removed in the v2 P1 #4 redline; `posture_gate.check.blocked` is `pytest-covered` in the matrix until an end-to-end UI flow that triggers it (install + grant + posture mismatch on the same matter) is staged in the e2e env.
 
 Role mutations via the real Phase 11 admin endpoint from a signed-in superuser request context. Posture mutations via real `PATCH /api/matters/{slug}/privilege`.
 
 ### Phase 15 E — failure paths through real surfaces
 
-`frontend/e2e/failure-paths.spec.ts`:
+`frontend/e2e/failure-paths.spec.ts`. Every test drives the UI banner where possible; pure-substrate envelope checks are pytest's job, not Phase 15 E's.
 
-- GrantsPanel 404 module_not_installed via attempting to grant a discovered-but-not-installed module.
-- GrantsPanel 409 module_disabled via admin revoke followed by grant attempt.
-- InstallCeremony 409 invalid-transition: POST advance with `action=grant` on a fresh ceremony → 409 + `module.ceremony.rejected` substrate audit row + workspace audit deep-link.
-- InvocationInvalidArgsError via direct invoke with garbage args.
-- ProviderKeyMissing harness probe — skip-guarded; pytest covers the substrate handler (`model_gateway.py:411`).
+- **GrantsPanel 404 module_not_installed banner** — drives the GrantsPanel select-Module + select-Capability + Grant button on a fresh matter with a discoverable-but-not-installed module; asserts the substrate's "not installed" banner copy renders + names the module + points at `/modules`.
+- **GrantsPanel 409 module_disabled banner** — admin promotes via Phase 12 CLI, drives the trust ceremony to ENABLED via real endpoints, revokes via Phase 11 endpoint (substrate emits `module.disabled`), then drives the GrantsPanel form on a fresh matter; asserts the "installed but currently disabled" banner copy from Phase 14 C.
+- **InstallCeremony 409 invalid-transition banner** — admin starts a ceremony via real endpoint, navigates the BROWSER to `/modules/install/{ceremony_id}`, clicks "Grant + enable" on the discovered state; asserts the Phase 14 B banner names `module.ceremony.rejected`, the deep-link's `href` is `/admin/audit?action=module.ceremony.rejected` exactly, the substrate emitted the row, and clicking the link lands on the workspace audit page with the filter active. The substrate-only API-level invariants that the v1 draft mixed in are removed.
 
-Two paths filed as not-coverable-yet:
+The v1 draft had two more tests that were API-level only ("InvocationInvalidArgsError" via direct invoke; "ProviderKeyMissing harness probe" skip-only). Both retired with the v2 P2 redline — the matrix now marks them `pytest-covered` and the redundant substrate-envelope smoke is gone.
+
+Two paths filed as `not-coverable-yet`:
 - `Phase1BlockedError` — needs an advice-tier escalation conversation; matrix 15-#2.
 - `ProviderUpstreamInvokeError` — needs a real-but-deterministic upstream failure; matrix 15-#3.
 
 ### Phase 15 F — CI wiring
 
 `.github/workflows/e2e.yml`:
-- Spins the existing docker-compose stack.
+- **DB unification** (v2 P1 #1 fix). Workflow exports `POSTGRES_DSN=postgresql+asyncpg://legalise:legalise@db:5432/legalise_test` before `docker compose up`, so the backend service runs against the same DB the reset fixture truncates and alembic migrates. Explicitly creates the `legalise_test` DB before booting the backend (idempotent via `pg_database` lookup). Alembic migration failure no longer swallowed by `|| true`.
+- Spins the existing docker-compose stack (db first, then backend with the overridden DSN).
 - Provisions the test DB schema via alembic.
 - Builds the frontend + serves via `npm run preview` for production-parity.
 - Caches Playwright browser binary.
