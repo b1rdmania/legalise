@@ -48,6 +48,10 @@ export async function bootstrapAdminViaCli(email: string): Promise<string> {
     "python",
     "-m",
     "app.tools.bootstrap_admin",
+    // Phase 12 CLI signature: --email is keyword, not positional.
+    // Positional form exits 2 with "usage" — caught by CI run
+    // 26507523312.
+    "--email",
     email,
   ];
   return new Promise<string>((resolve, reject) => {
