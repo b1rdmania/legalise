@@ -1,6 +1,6 @@
 # Phase 16 — Release Readiness / Forker Setup (PLAN)
 
-**Status:** plan v2 (R1 patched: setup order, VITE_ prefix, v2 schema, S3 doctrine, doctor stateful).
+**Status:** plan v3 (R2 patched: S3 split into endpoint check + bucket soft-note to resolve doctor-green-on-fresh-compose contradiction).
 **Branch:** `runtime-rewrite` (continues from Phase 15 ratified at `f0b9914`).
 **Bar:** a fresh evaluator clones, follows the path, and gets to a working
 Khan demo without us narrating it. No new substrate, no new connectors, no
@@ -93,7 +93,8 @@ substrate already exposes:
 | `db.migrations_current` | Alembic head == DB version |
 | `db.audit_table_present` | `audit_entries` exists; WORM trigger present (just inspect `pg_trigger`) |
 | `redis.reachable` | `PING` returns `PONG` |
-| `s3.reachable` | `HEAD` the configured bucket. On miss → `fail` with remediation: rerun with `--create-bucket`, or run `mc mb`. **No implicit writes** (R1 P2). |
+| `s3.endpoint_reachable` | Endpoint responds (e.g. `ListBuckets` or root probe). Hard `fail` if MinIO/S3 is not reachable. |
+| `s3.bucket_present` | `HEAD` the configured bucket. On miss → `note:bucket_not_created_yet` and exit 0 (R2 fix: fresh MinIO won't have the bucket yet; storage layer creates it lazily on first use, and `--create-bucket` remains available as explicit mutation). Hard `fail` only if endpoint is reachable AND the bucket is required by a later check that already ran. |
 | `plugins.root_mounted` | `PLUGINS_ROOT` resolves; at least one manifest discovered via the existing Phase 2 discovery surface |
 | `manifests.valid` | Calls the existing registry/validator path against `schemas/module.v2.json` (R1 finding — reference modules are v2-shaped). No hand-rolled validation. |
 | `khan.demo_present` | **Stateful** (R1 P2): if `users` is empty → `note:not_yet_seeded` and exit 0 for this check. After a user exists, demand the Khan matter + seed audit row; `fail` if missing. |
