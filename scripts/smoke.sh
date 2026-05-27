@@ -47,17 +47,41 @@ echo "→ Legalise local-fork smoke."
 echo "  Compose file: $COMPOSE_FILE"
 echo
 
-# Pre-flight: doctor must be reachable. We don't require khan.demo_present
-# to be ok here because smoke.sh will wipe the DB anyway; we just want
-# the substrate alive (DB, Redis, S3 endpoint, plugins, manifests).
+# Pre-flight: doctor catches substrate failures (DB / Redis / S3 /
+# plugins / manifests) before we drive Playwright. The first-run spec
+# wipes the DB before running, so a doctor `khan.demo_present` fail
+# is reset-repairable and not a smoke blocker — we tolerate that one
+# specifically and bail on everything else. Any other fail must be
+# fixed by the operator first (see docs/TROUBLESHOOTING.md).
 echo "→ Pre-flight: legalise doctor"
-if ! docker compose -f "$COMPOSE_FILE" exec -T backend python -m app.tools.doctor; then
-  cat <<EOF
+doctor_out=$(docker compose -f "$COMPOSE_FILE" exec -T backend \
+  python -m app.tools.doctor 2>&1) && doctor_status=$? || doctor_status=$?
+echo "$doctor_out"
 
-✗ doctor failed. Fix the failing checks before re-running smoke.
-  See docs/TROUBLESHOOTING.md for common remediations.
+if [[ $doctor_status -ne 0 ]]; then
+  # Extract every "[fail] <name>:" line; if the only failing check is
+  # khan.demo_present, continue. Anything else blocks.
+  # Parse `[fail] <name>: ...` lines. awk's `-F '[][:]'` is BSD-awk
+  # unfriendly, so use sed.
+  failing_names=$(printf '%s\n' "$doctor_out" \
+    | grep '^\[fail\] ' \
+    | sed 's/^\[fail\] //; s/:.*//' \
+    | sort -u)
+  if [[ "$failing_names" == "khan.demo_present" ]]; then
+    echo
+    echo "  note: doctor only failed on khan.demo_present. first-run.spec.ts"
+    echo "        truncates the DB before signup, so this is reset-repairable."
+    echo "        Continuing."
+  else
+    cat <<EOF
+
+✗ doctor failed on checks smoke cannot repair:
+$(printf '  - %s\n' $failing_names)
+
+  Fix these before re-running smoke. See docs/TROUBLESHOOTING.md.
 EOF
-  exit 1
+    exit 1
+  fi
 fi
 
 echo
