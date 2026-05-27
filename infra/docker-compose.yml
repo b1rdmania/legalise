@@ -47,26 +47,35 @@ services:
 
   backend:
     build: ../backend
+    # Read repo-root .env so values a forker sets in their copy of
+    # .env.example actually reach the container. Without this, the
+    # backend bind-mount at /app shadows the repo root and
+    # Settings(env_file=".env") can't find it. env_file is lower
+    # priority than the explicit `environment:` block, so the known
+    # compose interpolations below still win — env_file is the
+    # catch-all for vars compose doesn't name explicitly
+    # (S3_ACCESS_KEY, SESSION_SECRET, LEGALISE_KEY_ENCRYPTION_SECRET,
+    # PLUGINS_REPO_REF, etc.).
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       ENVIRONMENT: development
-      # Interpolated so CI (and any dev who needs to point at a
-      # different DB) can override via the host env at `compose up`
-      # time. Default matches the current local-dev shape. Phase 15 F
-      # CI exports POSTGRES_DSN before `compose up` so backend + alembic
-      # + e2e reset all target the same database.
+      # Phase 16 B: only CI-load-bearing interpolations live here.
+      # Hard-coded literals previously in this block (REDIS_URL,
+      # S3_ENDPOINT, OLLAMA_URL, etc.) were silently shadowing any
+      # forker-set values from `.env` via env_file above. They're now
+      # dropped — `backend/app/core/config.py` defaults already match
+      # the compose service hostnames, and `.env` overrides flow
+      # through env_file when the forker sets them.
+      #
+      # POSTGRES_DSN + CORS_ORIGINS stay as `${VAR:-default}`
+      # interpolations because Phase 15 CI exports them via host env
+      # before `compose up` and the workflow's verify steps depend on
+      # this exact mechanism. Always one driver per workflow.
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
-      # CORS allow-list. Default covers Vite dev (:3000) + the
-      # shipped marketing host. Phase 15 e2e CI overrides this via
-      # the host env at `compose up` time so the preview server
-      # origin (:4173) is allowed for browser-side credentialed
-      # fetch calls. Same interpolation pattern as POSTGRES_DSN.
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","https://legalise.dev"]}
-      REDIS_URL: redis://redis:6379/0
-      S3_ENDPOINT: http://minio:9000
-      GOTENBERG_URL: http://gotenberg:3000
-      OLLAMA_URL: http://ollama:11434
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Plugin bind-mount target; matches the volume below.
       PLUGINS_ROOT: /plugins
     ports:
       - "8000:8000"
@@ -95,18 +104,13 @@ services:
   worker:
     build: ../backend
     command: ["python", "-m", "app.worker"]
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       ENVIRONMENT: development
-      # Same interpolation as backend so worker + app point at the
-      # same DB. worker.py also normalises +psycopg → +asyncpg at
-      # engine-create time.
+      # See backend block above for the env-precedence rationale.
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
-      REDIS_URL: redis://redis:6379/0
-      S3_ENDPOINT: http://minio:9000
-      GOTENBERG_URL: http://gotenberg:3000
-      OLLAMA_URL: http://ollama:11434
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       PLUGINS_ROOT: /plugins
     volumes:
       - ../backend:/app
