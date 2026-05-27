@@ -15,6 +15,13 @@ Phase 17A/B/C starts. This is not the CRM redesign pass.
 3. Landing page now exposes explicit unauthenticated actions:
    `Sign in` and `Create account`. This closes L-1 from the
    walkthrough attempt.
+4. Phase 15 e2e preview now uses a tiny explicit static SPA server
+   instead of `vite preview`. CI showed `vite preview` returning
+   `500` plus empty HTML for `/auth/signin`; the e2e server serves
+   `dist` assets and falls back to `index.html` for deep links.
+5. The e2e workflow now smokes `/auth/signin`, not just `/`, before
+   Playwright starts. A broken auth deep link fails at setup instead
+   of wasting the full suite.
 
 ## Why It Is Safe
 
@@ -29,6 +36,7 @@ Phase 17A/B/C starts. This is not the CRM redesign pass.
 - `docker compose -f infra/docker-compose.yml exec -T frontend npm run typecheck`
 - `docker compose -f infra/docker-compose.yml exec -T frontend npm test`
 - `docker compose -f infra/docker-compose.yml exec -T frontend npm run build`
+- `docker compose -f infra/docker-compose.yml exec -T frontend npm run preview:e2e -- --host 0.0.0.0 --port 4173`
 - `docker compose -f infra/docker-compose.yml exec -T backend python -m pytest tests/test_phase10_invocations_api.py -q`
 - Manual: POST `/auth/register` through the frontend dev server reached
   FastAPI and returned `201`.
