@@ -1,6 +1,6 @@
 # Phase 18-G — Logged-In Consistency Pass (mini-plan)
 
-**Status:** v1 mini-plan for Reviewer redline. Do not build until ratified.
+**Status:** ratified for build, pending implementation.
 **Branch:** `phase-17-crm-pass`
 **Date:** 2026-05-28
 **Base context:** Phase 18 A–F is built and **merged to master / deployed** at `ad90e23`. Reviewer's design rules added in `ad90e23` (Design Diagnosis, Page Contract, Design Drift, Operator Language Rules) are the spec for this pass.
@@ -42,6 +42,16 @@ Where the same operator-table shape appears ≥2× (ArtifactsList, AdminUsersLis
 1. **Header typography.** Standardise on the new-IA bold-sans `tracking-tight2` h1 and retire `font-serif` headings on the older screens? *Rec: yes — the IA shell is the canonical language; serif on a few legacy pages is the drift.*
 2. **Table extraction depth.** Extract a shared `OperatorTable` primitive, or just align inline classes + reuse `EmptyState`? *Rec: only extract if the shape is genuinely identical in ≥2 places; otherwise align classes — avoid a thin-wrapper component for its own sake.*
 3. **Content max-width.** Standardise logged-in content width (modules use `max-w-3xl/4xl`, IA uses `max-w-page`)? *Rec: pick one for detail pages; flag if it visibly reflows the matter shell.*
+
+## Reviewer answers
+
+1. **Header typography — approved.** Use the new-IA bold-sans `tracking-tight2` heading for logged-in operator pages. Retire `font-serif` on modules-v2/admin/settings/operator screens. Keep serif for manifesto/marketing/editorial surfaces only.
+2. **PageHeader extraction — approved.** Extract one `PageHeader` primitive because the duplication is already proven and the page contract depends on it.
+3. **Table extraction depth — conservative.** Extract an `OperatorTable` only if two or more screens share the same structure after Step G work begins. If the shapes are merely similar, align classes locally and reuse existing `EmptyState`.
+4. **Content max-width — page-type standard.** Do not force one global width. Use a consistent detail-page width for module/detail/admin/settings detail screens; keep list/audit/table pages wider; do not reflow the matter workspace shell as part of 18-G.
+5. **Copy tightenings — approved.** Land "Permissions on this matter" and "Review permissions" while preserving pinned substrate/audit assertions.
+
+Proceed with 18-G under the stated non-negotiables: no substrate, no routes, no visual-system change, focused tests per substep, full frontend test/build at close-out.
 
 ## Verification
 
