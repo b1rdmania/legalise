@@ -1,9 +1,22 @@
 # Phase 18 — Logged-In Operator Coherence Build Plan
 
-**Status:** v1 plan for Reviewer redline.  
-**Branch:** `phase-17-crm-pass`  
-**Date:** 2026-05-28  
+**Status:** RATIFIED + BUILT (Steps A–F) on `phase-17-crm-pass`, awaiting Reviewer review before merge to master.
+**Branch:** `phase-17-crm-pass`
+**Date:** 2026-05-28
 **Base context:** Phase 17.5 is live; firm role gates are dormant by default in hosted/eval mode. Module DX (`PHASE_18_G_MODULE_DX_PLAN.md`) is parked behind this product pass unless Reviewer explicitly reorders it.
+
+## Builder close-out (2026-05-28)
+
+All six steps built frontend-first, no substrate touched. Order A→B→C→D→E→F as ratified. Commit-per-step on `phase-17-crm-pass`:
+
+- **A — Route inventory** (`PHASE_18_ROUTE_INVENTORY.md`): 14 routes classified; findings F1–F4. Reviewer steers applied: keep browse/manage separate (F3), hide empty Preferences tab (F4).
+- **B — Modules as integrations**: truthful installed/disabled/not-installed badge on ModuleDetail (derived from `listInstalledModules`, no backend); capabilities rendered as a "needs access to" permission summary, not a raw manifest table; InstallCeremony de-leaked + operator framing; GrantsPanel humanised headers/intro, softened the leaky "N row(s) created" (idempotent/no-audit copy kept verbatim — load-bearing).
+- **C — Provider clarity**: honest run-mode status ("No key configured" / "Key configured, not tested"), "hosted has no shared key — bring your own", named audit rows, confirm-on-revoke. No fake validity. `POST /settings/keys/{provider}/test` stays a deferred backend gap. Empty Preferences tab hidden from nav (route still resolves).
+- **D — Matter action/artifact loop**: matter sub-nav now persists across detail/audit/artifacts/artifact-detail (slug from route) and surfaces an **Artifacts** link (was URL-only); Audit active-state fixed on its own route. Artifact list/detail copy already read as matter outputs + labelled audit links.
+- **E — Admin calm-down**: role controls reframed as dormant firm/deployment controls, substrate internals removed; honest self-promotion/no-op facts + `user.role.changed` kept. AdminUsersList already sparse — left as-is.
+- **F — Shared primitives**: extracted the one proven duplication — a `DescItem` label/value pair (3 identical local copies) into `ui/primitives`. No speculative library.
+
+**Verification:** focused tests + typecheck per step; close-out full frontend vitest **129 passed / 19 files**, `tsc -b` clean, `npm run build` succeeds. e2e not run locally (the docker stack binds the other checkout) — the `e2e.yml` workflow runs it on merge to master. Acceptance-bar items met in code; an unaided browser walk of the evaluator path is the recommended pre-merge check.
 
 ## Objective
 
