@@ -43,6 +43,7 @@ These are core to the project. Do not simplify them away.
 4. **Audit reconstruction**
    - The audit trail is the product thesis, not an admin afterthought.
    - Every important action must either emit a row or be explicitly recorded as a none-row action.
+   - The UI must distinguish important decision points from background noise. A single chronological firehose is not enough for v1.
 
 5. **Visible supervised autonomy**
    - Legalise cannot feel like "chat plus modules".
@@ -225,6 +226,30 @@ Build:
   - start with a guided page/checklist/template that explains manifest, permissions, entrypoint, signing/trust, local validation, and how a module becomes installable;
   - allow self-host operators to understand how to add their own module without reading the whole codebase.
 
+### Workstream 4A — Document Workspace
+
+**Goal:** uploaded documents feel like first-class matter records, not rows that happen to expand inline.
+
+Current reality:
+- `DocumentsTab` lets users upload documents and click a row to expand inline metadata/edit/anonymise controls.
+- Backend document APIs exist for body, edit instructions, versions, generated docx download, and anonymisation.
+- There is no routed document detail/management page for opening a document, seeing versions, generated files, anonymisation, edit history, and audit links in one place.
+
+Build:
+- Add a document detail route under the matter workspace, e.g. `/matters/{slug}/documents/{document_id}`.
+- Documents table rows link to the detail route, while keeping quick inline metadata if useful.
+- Detail page shows:
+  - extracted text/body preview where available;
+  - file metadata and storage/hash facts;
+  - versions and tracked changes;
+  - anonymisation controls/results;
+  - generated/downloadable outputs where present;
+  - audit/reconstruction deep-links scoped to the document.
+- If original-file download/open is not currently exposed, record that as a backend gap rather than pretending row expansion is "open document".
+
+Exit:
+- A user can click an uploaded document and understand/open/manage it like a normal legal workspace document.
+
 Defer:
 - Provider test-call endpoint unless the acceptance walk proves the current labels confuse users.
 - Module DX CLI unless the guided create-module surface proves insufficient.
@@ -305,6 +330,8 @@ Build:
   - group invocation/model/gate/artifact chains;
   - show blocked/denied attempts clearly;
   - make role/grant/module lifecycle rows readable.
+  - add operator filters/lanes for decision-critical events versus background/system rows;
+  - provide saved/common filters for module run, model call, artifact, review decision, grant/role change, blocked/denied, and error/failure rows.
 Exit:
 - Legalise can honestly explain what was reviewed, by whom, with which source/model/gate context, while still avoiding "SRA-approved workflow" language.
 

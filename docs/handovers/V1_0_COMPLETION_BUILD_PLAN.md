@@ -149,6 +149,30 @@ Scope:
 Defer:
 - Provider test-call endpoint unless acceptance walk shows users are genuinely confused by "configured, not tested".
 
+### Phase 21A — Document Workspace
+
+**Goal:** uploaded documents become first-class matter records.
+
+Current reality:
+- The existing documents tab supports upload and inline row expansion.
+- Backend APIs exist for extracted body, edit instructions, versions, generated docx download, and anonymisation.
+- There is no routed document detail/management page. Clicking a row expands controls, but it does not feel like opening/managing a document in a standard legal workspace.
+
+Scope:
+- Add a matter-scoped document detail route, e.g. `/matters/{slug}/documents/{document_id}`.
+- Documents table rows link to the document detail page.
+- Detail page shows:
+  - file metadata, storage/hash facts, and upload/disclosure status;
+  - extracted text/body preview where available;
+  - version timeline and tracked-changes/edit controls;
+  - anonymisation controls/results;
+  - generated/downloadable outputs;
+  - document-scoped audit/reconstruction deep-links.
+- If original-file open/download is not currently available, file the backend gap explicitly and keep the UI honest.
+
+Exit:
+- A user can click an uploaded document and open/manage it as a document, not just expand a table row.
+
 ### Phase 22 — Real Object Storage
 
 **Goal:** uploaded binaries and generated artifacts use object storage as source of truth.
@@ -218,6 +242,10 @@ Scope:
 - Audit action constants module; remove string drift at new call sites.
 - WORM groundwork: migration/app role split, revoke update/delete on `audit_entries` for app role where practical, trigger guard where feasible.
 - Reconstruction view groups module invocation, model call, gate decision, artifact, and role/grant changes into readable chains.
+- Reconstruction view stops being a single undifferentiated firehose:
+  - decision-critical events are visually separated from background/system rows;
+  - common filters exist for module run, model call, artifact, review decision, grant/role change, blocked/denied, and error/failure rows;
+  - saved/deep-linkable filters remain compatible with the existing `action` / `invocation_id` query shape.
 - Exportable reconstruction pack if it drops naturally out of matter export; otherwise defer.
 
 Exit:
