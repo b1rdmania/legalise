@@ -61,6 +61,11 @@ These are core to the project. Do not simplify them away.
    - It does not give legal advice.
    - It should not claim forensic WORM, SRA approval, live-client readiness, or legal correctness until those are actually implemented.
 
+9. **Reuse before building**
+   - Before building a new subsystem, check whether a maintained open-source tool, legal data source, MCP server, or existing Legalise primitive can carry it.
+   - Prefer integrating boring proven tools over hand-rolling legal/document infrastructure.
+   - Integration still goes through Legalise's trust ceremony, matter-scoped grants, audit, provider, and artifact rules.
+
 ## 3. What To Stop Doing
 
 1. **Stop reopening old phase plans unless they contain a concrete unresolved item.**
@@ -81,6 +86,10 @@ These are core to the project. Do not simplify them away.
 
 5. **Stop treating full enterprise readiness as v1.**
    - SSO/SCIM, SOC 2, client portal, e-disclosure connectors, billing, court filing, and multi-firm SaaS orchestration are not needed for the first coherent open-source v1.
+
+6. **Stop hand-rolling commodity/legal-adjacent infrastructure by default.**
+   - OCR, PDF parsing, docx rendering, object storage, queues, auth-adjacent flows, legal data lookups, and observability should start with a reuse/integration audit.
+   - Build custom only where Legalise's governance substrate genuinely needs a bespoke surface.
 
 ## 4. Current Product Reality
 
@@ -155,6 +164,11 @@ Exit:
 **Goal:** an operator/evaluator knows how to get from zero to useful.
 
 Build:
+- Run a reuse audit before adding new setup/provider/module machinery:
+  - existing settings/key endpoints;
+  - existing module catalogue/install endpoints;
+  - existing `legalise doctor`;
+  - existing open-source provider-health patterns if a test-call endpoint is pulled forward.
 - Make `legalise doctor` the canonical health indicator.
 - Keep README / DEMO / TROUBLESHOOTING aligned with the actual UI.
 - Make provider states unavoidable and honest:
@@ -179,6 +193,11 @@ Defer:
 **Goal:** remove the obvious "demo substrate" objections.
 
 Build:
+- Reuse first:
+  - S3-compatible object storage client/library rather than bespoke storage protocol;
+  - MinIO for local object storage;
+  - arq/Redis for jobs rather than a home-grown worker queue;
+  - existing migration tooling rather than a custom migration runner.
 - Real object storage:
   - MinIO local;
   - R2/S3 prod;
@@ -204,6 +223,11 @@ Exit:
 **Goal:** operators can get data out and retire matters without DB access.
 
 Build:
+- Reuse first:
+  - standard archive formats;
+  - existing document/artifact storage metadata;
+  - existing audit reconstruction rows;
+  - existing document conversion/rendering tools already in the stack.
 - Matter export bundle:
   - metadata;
   - documents;
@@ -226,6 +250,11 @@ Exit:
 **Goal:** turn supervised autonomy from thesis into a concrete product surface.
 
 Build:
+- Reuse first:
+  - existing advice-boundary tables and audit reconstruction primitives;
+  - existing role/admin substrate;
+  - existing legal/professional supervision guidance as product copy constraints, not as hard-coded legal conclusions;
+  - maintained append-only / audit-chain patterns where practical before inventing new cryptography.
 - Audit action constants for new/changed call sites.
 - WORM groundwork:
   - split app/migration roles where practical;
@@ -251,6 +280,10 @@ Exit:
 **Goal:** answer "what was sent?" and "how do you know it did not obviously hallucinate?"
 
 Build:
+- Reuse first:
+  - existing anonymisation/redaction modules where they fit prompt shrouding;
+  - open-source eval harness patterns only where they can run deterministically against seeded matters;
+  - provider-native structured output/tool-calling where available before inventing parser layers.
 - Prompt shroud / redaction policy before cloud dispatch.
 - Local/cloud routing policy visible to operators.
 - Audit records provider, policy, and what class of material left the system.
@@ -303,6 +336,11 @@ These remain parked unless a real evaluator/customer need pulls them forward:
 3. `ROADMAP.md`, `LAUNCH_TRUTH.md`, `SUPERVISED_AUTONOMY.md`, and `CLAIM_BOUNDARY.md` remain philosophy/claim-boundary references.
 4. Old handovers remain provenance only unless explicitly cited in a new workstream plan.
 5. Every new workstream should start with a short build plan and end with a short handover. Do not revive the 30-phase planning style.
+6. Every new workstream build plan must include a short **reuse/integration audit**:
+   - existing Legalise primitive to reuse;
+   - open-source tool/library to consider;
+   - legal/open-data source or MCP server to consider;
+   - reason for building custom if none is used.
 
 ## 9. Immediate Next Action
 

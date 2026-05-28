@@ -27,6 +27,27 @@ v1.0 does **not** mean a regulated law firm product, full SRA-approved superviso
 - Firm role hierarchy stays configurable. Default public/demo mode must not require evaluators to understand `qualified_solicitor`.
 - Every new operational claim needs a test, a runbook entry, or a clear "not implemented" statement.
 - Do not add broad connectors before the core operator loop is coherent.
+- Reuse before building. Every phase must check existing Legalise primitives, maintained open-source tools, legal/open-data sources, and MCP servers before inventing new machinery. If the phase builds custom, the handover must explain why.
+
+## 2.1 Reuse / Integration Doctrine
+
+Legalise should not hand-roll commodity infrastructure or legal-adjacent tooling just to keep everything first-party.
+
+Preferred pattern:
+
+1. Use an existing maintained tool/library/source for commodity capability.
+2. Wrap it behind Legalise's matter, permission, provider, artifact, and audit boundaries.
+3. Declare the dependency/trust posture clearly.
+4. Build custom only where the governance substrate needs a Legalise-specific primitive.
+
+Examples:
+
+- Object storage: S3-compatible client + MinIO/R2, not a bespoke blob store.
+- Jobs: arq/Redis + Postgres job records, not a custom queue.
+- Document parsing/OCR: use proven parsers/OCR where suitable; Legalise governs inputs/outputs and audit.
+- Legal data: prefer official/open sources or vendor MCP servers where licensing allows.
+- Evals: use simple deterministic fixtures first; only adopt a harness if it reduces real complexity.
+- Connectors: MCP/vendor servers are valid later, but broad connector work waits until the core product is coherent.
 
 ## 3. Build Sequence
 
@@ -68,6 +89,7 @@ Output:
 **Goal:** make setup self-diagnosing and non-mysterious.
 
 Scope:
+- Reuse/integration audit: existing `legalise doctor`, settings endpoints, provider-key CRUD, bootstrap CLI, and module catalogue surfaces before adding new setup machinery.
 - `legalise doctor` becomes the canonical health check for DB, migrations, Redis, S3/R2/MinIO, plugin root, manifests, provider mode, and demo matter.
 - First-run UI points operators to the exact bootstrap/admin/provider/storage steps.
 - README, DEMO, RUNBOOK, TROUBLESHOOTING align with the live product.
@@ -81,6 +103,7 @@ Defer:
 **Goal:** uploaded binaries and generated artifacts use object storage as source of truth.
 
 Scope:
+- Reuse/integration audit: S3-compatible libraries, MinIO local, Cloudflare R2/S3 production, existing artifact/document metadata.
 - Storage abstraction over S3-compatible backends.
 - Local compose uses MinIO.
 - Hosted/prod uses Cloudflare R2 or equivalent.
@@ -96,6 +119,7 @@ Exit:
 **Goal:** module runs survive disconnects and can be inspected after completion/failure.
 
 Scope:
+- Reuse/integration audit: arq/Redis and existing job/export handover work before adding custom queue mechanics.
 - `jobs` table as source of truth.
 - arq + Redis for queueing.
 - Redis carries job ids/metadata only, never prompts, responses, or document text.
@@ -125,6 +149,7 @@ Exit:
 **Goal:** matter lifecycle has a credible operator story.
 
 Scope:
+- Reuse/integration audit: standard archive formats, existing storage keys, existing audit reconstruction, current document/artifact renderers.
 - Matter export bundle with documents, artifacts, metadata, and audit/reconstruction.
 - Delete/archive flow with owner/admin checks.
 - Refuse destructive actions while jobs are running.
@@ -138,6 +163,7 @@ Exit:
 **Goal:** audit becomes a real oversight surface, not just a timeline.
 
 Scope:
+- Reuse/integration audit: existing audit reconstruction primitives, known append-only/WORM database patterns, and maintained hashing/signing libraries before custom cryptography.
 - Audit action constants module; remove string drift at new call sites.
 - WORM groundwork: migration/app role split, revoke update/delete on `audit_entries` for app role where practical, trigger guard where feasible.
 - Reconstruction view groups module invocation, model call, gate decision, artifact, and role/grant changes into readable chains.
@@ -151,6 +177,7 @@ Exit:
 **Goal:** turn supervised autonomy from substrate vocabulary into one concrete reviewed-output workflow.
 
 Scope:
+- Reuse/integration audit: existing advice-boundary tables, role/admin substrate, audit reconstruction, and public supervision guidance before adding new models.
 - Named supervisor identity/role model.
 - Gate decision model: requested, approved, rejected, changes requested, overridden.
 - Evidence refs, output hash, notes, actor, timestamp, immutable audit link.
@@ -165,6 +192,7 @@ Exit:
 **Goal:** answer the obvious "what leaves the firm?" objection.
 
 Scope:
+- Reuse/integration audit: existing anonymisation/redaction modules, provider-native structured output/tool calling, and simple policy engines before bespoke prompt-shroud machinery.
 - Configurable redaction/anonymisation policy before cloud dispatch.
 - Local/cloud routing policy visible to operators.
 - Audit records what policy applied and which provider was used.
@@ -178,6 +206,7 @@ Exit:
 **Goal:** test output posture without pretending to certify legal correctness.
 
 Scope:
+- Reuse/integration audit: existing Playwright/pytest fixtures and lightweight OSS eval patterns before adopting a heavy eval platform.
 - Deterministic fixtures for core modules.
 - Expected output shape and required-source checks.
 - Citation/refusal/unsupported-claim checks.
@@ -191,6 +220,7 @@ Exit:
 **Goal:** make module install/management feel complete without opening an uncontrolled marketplace.
 
 Scope:
+- Reuse/integration audit: existing module catalogue/install/update/revoke endpoints, installed-module rows, trust ceremony, and compatible MCP/vendor module patterns.
 - Installed-module admin page polish: installed, disabled, update available, broken manifest, trust state.
 - Module detail/permission card polish.
 - Manual update/revoke repair flows.
