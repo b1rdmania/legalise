@@ -38,10 +38,12 @@ export function Settings({ tab }: { tab: SettingsTab }) {
     );
   }
 
+  // Preferences is an empty v0.2 placeholder — the route still resolves
+  // (deep links don't 404) but it's hidden from nav until it has a real
+  // setting, so the product doesn't read as unfinished (Phase 18-C).
   const sidebarItems: { key: SettingsTab; label: string }[] = [
     { key: "profile", label: "Profile" },
-    { key: "keys", label: "API keys" },
-    { key: "preferences", label: "Preferences" },
+    { key: "keys", label: "Provider keys" },
   ];
 
   return (
@@ -394,6 +396,10 @@ function SettingsKeys() {
   };
 
   const remove = async (p: string) => {
+    const ok = window.confirm(
+      `Remove your ${p} key? Model calls will fall back to the keyless demo model until you add a key again. This writes a user.key.revoked audit row.`,
+    );
+    if (!ok) return;
     setError(null);
     try {
       await deleteApiKey(p);
@@ -407,12 +413,16 @@ function SettingsKeys() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">API keys</h2>
+        <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Provider keys</h2>
         <p className="prose-p mb-0">
-          Bring your own Anthropic/OpenAI/Ollama key. Keys are encrypted and used only for your
-          requests. Legalise does not resell model access.
+          The hosted site has no shared production model key. To run real
+          model calls, bring your own Anthropic or OpenAI key. Keys are
+          encrypted and used only for your requests — Legalise does not
+          resell model access.
         </p>
       </div>
+
+      {keys && <ProviderStatus hasKey={keys.length > 0} />}
 
       {!keys && <LoadingLine label="loading keys" />}
       {keys && keys.length === 0 && (
@@ -452,6 +462,10 @@ function SettingsKeys() {
 
       <form className="flex flex-col gap-6 border-t border-rule pt-8" onSubmit={submit}>
         <h3 className="text-lg font-semibold text-ink">Add or replace a key</h3>
+        <p className="text-xs text-muted -mt-3">
+          Saving a key writes a <span className="font-mono">user.key.configured</span> audit
+          row and switches your model calls from the keyless demo model to your provider.
+        </p>
         <Field label="Provider">
           <select
             value={provider}
@@ -477,6 +491,34 @@ function SettingsKeys() {
           {busy ? "Saving" : "Save key"}
         </button>
       </form>
+    </div>
+  );
+}
+
+// Phase 18-C — honest "can I run real model calls?" status. We never
+// claim a key is *valid* (no provider test-call endpoint exists; that's
+// a filed, deferred backend gap). Presence on file = "configured, not
+// tested"; absence = keyless demo model.
+function ProviderStatus({ hasKey }: { hasKey: boolean }) {
+  if (!hasKey) {
+    return (
+      <div className="border border-rule bg-wash p-4">
+        <div className="text-sm font-semibold text-ink">No key configured</div>
+        <p className="mt-1 text-sm text-muted">
+          Using the keyless demo model. Add a provider key below to run
+          real model calls on your own account.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="border border-rule bg-wash p-4">
+      <div className="text-sm font-semibold text-ink">Key configured, not tested</div>
+      <p className="mt-1 text-sm text-muted">
+        Your provider key is on file and will be used for model calls.
+        Legalise has not validated it against the provider, so a wrong or
+        expired key only surfaces when a call is made.
+      </p>
     </div>
   );
 }
