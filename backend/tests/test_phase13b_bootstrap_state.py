@@ -104,10 +104,17 @@ async def test_no_authentication_required(client) -> None:
 
 @pytest.mark.asyncio
 async def test_response_shape(client) -> None:
-    """Body has exactly two keys; no extra fields leak."""
+    """Body has exactly the expected keys; no unexpected fields leak.
+    Phase 17.5 added firm_role_gates_enabled so the SPA knows whether to
+    present the firm role hierarchy."""
     resp = await client.get("/api/system/bootstrap-state")
     assert resp.status_code == 200
     body = resp.json()
-    assert set(body.keys()) == {"user_count", "has_superuser"}
+    assert set(body.keys()) == {
+        "user_count",
+        "has_superuser",
+        "firm_role_gates_enabled",
+    }
     assert isinstance(body["user_count"], int)
     assert isinstance(body["has_superuser"], bool)
+    assert isinstance(body["firm_role_gates_enabled"], bool)
