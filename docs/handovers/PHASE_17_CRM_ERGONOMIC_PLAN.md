@@ -1,9 +1,9 @@
 # Phase 17 — CRM-Ergonomic UI Pass (PLAN)
 
-**Status:** plan v3 — Step 0 split into now-runnable operator-proxy walkthrough vs deferred solicitor launch-readiness gate (per reviewer redline on access constraints).
+**Status:** plan v4 — Step 0 converted to a virtual operator-proxy approximation so Phase 17 can move without pretending a solicitor / cold evaluator is available.
 **Branch:** `phase-17-crm-pass` off master @ `a364952`.
 **Bar:** the existing routes feel like a familiar CRM/admin workspace
-to a cold evaluator. Boring, dense, scannable, operational. No new
+to an operator-proxy evaluator. Boring, dense, scannable, operational. No new
 substrate, no new modules, no marketing surface.
 
 ## Why this is a phase, not a vibe-driven UI tweak
@@ -12,7 +12,7 @@ Phases 14 / 14.5 / 15 / 16 closed the operator layer at the
 **functional** level — the surfaces exist, the audit trail is
 honest, a fresh fork can clone-to-smoke. What we have not yet done
 is verify that the surfaces feel **coherent and operational** when
-a cold evaluator opens them with no verbal coaching.
+an evaluator opens them with no verbal coaching.
 
 Three forces push toward this being a phase now:
 
@@ -35,36 +35,41 @@ without compromising Legalise's bespoke governance substrate.
 > recognise where they are and what to do. The audit substrate
 > stays bespoke; the chrome around it should not be.
 
-## Step 0 — Cold operator-proxy walkthrough is the spec
+## Step 0 — Virtual operator-proxy walkthrough is the spec
 
 Phase 17 does not start with redesign. It starts with a documented
-cold walkthrough. The walkthrough output **is** the design spec —
-without it, the redesign becomes taste-driven inside the first three
-screens.
+operator-proxy walkthrough. The walkthrough output **is** the design
+spec — without it, the redesign becomes taste-driven inside the first
+three screens.
 
 A solicitor walkthrough cannot be commissioned before Monday, and
 gating Phase 17 implementation on solicitor access would stall
-indefinitely. The plan therefore splits the walkthrough into two
-distinct gates with different timelines.
+indefinitely. A genuinely cold CRM/operator evaluator also is not
+available on demand. The plan therefore uses a clearly labelled
+virtual operator-proxy approximation now, and keeps real legal /
+operator validation as a later launch-readiness gate.
 
-### Step 0 — operator-proxy walkthrough (now-runnable, engineering gate)
+### Step 0 — virtual operator-proxy approximation (now-runnable, engineering gate)
 
-A named **cold operator-proxy evaluator** follows `docs/DEMO.md`
-end-to-end on a fresh local fork. Acceptable profiles, in
-preference order:
+The builder/reviewer follows `docs/DEMO.md` and the three target
+screens using three lenses:
 
-1. **CRM-heavy SaaS operator / founder / product person** with no
-   prior Legalise context. Closest viable proxy for the
-   recognise-the-shape test the redesign is targeting.
-2. **YC-style evaluator** with no prior project context.
-3. **Fallback only** — Andy runs a self-recorded "fresh evaluator
-   script" (numbered steps, no improvisation, no operator
-   judgement during the run). Explicitly labelled **not cold**.
-   Surfaces obvious friction only. Later genuinely-cold findings
-   override anything this fallback produced.
+1. **Evaluator lens** — what a YC / open-source evaluator expects
+   from a modern SaaS admin app.
+2. **CRM/operator lens** — what a user familiar with Salesforce,
+   HubSpot, Linear, Notion admin, or a recruiting/CRM product expects.
+3. **Legal-governance lens** — what must stay explicit because
+   Legalise is not a generic CRM: posture, grants, audit, provenance,
+   and role constraints.
 
-Not the maintainer except under the explicit fallback above. Not
-a builder on the project. Not anyone pre-briefed on the substrate.
+This is not cold research. It is an approximation. It is allowed
+only because the alternative is blocking on unavailable people while
+the product surface remains visibly unfinished. Findings must be
+phrased as observed UI/IA friction, not as user quotes.
+
+Output: `docs/handovers/PHASE_17_COLD_WALKTHROUGH.md`, retained under
+its existing filename for continuity but labelled as virtual /
+non-cold. The file locks the initial 17A / 17B / 17C order.
 
 ### Solicitor / legal-ops walkthrough (deferred, launch-readiness gate)
 
@@ -78,22 +83,24 @@ target screens, those become a follow-up sub-step (17E or a
 hotfix family) — they do not invalidate work already shipped on
 the operator-proxy basis.
 
-This split is honest: the plan acknowledges that the
-operator-proxy is a proxy, names what it cannot tell us
-(domain-specific confusion patterns a solicitor would catch),
-and pins a hard later gate for the validation pass.
-Recorded screen-share. No operator on the call to coach. Per-screen
-the recorder captures:
+This split is honest: the plan acknowledges that the virtual pass is
+a proxy, names what it cannot tell us (domain-specific confusion
+patterns a solicitor would catch), and pins a hard later gate for the
+validation pass.
+
+If a later cold operator or solicitor pass contradicts a virtual
+finding, the later pass wins.
+
+Per-screen the virtual pass captures:
 
 - What they expected the screen to do.
 - What confused them (specific copy, specific element, specific
   missing affordance).
 - What they could not do without coaching.
-- Click counts, back-button counts, "where's…?" pauses (count, with
-  timestamps).
+- Approximate "where would I click next?" pauses and route jumps.
 
-Output: `docs/handovers/PHASE_17_COLD_WALKTHROUGH.md`. Numbered
-findings per screen. Each finding is the spec for one redesign sub-task.
+Numbered findings per screen. Each finding is the spec for one
+redesign sub-task.
 
 ### Why it cannot be skipped
 
@@ -108,12 +115,12 @@ close?"
 A "consistent loading/error/empty state" sweep across 14 routes is
 a three-week project that ships nothing visible. Phase 17 names
 **three screens** as the build scope — the ones that most affect
-cold-evaluator trust based on the demo runbook's load-bearing path:
+operator-proxy trust based on the demo runbook's load-bearing path:
 
 ### Screen 1 — Matter detail (`/matters/$slug`)
 
 The account/opportunity-style record page that anchors the demo.
-This is the screen the cold evaluator stares at longest. Currently
+This is the screen the evaluator stares at longest. Currently
 its information density is uneven; the grants panel reads like a
 config file, not an operations surface; document list / artifact
 list / chronology feel like separate apps stitched together.
@@ -129,7 +136,7 @@ Salesforce / Linear / HubSpot record pages.
 The integrations marketplace / admin page. Currently it's a
 catalog grid that — though Phase 14.5 added installed-state
 badges — doesn't make installed vs available operationally
-obvious, and the trust ceremony flow reads as bespoke. Cold evaluators will
+obvious, and the trust ceremony flow reads as bespoke. Evaluators will
 expect this to look like the admin → integrations panel of any
 SaaS they've used.
 
@@ -169,7 +176,7 @@ substrate's own action strings and payload shapes.
 
 The remaining routes (admin/users, matters list, artifacts,
 modules detail, settings, jobs) all matter, but the walkthrough
-will surface their priority. If the cold walkthrough finds that
+will surface their priority. If the virtual walkthrough finds that
 `/admin/users` is more confusing than `/modules`, scope reshuffles.
 The three above are the **starting** scope, not the locked scope.
 
@@ -181,25 +188,25 @@ the target metric are kept separate.
 
 ### Hard gate (Phase 17 cannot close without all four)
 
-1. **Every P1 finding from the cold walkthrough is closed** — each
+1. **Every P1 finding from the virtual walkthrough is closed** — each
    one cited by number in the closing PR / sub-step commit.
-2. **The acceptance walkthrough completes unaided** — the named
-   evaluator runs the eight `docs/DEMO.md` steps end-to-end with
-   no operator on the call. Stops on confusion are findings, not
-   passes.
+2. **The acceptance pass completes without route guessing** — the
+   same virtual script can run the eight `docs/DEMO.md` steps
+   end-to-end without needing hidden URLs, direct DB edits, or
+   off-screen explanation.
 3. **Phase 15 e2e stays green** on the merge candidate.
 4. **No substrate touches** in any sub-step PR (tripwire below).
 
 ### Target metric (evidence, not gate)
 
-A 40% reduction in clicks, back-button presses, and "where's…?"
-pauses on the three redesigned screens vs the cold-walkthrough
-baseline. The numbers go in `PHASE_17_ACCEPTANCE.md` either way;
-they are an honesty check on whether the redesign actually
+A visible reduction in route jumps, hidden-URL guesses, and
+"where would I click next?" pauses on the three redesigned screens vs
+the virtual baseline. The numbers go in `PHASE_17_ACCEPTANCE.md`
+either way; they are an honesty check on whether the redesign actually
 improved comprehension, not the line that decides ratification.
 
-Two walkthroughs total: one before (the cold walkthrough that
-produces the spec), one after (the acceptance run). Numbers
+Two passes total: one before (the virtual walkthrough that produces
+the spec), one after (the acceptance run). Notes are
 published in `PHASE_17_COLD_WALKTHROUGH.md` and
 `PHASE_17_ACCEPTANCE.md`. The reviewer holds both docs against
 the redesign.
@@ -225,12 +232,11 @@ Talent without re-implementation is out of scope.
 Mirroring the Phase 16 cadence: each sub-step is its own PR /
 commit family; each ratifies independently.
 
-1. **Step 0 — operator-proxy walkthrough.** Reviewer commissions a
-   cold CRM/SaaS operator (or runs the Andy fallback per §Step 0);
-   recording + writeup; produces `PHASE_17_COLD_WALKTHROUGH.md`.
-   Phase 17 does not advance without this artifact. The deferred
-   solicitor walkthrough is a separate launch-readiness gate, not
-   blocking this sub-step.
+1. **Step 0 — virtual operator-proxy walkthrough.** Builder/reviewer
+   fills `PHASE_17_COLD_WALKTHROUGH.md` from the virtual pass. Phase
+   17 does not advance without this artifact. The deferred solicitor
+   walkthrough is a separate launch-readiness gate, not blocking this
+   sub-step.
 2. **17A — matter detail redesign.** Targets the screen with
    the highest dwell time in the walkthrough.
 3. **17B — modules page redesign.** Targets the installed-vs-
@@ -240,13 +246,13 @@ commit family; each ratifies independently.
 5. **17D — acceptance walkthrough.** Same evaluator, fresh fork,
    record numbers; publish `PHASE_17_ACCEPTANCE.md`.
 
-If the cold walkthrough reorders these three screens by priority,
+If the virtual walkthrough reorders these three screens by priority,
 the build order follows. Hard-coded order is wrong; walkthrough-
 driven order is right.
 
 ## Substrate-gap discipline (load-bearing)
 
-Some friction the cold walkthrough surfaces will not be UX gaps —
+Some friction the virtual walkthrough surfaces will not be UX gaps —
 it will be the substrate exposing real holes (e.g. a grants panel
 that's hard to scan because the substrate returns every grant
 string without grouping; an audit timeline that's confusing
@@ -286,12 +292,12 @@ sub-step PR; a single matching path blocks ratification.
 
 ## Reviewer answers (resolved)
 
-1. **Walkthrough recorder.** Now-runnable Step 0 uses a cold
-   CRM/SaaS operator, founder, or product person. Andy-as-fallback
-   is allowed but explicitly marked non-cold. UK solicitor /
-   legal-ops walkthrough deferred to the launch-readiness gate
-   before public release / design-partner outreach. Not the
-   maintainer (except under fallback), not pre-briefed.
+1. **Walkthrough recorder.** Now-runnable Step 0 uses a virtual
+   operator-proxy approximation because no solicitor, legal-ops
+   practitioner, or genuinely cold operator is available before the
+   work must continue. UK solicitor / legal-ops walkthrough remains a
+   launch-readiness gate before public release / design-partner
+   outreach.
 2. **Branch strategy.** Single long-running `phase-17-crm-pass`
    branch with sub-step commits.
 3. **40% threshold.** Target metric, not hard gate. Hard gate is
