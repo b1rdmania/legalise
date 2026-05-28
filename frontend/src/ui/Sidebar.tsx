@@ -139,7 +139,22 @@ export function Sidebar({
 }) {
   const auth = useAuth();
   const isAdmin = route.name === "adminUsers" || route.name === "adminUserDetail";
-  const onMatter = route.name === "detail" && !!matter;
+  // The matter sub-nav must stay visible across every matter sub-route
+  // (detail tabs, audit, artifacts) — not just `detail` — so the
+  // workspace context doesn't vanish from the rail when you open the
+  // audit trail or an artifact. Derive the slug from the route itself,
+  // since the drawer-matter is cleared when MatterDetail unmounts.
+  const matterSlug =
+    route.name === "detail" ||
+    route.name === "matterAudit" ||
+    route.name === "matterArtifacts" ||
+    route.name === "matterArtifactDetail"
+      ? route.slug
+      : null;
+  const onMatterArea = matterSlug !== null;
+  const onMatterArtifacts =
+    route.name === "matterArtifacts" || route.name === "matterArtifactDetail";
+  const onMatterAuditRoute = route.name === "matterAudit";
   // /admin/audit has no named case in the route shim; match on path.
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   const onAudit = path.startsWith("/admin/audit");
@@ -176,20 +191,31 @@ export function Sidebar({
             active={route.name === "list" || route.name === "detail" || route.name === "new"}
           />
           {/* nested matter sub-sections (ratified decision #2) */}
-          {onMatter && matter && (
+          {onMatterArea && matterSlug && (
             <div className="py-1">
               <div className="px-3 pb-1 pl-7 text-[11px] uppercase tracking-widest text-muted truncate">
-                {matter.title || matter.slug}
+                {matter?.title || matterSlug}
               </div>
               {SIDEBAR_NAV.map((t) => (
                 <NavLink
                   key={t.key}
-                  href={`/matters/${matter.slug}/${t.key}`}
+                  href={`/matters/${matterSlug}/${t.key}`}
                   label={t.label}
-                  active={matterTab === t.key}
+                  active={
+                    t.key === "audit"
+                      ? onMatterAuditRoute ||
+                        (route.name === "detail" && matterTab === "audit")
+                      : route.name === "detail" && matterTab === t.key
+                  }
                   indent
                 />
               ))}
+              <NavLink
+                href={`/matters/${matterSlug}/artifacts`}
+                label="Artifacts"
+                active={onMatterArtifacts}
+                indent
+              />
             </div>
           )}
           <NavLink
