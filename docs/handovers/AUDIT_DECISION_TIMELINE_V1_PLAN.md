@@ -55,7 +55,9 @@ Group rows by `invocation_id` (present on `audit` + advice rows; absent on `stat
 
 > module invoked → model called → **artifact (output node)** → review requested → approved/rejected/overridden
 
-The **artifact node is not an audit row** — it's resolved by joining the chain's `invocation_id` to the matter's artifacts (`listArtifacts` / the artifact deep-link), or read off a `review.*` row's `payload.artifact_id`. So the chain renders the produced output as a node even though no artifact-write audit row exists. Rendered as a collapsible group with the decision outcome summarised at the head. Ungroupable rows (no `invocation_id`) stay in the chronological lane.
+The **artifact node is not an audit row** (confirmed-locked 2026-05-28). It's resolved, in priority order, from: (1) a `review.*` row's `payload.artifact_id`, (2) existing artifact deep-link context, (3) an optional `listArtifacts` join by `invocation_id`. **If no artifact resolves, the chain still renders without an output node** — never invent one. Rendered as a collapsible group with the decision outcome summarised at the head. Ungroupable rows (no `invocation_id`) stay in the chronological lane.
+
+**Deferred backend gap (do not build now):** if we later decide every produced output must be chainable, thread `artifact_ids` onto a `module.capability.completed` audit row. Only file/build this if the output-node-from-carriers proves insufficient in use.
 
 ### AT-4 — Keep deep links working
 `?invocation_id=` and `?action=` deep-links (from ArtifactDetail, ApprovalsTab, the ceremony banner) must still land correctly — pre-select the matching filter/chain on load. No URL contract changes.
