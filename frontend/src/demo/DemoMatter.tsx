@@ -6,7 +6,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
-import { WAITLIST_HREF } from "../lib/access";
 import { Badge } from "../ui/primitives";
 import { MatterNav } from "../matter/MatterNav";
 import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
@@ -23,12 +22,16 @@ import { ResearchTab } from "../modules/case_law/ResearchTab";
 import { ContractReviewTab } from "../modules/contract_review/ContractReviewTab";
 import { DEMO_SNAPSHOT } from "./snapshot";
 
-const CTA_RUN_PREMOTION = "Join the waitlist to run Pre-Motion on your own matter";
-const CTA_DRAFT_LETTER = "Join the waitlist to draft letters on your own matter";
-const CTA_UPLOAD_DOC = "Join the waitlist to upload documents to your own matter";
-const CTA_EDIT_DOC = "Join the waitlist to edit or anonymise documents on your own matter";
-const CTA_EXPORT = "Join the waitlist to export documents from your own matter";
-const CTA_CONTRACT_REVIEW = "Join the waitlist to run Contract Review on your own matter";
+// Open evaluation: one consistent prompt across all disabled demo
+// actions, not six different waitlist nags. Signup is open, so the
+// action is "create an account", not "join a waitlist".
+const CTA_CREATE_ACCOUNT = "Create a free account to run this on your own matter";
+const CTA_RUN_PREMOTION = CTA_CREATE_ACCOUNT;
+const CTA_DRAFT_LETTER = CTA_CREATE_ACCOUNT;
+const CTA_UPLOAD_DOC = CTA_CREATE_ACCOUNT;
+const CTA_EDIT_DOC = CTA_CREATE_ACCOUNT;
+const CTA_EXPORT = CTA_CREATE_ACCOUNT;
+const CTA_CONTRACT_REVIEW = CTA_CREATE_ACCOUNT;
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -105,7 +108,7 @@ export function DemoMatter() {
     }
   }, [rightRailCollapsed]);
 
-  const flashPosture = () => flashCta("Join the waitlist to change posture on your own matter");
+  const flashPosture = () => flashCta(CTA_CREATE_ACCOUNT);
 
   return (
     <>
@@ -139,8 +142,8 @@ export function DemoMatter() {
                 setTabAndHash={setTabAndHash}
                 initialMessages={DEMO_SNAPSHOT.assistantMessages}
                 disabled
-                disabledPlaceholder="Join the waitlist to chat with the assistant on your own matter"
-                onDisabledAction={() => flashCta("Join the waitlist to use suggested actions on your own matter")}
+                disabledPlaceholder="Create a free account to chat with the assistant on your own matter"
+                onDisabledAction={() => flashCta(CTA_CREATE_ACCOUNT)}
               />
             )}
             {tab === "documents" && (
@@ -234,10 +237,10 @@ function FlashCta({ message, onClose }: { message: string; onClose: () => void }
       </span>
       <span className="text-sm text-ink">{message}.</span>
       <a
-        href={WAITLIST_HREF}
+        href="/auth/signup"
         className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-xs font-medium min-h-[32px] inline-flex items-center"
       >
-        Join waitlist
+        Create account
       </a>
       <button
         onClick={onClose}
