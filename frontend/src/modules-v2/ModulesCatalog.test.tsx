@@ -1,215 +1,95 @@
 /**
- * Phase 14 B — ModulesCatalog regression tests.
+ * Phase 17-IA-C — ModulesCatalog (public marketplace) tests.
  *
- * Asserts the catalog renders discovered modules + links to detail.
- * Reviewer-narrow: no installed-vs-available badge expectation (that's
- * blocked by BACKEND_GAP_AUDIT finding 14-B-#1 until the substrate
- * exposes installed state).
+ * The catalog now reads the PUBLIC catalogue (getPublicModules) and
+ * renders skills grouped by plugin suite. No auth, no installed-badge,
+ * no detail-route link (cards link to source_url). Replaces the old
+ * Phase 14 B getModulesV2 tests.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import {
-  createMemoryHistory,
-  createRootRoute,
-  createRoute,
-  createRouter,
-  Outlet,
-  RouterProvider,
-} from "@tanstack/react-router";
 
 import { ModulesCatalog } from "./ModulesCatalog";
 import * as api from "../lib/api";
+import type { PublicModuleSkill } from "../lib/api";
 
-function mountAt(path: string) {
-  const root = createRootRoute({ component: () => <Outlet /> });
-  const modulesRoute = createRoute({
-    getParentRoute: () => root,
-    path: "/modules",
-    component: ModulesCatalog,
-  });
-  const moduleDetailRoute = createRoute({
-    getParentRoute: () => root,
-    path: "/modules/$moduleId",
-    component: () => <div data-testid="detail-stub" />,
-  });
-  const tree = root.addChildren([modulesRoute, moduleDetailRoute]);
-  const router = createRouter({
-    routeTree: tree,
-    history: createMemoryHistory({ initialEntries: [path] }),
-  });
-  return render(<RouterProvider router={router} />);
+function skill(over: Partial<PublicModuleSkill> = {}): PublicModuleSkill {
+  return {
+    plugin: "uk-employment-legal",
+    skill: "unfair-dismissal-screener",
+    name: "Unfair Dismissal Screener",
+    description: "Screens a dismissal against the s.94 ERA framework.",
+    declared_capabilities: ["read", "model"],
+    trust_posture: "first_party",
+    source_url: "https://github.com/b1rdmania/claude-for-uk-legal/...",
+    ...over,
+  };
 }
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  // Phase 14.5 B — every catalog mount fetches installed-modules.
-  // Default-mock to empty; badge tests override.
-  vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();
 });
 
-describe("ModulesCatalog", () => {
-  it("renders discovered modules with their headline fields", async () => {
-    vi.spyOn(api, "getModulesV2").mockResolvedValue({
-      modules: [
-        {
-          module_id: "contract-review",
-          source_kind: "v2",
-          manifest: {
-            name: "Contract Review",
-            version: "0.2.1",
-            publisher: "legalise",
-            visibility: "first_party",
-            description: "Reviews uploaded contracts for risk + flags.",
-            capabilities: [{ id: "cap-1" }, { id: "cap-2" }],
-          },
-          is_valid: true,
-          validation_errors: [],
-        },
+describe("ModulesCatalog (public marketplace)", () => {
+  it("renders skills grouped by suite", async () => {
+    vi.spyOn(api, "getPublicModules").mockResolvedValue({
+      source: { repo: "b1rdmania/claude-for-uk-legal", ref: "abc123" },
+      skills: [
+        skill(),
+        skill({
+          plugin: "uk-litigation-legal",
+          skill: "pre-motion",
+          name: "Pre-Motion",
+          description: "Adversarial premortem on a UK litigation matter.",
+        }),
       ],
-      ui_slots: [],
+      broken: [],
     });
 
-    mountAt("/modules");
+    render(<ModulesCatalog />);
     await waitFor(() => {
-      expect(screen.getByText("Contract Review")).toBeInTheDocument();
+      expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
     });
-    expect(screen.getByText("contract-review")).toBeInTheDocument();
-    expect(screen.getByText("v0.2.1")).toBeInTheDocument();
-    expect(screen.getByText(/by legalise/)).toBeInTheDocument();
-    expect(screen.getByText("first_party")).toBeInTheDocument();
-    expect(screen.getByText(/2 capabilities/)).toBeInTheDocument();
-    // The card is a link to the detail route.
-    const link = screen.getByRole("link", { name: /contract review/i });
-    expect(link).toHaveAttribute("href", "/modules/contract-review");
+    expect(screen.getByText("Pre-Motion")).toBeInTheDocument();
+    // Suite sub-section headers (prettified plugin slugs).
+    expect(screen.getByText("UK Employment")).toBeInTheDocument();
+    expect(screen.getByText("UK Litigation")).toBeInTheDocument();
+    expect(screen.getByText("2 skills")).toBeInTheDocument();
   });
 
-  it("renders empty state when registry has no modules", async () => {
-    vi.spyOn(api, "getModulesV2").mockResolvedValue({
-      modules: [],
-      ui_slots: [],
+  it("surfaces broken-manifest count", async () => {
+    vi.spyOn(api, "getPublicModules").mockResolvedValue({
+      source: { repo: "b1rdmania/claude-for-uk-legal", ref: "abc123" },
+      skills: [skill()],
+      broken: [{ plugin: "x", skill: "y", errors: [{ path: "/", message: "bad" }] }],
     });
-    mountAt("/modules");
+    render(<ModulesCatalog />);
     await waitFor(() => {
-      expect(screen.getByText(/no modules discovered/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 with manifest issues/)).toBeInTheDocument();
     });
   });
 
-  it("flags invalid manifests", async () => {
-    vi.spyOn(api, "getModulesV2").mockResolvedValue({
-      modules: [
-        {
-          module_id: "broken",
-          source_kind: "v2",
-          manifest: { name: "Broken" },
-          is_valid: false,
-          validation_errors: [{ path: "/", message: "shim could not derive" }],
-        },
-      ],
-      ui_slots: [],
+  it("renders empty state", async () => {
+    vi.spyOn(api, "getPublicModules").mockResolvedValue({
+      source: { repo: null, ref: null },
+      skills: [],
+      broken: [],
     });
-    mountAt("/modules");
+    render(<ModulesCatalog />);
     await waitFor(() => {
-      expect(screen.getByText(/manifest invalid/i)).toBeInTheDocument();
+      expect(screen.getByText(/no skills in the catalogue/i)).toBeInTheDocument();
     });
   });
 
   it("surfaces a fetch error", async () => {
-    vi.spyOn(api, "getModulesV2").mockRejectedValue(new Error("backend down"));
-    mountAt("/modules");
+    vi.spyOn(api, "getPublicModules").mockRejectedValue(new Error("backend down"));
+    render(<ModulesCatalog />);
     await waitFor(() => {
-      expect(screen.getByText(/could not load modules/i)).toBeInTheDocument();
-    });
-  });
-
-  describe("Phase 14.5 B — installed badge", () => {
-    const CATALOG_MOD = {
-      module_id: "contract-review",
-      source_kind: "v2",
-      manifest: {
-        name: "Contract Review",
-        version: "0.2.1",
-        publisher: "legalise",
-        visibility: "first_party",
-        description: "Reviews contracts.",
-        capabilities: [{ id: "review" }],
-      },
-      is_valid: true,
-      validation_errors: [],
-    };
-
-    it("renders 'Installed vX.Y' badge for an installed+enabled module", async () => {
-      vi.spyOn(api, "getModulesV2").mockResolvedValue({
-        modules: [CATALOG_MOD],
-        ui_slots: [],
-      });
-      vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
-        module_id: "contract-review",
-        version: "0.3.0",   // newer than manifest's discovery version
-        publisher: "legalise",
-        visibility: "first_party",
-        signature_status: "verified",
-        enabled: true,
-        installed_at: "2026-01-01T00:00:00",
-        installed_by_user_id: null,
-      }]);
-      mountAt("/modules");
-      await waitFor(() => {
-        expect(
-          screen.getByTestId("installed-badge-contract-review"),
-        ).toBeInTheDocument();
-      });
-      // Badge surfaces the installed version (which can differ from
-      // the discovered manifest version after an update).
-      expect(screen.getByText(/Installed v0\.3\.0/)).toBeInTheDocument();
-    });
-
-    it("renders 'Installed (disabled)' badge for a disabled installed module", async () => {
-      vi.spyOn(api, "getModulesV2").mockResolvedValue({
-        modules: [CATALOG_MOD],
-        ui_slots: [],
-      });
-      vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
-        module_id: "contract-review",
-        version: "0.3.0",
-        publisher: "legalise",
-        visibility: "first_party",
-        signature_status: "verified",
-        enabled: false,
-        installed_at: "2026-01-01T00:00:00",
-        installed_by_user_id: null,
-      }]);
-      mountAt("/modules");
-      await waitFor(() => {
-        expect(
-          screen.getByTestId("installed-disabled-badge-contract-review"),
-        ).toBeInTheDocument();
-      });
-      // The enabled-badge variant must NOT also be rendered.
-      expect(
-        screen.queryByTestId("installed-badge-contract-review"),
-      ).toBeNull();
-    });
-
-    it("renders no badge when module is not installed", async () => {
-      vi.spyOn(api, "getModulesV2").mockResolvedValue({
-        modules: [CATALOG_MOD],
-        ui_slots: [],
-      });
-      // Default empty list from beforeEach — nothing installed.
-      mountAt("/modules");
-      await waitFor(() => {
-        expect(screen.getByText("Contract Review")).toBeInTheDocument();
-      });
-      expect(
-        screen.queryByTestId("installed-badge-contract-review"),
-      ).toBeNull();
-      expect(
-        screen.queryByTestId("installed-disabled-badge-contract-review"),
-      ).toBeNull();
+      expect(screen.getByText(/could not load the catalogue/i)).toBeInTheDocument();
     });
   });
 });
