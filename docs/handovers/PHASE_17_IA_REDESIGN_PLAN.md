@@ -238,6 +238,34 @@ Each sub-step ratifies independently. Routes stay working throughout
 - The governance surfaces (posture, grants, audit) stay first-class —
   the IA must make them *more* legible, never hide them.
 
+## Build progress (2026-05-28, all shipped to production)
+
+- **17-IA-A — app shell.** ✅ Shipped. `frontend/src/ui/Sidebar.tsx` +
+  AppShell rewrite. Persistent left sidebar (Dashboard / Matters /
+  Modules / Audit · Settings / Admin · account bottom-left), matter
+  sub-nav nests, mobile drawer. Renders for logged-in app routes;
+  marketing/logged-out keeps the old TopBar.
+- **17-IA-B — matter record.** ✅ Shipped. Removed the duplicate
+  MatterNav/breadcrumb; record leads (defaults to documents not chat);
+  assistant collapsed by default; slim record header in canonical
+  tokens; compact upload control.
+- **17-IA-C — modules marketplace.** ✅ Shipped. Public catalogue
+  (`getPublicModules`), grouped by suite, fixes the MOD-1 401.
+- **17-IA-D — dashboard.** ✅ Shipped. `/app` is a two-column light
+  dashboard (recent matters + recent activity + quick links).
+
+**Remaining:**
+- **17-IA-E — acceptance walk.** Re-walk DEMO.md on production; confirm
+  one coherent nav, no orphan links.
+- **Shared-primitives / density pass.** A-D each used canonical tokens
+  ad hoc; the formal extraction of shared section/card/row primitives
+  (so density can't drift) is still owed.
+- **Polish carried from the walkthrough:** stale "Join waitlist to
+  edit/anonymize" copy on the matter surface (EditPanel/AnonymiseButton);
+  module install ceremony reachability from the marketplace; the
+  marketing/landing top-right account vs the new shell (logged-out is
+  still the old TopBar — fine, but worth a coherence pass later).
+
 ## Decisions (ratified by Andy 2026-05-28)
 
 1. **App home:** light **dashboard** (recent matters + recent audit),
