@@ -238,7 +238,21 @@ Each sub-step ratifies independently. Routes stay working throughout
 - The governance surfaces (posture, grants, audit) stay first-class —
   the IA must make them *more* legible, never hide them.
 
-## Open questions for the reviewer
+## Decisions (ratified by Andy 2026-05-28)
+
+1. **App home:** light **dashboard** (recent matters + recent audit),
+   not a bare matters list.
+2. **Matter sub-nav:** **everything in the sidebar.** No main-area
+   tabs. The global sidebar persists; opening a matter expands its
+   sub-sections (Overview / Documents / Chronology / Workflows /
+   Audit / Assistant) as a nested group in the sidebar. Main area
+   shows only the selected section's content.
+3. **Modules:** public-catalog render rewrite approved (frontend only).
+4. **Scope:** **full shell**, all surfaces wired, before the
+   acceptance walk.
+5. **Mobile:** in scope; sidebar collapses to a drawer.
+
+## Original open questions (now resolved above)
 
 1. **App home.** When a signed-in user lands, what's the default
    surface — Matters list, or a light dashboard (recent matters +
