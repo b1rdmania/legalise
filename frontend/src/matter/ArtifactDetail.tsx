@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { readArtifact, type ArtifactRead } from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
+import { DescItem as DT } from "../ui/primitives";
 
 type Query =
   | { status: "loading" }
@@ -122,15 +123,6 @@ export function ArtifactDetail({
           See audit trail for this invocation
         </a>
       </section>
-    </div>
-  );
-}
-
-function DT({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="mt-1">{children}</dd>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
   type UserRole,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import { DescItem as DT } from "../ui/primitives";
 
 type Query =
   | { status: "loading" }
@@ -277,15 +278,6 @@ export function AdminUserDetail({ userId }: { userId: string }) {
           ← All users
         </Link>
       </section>
-    </div>
-  );
-}
-
-function DT({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="mt-1">{children}</dd>
     </div>
   );
 }

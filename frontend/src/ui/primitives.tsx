@@ -174,3 +174,22 @@ export function ToggleButton({
     </button>
   );
 }
+
+// Phase 18-F — label-over-value pair, the one cross-screen duplication
+// the Step B-E pass proved out (InstallCeremony, ArtifactDetail,
+// AdminUserDetail each had an identical local `DT`). Consolidated here;
+// no visual change. Used by detail/record pages for metadata grids.
+export function DescItem({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
+      <dd className="mt-1">{children}</dd>
+    </div>
+  );
+}

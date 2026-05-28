@@ -37,6 +37,7 @@ import {
   type CeremonyAction,
   type CeremonyResponse,
 } from "../lib/api";
+import { DescItem as DT } from "../ui/primitives";
 
 const ORDERED_STATES: ReadonlyArray<{
   key: string;
@@ -307,15 +308,6 @@ function PermissionCard({
         <DT label="Audit events">{events.length}</DT>
       </dl>
     </section>
-  );
-}
-
-function DT({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="mt-1">{children}</dd>
-    </div>
   );
 }
 
