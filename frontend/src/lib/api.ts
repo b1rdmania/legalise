@@ -198,6 +198,9 @@ export function apiFetch(input: string, init: RequestInit = {}): Promise<Respons
 export interface BootstrapState {
   user_count: number;
   has_superuser: boolean;
+  // Phase 17.5 — when false (default), the firm role hierarchy is
+  // dormant: don't present B_mixed qualified-solicitor blockers.
+  firm_role_gates_enabled?: boolean;
 }
 
 // Phase 13b C — no auth required. The /app first-run screen reads this

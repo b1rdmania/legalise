@@ -6,6 +6,7 @@ import {
   exportLetterDocx,
   exportPreMotionDocx,
   exportPreMotionPdf,
+  getBootstrapState,
   getChronology,
   getLetterCatalogue,
   getMatter,
@@ -86,6 +87,11 @@ export function MatterDetail({ slug }: { slug: string }) {
   const [matter, setMatter] = useState<Matter | null>(null);
   const [docs, setDocs] = useState<MatterDocument[] | null>(null);
   const [audit, setAudit] = useState<AuditEntry[] | null>(null);
+  // Phase 17.5 — whether the firm role hierarchy is enforced. Drives
+  // the posture banner: dormant (default) means no B_mixed
+  // qualified-solicitor blocker. Defaults true (enforced) until the
+  // system state resolves, so we never silently hide a live gate.
+  const [firmRoleGates, setFirmRoleGates] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [premotion, setPremotion] = useState<PreMotionRunResult | null>(null);
   const [premotionRunning, setPremotionRunning] = useState(false);
@@ -135,6 +141,9 @@ export function MatterDetail({ slug }: { slug: string }) {
       .catch((e) => setError(String(e)));
     listDocuments(slug).then(setDocs).catch(() => undefined);
     listAudit(slug, 30).then(setAudit).catch(() => undefined);
+    getBootstrapState()
+      .then((s) => setFirmRoleGates(s.firm_role_gates_enabled ?? true))
+      .catch(() => undefined);
     getChronology(slug).then(setChron).catch(() => undefined);
     getLetterCatalogue(slug)
       .then((cat) => {
@@ -367,6 +376,7 @@ export function MatterDetail({ slug }: { slug: string }) {
             <PostureBanner
               posture={matter.privilege_posture}
               user={auth.user}
+              firmRoleGatesEnabled={firmRoleGates}
               onChangePosture={onPostureChange}
             />
           )}

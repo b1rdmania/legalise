@@ -39,6 +39,12 @@ jobs:
       # env via the same ${VAR:-default} mechanism that plumbs
       # POSTGRES_DSN.
       CORS_ORIGINS: '["http://localhost:3000","http://localhost:4173","https://legalise.dev"]'
+      # Phase 17.5 — the e2e posture suite asserts firm-mode (enforced)
+      # behaviour: B_mixed shows the qualified-solicitor banner, etc.
+      # Production defaults this OFF (dormant); the e2e backend runs it
+      # ON so the firm-mode coverage stays green. Compose interpolates
+      # it via the same ${VAR:-default} mechanism as POSTGRES_DSN.
+      LEGALISE_FIRM_ROLE_GATES_ENABLED: "true"
     defaults:
       run:
         working-directory: frontend

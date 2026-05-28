@@ -219,6 +219,69 @@ def test_policy_table_shape_is_two_postures() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Phase 17.5 — dormant firm role gates (LEGALISE_FIRM_ROLE_GATES_ENABLED=false)
+# ---------------------------------------------------------------------------
+
+
+def test_dormant_b_mixed_allows_plain_solicitor() -> None:
+    """Dormant mode: B_mixed no longer demands qualified_solicitor — a
+    default 'solicitor' (any authenticated actor) is allowed. This is
+    the eval-product behaviour."""
+    r = _evaluate_posture(
+        posture=PRIVILEGE_MIXED,
+        actor_role="solicitor",
+        firm_role_gates_enabled=False,
+    )
+    assert r.allowed is True
+    assert r.required_role == "any_authenticated"
+
+
+def test_dormant_b_mixed_still_blocks_unauthenticated() -> None:
+    """Dormant mode relaxes the role TIER, not authentication —
+    'any_authenticated' still needs a non-None role."""
+    r = _evaluate_posture(
+        posture=PRIVILEGE_MIXED,
+        actor_role=None,
+        firm_role_gates_enabled=False,
+    )
+    assert r.allowed is False
+
+
+def test_dormant_c_paused_still_hard_stops() -> None:
+    """C_paused is a hard stop regardless of the flag — it means the
+    matter is paused, not a junior/senior tier."""
+    r = _evaluate_posture(
+        posture=PRIVILEGE_PAUSED,
+        actor_role="qualified_solicitor",
+        firm_role_gates_enabled=False,
+    )
+    assert r.allowed is False
+    assert r.reason == "posture_paused"
+
+
+def test_dormant_a_cleared_unchanged() -> None:
+    """A_cleared is any_authenticated in both modes."""
+    r = _evaluate_posture(
+        posture=PRIVILEGE_CLEARED,
+        actor_role="solicitor",
+        firm_role_gates_enabled=False,
+    )
+    assert r.allowed is True
+
+
+def test_enforced_mode_unchanged_b_mixed_blocks_solicitor() -> None:
+    """Belt-and-braces: with the flag enabled, B_mixed still blocks a
+    plain solicitor (the firm-mode policy still works)."""
+    r = _evaluate_posture(
+        posture=PRIVILEGE_MIXED,
+        actor_role="solicitor",
+        firm_role_gates_enabled=True,
+    )
+    assert r.allowed is False
+    assert r.required_role == "qualified_solicitor"
+
+
+# ---------------------------------------------------------------------------
 # Integration tests — Contract Review wiring + audit emission
 # ---------------------------------------------------------------------------
 

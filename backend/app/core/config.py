@@ -64,6 +64,19 @@ class Settings(BaseSettings):
     allow_server_key_fallback: bool = Field(
         default=False, alias="LEGALISE_ALLOW_SERVER_KEY_FALLBACK"
     )
+    # Phase 17.5 — firm role gates. When true, the law-firm role
+    # hierarchy is enforced: B_mixed matters require qualified_solicitor
+    # (posture gate) and advice-boundary tiers enforce their role rules.
+    # When false (the default for local/hosted/eval), those gates go
+    # DORMANT — any authenticated user can run B_mixed matters — so an
+    # evaluator doesn't have to learn the solicitor hierarchy to use the
+    # demo. C_paused stays a hard stop regardless. The substrate (roles,
+    # posture/advice primitives, admin role pages, audit) is unchanged;
+    # this only toggles enforcement. Named setting, NOT inferred from
+    # ENVIRONMENT, so support/debugging is unambiguous.
+    firm_role_gates_enabled: bool = Field(
+        default=False, alias="LEGALISE_FIRM_ROLE_GATES_ENABLED"
+    )
 
     # Email — Resend transactional provider.
     resend_api_key: str | None = None

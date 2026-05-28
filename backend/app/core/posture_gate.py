@@ -114,14 +114,28 @@ class PostureBlocked(Exception):
         )
 
 
-def _build_gate_state(result: PostureGateResult) -> dict[str, Any]:
-    """Canonical gate_state shape — readers key off ``gate``."""
+def _build_gate_state(
+    result: PostureGateResult, *, firm_role_gates_enabled: bool
+) -> dict[str, Any]:
+    """Canonical gate_state shape — readers key off ``gate``.
+
+    Phase 17.5: every emitted gate decision records whether the firm
+    role hierarchy was enforced or dormant, so the audit stays truthful
+    about *why* a check resolved the way it did. The actor role is never
+    faked.
+    """
     return {
         "gate": "privilege_posture",
         "posture": result.posture,
         "required_role": result.required_role,
         "actor_role": result.actor_role,
         "reason": result.reason or "",
+        "firm_role_gates_enabled": firm_role_gates_enabled,
+        "policy_mode": (
+            "firm_role_gates_enforced"
+            if firm_role_gates_enabled
+            else "firm_role_gates_dormant"
+        ),
     }
 
 
@@ -129,8 +143,16 @@ def _evaluate_posture(
     *,
     posture: str,
     actor_role: str | None,
+    firm_role_gates_enabled: bool = True,
 ) -> PostureGateResult:
-    """Pure-functional core: no IO, no audit. Caller emits."""
+    """Pure-functional core: no IO, no audit. Caller emits.
+
+    Phase 17.5: when ``firm_role_gates_enabled`` is False the firm role
+    hierarchy is dormant — any authenticated actor satisfies a
+    non-paused posture, so B_mixed no longer demands qualified_solicitor.
+    ``C_paused`` is a hard stop regardless of the flag (it means the
+    matter is paused, not a junior/senior tier).
+    """
     if posture == PRIVILEGE_PAUSED:
         return PostureGateResult(
             allowed=False,
@@ -153,6 +175,12 @@ def _evaluate_posture(
             actor_role=actor_role,
             reason="unknown_posture",
         )
+    # Dormant mode: the firm role hierarchy is not enforced. Any
+    # authenticated actor satisfies the (non-paused) posture. We record
+    # required_role as "any_authenticated" so the audit reflects the
+    # effective requirement, not a faked qualified_solicitor.
+    if not firm_role_gates_enabled:
+        requirement = "any_authenticated"
     if role_satisfies(
         actor_role=actor_role, requirement_set=frozenset({requirement})
     ):
@@ -189,15 +217,22 @@ async def check_posture(
     Returns the result; caller raises ``PostureBlocked(result)`` if
     ``not result.allowed``.
     """
+    from app.core.config import settings
+
+    firm_role_gates_enabled = settings.firm_role_gates_enabled
     result = _evaluate_posture(
-        posture=matter.privilege_posture, actor_role=actor_role
+        posture=matter.privilege_posture,
+        actor_role=actor_role,
+        firm_role_gates_enabled=firm_role_gates_enabled,
     )
     if result.allowed:
         return result
 
     blocked = BlockedPayload(
         blocked_reason=BlockedReason.GATE_BLOCKED,
-        gate_state=_build_gate_state(result),
+        gate_state=_build_gate_state(
+            result, firm_role_gates_enabled=firm_role_gates_enabled
+        ),
     )
 
     # Independent committed transaction — the request session will

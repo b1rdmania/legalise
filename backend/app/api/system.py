@@ -32,6 +32,10 @@ router = APIRouter()
 class BootstrapState(BaseModel):
     user_count: int
     has_superuser: bool
+    # Phase 17.5 — surfaced so the SPA knows whether to present the
+    # firm role hierarchy (e.g. the B_mixed qualified-solicitor posture
+    # banner). False (default) = dormant: don't show role blockers.
+    firm_role_gates_enabled: bool
 
 
 @router.get(
@@ -53,7 +57,10 @@ async def bootstrap_state_endpoint(
         .select_from(User)
         .where(User.is_superuser == True)  # noqa: E712
     )
+    from app.core.config import settings
+
     return BootstrapState(
         user_count=int(user_count or 0),
         has_superuser=bool(has_superuser or 0),
+        firm_role_gates_enabled=settings.firm_role_gates_enabled,
     )

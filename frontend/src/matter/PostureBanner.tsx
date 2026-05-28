@@ -35,6 +35,12 @@ type Posture = "A_cleared" | "B_mixed" | "C_paused" | string;
 interface Props {
   posture: Posture;
   user: CurrentUser | null;
+  // Phase 17.5 — when the firm role hierarchy is dormant (default
+  // hosted/eval mode), B_mixed does NOT require qualified_solicitor, so
+  // the role-blocker banner is suppressed. C_paused still always shows
+  // (it's a hard stop, not a role tier). Defaults to true (enforced) so
+  // omitting it preserves firm-mode behaviour for existing callers/tests.
+  firmRoleGatesEnabled?: boolean;
   // Phase 14 G — admin posture change. Optional so non-matter
   // callers (tests, future surfaces) can omit. When provided AND
   // the viewer is a superuser, an inline "Change posture" control
@@ -56,7 +62,12 @@ const ALL_POSTURES: ReadonlyArray<Posture> = [
 // substrate behaviour (ACCEPTANCE.md §14).
 const ROLE_THAT_SATISFIES_B_MIXED = "qualified_solicitor";
 
-export function PostureBanner({ posture, user, onChangePosture }: Props) {
+export function PostureBanner({
+  posture,
+  user,
+  firmRoleGatesEnabled = true,
+  onChangePosture,
+}: Props) {
   const adminCanChange =
     onChangePosture !== undefined && user?.is_superuser === true;
 
@@ -88,6 +99,9 @@ export function PostureBanner({ posture, user, onChangePosture }: Props) {
   // B_mixed (or any unknown posture — fail closed). Only show the
   // banner when the actor's role doesn't satisfy the requirement.
   if (posture === "B_mixed") {
+    // Phase 17.5 — dormant mode: B_mixed doesn't enforce the firm role
+    // hierarchy, so any authenticated user runs it; no blocker banner.
+    if (!firmRoleGatesEnabled) return null;
     const satisfies = !!user && user.role === ROLE_THAT_SATISFIES_B_MIXED;
     if (satisfies) return null;
 

@@ -75,6 +75,10 @@ services:
       # this exact mechanism. Always one driver per workflow.
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","https://legalise.dev"]}
+      # Phase 17.5 — firm role gates default DORMANT (false) for local
+      # dev/eval; the e2e workflow exports true so its posture suite can
+      # assert firm-mode enforcement. Same ${VAR:-default} pattern.
+      LEGALISE_FIRM_ROLE_GATES_ENABLED: ${LEGALISE_FIRM_ROLE_GATES_ENABLED:-false}
       # Plugin bind-mount target; matches the volume below.
       PLUGINS_ROOT: /plugins
     ports:

@@ -59,6 +59,21 @@ def _probe_dsn(dsn: str) -> bool:
         return False
 
 
+@pytest.fixture(autouse=True)
+def _firm_role_gates_enforced_in_tests(monkeypatch):
+    """Phase 17.5: production defaults firm role gates to DORMANT
+    (``LEGALISE_FIRM_ROLE_GATES_ENABLED=false``), but the suite asserts
+    firm-mode (enforced) behaviour throughout — B_mixed requires
+    qualified_solicitor, advice tiers enforce roles, etc. Default every
+    test to enforced so that existing coverage keeps proving the
+    law-firm policy; dormant-specific tests override
+    ``settings.firm_role_gates_enabled`` to False explicitly.
+    """
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "firm_role_gates_enabled", True, raising=False)
+
+
 @pytest_asyncio.fixture
 async def engine():
     """Function-scoped on purpose. pytest-asyncio uses a per-test event

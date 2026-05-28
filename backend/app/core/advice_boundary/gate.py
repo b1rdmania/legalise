@@ -333,8 +333,20 @@ async def check(
             }
         role_requirement = INITIAL_TIER_ROLE_REQUIREMENTS[requested_tier]
 
-    # Role check.
-    if not role_satisfies(actor_role=actor_role, requirement_set=role_requirement):
+    # Role check. Phase 17.5: when firm role gates are dormant
+    # (LEGALISE_FIRM_ROLE_GATES_ENABLED=false, the default for
+    # local/hosted/eval), the firm role hierarchy is not enforced —
+    # any authenticated actor satisfies the tier role requirement.
+    # The substrate/tier vocabulary is unchanged; only enforcement
+    # toggles. (Note: the default demo flow doesn't escalate into the
+    # qualified_solicitor tiers, so this rarely fires either way — but
+    # the flag must govern ALL firm-role enforcement, not just posture.)
+    from app.core.config import settings
+
+    role_ok = (not settings.firm_role_gates_enabled) or role_satisfies(
+        actor_role=actor_role, requirement_set=role_requirement
+    )
+    if not role_ok:
         blocked = BlockedPayload(
             blocked_reason=BlockedReason.ROLE_DENIED,
             gate_state={
