@@ -187,16 +187,16 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
       <section className="mt-10">
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          Change role
+          Firm role controls
         </h2>
         <p className="mt-2 text-xs text-muted">
-          Body is <code className="font-mono">{`{role}`}</code> only —
-          the substrate hardcodes the audit reason to{" "}
-          <code className="font-mono">manual_admin_action</code>.
-          Same-role POSTs are idempotent server-side (no audit row);
-          this form blocks them client-side too by disabling submit
-          when the draft matches the current role. Self-promotion is
-          forbidden — another superuser must act.
+          These are deployment controls for firms that enforce role
+          gates. By default the gates are dormant — hosted evaluation
+          lets everyone run matters — so changing a role here has no
+          effect unless your deployment turns firm role enforcement on.
+          Self-promotion is blocked: another superuser must change your
+          role. Setting a user to the role they already hold is a no-op
+          and writes no audit row.
         </p>
         <form onSubmit={onSubmit} className="mt-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col text-xs text-muted">
@@ -238,12 +238,11 @@ export function AdminUserDetail({ userId }: { userId: string }) {
         {m.kind === "ok" && (
           <p className="mt-3 text-sm text-muted">
             Role set to{" "}
-            <code className="font-mono">{m.newRole}</code>. If this
-            was a fresh write, the substrate emitted{" "}
-            <code className="font-mono">user.role.changed</code>; if
-            the role was already X, Phase 11's idempotent path
-            returned 200 without emitting. The response does not
-            distinguish; reconstruction is the source of truth.
+            <code className="font-mono">{m.newRole}</code>. A real change
+            writes a <code className="font-mono">user.role.changed</code>{" "}
+            audit row; setting a role that was already in place is a no-op
+            and writes nothing. The audit trail is the source of truth for
+            which happened.
           </p>
         )}
         {m.kind === "self_promotion_forbidden" && (
