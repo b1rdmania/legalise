@@ -1552,6 +1552,18 @@ export const getDocumentBody = (documentId: string) =>
     jsonOrThrow<DocumentBody>(r),
   );
 
+// Original File Retrieval v1 — browser-navigable URL for the streamed
+// backend proxy. Used directly as an <a href> (open inline) or with
+// download=1 (attachment); the browser handles the response, so this
+// returns a URL rather than fetching bytes through React state.
+export const documentOriginalUrl = (
+  documentId: string,
+  opts?: { download?: boolean },
+): string =>
+  `${API}/documents/${encodeURIComponent(documentId)}/original${
+    opts?.download ? "?download=1" : ""
+  }`;
+
 export const postEditInstruction = (
   documentId: string,
   instruction: string,

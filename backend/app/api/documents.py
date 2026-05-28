@@ -13,7 +13,7 @@ from datetime import datetime
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -24,7 +24,7 @@ from app.core.db import get_session
 from app.core.storage import get_storage_backend, StorageReadError
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
-from app.core.api import audit
+from app.core.api import audit, audit_failure
 from app.models import AuditEntry, Document, DocumentEdit, DocumentVersion, Matter, User, STATUS_ARCHIVED
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_edit import (
@@ -323,6 +323,104 @@ async def download_generated_docx(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(data)),
+        },
+    )
+
+
+# -- Original file retrieval (streamed backend proxy) ----------------------
+
+
+@router.get("/{document_id}/original")
+async def get_document_original(
+    document_id: uuid.UUID,
+    download: int = Query(0),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> StreamingResponse:
+    """Stream the original uploaded bytes for a matter document.
+
+    Governed proxy (not a presigned URL): access stays behind the
+    backend so auth, audit, and failure envelopes live inside the
+    product boundary. **Owner-only** — matching the existing body /
+    versions endpoints; there is deliberately no superuser/admin
+    document-read shortcut (admin document inspection, if ever needed,
+    must be a separate explicit policy, not smuggled into this path).
+    Cross-user / archived / missing all return a uniform 404.
+    `?download=1` switches the disposition from inline to attachment.
+    Every successful access writes `document.original.accessed`.
+    """
+    doc = await session.scalar(select(Document).where(Document.id == document_id))
+    if doc is None:
+        raise HTTPException(404, "document not found")
+    matter = await session.scalar(select(Matter).where(Matter.id == doc.matter_id))
+    # Owner-only; archived is gone for everyone. Uniform 404 so we never
+    # leak which documents exist for other users. No superuser branch by
+    # design (see docstring).
+    if (
+        matter is None
+        or matter.status == STATUS_ARCHIVED
+        or matter.created_by_id != user.id
+    ):
+        raise HTTPException(404, "document not found")
+    if not doc.storage_uri:
+        raise HTTPException(404, "original file not available")
+
+    storage = get_storage_backend()
+    try:
+        data = storage.get_bytes(doc.storage_uri)
+    except KeyError:
+        raise HTTPException(404, "original file not available")
+    except StorageReadError as exc:
+        await audit_failure(
+            session,
+            "storage.get_bytes.failed",
+            actor_id=user.id,
+            matter_id=doc.matter_id,
+            module="storage",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "storage_key": doc.storage_uri,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_read_failed",
+                "message": "Failed to read the original document from object storage.",
+                "storage_key": doc.storage_uri,
+                "backend": exc.backend,
+            },
+        ) from exc
+
+    is_download = bool(download)
+    await audit.log(
+        session,
+        "document.original.accessed",
+        actor_id=user.id,
+        matter_id=doc.matter_id,
+        resource_type="document",
+        resource_id=str(doc.id),
+        payload={
+            "filename": doc.filename,
+            "sha256": doc.sha256,
+            "mime_type": doc.mime_type,
+            "size_bytes": doc.size_bytes,
+            "download": is_download,
+        },
+    )
+    await session.commit()
+
+    filename = _safe_filename(doc.filename, str(doc.id))
+    disposition = "attachment" if is_download else "inline"
+    return StreamingResponse(
+        iter([data]),
+        media_type=doc.mime_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f'{disposition}; filename="{filename}"',
             "Content-Length": str(len(data)),
         },
     )

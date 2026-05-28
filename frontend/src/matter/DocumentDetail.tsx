@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  documentOriginalUrl,
   getAnonymisation,
   getDocumentBody,
   getDocumentVersions,
@@ -158,12 +159,24 @@ export function DocumentDetail({
         </DescItem>
       </dl>
 
-      {/* Original-file gap (G1) — honest note, no fake download button. */}
-      <p className="mt-4 border border-rule bg-wash p-3 text-xs text-muted">
-        The original uploaded file isn't available to download in-app yet — the
-        workspace stores its extracted text, versions, and provenance. Original-
-        file retrieval is a tracked backend gap.
-      </p>
+      {/* Original file — streamed backend proxy (G1 closed). */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <a
+          href={documentOriginalUrl(documentId)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+        >
+          Open original
+        </a>
+        <a
+          href={documentOriginalUrl(documentId, { download: true })}
+          className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+        >
+          Download original
+        </a>
+        <span className="text-xs text-muted">Original file access is audited.</span>
+      </div>
 
       {/* Extracted text */}
       <section className="mt-8">

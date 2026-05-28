@@ -71,7 +71,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("DocumentDetail", () => {
-  it("renders metadata + extracted text, and NO download-original button", async () => {
+  it("renders metadata + extracted text + real Open/Download original actions", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue({
       document_id: "doc-1",
@@ -90,13 +90,15 @@ describe("DocumentDetail", () => {
     });
     expect(screen.getByText("application/pdf")).toBeInTheDocument();
     expect(screen.getByText(/IN THE COUNTY COURT/)).toBeInTheDocument();
-    // Honest original-file gap note present.
+    // G1 closed: the old "not available" note is gone, real actions present.
     expect(
-      screen.getByText(/original uploaded file isn't available to download/i),
-    ).toBeInTheDocument();
-    // No fake download/open-original control.
-    expect(screen.queryByText(/download original/i)).toBeNull();
-    expect(screen.queryByText(/open (source|original) file/i)).toBeNull();
+      screen.queryByText(/original uploaded file isn't available/i),
+    ).toBeNull();
+    const open = screen.getByText("Open original");
+    const download = screen.getByText("Download original");
+    expect(open.getAttribute("href")).toContain("/documents/doc-1/original");
+    expect(open.getAttribute("href")).not.toContain("download=1");
+    expect(download.getAttribute("href")).toContain("download=1");
   });
 
   it("shows an honest empty state when no extracted body exists", async () => {
