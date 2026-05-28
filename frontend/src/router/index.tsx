@@ -27,6 +27,7 @@ import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { ReconstructionView } from "../matter/ReconstructionView";
+import { DocumentDetail } from "../matter/DocumentDetail";
 import { AdminUsersList } from "../admin/AdminUsersList";
 import { AdminUserDetail } from "../admin/AdminUserDetail";
 import { AdminAuditView } from "../admin/AdminAuditView";
@@ -309,6 +310,15 @@ const matterArtifactDetailRoute = createRoute({
   },
 });
 
+const matterDocumentDetailRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/matters/$slug/documents/$documentId",
+  component: () => {
+    const { slug, documentId } = matterDocumentDetailRoute.useParams();
+    return <DocumentDetail slug={slug} documentId={documentId} />;
+  },
+});
+
 const adminUsersRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/admin/users",
@@ -374,6 +384,7 @@ const routeTree = rootRoute.addChildren([
     matterAuditRoute,
     matterArtifactsRoute,
     matterArtifactDetailRoute,
+    matterDocumentDetailRoute,
     adminUsersRoute,
     adminUserDetailRoute,
     adminAuditRoute,

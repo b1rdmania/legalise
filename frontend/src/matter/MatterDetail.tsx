@@ -391,7 +391,7 @@ export function MatterDetail({ slug }: { slug: string }) {
             />
           )}
           {tab === "documents" && (
-            <DocumentsTab docs={docs} onUpload={onUpload} />
+            <DocumentsTab slug={slug} docs={docs} onUpload={onUpload} />
           )}
           {tab === "chronology" && (
             <ChronologyTab

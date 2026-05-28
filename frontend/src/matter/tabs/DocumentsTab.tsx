@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { ChangeEvent } from "react";
-import { EditPanel } from "../../modules/document_edit/EditPanel";
-import { AnonymiseButton } from "../../modules/anonymisation/AnonymiseButton";
+import { Link } from "@tanstack/react-router";
 import type { MatterDocument } from "../../lib/api";
 import { UploadError } from "../../lib/api";
 import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
@@ -38,9 +37,11 @@ function formatDate(iso: string): string {
 }
 
 export function DocumentsTab({
+  slug,
   docs,
   onUpload,
 }: {
+  slug: string;
   docs: MatterDocument[] | null;
   onUpload: (
     file: File,
@@ -50,7 +51,6 @@ export function DocumentsTab({
 }) {
   const [tag, setTag] = useState("");
   const [fromDisclosure, setFromDisclosure] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -135,89 +135,41 @@ export function DocumentsTab({
             {docs.map((d) => {
               const typeLabel = deriveType(d);
               return (
-                <div key={d.id} className="border-b border-rule">
-                  <div
-                    className={`${gridCols} hover:bg-wash transition-colors items-center cursor-pointer`}
-                    onClick={() =>
-                      setEditingId(editingId === d.id ? null : d.id)
-                    }
-                    title={`SHA-256 ${d.sha256}`}
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-ink truncate">
-                        {d.filename}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-muted truncate">
-                        {d.sha256.slice(0, 8)}
-                      </div>
+                <Link
+                  key={d.id}
+                  to="/matters/$slug/documents/$documentId"
+                  params={{ slug, documentId: d.id }}
+                  className={`${gridCols} border-b border-rule hover:bg-wash transition-colors items-center`}
+                  title={`SHA-256 ${d.sha256}`}
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-ink truncate">
+                      {d.filename}
                     </div>
-                    <span>
-                      <Badge>{typeLabel}</Badge>
-                    </span>
-                    <span className="text-xs text-ink">
-                      {formatBytes(d.size_bytes)}
-                    </span>
-                    <span>
-                      {d.from_disclosure ? (
-                        <Badge>CPR 31</Badge>
-                      ) : (
-                        <span className="text-xs text-muted">Upload</span>
-                      )}
-                    </span>
-                    <span className="text-xs text-ink">
-                      {formatDate(d.uploaded_at)}
-                    </span>
-                    <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                      {editingId === d.id ? "Close" : "Edit"}
-                    </span>
+                    <div className="mt-0.5 text-[11px] text-muted truncate">
+                      {d.sha256.slice(0, 8)}
+                    </div>
                   </div>
-                  {editingId === d.id && (
-                    <>
-                      <div className="border-t border-rule bg-paper p-5">
-                        <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1 font-mono text-[11px]">
-                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
-                            SHA-256
-                          </dt>
-                          <dd className="text-ink truncate">
-                            {d.sha256.slice(0, 16)}
-                          </dd>
-                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
-                            Size
-                          </dt>
-                          <dd className="text-ink">{formatBytes(d.size_bytes)}</dd>
-                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
-                            Uploaded
-                          </dt>
-                          <dd className="text-ink">{d.uploaded_at}</dd>
-                          <dt className="uppercase tracking-track2 text-[9px] text-muted self-center">
-                            Tag
-                          </dt>
-                          <dd className="text-ink">
-                            {d.tag ? d.tag.toUpperCase() : "(none)"}
-                          </dd>
-                        </dl>
-                      </div>
-                      <EditPanel
-                        documentId={d.id}
-                        filename={d.filename}
-                        onClose={() => setEditingId(null)}
-                      />
-                      <div className="border-t border-rule bg-paper p-5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
-                            Anonymise · {d.filename}
-                          </div>
-                          <AnonymiseButton documentId={d.id} />
-                        </div>
-                        <div className="text-[11px] text-muted">
-                          Generates a redacted body with [PARTY_n] / [ORG_n] / [ADDRESS_n] /
-                          [DATE_n] tokens. Original document stays unchanged. Side-by-side
-                          toggle UI lands with the routed Document detail view.
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  <span>
+                    <Badge>{typeLabel}</Badge>
+                  </span>
+                  <span className="text-xs text-ink">
+                    {formatBytes(d.size_bytes)}
+                  </span>
+                  <span>
+                    {d.from_disclosure ? (
+                      <Badge>CPR 31</Badge>
+                    ) : (
+                      <span className="text-xs text-muted">Upload</span>
+                    )}
+                  </span>
+                  <span className="text-xs text-ink">
+                    {formatDate(d.uploaded_at)}
+                  </span>
+                  <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
+                    Open
+                  </span>
+                </Link>
               );
             })}
           </div>

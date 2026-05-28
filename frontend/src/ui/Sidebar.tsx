@@ -148,12 +148,14 @@ export function Sidebar({
     route.name === "detail" ||
     route.name === "matterAudit" ||
     route.name === "matterArtifacts" ||
-    route.name === "matterArtifactDetail"
+    route.name === "matterArtifactDetail" ||
+    route.name === "matterDocumentDetail"
       ? route.slug
       : null;
   const onMatterArea = matterSlug !== null;
   const onMatterArtifacts =
     route.name === "matterArtifacts" || route.name === "matterArtifactDetail";
+  const onMatterDocumentDetail = route.name === "matterDocumentDetail";
   const onMatterAuditRoute = route.name === "matterAudit";
   // /admin/audit has no named case in the route shim; match on path.
   const path = typeof window === "undefined" ? "" : window.location.pathname;
@@ -205,7 +207,10 @@ export function Sidebar({
                     t.key === "audit"
                       ? onMatterAuditRoute ||
                         (route.name === "detail" && matterTab === "audit")
-                      : route.name === "detail" && matterTab === t.key
+                      : t.key === "documents"
+                        ? onMatterDocumentDetail ||
+                          (route.name === "detail" && matterTab === "documents")
+                        : route.name === "detail" && matterTab === t.key
                   }
                   indent
                 />
