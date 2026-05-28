@@ -23,6 +23,7 @@ import { AppHome } from "../app/AppHome";
 import { AuthGate } from "../app/AuthGate";
 import { ModulesCatalog } from "../modules-v2/ModulesCatalog";
 import { ModuleDetail } from "../modules-v2/ModuleDetail";
+import { CreateModule } from "../modules-v2/CreateModule";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
@@ -257,6 +258,14 @@ const appHomeRoute = createRoute({
   component: AppHome,
 });
 
+// Authed operator/developer create-module on-ramp. Registered before
+// /modules/$moduleId so the literal "create" segment wins.
+const createModuleRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/modules/create",
+  component: CreateModule,
+});
+
 const moduleDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/modules/$moduleId",
@@ -379,6 +388,7 @@ const routeTree = rootRoute.addChildren([
     settingsProfileRoute,
     settingsKeysRoute,
     settingsPreferencesRoute,
+    createModuleRoute,
     moduleDetailRoute,
     moduleInstallRoute,
     matterAuditRoute,

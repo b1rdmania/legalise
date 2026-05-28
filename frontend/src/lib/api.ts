@@ -237,6 +237,23 @@ export const getModuleV2 = (moduleId: string) =>
     jsonOrThrow<V2ManifestEntry>(r),
   );
 
+// Module Standalone + Create Module v1 — read-only manifest validation
+// (same validator as install). Authed; no DB write / ceremony / audit.
+export interface ManifestValidationError {
+  path: string;
+  message: string;
+}
+export interface ValidateManifestResult {
+  valid: boolean;
+  errors: ManifestValidationError[];
+}
+export const validateManifest = (manifest: unknown) =>
+  apiFetch(`${API}/modules/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ manifest }),
+  }).then((r) => jsonOrThrow<ValidateManifestResult>(r));
+
 // Phase 14.5 B — installed-modules listing. One row per module_id
 // (most recent installed_at). Frontend uses it for the catalog
 // badge and as one AND clause in GrantsPanel.runnablePairs.

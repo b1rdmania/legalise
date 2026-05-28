@@ -229,7 +229,8 @@ export function Sidebar({
             active={
               route.name === "modules" ||
               route.name === "moduleDetail" ||
-              route.name === "moduleInstall"
+              route.name === "moduleInstall" ||
+              route.name === "createModule"
             }
           />
           <NavLink href="/admin/audit" label="Audit" active={onAudit} />

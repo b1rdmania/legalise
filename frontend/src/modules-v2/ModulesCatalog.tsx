@@ -1,35 +1,42 @@
 /**
- * /modules — marketplace home (Phase 17-IA-C).
+ * /modules — the standalone Modules / Integrations home
+ * (Module Standalone v1).
  *
- * Uses the PUBLIC catalog (`getPublicModules`) so the page is a
- * browse-anyone-can-see marketplace, not a per-user authed registry
- * view. This fixes the 401/NetworkError the production walkthrough hit
- * (MOD-1) and matches the "modules are the module's home page" intent.
+ * Two distinct concepts, kept separate (ratified — no unification):
+ *   1. PRIMARY: governed reference modules from the v2 registry
+ *      (getModulesV2). These are what you install / trust / run. Each
+ *      card shows its workspace state (Available / Installed / Installed
+ *      · disabled) derived from listInstalledModules.
+ *   2. SECONDARY: the open UK-legal skill library (getPublicModules) —
+ *      browse only, NOT an install path. Collapsed by default.
  *
- * Skills are grouped by plugin suite (uk-employment-legal, etc.) as
- * labeled sub-sections. Install / trust ceremony is a separate authed
- * per-matter flow (Matter actions panel), not triggered here — this
- * page's job is browse + link to source.
- *
- * Canonical tokens only (border-rule, square, no shadow) to match the
- * Audit page density.
+ * Enablement is per-matter: installing a module at the workspace does
+ * not make it "ready everywhere" — running it is granted from a matter.
  */
 
 import { useEffect, useState } from "react";
-import { getPublicModules, type PublicModuleSkill } from "../lib/api";
+import { Link } from "@tanstack/react-router";
+import {
+  getModulesV2,
+  getPublicModules,
+  listInstalledModules,
+  type InstalledModule,
+  type PublicModuleSkill,
+  type V2ManifestEntry,
+} from "../lib/api";
+import { PageHeader } from "../ui/primitives";
+import { useAuth } from "../auth/AuthProvider";
 
-type CatalogQuery =
-  | { status: "loading" }
-  | {
-      status: "ready";
-      skills: PublicModuleSkill[];
-      broken: number;
-      repo: string | null;
-    }
-  | { status: "error"; message: string };
+type ModuleState = "available" | "installed" | "disabled";
 
-// Prettify a plugin slug into a suite label, e.g.
-// "uk-employment-legal" → "UK Employment".
+function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
+  const v = (entry.manifest as Record<string, unknown>)[key];
+  return typeof v === "string" ? v : undefined;
+}
+function capCount(entry: V2ManifestEntry): number {
+  const caps = (entry.manifest as Record<string, unknown>).capabilities;
+  return Array.isArray(caps) ? caps.length : 0;
+}
 function suiteLabel(plugin: string): string {
   return plugin
     .replace(/-legal$/, "")
@@ -38,70 +45,194 @@ function suiteLabel(plugin: string): string {
     .join(" ");
 }
 
+const STATE_LABEL: Record<ModuleState, string> = {
+  available: "Available",
+  installed: "Installed",
+  disabled: "Installed · disabled",
+};
+
 export function ModulesCatalog() {
-  const [q, setQ] = useState<CatalogQuery>({ status: "loading" });
+  // /modules is a public route (anyone can browse). The v2 registry +
+  // installed-state calls are authed, so only fire them for a signed-in
+  // user; anon browsers still get the open skill library below.
+  const auth = useAuth();
+  const authed = !!auth.user;
+  const [modules, setModules] = useState<V2ManifestEntry[] | null>(null);
+  const [installed, setInstalled] = useState<Map<string, InstalledModule>>(new Map());
+  const [skills, setSkills] = useState<PublicModuleSkill[] | null>(null);
+  const [skillsRepo, setSkillsRepo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showSkills, setShowSkills] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    if (authed) {
+      getModulesV2()
+        .then((res) => {
+          if (!cancelled) setModules(res.modules);
+        })
+        .catch((err: unknown) => {
+          if (!cancelled) setError(String(err));
+        });
+      listInstalledModules()
+        .then((rows) => {
+          if (cancelled) return;
+          const idx = new Map<string, InstalledModule>();
+          for (const r of rows) idx.set(r.module_id, r);
+          setInstalled(idx);
+        })
+        .catch(() => undefined);
+    }
     getPublicModules()
       .then((res) => {
-        if (!cancelled)
-          setQ({
-            status: "ready",
-            skills: res.skills,
-            broken: res.broken.length,
-            repo: res.source.repo,
-          });
+        if (cancelled) return;
+        setSkills(res.skills);
+        setSkillsRepo(res.source.repo);
       })
-      .catch((err: unknown) => {
-        if (!cancelled) setQ({ status: "error", message: String(err) });
-      });
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authed]);
+
+  const stateOf = (moduleId: string): ModuleState => {
+    const row = installed.get(moduleId);
+    if (!row) return "available";
+    return row.enabled ? "installed" : "disabled";
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <p className="text-[11px] uppercase tracking-widest text-muted">Workspace</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Modules</h1>
-      <p className="mt-2 text-sm text-muted">
-        Browse the open catalogue of legal skills. Installing and
-        trusting a module, then granting it on a matter, happens from the
-        matter workspace — this page is for browsing what is available.
-      </p>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Modules"
+        description="Governed legal capabilities. Install a reference module at the workspace, then grant and run it per matter — installing here does not make it ready everywhere."
+        actions={
+          <Link
+            to="/modules/create"
+            className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+          >
+            Create module
+          </Link>
+        }
+      />
 
-      {q.status === "loading" && (
-        <p className="mt-8 text-sm text-muted">Loading catalogue…</p>
+      {error && (
+        <p className="text-sm text-seal">Could not load modules: {error}</p>
       )}
-      {q.status === "error" && (
-        <p className="mt-8 text-sm text-seal">
-          Could not load the catalogue: {q.message}
-        </p>
-      )}
-      {q.status === "ready" && <Catalogue {...q} />}
+
+      {/* Primary: reference modules (v2 registry) */}
+      <section>
+        <h2 className="text-xs uppercase tracking-widest text-muted">
+          Reference modules
+        </h2>
+        {!authed ? (
+          <p className="mt-3 text-sm text-muted" data-testid="modules-signin-prompt">
+            Sign in to install and manage governed reference modules. The open
+            skill library below is browsable without an account.
+          </p>
+        ) : modules === null ? (
+          <p className="mt-3 text-sm text-muted">Loading modules…</p>
+        ) : modules.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No reference modules in the registry yet.
+          </p>
+        ) : (
+          <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
+            {modules.map((m) => {
+              const st = stateOf(m.module_id);
+              const caps = capCount(m);
+              return (
+                <li key={m.module_id} className="bg-paper p-4 hover:bg-wash transition-colors">
+                  <Link
+                    to="/modules/$moduleId"
+                    params={{ moduleId: m.module_id }}
+                    className="block"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="text-sm font-medium text-ink">
+                        {manifestStr(m, "name") ?? m.module_id}
+                      </h3>
+                      <span
+                        className={
+                          "shrink-0 text-[10px] uppercase tracking-widest " +
+                          (st === "available"
+                            ? "text-muted"
+                            : st === "installed"
+                              ? "text-ink"
+                              : "text-seal")
+                        }
+                        data-testid={`module-state-${m.module_id}`}
+                      >
+                        {STATE_LABEL[st]}
+                      </span>
+                    </div>
+                    <p className="mt-1 font-mono text-[11px] text-muted">
+                      {m.module_id}
+                      {manifestStr(m, "publisher") ? ` · ${manifestStr(m, "publisher")}` : ""}
+                    </p>
+                    <p className="mt-2 text-xs text-muted">
+                      {caps} capabilit{caps === 1 ? "y" : "ies"}
+                      {!m.is_valid ? " · manifest invalid" : ""}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* Secondary: open skill library (browse only, not an install path) */}
+      <section className="mt-10">
+        <button
+          type="button"
+          onClick={() => setShowSkills((v) => !v)}
+          className="text-xs uppercase tracking-widest text-muted hover:text-ink"
+          data-testid="toggle-skills"
+          aria-expanded={showSkills}
+        >
+          {showSkills ? "Hide" : "Browse"} UK legal skills
+          {skills ? ` (${skills.length})` : ""}
+        </button>
+        {showSkills && (
+          <div className="mt-3">
+            <p className="text-xs text-muted">
+              The open skill library — browse what's available. These are not
+              installed from here; reference modules above are the install path.
+              {skillsRepo ? (
+                <>
+                  {" "}
+                  <a
+                    href={
+                      skillsRepo.startsWith("http")
+                        ? skillsRepo
+                        : `https://github.com/${skillsRepo}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-ink"
+                  >
+                    {skillsRepo.replace(/^https?:\/\/github\.com\//, "")}
+                  </a>
+                </>
+              ) : null}
+            </p>
+            {skills === null ? (
+              <p className="mt-3 text-sm text-muted">Loading skills…</p>
+            ) : skills.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No skills in the library yet.</p>
+            ) : (
+              <SkillsBySuite skills={skills} />
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
-function Catalogue({
-  skills,
-  broken,
-  repo,
-}: {
-  skills: PublicModuleSkill[];
-  broken: number;
-  repo: string | null;
-}) {
-  if (skills.length === 0) {
-    return (
-      <p className="mt-8 text-sm text-muted">
-        No skills in the catalogue yet.
-      </p>
-    );
-  }
-
-  // Group by plugin suite, sorted by suite then skill name.
+function SkillsBySuite({ skills }: { skills: PublicModuleSkill[] }) {
   const groups = new Map<string, PublicModuleSkill[]>();
   for (const s of skills) {
     const arr = groups.get(s.plugin) ?? [];
@@ -109,74 +240,30 @@ function Catalogue({
     groups.set(s.plugin, arr);
   }
   const suites = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-
   return (
-    <div className="mt-8 space-y-8">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-        <span>{skills.length} skills</span>
-        {broken > 0 && (
-          <span className="text-seal">{broken} with manifest issues</span>
-        )}
-        {repo && (
-          <a
-            href={repo.startsWith("http") ? repo : `https://github.com/${repo}`}
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-ink underline"
-          >
-            {repo.replace(/^https?:\/\/github\.com\//, "")}
-          </a>
-        )}
-      </div>
-
+    <div className="mt-4 space-y-6">
       {suites.map(([plugin, suiteSkills]) => (
         <section key={plugin}>
-          <h2 className="text-[11px] uppercase tracking-widest text-muted border-b border-rule pb-2">
+          <h3 className="text-[11px] uppercase tracking-widest text-muted border-b border-rule pb-2">
             {suiteLabel(plugin)}
-          </h2>
+          </h3>
           <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
             {suiteSkills
               .slice()
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((s) => (
-                <SkillCard key={`${s.plugin}/${s.skill}`} skill={s} />
+                <li
+                  key={`${s.plugin}/${s.skill}`}
+                  className="bg-paper p-4"
+                >
+                  <h4 className="text-sm font-medium text-ink">{s.name}</h4>
+                  <p className="mt-1 font-mono text-[11px] text-muted">{s.skill}</p>
+                  <p className="mt-2 text-sm text-muted line-clamp-2">{s.description}</p>
+                </li>
               ))}
           </ul>
         </section>
       ))}
     </div>
-  );
-}
-
-function SkillCard({ skill }: { skill: PublicModuleSkill }) {
-  const caps = skill.declared_capabilities.length;
-  const body = (
-    <>
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-medium text-ink">{skill.name}</h3>
-        {skill.trust_posture && (
-          <span className="text-[10px] uppercase tracking-widest text-muted">
-            {skill.trust_posture}
-          </span>
-        )}
-      </div>
-      <p className="mt-1 font-mono text-[11px] text-muted">{skill.skill}</p>
-      <p className="mt-2 text-sm text-muted line-clamp-2">{skill.description}</p>
-      <p className="mt-3 text-xs text-muted">
-        {caps} capabilit{caps === 1 ? "y" : "ies"}
-      </p>
-    </>
-  );
-
-  return (
-    <li className="bg-paper p-4 hover:bg-wash transition-colors">
-      {skill.source_url ? (
-        <a href={skill.source_url} target="_blank" rel="noreferrer" className="block">
-          {body}
-        </a>
-      ) : (
-        body
-      )}
-    </li>
   );
 }

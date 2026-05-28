@@ -1,18 +1,35 @@
 /**
- * Phase 17-IA-C — ModulesCatalog (public marketplace) tests.
+ * Module Standalone v1 — ModulesCatalog (integrations home) tests.
  *
- * The catalog now reads the PUBLIC catalogue (getPublicModules) and
- * renders skills grouped by plugin suite. No auth, no installed-badge,
- * no detail-route link (cards link to source_url). Replaces the old
- * Phase 14 B getModulesV2 tests.
+ * Primary = v2 registry reference modules with workspace state; the
+ * public skill library is a secondary, collapsed-by-default browse (not
+ * an install path). Mounts the production router so the Links + auth
+ * context the page now depends on resolve.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router";
 
-import { ModulesCatalog } from "./ModulesCatalog";
+import { router as productionRouter } from "../router";
+import { AuthProvider } from "../auth/AuthProvider";
 import * as api from "../lib/api";
-import type { PublicModuleSkill } from "../lib/api";
+import type { PublicModuleSkill, V2ManifestEntry } from "../lib/api";
+
+function refModule(over: Partial<V2ManifestEntry> = {}): V2ManifestEntry {
+  return {
+    module_id: "examples.contract-review",
+    source_kind: "v2",
+    manifest: {
+      name: "Contract Review",
+      publisher: "legalise",
+      capabilities: [{ id: "review" }],
+    },
+    is_valid: true,
+    validation_errors: [],
+    ...over,
+  };
+}
 
 function skill(over: Partial<PublicModuleSkill> = {}): PublicModuleSkill {
   return {
@@ -27,69 +44,90 @@ function skill(over: Partial<PublicModuleSkill> = {}): PublicModuleSkill {
   };
 }
 
+function mountAt(path = "/modules") {
+  const router = createRouter({
+    routeTree: productionRouter.routeTree,
+    history: createMemoryHistory({ initialEntries: [path] }),
+  });
+  return render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
+  globalThis.fetch = vi.fn(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({ status: "ok", version: "", database: "", environment: "test" }),
+        { status: 200 },
+      ),
+    ),
+  ) as never;
+  vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+    id: "u-1",
+    email: "u@example.com",
+    name: "u",
+    role: "solicitor",
+    plan: "free",
+    default_model_id: null,
+    default_privilege_posture: null,
+    is_active: true,
+    is_verified: true,
+    is_superuser: false,
+  });
+  vi.spyOn(api, "getPublicModules").mockResolvedValue({
+    source: { repo: "b1rdmania/claude-for-uk-legal", ref: "abc" },
+    skills: [skill()],
+    broken: [],
+  });
 });
-afterEach(() => {
-  cleanup();
-});
+afterEach(() => cleanup());
 
-describe("ModulesCatalog (public marketplace)", () => {
-  it("renders skills grouped by suite", async () => {
-    vi.spyOn(api, "getPublicModules").mockResolvedValue({
-      source: { repo: "b1rdmania/claude-for-uk-legal", ref: "abc123" },
-      skills: [
-        skill(),
-        skill({
-          plugin: "uk-litigation-legal",
-          skill: "pre-motion",
-          name: "Pre-Motion",
-          description: "Adversarial premortem on a UK litigation matter.",
-        }),
-      ],
-      broken: [],
+describe("ModulesCatalog — integrations home", () => {
+  it("shows reference modules with workspace state + a Create module action", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [refModule()],
+      ui_slots: [],
     });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+      {
+        module_id: "examples.contract-review",
+        version: "0.2.1",
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      },
+    ]);
 
-    render(<ModulesCatalog />);
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByText("Contract Review")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId("module-state-examples.contract-review"),
+    ).toHaveTextContent(/installed/i);
+    expect(screen.getByText("Create module")).toBeInTheDocument();
+  });
+
+  it("keeps the public skill library secondary + collapsed until expanded", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-skills")).toBeInTheDocument();
+    });
+    // Skill is not visible until the secondary section is expanded.
+    expect(screen.queryByText("Unfair Dismissal Screener")).toBeNull();
+    fireEvent.click(screen.getByTestId("toggle-skills"));
     await waitFor(() => {
       expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
-    });
-    expect(screen.getByText("Pre-Motion")).toBeInTheDocument();
-    // Suite sub-section headers (prettified plugin slugs).
-    expect(screen.getByText("UK Employment")).toBeInTheDocument();
-    expect(screen.getByText("UK Litigation")).toBeInTheDocument();
-    expect(screen.getByText("2 skills")).toBeInTheDocument();
-  });
-
-  it("surfaces broken-manifest count", async () => {
-    vi.spyOn(api, "getPublicModules").mockResolvedValue({
-      source: { repo: "b1rdmania/claude-for-uk-legal", ref: "abc123" },
-      skills: [skill()],
-      broken: [{ plugin: "x", skill: "y", errors: [{ path: "/", message: "bad" }] }],
-    });
-    render(<ModulesCatalog />);
-    await waitFor(() => {
-      expect(screen.getByText(/1 with manifest issues/)).toBeInTheDocument();
-    });
-  });
-
-  it("renders empty state", async () => {
-    vi.spyOn(api, "getPublicModules").mockResolvedValue({
-      source: { repo: null, ref: null },
-      skills: [],
-      broken: [],
-    });
-    render(<ModulesCatalog />);
-    await waitFor(() => {
-      expect(screen.getByText(/no skills in the catalogue/i)).toBeInTheDocument();
-    });
-  });
-
-  it("surfaces a fetch error", async () => {
-    vi.spyOn(api, "getPublicModules").mockRejectedValue(new Error("backend down"));
-    render(<ModulesCatalog />);
-    await waitFor(() => {
-      expect(screen.getByText(/could not load the catalogue/i)).toBeInTheDocument();
     });
   });
 });

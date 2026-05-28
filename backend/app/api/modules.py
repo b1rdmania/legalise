@@ -491,6 +491,39 @@ async def list_v2_capabilities(
     return [V2CapabilityEntry(**cap) for cap in catalogue]
 
 
+class ValidateManifestRequest(BaseModel):
+    manifest: dict
+
+
+class ManifestValidationError(BaseModel):
+    path: str
+    message: str
+
+
+class ValidateManifestResponse(BaseModel):
+    valid: bool
+    errors: list[ManifestValidationError]
+
+
+@router.post("/validate", response_model=ValidateManifestResponse)
+async def validate_manifest_endpoint(
+    body: ValidateManifestRequest,
+    user: User = Depends(current_user),
+) -> ValidateManifestResponse:
+    """Read-only manifest validation for the Create Module on-ramp.
+
+    Runs the SAME validator the install path uses, so "valid here" ==
+    "installable". Deliberately does nothing else: no DB write, no
+    install ceremony, no trust/signing, no audit row. Authed because
+    this is an operator surface inside the app, not a public playground.
+    """
+    is_valid, errors = validate_manifest_v2(body.manifest)
+    return ValidateManifestResponse(
+        valid=is_valid,
+        errors=[ManifestValidationError(**e) for e in errors],
+    )
+
+
 @router.get("/v2/{module_id}", response_model=V2ManifestEntry)
 async def get_v2_module(
     module_id: str,
