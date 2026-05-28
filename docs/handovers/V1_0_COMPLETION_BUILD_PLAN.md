@@ -20,6 +20,8 @@ v1.0 means Legalise is a coherent open-source legal-AI workspace that a serious 
 
 v1.0 does **not** mean a regulated law firm product, full SRA-approved supervisor workflow, full marketplace economy, or enterprise compliance programme.
 
+v1.0 also does **not** mean quietly demoting hard work to v1.1. The user has chosen to delay launch if needed so Legalise ships as a coherent, production-ready open-source product. Live-matter foundations, visible supervisor review, and the module create/install story remain in scope unless explicitly removed by reviewer decision.
+
 ## 2. Non-Negotiables
 
 - No server-paid production model keys. Hosted/prod remains BYO provider keys unless a later explicit commercial decision changes this.
@@ -86,9 +88,39 @@ Walk:
 
 Output:
 - One findings doc split into P1/P2/P3.
-- P1/P2 only block v1.0; P3 can be follow-up polish.
+- P1/P2 become blocking implementation tasks.
+- P3 can be follow-up polish, but cannot be used to quietly remove core v1 pillars.
 
-### Phase 20 — First-Run and Operator Setup Completion
+### Phase 20 — Supervisor Review v1
+
+**Goal:** make supervised autonomy visible immediately after the acceptance walk.
+
+Scope:
+- This is net-new product/substrate. Existing advice-boundary tables and audit reconstruction help with vocabulary and display, but they do not model human approve/reject/request-changes/override decisions today.
+- Matter-level review/approvals surface.
+- One bounded output type can be marked "requires review".
+- Reviewer sees:
+  - artifact/output;
+  - source refs/citations;
+  - model/provider metadata;
+  - permission/gate history;
+  - audit reconstruction link.
+- Reviewer can approve, reject, request changes, or override with notes.
+- Decision stores:
+  - reviewer identity;
+  - decision status;
+  - output hash;
+  - notes;
+  - evidence refs;
+  - timestamp;
+  - immutable audit link.
+- Every decision emits audit rows and appears in reconstruction.
+- Default mode must not reintroduce the `qualified_solicitor` wall. The reviewer can be an authorised signed-in user; firm mode can make requirements stricter later.
+
+Exit:
+- We can honestly claim visible supervised autonomy: module output plus human review plus audit. We still cannot claim SRA approval or legal advice.
+
+### Phase 21 — First-Run and Operator Setup Completion
 
 **Goal:** make setup self-diagnosing and non-mysterious, and make the module area explain itself.
 
@@ -103,6 +135,11 @@ Scope:
   - install/update/revoke/setup pages reflect what is switched on/off;
   - permission cards explain reads/writes/gates in product language;
   - the page explains the difference between built-in/reference modules, firm-private modules, and future community/vendor modules.
+- Explicit module-state design decision:
+  - public catalogue and v2 registry are currently separate surfaces;
+  - grants/runnability are matter-scoped;
+  - installed/enabled state is not the same as "available on this matter";
+  - decide whether the main module screen is workspace-global, matter-contextual, or split into "Browse modules" and "Manage installed modules" before adding state badges/copy.
 - Minimal **Create Module** path:
   - a guided page/checklist/template, not necessarily a CLI;
   - explains manifest, capabilities, reads/writes, gates, entrypoint, signing/trust, validation, and install path;
@@ -112,7 +149,7 @@ Scope:
 Defer:
 - Provider test-call endpoint unless acceptance walk shows users are genuinely confused by "configured, not tested".
 
-### Phase 21 — Real Object Storage
+### Phase 22 — Real Object Storage
 
 **Goal:** uploaded binaries and generated artifacts use object storage as source of truth.
 
@@ -128,7 +165,7 @@ Exit:
 - Fly filesystem can be cache/materialisation only.
 - Cross-user and path-traversal tests exist.
 
-### Phase 22 — Durable Jobs
+### Phase 23 — Durable Jobs
 
 **Goal:** module runs survive disconnects and can be inspected after completion/failure.
 
@@ -144,7 +181,7 @@ Exit:
 - Disconnect/reload does not lose the run.
 - Failure writes terminal job state and audit.
 
-### Phase 23 — Migration, Limits, and Runtime Ops
+### Phase 24 — Migration, Limits, and Runtime Ops
 
 **Goal:** production behaves like an operated system, not a dev server.
 
@@ -158,7 +195,7 @@ Scope:
 Exit:
 - New deploy can be executed from runbook without undocumented manual steps.
 
-### Phase 24 — Matter Export, Delete, and Retention
+### Phase 25 — Matter Export, Delete, and Retention
 
 **Goal:** matter lifecycle has a credible operator story.
 
@@ -172,7 +209,7 @@ Scope:
 Exit:
 - Operator can answer "how do I get data out?" and "how do I delete/archive this?" without DB access.
 
-### Phase 25 — Audit Hardening and Reconstruction Polish
+### Phase 26 — Audit Hardening and Reconstruction Polish
 
 **Goal:** audit becomes a real oversight surface, not just a timeline.
 
@@ -185,31 +222,6 @@ Scope:
 
 Exit:
 - Claim remains "application-level audit with WORM groundwork", unless DB-enforced WORM is actually live.
-
-### Phase 26 — Supervisor Review v1
-
-**Goal:** turn supervised autonomy from substrate vocabulary into one concrete reviewed-output workflow.
-
-Scope:
-- Reuse/integration audit: existing advice-boundary tables, role/admin substrate, audit reconstruction, and public supervision guidance before adding new models.
-- Matter-level review/approvals surface.
-- One bounded output type can be marked "requires review".
-- Reviewer sees:
-  - artifact/output;
-  - source refs/citations;
-  - model/provider metadata;
-  - permission/gate history;
-  - audit reconstruction link.
-- Reviewer can approve, reject, request changes, or override with notes.
-- Every decision emits audit rows and appears in reconstruction.
-- Named supervisor identity/role model.
-- Gate decision model: requested, approved, rejected, changes requested, overridden.
-- Evidence refs, output hash, notes, actor, timestamp, immutable audit link.
-- One UI review panel for a bounded output type.
-- Default demo mode may keep this staged/dormant; firm mode can enable it.
-
-Exit:
-- We can honestly claim visible supervised autonomy: module output plus human review plus audit. We still cannot claim SRA approval or legal advice.
 
 ### Phase 27 — Prompt Shroud and Provider Routing Policy
 
@@ -292,14 +304,14 @@ Exit:
 
 ## 5. Immediate Next Step
 
-Finish **Phase 18-G** first. It is already planned and small. Then run **Phase 19 Production Acceptance Walk**. The acceptance findings decide whether the next implementation phase is setup/docs, module polish, provider clarity, or a hard backend foundation.
+If **Phase 18-G** is ratified, run **Phase 19 Production Acceptance Walk**. The acceptance findings decide the exact P1/P2 list, but the default next build is **Phase 20 Supervisor Review v1** because that is the missing product expression of supervised autonomy.
 
-Do not jump straight to object storage/jobs before the product surface is coherent enough to inspect. Do not keep polishing UI once the acceptance walk shows backend foundations are the real blocker.
+Do not jump straight to object storage/jobs before the product surface is coherent enough to inspect. Do not keep polishing UI once the acceptance walk shows backend foundations are the real blocker. Do not use "v1.1" as a way to avoid the production-ready v1 objective.
 
 ## 6. Reviewer Questions
 
-1. Is v1.0 allowed to mean "serious open-source evaluation product with live-matter foundations", or must it mean "safe for real client matters"?
-2. Should Supervisor Gate v1 land before or after object storage/jobs?
-3. Should prompt shroud be v1.0-critical, or v1.1 if BYO/open-source claim boundary is honest?
-4. Do we keep broad connectors post-v1 even under the new "build the whole thing" posture?
+1. Does the reviewer accept Supervisor Review v1 immediately after the acceptance walk?
+2. What is the first bounded output type that should require review?
+3. Is `/modules` workspace-global, matter-contextual, or split into browse/manage surfaces?
+4. Should prompt shroud be v1-critical for production-ready v1, or can BYO/open-source claim boundary carry it temporarily?
 5. Is legalise.dev still BYO-key only for v1.0?

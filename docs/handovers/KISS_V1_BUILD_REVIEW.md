@@ -136,6 +136,8 @@ v1.0 should **not** mean:
 - guaranteed legal-quality outputs;
 - multi-firm SaaS orchestration.
 
+v1.0 is not a quiet scope-slimming exercise. The user has chosen to delay public launch if needed. Live-matter foundations, module creation, and visible supervisor review stay in the v1 plan unless explicitly removed by reviewer decision.
+
 ## 6. New Active Build Plan
 
 ### Workstream 1 — Operator UI Coherence
@@ -165,7 +167,25 @@ Exit:
 - P1/P2 become blocking implementation tasks.
 - P3 becomes polish, not churn.
 
-### Workstream 3 — Setup, Provider, and Module Completeness
+### Workstream 3 — Supervisor Review v1
+
+**Goal:** prove the central thesis early: supervised autonomy must be visible before broader platform hardening.
+
+Build:
+- This is net-new product/substrate, not just reuse. Existing advice-boundary tables help with vocabulary and reconstruction, but they do not model human approve/reject/request-changes/override decisions today.
+- Add the smallest concrete review loop:
+  - one bounded module output type can be marked "requires review";
+  - a matter-level review/approvals surface lists pending/completed review items;
+  - reviewer sees artifact/output, source refs/citations, model/provider metadata, permission/gate history, and audit reconstruction link;
+  - reviewer can approve, reject, request changes, or override with notes;
+  - decision stores reviewer identity, decision status, output hash, notes, evidence refs, timestamp, and immutable audit link;
+  - reconstruction shows the chain.
+- Default mode must not reintroduce the `qualified_solicitor` wall. "Supervisor" in default mode can be an authorised signed-in reviewer; firm mode can later make role requirements stricter.
+
+Exit:
+- Legalise no longer feels like "chat plus modules"; one real output can move through human review and audit.
+
+### Workstream 4 — Setup, Provider, and Module Completeness
 
 **Goal:** an operator/evaluator knows how to get from zero to useful, and the module section explains the thesis without narration.
 
@@ -195,6 +215,11 @@ Build:
   - make install/update/revoke/setup paths obvious;
   - show which modules are switched on/off;
   - show what each module can read/write before install and after install.
+- Resolve the module-state design decision explicitly:
+  - public catalogue and v2 registry are currently separate surfaces;
+  - grants/runnability are matter-scoped;
+  - installed/enabled state is not the same as "available on this matter";
+  - decide whether the main module screen is workspace-global, matter-contextual, or split into "Browse modules" and "Manage installed modules" before adding badges/copy.
 - Add a minimal **Create Module** path:
   - not a full SDK/CLI unless needed;
   - start with a guided page/checklist/template that explains manifest, permissions, entrypoint, signing/trust, local validation, and how a module becomes installable;
@@ -204,7 +229,7 @@ Defer:
 - Provider test-call endpoint unless the acceptance walk proves the current labels confuse users.
 - Module DX CLI unless the guided create-module surface proves insufficient.
 
-### Workstream 4 — Live-Matter Foundations
+### Workstream 5 — Live-Matter Foundations
 
 **Goal:** remove the obvious "demo substrate" objections.
 
@@ -234,7 +259,7 @@ Exit:
 - Long module runs do not depend on request-local tasks.
 - Production deploy is operationally sane.
 
-### Workstream 5 — Matter Lifecycle and Portability
+### Workstream 6 — Matter Lifecycle and Portability
 
 **Goal:** operators can get data out and retire matters without DB access.
 
@@ -261,9 +286,9 @@ Build:
 Exit:
 - "What if I want to leave?" and "what if I need to delete/archive?" have product answers.
 
-### Workstream 6 — Supervisor Review, Audit, and Oversight
+### Workstream 7 — Audit and Oversight Hardening
 
-**Goal:** make supervised autonomy visible, not just implied by modules and audit.
+**Goal:** make the oversight surface and audit substrate strong enough for the v1 claim.
 
 Build:
 - Reuse first:
@@ -271,12 +296,6 @@ Build:
   - existing role/admin substrate;
   - existing legal/professional supervision guidance as product copy constraints, not as hard-coded legal conclusions;
   - maintained append-only / audit-chain patterns where practical before inventing new cryptography.
-- Supervisor Review v1:
-  - a matter-level review/approvals surface;
-  - one bounded output type can be marked "requires review";
-  - reviewer sees artifact/output, source refs/citations, model/provider metadata, permission/gate history, and audit reconstruction link;
-  - reviewer can approve, reject, request changes, or override with notes;
-  - every decision emits audit rows and appears in reconstruction.
 - Audit action constants for new/changed call sites.
 - WORM groundwork:
   - split app/migration roles where practical;
@@ -286,18 +305,10 @@ Build:
   - group invocation/model/gate/artifact chains;
   - show blocked/denied attempts clearly;
   - make role/grant/module lifecycle rows readable.
-- Supervisor Gate substrate:
-  - named supervisor identity;
-  - gate request/approve/reject/request-changes/override;
-  - evidence refs;
-  - output hash;
-  - notes;
-  - immutable audit link.
-
 Exit:
-- Legalise can honestly claim visible supervised autonomy: module output plus human review plus audit. It still must avoid "SRA-approved workflow" language.
+- Legalise can honestly explain what was reviewed, by whom, with which source/model/gate context, while still avoiding "SRA-approved workflow" language.
 
-### Workstream 7 — Provider Trust Layer and Eval Harness Lite
+### Workstream 8 — Provider Trust Layer and Eval Harness Lite
 
 **Goal:** answer "what was sent?" and "how do you know it did not obviously hallucinate?"
 
@@ -319,7 +330,7 @@ Build:
 Exit:
 - Public copy can claim tested grounding/citation posture without claiming legal correctness.
 
-### Workstream 8 — Release Candidate Freeze
+### Workstream 9 — Release Candidate Freeze
 
 **Goal:** stop building and ship.
 
@@ -350,7 +361,7 @@ These remain parked unless a real evaluator/customer need pulls them forward:
 - Full third-party marketplace governance/payments/ratings.
 - General module DX CLI.
 - Third/fourth/fifth reference modules.
-- Full legal benchmark suite.
+- Full legal benchmark suite beyond the v1 eval harness lite.
 - Multi-firm SaaS orchestration.
 
 ## 8. Source-of-Truth Rules Going Forward
@@ -374,8 +385,8 @@ If 18-G is not ratified, close only its review findings first. Do not broaden it
 
 Only after that should the team choose between:
 
-- setup/provider/module polish, if the product loop still feels confusing;
-- live-matter foundations, if the product loop is clear but the substrate is operationally weak;
-- supervisor/audit work, if the main weakness is the supervised-autonomy claim.
+- Supervisor Review v1 immediately, if the walk confirms the central thesis still feels invisible;
+- setup/provider/module work, if the product loop still feels confusing;
+- live-matter foundations, if the product loop is clear but the substrate is operationally weak.
 
 This keeps the project simple without throwing away the serious architecture.
