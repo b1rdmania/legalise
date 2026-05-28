@@ -120,6 +120,34 @@ above.
 | Landing `/` | L-1 | P1 | No visible Sign in / Sign up affordance on landing page. Cold user must guess `/auth/signin`. Every comparable SaaS puts these in the top-right of the landing page. **CLOSED by PR #10 (`77e871f`)** — Sign in / Create account row added top-right of landing, auth-aware. | — |
 | Sign up `/auth/signup` | L-2 | **P0 (product bug, not redesign)** | Submitting the signup form returns `Error · HTTP 404` and blocks account creation. Surfaced during Andy-fallback walkthrough attempt 2026-05-27 17:23 BST. **CLOSED by PR #10 (`77e871f`)** — Vite dev config now proxies `/auth/*` to backend:8000 (was only proxying `/api` + `/health`). Walkthrough can resume from `/`. | 17:23 |
 
+## Production walkthrough — REAL pass (2026-05-28, on legalise.dev)
+
+Andy walked the **live production** stack (not Docker, not virtual)
+after the full hosted deploy. These are real findings and **supersede
+the virtual pass** where they overlap (per plan: a real pass beats a
+virtual one).
+
+### Bugs surfaced (and status)
+
+| # | Sev | Finding | Status |
+| --- | --- | --- | --- |
+| PROD-1 | P0 | `404: matter not found: khan-v-acme-trading-2026` after sign-in. Root cause: the per-user Khan seed runs in `on_after_verify`; the operator verified via a direct DB write, which bypassed that hook. | **FIXED** — `verify-user.yml` now also runs `seed_demo_matter_for_user`. |
+| PROD-2 | P1 | SignIn dumped the raw `400 {"detail":"LOGIN_USER_NOT_VERIFIED"}` envelope with no way forward; no resend affordance. | **FIXED** — resend-verification button on SignIn (`5430dd6`). |
+| PROD-3 | P0 (pre-launch) | Verification email never arrives (Resend returns 202 but nothing delivered, on register AND resend). Blocks any evaluator who can't be manually verified. | **OPEN** — Resend deliverability/mode investigation. Real gate before advertising. |
+| MOD-1 (confirmed) | P1 | Modules page shows "Discovered modules in workspace registry — could not load modules" (**401**). Calls the authed `getModulesV2()`. It should be the module *marketplace home* using the public catalog (`/api/modules/public`), not a per-user authed view. Closes the 401 and Andy's "this should be the module's home page" point together. | OPEN — 17B |
+
+### UI findings (real, feed 17A/17B)
+
+| # | Screen | Priority | Finding |
+| --- | --- | --- | --- |
+| MD-2 (real) | Matter detail | P1 | The MatterRecordSummary stat strip (Documents/Chronology/Workflows/Audit rows/Posture) plus the AI chat window are "ugly and not offering anything we need exposed straight away." The summary needs to earn its space; the chat surface shouldn't dominate the first view. |
+| MD-3 (real) | Matter detail | P1 | The tag box is "ugly and outsized." The "Join waitlist to edit or anonymize" copy + write-up feels "ugly and outdated" — stale waitlist-era copy leaking into the matter surface. |
+| L-4 (real) | Nav / auth | P2 | "Sign In" should sit on the nav bar. Doesn't need both Sign In + Create Account on the nav — the Sign In page can host Create Account as a subsection. |
+
+### Strategic note (not a finding)
+
+Social login isn't the right frame for legal (solicitors won't use Facebook login). Keep fastapi-users (identity must live inside the governed substrate for the audit/posture thesis); add Microsoft/Google **SSO** later for firm rollout. The email problem is a Resend config issue, not an auth-architecture one — don't migrate to Supabase. See PROD-3.
+
 ## Post-walkthrough debrief (recorded)
 
 Virtual debrief: the product has the right substrate and the right
