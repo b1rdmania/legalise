@@ -105,5 +105,5 @@ Old "Counsel MVP" content preserved at `archive-counsel/`. Pointing is asymmetri
 
 - `master` @ `77e871f` — canonical.
 - `fix/vite-auth-proxy-spa-bypass` @ `fc10e77` — PR #11, green, awaiting merge.
-- `phase-17-crm-pass` @ `78bebcf` — all the session's plans + backlog + walkthrough scaffolding. NOT yet merged (holds Phase 17 plan, P18-G plan, backlog, UI inventory, overnight notes). Merges when Phase 17 has ratified progress, or sooner if you want the docs on master.
+- `phase-17-crm-pass` @ `fb9c2b5` or later — the head is this handover commit as written and advances as more docs land, so treat the branch name (not a pinned SHA) as canonical. Holds all the session's plans + backlog + walkthrough scaffolding + UI inventory + overnight notes + this handover. NOT yet merged. Merges when Phase 17 has ratified progress, or sooner if you want the docs on master.
 - Three `worktree-agent-*` — merged, locked, prune after session ends.
