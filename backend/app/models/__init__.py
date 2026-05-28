@@ -109,6 +109,19 @@ from app.models.advice_boundary_decision import (
 from app.models.installed_module import InstalledModule
 from app.models.matter_artifact import MatterArtifact
 
+# Supervisor Review v1 — human review over a matter artifact.
+from app.models.matter_review import (
+    MatterReview,
+    REVIEW_PENDING,
+    REVIEW_APPROVED,
+    REVIEW_REJECTED,
+    REVIEW_CHANGES_REQUESTED,
+    REVIEW_OVERRIDDEN,
+    REVIEW_TERMINAL_STATES,
+    REVIEW_STATE_VALUES,
+    REVIEW_ELIGIBLE_KINDS,
+)
+
 __all__ = [
     "Base",
     "User",
@@ -192,4 +205,13 @@ __all__ = [
     # Phase 3 — installed modules.
     "InstalledModule",
     "MatterArtifact",
+    "MatterReview",
+    "REVIEW_PENDING",
+    "REVIEW_APPROVED",
+    "REVIEW_REJECTED",
+    "REVIEW_CHANGES_REQUESTED",
+    "REVIEW_OVERRIDDEN",
+    "REVIEW_TERMINAL_STATES",
+    "REVIEW_STATE_VALUES",
+    "REVIEW_ELIGIBLE_KINDS",
 ]
