@@ -18,7 +18,25 @@ import { useAuth } from "../auth/AuthProvider";
 import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
 import { TopBar } from "../ui/TopBar";
 import { Drawer } from "../ui/Drawer";
+import { Sidebar } from "../ui/Sidebar";
 import { DrawerProvider, useDrawer } from "./DrawerContext";
+
+// Marketing / auth routes render bare (they bring their own chrome).
+// Everything else, for a logged-in user, renders inside the Phase 17
+// app shell (persistent Sidebar + main). Logged-out users on those
+// routes are redirected by the auth guard below.
+const CHROMELESS_ROUTES = new Set([
+  "landing",
+  "manifesto",
+  "waitlist",
+  "signin",
+  "signup",
+  "forgot",
+  "reset",
+  "verify",
+  "verifyPending",
+  "demo",
+]);
 
 type HealthResponse = {
   status: string;
@@ -83,6 +101,41 @@ function AppShellInner() {
   useEffect(() => {
     if (route.name !== "detail") drawer.setDrawerMatter(null);
   }, [route, drawer]);
+
+  // Phase 17 IA shell: logged-in users on app routes get the
+  // persistent Sidebar; marketing/auth routes (and logged-out users)
+  // keep the legacy TopBar + Drawer chrome untouched.
+  const useAppShell = !!auth.user && !CHROMELESS_ROUTES.has(route.name);
+
+  if (useAppShell) {
+    return (
+      <div className="min-h-screen bg-paper text-ink md:pl-64">
+        <Sidebar
+          route={route}
+          matter={drawer.drawerMatter}
+          matterTab={drawer.drawerTab}
+          open={navOpen}
+          onClose={() => setNavOpen(false)}
+        />
+        {/* mobile top bar: just a menu button to open the sidebar drawer */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center h-[56px] px-4 bg-paper border-b border-rule">
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open menu"
+            className="min-h-[44px] min-w-[44px] -ml-2 flex items-center justify-center text-ink"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </div>
+        <main className="min-h-screen">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink pt-[64px] sm:pt-[80px]">
