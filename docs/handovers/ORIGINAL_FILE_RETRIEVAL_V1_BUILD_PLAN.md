@@ -26,12 +26,13 @@ These are settled for this build so the Builder can proceed without another plan
    - `?download=1`: attachment/download.
    - Same bytes, same auth, same audit action.
 
-3. **Auth scope: existing owner/superuser matter access shape.**
-   - Owner can access.
-   - Superuser can access.
+3. **Auth scope: existing document-owner access shape.**
+   - The signed-in user who owns the matter can access.
+   - There is no new superuser/admin read lane in this phase.
    - Cross-user/non-owner returns uniform 404.
    - Archived matter returns 404.
    - No role hierarchy, no qualified-solicitor gate, no posture gate in v1.
+   - If a future operator needs admin document inspection, that should be a separate explicitly-audited policy, not smuggled into this user document path.
 
 4. **Audit: yes.**
    - Emit `document.original.accessed`.
@@ -62,9 +63,8 @@ Add to `backend/app/api/documents.py`:
 
 - `GET /{document_id}/original`
 - Resolve `Document` joined to `Matter`.
-- Authorise with owner-or-superuser access:
+- Authorise with the same owner-only pattern used by the current document body/versions endpoints:
   - owner: `matter.created_by_id == user.id`
-  - superuser: `user.is_superuser is True`
   - archived: 404 for everyone
   - missing/cross-user: 404
 - Validate `doc.storage_uri` exists.
@@ -94,7 +94,7 @@ Backend tests:
 
 - owner opens original: 200, bytes match, content type correct, inline disposition, audit row exists.
 - owner downloads original with `?download=1`: 200, attachment disposition, audit payload has `download: true`.
-- cross-user: 404.
+- cross-user/non-owner: 404.
 - archived matter: 404.
 - missing document: 404.
 - document with `storage_uri=None`: 404.
@@ -151,7 +151,7 @@ Stop only if:
 
 - `storage_uri` cannot be trusted as a storage key in production.
 - Existing storage backends cannot support `get_bytes` for uploaded objects.
-- The owner/superuser predicate conflicts with an existing documented document-access policy.
+- The owner-only predicate conflicts with an existing documented document-access policy.
 
 Otherwise proceed through backend, frontend, focused tests, and handover.
 
@@ -174,7 +174,7 @@ This phase is complete when:
 
 - A user can open an uploaded document's original bytes from the document detail page.
 - A user can download the same original bytes.
-- Cross-user and archived access are uniformly denied.
+- Cross-user/non-owner and archived access are uniformly denied.
 - Every successful original access writes `document.original.accessed`.
 - Missing storage is honest and structured.
 - Document Workspace no longer carries the G1 "not available" note.
@@ -197,4 +197,4 @@ Include:
 
 ## Copy-Paste Starter For Builder
 
-Read `docs/handovers/ORIGINAL_FILE_RETRIEVAL_V1_BUILD_PLAN.md`. Implement Original File Retrieval v1 end-to-end with a streamed backend proxy, owner/superuser auth, `document.original.accessed` audit, and DocumentDetail open/download actions. Use focused backend/frontend tests while building; full suites can wait for merge/CI unless a cross-boundary failure appears. Stop only if the existing `storage_uri`/storage backend assumptions are false.
+Read `docs/handovers/ORIGINAL_FILE_RETRIEVAL_V1_BUILD_PLAN.md`. Implement Original File Retrieval v1 end-to-end with a streamed backend proxy, owner-only document access matching the current body/versions endpoints, `document.original.accessed` audit, and DocumentDetail open/download actions. Use focused backend/frontend tests while building; full suites can wait for merge/CI unless a cross-boundary failure appears. Stop only if the existing `storage_uri`/storage backend assumptions are false.
