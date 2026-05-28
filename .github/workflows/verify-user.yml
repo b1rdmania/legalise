@@ -1,0 +1,66 @@
+name: Verify user (one-off operator action)
+
+# Sets is_verified=true on an existing user, directly in the live DB
+# via the backend container. For unblocking an operator when the
+# verification email didn't arrive (Resend deliverability, etc.).
+# Manual-dispatch only.
+#
+# The script is base64-encoded before being passed through
+# `fly ssh console -C` so multi-line Python survives the shell/SSH
+# quoting layers intact. It runs inside the backend container against
+# the deployed app code (app.models, app.core.config), so it does not
+# need to be present in the image.
+#
+# Needs the FLY_API_TOKEN repo secret.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email of an already-registered user to mark verified"
+        required: true
+        type: string
+
+concurrency:
+  group: verify-user
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify ${{ inputs.email }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Set is_verified=true in the live DB
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          TARGET_EMAIL: ${{ inputs.email }}
+        run: |
+          SCRIPT=$(cat <<'PY'
+          import asyncio, os
+          from sqlalchemy import select
+          from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+          from app.core.config import settings
+          from app.models import User
+
+          async def main():
+              email = os.environ["TARGET_EMAIL"]
+              eng = create_async_engine(settings.postgres_dsn)
+              async with async_sessionmaker(eng, class_=AsyncSession, expire_on_commit=False)() as s:
+                  u = await s.scalar(select(User).where(User.email == email))
+                  if u is None:
+                      print(f"NOT_FOUND: {email}")
+                      return
+                  was = u.is_verified
+                  u.is_verified = True
+                  await s.commit()
+                  print(f"OK: {email} is_verified {was} -> True (superuser={u.is_superuser})")
+              await eng.dispose()
+
+          asyncio.run(main())
+          PY
+          )
+          B64=$(printf '%s' "$SCRIPT" | base64 | tr -d '\n')
+          flyctl ssh console --app legalise-backend -C \
+            "sh -c 'TARGET_EMAIL=\"$TARGET_EMAIL\" python -c \"import base64; exec(base64.b64decode(\\\"$B64\\\").decode())\"'"
