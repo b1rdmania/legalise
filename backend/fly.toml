@@ -54,19 +54,19 @@ primary_region = "lhr"
 [http_service]
   internal_port = 8000
   force_https = true
-  # Scale-to-zero for the eval environment: with no traffic the app
-  # machine stops and bills ~nothing; the Fly proxy holds the first
-  # request and auto-starts a machine (~1-3s cold start). Acceptable
-  # for a demo/eval surface. Flip min back to 1 (and auto_stop "off")
-  # if/when sustained traffic makes cold starts undesirable.
-  # NOTE: this governs the `app` (HTTP) process only. The `worker`
-  # process has no http_service, so it is NOT auto-stopped here — it
-  # stays running so queued arq jobs still process. Scale the worker
-  # to 0 manually (`fly scale count worker=0`) between demos if its
-  # steady cost matters.
+  # Keep ONE app machine warm. Pure scale-to-zero (min=0) cold-started
+  # on the first request after idle — uvicorn boot + demo seed takes
+  # long enough that a browser fetch NetworkErrors before Fly finishes
+  # waking it (seen live during a walkthrough). min=1 keeps one warm so
+  # the first hit is instant; auto_stop="stop" still reaps any
+  # auto-started EXTRAS above the warm baseline. Net: "1 warm, scale up
+  # under load, never to zero" — cheap but not flaky.
+  # Governs the `app` (HTTP) process only; the `worker` has no
+  # http_service and stays running for queued arq jobs (scale it to 0
+  # manually between demos if its steady cost matters).
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ["app"]
 
 [[http_service.checks]]
