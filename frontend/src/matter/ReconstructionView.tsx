@@ -142,7 +142,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Matter</p>
-      <h1 className="mt-2 text-3xl font-serif">Reconstruction</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Reconstruction</h1>
       <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
       <p className="mt-3 text-sm text-muted">
         Canonical timeline of every audited event on this matter. Rows

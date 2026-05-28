@@ -38,6 +38,7 @@ import {
   type V2ManifestEntry,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import { PageHeader } from "../ui/primitives";
 
 type DetailQuery =
   | { status: "loading" }
@@ -151,7 +152,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
   if (q.status === "error") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-serif">Module not found</h1>
+        <h1 className="text-xl font-bold tracking-tight2">Module not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
     );
@@ -235,11 +236,9 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Module</p>
-      <h1 className="mt-2 text-3xl font-serif">{name}</h1>
-      <p className="mt-1 text-xs font-mono text-muted">{entry.module_id}</p>
+      <PageHeader eyebrow="Module" title={name} subId={entry.module_id} />
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+      <div className="-mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
         {version && <span>v{version}</span>}
         {publisher && <span>by {publisher}</span>}
         {visibility && (

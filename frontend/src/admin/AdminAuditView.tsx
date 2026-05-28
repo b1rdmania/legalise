@@ -29,6 +29,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { adminAuditRoute } from "../router";
+import { PageHeader } from "../ui/primitives";
 
 type FetchState =
   | { status: "loading" }
@@ -130,14 +131,11 @@ export function AdminAuditView() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-3xl font-serif">Workspace audit</h1>
-      <p className="mt-3 text-sm text-muted">
-        Workspace-scoped audit rows — events that are not bound to a
-        specific matter (install ceremonies, settings key operations,
-        admin role changes, this very view, etc.). Matter rows are
-        reachable via the per-matter reconstruction page.
-      </p>
+      <PageHeader
+        eyebrow="Admin"
+        title="Workspace audit"
+        description="Workspace-scoped audit rows — events that are not bound to a specific matter (install ceremonies, settings key operations, admin role changes, this very view, etc.). Matter rows are reachable via the per-matter reconstruction page."
+      />
 
       {(invocationFilter || actionFilter) && (
         <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -277,7 +275,7 @@ function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-2xl font-serif">Admin required</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Admin required</h1>
       <p className="mt-3 text-sm text-muted">
         The workspace audit surface requires superuser. Ask your
         workspace administrator if you need access.

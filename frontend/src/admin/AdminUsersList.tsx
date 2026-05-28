@@ -25,6 +25,7 @@ import {
   type UserRole,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import { PageHeader } from "../ui/primitives";
 
 type Query =
   | { status: "loading" }
@@ -83,13 +84,11 @@ export function AdminUsersList() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-3xl font-serif">Users</h1>
-      <p className="mt-3 text-sm text-muted">
-        Every user in this workspace. Role changes happen on the
-        per-user page; bulk operations are not exposed by the
-        substrate.
-      </p>
+      <PageHeader
+        eyebrow="Admin"
+        title="Users"
+        description="Every user in this workspace. Role changes happen on the per-user page; bulk operations are not exposed by the substrate."
+      />
 
       <div className="mt-6 flex flex-wrap items-end gap-4">
         <label className="flex flex-col text-xs text-muted">
@@ -197,7 +196,7 @@ function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-2xl font-serif">Admin required</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Admin required</h1>
       <p className="mt-3 text-sm text-muted">
         The admin users surface requires superuser. Ask your workspace
         administrator if you need access.

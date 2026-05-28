@@ -26,7 +26,7 @@ import {
   type UserRole,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
-import { DescItem as DT } from "../ui/primitives";
+import { DescItem as DT, PageHeader } from "../ui/primitives";
 
 type Query =
   | { status: "loading" }
@@ -112,7 +112,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   if (q.status === "not_found") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-serif">User not found</h1>
+        <h1 className="text-xl font-bold tracking-tight2">User not found</h1>
         <p className="mt-3 text-sm">
           <Link
             to="/admin/users"
@@ -127,7 +127,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   if (q.status === "error") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-serif">Could not load user</h1>
+        <h1 className="text-xl font-bold tracking-tight2">Could not load user</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
     );
@@ -171,11 +171,9 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Admin · user</p>
-      <h1 className="mt-2 text-3xl font-serif">{user.email}</h1>
-      <p className="mt-1 text-xs font-mono text-muted">{user.id}</p>
+      <PageHeader eyebrow="Admin · user" title={user.email} subId={user.id} />
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <DT label="Name">{user.name || "—"}</DT>
         <DT label="Role">
           <code className="font-mono text-xs">{user.role}</code>
@@ -286,7 +284,7 @@ function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-2xl font-serif">Admin required</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Admin required</h1>
       <p className="mt-3 text-sm text-muted">
         Per-user admin surface requires superuser. Ask your workspace
         administrator if you need access.

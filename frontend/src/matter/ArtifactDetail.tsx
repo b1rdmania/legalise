@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { readArtifact, type ArtifactRead } from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
-import { DescItem as DT } from "../ui/primitives";
+import { DescItem as DT, PageHeader } from "../ui/primitives";
 
 type Query =
   | { status: "loading" }
@@ -59,7 +59,7 @@ export function ArtifactDetail({
   if (q.status === "error") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-serif">Artifact not found</h1>
+        <h1 className="text-xl font-bold tracking-tight2">Artifact not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
         <p className="mt-4 text-sm">
           <Link
@@ -79,11 +79,9 @@ export function ArtifactDetail({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Artifact</p>
-      <h1 className="mt-2 text-3xl font-serif">{a.kind}</h1>
-      <p className="mt-1 text-xs font-mono text-muted">{a.id}</p>
+      <PageHeader eyebrow="Artifact" title={a.kind} subId={a.id} />
 
-      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <DT label="Module">
           <code className="font-mono text-xs">{a.module_id}</code>
         </DT>

@@ -193,3 +193,44 @@ export function DescItem({
     </div>
   );
 }
+
+// Phase 18-G — the one logged-in page-header pattern. Bold-sans
+// tracking-tight2 heading (serif is retired on operator/admin/settings
+// screens per the ratified design rules; serif stays for marketing /
+// editorial only). eyebrow + h1 + optional mono sub-id + optional
+// description + optional right-aligned actions slot. `children` renders
+// below the header for an optional metadata strip.
+export function PageHeader({
+  eyebrow,
+  title,
+  subId,
+  description,
+  actions,
+  children,
+}: {
+  eyebrow?: string;
+  title: ReactNode;
+  subId?: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <header className="mb-8">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          {eyebrow && (
+            <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
+          )}
+          <h1 className="mt-1 text-2xl font-bold tracking-tight2 text-ink">{title}</h1>
+          {subId && <p className="mt-1 font-mono text-xs text-muted">{subId}</p>}
+          {description && (
+            <p className="mt-2 max-w-2xl text-sm text-muted">{description}</p>
+          )}
+        </div>
+        {actions && <div className="shrink-0">{actions}</div>}
+      </div>
+      {children}
+    </header>
+  );
+}

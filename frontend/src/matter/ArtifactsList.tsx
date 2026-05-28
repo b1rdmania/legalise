@@ -18,6 +18,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { listArtifacts, type ArtifactSummary } from "../lib/api";
+import { PageHeader } from "../ui/primitives";
 
 type Query =
   | { status: "loading" }
@@ -43,13 +44,12 @@ export function ArtifactsList({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Matter</p>
-      <h1 className="mt-2 text-3xl font-serif">Artifacts</h1>
-      <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
-      <p className="mt-3 text-sm text-muted">
-        Outputs written by capabilities invoked on this matter. Each row
-        links to a structured payload view.
-      </p>
+      <PageHeader
+        eyebrow="Matter"
+        title="Artifacts"
+        subId={slug}
+        description="Outputs written by capabilities invoked on this matter. Each row links to a structured payload view."
+      />
 
       {q.status === "loading" && (
         <p className="mt-8 text-sm text-muted">Loading artifacts…</p>

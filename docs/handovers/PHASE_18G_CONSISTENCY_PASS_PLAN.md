@@ -1,8 +1,16 @@
 # Phase 18-G — Logged-In Consistency Pass (mini-plan)
 
-**Status:** ratified for build, pending implementation.
+**Status:** RATIFIED + BUILT on `phase-17-crm-pass`, awaiting review before merge to master.
 **Branch:** `phase-17-crm-pass`
 **Date:** 2026-05-28
+
+## Builder close-out (2026-05-28)
+
+- **G-1 — PageHeader + serif retirement (done).** Added one `PageHeader` primitive (eyebrow + bold-sans `tracking-tight2` h1 + optional mono sub-id + description + actions slot). Applied to ModuleDetail, InstallCeremony, ArtifactsList, ArtifactDetail, AdminUsersList, AdminUserDetail, AdminAuditView. Retired `font-serif` on every operator/admin/state screen (ModuleDetail, InstallCeremony, ArtifactDetail, ReconstructionView, AppHome empty/bootstrap/error states, PlaceholderPage, admin shells) → bold-sans `tracking-tight2`. Marketing/manifesto never used the `font-serif` class, so editorial surfaces are untouched. Detail pages kept `max-w-3xl`, list/audit pages `max-w-4xl` (width-by-page-type, no global width); matter workspace shell not reflowed.
+- **G-2 — table extraction (none, per ratified conservative rule).** ArtifactsList / AdminUsersList / GrantsPanel tables already share the same wrapper classes (`overflow-x-auto rounded-md border border-line` + `bg-paper-sunken` thead) but differ in columns/widths — "similar, not identical". Per the ratified guidance, did **not** extract an `OperatorTable` thin-wrapper; left classes aligned in place. `DescItem` (from 18-F) remains the only extracted primitive plus the new `PageHeader`.
+- **G-3 — copy tightenings (done).** GrantsPanel gained a "Permissions on this matter" heading above the grants table; InstallCeremony's permission-card section renamed to "Review permissions". Pinned substrate/audit assertions preserved (stepper state labels, `user.role.changed`, idempotent/no-audit copy).
+
+**Verification:** `tsc -b` clean, full frontend vitest **129 passed / 19 files**, `npm run build` succeeds. PageHeader is shared, so the full suite ran. e2e runs on merge to master.
 **Base context:** Phase 18 A–F is built and **merged to master / deployed** at `ad90e23`. Reviewer's design rules added in `ad90e23` (Design Diagnosis, Page Contract, Design Drift, Operator Language Rules) are the spec for this pass.
 
 ## Why this exists

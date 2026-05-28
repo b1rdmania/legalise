@@ -21,7 +21,7 @@ export function PlaceholderPage({ phase, route, title }: Props) {
       <p className="text-xs uppercase tracking-widest text-muted">
         Phase 14 {phase}
       </p>
-      <h1 className="mt-2 text-3xl font-serif">{title}</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">{title}</h1>
       <p className="mt-4 text-muted">
         This surface is reserved by the Phase 14 build plan. The route
         is live so deep-links resolve, but the page lands when sub-step

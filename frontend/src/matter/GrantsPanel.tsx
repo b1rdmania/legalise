@@ -369,7 +369,10 @@ export function GrantsPanel({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* Current grants */}
+      {/* Permissions on this matter */}
+      <h3 className="mt-6 text-xs uppercase tracking-widest text-muted">
+        Permissions on this matter
+      </h3>
       {grants.status === "loading" && (
         <p className="mt-4 text-sm text-muted">Loading grants…</p>
       )}

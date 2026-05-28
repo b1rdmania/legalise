@@ -103,7 +103,7 @@ function FirstRunEmptyState() {
       <p className="text-xs uppercase tracking-widest text-muted">
         Fresh workspace
       </p>
-      <h1 className="mt-2 text-3xl font-serif">No accounts yet</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">No accounts yet</h1>
       <p className="mt-4 text-muted">
         Register the first account to begin. Administrator status is set
         separately by running the bootstrap CLI on the host; registration
@@ -139,7 +139,7 @@ function BootstrapRequiredState() {
       <p className="text-xs uppercase tracking-widest text-muted">
         Bootstrap required
       </p>
-      <h1 className="mt-2 text-3xl font-serif">
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">
         Administrator not yet bootstrapped
       </h1>
       <p className="mt-4 text-muted">
@@ -320,7 +320,7 @@ function CenteredLoader({ label }: { label: string }) {
 function CenteredError({ message }: { message: string }) {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
-      <h1 className="text-2xl font-serif">Could not load workspace state</h1>
+      <h1 className="text-2xl font-bold tracking-tight2">Could not load workspace state</h1>
       <p className="mt-4 text-sm text-muted">{message}</p>
       <p className="mt-4 text-sm text-muted">
         Refreshing may help. If the issue persists, check the backend is

@@ -37,7 +37,7 @@ import {
   type CeremonyAction,
   type CeremonyResponse,
 } from "../lib/api";
-import { DescItem as DT } from "../ui/primitives";
+import { DescItem as DT, PageHeader } from "../ui/primitives";
 
 const ORDERED_STATES: ReadonlyArray<{
   key: string;
@@ -138,7 +138,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
   if (q.status === "error") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-serif">Ceremony not found</h1>
+        <h1 className="text-xl font-bold tracking-tight2">Ceremony not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
     );
@@ -150,20 +150,12 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">
-        Install review
-      </p>
-      <h1 className="mt-2 text-3xl font-serif">
-        {c.permission_card.module_name ?? c.module_id}
-      </h1>
-      <p className="mt-1 text-xs font-mono text-muted">
-        ceremony {c.ceremony_id}
-      </p>
-      <p className="mt-4 max-w-xl text-sm text-muted">
-        Verify the publisher, review the permissions this module is
-        asking for, then enable it. Each step is recorded in the audit
-        trail.
-      </p>
+      <PageHeader
+        eyebrow="Install review"
+        title={c.permission_card.module_name ?? c.module_id}
+        subId={`ceremony ${c.ceremony_id}`}
+        description="Verify the publisher, review the permissions this module is asking for, then enable it. Each step is recorded in the audit trail."
+      />
 
       <Stepper currentState={c.state} />
 
@@ -290,7 +282,7 @@ function PermissionCard({
   return (
     <section className="mt-10 rounded-md border border-line p-4">
       <h2 className="text-sm uppercase tracking-widest text-muted">
-        Permission card
+        Review permissions
       </h2>
       <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <DT label="Module">
