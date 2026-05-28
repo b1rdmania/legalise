@@ -1,6 +1,6 @@
 # Phase 17.5 — Dormant Firm Role Gates
 
-**Status:** handover for Builder + Reviewer  
+**Status:** IMPLEMENTED + live (master d00d3bb, 2026-05-28). Flag LEGALISE_FIRM_ROLE_GATES_ENABLED default false; dormant on prod. CI+e2e green, both deploys succeeded.  
 **Branch:** `phase-17-crm-pass`  
 **Date:** 2026-05-28  
 **Owner intent:** keep the role/governance substrate in the codebase, but do not make the live evaluation product depend on the solicitor / qualified solicitor hierarchy.
