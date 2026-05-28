@@ -26,6 +26,7 @@ from app.api.admin_users import router as admin_users_router
 from app.api.artifacts import router as artifacts_router
 from app.api.audit import router as audit_router, admin_router as audit_admin_router
 from app.api.grants import router as grants_router
+from app.api.reviews import router as reviews_router
 from app.api.invocations import router as invocations_router
 from app.api.modules import router as modules_router
 from app.api.system import router as system_router
@@ -324,6 +325,10 @@ app.include_router(
 app.include_router(
     artifacts_router, prefix="/api/matters", tags=["artifacts"]
 )
+# Supervisor Review v1 — matter-scoped review/approval endpoints. Same
+# nest-under-matters pattern; registered AFTER the broad matters router
+# so /{slug}/reviews doesn't collide with the catch-all matter detail.
+app.include_router(reviews_router, prefix="/api/matters", tags=["reviews"])
 # Phase 11 admin role endpoint. Future admin endpoints land
 # alongside under /api/admin.
 app.include_router(admin_users_router, prefix="/api/admin", tags=["admin"])
