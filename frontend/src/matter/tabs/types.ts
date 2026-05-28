@@ -14,6 +14,7 @@ export type TabKey =
   | "chronology"
   | "workflows"
   | "audit"
+  | "approvals"
   // Workflow surfaces (reached via the Workflows page; sidebar shows
   // them as Workflows-active when one is open)
   | "premotion"
@@ -27,6 +28,7 @@ export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "documents", label: "Documents" },
   { key: "chronology", label: "Chronology" },
   { key: "workflows", label: "Workflows" },
+  { key: "approvals", label: "Approvals" },
   { key: "audit", label: "Audit" },
 ];
 
@@ -66,6 +68,7 @@ const VALID_KEYS: ReadonlySet<string> = new Set<TabKey>([
   "chronology",
   "workflows",
   "audit",
+  "approvals",
   "premotion",
   "letters",
   "contract-review",

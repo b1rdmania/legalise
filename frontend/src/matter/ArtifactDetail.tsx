@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { readArtifact, type ArtifactRead } from "../lib/api";
+import { readArtifact, requestReview, type ArtifactRead } from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { DescItem as DT, PageHeader } from "../ui/primitives";
 
@@ -34,6 +34,9 @@ export function ArtifactDetail({
   artifactId: string;
 }) {
   const [q, setQ] = useState<Query>({ status: "loading" });
+  const [review, setReview] = useState<
+    { kind: "idle" } | { kind: "busy" } | { kind: "ok" } | { kind: "err"; msg: string }
+  >({ kind: "idle" });
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +108,54 @@ export function ArtifactDetail({
         </h2>
         <ArtifactPreview payload={a.payload} kindHint={a.kind} />
       </section>
+
+      {a.kind === "findings_pack" && (
+        <section className="mt-8 border border-rule p-4">
+          <h2 className="text-sm uppercase tracking-widest text-muted">
+            Supervisor review
+          </h2>
+          {review.kind === "ok" ? (
+            <p className="mt-2 text-sm text-muted">
+              Sent for review.{" "}
+              <Link
+                to="/matters/$slug/$tab"
+                params={{ slug, tab: "approvals" }}
+                className="underline underline-offset-4 hover:text-ink"
+              >
+                Open Approvals
+              </Link>{" "}
+              to record a decision.
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-muted">
+                Send this output for human review. A reviewer (not its
+                author) records a decision; the audit trail reconstructs the
+                chain.
+              </p>
+              <button
+                type="button"
+                onClick={async () => {
+                  setReview({ kind: "busy" });
+                  try {
+                    await requestReview(slug, a.id);
+                    setReview({ kind: "ok" });
+                  } catch (err) {
+                    setReview({ kind: "err", msg: String(err) });
+                  }
+                }}
+                disabled={review.kind === "busy"}
+                className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+              >
+                {review.kind === "busy" ? "Requesting…" : "Request review"}
+              </button>
+              {review.kind === "err" && (
+                <p className="mt-2 text-sm text-seal">{review.msg}</p>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       <section className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <Link

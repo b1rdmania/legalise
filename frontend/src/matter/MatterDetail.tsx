@@ -42,6 +42,7 @@ import { PreMotionTab } from "./tabs/PreMotionTab";
 import { LettersTab } from "./tabs/LettersTab";
 import { ContractReviewTab } from "./tabs/ContractReviewTab";
 import { AuditTab } from "./tabs/AuditTab";
+import { ApprovalsTab } from "./tabs/ApprovalsTab";
 import { AssistantTab } from "./tabs/AssistantTab";
 import { WorkflowsTab } from "./tabs/WorkflowsTab";
 
@@ -402,6 +403,7 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "workflows" && <WorkflowsTab slug={slug} />}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
+          {tab === "approvals" && <ApprovalsTab slug={matter.slug} />}
           {/* Workflow surfaces - reached via Workflows page; sidebar highlights Workflows. */}
           {tab === "premotion" && (
             <PreMotionTab

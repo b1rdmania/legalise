@@ -688,6 +688,63 @@ export const readArtifact = (slug: string, artifactId: string) =>
   ).then((r) => jsonOrThrow<ArtifactRead>(r));
 
 // ---------------------------------------------------------------------------
+// Supervisor Review v1 — review/approval over a matter artifact
+// ---------------------------------------------------------------------------
+
+export type ReviewState =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "changes_requested"
+  | "overridden";
+
+export type ReviewDecision = "approve" | "reject" | "request_changes" | "override";
+
+export interface SupervisorReview {
+  id: string;
+  matter_id: string;
+  artifact_id: string;
+  invocation_id: string;
+  module_id: string;
+  capability_id: string;
+  kind: string;
+  artifact_hash: string;
+  state: ReviewState;
+  requested_by_id: string;
+  requested_at: string;
+  decided_by_id: string | null;
+  decided_at: string | null;
+  note: string | null;
+}
+
+export const listSupervisorReviews = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/reviews`).then((r) =>
+    jsonOrThrow<{ matter_id: string; reviews: SupervisorReview[] }>(r),
+  );
+
+export const requestReview = (slug: string, artifactId: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/reviews`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ artifact_id: artifactId }),
+  }).then((r) => jsonOrThrow<SupervisorReview>(r));
+
+export const decideReview = (
+  slug: string,
+  reviewId: string,
+  decision: ReviewDecision,
+  note?: string,
+) =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/reviews/${encodeURIComponent(reviewId)}/decide`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision, note: note ?? null }),
+    },
+  ).then((r) => jsonOrThrow<SupervisorReview>(r));
+
+// ---------------------------------------------------------------------------
 // Phase 14 E — reconstruction (Phase 5 endpoint)
 // ---------------------------------------------------------------------------
 
