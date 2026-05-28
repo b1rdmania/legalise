@@ -1,9 +1,9 @@
 """Original File Retrieval v1 — GET /api/documents/{id}/original.
 
-Streamed backend proxy. Owner-or-superuser; cross-user / archived /
-missing / no-storage-uri / missing-object all return a uniform 404;
-storage backend failure is a structured 502. Every successful access
-emits `document.original.accessed`.
+Streamed backend proxy. Owner-only (no superuser/admin shortcut);
+non-owner-superuser / cross-user / archived / missing / no-storage-uri /
+missing-object all return a uniform 404; storage backend failure is a
+structured 502. Every successful access emits `document.original.accessed`.
 """
 
 from __future__ import annotations
