@@ -328,8 +328,9 @@ export function GrantsPanel({ slug }: { slug: string }) {
         Matter actions
       </h2>
       <p className="mt-2 text-sm text-muted">
-        Runnable modules appear first. Permission records stay visible
-        below so the substrate gates remain inspectable.
+        Modules you can run on this matter appear first. The permissions
+        you have granted stay listed below, so you can see exactly what
+        each module may touch here.
       </p>
 
       {/* Phase 14 D — runnable capabilities */}
@@ -388,9 +389,9 @@ export function GrantsPanel({ slug }: { slug: string }) {
           <table className="min-w-full text-sm">
             <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
               <tr>
-                <th className="px-3 py-2 text-left">Plugin</th>
+                <th className="px-3 py-2 text-left">Module</th>
                 <th className="px-3 py-2 text-left">Skill</th>
-                <th className="px-3 py-2 text-left">Capability</th>
+                <th className="px-3 py-2 text-left">Permission</th>
                 <th className="px-3 py-2 text-left">Granted</th>
                 <th className="px-3 py-2 text-right"> </th>
               </tr>
@@ -507,7 +508,8 @@ export function GrantsPanel({ slug }: { slug: string }) {
 
         {createState.kind === "ok" && (
           <p className="mt-3 text-sm text-muted">
-            Granted. {createState.count} row(s) created.
+            Granted. This module may now use that permission on this
+            matter.
           </p>
         )}
         {createState.kind === "noop" && (

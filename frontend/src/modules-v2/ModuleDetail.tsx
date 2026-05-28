@@ -6,10 +6,12 @@
  *   2. Capabilities — table of declared capabilities
  *   3. Lifecycle controls — Install CTA (always), Update + Revoke (admin)
  *
+ * Phase 18-B note (supersedes the old 14-B-#1 "no installed badge"
+ * gap): the installed/disabled state IS derivable frontend-side via
+ * listInstalledModules() — GrantsPanel already consumes it — so this
+ * page now shows a truthful install-status badge. No backend work.
+ *
  * Reviewer-narrow:
- *   - No live "installed vs not" badge (substrate gap, see
- *     BACKEND_GAP_AUDIT finding 14-B-#1). Update + Revoke surface 404
- *     inline if the module isn't installed yet.
  *   - Install CTA POSTs to /api/modules/install and navigates to
  *     /modules/install/{ceremony_id}. The stepper UI lives in
  *     InstallCeremony.tsx — this page does NOT inline the ceremony.
@@ -28,9 +30,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   getModuleV2,
+  listInstalledModules,
   revokeModuleV2,
   startInstall,
   updateModuleV2,
+  type InstalledModule,
   type V2ManifestEntry,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
@@ -39,6 +43,13 @@ type DetailQuery =
   | { status: "loading" }
   | { status: "ready"; entry: V2ManifestEntry }
   | { status: "error"; message: string };
+
+// Install status is best-effort: if the installed-modules fetch fails
+// (anon race, network blip) we render nothing rather than guess.
+type InstallStatus =
+  | { kind: "unknown" }
+  | { kind: "not_installed" }
+  | { kind: "installed"; row: InstalledModule };
 
 type LifecycleState =
   | { kind: "idle" }
@@ -93,6 +104,9 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
   const [life, setLife] = useState<LifecycleState>({ kind: "idle" });
   const [updateOpen, setUpdateOpen] = useState(false);
   const [updateJson, setUpdateJson] = useState("");
+  const [installStatus, setInstallStatus] = useState<InstallStatus>({
+    kind: "unknown",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -107,6 +121,25 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
       cancelled = true;
     };
   }, [moduleId]);
+
+  // Phase 18-B — derive install status from the existing installed-
+  // modules listing. Best-effort: on any failure stay "unknown" and
+  // render no badge rather than imply a state we can't confirm.
+  useEffect(() => {
+    let cancelled = false;
+    listInstalledModules()
+      .then((rows) => {
+        if (cancelled) return;
+        const row = rows.find((r) => r.module_id === moduleId);
+        setInstallStatus(row ? { kind: "installed", row } : { kind: "not_installed" });
+      })
+      .catch(() => {
+        if (!cancelled) setInstallStatus({ kind: "unknown" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleId, life.kind]);
 
   if (q.status === "loading") {
     return (
@@ -226,6 +259,8 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
         )}
       </div>
 
+      <InstallStatusBadge status={installStatus} />
+
       {description && (
         <p className="mt-6 text-muted">{description}</p>
       )}
@@ -243,42 +278,23 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
         </div>
       )}
 
-      {/* Capabilities */}
+      {/* What this module needs access to — capabilities framed as a
+          permission summary rather than a raw manifest table. Raw
+          identifiers stay available in small mono so nothing is hidden. */}
       <section className="mt-10">
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          Capabilities
+          What this module needs access to
         </h2>
         {caps.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
             No capabilities declared.
           </p>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-md border border-line">
-            <table className="min-w-full text-sm">
-              <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
-                <tr>
-                  <th className="px-3 py-2 text-left">Id</th>
-                  <th className="px-3 py-2 text-left">Kind</th>
-                  <th className="px-3 py-2 text-left">Scope</th>
-                  <th className="px-3 py-2 text-left">Advice tier</th>
-                  <th className="px-3 py-2 text-left">Network</th>
-                </tr>
-              </thead>
-              <tbody>
-                {caps.map((c, i) => (
-                  <tr key={i} className="border-t border-line">
-                    <td className="px-3 py-2 font-mono text-xs">{c.id ?? "—"}</td>
-                    <td className="px-3 py-2">{c.kind ?? "—"}</td>
-                    <td className="px-3 py-2">{c.scope ?? "—"}</td>
-                    <td className="px-3 py-2">{c.advice_tier_max ?? "—"}</td>
-                    <td className="px-3 py-2">
-                      {c.external_network ? "external" : "internal"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="mt-3 space-y-px bg-rule border border-rule">
+            {caps.map((c, i) => (
+              <CapabilityCard key={c.id ?? i} cap={c} />
+            ))}
+          </ul>
         )}
       </section>
 
@@ -362,6 +378,80 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           <p className="mt-3 text-sm text-muted">{life.message}</p>
         )}
       </section>
+    </div>
+  );
+}
+
+function InstallStatusBadge({ status }: { status: InstallStatus }) {
+  if (status.kind === "unknown") return null;
+  if (status.kind === "not_installed") {
+    return (
+      <p className="mt-4 inline-flex items-center gap-2 border border-rule px-2 py-1 text-xs text-muted">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true" />
+        Not installed
+      </p>
+    );
+  }
+  const { row } = status;
+  return (
+    <p
+      className={
+        "mt-4 inline-flex items-center gap-2 border px-2 py-1 text-xs " +
+        (row.enabled ? "border-ink text-ink" : "border-seal/40 text-seal")
+      }
+    >
+      <span
+        className={"h-1.5 w-1.5 rounded-full " + (row.enabled ? "bg-ink" : "bg-seal")}
+        aria-hidden="true"
+      />
+      {row.enabled ? "Installed" : "Installed · disabled"}
+      <span className="text-muted">· signature {row.signature_status}</span>
+    </p>
+  );
+}
+
+function CapabilityCard({ cap }: { cap: CapabilityRow }) {
+  const reads = cap.reads ?? [];
+  const writes = cap.writes ?? [];
+  return (
+    <li className="bg-paper p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="font-mono text-sm text-ink">{cap.id ?? "—"}</p>
+        {cap.scope && (
+          <span className="text-[10px] uppercase tracking-widest text-muted">
+            {cap.scope}
+          </span>
+        )}
+      </div>
+      <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+        {reads.length > 0 && <Access label="Reads" items={reads} />}
+        {writes.length > 0 && <Access label="Writes" items={writes} />}
+        <div>
+          <dt className="text-xs uppercase tracking-widest text-muted">Network</dt>
+          <dd className="mt-0.5 text-muted">
+            {cap.external_network
+              ? "Needs external network access"
+              : "No external network"}
+          </dd>
+        </div>
+        {cap.advice_tier_max && (
+          <div>
+            <dt className="text-xs uppercase tracking-widest text-muted">
+              Max advice tier
+            </dt>
+            <dd className="mt-0.5 text-muted">{cap.advice_tier_max}</dd>
+          </div>
+        )}
+      </dl>
+    </li>
+  );
+}
+
+function Access({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
+      <dd className="mt-0.5 font-mono text-xs text-muted">{items.join(", ")}</dd>
     </div>
   );
 }

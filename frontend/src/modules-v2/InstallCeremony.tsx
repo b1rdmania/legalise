@@ -150,11 +150,18 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">
-        Trust ceremony
+        Install review
       </p>
-      <h1 className="mt-2 text-3xl font-serif">{c.module_id}</h1>
+      <h1 className="mt-2 text-3xl font-serif">
+        {c.permission_card.module_name ?? c.module_id}
+      </h1>
       <p className="mt-1 text-xs font-mono text-muted">
         ceremony {c.ceremony_id}
+      </p>
+      <p className="mt-4 max-w-xl text-sm text-muted">
+        Verify the publisher, review the permissions this module is
+        asking for, then enable it. Each step is recorded in the audit
+        trail.
       </p>
 
       <Stepper currentState={c.state} />
@@ -224,9 +231,8 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
         <div className="mt-8 rounded-md border border-line p-4">
           <p className="text-sm font-medium">Module enabled</p>
           <p className="mt-1 text-sm text-muted">
-            The InstalledModule row is persisted and a{" "}
-            <span className="font-mono">module.enabled</span> audit row
-            was written.
+            This module is now installed and can be granted on your
+            matters. The install was recorded in the audit trail.
           </p>
         </div>
       )}

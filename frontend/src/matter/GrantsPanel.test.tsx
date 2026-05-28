@@ -144,7 +144,9 @@ describe("GrantsPanel — create", () => {
     // listGrants spy return.
     expect(listGrants).toHaveBeenCalledTimes(2);
     await waitFor(() => {
-      expect(screen.getByText(/Granted\. 1 row\(s\) created/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Granted\. This module may now use that permission/i),
+      ).toBeInTheDocument();
     });
   });
 

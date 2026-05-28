@@ -66,8 +66,9 @@ export function ModulesCatalog() {
       <p className="text-[11px] uppercase tracking-widest text-muted">Workspace</p>
       <h1 className="mt-2 text-2xl font-bold tracking-tight2">Modules</h1>
       <p className="mt-2 text-sm text-muted">
-        The open catalogue of legal skills. Install a module against a
-        matter to grant it capabilities under the runtime gates.
+        Browse the open catalogue of legal skills. Installing and
+        trusting a module, then granting it on a matter, happens from the
+        matter workspace — this page is for browsing what is available.
       </p>
 
       {q.status === "loading" && (

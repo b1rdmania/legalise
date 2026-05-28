@@ -94,8 +94,9 @@ describe("InstallCeremony — stepper", () => {
       expect(screen.getByText("Permissions reviewed")).toBeInTheDocument();
     });
     // Permission card always visible (substrate publishes it from
-    // discovered onward).
-    expect(screen.getByText("Contract Review")).toBeInTheDocument();
+    // discovered onward). Phase 18-B: the module name now also heads the
+    // page, so it appears both in the headline and the permission card.
+    expect(screen.getAllByText("Contract Review").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("0.2.1")).toBeInTheDocument();
   });
 });
