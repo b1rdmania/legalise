@@ -34,6 +34,7 @@ These are core to the project. Do not simplify them away.
 2. **Signed modules + trust ceremony**
    - Modules are not random tool calls.
    - Install / update / revoke / permission expansion must remain explicit and auditable.
+   - The module area must stand alone as a product surface: browse, install, switch on/off, understand permissions, and start creating modules.
 
 3. **Matter-scoped grants**
    - Permissions are scoped to a matter unless deliberately workspace/global.
@@ -43,25 +44,30 @@ These are core to the project. Do not simplify them away.
    - The audit trail is the product thesis, not an admin afterthought.
    - Every important action must either emit a row or be explicitly recorded as a none-row action.
 
-5. **BYO provider keys**
+5. **Visible supervised autonomy**
+   - Legalise cannot feel like "chat plus modules".
+   - At least one workflow must show the loop: AI/module produces an output, human supervisor reviews it, decision is recorded, audit reconstructs the chain.
+   - This should be a simple approval surface, not a revived qualified-solicitor onboarding wall.
+
+6. **BYO provider keys**
    - Legalise does not silently supply production model access.
    - The product must make keyless/demo/stub mode obvious.
 
-6. **Dormant firm hierarchy by default**
+7. **Dormant firm hierarchy by default**
    - The role/substrate can stay.
    - Public/default mode must not make normal evaluators satisfy `qualified_solicitor`.
    - Firm mode can reactivate hierarchy gates.
 
-7. **No matter content in Redis**
+8. **No matter content in Redis**
    - Redis can queue ids and metadata.
    - Postgres/object storage remain source of truth.
 
-8. **Honest claim boundary**
+9. **Honest claim boundary**
    - Legalise is not a law firm.
    - It does not give legal advice.
    - It should not claim forensic WORM, SRA approval, live-client readiness, or legal correctness until those are actually implemented.
 
-9. **Reuse before building**
+10. **Reuse before building**
    - Before building a new subsystem, check whether a maintained open-source tool, legal data source, MCP server, or existing Legalise primitive can carry it.
    - Prefer integrating boring proven tools over hand-rolling legal/document infrastructure.
    - Integration still goes through Legalise's trust ceremony, matter-scoped grants, audit, provider, and artifact rules.
@@ -118,7 +124,7 @@ Therefore, the immediate work is not "build the module marketplace" or "build th
 
 v1.0 should mean:
 
-> Legalise is a coherent open-source legal-AI workspace that a serious evaluator or self-host operator can run end-to-end without handholding, with real storage/jobs/export/audit foundations and one concrete supervisor-gate primitive.
+> Legalise is a coherent open-source legal-AI workspace that a serious evaluator or self-host operator can run end-to-end without handholding, with real storage/jobs/export/audit foundations, a standalone module install/create surface, and one concrete supervisor-review primitive.
 
 v1.0 should **not** mean:
 
@@ -161,7 +167,7 @@ Exit:
 
 ### Workstream 3 — Setup, Provider, and Module Completeness
 
-**Goal:** an operator/evaluator knows how to get from zero to useful.
+**Goal:** an operator/evaluator knows how to get from zero to useful, and the module section explains the thesis without narration.
 
 Build:
 - Run a reuse audit before adding new setup/provider/module machinery:
@@ -183,10 +189,20 @@ Build:
   - broken manifest;
   - trust status;
   - permission card.
+- Make `/modules` stand alone:
+  - explain "what modules are" in product language;
+  - separate available modules, installed modules, and disabled modules clearly;
+  - make install/update/revoke/setup paths obvious;
+  - show which modules are switched on/off;
+  - show what each module can read/write before install and after install.
+- Add a minimal **Create Module** path:
+  - not a full SDK/CLI unless needed;
+  - start with a guided page/checklist/template that explains manifest, permissions, entrypoint, signing/trust, local validation, and how a module becomes installable;
+  - allow self-host operators to understand how to add their own module without reading the whole codebase.
 
 Defer:
 - Provider test-call endpoint unless the acceptance walk proves the current labels confuse users.
-- Module DX CLI unless module authoring becomes the bottleneck.
+- Module DX CLI unless the guided create-module surface proves insufficient.
 
 ### Workstream 4 — Live-Matter Foundations
 
@@ -245,9 +261,9 @@ Build:
 Exit:
 - "What if I want to leave?" and "what if I need to delete/archive?" have product answers.
 
-### Workstream 6 — Audit, Oversight, and Supervisor Gate
+### Workstream 6 — Supervisor Review, Audit, and Oversight
 
-**Goal:** turn supervised autonomy from thesis into a concrete product surface.
+**Goal:** make supervised autonomy visible, not just implied by modules and audit.
 
 Build:
 - Reuse first:
@@ -255,6 +271,12 @@ Build:
   - existing role/admin substrate;
   - existing legal/professional supervision guidance as product copy constraints, not as hard-coded legal conclusions;
   - maintained append-only / audit-chain patterns where practical before inventing new cryptography.
+- Supervisor Review v1:
+  - a matter-level review/approvals surface;
+  - one bounded output type can be marked "requires review";
+  - reviewer sees artifact/output, source refs/citations, model/provider metadata, permission/gate history, and audit reconstruction link;
+  - reviewer can approve, reject, request changes, or override with notes;
+  - every decision emits audit rows and appears in reconstruction.
 - Audit action constants for new/changed call sites.
 - WORM groundwork:
   - split app/migration roles where practical;
@@ -264,7 +286,7 @@ Build:
   - group invocation/model/gate/artifact chains;
   - show blocked/denied attempts clearly;
   - make role/grant/module lifecycle rows readable.
-- Supervisor Gate v1:
+- Supervisor Gate substrate:
   - named supervisor identity;
   - gate request/approve/reject/request-changes/override;
   - evidence refs;
@@ -273,7 +295,7 @@ Build:
   - immutable audit link.
 
 Exit:
-- Legalise can honestly claim a reference supervisor-gate primitive, while still avoiding "SRA-approved workflow" language.
+- Legalise can honestly claim visible supervised autonomy: module output plus human review plus audit. It still must avoid "SRA-approved workflow" language.
 
 ### Workstream 7 — Provider Trust Layer and Eval Harness Lite
 
@@ -305,6 +327,8 @@ Build:
 - Full CI/e2e.
 - Fresh-machine local install.
 - Production smoke.
+- Module install/create smoke.
+- Supervisor-review smoke.
 - Docs/copy claim-parity sweep.
 - Known limitations.
 - Tag v1.0.

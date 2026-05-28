@@ -13,8 +13,10 @@ v1.0 means Legalise is a coherent open-source legal-AI workspace that a serious 
 2. A signed-in user can open a matter, understand documents/context/actions, run installed modules, inspect artifacts, and reconstruct the audit trail.
 3. A superuser can manage users, roles, modules, provider posture, installed-module state, and workspace audit from calm operator surfaces.
 4. Long-running work is durable enough not to depend on request-local tasks or Fly local disk as source of truth.
-5. The audit and permission story is visible, regulator-shaped, and honest about its tamper-resistance boundary.
-6. Public copy, docs, and smoke tests match what the software actually does.
+5. The module section stands alone: browse, install, switch on/off, understand permissions, and start creating a module without reading the whole codebase.
+6. Supervised autonomy is visible: at least one module output can enter human review, receive an approve/reject/request-changes decision, and reconstruct the full chain.
+7. The audit and permission story is visible, regulator-shaped, and honest about its tamper-resistance boundary.
+8. Public copy, docs, and smoke tests match what the software actually does.
 
 v1.0 does **not** mean a regulated law firm product, full SRA-approved supervisor workflow, full marketplace economy, or enterprise compliance programme.
 
@@ -25,6 +27,7 @@ v1.0 does **not** mean a regulated law firm product, full SRA-approved superviso
 - Fly local filesystem is never source of truth for uploaded or generated legal material.
 - No launch copy may imply Legalise gives legal advice or is ready for unsupervised live client matters.
 - Firm role hierarchy stays configurable. Default public/demo mode must not require evaluators to understand `qualified_solicitor`.
+- Supervised autonomy must be visible through review/approval, not hidden behind dormant role labels.
 - Every new operational claim needs a test, a runbook entry, or a clear "not implemented" statement.
 - Do not add broad connectors before the core operator loop is coherent.
 - Reuse before building. Every phase must check existing Legalise primitives, maintained open-source tools, legal/open-data sources, and MCP servers before inventing new machinery. If the phase builds custom, the handover must explain why.
@@ -78,6 +81,7 @@ Walk:
 - Run Contract Review and Pre-Motion.
 - Inspect artifacts.
 - Follow audit links.
+- Walk one supervisor-review decision if already present; if not, record it as the next core gap.
 - Admin user/role/module/audit surfaces.
 
 Output:
@@ -86,7 +90,7 @@ Output:
 
 ### Phase 20 — First-Run and Operator Setup Completion
 
-**Goal:** make setup self-diagnosing and non-mysterious.
+**Goal:** make setup self-diagnosing and non-mysterious, and make the module area explain itself.
 
 Scope:
 - Reuse/integration audit: existing `legalise doctor`, settings endpoints, provider-key CRUD, bootstrap CLI, and module catalogue surfaces before adding new setup machinery.
@@ -94,6 +98,16 @@ Scope:
 - First-run UI points operators to the exact bootstrap/admin/provider/storage steps.
 - README, DEMO, RUNBOOK, TROUBLESHOOTING align with the live product.
 - Provider settings clearly show configured/not configured and demo/stub vs real-provider mode.
+- `/modules` stands alone:
+  - available, installed, disabled, broken, and update-needed states are obvious;
+  - install/update/revoke/setup pages reflect what is switched on/off;
+  - permission cards explain reads/writes/gates in product language;
+  - the page explains the difference between built-in/reference modules, firm-private modules, and future community/vendor modules.
+- Minimal **Create Module** path:
+  - a guided page/checklist/template, not necessarily a CLI;
+  - explains manifest, capabilities, reads/writes, gates, entrypoint, signing/trust, validation, and install path;
+  - points to examples and the validation command;
+  - lets people understand "make your own Law V-style module" without reverse-engineering the repo.
 
 Defer:
 - Provider test-call endpoint unless acceptance walk shows users are genuinely confused by "configured, not tested".
@@ -172,12 +186,22 @@ Scope:
 Exit:
 - Claim remains "application-level audit with WORM groundwork", unless DB-enforced WORM is actually live.
 
-### Phase 26 — Supervisor Gate v1
+### Phase 26 — Supervisor Review v1
 
 **Goal:** turn supervised autonomy from substrate vocabulary into one concrete reviewed-output workflow.
 
 Scope:
 - Reuse/integration audit: existing advice-boundary tables, role/admin substrate, audit reconstruction, and public supervision guidance before adding new models.
+- Matter-level review/approvals surface.
+- One bounded output type can be marked "requires review".
+- Reviewer sees:
+  - artifact/output;
+  - source refs/citations;
+  - model/provider metadata;
+  - permission/gate history;
+  - audit reconstruction link.
+- Reviewer can approve, reject, request changes, or override with notes.
+- Every decision emits audit rows and appears in reconstruction.
 - Named supervisor identity/role model.
 - Gate decision model: requested, approved, rejected, changes requested, overridden.
 - Evidence refs, output hash, notes, actor, timestamp, immutable audit link.
@@ -185,7 +209,7 @@ Scope:
 - Default demo mode may keep this staged/dormant; firm mode can enable it.
 
 Exit:
-- We can honestly claim a reference supervisor-gate primitive exists.
+- We can honestly claim visible supervised autonomy: module output plus human review plus audit. We still cannot claim SRA approval or legal advice.
 
 ### Phase 27 — Prompt Shroud and Provider Routing Policy
 
@@ -217,18 +241,23 @@ Exit:
 
 ### Phase 29 — Module and Marketplace Completion
 
-**Goal:** make module install/management feel complete without opening an uncontrolled marketplace.
+**Goal:** make module install/create/management feel complete without opening an uncontrolled marketplace.
 
 Scope:
 - Reuse/integration audit: existing module catalogue/install/update/revoke endpoints, installed-module rows, trust ceremony, and compatible MCP/vendor module patterns.
 - Installed-module admin page polish: installed, disabled, update available, broken manifest, trust state.
 - Module detail/permission card polish.
 - Manual update/revoke repair flows.
+- Create-module path hardening:
+  - guided template/checklist;
+  - validation flow;
+  - local/private module install instructions;
+  - clear boundary between "create your own module" and "publish to a public marketplace".
 - Public submission remains controlled unless explicitly opened.
 - Module DX CLI remains optional; pull forward only if module authoring becomes the bottleneck.
 
 Exit:
-- The module manager reads as an integrations/admin product, not a manifest browser.
+- The module manager reads as an integrations/admin product and creation on-ramp, not a manifest browser.
 
 ### Phase 30 — Release Candidate Freeze
 
@@ -239,6 +268,8 @@ Scope:
 - Full CI/e2e.
 - Fresh machine local setup.
 - Hosted deployment verification.
+- Module install/create smoke.
+- Supervisor-review smoke.
 - README/docs/copy claim-parity sweep.
 - Known limitations.
 - Tag release.
