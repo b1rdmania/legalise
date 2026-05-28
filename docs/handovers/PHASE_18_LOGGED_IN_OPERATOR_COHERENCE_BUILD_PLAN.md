@@ -26,6 +26,87 @@ Make the signed-in product feel like one coherent operator workspace:
 
 This phase is frontend-first. It should not add substrate unless the UI proves a real missing endpoint.
 
+## Design Diagnosis
+
+The logged-in product now has the right major surfaces, but two design languages are still competing:
+
+- **New IA / CRM-like shell:** `/app`, the matter shell, and the modules catalogue.
+- **Older substrate-admin screens:** module detail, install ceremony, admin users, admin audit, and settings.
+
+The problem is not visual taste. The problem is that each page solves layout independently. That makes the app feel assembled rather than systematised.
+
+Phase 18 should make the existing surfaces feel like one calm operator product. Do not redesign the brand. Do not move substrate boundaries. Standardise how logged-in screens explain state, actions, and audit proof.
+
+## Page Contract
+
+Every logged-in page should answer the same four questions in the same rough order:
+
+1. **Where am I?**
+   - Page title, route context, matter/module/user identity.
+2. **What is the current state?**
+   - Installed/enabled/disabled, key configured/not configured, grants present/missing, matter posture, artifact status.
+3. **What can I do next?**
+   - Install, grant, run, add key, inspect artifact, view audit, change admin setting.
+4. **Where is the proof?**
+   - Audit row names, reconstruction links, metadata strips, raw IDs as secondary information.
+
+This is the core design rule for Phase 18. If a screen cannot answer those four questions, fix the screen before extracting shared primitives.
+
+## Design Drift To Correct
+
+1. **Page headers drift**
+   - Some pages use `Workspace` eyebrow + bold sans heading.
+   - Some use serif headings and different max widths.
+   - Settings has a separate heading/sidebar pattern.
+   - Target: one logged-in page header pattern with eyebrow, h1, explanatory paragraph, optional actions, and metadata strip.
+
+2. **Panel/table/card language drifts**
+   - Local `border`, `rounded-md`, padding, and empty-state patterns are close but not identical.
+   - Target: repeat the same operator table, section block, action panel, and empty state shapes where they appear twice.
+
+3. **Module setup still exposes substrate first**
+   - Module detail leads with manifest fields and capability rows.
+   - Install ceremony exposes state-machine language.
+   - Grants panel reads partly like database rows.
+   - Target: translate to operator language first, keep raw IDs/substrate names as metadata.
+
+4. **Settings undersells BYO-key readiness**
+   - The launch-critical question is “can I run real model calls?”
+   - Target: provider setup/status is obvious without handholding.
+
+5. **Admin can reintroduce role-gate confusion**
+   - Firm roles are dormant for evaluator mode.
+   - Target: admin role controls are framed as firm/deployment controls, not launch setup.
+
+6. **Matter actions need a visible spine**
+   - The matter page has documents, permissions, actions, artifacts, and audit.
+   - Target: evaluator can see the loop: Documents -> Permissions -> Run module -> Artifact -> Audit trail.
+
+7. **Audit is strong but still raw**
+   - Keep regulator-grade detail.
+   - Target: improve labels and scanability before adding export/grouping.
+
+## Operator Language Rules
+
+Prefer:
+
+- “Model providers” or “Provider keys” over generic “API keys”.
+- “This module needs access to…” over raw capability table as the first read.
+- “Permissions on this matter” over “grants”.
+- “Review permissions” over “ceremony state”.
+- “Audit trail” or “reconstruction” over raw source rows.
+- “Firm/deployment controls” over role hierarchy language in evaluator paths.
+
+Keep raw substrate terms available in mono metadata where they matter:
+
+- module IDs;
+- capability IDs;
+- audit action names;
+- ceremony state;
+- grant IDs only if needed for debugging.
+
+Do not hide truth. Reorder it so operators understand the product before they inspect the substrate.
+
 ## Non-Negotiables
 
 - No backend changes without a filed gap and Reviewer approval.
@@ -290,6 +371,7 @@ Acceptance:
 - At least two screens use any newly extracted primitive.
 - No component-library sprawl.
 - No visual-system change.
+- Do not extract a primitive unless it directly removes duplicated patterns found in Steps B-E.
 
 ## Open Questions For Reviewer
 
@@ -349,4 +431,3 @@ Before close-out:
 ## Handover Line
 
 > Phase 18 should make the logged-in product feel like a coherent operator workspace. Build frontend-first in substeps: route inventory, module setup, settings/provider keys, matter action/artifact loop, admin calm-down, then shared primitives only where duplication proves it. No substrate unless a missing endpoint is filed and approved. Module DX stays parked behind this pass unless Reviewer reorders.
-
