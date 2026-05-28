@@ -29,6 +29,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useDrawer } from "../app/DrawerContext";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { GrantsPanel } from "./GrantsPanel";
+import { MatterRecordSummary } from "./MatterRecordSummary";
 import { PostureBanner } from "./PostureBanner";
 import { MatterNav } from "./MatterNav";
 import { MatterBreadcrumb } from "./MatterBreadcrumb";
@@ -369,6 +370,12 @@ export function MatterDetail({ slug }: { slug: string }) {
         <div className="flex">
         <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
           {error && matter && <ErrorCallout message={error} compact />}
+          <MatterRecordSummary
+            matter={matter}
+            docs={docs}
+            audit={audit}
+            onSelectTab={setTabAndHash}
+          />
           {matter && (
             <PostureBanner
               posture={matter.privilege_posture}

@@ -24,7 +24,7 @@ overrides these findings if it contradicts them.
 - **Session date / time:** 2026-05-28
 - **Recording link:** none — virtual desk review, not recorded user research.
 - **Local fork commit SHA used for the session:** `origin/master` after
-  PR #11 merge; Phase 17 docs on `phase-17-crm-pass`.
+  PR #11 merge (`3a5b6d1`); Phase 17 docs on `phase-17-crm-pass`.
 
 > **Solicitor / legal-ops walkthrough is a separate later artifact**
 > (`PHASE_17_LAUNCH_READINESS_WALKTHROUGH.md` when the time comes),

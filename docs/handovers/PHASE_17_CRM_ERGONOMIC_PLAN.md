@@ -1,7 +1,7 @@
 # Phase 17 — CRM-Ergonomic UI Pass (PLAN)
 
 **Status:** plan v4 — Step 0 converted to a virtual operator-proxy approximation so Phase 17 can move without pretending a solicitor / cold evaluator is available.
-**Branch:** `phase-17-crm-pass` off master @ `a364952`.
+**Branch:** `phase-17-crm-pass` off master after PR #11 (`3a5b6d1`).
 **Bar:** the existing routes feel like a familiar CRM/admin workspace
 to an operator-proxy evaluator. Boring, dense, scannable, operational. No new
 substrate, no new modules, no marketing surface.
