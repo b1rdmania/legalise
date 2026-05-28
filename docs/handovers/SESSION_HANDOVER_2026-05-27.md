@@ -11,7 +11,7 @@ started (still walkthrough-gated).
 
 | Commit | What |
 | --- | --- |
-| `77e871f` | **PR #10** (Codex) squash-merged — unblock local signup + Phase 17 auth entry. Closed walkthrough findings L-1 (landing affordance) + L-2 (signup 404 via `/auth` proxy) + P18-C (CI red on master, repo-root PYTHONPATH). |
+| `77e871f` | **PR #10** squash-merged — unblock local signup + Phase 17 auth entry. Closed walkthrough findings L-1 (landing affordance) + L-2 (signup 404 via `/auth` proxy) + P18-C (CI red on master, repo-root PYTHONPATH). |
 
 CI on master green at merge.
 
@@ -82,7 +82,7 @@ B ships before A so scaffold output is unit-tested against the validator. No sub
 
 ## 6. Environmental finding — two checkouts
 
-The running Docker stack is bound to `/Users/andy/Documents/New project/legalise/` (the Codex / other-agent checkout), NOT `/Users/andy/Cursor Projects 2026/legalise/` (the builder checkout this session worked in). Its sibling `claude-for-uk-legal` is empty/missing → `legalise doctor` reports 0 plugins.
+The running Docker stack is bound to `/Users/andy/Documents/New project/legalise/` (the active Documents checkout), NOT `/Users/andy/Cursor Projects 2026/legalise/` (the builder checkout this session worked in). Its sibling `claude-for-uk-legal` is empty/missing → `legalise doctor` reports 0 plugins.
 
 **Implication:** smoke and live probes from the builder checkout don't reflect the running stack, and vice versa. PR #11's fix won't take effect on the running stack until the Documents checkout pulls master + restarts, or the stack is brought up fresh from the builder checkout.
 
