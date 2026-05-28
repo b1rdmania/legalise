@@ -1,8 +1,18 @@
 # Phase 18 — Builder Response to the Operator Coherence Brief
 
-**Status:** Builder reply to `PHASE_18_LOGGED_IN_OPERATOR_COHERENCE_BRIEF.md`. For Reviewer redline before any build.
+**Status:** RATIFIED by Reviewer 2026-05-28. Build cleared in the proposed order.
 **Branch:** `phase-17-crm-pass`
 **Date:** 2026-05-28
+
+## Ratification (Reviewer, 2026-05-28)
+
+All answers + the 4-substep order accepted. Open question resolved: **file-and-defer the provider test-call gap** — do not pull backend into Phase 18 unless the frontend pass proves users cannot proceed without it. 18-B shows honest status only, with these exact labels:
+
+- `No key configured`
+- `Key configured, not tested`
+- `Using keyless demo model` (where applicable)
+
+**Deferred backend gap (filed):** `POST /settings/keys/{provider}/test` — minimal provider round-trip to confirm a key works. Not launch-blocking; revisit only if 18-B shows the configured/not-tested signal is insufficient for evaluators.
 **Method:** grounded in a full route + API inventory of the current tree (not speculation). Disagreements with the brief's recommendations are marked **[DIVERGE]**.
 
 ## Two facts that change the framing
