@@ -54,9 +54,19 @@ primary_region = "lhr"
 [http_service]
   internal_port = 8000
   force_https = true
-  auto_stop_machines = "off"
-  auto_start_machines = false
-  min_machines_running = 1
+  # Scale-to-zero for the eval environment: with no traffic the app
+  # machine stops and bills ~nothing; the Fly proxy holds the first
+  # request and auto-starts a machine (~1-3s cold start). Acceptable
+  # for a demo/eval surface. Flip min back to 1 (and auto_stop "off")
+  # if/when sustained traffic makes cold starts undesirable.
+  # NOTE: this governs the `app` (HTTP) process only. The `worker`
+  # process has no http_service, so it is NOT auto-stopped here — it
+  # stays running so queued arq jobs still process. Scale the worker
+  # to 0 manually (`fly scale count worker=0`) between demos if its
+  # steady cost matters.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
   processes = ["app"]
 
 [[http_service.checks]]
