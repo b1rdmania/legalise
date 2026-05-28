@@ -308,6 +308,96 @@ describe("ReconstructionView — server-side filters (Phase 14.5 A)", () => {
   });
 });
 
+describe("ReconstructionView — decision lane + chains (AT-2/AT-3)", () => {
+  it("groups an invocation with a review decision into a chain with an output node", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [
+        entry({
+          action: "module.capability.invoked",
+          payload: { invocation_id: "inv-7" },
+          source_row_id: "r-invoked",
+        }),
+        entry({
+          source: "audit",
+          action: "review.approved",
+          payload: { invocation_id: "inv-7", artifact_id: "art-1" },
+          source_row_id: "r-review",
+        }),
+      ],
+      next_cursor: null,
+      total_in_window_estimate: 2,
+    });
+
+    mountAt("/matters/khan/audit");
+    await waitFor(() => {
+      expect(screen.getByTestId("chain-inv-7")).toBeInTheDocument();
+    });
+    // Chain is open by default → both rows + the output node render.
+    expect(screen.getByText("review.approved")).toBeInTheDocument();
+    const out = screen.getByTestId("chain-output-node");
+    expect(out).toBeInTheDocument();
+    expect(out.querySelector("a")?.getAttribute("href")).toContain(
+      "/matters/khan/artifacts/art-1",
+    );
+  });
+
+  it("filters the loaded page by decision class chip", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [
+        entry({
+          action: "user.role.changed",
+          payload: {},
+          source_row_id: "r-role",
+        }),
+        entry({
+          action: "model.invoked",
+          payload: {},
+          source_row_id: "r-model",
+        }),
+      ],
+      next_cursor: null,
+      total_in_window_estimate: 2,
+    });
+
+    mountAt("/matters/khan/audit");
+    await waitFor(() => {
+      expect(screen.getByTestId("class-chip-grant_role")).toBeInTheDocument();
+    });
+    // grant_role is a decision row → foreground; model is background.
+    expect(screen.getByTestId("timeline-row-r-role")).toBeInTheDocument();
+    // Select the "Model" class chip → only model rows survive the facet,
+    // and model is background, so the decision lane reports none.
+    fireEvent.click(screen.getByTestId("class-chip-model"));
+    await waitFor(() => {
+      expect(screen.getByTestId("no-decision-points")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("timeline-row-r-role")).toBeNull();
+  });
+
+  it("does NOT lane-split when a deep-link filter is active (flat render, no class chips)", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [
+        entry({
+          action: "module.capability.invoked",
+          payload: { invocation_id: "inv-7" },
+          source_row_id: "r-flat",
+        }),
+      ],
+      next_cursor: null,
+      total_in_window_estimate: 1,
+    });
+
+    mountAt("/matters/khan/audit?invocation_id=inv-7");
+    await waitFor(() => {
+      expect(screen.getByTestId("timeline-row-r-flat")).toBeInTheDocument();
+    });
+    // Deep-linked: flat list, no decision lane / class chips.
+    expect(screen.queryByTestId("decision-lane")).toBeNull();
+    expect(screen.queryByTestId("class-chip-review")).toBeNull();
+    expect(screen.queryByTestId("chain-inv-7")).toBeNull();
+  });
+});
+
 describe("ReconstructionView — pagination", () => {
   it("loads more rows via the next_cursor", async () => {
     const spy = vi.spyOn(api, "getReconstruction");
@@ -323,6 +413,13 @@ describe("ReconstructionView — pagination", () => {
     });
 
     mountAt("/matters/khan/audit");
+    // These rows are module.capability.invoked (no decision) so they
+    // land in the collapsed background lane (AT-2 ratified default).
+    // Expand it to assert the paginated rows render.
+    await waitFor(() => {
+      expect(screen.getByTestId("toggle-background")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("toggle-background"));
     await waitFor(() => {
       expect(screen.getByTestId("timeline-row-r-1")).toBeInTheDocument();
     });

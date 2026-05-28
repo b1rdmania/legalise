@@ -37,6 +37,37 @@ import {
   type TimelineEntry,
 } from "../lib/api";
 import { matterAuditRoute } from "../router";
+import {
+  artifactIdOf,
+  classifyEntry,
+  invocationIdOf,
+  isDecisionRow,
+  type RowClass,
+} from "./auditClassify";
+
+// Class filter chips (AT-2). No `artifact` chip — artifacts are not an
+// audit class; they surface as the chain output node (AT-3). `system`
+// is the collapsed background, not a chip.
+const CLASS_CHIPS: { key: RowClass; label: string }[] = [
+  { key: "review", label: "Review" },
+  { key: "blocked_denied", label: "Blocked / denied" },
+  { key: "grant_role", label: "Grant / role" },
+  { key: "advice", label: "Advice" },
+  { key: "model", label: "Model" },
+  { key: "module", label: "Module" },
+  { key: "error", label: "Error" },
+];
+
+const CLASS_LABEL: Record<RowClass, string> = {
+  error: "Error",
+  review: "Review",
+  blocked_denied: "Blocked / denied",
+  grant_role: "Grant / role",
+  advice: "Advice",
+  model: "Model",
+  module: "Module",
+  system: "System",
+};
 
 type FetchState =
   | { status: "loading" }
@@ -69,6 +100,15 @@ export function ReconstructionView({ slug }: { slug: string }) {
     ALL_RECONSTRUCTION_SOURCES,
   );
   const [fetchState, setFetchState] = useState<FetchState>({ status: "loading" });
+  // AT-2: client-side class facet (loaded page only) + background toggle.
+  const [classFilter, setClassFilter] = useState<RowClass | null>(null);
+  const [showBackground, setShowBackground] = useState(false);
+
+  // When a precise deep-link filter is active, render the returned rows
+  // flat — the user asked for an exact invocation/action, so the
+  // decision-lane split would only get in the way (and class chips
+  // can't pretend to be exhaustive across unloaded pages anyway).
+  const deepLinked = !!(invocationFilter || actionFilter);
 
   const loadPage = useCallback(
     async (cursor: string | null) => {
@@ -138,6 +178,51 @@ export function ReconstructionView({ slug }: { slug: string }) {
     if (fetchState.status !== "ready") return [];
     return fetchState.entries;
   }, [fetchState]);
+
+  // AT-2/AT-3 — split the loaded page into a decision foreground
+  // (invocation chains that contain a decision row, plus standalone
+  // decision rows) and a collapsed background. Class filter applies to
+  // the loaded page only. Skipped entirely when deep-linked.
+  const lanes = useMemo(() => {
+    const rows = visibleEntries.filter(
+      (e) => classFilter === null || classifyEntry(e) === classFilter,
+    );
+    const byInvocation = new Map<string, TimelineEntry[]>();
+    const ungrouped: TimelineEntry[] = [];
+    for (const e of rows) {
+      const inv = invocationIdOf(e);
+      if (inv) {
+        const arr = byInvocation.get(inv) ?? [];
+        arr.push(e);
+        byInvocation.set(inv, arr);
+      } else {
+        ungrouped.push(e);
+      }
+    }
+    const chains: {
+      invocationId: string;
+      entries: TimelineEntry[];
+      artifactId: string | null;
+    }[] = [];
+    const backgroundRows: TimelineEntry[] = [];
+    for (const [inv, es] of byInvocation) {
+      if (es.some(isDecisionRow)) {
+        const artifactId =
+          es.map(artifactIdOf).find((x): x is string => !!x) ?? null;
+        chains.push({ invocationId: inv, entries: es, artifactId });
+      } else {
+        backgroundRows.push(...es);
+      }
+    }
+    const standaloneDecisions: TimelineEntry[] = [];
+    for (const e of ungrouped) {
+      if (isDecisionRow(e)) standaloneDecisions.push(e);
+      else backgroundRows.push(e);
+    }
+    return { chains, standaloneDecisions, backgroundRows };
+  }, [visibleEntries, classFilter]);
+
+  const foregroundCount = lanes.chains.length + lanes.standaloneDecisions.length;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
@@ -209,6 +294,39 @@ export function ReconstructionView({ slug }: { slug: string }) {
         })}
       </div>
 
+      {/* Class facet chips (AT-2) — loaded page only, hidden when a
+          precise deep-link filter is active. */}
+      {!deepLinked && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-widest text-muted">
+            Decision type
+          </span>
+          {CLASS_CHIPS.map((c) => {
+            const active = classFilter === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setClassFilter(active ? null : c.key)}
+                className={
+                  "rounded-full border px-3 py-1 text-xs transition-colors " +
+                  (active
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line text-muted hover:border-ink")
+                }
+                data-testid={`class-chip-${c.key}`}
+                aria-pressed={active}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+          {classFilter && (
+            <span className="text-[11px] text-muted">filters the loaded page only</span>
+          )}
+        </div>
+      )}
+
       {/* Timeline */}
       {fetchState.status === "loading" && (
         <p className="mt-8 text-sm text-muted">Loading timeline…</p>
@@ -233,15 +351,66 @@ export function ReconstructionView({ slug }: { slug: string }) {
               page accurately means "no matching rows in window." */}
 
           {visibleEntries.length === 0 ? (
-            <EmptyState
-              filtersActive={!!(invocationFilter || actionFilter)}
-            />
-          ) : (
+            <EmptyState filtersActive={deepLinked} />
+          ) : deepLinked ? (
+            /* Precise deep-link: flat list of exactly what the server
+               returned, no lane split. */
             <ol className="mt-4 space-y-3">
               {visibleEntries.map((e) => (
                 <TimelineRow key={`${e.source}::${e.source_row_id}`} entry={e} />
               ))}
             </ol>
+          ) : (
+            <div className="mt-4">
+              {/* Decision foreground */}
+              {foregroundCount === 0 ? (
+                <p className="text-sm text-muted" data-testid="no-decision-points">
+                  No decision points on the loaded page
+                  {classFilter ? " for this decision type" : ""}.
+                </p>
+              ) : (
+                <ol className="space-y-3" data-testid="decision-lane">
+                  {lanes.chains.map((c) => (
+                    <InvocationChain
+                      key={c.invocationId}
+                      slug={slug}
+                      invocationId={c.invocationId}
+                      entries={c.entries}
+                      artifactId={c.artifactId}
+                    />
+                  ))}
+                  {lanes.standaloneDecisions.map((e) => (
+                    <TimelineRow key={`${e.source}::${e.source_row_id}`} entry={e} />
+                  ))}
+                </ol>
+              )}
+
+              {/* Background activity — collapsed by default (ratified Q3) */}
+              {lanes.backgroundRows.length > 0 && (
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowBackground((v) => !v)}
+                    className="text-xs uppercase tracking-widest text-muted hover:text-ink"
+                    data-testid="toggle-background"
+                    aria-expanded={showBackground}
+                  >
+                    {showBackground ? "Hide" : "Show"} background activity (
+                    {lanes.backgroundRows.length})
+                  </button>
+                  {showBackground && (
+                    <ol className="mt-3 space-y-3" data-testid="background-lane">
+                      {lanes.backgroundRows.map((e) => (
+                        <TimelineRow
+                          key={`${e.source}::${e.source_row_id}`}
+                          entry={e}
+                        />
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           {fetchState.nextCursor && (
             <div className="mt-6">
@@ -316,13 +485,87 @@ function FilterChip({
   );
 }
 
-function TimelineRow({ entry }: { entry: TimelineEntry }) {
-  const [expanded, setExpanded] = useState(false);
-  const tone = sourceTone(entry.source);
+// AT-3 — a grouped invocation chain (module → model → output → review →
+// decision). The artifact output node is resolved from a review row's
+// artifact_id (AT-1 artifactIdOf); if none resolves, the chain renders
+// without an output node — never invents one.
+function InvocationChain({
+  slug,
+  invocationId,
+  entries,
+  artifactId,
+}: {
+  slug: string;
+  invocationId: string;
+  entries: TimelineEntry[];
+  artifactId: string | null;
+}) {
+  const [open, setOpen] = useState(true);
+  const ordered = [...entries].sort((a, b) =>
+    a.occurred_at.localeCompare(b.occurred_at),
+  );
+  const decisions = ordered.filter(isDecisionRow);
+  const outcome = decisions.length
+    ? classifyEntry(decisions[decisions.length - 1])
+    : null;
   return (
     <li
       className="rounded-md border border-line p-3"
+      data-testid={`chain-${invocationId}`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 text-left"
+        aria-expanded={open}
+      >
+        <span className="flex items-baseline gap-2">
+          <span className="text-xs uppercase tracking-widest text-muted">
+            Invocation
+          </span>
+          <code className="font-mono text-sm">{invocationId.slice(0, 8)}…</code>
+          <span className="text-xs text-muted">{ordered.length} events</span>
+        </span>
+        {outcome && (
+          <span className="shrink-0 rounded-full border border-ink px-2 py-0.5 text-xs">
+            {CLASS_LABEL[outcome]}
+          </span>
+        )}
+      </button>
+      {open && (
+        <ol className="mt-3 space-y-2 border-l border-line pl-3">
+          {ordered.map((e) => (
+            <TimelineRow key={`${e.source}::${e.source_row_id}`} entry={e} />
+          ))}
+          {artifactId && (
+            <li className="text-xs" data-testid="chain-output-node">
+              <span className="uppercase tracking-widest text-muted">Output</span>{" "}
+              <a
+                href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifactId)}`}
+                className="font-mono underline underline-offset-4 hover:text-ink"
+              >
+                artifact {artifactId.slice(0, 8)}…
+              </a>
+            </li>
+          )}
+        </ol>
+      )}
+    </li>
+  );
+}
+
+function TimelineRow({ entry }: { entry: TimelineEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const tone = sourceTone(entry.source);
+  const isReview = classifyEntry(entry) === "review";
+  return (
+    <li
+      className={
+        "rounded-md border border-line p-3 " +
+        (isReview ? "border-l-2 border-l-seal" : "")
+      }
       data-testid={`timeline-row-${entry.source_row_id}`}
+      data-row-class={classifyEntry(entry)}
     >
       <button
         type="button"
