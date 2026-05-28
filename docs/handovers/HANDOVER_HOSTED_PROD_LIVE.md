@@ -161,6 +161,21 @@ Just two things, both punt-able:
 
 Everything else from the original §9 list is now either resolved or actively running.
 
+### 11.4.1 Host-aware waitlist env var (added 2026-05-27, PR #10)
+
+PR #10 (`77e871f`) replaced the simple `HOSTED_ACCESS_WAITLIST = HOSTED_ACCESS_MODE === "waitlist"` derivation in `frontend/src/lib/access.ts` with a host-aware variant:
+
+```
+HOSTED_ACCESS_WAITLIST =
+  HOSTED_ACCESS_MODE === "waitlist" && CURRENT_HOST === HOSTED_ACCESS_HOST
+```
+
+`HOSTED_ACCESS_HOST` defaults to `legalise.dev`. Self-host-safe by design — a forker who accidentally sets `VITE_HOSTED_ACCESS_MODE=waitlist` won't see the waitlist screen because their hostname won't match.
+
+**Implication for hosted prod:** if the canonical hosted domain ever migrates (e.g. `legalise.dev` → `app.legalise.dev`), or staging environments need waitlist (e.g. `staging.legalise.dev` for SRA pre-app demos), set `VITE_HOSTED_ACCESS_HOST` to the matching hostname on the Cloudflare Pages build env for those branches. Current `legalise.dev` production needs nothing — default matches.
+
+Tracked in backlog as `POST_PHASE_17_BACKLOG.md` P18-J.
+
 ### 11.5 What I want from the reviewer (round 2)
 
 - **Sanity-check the `[processes]` + `[[vm]]` shape** in `backend/fly.toml`. Are the per-process sizes sensible (app shared-cpu-2x/1gb, worker shared-cpu-1x/1gb)? Should `min_machines_running` apply to worker too, or is "1 active + 1 standby" enough?

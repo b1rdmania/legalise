@@ -323,14 +323,13 @@ export function GrantsPanel({ slug }: { slug: string }) {
   }, [catalog, grants, installed]);
 
   return (
-    <section className="mt-10">
+    <section className="mt-10 rounded-md border border-line bg-paper p-4">
       <h2 className="text-sm uppercase tracking-widest text-muted">
-        Grants on this matter
+        Matter actions
       </h2>
       <p className="mt-2 text-sm text-muted">
-        Capabilities granted to you on this matter. Each row corresponds
-        to a plugin/skill/capability triple the substrate uses to gate
-        invocations.
+        Runnable modules appear first. Permission records stay visible
+        below so the substrate gates remain inspectable.
       </p>
 
       {/* Phase 14 D — runnable capabilities */}
@@ -434,7 +433,7 @@ export function GrantsPanel({ slug }: { slug: string }) {
       )}
 
       {/* Add-grant control */}
-      <div className="mt-6 rounded-md border border-line p-4">
+      <div className="mt-6 rounded-md border border-line bg-paper-sunken p-4">
         <h3 className="text-xs uppercase tracking-widest text-muted">
           Grant a capability
         </h3>
