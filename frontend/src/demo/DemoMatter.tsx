@@ -345,7 +345,7 @@ function DemoDocumentsTab({
                     onClick={onEdit}
                     className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-xs font-medium min-h-[32px]"
                   >
-                    Join waitlist to edit or anonymise
+                    Create account to edit or anonymise
                   </button>
                 </div>
               )}

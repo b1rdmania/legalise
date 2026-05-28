@@ -2,7 +2,6 @@ import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
-import { WAITLIST_HREF } from "../lib/access";
 
 const DEMO_HREF_UNAUTHED = "/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
@@ -92,7 +91,7 @@ export function Drawer({
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: WAITLIST_HREF, label: "Request hosted access" },
+      { href: "/auth/signup", label: "Create account" },
     ];
   }
 

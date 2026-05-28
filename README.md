@@ -35,7 +35,7 @@ Legalise currently ships a worked evaluation workspace around the Khan v Acme sa
 - **Privilege-aware gateway:** Anthropic, OpenAI, and Ollama behind one dispatch layer.
 - **BYO keys:** users store their own provider keys encrypted at rest.
 - **Audit trail:** model calls, module actions, denials, mutations, provider failures, and storage failures leave rows.
-- **Hosted-access posture:** public site is waitlisted while production smoke testing finishes.
+- **Hosted-access posture:** public evaluation signup is open; real AI workflows still require your own model key.
 
 The plugin layer, where most of the legal logic lives, is [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal): 15 skills across UK employment law, civil litigation, and legal research.
 
@@ -86,7 +86,7 @@ The doctrine:
 
 ## Try it
 
-The hosted evaluation environment at [legalise.dev](https://legalise.dev) is waitlisted while production smoke testing finishes. You can browse the Khan v Acme demo on the hosted site, or run the full workspace locally.
+The hosted evaluation environment at [legalise.dev](https://legalise.dev) is open for evaluation accounts. You can browse the Khan v Acme demo on the hosted site, create an account to run the workspace, or run the full stack locally.
 
 Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
 
@@ -185,7 +185,7 @@ Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
 ## Caveat
 
-This is software that helps produce legal work-product. It is not legal advice. The workspace and modules are designed for qualified solicitors under their professional supervision. Use by non-lawyers in a regulated legal context may breach the Legal Services Act 2007 and the SRA Standards and Regulations.
+This is software for evaluating legal-AI workflows. It is not legal advice, not a law firm, and not for live client matters. Real regulated use needs the firm’s own supervision, policies, model-key posture, and professional controls.
 
 ## Licence
 

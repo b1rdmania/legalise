@@ -64,9 +64,9 @@ Python, FastAPI, Postgres, React 19, Tailwind. Nothing on this list surprises an
 
 The novelty is the composition. Privilege-aware gateway. Adversarial premortem pipelines. Audit-first model dispatch. Matter folder represented as markdown on disk so it survives any future database migration. We optimise for the parts of the system that don't care which model you used in 2026 versus 2030.
 
-## Solicitor-in-the-loop, permanently
+## Human-in-the-loop, permanently
 
-Every output is a draft. A qualified solicitor reviews, verifies, and takes professional responsibility.
+Every output is a draft. The product should make human review explicit, inspectable, and impossible to confuse with autonomous legal advice.
 
 Drafts and accelerants, yes. Substitutes, no. A constraint on the product surface, not an aspiration.
 
@@ -74,7 +74,7 @@ Drafts and accelerants, yes. Substitutes, no. A constraint on the product surfac
 
 This is not a law firm. It is not legal advice. It is not for live client matters. The hosted site is a limited evaluation environment, and real model calls require the operator's own provider keys.
 
-The current release proves the matter workspace, modules, privilege posture, capability gates, BYO keys, and audit trail. The supervisor-gate primitive is the next step, not a claim already made.
+The current release proves the matter workspace, modules, privilege posture, capability gates, BYO keys, and audit trail. Firm-specific seniority gates are staged for real deployments, not required for the evaluator path.
 
 Some hard problems are deliberately staged: durable job recovery, formal WORM database roles, richer evals, hallucination controls, prompt shrouding, and production-grade regulator reconstruction. Those are engineering gates, not ignored problems.
 
