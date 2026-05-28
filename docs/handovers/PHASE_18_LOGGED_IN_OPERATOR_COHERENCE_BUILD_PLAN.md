@@ -1,0 +1,339 @@
+# Phase 18 — Logged-In Operator Coherence Build Plan
+
+**Status:** v1 plan for Reviewer redline.  
+**Branch:** `phase-17-crm-pass`  
+**Date:** 2026-05-28  
+**Base context:** Phase 17.5 is live; firm role gates are dormant by default in hosted/eval mode. Module DX (`PHASE_18_G_MODULE_DX_PLAN.md`) is parked behind this product pass unless Reviewer explicitly reorders it.
+
+## Objective
+
+Make the signed-in product feel like one coherent operator workspace:
+
+> configure provider keys -> inspect modules -> install/trust -> grant on a matter -> run -> inspect artifact -> inspect audit.
+
+This phase is frontend-first. It should not add substrate unless the UI proves a real missing endpoint.
+
+## Non-Negotiables
+
+- No backend changes without a filed gap and Reviewer approval.
+- No role-gate rethink. Firm role gates stay dormant by default; firm-mode remains behind `LEGALISE_FIRM_ROLE_GATES_ENABLED=true`.
+- No new visual system.
+- No Base44/Pulse Talent migration. Borrow CRM/admin layout grammar only.
+- No connector work.
+- No async/runtime work.
+- No marketing/landing redesign except tiny consistency fixes found during the pass.
+- Each substep must leave `npm run typecheck`, `npm test -- --run`, and `npm run build` green in the frontend container.
+
+## Build Order
+
+### Step A — Route Inventory + UI Contract
+
+Create a short inventory doc before changing screens.
+
+Deliverable:
+
+- `docs/handovers/PHASE_18_ROUTE_INVENTORY.md`
+
+For each route, record:
+
+- current purpose;
+- user goal;
+- API calls;
+- rough UI problem;
+- classification: keep / copy-only / layout fix / missing endpoint / defer;
+- whether route is public, authed, admin, or matter-scoped.
+
+Routes to cover:
+
+- `/app`
+- `/matters`
+- `/matters/{slug}`
+- `/matters/{slug}/artifacts`
+- `/matters/{slug}/audit`
+- `/modules`
+- `/modules/{module_id}`
+- `/modules/install/{ceremony_id}`
+- `/settings/profile`
+- `/settings/keys`
+- `/settings/preferences`
+- `/admin/users`
+- `/admin/users/{id}`
+- `/admin/audit`
+
+Acceptance:
+
+- Inventory exists.
+- Any backend gap is logged as a finding, not implemented.
+- Reviewer can alter Step B/C/D order from the inventory.
+
+### Step B — Module Setup As Integrations
+
+Problem: module setup is the thesis surface, but today it can feel like catalogue rows plus manifest tables plus ceremony states.
+
+Target:
+
+- `/modules` reads like an integrations catalogue.
+- `/modules/{module_id}` reads like an integration detail page.
+- `/modules/install/{ceremony_id}` reads like a permission review.
+- Matter grants read like permissions for this matter.
+
+Likely files:
+
+- `frontend/src/modules-v2/ModulesCatalog.tsx`
+- `frontend/src/modules-v2/ModuleDetail.tsx`
+- `frontend/src/modules-v2/InstallCeremony.tsx`
+- `frontend/src/matter/GrantsPanel.tsx`
+- `frontend/src/lib/api.ts` only if existing types need tightening
+
+Concrete changes:
+
+1. **Catalog grouping**
+   - Keep suite grouping.
+   - Add simple state labels: available / installed / disabled / invalid where current API allows.
+   - Do not fake states if data is missing; log a gap.
+
+2. **Module detail**
+   - Lead with what the module does.
+   - Show capabilities as “needs access to…” rather than raw manifest rows where possible.
+   - Keep raw identifiers available in small mono metadata.
+   - Admin lifecycle controls should be obvious but not dominate the page.
+
+3. **Trust ceremony**
+   - Rename visual sections around operator language:
+     - verify publisher;
+     - review permissions;
+     - enable module.
+   - Keep substrate state names visible as metadata, not the page headline.
+
+4. **Matter grants**
+   - Explain current grants as permissions on this matter.
+   - Group rows by module/capability if possible.
+   - Keep idempotent/no-audit copy accurate.
+   - Keep Run affordances next to the permission context, but avoid making the panel feel like a row editor.
+
+Acceptance:
+
+- Evaluator can identify whether Contract Review / Pre-Motion is installed and runnable.
+- Evaluator can explain what granting does without reading manifest docs.
+- No workspace/global capability is offered from the matter grant UI.
+- Existing Phase 14 D strict grant/runnable-pair invariant remains.
+- Tests cover at least one installed, disabled, not-installed, and grant-success state.
+
+### Step C — Settings / Provider Key Clarity
+
+Problem: BYO provider keys are launch-critical. Settings currently has the mechanics, but the product story is not prominent enough.
+
+Target:
+
+- `/settings/keys` is the obvious place to make real model calls work.
+- Users understand keyless/stub/demo versus BYO provider behavior.
+- Add/revoke key actions are tied to audit language.
+
+Likely files:
+
+- `frontend/src/auth/Settings.tsx`
+- `frontend/src/lib/api.ts`
+- maybe `docs/DEMO.md` or `docs/TROUBLESHOOTING.md` if the UI needs a supporting line
+
+Concrete changes:
+
+1. **Settings IA**
+   - Make `API keys` read as `Provider keys` or `Model providers` if the route can keep the same path.
+   - Add a short top explainer: Legalise does not provide production model access; bring your own provider key.
+
+2. **Provider key list**
+   - Make provider rows dense and clear:
+     - provider;
+     - created;
+     - last used if available;
+     - revoke action.
+   - Do not display secrets after save.
+
+3. **Provider add form**
+   - Explain what saving a key enables.
+   - Name audit rows if already emitted (`user.key.configured`, `user.key.revoked`).
+
+4. **Provider status/test-call**
+   - If an endpoint exists, expose status/test.
+   - If no endpoint exists, file a backend gap and do not fake it.
+
+Acceptance:
+
+- Evaluator can find where to add an OpenAI/Anthropic key without being told.
+- Settings copy makes clear the hosted site has no production shared key.
+- Revoke is clearly destructive and audited.
+- No fake provider-health status is rendered.
+
+### Step D — Matter Workspace Action/Artifact Loop
+
+Problem: the matter page is the core product, but actions, grants, artifacts, audit links, and documents can feel like independent widgets.
+
+Target:
+
+- Matter detail feels like a record page.
+- Documents remain the lead context.
+- Available module actions are clear after permissions are granted.
+- New artifacts are easy to find after a run.
+- Audit deep-links are present but not noisy.
+
+Likely files:
+
+- `frontend/src/matter/MatterDetail.tsx`
+- `frontend/src/matter/MatterRecordSummary.tsx`
+- `frontend/src/matter/ArtifactsList.tsx`
+- `frontend/src/matter/ArtifactDetail.tsx`
+- `frontend/src/matter/InvocationRunner.tsx`
+- `frontend/src/matter/ReconstructionView.tsx`
+- `frontend/src/matter/tabs/*`
+
+Concrete changes:
+
+1. **Matter summary**
+   - Keep the slim record summary, but make next actions clearer:
+     - review documents;
+     - configure permissions;
+     - run module;
+     - inspect audit.
+
+2. **Actions and artifacts**
+   - After a successful run, link clearly to artifact and audit.
+   - Artifact list should read as outputs for this matter, not object storage records.
+
+3. **Audit links**
+   - Keep exact deep-links.
+   - Label them as audit trail / reconstruction, not raw source rows.
+
+4. **Posture**
+   - In dormant role-gate mode, posture should not become role-hierarchy onboarding.
+   - C_paused hard stop should remain clear.
+
+Acceptance:
+
+- From a matter page, evaluator can find documents, runnable actions, latest artifacts, and audit without side explanation.
+- B_mixed default eval mode does not present a solicitor-hierarchy blocker.
+- C_paused remains visible and blocks.
+- Existing artifact preview tests still pass; add coverage where UI labels change behavior.
+
+### Step E — Admin/User Calm-Down
+
+Problem: admin pages exist, but they should feel like sparse operator controls, not a place to discover internal role ontology.
+
+Target:
+
+- `/admin/users` and `/admin/users/{id}` are simple, safe, and admin-only.
+- Role controls are framed as firm/deployment controls.
+- Workspace audit remains reachable.
+
+Likely files:
+
+- `frontend/src/admin/AdminUsersList.tsx`
+- `frontend/src/admin/AdminUserDetail.tsx`
+- `frontend/src/admin/AdminAuditView.tsx`
+- `frontend/src/ui/Sidebar.tsx`
+- `frontend/src/app/AppHome.tsx`
+
+Concrete changes:
+
+1. **User list**
+   - Keep dense table.
+   - Improve empty/filter states if weak.
+   - Keep non-admin no-fetch invariant.
+
+2. **User detail**
+   - Role form copy should say firm controls / deployment controls.
+   - Do not imply role promotion is required for the evaluator path.
+   - Same-role/no-op copy must remain honest per prior redline.
+
+3. **Admin audit**
+   - Keep workspace audit.
+   - Improve labels/tooltips only; no export/grouping in this phase.
+
+Acceptance:
+
+- Non-admins do not call admin endpoints.
+- Superuser sees clear, sparse user/admin controls.
+- Role controls are visible but not launch-onboarding language.
+
+### Step F — Shared Operator Primitives
+
+Do this last and only extract what Steps B-E prove is duplicated.
+
+Likely files:
+
+- `frontend/src/ui/primitives.tsx`
+- selected route components
+
+Candidate primitives:
+
+- `PageHeader`
+- `SectionHeader`
+- `OperatorTable`
+- `MetadataStrip`
+- `EmptyState`
+- `ActionPanel`
+
+Acceptance:
+
+- At least two screens use any newly extracted primitive.
+- No component-library sprawl.
+- No visual-system change.
+
+## Open Questions For Reviewer
+
+1. **Phase sequencing**
+   - Is this Phase 18, with Module DX parked behind it?
+   - Recommended: yes.
+
+2. **Step order**
+   - Approve A -> B -> C -> D -> E -> F?
+   - Recommended: yes. Module setup and provider settings are closest to launch comprehension.
+
+3. **Legacy modules surface**
+   - Should `frontend/src/modules-page/Modules.tsx` remain, or should all visible module work consolidate on `modules-v2` routes?
+   - Recommended: keep public browse if still routed, but avoid two competing module-management surfaces.
+
+4. **Provider test-call**
+   - Is there an existing endpoint for provider status/test-call?
+   - Recommended: inspect during Step C; if absent, file gap and skip.
+
+5. **Admin role prominence**
+   - Should dormant firm roles be shown in admin by default?
+   - Recommended: yes, but framed as firm controls, not evaluator setup.
+
+6. **Demo route**
+   - Should `/demo` be included in this phase?
+   - Recommended: no, except if it contradicts the real signed-in UI. Keep demo coherence as a small copy/layout fix, not a full rebuild.
+
+7. **Audit export/grouping**
+   - Include export or grouped decision views now?
+   - Recommended: no. This phase improves navigation/readability only.
+
+## Verification
+
+Per substep:
+
+```bash
+docker compose -f infra/docker-compose.yml exec -T frontend npm run typecheck
+docker compose -f infra/docker-compose.yml exec -T frontend npm test -- --run
+docker compose -f infra/docker-compose.yml exec -T frontend npm run build
+```
+
+Before close-out:
+
+- Run the evaluator path manually or with Playwright:
+  - create/sign in;
+  - open Khan;
+  - inspect modules;
+  - confirm provider-key setup path is obvious;
+  - grant/run a module;
+  - open artifact;
+  - open audit.
+- Check no public/logged-in evaluator surface says:
+  - join waitlist;
+  - qualified solicitor required for default B_mixed evaluator flow;
+  - live client matters are supported.
+
+## Handover Line
+
+> Phase 18 should make the logged-in product feel like a coherent operator workspace. Build frontend-first in substeps: route inventory, module setup, settings/provider keys, matter action/artifact loop, admin calm-down, then shared primitives only where duplication proves it. No substrate unless a missing endpoint is filed and approved. Module DX stays parked behind this pass unless Reviewer reorders.
+
