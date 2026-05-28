@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { AuditEntry, Matter, MatterDocument } from "../lib/api";
 import type { TabKey } from "./tabs/types";
 
@@ -6,7 +5,10 @@ interface Props {
   matter: Matter;
   docs: MatterDocument[] | null;
   audit: AuditEntry[] | null;
-  onSelectTab: (tab: TabKey) => void;
+  // Kept for signature compatibility with MatterDetail; nav now lives
+  // in the global sidebar (Phase 17-IA), so the summary no longer
+  // renders its own action buttons.
+  onSelectTab?: (tab: TabKey) => void;
 }
 
 function postureLabel(posture: string): string {
@@ -17,109 +19,42 @@ function postureLabel(posture: string): string {
 }
 
 function formatDate(value: string | null): string {
-  if (!value) return "Not set";
+  if (!value) return "—";
   return value.slice(0, 10);
 }
 
-function countLabel(count: number | null, singular: string, plural: string): string {
-  if (count === null) return "Loading";
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
-export function MatterRecordSummary({ matter, docs, audit, onSelectTab }: Props) {
-  const documentCount = docs ? docs.length : null;
-  const auditCount = audit ? audit.length : null;
+// Phase 17-IA-B: a slim record header, not a stat-strip + coaching
+// box. Canonical tokens only (border-rule, square, no shadow) to match
+// the Audit page density — kills the border-line/shadow/rounded design
+// leak the walkthrough flagged. Nav moved to the sidebar, so no action
+// buttons here.
+export function MatterRecordSummary({ matter, docs, audit }: Props) {
+  const facts: { label: string; value: string }[] = [
+    { label: "Posture", value: postureLabel(matter.privilege_posture) },
+    { label: "Type", value: matter.matter_type },
+    { label: "Status", value: matter.status },
+    { label: "Documents", value: docs ? String(docs.length) : "—" },
+    { label: "Audit rows", value: audit ? String(audit.length) : "—" },
+    { label: "Opened", value: formatDate(matter.opened_at) },
+  ];
 
   return (
-    <section
-      aria-label="Matter record summary"
-      className="mb-6 rounded-md border border-line bg-paper p-4 shadow-sm"
-    >
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-widest text-muted">
-            Matter record
-          </p>
-          <h1 className="mt-1 font-serif text-2xl text-ink">
-            {matter.title}
-          </h1>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
-            <span className="rounded-md border border-line bg-paper-sunken px-2 py-1 font-mono">
-              {matter.slug}
-            </span>
-            <span className="rounded-md border border-line bg-paper-sunken px-2 py-1">
-              {matter.matter_type}
-            </span>
-            <span className="rounded-md border border-line bg-paper-sunken px-2 py-1">
-              {matter.status}
-            </span>
+    <header aria-label="Matter record" className="mb-8 border-b border-rule pb-5">
+      <p className="text-[11px] uppercase tracking-widest text-muted">Matter</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight2 text-ink">
+        {matter.title}
+      </h1>
+      <p className="mt-1 font-mono text-xs text-muted">{matter.slug}</p>
+      <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2">
+        {facts.map((f) => (
+          <div key={f.label}>
+            <dt className="text-[10px] uppercase tracking-widest text-muted">
+              {f.label}
+            </dt>
+            <dd className="mt-0.5 text-sm text-ink">{f.value}</dd>
           </div>
-        </div>
-
-        <div className="grid min-w-[280px] grid-cols-2 gap-2 text-sm sm:grid-cols-4 xl:grid-cols-2">
-          <SummaryMetric label="Posture" value={postureLabel(matter.privilege_posture)} />
-          <SummaryMetric label="Documents" value={countLabel(documentCount, "doc", "docs")} />
-          <SummaryMetric label="Audit window" value={countLabel(auditCount, "row", "rows")} />
-          <SummaryMetric label="Opened" value={formatDate(matter.opened_at)} />
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 border-t border-line pt-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div>
-          <p className="text-sm font-medium text-ink">Run the matter loop</p>
-          <p className="mt-1 text-sm text-muted">
-            Check source documents, grant module permissions, run a governed action,
-            then inspect the artifact and audit trail.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <SummaryAction onClick={() => onSelectTab("documents")}>
-            Documents
-          </SummaryAction>
-          <SummaryAction onClick={() => onSelectTab("workflows")}>
-            Workflows
-          </SummaryAction>
-          <a
-            href={`/matters/${matter.slug}/artifacts`}
-            className="inline-flex items-center rounded-md border border-line px-3 py-1.5 text-sm text-ink hover:border-ink"
-          >
-            Artifacts
-          </a>
-          <a
-            href={`/matters/${matter.slug}/audit`}
-            className="inline-flex items-center rounded-md border border-line px-3 py-1.5 text-sm text-ink hover:border-ink"
-          >
-            Audit trail
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function SummaryMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-line bg-paper-sunken px-3 py-2">
-      <p className="text-[11px] uppercase tracking-widest text-muted">{label}</p>
-      <p className="mt-1 truncate text-sm font-medium text-ink">{value}</p>
-    </div>
-  );
-}
-
-function SummaryAction({
-  children,
-  onClick,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex items-center rounded-md border border-line px-3 py-1.5 text-sm text-ink hover:border-ink"
-    >
-      {children}
-    </button>
+        ))}
+      </dl>
+    </header>
   );
 }

@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { MatterRecordSummary } from "./MatterRecordSummary";
 import type { AuditEntry, Matter, MatterDocument } from "../lib/api";
 
@@ -72,47 +72,25 @@ const AUDIT: AuditEntry[] = [
 ];
 
 describe("MatterRecordSummary", () => {
-  it("renders the record summary with counts and posture", () => {
-    render(
-      <MatterRecordSummary
-        matter={MATTER}
-        docs={DOCS}
-        audit={AUDIT}
-        onSelectTab={() => undefined}
-      />,
-    );
+  it("renders the slim record header with title, slug, posture and counts", () => {
+    render(<MatterRecordSummary matter={MATTER} docs={DOCS} audit={AUDIT} />);
 
-    expect(screen.getByLabelText("Matter record summary")).toBeInTheDocument();
+    // Phase 17-IA-B: slim header (aria-label "Matter record"), canonical
+    // tokens, no stat-strip / coaching box / action buttons (nav moved
+    // to the global sidebar).
+    expect(screen.getByLabelText("Matter record")).toBeInTheDocument();
     expect(screen.getByText("Khan v Acme")).toBeInTheDocument();
+    expect(screen.getByText("khan-v-acme")).toBeInTheDocument();
     expect(screen.getByText("Mixed")).toBeInTheDocument();
-    expect(screen.getByText("2 docs")).toBeInTheDocument();
-    expect(screen.getByText("1 row")).toBeInTheDocument();
+    // Document + audit counts render as bare numbers in the fact list.
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("2026-05-20")).toBeInTheDocument();
   });
 
-  it("links the matter loop to tabs, artifacts, and audit", () => {
-    const onSelectTab = vi.fn();
-    render(
-      <MatterRecordSummary
-        matter={MATTER}
-        docs={DOCS}
-        audit={AUDIT}
-        onSelectTab={onSelectTab}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Documents" }));
-    fireEvent.click(screen.getByRole("button", { name: "Workflows" }));
-
-    expect(onSelectTab).toHaveBeenNthCalledWith(1, "documents");
-    expect(onSelectTab).toHaveBeenNthCalledWith(2, "workflows");
-    expect(screen.getByRole("link", { name: "Artifacts" })).toHaveAttribute(
-      "href",
-      "/matters/khan-v-acme/artifacts",
-    );
-    expect(screen.getByRole("link", { name: "Audit trail" })).toHaveAttribute(
-      "href",
-      "/matters/khan-v-acme/audit",
-    );
+  it("no longer renders nav action buttons (sidebar owns nav)", () => {
+    render(<MatterRecordSummary matter={MATTER} docs={DOCS} audit={AUDIT} />);
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Artifacts" })).toBeNull();
   });
 });

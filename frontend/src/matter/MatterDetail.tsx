@@ -31,8 +31,6 @@ import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { GrantsPanel } from "./GrantsPanel";
 import { MatterRecordSummary } from "./MatterRecordSummary";
 import { PostureBanner } from "./PostureBanner";
-import { MatterNav } from "./MatterNav";
-import { MatterBreadcrumb } from "./MatterBreadcrumb";
 import { RightRailAssistant } from "./RightRailAssistant";
 import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
 import { DocumentsTab } from "./tabs/DocumentsTab";
@@ -57,8 +55,11 @@ export function MatterDetail({ slug }: { slug: string }) {
   // Phase 14 C — posture banner reads the current user role.
   const auth = useAuth();
   const route = useRoute();
+  // Phase 17-IA-B: a freshly-opened matter leads with the record
+  // (documents), not the assistant chat (MD-2). The assistant is the
+  // collapsible right rail / its own sidebar item, not the front door.
   const initialTab: TabKey =
-    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "documents";
   const [tab, setTab] = useState<TabKey>(initialTab);
 
   // sync tab → drawer label
@@ -72,15 +73,12 @@ export function MatterDetail({ slug }: { slug: string }) {
     if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab);
     } else if (route.name === "detail" && !route.tab) {
-      setTab("assistant");
+      setTab("documents");
     }
   }, [route]);
 
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
   const setTabAndHash = (next: TabKey) => {
     setTab(next);
-    setMobileNavOpen(false);
     const target = `/matters/${slug}/${next}`;
     if (target !== window.location.pathname) navigate(target);
   };
@@ -109,11 +107,14 @@ export function MatterDetail({ slug }: { slug: string }) {
   const [letterError, setLetterError] = useState<string | null>(null);
   const [letterKeyMissing, setLetterKeyMissing] = useState<string | null>(null);
   const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === "undefined") return true;
     try {
-      return window.localStorage.getItem("legalise.right-rail.collapsed") === "1";
+      // Default collapsed (MD-2): the record leads, the assistant is
+      // opt-in. Respect a prior explicit choice if the user set one.
+      const stored = window.localStorage.getItem("legalise.right-rail.collapsed");
+      return stored === null ? true : stored === "1";
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -352,21 +353,7 @@ export function MatterDetail({ slug }: { slug: string }) {
   };
 
   return (
-    <div className="flex">
-      <MatterNav
-        matter={matter}
-        tab={tab}
-        onChange={setTabAndHash}
-        onPostureChange={onPostureChange}
-        mobileOpen={mobileNavOpen}
-        onMobileClose={() => setMobileNavOpen(false)}
-      />
-      <div className="flex-1 min-w-0">
-        <MatterBreadcrumb
-          matter={matter}
-          tab={tab}
-          onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
-        />
+    <div className="flex-1 min-w-0">
         <div className="flex">
         <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
           {error && matter && <ErrorCallout message={error} compact />}
@@ -455,7 +442,6 @@ export function MatterDetail({ slug }: { slug: string }) {
           />
         )}
         </div>
-      </div>
     </div>
   );
 }

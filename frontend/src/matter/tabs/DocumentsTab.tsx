@@ -4,7 +4,7 @@ import { EditPanel } from "../../modules/document_edit/EditPanel";
 import { AnonymiseButton } from "../../modules/anonymisation/AnonymiseButton";
 import type { MatterDocument } from "../../lib/api";
 import { UploadError } from "../../lib/api";
-import { Badge, EmptyState, ErrorCallout, Field, LoadingLine } from "../../ui/primitives";
+import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -72,8 +72,12 @@ export function DocumentsTab({
     e.target.value = "";
   };
 
+  // Phase 17-IA-B: compact upload control. The prior version was an
+  // outsized band (big input + large padding) that dominated the
+  // documents view (MD-3). Keep 16px text (mobile no-zoom) but tighten
+  // padding and constrain the tag field width.
   const inputCls =
-    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
+    "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink w-44";
 
   // Column template shared by the header row and each data row so columns
   // stay aligned. Document gets the largest fr; full SHA moves into the
@@ -84,24 +88,23 @@ export function DocumentsTab({
 
   return (
     <div className="max-w-4xl">
-      <form className="mb-10 flex flex-wrap items-end gap-4">
-        <Field label="Tag" hint="optional, e.g. pleadings, disclosure">
-          <input
-            value={tag}
-            onChange={(e) => setTag(e.target.value)}
-            className={inputCls}
-            placeholder="pleadings"
-          />
-        </Field>
-        <label className="flex items-center gap-2 min-h-[44px]">
+      <form className="mb-8 flex flex-wrap items-center gap-3 border border-rule bg-wash px-3 py-2.5">
+        <input
+          value={tag}
+          onChange={(e) => setTag(e.target.value)}
+          className={inputCls}
+          placeholder="Tag (optional)"
+          aria-label="Document tag"
+        />
+        <label className="flex items-center gap-2 text-sm text-ink">
           <input
             type="checkbox"
             checked={fromDisclosure}
             onChange={(e) => setFromDisclosure(e.target.checked)}
           />
-          <span className="text-sm text-ink">From disclosure (CPR 31)</span>
+          From disclosure (CPR 31)
         </label>
-        <label className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center cursor-pointer">
+        <label className="ml-auto bg-ink text-paper px-3 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] inline-flex items-center cursor-pointer">
           Upload document
           <input type="file" className="hidden" onChange={onFile} />
         </label>
