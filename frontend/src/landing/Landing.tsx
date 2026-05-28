@@ -86,15 +86,15 @@ export function Landing() {
           />
         </div>
         <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-24 max-w-3xl">
-          <div className="eyebrow text-muted mb-5">v0.4 evaluation release</div>
+          <div className="eyebrow text-muted mb-5">Open evaluation workspace</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
             An open-source workspace for AI-augmented legal work.
           </h1>
           {/* Combo C accent — short seal tick pressed under the headline. */}
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            Built so a solicitor can show a regulator what the AI did, what
-            it touched, and who signed off.
+            Built so legal teams can show what the AI did, what it touched,
+            and what evidence the work relied on.
           </p>
           <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
             Open evaluation. Create an account and run the Khan v Acme

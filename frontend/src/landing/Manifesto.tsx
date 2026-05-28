@@ -225,13 +225,14 @@ const SECTIONS: Section[] = [
     ),
   },
   {
-    id: "solicitor-in-the-loop",
-    title: "Solicitor-in-the-loop, permanently",
+    id: "human-in-the-loop",
+    title: "Human-in-the-loop, permanently",
     body: (
       <>
         <p className="prose-p">
-          Every output is a draft. A qualified solicitor reviews,
-          verifies, and takes professional responsibility.
+          Every output is a draft. The product should make human review
+          explicit, inspectable, and impossible to confuse with autonomous
+          legal advice.
         </p>
         <p className="prose-p">
           Drafts and accelerants, yes. Substitutes, no. A constraint on
@@ -252,8 +253,9 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           The current release proves the matter workspace, modules, privilege
-          posture, capability gates, BYO keys, and audit trail. The
-          supervisor-gate primitive is the next step, not a claim already made.
+          posture, capability gates, BYO keys, and audit trail. Firm-specific
+          seniority gates are staged for real deployments, not required for the
+          evaluator path.
         </p>
         <p className="prose-p">
           Some hard problems are deliberately staged: durable job recovery,
