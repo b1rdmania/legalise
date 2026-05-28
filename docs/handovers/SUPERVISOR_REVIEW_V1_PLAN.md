@@ -1,9 +1,19 @@
 # Supervisor Review v1 — mini-plan
 
-**Status:** v1 mini-plan for Reviewer redline. Do not build until ratified.
+**Status:** RATIFIED 2026-05-28 — build all four substeps. Decisions locked below.
 **Branch:** `phase-17-crm-pass`
 **Date:** 2026-05-28
 **Assumes:** 18-G is live. Acceptance walk can run in parallel; this design is **not** blocked on it.
+
+## Ratification (Reviewer, 2026-05-28)
+
+- **Q1 — manual "Request review".** Auto-on-produce is too magical; manual request makes the loop legible.
+- **Q2 — advisory + audited, NOT hard-gating.** v1 claim is "Legalise supports a review/approval loop and reconstructs it" — *not* "prevents unapproved work from being used." Hard enforcement is a much bigger product contract (what is downstream use, blocked downloads, override semantics, bypass roles) — deferred.
+- **Q3 — reviewer ≠ author holds by default, even in demo mode.** Self-review weakens the concept. Solo-evaluator friction → use two demo accounts, OR allow a **superuser override that is itself explicitly audited**. Default rule proves separation of review.
+- **Q4 — "Approvals" tab.** (Not "Reviews" — Tabular Review owns that.)
+- **Added redline — "Approved does not mean legally correct."** UI copy must carry: "Approved in Legalise", "Reviewed by [user]", "Decision recorded", "Not legal advice certification". Audit/reconstruction for each decision must surface: **artifact hash, reviewer, decision, notes, timestamp, source-artifact link, invocation link.**
+
+Build all of SR-1 → SR-4.
 
 ## Why this is the next build
 
