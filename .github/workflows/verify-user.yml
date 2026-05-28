@@ -43,6 +43,7 @@ jobs:
           from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
           from app.core.config import settings
           from app.models import User
+          from app.core.seed import seed_demo_matter_for_user
 
           async def main():
               email = os.environ["TARGET_EMAIL"]
@@ -55,7 +56,13 @@ jobs:
                   was = u.is_verified
                   u.is_verified = True
                   await s.commit()
-                  print(f"OK: {email} is_verified {was} -> True (superuser={u.is_superuser})")
+                  # Direct verification bypasses fastapi-users' on_after_verify,
+                  # which is where the per-user Khan demo matter is seeded. Run
+                  # the same idempotent seed here so the user lands in a
+                  # populated workspace instead of a 404 on khan-v-acme-...
+                  matter = await seed_demo_matter_for_user(s, u)
+                  await s.commit()
+                  print(f"OK: {email} is_verified {was} -> True (superuser={u.is_superuser}) seeded={matter.slug}")
               await eng.dispose()
 
           asyncio.run(main())
