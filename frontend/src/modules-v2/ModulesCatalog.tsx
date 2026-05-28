@@ -118,12 +118,12 @@ function Catalogue({
         )}
         {repo && (
           <a
-            href={`https://github.com/${repo}`}
+            href={repo.startsWith("http") ? repo : `https://github.com/${repo}`}
             target="_blank"
             rel="noreferrer"
             className="hover:text-ink underline"
           >
-            {repo}
+            {repo.replace(/^https?:\/\/github\.com\//, "")}
           </a>
         )}
       </div>

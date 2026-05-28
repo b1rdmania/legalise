@@ -97,8 +97,10 @@ export function Landing() {
             it touched, and who signed off.
           </p>
           <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
-            v0.4 ships the workspace. The supervisor-gate primitive lands
-            next. Not for live client matters.
+            Open evaluation. Create an account and run the Khan v Acme
+            sample matter on the keyless demo model, or bring your own
+            Anthropic / OpenAI key. Evaluation only — not for live client
+            matters.
           </p>
 
           {/* CTAs */}
