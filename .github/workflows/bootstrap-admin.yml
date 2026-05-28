@@ -1,0 +1,37 @@
+name: Bootstrap admin (one-off operator action)
+
+# Promotes an existing user to superuser by running the Phase 12
+# bootstrap_admin CLI inside the live backend via `fly ssh console`.
+# Runs from GitHub infra so it works even when a workstation's local
+# DNS can't reach Fly. Manual-dispatch only — never on push.
+#
+# The user MUST already be registered (the CLI promotes an existing
+# row; it exits user_not_found otherwise).
+#
+# Needs the FLY_API_TOKEN repo secret (same one the deploy uses).
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email of an already-registered user to promote"
+        required: true
+        type: string
+
+concurrency:
+  group: bootstrap-admin
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.email }} to superuser
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Run bootstrap_admin on the live backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl ssh console --app legalise-backend -C \
+            "python -m app.tools.bootstrap_admin --email ${{ inputs.email }}"
