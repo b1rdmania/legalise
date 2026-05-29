@@ -42,20 +42,28 @@ class InvalidManifestError(ValueError):
         super().__init__(message or "manifest invalid")
 
 
-# Locate ``schemas/module.v2.json`` — single source of truth.
+# Locate ``schemas/module.v2.json`` — single source of truth. Local
+# development runs from the repo root, while the Fly image is built from
+# ``backend/`` and only packages ``backend/schemas``.
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
 _REPO_ROOT = Path(__file__).resolve().parents[4]
-_SCHEMA_PATH = _REPO_ROOT / "schemas" / "module.v2.json"
+_SCHEMA_CANDIDATES = (
+    _REPO_ROOT / "schemas" / "module.v2.json",
+    _BACKEND_ROOT / "schemas" / "module.v2.json",
+)
 
 
 @lru_cache(maxsize=1)
 def _v2_schema() -> dict:
     """Load the v2 schema once per process."""
-    if not _SCHEMA_PATH.exists():
-        raise FileNotFoundError(
-            f"schemas/module.v2.json not found at {_SCHEMA_PATH}; "
-            "Phase 2 cannot validate manifests without it"
-        )
-    return json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+    for candidate in _SCHEMA_CANDIDATES:
+        if candidate.exists():
+            return json.loads(candidate.read_text(encoding="utf-8"))
+    candidates = ", ".join(str(path) for path in _SCHEMA_CANDIDATES)
+    raise FileNotFoundError(
+        f"schemas/module.v2.json not found in any of: {candidates}; "
+        "Phase 2 cannot validate manifests without it"
+    )
 
 
 def _schema_errors(payload: dict) -> list[dict[str, Any]]:

@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalise.dev/schemas/module.v2.json",
+  "title": "Legalise Module Manifest v2",
+  "description": "Capability declaration manifest. Replaces the v1 `module.json` plugin-style schema for new modules. v1 manifests are still supported via the auto-derivation shim in `app.core.registry.shim`.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "version",
+    "publisher",
+    "visibility",
+    "runtime",
+    "entrypoint",
+    "capabilities"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^2\\.[0-9]+\\.[0-9]+$",
+      "description": "Manifest schema version. Must be 2.x. The runtime rejects anything outside the 2.x line."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]+$",
+      "description": "Stable lowercase module id."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable display name."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$",
+      "description": "Module version. Semver."
+    },
+    "publisher": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable publisher id."
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "first_party",
+        "community",
+        "firm_private",
+        "example",
+        "partner_track"
+      ]
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["native", "mcp", "prompt"]
+    },
+    "entrypoint": {
+      "type": "object",
+      "description": "Runtime-specific launch/binding declaration.",
+      "oneOf": [
+        {
+          "title": "MCP stdio transport",
+          "type": "object",
+          "required": ["transport", "command"],
+          "properties": {
+            "transport": {"const": "stdio"},
+            "command": {"type": "string", "minLength": 1},
+            "args": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {"type": "string"}
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "MCP SSE transport",
+          "type": "object",
+          "required": ["transport", "url"],
+          "properties": {
+            "transport": {"const": "sse"},
+            "url": {"type": "string", "format": "uri"},
+            "headers": {
+              "type": "object",
+              "additionalProperties": {"type": "string"}
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Native python entrypoint",
+          "type": "object",
+          "required": ["python_module"],
+          "properties": {
+            "python_module": {
+              "type": "string",
+              "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$"
+            },
+            "entry": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Prompt skill entrypoint",
+          "description": "Manifest-contained prompt runtime. The skill's instructions (and optional non-script reference text) live inline in the manifest; the prompt runtime builds a model prompt from them under the capability's existing grants/posture/audit. No external file store in v1.",
+          "type": "object",
+          "required": ["prompt_source", "instructions"],
+          "properties": {
+            "prompt_source": {"const": "manifest"},
+            "instructions": {"type": "string", "minLength": 1},
+            "references": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "content"],
+                "properties": {
+                  "path": {"type": "string"},
+                  "content": {"type": "string"}
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/capability"}
+    },
+    "description": {"type": "string"},
+    "source_url": {"type": "string", "format": "uri"},
+    "license": {"type": "string", "description": "SPDX identifier."},
+    "jurisdictions": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "requires": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/dependency"}
+    },
+    "host_version": {
+      "type": "string",
+      "description": "Minimum Legalise host API version this module supports."
+    },
+    "matter_schema_version": {
+      "type": "string",
+      "description": "Minimum Matter OS schema version this module supports."
+    },
+    "signed_by": {"type": "string"},
+    "signature": {"type": "string"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "scope",
+        "reads",
+        "writes",
+        "model_access",
+        "external_network",
+        "data_movement",
+        "gates",
+        "ui",
+        "streaming_mode",
+        "advice_tier_max",
+        "audit_events"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]+$",
+          "description": "Stable id within the module."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["skill", "tool", "workflow", "provider", "gate"]
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["matter", "workspace", "global"]
+        },
+        "reads": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Capability grammar strings the runtime checks before allowing read."
+        },
+        "writes": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Capability grammar strings the runtime checks before allowing write."
+        },
+        "model_access": {
+          "type": "string",
+          "enum": ["none", "optional", "required", "delegated"]
+        },
+        "external_network": {"type": "boolean"},
+        "data_movement": {"$ref": "#/$defs/data_movement"},
+        "gates": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "ui": {
+          "type": "object",
+          "required": ["slot"],
+          "properties": {
+            "slot": {"type": "string"},
+            "label": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "streaming_mode": {
+          "type": "string",
+          "enum": ["sync", "streaming", "async"]
+        },
+        "advice_tier_max": {
+          "type": "string",
+          "enum": [
+            "factual_extraction",
+            "legal_information",
+            "draft_advice",
+            "supervised_legal_advice",
+            "approved_final_advice"
+          ]
+        },
+        "audit_events": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Expected audit action names this capability will emit."
+        },
+        "output_lifecycle_target": {
+          "anyOf": [
+            {"type": "null"},
+            {
+              "type": "string",
+              "enum": [
+                "draft",
+                "reviewed",
+                "cleared",
+                "sent",
+                "signed",
+                "superseded",
+                "withdrawn"
+              ]
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "data_movement": {
+      "type": "object",
+      "description": "Explicit declaration of where matter data flows. The permission card renders directly from this object.",
+      "properties": {
+        "sends_document_body": {"type": "boolean"},
+        "sends_document_binary": {"type": "boolean"},
+        "sends_matter_metadata": {"type": "boolean"},
+        "external_destinations": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "retention_by_external_service": {"type": "string"},
+        "local_only": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "dependency": {
+      "type": "object",
+      "required": ["module_id"],
+      "properties": {
+        "module_id": {"type": "string"},
+        "version": {
+          "type": "string",
+          "description": "Semver range, e.g. '>=1.0.0,<2.0.0'."
+        },
+        "capability": {
+          "type": "string",
+          "description": "Specific capability id this dependency provides."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

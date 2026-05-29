@@ -11,6 +11,8 @@ Pure-unit tests — no DB.
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 
 import pytest
 
@@ -65,6 +67,20 @@ def _base_manifest() -> dict:
 def test_base_manifest_is_valid() -> None:
     is_valid, errors = validate_manifest_v2(_base_manifest())
     assert is_valid, f"base manifest must validate; got errors: {errors}"
+
+
+def test_backend_packaged_schema_matches_repo_root_schema() -> None:
+    """Fly builds from backend/, so the v2 schema must also be packaged
+    there. Pin equality so the deploy fallback cannot drift from the
+    repo-root canonical schema."""
+    repo_root = Path(__file__).resolve().parents[2]
+    root_schema = repo_root / "schemas" / "module.v2.json"
+    backend_schema = repo_root / "backend" / "schemas" / "module.v2.json"
+
+    assert backend_schema.exists()
+    assert json.loads(backend_schema.read_text(encoding="utf-8")) == json.loads(
+        root_schema.read_text(encoding="utf-8")
+    )
 
 
 def test_missing_capabilities_array_rejected() -> None:
