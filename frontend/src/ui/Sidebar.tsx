@@ -241,7 +241,7 @@ export function Sidebar({
               route.name === "createModule"
             }
           />
-          <NavLink href="/admin/audit" label="Audit" active={onAudit} />
+          <NavLink href="/admin/audit" label="Workspace audit" active={onAudit} />
 
           <SectionLabel>Account</SectionLabel>
           <NavLink

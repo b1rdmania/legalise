@@ -475,12 +475,12 @@ export function GrantsPanel({
   return (
     <section className="mt-10 rounded-md border border-line bg-paper p-4">
       <h2 className="text-sm uppercase tracking-widest text-muted">
-        Matter actions
+        Actions on this matter
       </h2>
       <p className="mt-2 text-sm text-muted">
-        Modules you can run on this matter appear first. The permissions
-        you have granted stay listed below, so you can see exactly what
-        each module may touch here.
+        Run governed actions from installed modules. The Activity Trail
+        records what each action touched, which model ran, what output
+        was written, and how it was reviewed.
       </p>
 
       {/* Phase 14 D — runnable capabilities */}
@@ -534,78 +534,88 @@ export function GrantsPanel({
         </div>
       )}
 
-      {/* Permissions on this matter */}
-      <h3 className="mt-6 text-xs uppercase tracking-widest text-muted">
-        Permissions on this matter
-      </h3>
-      {grants.status === "loading" && (
-        <p className="mt-4 text-sm text-muted">Loading grants…</p>
-      )}
-      {grants.status === "error" && (
-        <p className="mt-4 text-sm text-seal">
-          Could not load grants: {grants.message}
+      <details className="mt-6 rounded-md border border-line bg-paper-sunken p-4">
+        <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted">
+          Permissions and setup
+        </summary>
+        <p className="mt-2 text-sm text-muted">
+          Technical grants are hidden by default. Open this when an
+          action needs setup or you need to inspect/revoke exactly what
+          a module may touch.
         </p>
-      )}
-      {grants.status === "ready" && grants.grants.length === 0 && (
-        <p className="mt-4 text-sm text-muted">
-          No capabilities granted on this matter yet. Use the form below
-          to grant from an installed module.
-        </p>
-      )}
-      {grants.status === "ready" && grants.grants.length > 0 && (
-        <div className="mt-4 overflow-x-auto rounded-md border border-line">
-          <table className="min-w-full text-sm">
-            <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
-              <tr>
-                <th className="px-3 py-2 text-left">Module</th>
-                <th className="px-3 py-2 text-left">Skill</th>
-                <th className="px-3 py-2 text-left">Permission</th>
-                <th className="px-3 py-2 text-left">Granted</th>
-                <th className="px-3 py-2 text-right"> </th>
-              </tr>
-            </thead>
-            <tbody>
-              {grants.grants.map((g) => (
-                <tr key={g.id} className="border-t border-line">
-                  <td className="px-3 py-2 font-mono text-xs">{g.plugin}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{g.skill}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{g.capability}</td>
-                  <td className="px-3 py-2 text-xs text-muted">
-                    {g.granted_at ? g.granted_at.slice(0, 19).replace("T", " ") : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onRevoke(g.id)}
-                      disabled={
-                        revokeState.kind === "revoking" &&
-                        revokeState.grantId === g.id
-                      }
-                      className="text-xs text-muted underline underline-offset-4 hover:text-seal disabled:opacity-50"
-                    >
-                      {revokeState.kind === "revoking" &&
-                      revokeState.grantId === g.id
-                        ? "Revoking…"
-                        : "Revoke"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {revokeState.kind === "error" && (
-        <p className="mt-3 text-sm text-seal">
-          Revoke failed: {revokeState.message}
-        </p>
-      )}
 
-      {/* Add-grant control */}
-      <div className="mt-6 rounded-md border border-line bg-paper-sunken p-4">
-        <h3 className="text-xs uppercase tracking-widest text-muted">
-          Grant a capability
+        {/* Permissions on this matter */}
+        <h3 className="mt-5 text-xs uppercase tracking-widest text-muted">
+          Permissions on this matter
         </h3>
+        {grants.status === "loading" && (
+          <p className="mt-4 text-sm text-muted">Loading grants…</p>
+        )}
+        {grants.status === "error" && (
+          <p className="mt-4 text-sm text-seal">
+            Could not load grants: {grants.message}
+          </p>
+        )}
+        {grants.status === "ready" && grants.grants.length === 0 && (
+          <p className="mt-4 text-sm text-muted">
+            No capabilities granted on this matter yet. Use the form below
+            to grant from an installed module.
+          </p>
+        )}
+        {grants.status === "ready" && grants.grants.length > 0 && (
+          <div className="mt-4 overflow-x-auto rounded-md border border-line bg-paper">
+            <table className="min-w-full text-sm">
+              <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
+                <tr>
+                  <th className="px-3 py-2 text-left">Module</th>
+                  <th className="px-3 py-2 text-left">Skill</th>
+                  <th className="px-3 py-2 text-left">Permission</th>
+                  <th className="px-3 py-2 text-left">Granted</th>
+                  <th className="px-3 py-2 text-right"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {grants.grants.map((g) => (
+                  <tr key={g.id} className="border-t border-line">
+                    <td className="px-3 py-2 font-mono text-xs">{g.plugin}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{g.skill}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{g.capability}</td>
+                    <td className="px-3 py-2 text-xs text-muted">
+                      {g.granted_at ? g.granted_at.slice(0, 19).replace("T", " ") : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onRevoke(g.id)}
+                        disabled={
+                          revokeState.kind === "revoking" &&
+                          revokeState.grantId === g.id
+                        }
+                        className="text-xs text-muted underline underline-offset-4 hover:text-seal disabled:opacity-50"
+                      >
+                        {revokeState.kind === "revoking" &&
+                        revokeState.grantId === g.id
+                          ? "Revoking…"
+                          : "Revoke"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {revokeState.kind === "error" && (
+          <p className="mt-3 text-sm text-seal">
+            Revoke failed: {revokeState.message}
+          </p>
+        )}
+
+        {/* Add-grant control */}
+        <div className="mt-6 rounded-md border border-line bg-paper p-4">
+          <h3 className="text-xs uppercase tracking-widest text-muted">
+            Grant a capability
+          </h3>
         {catalog.status === "loading" && (
           <p className="mt-3 text-sm text-muted">Loading module catalog…</p>
         )}
@@ -705,7 +715,8 @@ export function GrantsPanel({
         {createState.kind === "error" && (
           <p className="mt-3 text-sm text-seal">{createState.message}</p>
         )}
-      </div>
+        </div>
+      </details>
     </section>
   );
 }

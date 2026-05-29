@@ -26,10 +26,10 @@ export type TabKey =
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Assistant" },
   { key: "documents", label: "Documents" },
+  { key: "audit", label: "Activity Trail" },
   { key: "chronology", label: "Chronology" },
   { key: "workflows", label: "Workflows" },
   { key: "approvals", label: "Approvals" },
-  { key: "audit", label: "Audit" },
 ];
 
 // Frontend workflow taxonomy. Used by TopBar + MatterBreadcrumb to
