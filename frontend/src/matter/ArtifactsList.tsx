@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { listArtifacts, type ArtifactSummary } from "../lib/api";
+import { listArtifacts, listSignoffs, type ArtifactSummary } from "../lib/api";
 import { PageHeader } from "../ui/primitives";
 
 type Query =
@@ -25,8 +25,34 @@ type Query =
   | { status: "ready"; rows: ArtifactSummary[] }
   | { status: "error"; message: string };
 
+// artifact_id -> current sign-off decision (absent = unsigned/draft).
+type SignoffMap = Map<string, string>;
+
+function SignoffBadge({ decision }: { decision: string | undefined }) {
+  if (decision === "signed" || decision === "signed_with_observations") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-ink px-2 py-0.5 text-[11px] text-ink">
+        {decision === "signed_with_observations" ? "Signed (obs.)" : "Signed"}
+      </span>
+    );
+  }
+  if (decision === "rejected") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-seal/50 px-2 py-0.5 text-[11px] text-seal">
+        Rejected
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
+      Draft
+    </span>
+  );
+}
+
 export function ArtifactsList({ slug }: { slug: string }) {
   const [q, setQ] = useState<Query>({ status: "loading" });
+  const [signoffs, setSignoffs] = useState<SignoffMap>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +63,16 @@ export function ArtifactsList({ slug }: { slug: string }) {
       .catch((err: unknown) => {
         if (!cancelled) setQ({ status: "error", message: String(err) });
       });
+    listSignoffs(slug)
+      .then((res) => {
+        if (cancelled) return;
+        const m: SignoffMap = new Map();
+        for (const s of res.signoffs) {
+          if (s.is_current) m.set(s.artifact_id, s.decision);
+        }
+        setSignoffs(m);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -71,6 +107,7 @@ export function ArtifactsList({ slug }: { slug: string }) {
             <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
               <tr>
                 <th className="px-3 py-2 text-left">Kind</th>
+                <th className="px-3 py-2 text-left">Sign-off</th>
                 <th className="px-3 py-2 text-left">Module</th>
                 <th className="px-3 py-2 text-left">Capability</th>
                 <th className="px-3 py-2 text-left">Invocation</th>
@@ -83,6 +120,9 @@ export function ArtifactsList({ slug }: { slug: string }) {
               {q.rows.map((r) => (
                 <tr key={r.id} className="border-t border-line">
                   <td className="px-3 py-2 font-mono text-xs">{r.kind}</td>
+                  <td className="px-3 py-2" data-testid={`signoff-badge-${r.id}`}>
+                    <SignoffBadge decision={signoffs.get(r.id)} />
+                  </td>
                   <td className="px-3 py-2 font-mono text-xs">{r.module_id}</td>
                   <td className="px-3 py-2 font-mono text-xs">
                     {r.capability_id}

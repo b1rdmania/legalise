@@ -38,6 +38,8 @@ function mountAt() {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  // ArtifactsList now fetches sign-off status to render Draft/Signed.
+  vi.spyOn(api, "listSignoffs").mockResolvedValue({ matter_id: "m-1", signoffs: [] });
 });
 afterEach(() => {
   cleanup();
@@ -67,6 +69,58 @@ describe("ArtifactsList", () => {
     expect(screen.getByText("generate")).toBeInTheDocument();
     const link = screen.getByRole("link", { name: /open/i });
     expect(link.getAttribute("href")).toBe("/matters/khan/artifacts/art-1");
+  });
+
+  it("labels artifacts Draft vs Signed from current sign-offs", async () => {
+    vi.spyOn(api, "listArtifacts").mockResolvedValue([
+      {
+        id: "art-signed",
+        matter_id: "m-1",
+        module_id: "demo.guided-skill",
+        capability_id: "summarise",
+        invocation_id: "inv-1",
+        kind: "skill_response",
+        created_by_id: "u-1",
+        created_at: "2026-05-29T12:00:00",
+        size_bytes: 100,
+      },
+      {
+        id: "art-draft",
+        matter_id: "m-1",
+        module_id: "demo.guided-skill",
+        capability_id: "summarise",
+        invocation_id: "inv-2",
+        kind: "skill_response",
+        created_by_id: "u-1",
+        created_at: "2026-05-29T12:01:00",
+        size_bytes: 100,
+      },
+    ]);
+    vi.spyOn(api, "listSignoffs").mockResolvedValue({
+      matter_id: "m-1",
+      signoffs: [
+        {
+          id: "so-1",
+          matter_id: "m-1",
+          artifact_id: "art-signed",
+          invocation_id: "inv-1",
+          module_id: "demo.guided-skill",
+          capability_id: "summarise",
+          kind: "skill_response",
+          artifact_hash: "a".repeat(64),
+          decision: "signed",
+          reasoning: null,
+          signer_id: "u-1",
+          signer_email: "s@example.com",
+          signed_at: "2026-05-29T13:00:00",
+          is_current: true,
+        },
+      ],
+    });
+    mountAt();
+    await waitFor(() => expect(screen.getByTestId("signoff-badge-art-signed")).toBeInTheDocument());
+    expect(screen.getByTestId("signoff-badge-art-signed")).toHaveTextContent(/signed/i);
+    expect(screen.getByTestId("signoff-badge-art-draft")).toHaveTextContent(/draft/i);
   });
 
   it("renders empty state when no artifacts exist", async () => {

@@ -51,6 +51,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.storage import get_storage_backend, matter_prefix
 from app.core.matter_artifacts import ArtifactBytesUnavailable, load_artifact_bytes
 from app.core.audit_reconstruction import reconstruct
+from app.core.signoff import (
+    compute_signoff_hash,
+    current_signoff_ids,
+    list_signoffs,
+)
 from app.models import (
     AuditEntry,
     Document,
@@ -58,6 +63,7 @@ from app.models import (
     Matter,
     MatterArtifact,
     MatterReview,
+    SIGNOFF_AFFIRMATIVE,
 )
 
 
@@ -81,6 +87,9 @@ def _build_readme(
     review_count: int,
     recon_count: int,
     unavailable_artifacts: list[str],
+    signed_count: int,
+    rejected_count: int,
+    unsigned_count: int,
 ) -> str:
     lines = [
         f"# Matter export — {matter.title}",
@@ -90,12 +99,22 @@ def _build_readme(
         "## Contents",
         "- `matter_metadata.json` — the matter record.",
         f"- `documents/` — {doc_count} document(s): per-document `metadata.json` + the original uploaded bytes (where retrievable).",
-        f"- `artefacts/` — {artifact_count} artefact(s): per-artefact `metadata.json` + the artefact JSON (where retrievable).",
-        "- `artefacts.json` — artefact metadata index.",
+        f"- `artefacts/` — {artifact_count} artefact(s): per-artefact `metadata.json` (incl. `signoff_status`) + the artefact JSON (where retrievable).",
+        "- `artefacts.json` — artefact metadata index (each labelled by sign-off status).",
+        f"- `signoffs.json` — Professional Sign-Off records.",
         f"- `reviews.json` — {review_count} supervisor review decision(s).",
         f"- `reconstruction.json` — the rebuilt decision timeline ({recon_count} entries).",
         "- `audit.json` — raw audit entries for this matter.",
         "- `jobs.json` — job records for this matter.",
+        "",
+        "## Sign-off status of outputs",
+        f"- **Signed (final material): {signed_count}** — a solicitor reviewed and took professional ownership of these outputs.",
+        f"- Rejected: {rejected_count} — the signer did not stand behind these drafts.",
+        f"- Unsigned (draft, prepared by AI): {unsigned_count} — no one has signed these; treat them as drafts, not final work product.",
+        "Signed outputs are the preferred final material. Each artefact's "
+        "`metadata.json` carries `signoff_status` and, where the bytes are "
+        "present, `signoff_hash_matches` (false means the output drifted "
+        "after it was signed).",
         "",
         "## Limitations",
         "- This is an application-level export, not a certified legal record.",
@@ -248,9 +267,20 @@ async def build_matter_export(
                 )
             ).all()
         )
+        # Current sign-off per artifact (Export Gating v1.1): label every
+        # output by its sign-off status so the bundle respects the
+        # signature downstream — signed outputs are the final material,
+        # unsigned AI outputs are drafts.
+        signoff_rows = await list_signoffs(session, matter=matter)
+        current_ids = current_signoff_ids(signoff_rows)
+        current_by_artifact = {
+            s.artifact_id: s for s in signoff_rows if s.id in current_ids
+        }
+
         unavailable_artifacts: list[str] = []
         artifact_meta_list: list[dict[str, Any]] = []
         for art in artifact_rows:
+            cur = current_by_artifact.get(art.id)
             art_entry = {
                 "id": str(art.id),
                 "module_id": art.module_id,
@@ -260,17 +290,58 @@ async def build_matter_export(
                 "size_bytes": art.size_bytes,
                 "created_at": art.created_at,
                 "created_by_id": str(art.created_by_id),
+                # Sign-off status: signed | signed_with_observations |
+                # rejected | unsigned.
+                "signoff_status": cur.decision if cur else "unsigned",
+                "signed_by_id": str(cur.signer_id) if cur else None,
+                "signed_at": cur.signed_at if cur else None,
+                "signoff_hash": cur.artifact_hash if cur else None,
             }
             artifact_meta_list.append(art_entry)
             zf.writestr(f"artefacts/{art.id}/metadata.json", _dumps(art_entry))
             try:
                 raw = load_artifact_bytes(art.storage_path)
                 zf.writestr(f"artefacts/{art.id}/{art.kind}.json", raw)
+                # Integrity: does the current payload still match what was
+                # signed? A mismatch means the output drifted after sign-off.
+                if cur is not None:
+                    art_entry["signoff_hash_matches"] = (
+                        compute_signoff_hash(art) == cur.artifact_hash
+                    )
             except ArtifactBytesUnavailable:
                 # Legacy local-fs / missing object — metadata still exported;
                 # note it in the manifest rather than crashing the export.
                 unavailable_artifacts.append(str(art.id))
         zf.writestr("artefacts.json", _dumps(artifact_meta_list))
+
+        # --- signoffs.json (Professional Sign-Off records; v1.1) -------------
+        signoffs_list = [
+            {
+                "id": str(s.id),
+                "artifact_id": str(s.artifact_id),
+                "invocation_id": str(s.invocation_id),
+                "module_id": s.module_id,
+                "capability_id": s.capability_id,
+                "kind": s.kind,
+                "artifact_hash": s.artifact_hash,
+                "decision": s.decision,
+                "reasoning": s.reasoning,
+                "signer_id": str(s.signer_id),
+                "signed_at": s.signed_at,
+                "is_current": s.id in current_ids,
+            }
+            for s in signoff_rows
+        ]
+        zf.writestr("signoffs.json", _dumps(signoffs_list))
+
+        # Counts for the README sign-off summary.
+        signed_count = sum(
+            1 for s in current_by_artifact.values() if s.decision in SIGNOFF_AFFIRMATIVE
+        )
+        rejected_count = sum(
+            1 for s in current_by_artifact.values() if s.decision not in SIGNOFF_AFFIRMATIVE
+        )
+        unsigned_count = len(artifact_rows) - len(current_by_artifact)
 
         # --- reviews.json (supervisor review decisions; LMF-2) ---------------
         review_rows = list(
@@ -323,6 +394,9 @@ async def build_matter_export(
             review_count=len(review_rows),
             recon_count=len(recon_entries),
             unavailable_artifacts=unavailable_artifacts,
+            signed_count=signed_count,
+            rejected_count=rejected_count,
+            unsigned_count=unsigned_count,
         )
         zf.writestr("README.md", readme.encode("utf-8"))
 
