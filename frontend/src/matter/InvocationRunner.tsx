@@ -55,14 +55,21 @@ interface Props {
   slug: string;
   moduleId: string;
   capabilityId: string;
+  readiness?: {
+    disabled: boolean;
+    title: string;
+    body: string;
+    provider?: string | null;
+  };
 }
 
-export function InvocationRunner({ slug, moduleId, capabilityId }: Props) {
+export function InvocationRunner({ slug, moduleId, capabilityId, readiness }: Props) {
   const [state, setState] = useState<RunnerState>({ kind: "idle" });
   const [argsOpen, setArgsOpen] = useState(false);
   const [argsJson, setArgsJson] = useState("{}");
 
   const onRun = async () => {
+    if (readiness?.disabled) return;
     let parsedArgs: Record<string, unknown> = {};
     if (argsOpen) {
       try {
@@ -118,7 +125,7 @@ export function InvocationRunner({ slug, moduleId, capabilityId }: Props) {
         <button
           type="button"
           onClick={onRun}
-          disabled={state.kind === "running"}
+          disabled={state.kind === "running" || readiness?.disabled}
           className="inline-flex items-center rounded-md bg-ink px-3 py-1 text-xs text-paper hover:opacity-90 disabled:opacity-50"
           data-testid={`run-${moduleId}-${capabilityId}`}
         >
@@ -132,6 +139,29 @@ export function InvocationRunner({ slug, moduleId, capabilityId }: Props) {
           {argsOpen ? "Hide args" : "Args"}
         </button>
       </div>
+      {readiness && (
+        <div
+          className={`mt-2 rounded-md border px-3 py-2 text-xs ${
+            readiness.disabled
+              ? "border-amber-500/40 bg-amber-50 text-ink"
+              : "border-line bg-paper-sunken text-muted"
+          }`}
+          data-testid={`run-readiness-${moduleId}-${capabilityId}`}
+        >
+          <p className="font-medium text-ink">{readiness.title}</p>
+          <p className="mt-1">{readiness.body}</p>
+          {readiness.disabled && (
+            <p className="mt-2">
+              <a
+                href="/settings/keys"
+                className="underline underline-offset-4 hover:text-ink"
+              >
+                Configure provider keys →
+              </a>
+            </p>
+          )}
+        </div>
+      )}
       {argsOpen && (
         <div className="mt-2">
           <textarea
