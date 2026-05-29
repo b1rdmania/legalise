@@ -49,7 +49,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import get_storage_backend, matter_prefix
-from app.models import AuditEntry, Document, Job, Matter
+from app.core.matter_artifacts import ArtifactBytesUnavailable, load_artifact_bytes
+from app.core.audit_reconstruction import reconstruct
+from app.models import (
+    AuditEntry,
+    Document,
+    Job,
+    Matter,
+    MatterArtifact,
+    MatterReview,
+)
 
 
 def _json_default(obj: Any) -> Any:
@@ -62,6 +71,44 @@ def _json_default(obj: Any) -> Any:
 
 def _dumps(obj: Any) -> bytes:
     return json.dumps(obj, default=_json_default, indent=2, ensure_ascii=False).encode("utf-8")
+
+
+def _build_readme(
+    *,
+    matter: Matter,
+    doc_count: int,
+    artifact_count: int,
+    review_count: int,
+    recon_count: int,
+    unavailable_artifacts: list[str],
+) -> str:
+    lines = [
+        f"# Matter export — {matter.title}",
+        "",
+        f"Slug: `{matter.slug}`  ·  Matter id: `{matter.id}`",
+        "",
+        "## Contents",
+        "- `matter_metadata.json` — the matter record.",
+        f"- `documents/` — {doc_count} document(s): per-document `metadata.json` + the original uploaded bytes (where retrievable).",
+        f"- `artefacts/` — {artifact_count} artefact(s): per-artefact `metadata.json` + the artefact JSON (where retrievable).",
+        "- `artefacts.json` — artefact metadata index.",
+        f"- `reviews.json` — {review_count} supervisor review decision(s).",
+        f"- `reconstruction.json` — the rebuilt decision timeline ({recon_count} entries).",
+        "- `audit.json` — raw audit entries for this matter.",
+        "- `jobs.json` — job records for this matter.",
+        "",
+        "## Limitations",
+        "- This is an application-level export, not a certified legal record.",
+        "- Original files / artefacts that predate object storage (or whose object is missing) are listed in metadata but their bytes are not included.",
+    ]
+    if unavailable_artifacts:
+        lines.append(
+            f"- Artefact bytes unavailable for {len(unavailable_artifacts)} row(s): "
+            + ", ".join(unavailable_artifacts)
+            + "."
+        )
+    lines.append("")
+    return "\n".join(lines)
 
 
 async def build_matter_export(
@@ -190,6 +237,94 @@ async def build_matter_export(
             for j in job_rows
         ]
         zf.writestr("jobs.json", _dumps(jobs_list))
+
+        # --- artefacts/ (metadata + bytes; LMF-2) ----------------------------
+        artifact_rows = list(
+            (
+                await session.scalars(
+                    select(MatterArtifact)
+                    .where(MatterArtifact.matter_id == matter.id)
+                    .order_by(MatterArtifact.created_at)
+                )
+            ).all()
+        )
+        unavailable_artifacts: list[str] = []
+        artifact_meta_list: list[dict[str, Any]] = []
+        for art in artifact_rows:
+            art_entry = {
+                "id": str(art.id),
+                "module_id": art.module_id,
+                "capability_id": art.capability_id,
+                "invocation_id": str(art.invocation_id),
+                "kind": art.kind,
+                "size_bytes": art.size_bytes,
+                "created_at": art.created_at,
+                "created_by_id": str(art.created_by_id),
+            }
+            artifact_meta_list.append(art_entry)
+            zf.writestr(f"artefacts/{art.id}/metadata.json", _dumps(art_entry))
+            try:
+                raw = load_artifact_bytes(art.storage_path)
+                zf.writestr(f"artefacts/{art.id}/{art.kind}.json", raw)
+            except ArtifactBytesUnavailable:
+                # Legacy local-fs / missing object — metadata still exported;
+                # note it in the manifest rather than crashing the export.
+                unavailable_artifacts.append(str(art.id))
+        zf.writestr("artefacts.json", _dumps(artifact_meta_list))
+
+        # --- reviews.json (supervisor review decisions; LMF-2) ---------------
+        review_rows = list(
+            (
+                await session.scalars(
+                    select(MatterReview)
+                    .where(MatterReview.matter_id == matter.id)
+                    .order_by(MatterReview.requested_at)
+                )
+            ).all()
+        )
+        reviews_list = [
+            {
+                "id": str(r.id),
+                "artifact_id": str(r.artifact_id),
+                "invocation_id": str(r.invocation_id),
+                "module_id": r.module_id,
+                "capability_id": r.capability_id,
+                "kind": r.kind,
+                "artifact_hash": r.artifact_hash,
+                "state": r.state,
+                "requested_by_id": str(r.requested_by_id),
+                "requested_at": r.requested_at,
+                "decided_by_id": str(r.decided_by_id) if r.decided_by_id else None,
+                "decided_at": r.decided_at,
+                "note": r.note,
+            }
+            for r in review_rows
+        ]
+        zf.writestr("reviews.json", _dumps(reviews_list))
+
+        # --- reconstruction.json (the rebuilt decision timeline; LMF-2) ------
+        recon_entries: list[dict[str, Any]] = []
+        cursor: str | None = None
+        while True:
+            page = await reconstruct(
+                session, matter_id=matter.id, cursor=cursor, limit=200
+            )
+            recon_entries.extend(e.to_dict() for e in page.entries)
+            if not page.next_cursor:
+                break
+            cursor = page.next_cursor
+        zf.writestr("reconstruction.json", _dumps(recon_entries))
+
+        # --- README.md (manifest of contents + limitations; LMF-2) -----------
+        readme = _build_readme(
+            matter=matter,
+            doc_count=len(doc_rows),
+            artifact_count=len(artifact_rows),
+            review_count=len(review_rows),
+            recon_count=len(recon_entries),
+            unavailable_artifacts=unavailable_artifacts,
+        )
+        zf.writestr("README.md", readme.encode("utf-8"))
 
     zip_bytes = buf.getvalue()
 

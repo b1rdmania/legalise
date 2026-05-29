@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
@@ -54,6 +54,7 @@ from app.models import (
     PRIVILEGE_MIXED,
     STATUS_VALUES,  # noqa: F401 — exported for future endpoints
     STATUS_OPEN,
+    STATUS_CLOSED,
     STATUS_ARCHIVED,
     TAG_VALUES,
     JOB_ACTIVE_STATUSES,
@@ -574,6 +575,58 @@ async def set_privilege_posture(
     await session.commit()
     await session.refresh(matter)
     append_history(matter.slug, matter.created_by_id, "privilege.set", f"{previous} → {body.privilege_posture}")
+    materialise_matter(matter)
+    return matter
+
+
+@router.post("/{slug}/close", response_model=MatterRead)
+async def close_matter(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> Matter:
+    """Non-destructive close (LMF-3).
+
+    Marks the matter ``closed`` while **retaining** its audit, storage,
+    and access — it still lists and reads. This is distinct from
+    ``DELETE`` (the destructive tombstone: ``status=archived`` + storage
+    purge). Owner-only; no admin/superuser shortcut. Idempotent; a
+    tombstoned (archived) matter cannot be closed. One-way in v1 (reopen
+    is not implemented).
+    """
+    matter = await session.scalar(
+        select(Matter).where(
+            Matter.slug == slug, Matter.created_by_id == user.id
+        )
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+    if matter.status == STATUS_ARCHIVED:
+        raise HTTPException(
+            409,
+            detail={
+                "error": "matter_archived",
+                "message": "A deleted (archived) matter cannot be closed.",
+            },
+        )
+    if matter.status == STATUS_CLOSED:
+        return matter  # idempotent — no duplicate audit row
+
+    previous = matter.status
+    matter.status = STATUS_CLOSED
+    matter.closed_at = datetime.now(timezone.utc)
+    await _write_audit(
+        session,
+        actor=user,
+        matter=matter,
+        action="matter.closed",
+        resource_type="matter",
+        resource_id=matter.slug,
+        payload={"from": previous},
+    )
+    await session.commit()
+    await session.refresh(matter)
+    append_history(matter.slug, matter.created_by_id, "matter.closed", f"{previous} → closed")
     materialise_matter(matter)
     return matter
 

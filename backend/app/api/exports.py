@@ -44,6 +44,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.config import settings
+from app.core.api import audit
 from app.core.db import get_session
 from app.core.jobs import ActiveJobLimitReached, create_job, update_status
 from app.core.matter_access import resolve_owned_open_matter
@@ -227,6 +228,19 @@ async def download_export(
             500,
             detail={"error": "export_key_missing", "message": "Export job succeeded but storage key is missing."},
         )
+
+    # LMF-4: "who downloaded the export bundle" is part of the governance
+    # story. Audit on the existing audit source (no new source).
+    await audit.log(
+        session,
+        "matter.export.downloaded",
+        actor_id=user.id,
+        matter_id=matter.id,
+        resource_type="matter",
+        resource_id=str(matter.id),
+        payload={"export_job_id": str(export_job_id), "export_key": export_key},
+    )
+    await session.commit()
 
     from app.core.storage import get_storage_backend, LocalStorageBackend
 

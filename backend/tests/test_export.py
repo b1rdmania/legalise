@@ -25,6 +25,27 @@ import pytest
 from app.models.job import JOB_KIND_EXPORT, JOB_STATUS_QUEUED, JOB_STATUS_SUCCEEDED
 
 
+@pytest.fixture(autouse=True)
+def _stub_reconstruct(monkeypatch):
+    """LMF-2: build_matter_export now calls reconstruct() for the
+    reconstruction.json member. reconstruct can't run against the
+    MagicMock session these pure-unit tests use, so stub it to an empty
+    page — the real reconstruction content is covered by the real-session
+    test_export_completeness.py."""
+    from dataclasses import dataclass
+    from app.core import exports as _exports
+
+    @dataclass
+    class _Page:
+        entries: list
+        next_cursor: object
+
+    async def _empty(*_a, **_k):
+        return _Page(entries=[], next_cursor=None)
+
+    monkeypatch.setattr(_exports, "reconstruct", _empty)
+
+
 # ---------------------------------------------------------------------------
 # Pure unit tests — no DB
 # ---------------------------------------------------------------------------
