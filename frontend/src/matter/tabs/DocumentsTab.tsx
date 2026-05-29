@@ -121,15 +121,14 @@ export function DocumentsTab({
 
   return (
     <div className="max-w-4xl">
-      <section className="mb-8 border border-rule bg-paper">
-        <div className="border-b border-rule px-4 py-3">
-          <h2 className="text-sm font-semibold text-ink">Bring documents in</h2>
-          <p className="mt-1 text-sm text-muted">
-            Upload PDFs, Word files, or text. Legalise extracts text, records the
-            SHA, and writes the document upload trail automatically.
-          </p>
-        </div>
-        <div className="grid gap-px bg-rule md:grid-cols-[1.4fr_1fr]">
+      <details className="mb-8 border border-rule bg-paper" open={!docs || docs.length === 0}>
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
+          Add documents
+          <span className="ml-2 font-normal text-muted">
+            PDFs, Word files, or text; each upload is hashed and recorded.
+          </span>
+        </summary>
+        <div className="grid gap-px border-t border-rule bg-rule md:grid-cols-[1.4fr_1fr]">
           <label
             onDragOver={(e) => {
               e.preventDefault();
@@ -137,7 +136,7 @@ export function DocumentsTab({
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
-            className={`flex min-h-[156px] cursor-pointer flex-col justify-center bg-paper p-5 transition-colors ${
+            className={`flex min-h-[132px] cursor-pointer flex-col justify-center bg-paper p-5 transition-colors ${
               dragging ? "bg-wash" : "hover:bg-wash"
             }`}
           >
@@ -145,11 +144,10 @@ export function DocumentsTab({
               <FileUp size={18} aria-hidden="true" />
             </span>
             <span className="mt-4 text-base font-medium text-ink">
-              Drop documents here, or click to browse
+              Drop files here, or click to browse
             </span>
             <span className="mt-1 text-sm text-muted">
-              Batch upload is handled one file at a time so each document gets
-              its own hash, extraction result, and audit row.
+              Extraction and audit trail are automatic.
             </span>
             <input
               type="file"
@@ -199,7 +197,7 @@ export function DocumentsTab({
             </div>
           </div>
         </div>
-      </section>
+      </details>
 
       {uploadError && <ErrorCallout message={uploadError} compact />}
 

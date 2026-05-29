@@ -9,7 +9,6 @@ import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
 import { MatterNav } from "../matter/MatterNav";
 import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
-import { RightRailAssistant } from "../matter/RightRailAssistant";
 import { isTabKey, type TabKey } from "../matter/tabs/types";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { PreMotionTab } from "../matter/tabs/PreMotionTab";
@@ -27,8 +26,6 @@ import { DEMO_SNAPSHOT } from "./snapshot";
 const CTA_CREATE_ACCOUNT = "Create a free account to run this on your own matter";
 const CTA_RUN_PREMOTION = CTA_CREATE_ACCOUNT;
 const CTA_DRAFT_LETTER = CTA_CREATE_ACCOUNT;
-const CTA_UPLOAD_DOC = CTA_CREATE_ACCOUNT;
-const CTA_EDIT_DOC = CTA_CREATE_ACCOUNT;
 const CTA_EXPORT = CTA_CREATE_ACCOUNT;
 const CTA_CONTRACT_REVIEW = CTA_CREATE_ACCOUNT;
 
@@ -90,24 +87,6 @@ export function DemoMatter() {
   );
 
   const [showSoF, setShowSoF] = useState(false);
-  const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const stored = window.localStorage.getItem("legalise.right-rail.collapsed");
-      return stored === null ? true : stored === "1";
-    } catch {
-      return true;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("legalise.right-rail.collapsed", rightRailCollapsed ? "1" : "0");
-    } catch {
-      // ignore
-    }
-  }, [rightRailCollapsed]);
-
   const flashPosture = () => flashCta(CTA_CREATE_ACCOUNT);
 
   return (
@@ -149,8 +128,6 @@ export function DemoMatter() {
             {tab === "documents" && (
               <DemoDocumentsTab
                 docs={documents}
-                onUpload={() => flashCta(CTA_UPLOAD_DOC)}
-                onEdit={() => flashCta(CTA_EDIT_DOC)}
               />
             )}
             {tab === "chronology" && (
@@ -215,15 +192,6 @@ export function DemoMatter() {
               <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
             )}
           </main>
-          {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && !rightRailCollapsed && (
-            <RightRailAssistant
-              matter={matter}
-              collapsed={rightRailCollapsed}
-              onToggleCollapsed={() => setRightRailCollapsed((v) => !v)}
-              onOpenFull={() => setTabAndHash("assistant")}
-              disabled
-            />
-          )}
           </div>
         </div>
       </div>
@@ -367,14 +335,9 @@ function DemoWorkflowsTab({
 
 function DemoDocumentsTab({
   docs,
-  onEdit,
 }: {
   docs: MatterDocument[];
-  onUpload: () => void;
-  onEdit: () => void;
 }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-
   return (
     <div className="max-w-4xl">
       <div className="mb-8 border-l-2 border-ink pl-4 py-1">
@@ -396,10 +359,7 @@ function DemoDocumentsTab({
           </div>
           {docs.map((d) => (
             <div key={d.id} className="border-b border-rule">
-              <div
-                className="grid grid-cols-[1.5fr_110px_90px_120px_72px] gap-4 px-4 py-3 hover:bg-wash transition-colors items-center cursor-pointer"
-                onClick={() => setEditingId(editingId === d.id ? null : d.id)}
-              >
+              <div className="grid grid-cols-[1.5fr_110px_90px_120px_72px] gap-4 px-4 py-3 items-center">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-ink truncate">{d.filename}</div>
                   <div className="mt-0.5 text-[11px] text-muted truncate">{d.sha256.slice(0, 8)}</div>
@@ -408,28 +368,9 @@ function DemoDocumentsTab({
                 <span className="text-xs text-ink">{formatBytes(d.size_bytes)}</span>
                 <span>{d.from_disclosure ? <Badge>CPR 31</Badge> : <span className="text-xs text-muted">Upload</span>}</span>
                 <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                  {editingId === d.id ? "Close" : "Open"}
+                  Ready
                 </span>
               </div>
-              {editingId === d.id && (
-                <div className="border-t border-rule bg-paper p-5">
-                  <div className="font-mono uppercase tracking-track2 text-[10px] text-muted mb-2">
-                    Document edit · {d.filename}
-                  </div>
-                  <p className="text-sm text-ink mb-3">
-                    Inside a live matter, this panel runs an instructed edit pass (tighten, rewrite,
-                    summarise, jurisdiction sweep) and surfaces tracked changes for accept / reject.
-                    The Anonymise control sits beside it and emits a [PARTY_n] / [ORG_n] redacted
-                    body. Both are disabled in the read-only demo.
-                  </p>
-                  <button
-                    onClick={onEdit}
-                    className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-xs font-medium min-h-[32px]"
-                  >
-                    Create account to edit or anonymise
-                  </button>
-                </div>
-              )}
             </div>
           ))}
         </div>
