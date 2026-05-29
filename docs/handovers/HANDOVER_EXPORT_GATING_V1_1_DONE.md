@@ -42,10 +42,12 @@ present: the matter export now respects sign-off status downstream.
 
 ## Tests
 - `backend/tests/test_export_signoff_gating.py` (new): export includes
-  `signoffs.json` (current flag); `artefacts.json` labels a signed artefact
-  `signed` with `signoff_hash_matches: true` and an unsigned one
-  `unsigned`; README shows "Signed (final material): 1" + "Unsigned
-  (draft…): 1". `test_export_completeness.py` still green (additive change).
+  `signoffs.json` (current flag); `artefacts.json` and per-artefact
+  `metadata.json` label a signed artefact `signed` with
+  `signoff_hash_matches: true` and an unsigned one `unsigned` with
+  `signoff_hash_matches: null`; README shows "Signed (final material): 1"
+  + "Unsigned (draft…): 1". `test_export_completeness.py` still green
+  (additive change).
 - Frontend `ArtifactsList.test.tsx` (+1): rows show Signed vs Draft badges
   from current sign-offs.
 - Gate: frontend `tsc` clean · full vitest **186/186** · `vite build` OK.

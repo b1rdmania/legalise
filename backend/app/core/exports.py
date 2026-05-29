@@ -296,9 +296,11 @@ async def build_matter_export(
                 "signed_by_id": str(cur.signer_id) if cur else None,
                 "signed_at": cur.signed_at if cur else None,
                 "signoff_hash": cur.artifact_hash if cur else None,
+                # null for unsigned outputs or unavailable legacy bytes;
+                # boolean for signed/rejected outputs whose payload bytes
+                # were available to recompute.
+                "signoff_hash_matches": None,
             }
-            artifact_meta_list.append(art_entry)
-            zf.writestr(f"artefacts/{art.id}/metadata.json", _dumps(art_entry))
             try:
                 raw = load_artifact_bytes(art.storage_path)
                 zf.writestr(f"artefacts/{art.id}/{art.kind}.json", raw)
@@ -312,6 +314,8 @@ async def build_matter_export(
                 # Legacy local-fs / missing object — metadata still exported;
                 # note it in the manifest rather than crashing the export.
                 unavailable_artifacts.append(str(art.id))
+            artifact_meta_list.append(art_entry)
+            zf.writestr(f"artefacts/{art.id}/metadata.json", _dumps(art_entry))
         zf.writestr("artefacts.json", _dumps(artifact_meta_list))
 
         # --- signoffs.json (Professional Sign-Off records; v1.1) -------------

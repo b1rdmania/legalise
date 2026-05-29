@@ -95,6 +95,18 @@ async def test_export_labels_outputs_by_signoff_status(db_session) -> None:
         assert index[str(signed_art.id)]["signoff_status"] == "signed"
         assert index[str(signed_art.id)]["signoff_hash_matches"] is True
         assert index[str(unsigned_art.id)]["signoff_status"] == "unsigned"
+        assert index[str(unsigned_art.id)]["signoff_hash_matches"] is None
+
+        signed_meta = json.loads(
+            zf.read(f"artefacts/{signed_art.id}/metadata.json")
+        )
+        unsigned_meta = json.loads(
+            zf.read(f"artefacts/{unsigned_art.id}/metadata.json")
+        )
+        assert signed_meta["signoff_status"] == "signed"
+        assert signed_meta["signoff_hash_matches"] is True
+        assert unsigned_meta["signoff_status"] == "unsigned"
+        assert unsigned_meta["signoff_hash_matches"] is None
 
         # README summarises sign-off status; signed are the final material.
         readme = zf.read("README.md").decode("utf-8")
