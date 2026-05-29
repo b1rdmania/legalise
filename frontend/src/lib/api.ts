@@ -12,6 +12,10 @@ export interface Matter {
   pivot_fact: string | null;
   privilege_posture: string;
   default_model_id: string;
+  // Keyed provider the default model needs ("anthropic"/"openai"), or
+  // null for keyless models. Backend-supplied truth (provider_for_model);
+  // the FE no longer re-derives model families.
+  required_provider: string | null;
   facts: Record<string, unknown>;
   opened_at: string;
   closed_at: string | null;

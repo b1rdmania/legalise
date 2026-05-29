@@ -447,6 +447,7 @@ export function MatterDetail({ slug }: { slug: string }) {
             <GrantsPanel
               slug={matter.slug}
               defaultModelId={matter.default_model_id}
+              requiredProvider={matter.required_provider}
             />
           )}
         </main>
