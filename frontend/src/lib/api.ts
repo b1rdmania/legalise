@@ -254,6 +254,61 @@ export const validateManifest = (manifest: unknown) =>
     body: JSON.stringify({ manifest }),
   }).then((r) => jsonOrThrow<ValidateManifestResult>(r));
 
+// Lawve Skill Importer v1 — browse external skills + convert to a
+// governed module draft (read-only; never installs/executes scripts).
+export interface LawveSkillRow {
+  source: string;
+  repo: string;
+  ref: string | null;
+  slug: string;
+  name: string;
+  description: string;
+  version: string | null;
+  author_name: string | null;
+  license: string | null;
+  source_path: string | null;
+  has_references: boolean;
+  has_scripts: boolean;
+  script_review_required: boolean;
+}
+export interface LawveSkillDetail extends LawveSkillRow {
+  skill_markdown: string;
+  frontmatter: Record<string, unknown>;
+  references: string[];
+  scripts: string[];
+  license_text: string | null;
+  provenance: { repo_url: string; ref: string | null; source_path: string | null };
+}
+export interface LawveDraftWarning {
+  code: string;
+  message: string;
+}
+export interface LawveDraftResult {
+  manifest: Record<string, unknown>;
+  valid: boolean;
+  errors: ManifestValidationError[];
+  warnings: LawveDraftWarning[];
+  source_provenance: { repo_url: string; ref: string | null; source_path: string | null } | null;
+  next_steps: string[];
+}
+
+export const listLawveSkills = () =>
+  apiFetch(`${API}/modules/external/lawve/skills`).then((r) =>
+    jsonOrThrow<{ source: string; repo: string; ref: string | null; skills: LawveSkillRow[] }>(r),
+  );
+
+export const getLawveSkill = (slug: string) =>
+  apiFetch(`${API}/modules/external/lawve/skills/${encodeURIComponent(slug)}`).then((r) =>
+    jsonOrThrow<LawveSkillDetail>(r),
+  );
+
+export const draftLawveModule = (slug: string, overrides?: Record<string, unknown>) =>
+  apiFetch(`${API}/modules/external/lawve/skills/${encodeURIComponent(slug)}/draft`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(overrides ?? {}),
+  }).then((r) => jsonOrThrow<LawveDraftResult>(r));
+
 // Phase 14.5 B — installed-modules listing. One row per module_id
 // (most recent installed_at). Frontend uses it for the catalog
 // badge and as one AND clause in GrantsPanel.runnablePairs.

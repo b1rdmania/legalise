@@ -108,12 +108,20 @@ export function ModulesCatalog() {
         title="Modules"
         description="Governed legal capabilities. Install a reference module at the workspace, then grant and run it per matter — installing here does not make it ready everywhere."
         actions={
-          <Link
-            to="/modules/create"
-            className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
-          >
-            Create module
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/modules/lawve"
+              className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+            >
+              Import from Lawve
+            </Link>
+            <Link
+              to="/modules/create"
+              className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+            >
+              Create module
+            </Link>
+          </div>
         }
       />
 
