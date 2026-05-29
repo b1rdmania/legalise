@@ -1,10 +1,12 @@
 # V1 Acceptance Walk — 2026-05-29
 
-Status: partial acceptance record against production head `b8aa500`.
+Status: partial acceptance record against production head `b8aa500`, with one
+credentialed production blocker found and patched on
+`codex/fix-lawve-schema-packaging`.
 
-This is not a substitute for a credentialed browser walkthrough. It is the
-current verified state from production HTTP checks, deployed bundle checks,
-CI status, and repo inspection.
+This is not yet the full end-to-end v1 walk. It records the current verified
+state from production HTTP checks, deployed bundle checks, CI status, repo
+inspection, and the first credentialed Lawve import step.
 
 ## Production Head
 
@@ -79,10 +81,11 @@ This closes the main product loop:
 
 ## Not Fully Walked In This Pass
 
-The full credentialed browser path was not exercised from this session because
-no production admin/user credentials or provider key were available.
+The credentialed browser path started and reached the Lawve import conversion
+step. It cannot proceed to install/grant/run until the blocker below is
+deployed and re-tested.
 
-Still requiring a human/credentialed pass:
+Still requiring a credentialed pass after the patch deploys:
 
 1. Sign in as admin.
 2. Open `/modules/lawve`.
@@ -101,11 +104,42 @@ Still requiring a human/credentialed pass:
 
 ## Findings
 
-No production blocker found from unauthenticated/live-bundle checks.
+### P1 — Lawve draft conversion 500s in production
 
-The main remaining v1 risk is UX, not substrate: the pieces now connect, but the
-credentialed flow still needs a real operator pass to catch copy, state,
-permission, and navigation friction.
+Evidence:
+
+- Signed in successfully and opened `/modules/lawve`.
+- Selected `contract-review-anthropic`; the detail panel rendered provenance
+  and the `Convert to module draft` action.
+- Clicking `Convert to module draft` rendered a frontend `TypeError: Failed to
+  fetch`.
+- Direct authenticated API reproduction:
+  `POST https://api.legalise.dev/api/modules/external/lawve/skills/contract-review-anthropic/draft`
+  returned `500 Internal Server Error`.
+- CORS preflight returned `200`; unauthenticated POST returned `401`. This is
+  not a CORS/auth routing issue.
+
+Root cause from Fly logs:
+
+```text
+FileNotFoundError: schemas/module.v2.json not found at /schemas/module.v2.json
+```
+
+The Fly image is built from `backend/`, so repo-root `schemas/module.v2.json`
+is not packaged into the production container. Local development finds it via
+the repo-root path; production resolves the old path to `/schemas/...`.
+
+Patch on `codex/fix-lawve-schema-packaging`:
+
+- package `backend/schemas/module.v2.json`;
+- make the v2 validator check repo-root schema first, then backend-packaged
+  schema;
+- add a drift test proving the packaged schema matches the repo-root canonical
+  schema.
+
+The remaining v1 risk after this fix is UX, not substrate: the pieces now
+connect in code, but the credentialed flow still needs a real operator pass to
+catch copy, state, permission, and navigation friction.
 
 ## Recommended Next Work
 
@@ -118,4 +152,3 @@ permission, and navigation friction.
    id, invocation, artifact, and review decision.
 4. **Module marketplace polish.** Make `/modules` explain available/imported/
    installed/disabled states and licence/script warnings calmly.
-
