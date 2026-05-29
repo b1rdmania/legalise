@@ -69,6 +69,17 @@ const CLASS_LABEL: Record<RowClass, string> = {
   system: "System",
 };
 
+const STORY_LABEL: Record<RowClass, string> = {
+  error: "Error raised",
+  review: "Human review",
+  blocked_denied: "Blocked or denied",
+  grant_role: "Permission changed",
+  advice: "Advice boundary checked",
+  model: "Model used",
+  module: "Action ran",
+  system: "System activity",
+};
+
 type FetchState =
   | { status: "loading" }
   | { status: "ready"; entries: TimelineEntry[]; nextCursor: string | null; totalEstimate: number; loadingMore: boolean }
@@ -223,17 +234,25 @@ export function ReconstructionView({ slug }: { slug: string }) {
   }, [visibleEntries, classFilter]);
 
   const foregroundCount = lanes.chains.length + lanes.standaloneDecisions.length;
+  const storyCounts = useMemo(() => {
+    const counts = new Map<RowClass, number>();
+    for (const entry of visibleEntries) {
+      const key = classifyEntry(entry);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [visibleEntries]);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Matter</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Reconstruction</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Activity Trail</h1>
       <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
       <p className="mt-3 text-sm text-muted">
-        Canonical timeline of every audited event on this matter. Rows
-        are union-ed from three substrate tables — audit entries,
-        state-machine transitions, and advice-boundary decisions — and
-        ordered by occurrence.
+        The main record of what happened on this matter: documents
+        touched, actions run, models called, outputs written, human
+        reviews, and blocked attempts. Raw substrate rows stay
+        expandable; the first view is the story.
       </p>
 
       {/* Active query-param filters */}
@@ -267,65 +286,70 @@ export function ReconstructionView({ slug }: { slug: string }) {
         </div>
       )}
 
-      {/* Source chips */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-widest text-muted">
-          Sources
-        </span>
-        {ALL_RECONSTRUCTION_SOURCES.map((s) => {
-          const active = sources.includes(s);
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => toggleSource(s)}
-              className={
-                "rounded-full border px-3 py-1 text-xs transition-colors " +
-                (active
-                  ? "border-ink bg-ink text-paper"
-                  : "border-line text-muted hover:border-ink")
-              }
-              data-testid={`source-chip-${s}`}
-              aria-pressed={active}
-            >
-              {SOURCE_LABEL[s]}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Class facet chips (AT-2) — loaded page only, hidden when a
-          precise deep-link filter is active. */}
-      {!deepLinked && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+      <details className="mt-5 rounded-md border border-line bg-paper-sunken p-3">
+        <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted">
+          Filters and raw sources
+        </summary>
+        {/* Source chips */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-widest text-muted">
-            Decision type
+            Sources
           </span>
-          {CLASS_CHIPS.map((c) => {
-            const active = classFilter === c.key;
+          {ALL_RECONSTRUCTION_SOURCES.map((s) => {
+            const active = sources.includes(s);
             return (
               <button
-                key={c.key}
+                key={s}
                 type="button"
-                onClick={() => setClassFilter(active ? null : c.key)}
+                onClick={() => toggleSource(s)}
                 className={
                   "rounded-full border px-3 py-1 text-xs transition-colors " +
                   (active
                     ? "border-ink bg-ink text-paper"
                     : "border-line text-muted hover:border-ink")
                 }
-                data-testid={`class-chip-${c.key}`}
+                data-testid={`source-chip-${s}`}
                 aria-pressed={active}
               >
-                {c.label}
+                {SOURCE_LABEL[s]}
               </button>
             );
           })}
-          {classFilter && (
-            <span className="text-[11px] text-muted">filters the loaded page only</span>
-          )}
         </div>
-      )}
+
+        {/* Class facet chips (AT-2) — loaded page only, hidden when a
+            precise deep-link filter is active. */}
+        {!deepLinked && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-widest text-muted">
+              Decision type
+            </span>
+            {CLASS_CHIPS.map((c) => {
+              const active = classFilter === c.key;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setClassFilter(active ? null : c.key)}
+                  className={
+                    "rounded-full border px-3 py-1 text-xs transition-colors " +
+                    (active
+                      ? "border-ink bg-ink text-paper"
+                      : "border-line text-muted hover:border-ink")
+                  }
+                  data-testid={`class-chip-${c.key}`}
+                  aria-pressed={active}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+            {classFilter && (
+              <span className="text-[11px] text-muted">filters the loaded page only</span>
+            )}
+          </div>
+        )}
+      </details>
 
       {/* Timeline */}
       {fetchState.status === "loading" && (
@@ -344,6 +368,29 @@ export function ReconstructionView({ slug }: { slug: string }) {
               ? ` · ~${fetchState.totalEstimate} in window`
               : ""}
           </p>
+          {visibleEntries.length > 0 && !deepLinked && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from(storyCounts.entries())
+                .filter(([key]) => key !== "system")
+                .map(([key, count]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setClassFilter(classFilter === key ? null : key)}
+                    className={
+                      "rounded-md border px-3 py-2 text-left text-xs transition-colors " +
+                      (classFilter === key
+                        ? "border-ink bg-ink text-paper"
+                        : "border-line bg-paper hover:border-ink")
+                    }
+                    aria-pressed={classFilter === key}
+                  >
+                    <span className="block font-medium">{STORY_LABEL[key]}</span>
+                    <span className="mt-1 block text-muted">{count} event{count === 1 ? "" : "s"}</span>
+                  </button>
+                ))}
+            </div>
+          )}
 
           {/* Phase 14.5 A — substrate now applies filters before
               pagination. The partial-page advisory the Phase 14 E
@@ -647,4 +694,3 @@ function ExpandedBlock({
     </div>
   );
 }
-
