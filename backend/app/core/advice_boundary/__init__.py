@@ -29,9 +29,11 @@ from app.core.advice_boundary.tiers import (
     InvalidTierError,
     is_terminal_tier,
 )
+from app.core.advice_boundary.exceptions import AdviceBoundaryDenied
 from app.core.advice_boundary.gate import check
 
 __all__ = [
+    "AdviceBoundaryDenied",
     "AdviceTier",
     "ADVICE_TIER_FACTUAL_EXTRACTION",
     "ADVICE_TIER_LEGAL_INFORMATION",

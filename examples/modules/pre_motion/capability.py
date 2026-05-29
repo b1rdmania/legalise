@@ -40,7 +40,10 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.advice_boundary import check as advice_boundary_check
+from app.core.advice_boundary import (
+    AdviceBoundaryDenied,
+    check as advice_boundary_check,
+)
 from app.core.advice_boundary.tiers import ADVICE_TIER_DRAFT_ADVICE
 from app.core.audit_cost import audit_emit_model_invoked
 from app.core.capabilities import require_capability
@@ -217,9 +220,7 @@ async def draft_motion(
         matter_id=matter.id,
     )
     if not gate_result["allowed"]:
-        raise PermissionError(
-            f"advice-boundary gate denied: {gate_result['gate_state']!r}"
-        )
+        raise AdviceBoundaryDenied(gate_result)
 
     # 5. Capability invocation audit.
     await audit_phase1(

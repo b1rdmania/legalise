@@ -327,18 +327,25 @@ async def test_prompt_invocation_requires_read_grant(client, stub_gateway) -> No
 
 @pytest.mark.asyncio
 async def test_advice_boundary_denial_translates_to_403(client, stub_gateway, monkeypatch) -> None:
-    # The executor raises PermissionError when the advice-boundary gate
-    # denies. The endpoint must surface that as a structured 403, not a
-    # generic 500. Guard the translation directly.
+    # The executor raises AdviceBoundaryDenied when the advice-boundary
+    # gate denies. The endpoint must surface that typed condition as a
+    # structured 403 without broadly catching PermissionError.
     email = await _register_admin_solicitor(client)
     await _install_prompt_module(client)
     slug, _matter_id, _doc_id = await _make_cleared_matter(client, email)
     await _grant_caps(client, slug)
 
     import app.api.invocations as inv
+    from app.core.advice_boundary import AdviceBoundaryDenied
 
     async def _raise_permission(*args, **kwargs):
-        raise PermissionError("advice-boundary gate denied: {'status': 'denied'}")
+        raise AdviceBoundaryDenied(
+            {
+                "allowed": False,
+                "decision_id": str(uuid.uuid4()),
+                "gate_state": {"status": "denied"},
+            }
+        )
 
     monkeypatch.setattr(inv, "dispatch_capability", _raise_permission)
 
@@ -351,7 +358,9 @@ async def test_advice_boundary_denial_translates_to_403(client, stub_gateway, mo
         },
     )
     assert resp.status_code == 403, resp.text
-    assert resp.json()["detail"]["error"] == "advice_boundary_denied"
+    detail = resp.json()["detail"]
+    assert detail["error"] == "advice_boundary_denied"
+    assert detail["gate_state"] == {"status": "denied"}
 
 
 @pytest.mark.asyncio

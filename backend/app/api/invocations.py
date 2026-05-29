@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.advice_boundary import AdviceBoundaryDenied
 from app.core.auth import current_user
 from app.core.capabilities import CapabilityDenied
 from app.core.db import get_session
@@ -309,13 +310,18 @@ async def invoke_capability_endpoint(
                 "message": str(exc),
             },
         )
-    except PermissionError as exc:
-        # Advice-boundary gate denial (capability raises PermissionError
-        # when advice_boundary_check returns not-allowed). Surface as a
-        # structured 403 rather than a generic 500.
+    except AdviceBoundaryDenied as exc:
+        # Advice-boundary gate denial. Keep this typed so unrelated
+        # PermissionError uses in future modules do not masquerade as
+        # advice-boundary decisions.
         raise HTTPException(
             status_code=403,
-            detail={"error": "advice_boundary_denied", "message": str(exc)},
+            detail={
+                "error": "advice_boundary_denied",
+                "decision_id": str(exc.decision_id) if exc.decision_id else None,
+                "gate_state": exc.gate_state,
+                "message": str(exc),
+            },
         )
     except ValueError as exc:
         # The capability raised on bad args (or unknown claim_type,

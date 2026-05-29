@@ -129,10 +129,13 @@ module-package storage shape (flagged, not hit).
   required-provider check. Provider kind stays non-invokable (not in the
   invokable-kinds set). Test added: prompt draft validates with
   `model_access: required` + a provider capability present.
-- **P2 — advice-boundary denial → 403.** `invocations.py` now translates
-  `PermissionError` to a structured `403 advice_boundary_denied` (was an
-  untranslated 500). Covers prompt runtime AND the inherited Contract
-  Review/Pre-Motion path. Regression test added.
+- **P2 — advice-boundary denial → typed 403.** Added
+  `AdviceBoundaryDenied` and switched prompt runtime + Contract Review +
+  Pre-Motion to raise it instead of broad `PermissionError`.
+  `invocations.py` catches only that typed exception and translates it to
+  structured `403 advice_boundary_denied` (was an untranslated 500 before
+  the redline; briefly broad-caught `PermissionError` during review, now
+  tightened). Regression test added.
 - **P2 — happy-path test pins `model.invoked`** specifically (was
   `startswith("model.")`).
 
