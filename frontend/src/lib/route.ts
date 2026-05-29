@@ -47,6 +47,8 @@ export type Route =
   | { name: "matterAudit"; slug: string }
   | { name: "matterArtifacts"; slug: string }
   | { name: "matterArtifactDetail"; slug: string; artifactId: string }
+  | { name: "matterArtifactSign"; slug: string; artifactId: string }
+  | { name: "matterSignoff"; slug: string; signoffId: string }
   | { name: "matterDocumentDetail"; slug: string; documentId: string }
   | { name: "matterLifecycle"; slug: string }
   | { name: "adminUsers" }
@@ -107,6 +109,24 @@ export function routeFromPath(pathname: string, search: string): Route {
     return { name: "moduleDetail", moduleId: moduleDetailMatch[1] };
   }
 
+  const matterArtifactSignMatch = path.match(
+    /^\/matters\/([^/]+)\/artifacts\/([^/]+)\/sign$/,
+  );
+  if (matterArtifactSignMatch) {
+    return {
+      name: "matterArtifactSign",
+      slug: matterArtifactSignMatch[1],
+      artifactId: matterArtifactSignMatch[2],
+    };
+  }
+  const matterSignoffMatch = path.match(/^\/matters\/([^/]+)\/signoffs\/([^/]+)$/);
+  if (matterSignoffMatch) {
+    return {
+      name: "matterSignoff",
+      slug: matterSignoffMatch[1],
+      signoffId: matterSignoffMatch[2],
+    };
+  }
   const matterArtifactDetailMatch = path.match(
     /^\/matters\/([^/]+)\/artifacts\/([^/]+)$/,
   );

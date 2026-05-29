@@ -49,6 +49,7 @@ import {
 // audit class; they surface as the chain output node (AT-3). `system`
 // is the collapsed background, not a chip.
 const CLASS_CHIPS: { key: RowClass; label: string }[] = [
+  { key: "signed", label: "Sign-off" },
   { key: "review", label: "Review" },
   { key: "blocked_denied", label: "Blocked / denied" },
   { key: "grant_role", label: "Grant / role" },
@@ -60,6 +61,7 @@ const CLASS_CHIPS: { key: RowClass; label: string }[] = [
 
 const CLASS_LABEL: Record<RowClass, string> = {
   error: "Error",
+  signed: "Sign-off",
   review: "Review",
   blocked_denied: "Blocked / denied",
   grant_role: "Grant / role",
@@ -71,6 +73,7 @@ const CLASS_LABEL: Record<RowClass, string> = {
 
 const STORY_LABEL: Record<RowClass, string> = {
   error: "Error raised",
+  signed: "Signed off",
   review: "Human review",
   blocked_denied: "Blocked or denied",
   grant_role: "Permission changed",

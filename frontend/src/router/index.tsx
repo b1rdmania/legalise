@@ -29,6 +29,8 @@ import { DemoLoop } from "../demo/DemoLoop";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
+import { SignOff } from "../matter/SignOff";
+import { SignOffConfirmation } from "../matter/SignOffConfirmation";
 import { ReconstructionView } from "../matter/ReconstructionView";
 import { DocumentDetail } from "../matter/DocumentDetail";
 import { MatterLifecycle } from "../matter/MatterLifecycle";
@@ -334,6 +336,24 @@ const matterArtifactDetailRoute = createRoute({
   },
 });
 
+const matterArtifactSignRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/matters/$slug/artifacts/$artifactId/sign",
+  component: () => {
+    const { slug, artifactId } = matterArtifactSignRoute.useParams();
+    return <SignOff slug={slug} artifactId={artifactId} />;
+  },
+});
+
+const matterSignoffRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/matters/$slug/signoffs/$signoffId",
+  component: () => {
+    const { slug, signoffId } = matterSignoffRoute.useParams();
+    return <SignOffConfirmation slug={slug} signoffId={signoffId} />;
+  },
+});
+
 const matterDocumentDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/matters/$slug/documents/$documentId",
@@ -420,6 +440,8 @@ const routeTree = rootRoute.addChildren([
     matterAuditRoute,
     matterArtifactsRoute,
     matterArtifactDetailRoute,
+    matterArtifactSignRoute,
+    matterSignoffRoute,
     matterDocumentDetailRoute,
     matterLifecycleRoute,
     adminUsersRoute,
