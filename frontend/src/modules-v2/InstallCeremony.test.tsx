@@ -102,7 +102,7 @@ describe("InstallCeremony — stepper", () => {
 });
 
 describe("InstallCeremony — advance actions", () => {
-  it("trust + grant call advanceCeremony with the right action", async () => {
+  it("continues review before the granted boundary", async () => {
     vi.spyOn(api, "getCeremony").mockResolvedValue(makeCeremony());
     const advance = vi
       .spyOn(api, "advanceCeremony")
@@ -110,15 +110,33 @@ describe("InstallCeremony — advance actions", () => {
 
     mountAt("/modules/install/cer-1");
     await waitFor(() => {
-      expect(screen.getByText("Trust + continue")).toBeInTheDocument();
+      expect(screen.getByText("Continue review")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("Trust + continue"));
+    expect(screen.queryByText("Enable module")).toBeNull();
+
+    fireEvent.click(screen.getByText("Continue review"));
     await waitFor(() => {
       expect(advance).toHaveBeenCalledWith("cer-1", "trust");
     });
+  });
 
-    fireEvent.click(screen.getByText("Grant + enable"));
+  it("renders the enable action only at the granted boundary", async () => {
+    vi.spyOn(api, "getCeremony").mockResolvedValue(
+      makeCeremony({ state: "granted" }),
+    );
+    const advance = vi
+      .spyOn(api, "advanceCeremony")
+      .mockResolvedValue(makeCeremony({ state: "enabled", is_terminal: true }));
+
+    mountAt("/modules/install/cer-1");
+    await waitFor(() => {
+      expect(screen.getByText("Enable module")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Continue review")).toBeNull();
+
+    fireEvent.click(screen.getByText("Enable module"));
     await waitFor(() => {
       expect(advance).toHaveBeenCalledWith("cer-1", "grant");
     });
@@ -150,7 +168,9 @@ describe("InstallCeremony — advance actions", () => {
 
 describe("InstallCeremony — 409 invalid-transition", () => {
   it("renders a structured banner naming the substrate audit row", async () => {
-    vi.spyOn(api, "getCeremony").mockResolvedValue(makeCeremony());
+    vi.spyOn(api, "getCeremony").mockResolvedValue(
+      makeCeremony({ state: "granted" }),
+    );
     vi.spyOn(api, "advanceCeremony").mockRejectedValueOnce(
       new api.InvalidCeremonyTransitionError(
         "cannot grant before permissions_reviewed",
@@ -161,9 +181,9 @@ describe("InstallCeremony — 409 invalid-transition", () => {
 
     mountAt("/modules/install/cer-1");
     await waitFor(() => {
-      expect(screen.getByText("Grant + enable")).toBeInTheDocument();
+      expect(screen.getByText("Enable module")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByText("Grant + enable"));
+    fireEvent.click(screen.getByText("Enable module"));
 
     await waitFor(() => {
       expect(
@@ -195,8 +215,8 @@ describe("InstallCeremony — terminal failures", () => {
         screen.getByText(/ceremony terminated/i),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByText("Trust + continue")).toBeNull();
-    expect(screen.queryByText("Grant + enable")).toBeNull();
+    expect(screen.queryByText("Continue review")).toBeNull();
+    expect(screen.queryByText("Enable module")).toBeNull();
     expect(screen.queryByText("Reject")).toBeNull();
   });
 });

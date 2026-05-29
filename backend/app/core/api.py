@@ -34,7 +34,12 @@ import uuid
 from dataclasses import dataclass
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
 
 from app.adapters import plugin_bridge as _plugin_bridge_module
 from app.core.model_gateway import gateway as _gateway
@@ -175,14 +180,19 @@ async def audit_failure(
         # In production, sessions always have a bind.
         return
 
-    # If the session is bound to a Connection (the conftest pattern
+    # If the session is bound to an AsyncConnection (the conftest pattern
     # wraps each test in an outer transaction on a specific connection),
-    # walk up to the engine so the new sessionmaker checks out a fresh
-    # connection from the pool. Otherwise the new session joins the
-    # outer transaction and the "independent commit" would be rolled
-    # back at test teardown.
-    if hasattr(bind, "engine"):
+    # walk up to the AsyncEngine so the new sessionmaker checks out a
+    # fresh connection from the pool. Do not use a generic `.engine`
+    # attribute check here: AsyncEngine exposes a sync `.engine` alias,
+    # and handing that sync Engine to async_sessionmaker crashes the
+    # failure path in production.
+    if isinstance(bind, AsyncConnection):
         bind = bind.engine
+    elif not isinstance(bind, AsyncEngine):
+        # Unexpected/test-only bind shape. Best-effort: do not let a
+        # failure-audit attempt turn the original API error into a 500.
+        return
 
     factory = async_sessionmaker(bind, expire_on_commit=False)
     async with factory() as audit_session:
