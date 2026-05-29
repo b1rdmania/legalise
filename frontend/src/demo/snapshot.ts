@@ -52,6 +52,7 @@ const MATTER: Matter = {
     "The social-media post the respondent treats as gross misconduct was a private comment on a personal Instagram account, set to a closed audience of 47 followers, none of whom were customers, suppliers, or named in the post.",
   privilege_posture: "B_mixed",
   default_model_id: "claude-opus-4-7",
+  required_provider: "anthropic",
   facts: {
     side: "claimant",
     parties: { client: "Jasmine Khan", opposing: ["Acme Trading Ltd"] },

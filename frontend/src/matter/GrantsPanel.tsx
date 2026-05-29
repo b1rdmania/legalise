@@ -127,20 +127,6 @@ function installedModuleEntry(row: InstalledModule): V2ManifestEntry {
   };
 }
 
-function providerForModel(modelId: string | null | undefined): string | null {
-  const value = (modelId ?? "").trim().toLowerCase();
-  if (!value || value === "stub-echo" || value.includes("ollama")) return null;
-  if (value.includes("claude") || value.includes("anthropic")) return "anthropic";
-  if (
-    value.includes("openai") ||
-    value.includes("gpt") ||
-    /^o[134](?:-|$)/.test(value)
-  ) {
-    return "openai";
-  }
-  return null;
-}
-
 function moduleRequiresModel(entry: V2ManifestEntry, cap: ManifestCapability): boolean {
   if (cap.modelAccess === "required") return true;
   return capabilitiesOf(entry).some(
@@ -160,7 +146,11 @@ type RunReadiness = {
   provider?: string | null;
 };
 
+// `requiredProvider` is backend-supplied truth (Matter.required_provider,
+// computed by provider_for_model) — the FE no longer re-derives model
+// families, so the two can't drift.
 function readinessFor(opts: {
+  requiredProvider?: string | null;
   defaultModelId?: string | null;
   requiresModel: boolean;
   keyQuery: KeyQuery;
@@ -168,17 +158,17 @@ function readinessFor(opts: {
   if (!opts.requiresModel) {
     return {
       disabled: false,
-      title: "Ready to run",
-      body: "This capability does not declare model access.",
+      title: "Ready",
+      body: "This capability does not use a model.",
     };
   }
 
-  const provider = providerForModel(opts.defaultModelId);
+  const provider = opts.requiredProvider ?? null;
   if (provider === null) {
     return {
       disabled: false,
-      title: "Ready: keyless/local model",
-      body: `Matter model ${opts.defaultModelId || "stub-echo"} does not need a BYO provider key.`,
+      title: "Keyless demo model",
+      body: `Matter model ${opts.defaultModelId || "stub-echo"} needs no provider key.`,
       provider,
     };
   }
@@ -205,7 +195,7 @@ function readinessFor(opts: {
   if (!hasKey) {
     return {
       disabled: true,
-      title: `${providerLabel} key needed`,
+      title: `Requires ${providerLabel} key`,
       body: `This matter uses ${opts.defaultModelId}. Add your ${providerLabel} key before running this action.`,
       provider,
     };
@@ -213,8 +203,8 @@ function readinessFor(opts: {
 
   return {
     disabled: false,
-    title: `${providerLabel} key configured, not tested`,
-    body: "A key is on file. Legalise has not validated it against the provider until the run starts.",
+    title: "Ready",
+    body: `${providerLabel} key configured — not verified until the run starts.`,
     provider,
   };
 }
@@ -222,9 +212,11 @@ function readinessFor(opts: {
 export function GrantsPanel({
   slug,
   defaultModelId,
+  requiredProvider,
 }: {
   slug: string;
   defaultModelId?: string | null;
+  requiredProvider?: string | null;
 }) {
   const [grants, setGrants] = useState<GrantsQuery>({ status: "loading" });
   const [catalog, setCatalog] = useState<CatalogQuery>({ status: "loading" });
@@ -463,6 +455,7 @@ export function GrantsPanel({
           capabilityId: c.id,
           moduleName: name,
           readiness: readinessFor({
+            requiredProvider,
             defaultModelId,
             requiresModel: moduleRequiresModel(m, c),
             keyQuery: keys,
@@ -471,7 +464,7 @@ export function GrantsPanel({
       }
     }
     return out;
-  }, [catalog, defaultModelId, grants, installed, keys]);
+  }, [catalog, defaultModelId, requiredProvider, grants, installed, keys]);
 
   const setupSuggestions = useMemo<
     Array<{

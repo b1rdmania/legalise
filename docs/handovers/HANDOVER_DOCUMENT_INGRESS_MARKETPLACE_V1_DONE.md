@@ -31,6 +31,9 @@ adding connector sprawl or new substrate.
   - `Needs grant` when an installed/enabled module still needs matter grants.
   - "Grant permissions" opens the setup details and preselects the module +
     capability.
+- Provider readiness is integrated from the backend hint:
+  `Matter.required_provider` is passed into `GrantsPanel`, so the action cards
+  no longer rely on frontend model-family guessing.
 - The raw grants table remains available under "Permissions and setup"; the
   substrate facts are not removed, just progressively disclosed.
 
@@ -46,6 +49,7 @@ adding connector sprawl or new substrate.
 ## Verification
 
 - `npm test -- DocumentsTab ModulesCatalog GrantsPanel`
+- `npm test -- DocumentsTab ModulesCatalog GrantsPanel MatterRecordSummary`
 - `npm run typecheck`
 
 Next sensible follow-ups:
