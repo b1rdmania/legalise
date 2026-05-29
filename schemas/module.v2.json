@@ -53,7 +53,7 @@
     },
     "runtime": {
       "type": "string",
-      "enum": ["native", "mcp"]
+      "enum": ["native", "mcp", "prompt"]
     },
     "entrypoint": {
       "type": "object",
@@ -101,6 +101,29 @@
               "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*$"
             },
             "entry": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Prompt skill entrypoint",
+          "description": "Manifest-contained prompt runtime. The skill's instructions (and optional non-script reference text) live inline in the manifest; the prompt runtime builds a model prompt from them under the capability's existing grants/posture/audit. No external file store in v1.",
+          "type": "object",
+          "required": ["prompt_source", "instructions"],
+          "properties": {
+            "prompt_source": {"const": "manifest"},
+            "instructions": {"type": "string", "minLength": 1},
+            "references": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "content"],
+                "properties": {
+                  "path": {"type": "string"},
+                  "content": {"type": "string"}
+                },
+                "additionalProperties": false
+              }
+            }
           },
           "additionalProperties": false
         }

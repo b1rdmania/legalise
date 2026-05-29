@@ -29,6 +29,7 @@ from app.api.grants import router as grants_router
 from app.api.reviews import router as reviews_router
 from app.api.invocations import router as invocations_router
 from app.api.modules import router as modules_router
+from app.api.lawve_import import router as lawve_import_router
 from app.api.system import router as system_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
@@ -346,6 +347,10 @@ app.include_router(documents_router, prefix="/api/documents", tags=["documents"]
 # router itself is the auth boundary (Turnstile + per-IP token bucket).
 app.include_router(submissions_router, prefix="/api/modules", tags=["submissions"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
+# Lawve Skill Importer v1 — external-source browse/convert (read-only;
+# no install). Nested under /api/modules so it sits with the module
+# surfaces; registered after the broad modules router.
+app.include_router(lawve_import_router, prefix="/api/modules", tags=["lawve-import"])
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
 
 # Phase 1 substrate primitives.
