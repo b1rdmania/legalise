@@ -30,6 +30,7 @@ The executor mirrors the canonical invocation order in
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from typing import Any
 
@@ -59,6 +60,10 @@ ARTIFACT_KIND = "skill_response"
 # happens when these args are present AND the capability declares reads.
 _DOC_ARG_KEYS = ("document_ids", "document_id")
 _POSTURE_GATE = "privilege_posture"
+_JSON_FENCE_RE = re.compile(
+    r"```(?:json)?\s*(\{.*?\})\s*```",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def _coerce_document_ids(args: dict[str, Any]) -> list[uuid.UUID]:
@@ -167,20 +172,46 @@ def _build_prompt(
     return "\n".join(parts)
 
 
+def _extract_json_envelope(text: str) -> dict[str, Any] | None:
+    """Return the first JSON object that looks like the optional
+    prompt-runtime envelope.
+
+    Models often wrap structured output in Markdown fences or prose.
+    This helper is deliberately narrow: it only succeeds for a JSON
+    object with a string ``output`` key. Anything else leaves the raw
+    model response untouched so the answer is never lost.
+    """
+    candidates: list[str] = []
+    stripped = text.strip()
+    if stripped.startswith("{"):
+        candidates.append(stripped)
+    candidates.extend(
+        match.group(1).strip() for match in _JSON_FENCE_RE.finditer(text)
+    )
+    first_brace = text.find("{")
+    if first_brace >= 0 and not stripped.startswith("{"):
+        candidates.append(text[first_brace:])
+
+    decoder = json.JSONDecoder()
+    for candidate in candidates:
+        try:
+            data, _ = decoder.raw_decode(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict) and isinstance(data.get("output"), str):
+            return data
+    return None
+
+
 def _parse_model_output(text: str) -> tuple[str, list[dict[str, Any]]]:
     """Lenient parse of the provider response. Returns (output_text,
     raw_claims). If the model returned the optional JSON envelope, extract
     its ``output`` + ``claims``; otherwise treat the whole response as the
     answer. The answer is NEVER lost to a failed/partial envelope."""
-    stripped = (text or "").strip()
-    if stripped.startswith("{"):
-        try:
-            data = json.loads(stripped)
-        except json.JSONDecodeError:
-            return text, []
-        if isinstance(data, dict) and isinstance(data.get("output"), str):
-            claims = data.get("claims")
-            return data["output"], claims if isinstance(claims, list) else []
+    data = _extract_json_envelope(text or "")
+    if data is not None:
+        claims = data.get("claims")
+        return data["output"], claims if isinstance(claims, list) else []
     return text, []
 
 

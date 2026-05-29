@@ -32,12 +32,31 @@ def test_parse_json_envelope_extracts_output_and_claims() -> None:
     assert claims == [{"text": "c", "source_handles": ["D1"]}]
 
 
+def test_parse_fenced_json_envelope_extracts_output_and_claims() -> None:
+    text = (
+        "Here is the answer:\n\n"
+        '```json\n{"output": "Fenced answer.", "claims": [{"text": "c2"}]}\n```\n'
+        "Hope that helps."
+    )
+    output, claims = _parse_model_output(text)
+    assert output == "Fenced answer."
+    assert claims == [{"text": "c2"}]
+
+
+def test_parse_prose_prefixed_json_envelope_extracts_output() -> None:
+    text = 'Result follows: {"output": "Inline answer.", "claims": []}'
+    assert _parse_model_output(text) == ("Inline answer.", [])
+
+
 def test_parse_malformed_json_never_loses_the_answer() -> None:
     # Starts with { but isn't valid JSON → keep the raw text as the answer.
     assert _parse_model_output('{"output": "oops') == ('{"output": "oops', [])
     # Valid JSON but no string output key → keep raw text.
     raw = '{"foo": 1}'
     assert _parse_model_output(raw) == (raw, [])
+    # Fenced but malformed → keep raw text.
+    fenced = '```json\n{"output": "oops"\n```'
+    assert _parse_model_output(fenced) == (fenced, [])
 
 
 def test_document_anchors_always_emitted_even_with_no_claims() -> None:
