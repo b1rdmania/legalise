@@ -39,6 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.grants_lifecycle import create_grants_for_capability
 from app.core.matter_fs import materialise_matter, record_document
 from app.core.registry.validator import assert_manifest_v2
+from app.core.trust_ceremony import build_permission_card
 from app.models import (
     Document,
     InstalledModule,
@@ -148,13 +149,18 @@ async def _ensure_demo_module(session: AsyncSession, user: User) -> InstalledMod
         return existing
 
     assert_manifest_v2(DEMO_MANIFEST)
-    cap = DEMO_MANIFEST["capabilities"][0]
+    # Build the permissions snapshot via the SAME permission-card builder
+    # the trust ceremony uses (`_persist_install`), so `capabilities`
+    # carries the full per-capability shape (id/kind/scope/reads/writes/
+    # model_access/...) that GET /api/modules/installed returns and the
+    # matter action panel reads — not bare ids.
+    card = build_permission_card(DEMO_MANIFEST)
     permissions_snapshot = {
-        "data_movement": cap["data_movement"],
-        "gates": cap["gates"],
-        "advice_tier_max": cap["advice_tier_max"],
-        "audit_events": cap["audit_events"],
-        "capabilities": [c["id"] for c in DEMO_MANIFEST["capabilities"]],
+        "data_movement": card.data_movement_summary,
+        "gates": card.gates,
+        "advice_tier_max": card.advice_tier_max,
+        "audit_events": card.audit_events,
+        "capabilities": card.capabilities,
     }
     row = InstalledModule(
         id=uuid.uuid4(),

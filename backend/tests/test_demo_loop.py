@@ -56,6 +56,26 @@ async def test_ensure_is_idempotent(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_installed_endpoint_returns_full_capability_shape(client) -> None:
+    # Regression: the demo install must store full capability objects in
+    # permissions_snapshot (not bare ids), so GET /api/modules/installed
+    # — which the matter action panel depends on — response-validates and
+    # exposes reads/writes for grant/action derivation.
+    await _register_login(client)
+    await client.post("/api/demo/guided-loop")
+
+    resp = await client.get("/api/modules/installed")
+    assert resp.status_code == 200, resp.text
+    rows = {r["module_id"]: r for r in resp.json()}
+    assert DEMO_MODULE_ID in rows
+    caps = rows[DEMO_MODULE_ID]["capabilities"]
+    summarise = next(c for c in caps if c["id"] == DEMO_CAPABILITY_ID)
+    assert "document.body.read" in summarise["reads"]
+    assert "matter.artifact.write" in summarise["writes"]
+    assert summarise["scope"] == "matter"
+
+
+@pytest.mark.asyncio
 async def test_guided_loop_runs_keyless_end_to_end(client) -> None:
     await _register_login(client)
     handles = (await client.post("/api/demo/guided-loop")).json()

@@ -67,7 +67,9 @@ different reviewer acts.
   `ArtifactPreview` (incl. the `skill_response` renderer) — no duplication.
 
 ## Tests
-- `backend/tests/test_demo_loop.py` (3): ensure idempotent; **keyless**
+- `backend/tests/test_demo_loop.py` (4): ensure idempotent; **installed
+  endpoint returns full capability shape** (P1 regression — see below);
+  **keyless**
   end-to-end run (no gateway stub) → `skill_response` artifact + real audit
   chain (`module.capability.invoked` / `model.invoked` /
   `module.capability.completed`); review requestable but author
@@ -87,6 +89,16 @@ different reviewer acts.
   users' ensure reuses it and just provisions their matter + grants.
 - No reset/cleanup endpoint (brief said optional for v1); ensure is
   idempotent so re-runs are safe.
+
+## Reviewer redline applied (P1)
+`_ensure_demo_module` originally stored `permissions_snapshot["capabilities"]`
+as bare ids. `GET /api/modules/installed` returns that field as
+`list[dict]` (capability objects) and the matter action panel reads
+`reads`/`writes` from it — bare ids would fail response validation / give a
+useless shape. Fixed: the demo now builds `permissions_snapshot` via the
+same `build_permission_card(...)` the trust ceremony's `_persist_install`
+uses, so the capability shape is identical. Regression test added
+(`test_installed_endpoint_returns_full_capability_shape`).
 
 ## For reviewer
 Diff-review `guided-demo-loop-v1`. Merge call yours. The one judgment to
