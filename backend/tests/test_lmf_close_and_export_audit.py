@@ -165,3 +165,63 @@ async def test_export_download_emits_audit(client) -> None:
         )
         assert row is not None
         assert row.payload.get("export_job_id") == str(job_id)
+
+
+@pytest.mark.asyncio
+async def test_export_download_failure_does_not_audit(client, monkeypatch) -> None:
+    # Reviewer redline: the matter.export.downloaded row must only land
+    # AFTER the bytes/presigned URL succeed — a storage/presign failure
+    # must not leave a false "downloaded" row.
+    owner = await _register_and_login(client)
+    from app.main import app
+
+    async with app.state.session_factory() as session:
+        user = await session.scalar(select(User).where(User.email == owner))
+        matter = Matter(
+            id=uuid.uuid4(),
+            slug=f"lmf-{uuid.uuid4().hex[:8]}",
+            title="LMF Export Fail",
+            matter_type="employment_tribunal",
+            status=STATUS_OPEN,
+            privilege_posture=PRIVILEGE_CLEARED,
+            default_model_id="claude-opus-4-7",
+            created_by_id=user.id,
+        )
+        session.add(matter)
+        await session.flush()
+        job_id = uuid.uuid4()
+        export_key = await build_matter_export(session, matter, job_id)  # real storage
+        session.add(
+            Job(
+                id=job_id,
+                matter_id=matter.id,
+                created_by_id=user.id,
+                kind=JOB_KIND_EXPORT,
+                status=JOB_STATUS_SUCCEEDED,
+                input_payload={},
+                result_payload={"export_key": export_key},
+            )
+        )
+        await session.commit()
+        slug = matter.slug
+        matter_id = matter.id
+
+    # Now make presigned-URL generation fail for the download call.
+    class _BadStorage:
+        def presigned_get_url(self, key, ttl=3600):
+            raise RuntimeError("boom")
+
+    import app.core.storage as storage_mod
+
+    monkeypatch.setattr(storage_mod, "get_storage_backend", lambda: _BadStorage())
+    resp = await client.get(f"/api/matters/{slug}/export/{job_id}")
+    assert resp.status_code == 500
+    # NO downloaded audit row was written.
+    async with app.state.session_factory() as session:
+        row = await session.scalar(
+            select(AuditEntry).where(
+                AuditEntry.action == "matter.export.downloaded",
+                AuditEntry.matter_id == matter_id,
+            )
+        )
+        assert row is None

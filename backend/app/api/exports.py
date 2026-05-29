@@ -230,17 +230,20 @@ async def download_export(
         )
 
     # LMF-4: "who downloaded the export bundle" is part of the governance
-    # story. Audit on the existing audit source (no new source).
-    await audit.log(
-        session,
-        "matter.export.downloaded",
-        actor_id=user.id,
-        matter_id=matter.id,
-        resource_type="matter",
-        resource_id=str(matter.id),
-        payload={"export_job_id": str(export_job_id), "export_key": export_key},
-    )
-    await session.commit()
+    # story (existing audit source, no new source). Emitted only AFTER the
+    # bytes / presigned URL are successfully produced — a storage/presign
+    # failure must NOT leave a false "downloaded" row (reviewer redline).
+    async def _audit_downloaded() -> None:
+        await audit.log(
+            session,
+            "matter.export.downloaded",
+            actor_id=user.id,
+            matter_id=matter.id,
+            resource_type="matter",
+            resource_id=str(matter.id),
+            payload={"export_job_id": str(export_job_id), "export_key": export_key},
+        )
+        await session.commit()
 
     from app.core.storage import get_storage_backend, LocalStorageBackend
 
@@ -252,6 +255,7 @@ async def download_export(
             data = storage.get_bytes(export_key)
         except KeyError:
             raise HTTPException(404, "export file not found in storage")
+        await _audit_downloaded()  # bytes confirmed present
         filename = f"matter-{matter.slug}-export.zip"
         return Response(
             content=data,
@@ -267,5 +271,6 @@ async def download_export(
             url = storage.presigned_get_url(export_key, ttl=3600)
         except Exception as exc:
             raise HTTPException(500, f"could not generate presigned URL: {exc}") from exc
+        await _audit_downloaded()  # presigned URL successfully generated
         from fastapi.responses import RedirectResponse
         return RedirectResponse(url=url, status_code=302)
