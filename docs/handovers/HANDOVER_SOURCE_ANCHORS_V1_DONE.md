@@ -78,6 +78,22 @@ no new audit source** (anchors live in the artifact payload).
 - Contract Review still emits plain `citation` strings — structured anchors
   for it are a later pass; v1 does not fake them.
 
+## Reviewer redlines applied
+- **P1 — extracted-body integrity (fixed).** `_load_documents` was selecting
+  `DocumentBody` by `document_id` only. A document can have multiple body
+  rows (`extracted` / `redacted` / `summary`), and the anchor must hash and
+  cite the **extracted** row — otherwise quote checks and `body_sha256` could
+  silently reference a redacted/derivative copy. Fixed: filter
+  `DocumentBody.kind == BODY_KIND_EXTRACTED`. Regression
+  (`test_prompt_runtime_extracted_body.py`) seeds extracted + redacted body
+  rows and proves `body_text` / `body_sha256` come from extracted, and that
+  a quote present only in the redacted text is correctly `quote_found_in_source: false`.
+- **P2 (non-blocking, filed) — fenced/prose JSON block.** `_parse_model_output`
+  only extracts a pure-JSON response. A model returning prose-with-a-fenced-JSON-block
+  currently falls back to plain text, so claim mapping is rarer than the plan
+  envisaged. Not a merge blocker (server-known document anchors still work),
+  filed as a follow-up to extract the first fenced ```json``` block when present.
+
 ## For reviewer
 Diff-review `source-anchors-v1`. Merge call yours. No schema change. The
 highest-leverage thing to sanity-check is SA-2's `_build_source_anchors` —

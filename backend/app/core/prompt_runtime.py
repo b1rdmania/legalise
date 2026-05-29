@@ -41,6 +41,7 @@ from app.core.advice_boundary import (
     check as advice_boundary_check,
 )
 from app.core.source_anchors import build_document_anchor
+from app.models.document_body import BODY_KIND_EXTRACTED
 from app.core.advice_boundary.tiers import ADVICE_TIER_DRAFT_ADVICE
 from app.core.audit_cost import audit_emit_model_invoked
 from app.core.capabilities import require_capability
@@ -99,8 +100,16 @@ async def _load_documents(
             raise ValueError(
                 f"document {doc_id} not found in matter {matter.id}"
             )
+        # Source-anchor integrity (Source Anchors v1 redline P1): a document
+        # may have multiple body rows (extracted / redacted / summary). The
+        # anchor must hash and cite the EXTRACTED body, not whichever row
+        # SQL returns first; otherwise quote checks and body_sha256 could
+        # silently reference a redacted or derivative copy.
         body = await session.scalar(
-            select(DocumentBody).where(DocumentBody.document_id == doc_id)
+            select(DocumentBody).where(
+                DocumentBody.document_id == doc_id,
+                DocumentBody.kind == BODY_KIND_EXTRACTED,
+            )
         )
         docs.append(
             {
