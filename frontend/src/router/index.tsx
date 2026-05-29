@@ -29,6 +29,7 @@ import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { ReconstructionView } from "../matter/ReconstructionView";
 import { DocumentDetail } from "../matter/DocumentDetail";
+import { MatterLifecycle } from "../matter/MatterLifecycle";
 import { AdminUsersList } from "../admin/AdminUsersList";
 import { AdminUserDetail } from "../admin/AdminUserDetail";
 import { AdminAuditView } from "../admin/AdminAuditView";
@@ -328,6 +329,15 @@ const matterDocumentDetailRoute = createRoute({
   },
 });
 
+const matterLifecycleRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/matters/$slug/lifecycle",
+  component: () => {
+    const { slug } = matterLifecycleRoute.useParams();
+    return <MatterLifecycle slug={slug} />;
+  },
+});
+
 const adminUsersRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/admin/users",
@@ -395,6 +405,7 @@ const routeTree = rootRoute.addChildren([
     matterArtifactsRoute,
     matterArtifactDetailRoute,
     matterDocumentDetailRoute,
+    matterLifecycleRoute,
     adminUsersRoute,
     adminUserDetailRoute,
     adminAuditRoute,

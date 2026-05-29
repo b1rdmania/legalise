@@ -1581,6 +1581,57 @@ export const documentOriginalUrl = (
     opts?.download ? "?download=1" : ""
   }`;
 
+// ---------------------------------------------------------------------------
+// Matter lifecycle + export (LMF UX v1) — over the stable LMF endpoints
+// ---------------------------------------------------------------------------
+
+export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+export interface JobRead {
+  id: string;
+  matter_id: string;
+  kind: string;
+  status: JobStatus;
+  stage: string | null;
+  progress: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  result_payload: Record<string, unknown> | null;
+}
+
+export const createMatterExport = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/export`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<JobRead>(r));
+
+export const getJob = (slug: string, jobId: string) =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(jobId)}`,
+  ).then((r) => jsonOrThrow<JobRead>(r));
+
+// Browser-navigable download URL for a completed export (302 presigned
+// on S3, or a streamed attachment locally — the browser handles it).
+export const matterExportDownloadUrl = (slug: string, jobId: string): string =>
+  `${API}/matters/${encodeURIComponent(slug)}/export/${encodeURIComponent(jobId)}`;
+
+export const closeMatter = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/close`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<Matter>(r));
+
+export const deleteMatter = async (slug: string): Promise<void> => {
+  const res = await apiFetch(`${API}/matters/${encodeURIComponent(slug)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+};
+
 export const postEditInstruction = (
   documentId: string,
   instruction: string,
