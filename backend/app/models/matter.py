@@ -62,5 +62,17 @@ class Matter(Base):
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
+    @property
+    def required_provider(self) -> str | None:
+        """The keyed provider this matter's default model needs, or None
+        for keyless models (stub-echo / ollama). Single source of truth:
+        the same ``provider_for_model`` the runtime gateway uses, so the
+        frontend reads this instead of re-deriving model families and the
+        two can't drift. Deferred import avoids the model_gateway↔models
+        import cycle."""
+        from app.core.model_gateway import provider_for_model
+
+        return provider_for_model(self.default_model_id)
+
     def __repr__(self) -> str:
         return f"<Matter {self.slug} [{self.status}]>"

@@ -558,11 +558,17 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
       installed_by_user_id: null,
     }]);
 
-    render(<GrantsPanel slug="khan" defaultModelId="claude-opus-4-7" />);
+    render(
+      <GrantsPanel
+        slug="khan"
+        defaultModelId="claude-opus-4-7"
+        requiredProvider="anthropic"
+      />,
+    );
     const run = await screen.findByTestId("run-contract-review-review");
 
     expect(run).toBeDisabled();
-    expect(screen.getByText(/anthropic key needed/i)).toBeInTheDocument();
+    expect(screen.getByText(/requires anthropic key/i)).toBeInTheDocument();
     expect(screen.getByText(/configure provider keys/i)).toBeInTheDocument();
   });
 
@@ -604,11 +610,13 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
       installed_by_user_id: null,
     }]);
 
-    render(<GrantsPanel slug="khan" defaultModelId="stub-echo" />);
+    render(
+      <GrantsPanel slug="khan" defaultModelId="stub-echo" requiredProvider={null} />,
+    );
     const run = await screen.findByTestId("run-contract-review-review");
 
     expect(run).not.toBeDisabled();
-    expect(screen.getByText(/ready: keyless\/local model/i)).toBeInTheDocument();
+    expect(screen.getByText(/keyless demo model/i)).toBeInTheDocument();
   });
 
   it("does NOT show Run when the module is installed but disabled", async () => {

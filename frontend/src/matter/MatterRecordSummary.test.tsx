@@ -18,6 +18,7 @@ const MATTER: Matter = {
   pivot_fact: null,
   privilege_posture: "B_mixed",
   default_model_id: "stub-echo",
+  required_provider: null,
   facts: {},
   opened_at: "2026-05-20T12:00:00",
   closed_at: null,

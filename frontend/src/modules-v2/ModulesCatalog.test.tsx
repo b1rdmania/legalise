@@ -23,7 +23,13 @@ function refModule(over: Partial<V2ManifestEntry> = {}): V2ManifestEntry {
     manifest: {
       name: "Contract Review",
       publisher: "legalise",
-      capabilities: [{ id: "review" }],
+      capabilities: [
+        {
+          id: "review",
+          reads: ["document.body.read"],
+          writes: ["matter.artifact.write"],
+        },
+      ],
     },
     is_valid: true,
     validation_errors: [],
@@ -112,7 +118,53 @@ describe("ModulesCatalog — integrations home", () => {
     expect(
       screen.getByTestId("module-state-examples.contract-review"),
     ).toHaveTextContent(/installed/i);
+    expect(screen.getByText("document.body.read")).toBeInTheDocument();
+    expect(screen.getByText("matter.artifact.write")).toBeInTheDocument();
     expect(screen.getByText("Create module")).toBeInTheDocument();
+  });
+
+  it("filters reference modules by search and workspace state", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [
+        refModule(),
+        refModule({
+          module_id: "examples.pre-motion",
+          manifest: {
+            name: "Pre-Motion",
+            publisher: "legalise",
+            capabilities: [{ id: "analyse", reads: ["document.body.read"], writes: [] }],
+          },
+        }),
+      ],
+      ui_slots: [],
+    });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+      {
+        module_id: "examples.contract-review",
+        version: "0.2.1",
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      },
+    ]);
+
+    mountAt();
+    await waitFor(() => expect(screen.getByText("Contract Review")).toBeInTheDocument());
+    expect(screen.getByText("Pre-Motion")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Filter module state"), {
+      target: { value: "installed" },
+    });
+    expect(screen.getByText("Contract Review")).toBeInTheDocument();
+    expect(screen.queryByText("Pre-Motion")).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Search modules"), {
+      target: { value: "pre" },
+    });
+    expect(screen.getByText(/No modules match/)).toBeInTheDocument();
   });
 
   it("keeps the public skill library secondary + collapsed until expanded", async () => {

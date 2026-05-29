@@ -145,6 +145,10 @@ class MatterRead(BaseModel):
     pivot_fact: str | None
     privilege_posture: str
     default_model_id: str
+    # Keyed provider the default model needs ("anthropic"/"openai"), or
+    # null for keyless models. Frontend reads this for run-readiness
+    # instead of re-deriving model families.
+    required_provider: str | None
     facts: dict
     opened_at: datetime
     closed_at: datetime | None
