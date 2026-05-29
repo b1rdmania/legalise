@@ -116,6 +116,13 @@ def _build_readme(
         "present, `signoff_hash_matches` (false means the output drifted "
         "after it was signed).",
         "",
+        "## Source anchors",
+        "Some outputs include `source_anchors` in their artefact JSON. These "
+        "are the documents (and any quoted excerpts) the output cited, for "
+        "review — not proof that the cited material supports the output. A "
+        "`quote_found_in_source: false` flag means Legalise could not locate "
+        "the quoted text in the source body it holds.",
+        "",
         "## Limitations",
         "- This is an application-level export, not a certified legal record.",
         "- Original files / artefacts that predate object storage (or whose object is missing) are listed in metadata but their bytes are not included.",

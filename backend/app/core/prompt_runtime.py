@@ -29,6 +29,7 @@ The executor mirrors the canonical invocation order in
 
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Any
 
@@ -39,6 +40,7 @@ from app.core.advice_boundary import (
     AdviceBoundaryDenied,
     check as advice_boundary_check,
 )
+from app.core.source_anchors import build_document_anchor
 from app.core.advice_boundary.tiers import ADVICE_TIER_DRAFT_ADVICE
 from app.core.audit_cost import audit_emit_model_invoked
 from app.core.capabilities import require_capability
@@ -78,14 +80,16 @@ def _coerce_document_ids(args: dict[str, Any]) -> list[uuid.UUID]:
 
 async def _load_documents(
     session: AsyncSession, matter: Matter, document_ids: list[uuid.UUID]
-) -> list[tuple[str, str]]:
-    """Load (filename, extracted_text) for matter-scoped documents.
+) -> list[dict[str, Any]]:
+    """Load matter-scoped documents as structured context blocks, each with
+    a stable handle (``D1``, ``D2``, …) the prompt can cite and the runtime
+    can map back to a server-known source anchor.
 
     A document id that doesn't belong to this matter is rejected — the
     matter scope is enforced here as well as by the grant.
     """
-    blocks: list[tuple[str, str]] = []
-    for doc_id in document_ids:
+    docs: list[dict[str, Any]] = []
+    for idx, doc_id in enumerate(document_ids, start=1):
         document = await session.scalar(
             select(Document).where(
                 Document.id == doc_id, Document.matter_id == matter.id
@@ -98,9 +102,16 @@ async def _load_documents(
         body = await session.scalar(
             select(DocumentBody).where(DocumentBody.document_id == doc_id)
         )
-        text = body.extracted_text if body is not None else ""
-        blocks.append((document.filename, text))
-    return blocks
+        docs.append(
+            {
+                "handle": f"D{idx}",
+                "document_id": str(document.id),
+                "filename": document.filename,
+                "sha256": document.sha256,
+                "body_text": body.extracted_text if body is not None else "",
+            }
+        )
+    return docs
 
 
 def _build_prompt(
@@ -108,7 +119,7 @@ def _build_prompt(
     module_id: str,
     capability_id: str,
     references: list[dict[str, Any]],
-    document_blocks: list[tuple[str, str]],
+    document_blocks: list[dict[str, Any]],
     args: dict[str, Any],
 ) -> str:
     """Assemble the user-side prompt. The skill instructions are sent as
@@ -121,15 +132,107 @@ def _build_prompt(
         if content:
             parts.append(f"\n--- reference: {path} ---\n{content}")
 
-    for filename, text in document_blocks:
-        body = text or "(no extracted text available for this document)"
-        parts.append(f"\n--- document: {filename} ---\n{body}")
+    for d in document_blocks:
+        body = d["body_text"] or "(no extracted text available for this document)"
+        parts.append(
+            f"\n--- document {d['handle']} ---\n"
+            f"id: {d['document_id']}\nfilename: {d['filename']}\n{body}"
+        )
 
     user_input = args.get("input") or args.get("question")
     if user_input:
         parts.append(f"\n--- request ---\n{user_input}")
 
+    if document_blocks:
+        # Opt-in citation format. Lenient — the runtime always records
+        # document-level anchors regardless; this only enriches with
+        # claim-level mapping when the model cooperates. Never required.
+        parts.append(
+            "\n--- citing sources (optional) ---\n"
+            "If your answer relies on the documents above, you may reply as "
+            'JSON: {"output": "<your answer>", "claims": [{"text": "<claim>", '
+            '"source_handles": ["D1"], "quote": "<verbatim excerpt>"}]}. '
+            "Otherwise reply normally."
+        )
+
     return "\n".join(parts)
+
+
+def _parse_model_output(text: str) -> tuple[str, list[dict[str, Any]]]:
+    """Lenient parse of the provider response. Returns (output_text,
+    raw_claims). If the model returned the optional JSON envelope, extract
+    its ``output`` + ``claims``; otherwise treat the whole response as the
+    answer. The answer is NEVER lost to a failed/partial envelope."""
+    stripped = (text or "").strip()
+    if stripped.startswith("{"):
+        try:
+            data = json.loads(stripped)
+        except json.JSONDecodeError:
+            return text, []
+        if isinstance(data, dict) and isinstance(data.get("output"), str):
+            claims = data.get("claims")
+            return data["output"], claims if isinstance(claims, list) else []
+    return text, []
+
+
+def _build_source_anchors(
+    document_blocks: list[dict[str, Any]],
+    model_claims: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Assemble (source_anchors, claims) for the artifact payload.
+
+    Always emits one document-level anchor per loaded document — server
+    truth, independent of the model. Model claims (if any) enrich with
+    claim→handle mapping; a model-supplied quote becomes a quote-bearing
+    anchor with the ``quote_found_in_source`` check. Unknown handles and
+    model-supplied identities are ignored — identity is server-only.
+    """
+    handle_to_doc: dict[str, dict[str, Any]] = {}
+    anchors: list[dict[str, Any]] = []
+    for d in document_blocks:
+        anchor_id = f"src_{d['handle'].lower()}"
+        handle_to_doc[d["handle"]] = {**d, "_anchor_id": anchor_id}
+        anchors.append(
+            build_document_anchor(
+                anchor_id=anchor_id,
+                document_id=d["document_id"],
+                filename=d["filename"],
+                sha256=d["sha256"],
+                body_text=d["body_text"],
+            )
+        )
+
+    claims: list[dict[str, Any]] = []
+    quote_n = 0
+    for idx, raw in enumerate(model_claims, start=1):
+        if not isinstance(raw, dict):
+            continue
+        ctext = str(raw.get("text", "")).strip()
+        if not ctext:
+            continue
+        handles = [
+            h for h in (raw.get("source_handles") or []) if h in handle_to_doc
+        ]
+        anchor_ids = [handle_to_doc[h]["_anchor_id"] for h in handles]
+        quote = raw.get("quote")
+        if quote and handles:
+            quote_n += 1
+            d0 = handle_to_doc[handles[0]]
+            q_anchor_id = f"src_q{quote_n}"
+            anchors.append(
+                build_document_anchor(
+                    anchor_id=q_anchor_id,
+                    document_id=d0["document_id"],
+                    filename=d0["filename"],
+                    sha256=d0["sha256"],
+                    body_text=d0["body_text"],
+                    quote=str(quote),
+                )
+            )
+            anchor_ids.append(q_anchor_id)
+        claims.append({"id": f"claim_{idx}", "text": ctext, "anchor_ids": anchor_ids})
+
+    return anchors, claims
 
 
 async def run_prompt_capability(
@@ -193,7 +296,7 @@ async def run_prompt_capability(
     #    declares a read. Enforce every declared read grant BEFORE the
     #    read. matter_id scoping rejects cross-matter grants.
     document_ids = _coerce_document_ids(args)
-    document_blocks: list[tuple[str, str]] = []
+    document_blocks: list[dict[str, Any]] = []
     if document_ids:
         if not reads:
             raise ValueError(
@@ -253,6 +356,15 @@ async def run_prompt_capability(
     )
     response = await provider_call(prompt, system=instructions)
 
+    # Source anchors: always emit document-level anchors for the documents
+    # that were in context (server truth); enrich with claim-level mapping
+    # if the model returned the optional JSON envelope. The answer text is
+    # taken from the envelope's `output` when present, else the raw text.
+    output_text, model_claims = _parse_model_output(response.text)
+    source_anchors, anchored_claims = _build_source_anchors(
+        document_blocks, model_claims
+    )
+
     # 5. Model-invocation audit (cost shape).
     await audit_emit_model_invoked(
         session,
@@ -289,9 +401,12 @@ async def run_prompt_capability(
         invocation_id=invocation_id,
         kind=ARTIFACT_KIND,
         payload={
-            "output": response.text,
+            "output": output_text,
             "model_id": response.model_id,
             "input": args.get("input") or args.get("question"),
+            # Additive — old payloads simply lack these keys.
+            **({"source_anchors": source_anchors} if source_anchors else {}),
+            **({"claims": anchored_claims} if anchored_claims else {}),
         },
         actor_user_id=actor_user_id,
     )
@@ -316,7 +431,8 @@ async def run_prompt_capability(
         "artifact_id": str(artifact.id),
         "artifact_kind": ARTIFACT_KIND,
         "model_id": response.model_id,
-        "output_chars": len(response.text),
+        "output_chars": len(output_text),
+        "source_anchor_count": len(source_anchors),
     }
 
 
