@@ -45,6 +45,24 @@ async def _register_and_login(client) -> str:
     return email
 
 
+async def _login(client, email: str) -> None:
+    await client.post(
+        "/auth/login",
+        data={"username": email, "password": "professional-signoff-2026"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+
+
+async def _promote_superuser(email: str) -> None:
+    from app.main import app
+
+    factory = app.state.session_factory
+    async with factory() as session:
+        u = await session.scalar(select(User).where(User.email == email))
+        u.is_superuser = True
+        await session.commit()
+
+
 async def _seed_matter_with_artifact(owner_email: str, *, kind: str = "skill_response"):
     from app.main import app
 
@@ -218,3 +236,20 @@ async def test_signoff_emits_output_signed_audit(client) -> None:
             .all()
         )
     assert "output.signed" in actions
+
+
+@pytest.mark.asyncio
+async def test_non_owner_superuser_cannot_sign_someone_elses_output(client) -> None:
+    # Professional sign-off is personal ownership, not an admin override.
+    # Even a workspace superuser must not sign another user's matter output.
+    owner = await _register_and_login(client)
+    slug, artifact_id = await _seed_matter_with_artifact(owner)
+    superuser = await _register_and_login(client)
+    await _promote_superuser(superuser)
+    await _login(client, superuser)
+
+    resp = await client.post(
+        f"/api/matters/{slug}/signoffs",
+        json={"artifact_id": artifact_id, "decision": "signed"},
+    )
+    assert resp.status_code == 404

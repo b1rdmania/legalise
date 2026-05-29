@@ -33,8 +33,10 @@ from supervisor review (which stays the firm-mode path under Approvals).
   - `list_signoffs` + `current_signoff_ids` (latest-per-artifact).
 - `app/api/signoffs.py` — `POST /api/matters/{slug}/signoffs`,
   `GET …/signoffs` (each row flagged `is_current`), **`GET …/signoffs/{id}`**
-  (stable confirmation/deep-link reload). Same owner-or-superuser matter
-  predicate as reviews. `signer_email` returned for the copy.
+  (stable confirmation/deep-link reload). Owner-only matter predicate:
+  there is no workspace-admin/superuser signing shortcut, because
+  sign-off is personal professional ownership. `signer_email` returned
+  for the copy.
 
 ## Frontend
 - **Hero screen** `/matters/{slug}/artifacts/{id}/sign` (`SignOff.tsx`):
@@ -72,10 +74,11 @@ from supervisor review (which stays the firm-mode path under Approvals).
   prior rows are never mutated. The `output.*` audit rows are the trail.
 
 ## Tests
-- `backend/tests/test_signoff_api.py` (6): author signs own output;
+- `backend/tests/test_signoff_api.py` (7): author signs own output;
   reasoning required for observations/rejected; invalid decision → 422;
   append-only history marks only latest current + `GET /{id}` reload;
-  hash pins canonical payload; `output.signed` audit emitted.
+  hash pins canonical payload; `output.signed` audit emitted; non-owner
+  superuser gets 404 and cannot sign someone else's output.
 - Frontend `SignOff.test.tsx` (2): affirmation gates submit + posts +
   navigates; observations requires reasoning. `ArtifactDetail.test.tsx`
   (+2): unsigned shows Draft + Review&sign CTA; current sign-off shows

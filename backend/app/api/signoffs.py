@@ -9,11 +9,10 @@ Three endpoints under ``/api/matters/{slug}/signoffs``:
 - ``GET /{id}``   — one sign-off (for the confirmation / deep-link page,
                     so a reload is stable).
 
-Same strict matter-access predicate as grants/reviews/audit: matter owner
-OR workspace superuser; uniform 404 otherwise. Every signed-in user can
-sign as themselves — no qualified-solicitor role gate (Professional
-Sign-Off v1 ratified: presume professional accountability; firm-mode role
-gating stays dormant).
+Owner-only matter access. Every signed-in user can sign their own matter
+outputs as themselves — no qualified-solicitor role gate and no
+workspace-admin/superuser signing shortcut. Professional Sign-Off v1 is
+personal ownership, not an admin override surface.
 """
 
 from __future__ import annotations
@@ -75,8 +74,6 @@ async def _load_matter_or_404(
     matter = await session.scalar(
         select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
     )
-    if matter is None and user.is_superuser:
-        matter = await session.scalar(select(Matter).where(Matter.slug == slug))
     if matter is None or matter.status == STATUS_ARCHIVED:
         raise HTTPException(status_code=404, detail=f"matter not found: {slug}")
     return matter
