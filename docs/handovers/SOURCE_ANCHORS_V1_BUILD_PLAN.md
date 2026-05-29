@@ -26,6 +26,7 @@ The current substrate supports the phase, but anchors do not exist yet:
 - `backend/app/core/signoff.py` hashes canonical JSON `{artifact_id, kind, payload}`. If anchors live in the artifact payload before sign-off, the signature pins them automatically.
 - `backend/app/core/exports.py` already exports artifact JSON, signoffs, and hash-match status. Anchors inside payloads flow into exports without a new table.
 - `docs/architecture/MATTER_CONTEXT_STORE.md` already names source-backed items as a substrate principle, but the matter context store is not the thing to build here.
+- The runtime can honestly verify one narrow thing today: whether an anchor quote appears in the extracted document text it already loaded. That is not legal verification, but it is a real guard against fabricated quote text.
 
 Conclusion: Source Anchors v1 is a payload contract + prompt-runtime + rendering + sign-off integration. It does not need a migration unless the build uncovers a hard reason.
 
@@ -95,8 +96,10 @@ Recommended shape:
       "document_id": "uuid",
       "filename": "khan-dismissal-letter.pdf",
       "sha256": "optional-document-sha",
+      "body_sha256": "sha-of-extracted-text-read-by-runtime",
       "label": "Document · khan-dismissal-letter.pdf",
       "quote": "Acme dismissed Ms Khan on 12 March 2026...",
+      "quote_found_in_source": true,
       "page": null
     }
   ]
@@ -107,7 +110,10 @@ Rules:
 
 - `source_type` v1 supports `document` only.
 - `label` is human-facing and must not be a raw UUID.
+- Document identity is server-authoritative. The model may refer to a handle such as `D1`; only the server fills `document_id`, `filename`, `sha256`, and `body_sha256` from the documents actually loaded for the invocation. A model-supplied document id is ignored.
+- `sha256` identifies the uploaded/original document row when present. `body_sha256` pins the extracted text body the runtime actually read, so a later body/version drift can be detected.
 - `quote` is helpful but optional. If present, display it as a cited excerpt, not as verified proof.
+- `quote_found_in_source` is the one factual check v1 performs: normalised substring match against the extracted document text the runtime loaded. `false` means "the quoted text was not located in the source body Legalise holds", not "the legal claim is false."
 - `claims` are optional. If absent but `source_anchors` exist, render a source list for the whole output.
 - Old payloads with no anchors render "No sources cited for this output."
 
@@ -128,8 +134,10 @@ Responsibilities:
 
 Tests:
 
-- document anchor serialises with id, label, document_id, filename.
+- document anchor serialises with id, label, document_id, filename, and body hash.
 - unsupported source type fails closed.
+- quote-in-source normalisation marks an exact or whitespace-normalised quote as found.
+- fabricated quote text marks `quote_found_in_source: false`.
 - empty anchors remain valid; absence is not an error.
 
 ### SA-2 — Prompt Runtime Document Handles
@@ -141,6 +149,8 @@ Current problem: `_load_documents()` returns only `(filename, text)`. The model 
 Change:
 
 - Return document context blocks with `document_id`, `filename`, `sha256`, and extracted text.
+- Compute `body_sha256` over the extracted text the runtime actually reads.
+- Always emit document-level `source_anchors` for every document loaded into context. This is server truth and does not depend on the model returning structured JSON.
 - Build prompt sections with stable handles:
 
 ```text
@@ -160,14 +170,20 @@ sha256: <sha>
 }
 ```
 
-- Parse leniently. If the model returns plain text, keep today's behaviour and set no anchors.
-- Map known source handles (`D1`) back to document anchors. Ignore unknown handles and record them as uncited/invalid in payload metadata if useful.
+- Parse leniently. If the model returns plain text, keep today's answer behaviour and set no model-derived claim mappings; the server-known document anchors still remain.
+- Map known source handles (`D1`) back to the server-built document anchors. Ignore unknown handles and record them as uncited/invalid in payload metadata if useful.
+- If the model supplies quote text for a handle, run the quote-in-source check against the extracted text for that handle and stamp `quote_found_in_source`.
+- If the model returns malformed JSON, prose with a JSON block, or partial JSON, preserve the best answer text. Do not lose the answer just because the structured envelope failed.
 
 Important: do not fail the invocation just because the model did not return anchors. This phase improves reviewability; it must not make normal prompt modules brittle.
 
 Tests:
 
-- prompt invocation with a document can produce a `skill_response` payload containing `source_anchors`.
+- prompt invocation with a document always produces a `skill_response` payload containing document-level `source_anchors`, even when the provider returns plain text.
+- stub/keyless provider output still shows source anchors for documents that were loaded.
+- model claim handles enrich the baseline anchors rather than creating document identity.
+- quote text that exists in the extracted body marks `quote_found_in_source: true`.
+- quote text that does not exist in the extracted body marks `quote_found_in_source: false`.
 - unknown source handle does not crash or create a fake anchor.
 - plain-text provider response still writes a valid `skill_response`.
 - normal audit chain still emits `module.capability.invoked`, `model.invoked`, `module.capability.completed`.
@@ -181,6 +197,7 @@ Add a reusable rendering block:
 - source coverage summary: `3 claims · 2 cited · 1 uncited`.
 - source chips: `Document · khan-dismissal-letter.pdf`.
 - optional quote preview.
+- quote status when available: "quote located" / "quote not found in source".
 - explicit uncited state.
 
 The source chip should link to the document detail route when `matterSlug` is available:
@@ -200,6 +217,8 @@ Pass that prop from `ArtifactDetail` and `SignOff`. Where no slug is available, 
 Tests:
 
 - `skill_response` with anchors renders source chips.
+- document-level anchors render even when there are no claim mappings.
+- `quote_found_in_source: false` renders a caution, not a verification failure.
 - `skill_response` with claims but no anchors renders uncited state.
 - old `skill_response` payload renders "No sources cited for this output."
 - chip href points to the document detail route when slug is supplied.
@@ -213,6 +232,7 @@ Add a quiet source-coverage section near the affirmation:
 - cited/uncited counts.
 - "Sources cited for review; Legalise does not certify they prove the claim."
 - warning copy when zero sources are cited.
+- warning copy when any cited quote was not found in the extracted source body.
 
 Do not disable signing when sources are absent. The solicitor can still reject, sign with observations, or sign after independent review. A hard block would be dishonest for legacy artifacts and non-document outputs.
 
@@ -283,6 +303,9 @@ Avoid:
 Source Anchors v1 is done when:
 
 - A prompt-runtime module run against a matter document can produce a `skill_response` artifact with document source anchors.
+- Document-source anchors are emitted from server-known loaded documents even when the model returns plain text.
+- Model claim mappings can enrich anchors, but cannot assert document identity.
+- Quote-in-source checks flag whether model-supplied quote text was located in the extracted document body.
 - The artifact detail page shows source chips and uncited states.
 - The sign-off page shows source coverage and keeps the professional-ownership boundary.
 - Signing an anchored artifact pins the anchors in the existing output hash.
@@ -312,4 +335,3 @@ Source Anchors v1 is done when:
 - SA-4 sign-off integration with focused tests.
 - SA-5/SA-6 preservation checks and handover.
 - Full backend/frontend gates at close-out; e2e only if route/link behaviour changes enough to justify it.
-
