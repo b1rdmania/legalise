@@ -216,6 +216,21 @@ function AuthedHome() {
       <p className="text-[11px] uppercase tracking-widest text-muted">Workspace</p>
       <h1 className="mt-2 text-2xl font-bold tracking-tight2">Dashboard</h1>
 
+      {/* Guided demo: see the governed loop run end-to-end with no key. */}
+      <Link
+        to="/demo-loop"
+        className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink bg-ink px-4 py-3 text-paper hover:opacity-90"
+        data-testid="try-governed-loop"
+      >
+        <span>
+          <span className="text-sm font-medium">Try the governed loop</span>
+          <span className="mt-0.5 block text-xs opacity-80">
+            Run a skill → artifact → review → audit trail. No provider key needed.
+          </span>
+        </span>
+        <span aria-hidden="true" className="text-sm">→</span>
+      </Link>
+
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Recent matters */}
         <section>

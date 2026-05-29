@@ -30,6 +30,7 @@ from app.api.reviews import router as reviews_router
 from app.api.invocations import router as invocations_router
 from app.api.modules import router as modules_router
 from app.api.lawve_import import router as lawve_import_router
+from app.api.demo import router as demo_router
 from app.api.system import router as system_router
 from app.api.settings import router as settings_router
 from app.api.submissions import router as submissions_router
@@ -351,6 +352,8 @@ app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 # no install). Nested under /api/modules so it sits with the module
 # surfaces; registered after the broad modules router.
 app.include_router(lawve_import_router, prefix="/api/modules", tags=["lawve-import"])
+# Guided Demo Loop v1 — keyless end-to-end proof (own prefix, self-registered).
+app.include_router(demo_router)
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
 
 # Phase 1 substrate primitives.

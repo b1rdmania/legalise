@@ -25,6 +25,7 @@ import { ModulesCatalog } from "../modules-v2/ModulesCatalog";
 import { ModuleDetail } from "../modules-v2/ModuleDetail";
 import { CreateModule } from "../modules-v2/CreateModule";
 import { LawveImport } from "../modules-v2/LawveImport";
+import { DemoLoop } from "../demo/DemoLoop";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
@@ -274,6 +275,12 @@ const lawveImportRoute = createRoute({
   component: LawveImport,
 });
 
+const demoLoopRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/demo-loop",
+  component: DemoLoop,
+});
+
 const moduleDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/modules/$moduleId",
@@ -407,6 +414,7 @@ const routeTree = rootRoute.addChildren([
     settingsPreferencesRoute,
     createModuleRoute,
     lawveImportRoute,
+    demoLoopRoute,
     moduleDetailRoute,
     moduleInstallRoute,
     matterAuditRoute,

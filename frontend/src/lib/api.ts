@@ -734,6 +734,25 @@ export const invokeCapability = async (
 };
 
 // Phase 13b A — matter artifacts
+// ---------------------------------------------------------------------------
+// Guided Demo Loop v1 — keyless end-to-end proof
+// ---------------------------------------------------------------------------
+
+export interface GuidedDemoHandles {
+  matter_slug: string;
+  matter_title: string;
+  module_id: string;
+  capability_id: string;
+  document_id: string;
+  document_filename: string;
+  model_id: string;
+}
+
+export const ensureGuidedLoop = () =>
+  apiFetch(`${API}/demo/guided-loop`, { method: "POST" }).then((r) =>
+    jsonOrThrow<GuidedDemoHandles>(r),
+  );
+
 export interface ArtifactSummary {
   id: string;
   matter_id: string;

@@ -32,6 +32,7 @@ export type Route =
   | { name: "submitModule" }
   | { name: "createModule" }
   | { name: "lawveImport" }
+  | { name: "demoLoop" }
   | { name: "demo"; tab?: string }
   | { name: "list" }
   | { name: "new" }
@@ -76,6 +77,7 @@ export function routeFromPath(pathname: string, search: string): Route {
   if (path === "/modules/create") return { name: "createModule" };
   if (path === "/modules/lawve") return { name: "lawveImport" };
 
+  if (path === "/demo-loop") return { name: "demoLoop" };
   if (path === "/demo") return { name: "demo" };
   const demoMatch = path.match(/^\/demo\/(.+)$/);
   if (demoMatch) return { name: "demo", tab: demoMatch[1] };
