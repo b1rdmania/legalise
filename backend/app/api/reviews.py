@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_artifacts import ArtifactBytesUnavailable
 from app.core.reviews import (
     InvalidReviewDecision,
     InvalidReviewTransition,
@@ -142,6 +143,11 @@ async def request_review_endpoint(
         raise HTTPException(
             status_code=409,
             detail={"error": "review_already_pending", "message": str(exc)},
+        )
+    except ArtifactBytesUnavailable as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "artifact_bytes_unavailable", "message": str(exc)},
         )
 
     await session.commit()

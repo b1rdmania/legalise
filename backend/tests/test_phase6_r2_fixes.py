@@ -154,7 +154,9 @@ async def test_duplicate_write_does_not_alter_original_file(db_session) -> None:
     original_id = artifact1.id
     await db_session.commit()
 
-    original_bytes = Path(original_path).read_bytes()
+    from app.core.storage import get_storage_backend
+    storage = get_storage_backend()
+    original_bytes = storage.get_bytes(original_path)
 
     # Second write: same (invocation_id, kind), different payload.
     duplicate = {"findings": [{"clause": "tampered", "severity": "high"}]}
@@ -172,9 +174,10 @@ async def test_duplicate_write_does_not_alter_original_file(db_session) -> None:
         await db_session.commit()
     await db_session.rollback()
 
-    # Original file UNTOUCHED.
-    assert Path(original_path).exists()
-    assert Path(original_path).read_bytes() == original_bytes
+    # Original object UNTOUCHED (LMF-1: artifacts in object storage;
+    # artifact_key is keyed per artifact_id so the duplicate write never
+    # overwrites the original object before the DB UNIQUE rejects it).
+    assert storage.get_bytes(original_path) == original_bytes
     # And only one row exists.
     rows = (
         await db_session.scalars(

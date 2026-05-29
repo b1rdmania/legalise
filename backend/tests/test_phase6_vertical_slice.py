@@ -315,10 +315,10 @@ async def test_contract_review_vertical_slice(client, stub_model_gateway) -> Non
         )
         assert artifact is not None
         assert artifact.size_bytes > 0
-        on_disk = Path(artifact.storage_path)
-        assert on_disk.exists(), f"artifact file missing at {on_disk}"
-        # File parses as the expected shape.
-        parsed = json.loads(on_disk.read_text())
+        # LMF-1: artifacts live in object storage; storage_path is a key.
+        from app.core.storage import get_storage_backend
+        raw = get_storage_backend().get_bytes(artifact.storage_path)
+        parsed = json.loads(raw.decode("utf-8"))
         assert isinstance(parsed["findings"], list)
         assert len(parsed["findings"]) == 2
         assert parsed["findings"][0]["clause_id"] == "5.2"

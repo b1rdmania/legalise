@@ -339,10 +339,12 @@ async def test_pre_motion_vertical_slice(client, stub_model_gateway_pre_motion) 
         assert len(artifacts) == 2
         kinds = {a.kind for a in artifacts}
         assert kinds == {"motion_draft", "evidence_list"}
+        from app.core.storage import get_storage_backend
         for a in artifacts:
-            on_disk = Path(a.storage_path)
-            assert on_disk.exists()
-            parsed = json.loads(on_disk.read_text())
+            # LMF-1: artifacts in object storage; storage_path is a key.
+            parsed = json.loads(
+                get_storage_backend().get_bytes(a.storage_path).decode("utf-8")
+            )
             if a.kind == "motion_draft":
                 assert parsed["claim_type"] == "unfair_dismissal"
                 assert parsed["markdown"].startswith("# Pre-motion")

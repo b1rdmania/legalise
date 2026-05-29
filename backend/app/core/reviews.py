@@ -21,12 +21,12 @@ from __future__ import annotations
 import hashlib
 import uuid
 from datetime import datetime, UTC
-from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit
+from app.core.matter_artifacts import ArtifactBytesUnavailable, load_artifact_bytes
 from app.models import (
     MatterArtifact,
     MatterReview,
@@ -99,12 +99,14 @@ class NoteRequired(ReviewError):
 
 
 def compute_artifact_hash(storage_path: str) -> str:
-    """sha256 (hex) of the artifact payload bytes on disk.
+    """sha256 (hex) of the artifact payload bytes.
 
     Pins exactly what the reviewer decided on; approval would otherwise
-    drift if the underlying output were rewritten.
+    drift if the underlying output were rewritten. Reads via the
+    object-storage loader (LMF-1); raises ``ArtifactBytesUnavailable``
+    for legacy local-fs / missing-object artifacts.
     """
-    return hashlib.sha256(Path(storage_path).read_bytes()).hexdigest()
+    return hashlib.sha256(load_artifact_bytes(storage_path)).hexdigest()
 
 
 async def request_review(

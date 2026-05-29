@@ -73,11 +73,12 @@ async def test_write_artifact_creates_file_and_row(db_session) -> None:
     assert artifact.kind == "findings_pack"
     assert artifact.invocation_id == invocation_id
 
-    # File on disk + parses as expected.
-    from pathlib import Path
-    on_disk = Path(artifact.storage_path)
-    assert on_disk.exists()
-    assert json.loads(on_disk.read_text()) == payload
+    # Object in storage + parses as expected (LMF-1: artifacts are in
+    # object storage; storage_path is now an S3 key, not an fs path).
+    from app.core.storage import get_storage_backend
+    assert not artifact.storage_path.startswith("/")  # a key, not a path
+    data = get_storage_backend().get_bytes(artifact.storage_path)
+    assert json.loads(data.decode("utf-8")) == payload
 
 
 @pytest.mark.asyncio

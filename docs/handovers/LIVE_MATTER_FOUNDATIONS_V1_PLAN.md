@@ -1,8 +1,14 @@
 # Live-Matter Foundations v1 — Build Plan
 
-**Status:** plan for Reviewer redline (plan-first by request — touches storage/jobs/export/delete/audit). Decisions locked below; **no code yet.**
+**Status:** RATIFIED 2026-05-29 — build LMF-1 → LMF-4 in order.
 **Branch:** `phase-17-crm-pass`
 **Date:** 2026-05-29
+
+## Ratified answers (Andy)
+- **Q1 — forward-only artifact → S3 cutover. No backfill** (WORM + Fly ephemeral fs make backfill a risk multiplier). New artifacts → object storage; old local-fs-path rows are left as-is. **Requirement:** where an old local artifact path exists and its bytes are gone, surface **"legacy artifact unavailable"** cleanly in API + export — never crash.
+- **Q2 — split Archive/Close from Delete.** Add a non-destructive Archive/Close (keeps audit **and** storage). Keep the existing destructive `DELETE` exactly as-is — **do not weaken its fail-closed storage-cleanup gate**.
+- **Q3 — audit action `matter.export.downloaded`** (new action on the existing audit source; no new source).
+- Sequence LMF-1 → LMF-4.
 
 ## Headline: most of this already exists
 

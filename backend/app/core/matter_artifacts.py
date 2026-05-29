@@ -25,68 +25,62 @@ participates in the same transaction as the work that produced it.
 from __future__ import annotations
 
 import json
-import os
 import uuid
 from datetime import datetime, UTC
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.matter_fs import matter_dir
+from app.core.storage import artifact_key, get_storage_backend
 from app.models import Matter, MatterArtifact
 
 
-def _artifact_path(
-    matter: Matter,
-    *,
-    capability_id: str,
-    artifact_id: uuid.UUID,
-    kind: str,
-) -> Path:
-    """Compute the deterministic on-disk path for an artifact.
+class ArtifactBytesUnavailable(Exception):
+    """The artifact's bytes can't be retrieved.
 
-    Reviewer Phase 6 R2 P1 #1: previously the path was derived from
-    ``(invocation_id, kind)``. That made the path collide for any
-    duplicate write — the file got overwritten BEFORE the DB
-    UNIQUE(invocation_id, kind) rejected the row. The WORM row
-    survived intact, but the file it pointed at had different bytes.
-
-    Fix: path keyed by ``artifact_id`` (the new row's uuid4). Two
-    writes for the same (invocation_id, kind) get two distinct
-    paths; the first file is preserved; the second insert fails the
-    UNIQUE constraint and the second file becomes an orphan that a
-    periodic Phase 7+ sweep can clean up.
+    Two cases, both surfaced cleanly (never crash) per the forward-only
+    object-storage cutover (LMF-1):
+    - **legacy**: the row predates object storage — ``storage_path`` is
+      an absolute local filesystem path (Fly fs is ephemeral, so the
+      bytes are gone). No backfill was done.
+    - **missing**: a new S3-keyed object is absent (integrity issue).
     """
-    base = matter_dir(matter.slug, matter.created_by_id)
-    # Sanitise capability_id so filesystem traversal is impossible.
-    safe_cap = capability_id.replace("/", "_").replace("..", "_")
-    artifact_root = base / "artifacts" / safe_cap
-    artifact_root.mkdir(parents=True, exist_ok=True)
-    safe_kind = kind.replace("/", "_").replace("..", "_")
-    return artifact_root / f"{artifact_id}_{safe_kind}.json"
 
 
-def _atomic_write_json(target: Path, payload: dict[str, Any]) -> int:
-    """Write JSON to target atomically. Returns size in bytes."""
-    tmp = target.with_suffix(target.suffix + ".tmp")
-    content = json.dumps(
+def _is_legacy_path(storage_path: str) -> bool:
+    # New artifacts store an object-storage KEY (``users/...``); legacy
+    # rows stored an absolute local fs path (``/data/matters/...``).
+    return storage_path.startswith("/")
+
+
+def _serialise(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
         payload, indent=2, sort_keys=True, ensure_ascii=False
     ).encode("utf-8")
-    # Write + fsync the file.
-    with tmp.open("wb") as fh:
-        fh.write(content)
-        fh.flush()
-        os.fsync(fh.fileno())
-    # Atomic rename.
-    os.replace(tmp, target)
-    # fsync the parent directory so the rename itself is durable.
-    parent_fd = os.open(str(target.parent), os.O_RDONLY)
+
+
+def load_artifact_bytes(storage_path: str) -> bytes:
+    """Load an artifact's bytes from object storage.
+
+    Raises ``ArtifactBytesUnavailable`` for legacy local-fs rows (no
+    backfill) and for new keys whose object is missing — callers surface
+    "artifact bytes unavailable" cleanly rather than crashing.
+    """
+    if _is_legacy_path(storage_path):
+        raise ArtifactBytesUnavailable(f"legacy local-fs artifact: {storage_path}")
     try:
-        os.fsync(parent_fd)
-    finally:
-        os.close(parent_fd)
-    return len(content)
+        return get_storage_backend().get_bytes(storage_path)
+    except KeyError as exc:
+        raise ArtifactBytesUnavailable(
+            f"artifact object missing: {storage_path}"
+        ) from exc
+
+
+def load_artifact_payload(storage_path: str) -> dict[str, Any]:
+    """Load + JSON-parse an artifact payload. Raises
+    ``ArtifactBytesUnavailable`` (legacy/missing) or ``ValueError`` on
+    corrupt JSON."""
+    return json.loads(load_artifact_bytes(storage_path).decode("utf-8"))
 
 
 async def write_artifact(
@@ -100,28 +94,29 @@ async def write_artifact(
     payload: dict[str, Any],
     actor_user_id: uuid.UUID,
 ) -> MatterArtifact:
-    """Write an artifact to the matter store + insert the DB row.
+    """Write an artifact to OBJECT STORAGE + insert the DB row.
 
-    Returns the freshly-added ``MatterArtifact`` (with id populated
-    after ``session.flush()`` so the caller can reference it
-    immediately without committing).
+    Forward-only object-storage cutover (LMF-1): bytes go to S3/MinIO
+    under ``artifact_key(...)`` (which lives beneath ``matter_prefix`` so
+    the existing matter-delete ``delete_prefix`` sweep cleans artifacts
+    too), and ``storage_path`` now holds the object KEY, not a local
+    path. Legacy rows keep their old absolute fs paths and read back as
+    ``ArtifactBytesUnavailable``.
 
-    Raises:
-    - ``OSError`` from the filesystem write
-    - ``IntegrityError`` from a duplicate (invocation_id, kind) — the
-      same invocation cannot write the same kind twice. Re-invocation
-      requires a new invocation_id.
+    The WORM row is still the authoritative existence check; the id is
+    generated first so the key is unique per row (Phase 6 R2 P1 #1).
+    The helper does NOT commit — caller commits.
     """
-    # Generate the row id FIRST so the on-disk path is unique per
-    # row, not per (invocation_id, kind) (Reviewer R2 P1 #1).
     artifact_id = uuid.uuid4()
-    target = _artifact_path(
-        matter,
-        capability_id=capability_id,
-        artifact_id=artifact_id,
-        kind=kind,
+    key = artifact_key(
+        matter.created_by_id,
+        matter.id,
+        artifact_id,
+        capability_id,
+        kind,
     )
-    size_bytes = _atomic_write_json(target, payload)
+    content = _serialise(payload)
+    get_storage_backend().put_bytes(key, content, content_type="application/json")
     row = MatterArtifact(
         id=artifact_id,
         matter_id=matter.id,
@@ -129,14 +124,19 @@ async def write_artifact(
         capability_id=capability_id,
         invocation_id=invocation_id,
         kind=kind,
-        storage_path=str(target),
+        storage_path=key,
         created_by_id=actor_user_id,
         created_at=datetime.now(UTC),
-        size_bytes=size_bytes,
+        size_bytes=len(content),
     )
     session.add(row)
     await session.flush()
     return row
 
 
-__all__ = ["write_artifact"]
+__all__ = [
+    "write_artifact",
+    "load_artifact_bytes",
+    "load_artifact_payload",
+    "ArtifactBytesUnavailable",
+]

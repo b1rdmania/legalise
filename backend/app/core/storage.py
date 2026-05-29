@@ -114,6 +114,29 @@ def generated_key(
     return f"users/{user_id}/matters/{matter_id}/generated/{document_id}/{safe}"
 
 
+def artifact_key(
+    user_id: uuid.UUID,
+    matter_id: uuid.UUID,
+    artifact_id: uuid.UUID,
+    capability_id: str,
+    kind: str,
+) -> str:
+    """Canonical object-storage key for a matter artifact.
+
+    Key: ``users/{user_id}/matters/{matter_id}/artifacts/{capability}/{artifact_id}_{kind}.json``
+
+    Lives under ``matter_prefix(user_id, matter_id)`` so the existing
+    ``delete_prefix`` matter-cleanup sweeps artifacts too. ``capability``
+    + ``kind`` are sanitised so they cannot inject path separators.
+    """
+    safe_cap = _sanitise_filename(capability_id)
+    safe_kind = _sanitise_filename(kind)
+    return (
+        f"users/{user_id}/matters/{matter_id}/artifacts/"
+        f"{safe_cap}/{artifact_id}_{safe_kind}.json"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Protocol
 # ---------------------------------------------------------------------------

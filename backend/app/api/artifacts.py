@@ -21,9 +21,7 @@ non-owner so the endpoint never leaks which matters exist.
 
 from __future__ import annotations
 
-import json
 import uuid
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -33,6 +31,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
+from app.core.matter_artifacts import (
+    ArtifactBytesUnavailable,
+    load_artifact_payload,
+)
 from app.models import Matter, MatterArtifact, User
 from app.models.matter import STATUS_ARCHIVED
 
@@ -151,29 +153,30 @@ async def read_artifact_endpoint(
             status_code=404, detail=f"artifact not found: {artifact_id}"
         )
 
-    storage_path = Path(row.storage_path)
-    if not storage_path.exists():
+    try:
+        payload = load_artifact_payload(row.storage_path)
+    except ArtifactBytesUnavailable:
+        # Forward-only object-storage cutover: a legacy local-fs artifact
+        # (or a missing object) is surfaced cleanly as Gone, not a crash.
         raise HTTPException(
-            status_code=500,
+            status_code=410,
             detail={
-                "error": "artifact_file_missing",
+                "error": "legacy_artifact_unavailable",
                 "artifact_id": str(row.id),
-                "storage_path": str(storage_path),
                 "message": (
-                    "Artifact row exists but its on-disk file is missing. "
-                    "Filesystem integrity issue — check the matter store."
+                    "This artifact predates object storage (or its object "
+                    "is missing) and is no longer retrievable. Its metadata "
+                    "and audit trail remain."
                 ),
             },
         )
-    try:
-        payload = json.loads(storage_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+    except ValueError as exc:
         raise HTTPException(
             status_code=500,
             detail={
                 "error": "artifact_file_corrupt",
                 "artifact_id": str(row.id),
-                "message": f"file did not parse as JSON: {exc}",
+                "message": f"artifact did not parse as JSON: {exc}",
             },
         ) from exc
 

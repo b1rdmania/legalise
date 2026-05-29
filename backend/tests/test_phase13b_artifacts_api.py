@@ -266,7 +266,7 @@ async def test_artifact_from_other_matter_returns_404(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_storage_file_missing_returns_500(client) -> None:
+async def test_storage_object_missing_returns_410(client) -> None:
     email = await _register_and_login(client)
 
     from app.main import app
@@ -281,13 +281,15 @@ async def test_storage_file_missing_returns_500(client) -> None:
         artifact_id = artifact.id
         storage_path = artifact.storage_path
 
-    # Delete the file on disk.
-    Path(storage_path).unlink()
+    # Delete the object in storage (LMF-1: artifacts live in object
+    # storage; a missing object surfaces cleanly as 410, not a crash).
+    from app.core.storage import get_storage_backend
+    get_storage_backend().delete_object(storage_path)
 
     resp = await client.get(f"/api/matters/{slug}/artifacts/{artifact_id}")
-    assert resp.status_code == 500
+    assert resp.status_code == 410
     detail = resp.json()["detail"]
-    assert detail["error"] == "artifact_file_missing"
+    assert detail["error"] == "legacy_artifact_unavailable"
     assert detail["artifact_id"] == str(artifact_id)
 
 

@@ -120,8 +120,12 @@ async def test_request_review_creates_pending_and_hashes(db_session) -> None:
 
     assert review.state == REVIEW_PENDING
     assert review.kind == "findings_pack"
-    # Hash pins the on-disk payload.
-    expected = hashlib.sha256(Path(artifact.storage_path).read_bytes()).hexdigest()
+    # Hash pins the artifact payload bytes (now in object storage, LMF-1).
+    from app.core.storage import get_storage_backend
+
+    expected = hashlib.sha256(
+        get_storage_backend().get_bytes(artifact.storage_path)
+    ).hexdigest()
     assert review.artifact_hash == expected
     assert "review.requested" in await _audit_actions(db_session, matter.id)
 
