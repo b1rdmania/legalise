@@ -7,7 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -72,11 +72,11 @@ describe("ArtifactDetail", () => {
 
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText("motion_draft")).toBeInTheDocument();
+      expect(screen.getByText("Draft motion")).toBeInTheDocument();
     });
     expect(screen.getByTestId("motion-draft-view")).toBeInTheDocument();
     // Audit deep-link carries invocation_id.
-    const link = screen.getByRole("link", { name: /see audit trail/i });
+    const link = screen.getByRole("link", { name: /see activity/i });
     expect(link.getAttribute("href")).toBe(
       "/matters/khan/audit?invocation_id=inv-7777",
     );
@@ -158,7 +158,7 @@ describe("ArtifactDetail", () => {
     await waitFor(() => {
       expect(screen.getByTestId("skill-response-view")).toBeInTheDocument();
     });
-    expect(screen.getByText(/Supervisor review/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Optional separate review/i));
     expect(
       screen.getByRole("button", { name: /request review/i }),
     ).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe("ArtifactDetail", () => {
 
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText("experimental_kind")).toBeInTheDocument();
+      expect(screen.getByText("experimental kind")).toBeInTheDocument();
     });
     expect(screen.getByTestId("json-fallback")).toBeInTheDocument();
   });
@@ -189,7 +189,7 @@ describe("ArtifactDetail", () => {
     vi.spyOn(api, "readArtifact").mockRejectedValue(new Error("404 not found"));
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText(/Artifact not found/i)).toBeInTheDocument();
+      expect(screen.getByText(/Output not found/i)).toBeInTheDocument();
     });
   });
 });

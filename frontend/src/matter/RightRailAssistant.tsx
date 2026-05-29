@@ -215,12 +215,6 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
             >
               + Documents
             </button>
-            <span
-              className="font-mono text-[10px] text-muted truncate"
-              title="Model picker stub. Not wired in v0.1."
-            >
-              Claude Sonnet 4.6 v
-            </span>
           </div>
           <button
             type="button"
@@ -236,7 +230,7 @@ export function RightRailAssistant({ matter, collapsed, onToggleCollapsed, onOpe
           onClick={onOpenFull}
           className="mt-2 block font-mono text-[11px] text-muted hover:text-ink transition-colors"
         >
-          Open full Assistant
+          Open Matter desk
         </button>
       </div>
       )}

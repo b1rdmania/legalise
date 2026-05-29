@@ -57,6 +57,10 @@ export function Drawer({
       label: t.label,
       active: activeKey === t.key,
     }));
+    primary.push(
+      { href: `/matters/${matter.slug}/artifacts`, label: "Outputs" },
+      { href: `/matters/${matter.slug}/lifecycle`, label: "Export" },
+    );
     secondary = [
       { href: "/modules", label: "Modules" },
       { href: "/settings/profile", label: "Settings" },

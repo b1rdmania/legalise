@@ -1,8 +1,11 @@
-// Matter shell taxonomy (v0.4 — compact left rail).
+// Matter shell taxonomy (v1 — compressed matter rail).
 //
-// SIDEBAR_NAV is the 5-item nav that renders in the left rail.
+// SIDEBAR_NAV is the core nav that renders in the matter rail.
+// Secondary/legacy surfaces (chronology, approvals, individual
+// workflow pages) remain routable for deep links but do not compete
+// with the main documents → actions → trail loop.
 // WORKFLOW_TABS are the installed-module surfaces reached from the
-// Workflows page; they keep their hash routes for deep-linking but
+// Actions page; they keep their hash routes for deep-linking but
 // do not surface as their own sidebar items.
 //
 // "overview" is retired in v0.4. Bare /matters/{slug} redirects
@@ -26,11 +29,23 @@ export type TabKey =
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Matter desk" },
   { key: "documents", label: "Documents" },
-  { key: "audit", label: "Activity Trail" },
-  { key: "chronology", label: "Chronology" },
   { key: "workflows", label: "Actions" },
-  { key: "approvals", label: "Approvals" },
+  { key: "audit", label: "Activity Trail" },
 ];
+
+export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
+  assistant: "Matter desk",
+  documents: "Documents",
+  chronology: "Chronology",
+  workflows: "Actions",
+  audit: "Activity Trail",
+  approvals: "Approvals",
+  premotion: "Pre-Motion",
+  letters: "Letters",
+  "contract-review": "Contract review",
+  reviews: "Tabular Review",
+  research: "Case law",
+};
 
 // Frontend workflow taxonomy. Used by TopBar + MatterBreadcrumb to
 // resolve a workflow tab key to its human label and to test "is this

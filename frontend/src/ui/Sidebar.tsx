@@ -219,13 +219,13 @@ export function Sidebar({
               ))}
               <NavLink
                 href={`/matters/${matterSlug}/artifacts`}
-                label="Artifacts"
+                label="Outputs"
                 active={onMatterArtifacts}
                 indent
               />
               <NavLink
                 href={`/matters/${matterSlug}/lifecycle`}
-                label="Lifecycle"
+                label="Export"
                 active={onMatterLifecycle}
                 indent
               />

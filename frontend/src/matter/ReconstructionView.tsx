@@ -253,7 +253,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
       <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
       <p className="mt-3 text-sm text-muted">
         The main record of what happened on this matter: documents
-        touched, actions run, models called, outputs written, human
+        referenced, actions run, models called, outputs written, human
         reviews, and blocked attempts. Raw substrate rows stay
         expandable; the first view is the story.
       </p>

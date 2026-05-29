@@ -59,9 +59,9 @@ export function MatterLifecycle({ slug }: { slug: string }) {
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Matter"
-        title="Lifecycle"
+        title="Export matter"
         subId={matter.slug}
-        description="Export this matter, close it, or delete it. Every action is recorded on the audit trail."
+        description="Download the governed matter record, then close or delete only if needed. Export is the normal final step."
       >
         <p className="mt-3 text-xs text-muted">
           Status: <span className="text-ink">{matter.status}</span>
@@ -142,7 +142,7 @@ function ExportPanel({ slug }: { slug: string }) {
 
   return (
     <section className="mt-8 border border-rule p-5">
-      <h2 className="text-sm uppercase tracking-widest text-muted">Export</h2>
+      <h2 className="text-sm uppercase tracking-widest text-muted">Export record</h2>
       <div className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
         <div>
           <p className="uppercase tracking-widest text-muted">Includes</p>
@@ -213,7 +213,7 @@ function ExportPanel({ slug }: { slug: string }) {
         href={`/matters/${encodeURIComponent(slug)}/audit?action=module.export.job.completed`}
         className="mt-3 inline-block text-xs text-muted underline underline-offset-4 hover:text-ink"
       >
-        View export activity in the audit trail
+        View export activity in the Activity Trail
       </a>
     </section>
   );
@@ -250,7 +250,7 @@ function ClosePanel({
 
   return (
     <section className="mt-8 border border-rule p-5">
-      <h2 className="text-sm uppercase tracking-widest text-muted">Close</h2>
+      <h2 className="text-sm uppercase tracking-widest text-muted">Close matter</h2>
       <p className="mt-2 text-sm text-muted">
         Closing marks the matter inactive but is <span className="text-ink">non-destructive</span> —
         documents, artefacts, exports, and the audit trail are all retained,

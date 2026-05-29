@@ -8,14 +8,12 @@
 // MatterNav slide-out sheet (P19 mobile variant).
 
 import type { Matter } from "../lib/api";
-import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "./tabs/types";
+import { MATTER_TAB_LABELS, WORKFLOW_TABS, type TabKey } from "./tabs/types";
 
 function labelFor(tab: TabKey): string {
-  const sidebar = SIDEBAR_NAV.find((t) => t.key === tab);
-  if (sidebar) return sidebar.label;
   const workflow = WORKFLOW_TABS.find((t) => t.key === tab);
   if (workflow) return workflow.label;
-  return "";
+  return MATTER_TAB_LABELS[tab] ?? "";
 }
 
 export function MatterBreadcrumb({

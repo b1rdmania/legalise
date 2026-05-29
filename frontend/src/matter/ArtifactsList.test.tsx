@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe("ArtifactsList", () => {
-  it("renders rows with kind / module / capability / Open link", async () => {
+  it("renders rows with output / producer / Open link", async () => {
     vi.spyOn(api, "listArtifacts").mockResolvedValue([
       {
         id: "art-1",
@@ -63,8 +63,9 @@ describe("ArtifactsList", () => {
 
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText("motion_draft")).toBeInTheDocument();
+      expect(screen.getByText("Draft motion")).toBeInTheDocument();
     });
+    expect(screen.getByText("motion_draft")).toBeInTheDocument();
     expect(screen.getByText("pre-motion")).toBeInTheDocument();
     expect(screen.getByText("generate")).toBeInTheDocument();
     const link = screen.getByRole("link", { name: /open/i });
@@ -127,7 +128,7 @@ describe("ArtifactsList", () => {
     vi.spyOn(api, "listArtifacts").mockResolvedValue([]);
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText(/No artifacts yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/No outputs yet/i)).toBeInTheDocument();
     });
   });
 
@@ -135,7 +136,7 @@ describe("ArtifactsList", () => {
     vi.spyOn(api, "listArtifacts").mockRejectedValue(new Error("boom"));
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText(/Could not load artifacts/i)).toBeInTheDocument();
+      expect(screen.getByText(/Could not load outputs/i)).toBeInTheDocument();
     });
   });
 });

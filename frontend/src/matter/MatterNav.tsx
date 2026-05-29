@@ -1,8 +1,9 @@
 // MatterNav - compact 220px left rail for the matter workspace (v0.4).
 // Replaces the v0.3.1 horizontal MatterTabBar + MatterHeader strip.
 // Pattern reference: Mike, Claude.ai, Sana AI, Mistral, Fibery.
-// 5 primitives (Assistant / Documents / Chronology / Workflows / Audit);
-// installed legal modules nest behind Workflows.
+// Core primitives (Matter desk / Documents / Actions / Activity Trail);
+// secondary review/chronology surfaces stay routable without dominating
+// the first-run matter experience.
 //
 // Mobile: at < md the static rail is hidden. When `mobileOpen` is true
 // the same content renders as a left-anchored 280px sheet with a

@@ -33,6 +33,21 @@ type Query =
   | { status: "ready"; artifact: ArtifactRead }
   | { status: "error"; message: string };
 
+function outputLabel(kind: string): string {
+  switch (kind) {
+    case "findings_pack":
+      return "Findings pack";
+    case "motion_draft":
+      return "Draft motion";
+    case "evidence_list":
+      return "Evidence list";
+    case "skill_response":
+      return "Skill response";
+    default:
+      return kind.replace(/_/g, " ");
+  }
+}
+
 export function ArtifactDetail({
   slug,
   artifactId,
@@ -80,7 +95,7 @@ export function ArtifactDetail({
   if (q.status === "error") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-bold tracking-tight2">Artifact not found</h1>
+        <h1 className="text-xl font-bold tracking-tight2">Output not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
         <p className="mt-4 text-sm">
           <Link
@@ -88,7 +103,7 @@ export function ArtifactDetail({
             params={{ slug }}
             className="underline underline-offset-4 hover:text-ink"
           >
-            ← All artifacts
+            ← All outputs
           </Link>
         </p>
       </div>
@@ -100,25 +115,12 @@ export function ArtifactDetail({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="Artifact" title={a.kind} subId={a.id} />
-
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        <DT label="Module">
-          <code className="font-mono text-xs">{a.module_id}</code>
-        </DT>
-        <DT label="Capability">
-          <code className="font-mono text-xs">{a.capability_id}</code>
-        </DT>
-        <DT label="Invocation">
-          <code className="font-mono text-xs">{a.invocation_id}</code>
-        </DT>
-        <DT label="Size">
-          <span>{a.size_bytes.toLocaleString()} bytes</span>
-        </DT>
-        <DT label="Created">
-          <span>{a.created_at.replace("T", " ").slice(0, 19)}</span>
-        </DT>
-      </dl>
+      <PageHeader
+        eyebrow="Output"
+        title={outputLabel(a.kind)}
+        subId={a.id}
+        description="Review the output, check its sources, and sign it when you are ready to take professional ownership."
+      />
 
       {/* Sign-off status + the hero action. Author sign-off (distinct from
           supervisor review): the solicitor takes ownership of this output. */}
@@ -169,58 +171,86 @@ export function ArtifactDetail({
 
       <section className="mt-8">
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          Payload
+          Output
         </h2>
         <ArtifactPreview payload={a.payload} kindHint={a.kind} matterSlug={slug} />
       </section>
 
       {REVIEW_ELIGIBLE_KINDS.includes(a.kind) && (
-        <section className="mt-8 border border-rule p-4">
-          <h2 className="text-sm uppercase tracking-widest text-muted">
-            Supervisor review
-          </h2>
-          {review.kind === "ok" ? (
-            <p className="mt-2 text-sm text-muted">
-              Sent for review.{" "}
-              <Link
-                to="/matters/$slug/$tab"
-                params={{ slug, tab: "approvals" }}
-                className="underline underline-offset-4 hover:text-ink"
-              >
-                Open Approvals
-              </Link>{" "}
-              to record a decision.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-sm text-muted">
-                Send this output for human review. A reviewer (not its
-                author) records a decision; the audit trail reconstructs the
-                chain.
+        <details className="mt-8 border border-rule p-4">
+          <summary className="cursor-pointer text-sm uppercase tracking-widest text-muted">
+            Optional separate review
+          </summary>
+          <div className="mt-3">
+            {review.kind === "ok" ? (
+              <p className="text-sm text-muted">
+                Sent for review.{" "}
+                <Link
+                  to="/matters/$slug/$tab"
+                  params={{ slug, tab: "approvals" }}
+                  className="underline underline-offset-4 hover:text-ink"
+                >
+                  Open Approvals
+                </Link>{" "}
+                to record a second-person decision.
               </p>
-              <button
-                type="button"
-                onClick={async () => {
-                  setReview({ kind: "busy" });
-                  try {
-                    await requestReview(slug, a.id);
-                    setReview({ kind: "ok" });
-                  } catch (err) {
-                    setReview({ kind: "err", msg: String(err) });
-                  }
-                }}
-                disabled={review.kind === "busy"}
-                className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
-              >
-                {review.kind === "busy" ? "Requesting…" : "Request review"}
-              </button>
-              {review.kind === "err" && (
-                <p className="mt-2 text-sm text-seal">{review.msg}</p>
-              )}
-            </>
-          )}
-        </section>
+            ) : (
+              <>
+                <p className="text-sm text-muted">
+                  Use this when a separate reviewer should record a decision.
+                  Your own professional sign-off remains the main route for
+                  taking ownership of this output.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setReview({ kind: "busy" });
+                    try {
+                      await requestReview(slug, a.id);
+                      setReview({ kind: "ok" });
+                    } catch (err) {
+                      setReview({ kind: "err", msg: String(err) });
+                    }
+                  }}
+                  disabled={review.kind === "busy"}
+                  className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+                >
+                  {review.kind === "busy" ? "Requesting…" : "Request review"}
+                </button>
+                {review.kind === "err" && (
+                  <p className="mt-2 text-sm text-seal">{review.msg}</p>
+                )}
+              </>
+            )}
+          </div>
+        </details>
       )}
+
+      <details className="mt-8 border border-line bg-paper-sunken p-4">
+        <summary className="cursor-pointer text-sm uppercase tracking-widest text-muted">
+          Technical record
+        </summary>
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <DT label="Kind">
+            <code className="font-mono text-xs">{a.kind}</code>
+          </DT>
+          <DT label="Module">
+            <code className="font-mono text-xs">{a.module_id}</code>
+          </DT>
+          <DT label="Capability">
+            <code className="font-mono text-xs">{a.capability_id}</code>
+          </DT>
+          <DT label="Invocation">
+            <code className="font-mono text-xs">{a.invocation_id}</code>
+          </DT>
+          <DT label="Size">
+            <span>{a.size_bytes.toLocaleString()} bytes</span>
+          </DT>
+          <DT label="Created">
+            <span>{a.created_at.replace("T", " ").slice(0, 19)}</span>
+          </DT>
+        </dl>
+      </details>
 
       <section className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <Link
@@ -228,13 +258,13 @@ export function ArtifactDetail({
           params={{ slug }}
           className="text-muted underline underline-offset-4 hover:text-ink"
         >
-          ← All artifacts
+          ← All outputs
         </Link>
         <a
           href={auditHref}
           className="text-muted underline underline-offset-4 hover:text-ink"
         >
-          See audit trail for this invocation
+          See activity for this output
         </a>
       </section>
     </div>

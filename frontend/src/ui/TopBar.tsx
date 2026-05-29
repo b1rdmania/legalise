@@ -3,7 +3,7 @@ import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
 import { BrandMark } from "./BrandMark";
-import { SIDEBAR_NAV, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
+import { MATTER_TAB_LABELS, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
 
 const DEMO_HREF_UNAUTHED = "/demo";
 
@@ -33,8 +33,8 @@ export function TopBar({
   const showAdminAnchor = auth.user?.is_superuser === true;
 
   const surfaceLabel =
-    SIDEBAR_NAV.find((t) => t.key === drawerTab)?.label ??
     WORKFLOW_TABS.find((t) => t.key === drawerTab)?.label ??
+    MATTER_TAB_LABELS[drawerTab] ??
     "";
 
   return (

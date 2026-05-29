@@ -28,6 +28,21 @@ type Query =
 // artifact_id -> current sign-off decision (absent = unsigned/draft).
 type SignoffMap = Map<string, string>;
 
+function outputLabel(kind: string): string {
+  switch (kind) {
+    case "findings_pack":
+      return "Findings pack";
+    case "motion_draft":
+      return "Draft motion";
+    case "evidence_list":
+      return "Evidence list";
+    case "skill_response":
+      return "Skill response";
+    default:
+      return kind.replace(/_/g, " ");
+  }
+}
+
 function SignoffBadge({ decision }: { decision: string | undefined }) {
   if (decision === "signed" || decision === "signed_with_observations") {
     return (
@@ -82,23 +97,22 @@ export function ArtifactsList({ slug }: { slug: string }) {
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Matter"
-        title="Artifacts"
+        title="Outputs"
         subId={slug}
-        description="Outputs written by capabilities invoked on this matter. Each row links to a structured payload view."
+        description="Drafts and signed material produced on this matter. Open an output to review sources, sign it, or trace how it was made."
       />
 
       {q.status === "loading" && (
-        <p className="mt-8 text-sm text-muted">Loading artifacts…</p>
+        <p className="mt-8 text-sm text-muted">Loading outputs…</p>
       )}
       {q.status === "error" && (
         <p className="mt-8 text-sm text-seal">
-          Could not load artifacts: {q.message}
+          Could not load outputs: {q.message}
         </p>
       )}
       {q.status === "ready" && q.rows.length === 0 && (
         <p className="mt-8 text-sm text-muted">
-          No artifacts yet on this matter. Run a capability to produce
-          one.
+          No outputs yet on this matter. Run an action to produce one.
         </p>
       )}
       {q.status === "ready" && q.rows.length > 0 && (
@@ -106,12 +120,9 @@ export function ArtifactsList({ slug }: { slug: string }) {
           <table className="min-w-full text-sm">
             <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
               <tr>
-                <th className="px-3 py-2 text-left">Kind</th>
+                <th className="px-3 py-2 text-left">Output</th>
                 <th className="px-3 py-2 text-left">Sign-off</th>
-                <th className="px-3 py-2 text-left">Module</th>
-                <th className="px-3 py-2 text-left">Capability</th>
-                <th className="px-3 py-2 text-left">Invocation</th>
-                <th className="px-3 py-2 text-right">Size</th>
+                <th className="px-3 py-2 text-left">Produced by</th>
                 <th className="px-3 py-2 text-left">Created</th>
                 <th className="px-3 py-2 text-right"> </th>
               </tr>
@@ -119,19 +130,20 @@ export function ArtifactsList({ slug }: { slug: string }) {
             <tbody>
               {q.rows.map((r) => (
                 <tr key={r.id} className="border-t border-line">
-                  <td className="px-3 py-2 font-mono text-xs">{r.kind}</td>
+                  <td className="px-3 py-2">
+                    <span className="font-medium">{outputLabel(r.kind)}</span>
+                    <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                      {r.kind}
+                    </span>
+                  </td>
                   <td className="px-3 py-2" data-testid={`signoff-badge-${r.id}`}>
                     <SignoffBadge decision={signoffs.get(r.id)} />
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs">{r.module_id}</td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {r.capability_id}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {r.invocation_id.slice(0, 8)}…
-                  </td>
-                  <td className="px-3 py-2 text-right text-xs text-muted">
-                    {r.size_bytes.toLocaleString()} B
+                  <td className="px-3 py-2">
+                    <span className="font-mono text-xs">{r.module_id}</span>
+                    <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                      {r.capability_id}
+                    </span>
                   </td>
                   <td className="px-3 py-2 text-xs text-muted">
                     {r.created_at.slice(0, 19).replace("T", " ")}

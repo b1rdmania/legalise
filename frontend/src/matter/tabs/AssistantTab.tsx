@@ -410,14 +410,8 @@ export function AssistantTab({
               )}
             </div>
 
-            {/* Right: model picker (stub) + Send */}
+            {/* Right: Send */}
             <div className="flex items-center gap-3">
-              <span
-                className="font-mono text-[11px] text-muted"
-                title="Model picker stub. Not wired in v0.1."
-              >
-                Claude Sonnet 4.6 v
-              </span>
               <button
                 onClick={onSend}
                 disabled={pending || !input.trim()}
