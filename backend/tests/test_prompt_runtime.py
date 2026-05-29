@@ -282,6 +282,42 @@ async def test_prompt_invocation_happy_path(client, stub_gateway) -> None:
 
 
 @pytest.mark.asyncio
+async def test_prompt_invocation_emits_document_source_anchors(client, stub_gateway) -> None:
+    # Source Anchors v1: a doc-backed run ALWAYS records document-level
+    # anchors (server truth), even on the keyless stub path that returns
+    # plain text and no model claims.
+    email = await _register_admin_solicitor(client)
+    await _install_prompt_module(client)
+    slug, _matter_id, doc_id = await _make_cleared_matter(client, email)
+    await _grant_caps(client, slug)
+
+    resp = await client.post(
+        f"/api/matters/{slug}/invocations",
+        json={
+            "module_id": MODULE_ID,
+            "capability_id": CAPABILITY_ID,
+            "args": {"document_id": str(doc_id), "input": "Summarise this."},
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    result = resp.json()["result"]
+    assert result["source_anchor_count"] >= 1
+
+    artifact = await client.get(
+        f"/api/matters/{slug}/artifacts/{result['artifact_id']}"
+    )
+    assert artifact.status_code == 200, artifact.text
+    payload = artifact.json()["payload"]
+    anchors = payload["source_anchors"]
+    assert any(
+        a["source_type"] == "document" and a["document_id"] == str(doc_id)
+        for a in anchors
+    )
+    # Stub returns plain text → no claim mapping, but anchors still present.
+    assert "claims" not in payload
+
+
+@pytest.mark.asyncio
 async def test_prompt_invocation_requires_write_grant(client, stub_gateway) -> None:
     # No grants. Invoke WITHOUT a document so the read path is skipped —
     # the executor still enforces the artifact write grant before writing.

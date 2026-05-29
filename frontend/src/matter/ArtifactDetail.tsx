@@ -171,7 +171,7 @@ export function ArtifactDetail({
         <h2 className="text-sm uppercase tracking-widest text-muted">
           Payload
         </h2>
-        <ArtifactPreview payload={a.payload} kindHint={a.kind} />
+        <ArtifactPreview payload={a.payload} kindHint={a.kind} matterSlug={slug} />
       </section>
 
       {REVIEW_ELIGIBLE_KINDS.includes(a.kind) && (

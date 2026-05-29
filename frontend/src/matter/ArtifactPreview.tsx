@@ -44,12 +44,35 @@ interface Finding {
 
 interface FindingsPackPayload {
   findings: Finding[];
+  // Conservative: rendered via the shared block ONLY if a module emits
+  // structured anchors. Plain `citation` strings are never turned into
+  // source chips (no fake anchors).
+  source_anchors?: SourceAnchor[];
+  claims?: AnchoredClaim[];
+}
+
+interface SourceAnchor {
+  id: string;
+  source_type: string;
+  document_id?: string;
+  filename?: string;
+  label?: string;
+  quote?: string | null;
+  quote_found_in_source?: boolean;
+}
+
+interface AnchoredClaim {
+  id: string;
+  text: string;
+  anchor_ids: string[];
 }
 
 interface SkillResponsePayload {
   output: string;
   model_id?: string;
   input?: string | null;
+  source_anchors?: SourceAnchor[];
+  claims?: AnchoredClaim[];
 }
 
 function looksLikeMotionDraft(p: unknown): p is MotionDraftPayload {
@@ -79,9 +102,12 @@ function looksLikeSkillResponse(p: unknown): p is SkillResponsePayload {
 export function ArtifactPreview({
   payload,
   kindHint,
+  matterSlug,
 }: {
   payload: unknown;
   kindHint: string | null;
+  // When supplied, source chips link to the document detail route.
+  matterSlug?: string;
 }) {
   // Prefer the explicit kind hint when we have one; only fall back to
   // shape detection when the kind is missing (e.g. inline invocation
@@ -102,13 +128,13 @@ export function ArtifactPreview({
     return <MotionDraftView payload={payload} />;
   }
   if (kind === "findings_pack" && looksLikeFindingsPack(payload)) {
-    return <FindingsPackView payload={payload} />;
+    return <FindingsPackView payload={payload} matterSlug={matterSlug} />;
   }
   if (kind === "evidence_list" && looksLikeEvidenceList(payload)) {
     return <EvidenceListView payload={payload} />;
   }
   if (kind === "skill_response" && looksLikeSkillResponse(payload)) {
-    return <SkillResponseView payload={payload} />;
+    return <SkillResponseView payload={payload} matterSlug={matterSlug} />;
   }
   return <JsonFallback payload={payload} />;
 }
@@ -173,13 +199,20 @@ function EvidenceListView({ payload }: { payload: EvidenceListPayload }) {
   );
 }
 
-function FindingsPackView({ payload }: { payload: FindingsPackPayload }) {
+function FindingsPackView({
+  payload,
+  matterSlug,
+}: {
+  payload: FindingsPackPayload;
+  matterSlug?: string;
+}) {
   if (payload.findings.length === 0) {
     return (
       <p className="mt-3 text-sm text-muted">No findings recorded.</p>
     );
   }
   return (
+    <>
     <div
       className="mt-3 overflow-x-auto rounded-md border border-line"
       data-testid="findings-pack-view"
@@ -211,10 +244,101 @@ function FindingsPackView({ payload }: { payload: FindingsPackPayload }) {
         </tbody>
       </table>
     </div>
+    {payload.source_anchors !== undefined && (
+      <SourceAnchorsBlock
+        anchors={payload.source_anchors ?? []}
+        claims={payload.claims}
+        matterSlug={matterSlug}
+      />
+    )}
+    </>
   );
 }
 
-function SkillResponseView({ payload }: { payload: SkillResponsePayload }) {
+// Source coverage + chips. Honest by construction: shows what was cited,
+// never claims the cited material proves anything. A quote that wasn't
+// located in the source body is flagged as a caution, not a failure.
+export function SourceAnchorsBlock({
+  anchors,
+  claims,
+  matterSlug,
+}: {
+  anchors: SourceAnchor[];
+  claims?: AnchoredClaim[];
+  matterSlug?: string;
+}) {
+  if (anchors.length === 0) {
+    return (
+      <p className="mt-3 text-xs text-muted" data-testid="no-sources">
+        No sources cited for this output.
+      </p>
+    );
+  }
+  const claimList = claims ?? [];
+  const cited = claimList.filter((c) => c.anchor_ids.length > 0).length;
+  const uncited = claimList.length - cited;
+  const docAnchors = anchors.filter((a) => !a.quote);
+  const quoteAnchors = anchors.filter((a) => a.quote);
+
+  return (
+    <div className="mt-3 rounded-md border border-line bg-paper-sunken px-3 py-2" data-testid="source-anchors">
+      <p className="text-xs uppercase tracking-widest text-muted">Sources cited</p>
+      <p className="mt-1 text-xs text-muted">
+        {claimList.length > 0
+          ? `${claimList.length} claim${claimList.length === 1 ? "" : "s"} · ${cited} cited · ${uncited} uncited`
+          : `${docAnchors.length} document${docAnchors.length === 1 ? "" : "s"} in context`}
+        . Cited for review — Legalise does not certify they prove the claim.
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {docAnchors.map((a) => {
+          const label = a.label ?? a.filename ?? a.id;
+          const chip = (
+            <span className="inline-flex items-center rounded-full border border-line bg-paper px-2 py-0.5 text-[11px]">
+              {label}
+            </span>
+          );
+          return (
+            <li key={a.id} data-testid={`source-chip-${a.id}`}>
+              {matterSlug && a.document_id ? (
+                <a
+                  href={`/matters/${encodeURIComponent(matterSlug)}/documents/${encodeURIComponent(a.document_id)}`}
+                  className="hover:text-ink"
+                >
+                  {chip}
+                </a>
+              ) : (
+                chip
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {quoteAnchors.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {quoteAnchors.map((a) => (
+            <li key={a.id} className="text-xs" data-testid={`source-quote-${a.id}`}>
+              <span className="text-muted">{a.label ?? a.filename}: </span>
+              <span className="italic">“{a.quote}”</span>{" "}
+              {a.quote_found_in_source === false ? (
+                <span className="text-seal">— quote not found in source</span>
+              ) : a.quote_found_in_source === true ? (
+                <span className="text-muted">— quote located in source</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SkillResponseView({
+  payload,
+  matterSlug,
+}: {
+  payload: SkillResponsePayload;
+  matterSlug?: string;
+}) {
   return (
     <div className="mt-3" data-testid="skill-response-view">
       {(payload.input || payload.model_id) && (
@@ -235,6 +359,13 @@ function SkillResponseView({ payload }: { payload: SkillResponsePayload }) {
       <pre className="mt-3 max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-paper px-3 py-2 text-sm">
         {payload.output || "(empty response)"}
       </pre>
+      {payload.source_anchors !== undefined && (
+        <SourceAnchorsBlock
+          anchors={payload.source_anchors ?? []}
+          claims={payload.claims}
+          matterSlug={matterSlug}
+        />
+      )}
     </div>
   );
 }

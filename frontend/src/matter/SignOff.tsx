@@ -35,6 +35,47 @@ const DECISIONS: { value: SignoffDecision; label: string; help: string }[] = [
 
 const REASONING_REQUIRED: SignoffDecision[] = ["signed_with_observations", "rejected"];
 
+// Quiet source-coverage note near the affirmation. Advisory only — never
+// blocks signing (a hard block would be false precision for legacy and
+// non-document outputs). Surfaces zero-sources and quote-not-found as
+// cautions to review before signing.
+function SignoffCoverage({ payload }: { payload: Record<string, unknown> }) {
+  const anchors = Array.isArray(payload.source_anchors)
+    ? (payload.source_anchors as Array<Record<string, unknown>>)
+    : null;
+  if (anchors === null) return null; // not a source-anchored output
+  const claims = Array.isArray(payload.claims)
+    ? (payload.claims as Array<Record<string, unknown>>)
+    : [];
+  const docs = anchors.filter((a) => !a.quote).length;
+  const cited = claims.filter(
+    (c) => Array.isArray(c.anchor_ids) && c.anchor_ids.length > 0,
+  ).length;
+  const quoteMissing = anchors.some((a) => a.quote_found_in_source === false);
+  const zero = anchors.length === 0;
+  return (
+    <div className="mt-4 rounded-md border border-line px-3 py-2 text-xs" data-testid="signoff-source-coverage">
+      <p className="font-medium text-ink">Source coverage</p>
+      {zero ? (
+        <p className="mt-1 text-seal" data-testid="signoff-no-sources">
+          No sources cited for this output. Review independently before signing.
+        </p>
+      ) : (
+        <p className="mt-1 text-muted">
+          {docs} document{docs === 1 ? "" : "s"} cited
+          {claims.length > 0 ? ` · ${cited}/${claims.length} claims cited` : ""}. Sources are
+          cited for review; Legalise does not certify they prove the claim.
+        </p>
+      )}
+      {quoteMissing && (
+        <p className="mt-1 text-seal" data-testid="signoff-quote-missing">
+          A cited quote was not found in its source document — verify before signing.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function SignOff({ slug, artifactId }: { slug: string; artifactId: string }) {
   const nav = useNavigate();
   const [artifact, setArtifact] = useState<ArtifactRead | null>(null);
@@ -110,7 +151,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
               signature attaches to.
             </p>
             <div data-testid="signoff-artifact">
-              <ArtifactPreview payload={artifact.payload} kindHint={artifact.kind} />
+              <ArtifactPreview payload={artifact.payload} kindHint={artifact.kind} matterSlug={slug} />
             </div>
           </section>
 
@@ -156,6 +197,8 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
                 data-testid="signoff-reasoning"
               />
             </div>
+
+            <SignoffCoverage payload={artifact.payload} />
 
             <label className="mt-4 flex items-start gap-2 text-sm">
               <input

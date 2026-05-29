@@ -121,6 +121,73 @@ describe("ArtifactPreview", () => {
     expect(screen.getByTestId("skill-response-view")).toBeInTheDocument();
   });
 
+  it("renders source chips for skill_response anchors, linking to the document", () => {
+    render(
+      <ArtifactPreview
+        kindHint="skill_response"
+        matterSlug="khan"
+        payload={{
+          output: "Summary.",
+          source_anchors: [
+            {
+              id: "src_d1",
+              source_type: "document",
+              document_id: "doc-9",
+              filename: "khan-dismissal-letter.pdf",
+              label: "Document · khan-dismissal-letter.pdf",
+              quote: null,
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("source-anchors")).toBeInTheDocument();
+    const chip = screen.getByTestId("source-chip-src_d1");
+    expect(chip).toHaveTextContent(/khan-dismissal-letter\.pdf/);
+    expect(chip.querySelector("a")?.getAttribute("href")).toBe(
+      "/matters/khan/documents/doc-9",
+    );
+  });
+
+  it("flags a quote not found in source as a caution, not a verification", () => {
+    render(
+      <ArtifactPreview
+        kindHint="skill_response"
+        payload={{
+          output: "Summary.",
+          source_anchors: [
+            {
+              id: "src_q1",
+              source_type: "document",
+              document_id: "doc-9",
+              filename: "f.pdf",
+              label: "Document · f.pdf",
+              quote: "governed by New York law",
+              quote_found_in_source: false,
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText(/quote not found in source/i)).toBeInTheDocument();
+  });
+
+  it("shows 'No sources cited' for an empty anchors array", () => {
+    render(
+      <ArtifactPreview
+        kindHint="skill_response"
+        payload={{ output: "Summary.", source_anchors: [] }}
+      />,
+    );
+    expect(screen.getByTestId("no-sources")).toBeInTheDocument();
+  });
+
+  it("does not render a source block for a legacy skill_response with no anchors key", () => {
+    render(<ArtifactPreview kindHint="skill_response" payload={{ output: "old" }} />);
+    expect(screen.queryByTestId("source-anchors")).toBeNull();
+    expect(screen.queryByTestId("no-sources")).toBeNull();
+  });
+
   it("renders JSON fallback for unknown kinds", () => {
     render(
       <ArtifactPreview

@@ -88,6 +88,41 @@ describe("SignOff", () => {
     await waitFor(() => expect(screen.getByTestId("confirm-stub")).toBeInTheDocument());
   });
 
+  it("shows source coverage for an anchored output without blocking signing", async () => {
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      ...ARTIFACT,
+      payload: {
+        output: "Summary.",
+        model_id: "stub-echo",
+        source_anchors: [
+          {
+            id: "src_d1",
+            source_type: "document",
+            document_id: "doc-9",
+            filename: "f.pdf",
+            label: "Document · f.pdf",
+            quote: null,
+          },
+        ],
+      },
+    } as never);
+    mountSign();
+    await waitFor(() => expect(screen.getByTestId("signoff-source-coverage")).toBeInTheDocument());
+    expect(screen.getByTestId("signoff-source-coverage")).toHaveTextContent(/document/i);
+    // Signing is still possible (advisory, not a hard block).
+    fireEvent.click(screen.getByTestId("signoff-affirm"));
+    expect(screen.getByTestId("signoff-submit")).not.toBeDisabled();
+  });
+
+  it("warns when an anchored output cites no sources", async () => {
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      ...ARTIFACT,
+      payload: { output: "Summary.", model_id: "stub-echo", source_anchors: [] },
+    } as never);
+    mountSign();
+    await waitFor(() => expect(screen.getByTestId("signoff-no-sources")).toBeInTheDocument());
+  });
+
   it("requires reasoning for sign-with-observations", async () => {
     mountSign();
     await waitFor(() => expect(screen.getByTestId("signoff-artifact")).toBeInTheDocument());
