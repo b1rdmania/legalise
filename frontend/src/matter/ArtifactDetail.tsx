@@ -18,10 +18,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  listSignoffs,
   readArtifact,
   requestReview,
   REVIEW_ELIGIBLE_KINDS,
   type ArtifactRead,
+  type Signoff,
 } from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { DescItem as DT, PageHeader } from "../ui/primitives";
@@ -42,6 +44,8 @@ export function ArtifactDetail({
   const [review, setReview] = useState<
     { kind: "idle" } | { kind: "busy" } | { kind: "ok" } | { kind: "err"; msg: string }
   >({ kind: "idle" });
+  // Current sign-off for this artifact: undefined=loading, null=none.
+  const [signoff, setSignoff] = useState<Signoff | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +56,15 @@ export function ArtifactDetail({
       .catch((err: unknown) => {
         if (!cancelled) setQ({ status: "error", message: String(err) });
       });
+    listSignoffs(slug)
+      .then((res) => {
+        if (cancelled) return;
+        const current = res.signoffs.find(
+          (s) => s.artifact_id === artifactId && s.is_current,
+        );
+        setSignoff(current ?? null);
+      })
+      .catch(() => !cancelled && setSignoff(null));
     return () => {
       cancelled = true;
     };
@@ -106,6 +119,53 @@ export function ArtifactDetail({
           <span>{a.created_at.replace("T", " ").slice(0, 19)}</span>
         </DT>
       </dl>
+
+      {/* Sign-off status + the hero action. Author sign-off (distinct from
+          supervisor review): the solicitor takes ownership of this output. */}
+      <section className="mt-8 rounded-md border border-rule bg-paper p-4" data-testid="signoff-status">
+        <h2 className="text-sm uppercase tracking-widest text-muted">Sign-off</h2>
+        {signoff === undefined ? (
+          <p className="mt-2 text-sm text-muted">Checking sign-off status…</p>
+        ) : signoff === null ? (
+          <p className="mt-2 text-sm text-muted">
+            <span className="font-medium text-ink">Draft — prepared by AI, not yet signed.</span>{" "}
+            No one has taken professional ownership of this output yet.
+          </p>
+        ) : signoff.decision === "rejected" ? (
+          <p className="mt-2 text-sm">
+            <span className="font-medium text-seal">Rejected</span> by{" "}
+            {signoff.signer_email ?? "a user"} · {signoff.signed_at.slice(0, 10)}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm" data-testid="signoff-signed">
+            <span className="font-medium text-ink">
+              {signoff.decision === "signed_with_observations"
+                ? "Signed with observations"
+                : "Signed in Legalise"}
+            </span>{" "}
+            by {signoff.signer_email ?? "a user"} · {signoff.signed_at.slice(0, 10)}
+          </p>
+        )}
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+          <Link
+            to="/matters/$slug/artifacts/$artifactId/sign"
+            params={{ slug, artifactId }}
+            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90"
+            data-testid="signoff-cta"
+          >
+            {signoff ? "Review & sign again" : "Review & sign"}
+          </Link>
+          {signoff && (
+            <Link
+              to="/matters/$slug/signoffs/$signoffId"
+              params={{ slug, signoffId: signoff.id }}
+              className="text-muted underline underline-offset-4 hover:text-ink"
+            >
+              View sign-off record
+            </Link>
+          )}
+        </div>
+      </section>
 
       <section className="mt-8">
         <h2 className="text-sm uppercase tracking-widest text-muted">

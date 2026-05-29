@@ -830,6 +830,49 @@ export const requestReview = (slug: string, artifactId: string) =>
     body: JSON.stringify({ artifact_id: artifactId }),
   }).then((r) => jsonOrThrow<SupervisorReview>(r));
 
+// ---------------------------------------------------------------------------
+// Professional Sign-Off v1 — author sign-off over a matter artifact
+// ---------------------------------------------------------------------------
+
+export type SignoffDecision = "signed" | "signed_with_observations" | "rejected";
+
+export interface Signoff {
+  id: string;
+  matter_id: string;
+  artifact_id: string;
+  invocation_id: string;
+  module_id: string;
+  capability_id: string;
+  kind: string;
+  artifact_hash: string;
+  decision: SignoffDecision;
+  reasoning: string | null;
+  signer_id: string;
+  signer_email: string | null;
+  signed_at: string;
+  is_current: boolean;
+}
+
+export const createSignoff = (
+  slug: string,
+  body: { artifact_id: string; decision: SignoffDecision; reasoning?: string },
+) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/signoffs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => jsonOrThrow<Signoff>(r));
+
+export const listSignoffs = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/signoffs`).then((r) =>
+    jsonOrThrow<{ matter_id: string; signoffs: Signoff[] }>(r),
+  );
+
+export const getSignoff = (slug: string, signoffId: string) =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/signoffs/${encodeURIComponent(signoffId)}`,
+  ).then((r) => jsonOrThrow<Signoff>(r));
+
 export const decideReview = (
   slug: string,
   reviewId: string,

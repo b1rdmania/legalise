@@ -44,6 +44,8 @@ function mountAt() {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  // ArtifactDetail now loads sign-off status on mount; default to none.
+  vi.spyOn(api, "listSignoffs").mockResolvedValue({ matter_id: "m-1", signoffs: [] });
 });
 afterEach(() => {
   cleanup();
@@ -78,6 +80,64 @@ describe("ArtifactDetail", () => {
     expect(link.getAttribute("href")).toBe(
       "/matters/khan/audit?invocation_id=inv-7777",
     );
+  });
+
+  it("shows Draft + a Review & sign CTA when the artifact is unsigned", async () => {
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "art-1",
+      matter_id: "m-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      invocation_id: "inv-1",
+      kind: "skill_response",
+      created_by_id: "u-1",
+      created_at: "2026-05-29T12:00:00",
+      size_bytes: 100,
+      payload: { output: "Summary.", model_id: "stub-echo" },
+    });
+    mountAt();
+    await waitFor(() => expect(screen.getByTestId("signoff-status")).toBeInTheDocument());
+    expect(screen.getByText(/not yet signed/i)).toBeInTheDocument();
+    expect(screen.getByTestId("signoff-cta")).toHaveTextContent(/review & sign/i);
+  });
+
+  it("shows a signed status when the artifact has a current sign-off", async () => {
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "art-1",
+      matter_id: "m-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      invocation_id: "inv-1",
+      kind: "skill_response",
+      created_by_id: "u-1",
+      created_at: "2026-05-29T12:00:00",
+      size_bytes: 100,
+      payload: { output: "Summary.", model_id: "stub-echo" },
+    });
+    vi.spyOn(api, "listSignoffs").mockResolvedValue({
+      matter_id: "m-1",
+      signoffs: [
+        {
+          id: "so-1",
+          matter_id: "m-1",
+          artifact_id: "art-1",
+          invocation_id: "inv-1",
+          module_id: "demo.guided-skill",
+          capability_id: "summarise",
+          kind: "skill_response",
+          artifact_hash: "a".repeat(64),
+          decision: "signed",
+          reasoning: null,
+          signer_id: "u-1",
+          signer_email: "solicitor@example.com",
+          signed_at: "2026-05-29T13:00:00",
+          is_current: true,
+        },
+      ],
+    });
+    mountAt();
+    await waitFor(() => expect(screen.getByTestId("signoff-signed")).toBeInTheDocument());
+    expect(screen.getByText(/solicitor@example.com/)).toBeInTheDocument();
   });
 
   it("offers Request review for a skill_response artifact (review-eligible)", async () => {

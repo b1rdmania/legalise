@@ -14,6 +14,7 @@ import type { TimelineEntry } from "../lib/api";
 
 export type RowClass =
   | "error"
+  | "signed"
   | "review"
   | "blocked_denied"
   | "grant_role"
@@ -25,6 +26,7 @@ export type RowClass =
 // Pinned precedence (index = priority; lower wins).
 export const ROW_CLASS_ORDER: RowClass[] = [
   "error",
+  "signed",
   "review",
   "blocked_denied",
   "grant_role",
@@ -35,8 +37,10 @@ export const ROW_CLASS_ORDER: RowClass[] = [
 ];
 
 // Classes that count as "decision points" (the foreground lane).
+// Sign-off is THE decision event — promote it hard.
 const DECISION_CLASSES: ReadonlySet<RowClass> = new Set<RowClass>([
   "error",
+  "signed",
   "review",
   "blocked_denied",
   "grant_role",
@@ -61,7 +65,13 @@ export function classifyEntry(entry: TimelineEntry): RowClass {
   // 1. error — failure provenance, regardless of which subsystem.
   if (hasError(entry)) return "error";
 
-  // 2. review — the supervised-autonomy decision rows (review.rejected
+  // 2. signed — Professional Sign-Off decision rows (output.signed /
+  //    .signed_with_observations / .sign_rejected). Highest non-error
+  //    priority: the solicitor taking ownership is the matter's key event,
+  //    and output.sign_rejected must classify here, not as blocked_denied.
+  if (a.startsWith("output.")) return "signed";
+
+  // 3. review — the supervised-autonomy decision rows (review.rejected
   //    is a review, not a denial: review precedes blocked_denied).
   if (a.startsWith("review.")) return "review";
 

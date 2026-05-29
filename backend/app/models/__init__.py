@@ -122,6 +122,17 @@ from app.models.matter_review import (
     REVIEW_ELIGIBLE_KINDS,
 )
 
+# Professional Sign-Off v1 — author sign-off over a matter artifact.
+from app.models.matter_signoff import (
+    MatterSignoff,
+    SIGNOFF_SIGNED,
+    SIGNOFF_SIGNED_WITH_OBSERVATIONS,
+    SIGNOFF_REJECTED,
+    SIGNOFF_DECISIONS,
+    SIGNOFF_AFFIRMATIVE,
+    SIGNOFF_REASONING_REQUIRED,
+)
+
 __all__ = [
     "Base",
     "User",
@@ -206,6 +217,13 @@ __all__ = [
     "InstalledModule",
     "MatterArtifact",
     "MatterReview",
+    "MatterSignoff",
+    "SIGNOFF_SIGNED",
+    "SIGNOFF_SIGNED_WITH_OBSERVATIONS",
+    "SIGNOFF_REJECTED",
+    "SIGNOFF_DECISIONS",
+    "SIGNOFF_AFFIRMATIVE",
+    "SIGNOFF_REASONING_REQUIRED",
     "REVIEW_PENDING",
     "REVIEW_APPROVED",
     "REVIEW_REJECTED",
