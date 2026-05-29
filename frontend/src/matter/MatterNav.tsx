@@ -22,6 +22,7 @@ export function MatterNav({
   onPostureChange,
   mobileOpen,
   onMobileClose,
+  showPosture = true,
 }: {
   matter: Matter;
   tab: TabKey;
@@ -29,6 +30,7 @@ export function MatterNav({
   onPostureChange: (next: string) => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  showPosture?: boolean;
 }) {
   const activeKey = sidebarActiveFor(tab);
 
@@ -38,6 +40,7 @@ export function MatterNav({
       activeKey={activeKey}
       onChange={onChange}
       onPostureChange={onPostureChange}
+      showPosture={showPosture}
     />
   );
 
@@ -73,6 +76,7 @@ export function MatterNav({
                 onMobileClose?.();
               }}
               onPostureChange={onPostureChange}
+              showPosture={showPosture}
               closeButton={
                 <button
                   type="button"
@@ -98,12 +102,14 @@ function NavBody({
   activeKey,
   onChange,
   onPostureChange,
+  showPosture,
   closeButton,
 }: {
   matter: Matter;
   activeKey: TabKey | null;
   onChange: (next: TabKey) => void;
   onPostureChange: (next: string) => void;
+  showPosture: boolean;
   closeButton?: ReactNode;
 }) {
   return (
@@ -120,12 +126,14 @@ function NavBody({
         <div className="text-xs text-muted font-mono mt-1 truncate" title={matter.slug}>
           {matter.slug}
         </div>
-        <div className="mt-3 flex items-center gap-2">
-          <span className="eyebrow">Posture</span>
-          <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
-            <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
-          </span>
-        </div>
+        {showPosture && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="eyebrow">Posture</span>
+            <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
+              <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Nav list */}

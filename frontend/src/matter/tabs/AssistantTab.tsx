@@ -32,6 +32,7 @@ interface AssistantTabProps {
   disabledPlaceholder?: string;
   // Called when a Suggested Action chip is clicked in disabled (demo) mode.
   onDisabledAction?: () => void;
+  showPostureInPulse?: boolean;
 }
 
 // Three concrete first-actions per matter type. Per JOY.md "Suggested
@@ -75,6 +76,7 @@ export function AssistantTab({
   disabled = false,
   disabledPlaceholder,
   onDisabledAction,
+  showPostureInPulse = true,
 }: AssistantTabProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [messages, setMessages] = useState<AssistantMessage[]>(initialMessages ?? []);
@@ -225,7 +227,7 @@ export function AssistantTab({
   const [attachOpen, setAttachOpen] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-[920px] flex flex-col min-h-[520px]">
+    <div className="mx-auto w-full max-w-[1040px] flex flex-col min-h-[520px]">
       <div className="mb-6">
         <MatterPulse
           matter={matter}
@@ -234,11 +236,12 @@ export function AssistantTab({
           auditCount={auditCount ?? 0}
           workflowsGrantedCount={workflowsGrantedCount}
           skipFetch={disabled}
+          showPosture={showPostureInPulse}
         />
       </div>
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto pt-2 pb-6 space-y-6 max-h-[64vh]"
+        className="flex-1 overflow-y-auto pt-2 pb-6 space-y-5 max-h-[64vh]"
       >
         {!loaded && (
           <p className="font-mono text-xs text-muted flex items-center gap-2">
@@ -247,15 +250,15 @@ export function AssistantTab({
           </p>
         )}
         {loaded && messages.length === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-6 border border-rule bg-paper-sunken p-5">
             <div className="text-sm text-prose space-y-2">
               <p>
-                Ask anything about this matter. The assistant has the chronology, the uploaded
-                documents, and the audit trail in context.
+                Ask anything about this matter, or run a governed action when
+                you need an output to sign.
               </p>
               <p className="text-xs text-muted">
-                Citations appear as chips below each reply. Suggested next steps appear below the
-                response.
+                Sources appear as chips below each answer. Material outputs
+                move to Outputs for sign-off and export.
               </p>
             </div>
             <div>

@@ -72,17 +72,24 @@ function AssistantMessageView({
   const { text, citations } = extractCitations(message.content, docs, chronology);
   const sourceCount = citations.length;
   const metaSizing = compact ? "text-[10px]" : "text-[11px]";
-  const proseSizing = compact ? "text-xs" : "text-sm";
+  const proseSizing = compact ? "text-xs" : "text-[15px]";
 
   return (
     <div className="flex justify-start">
-      <div className={(compact ? "max-w-full" : "w-full") + " flex flex-col gap-2"}>
+      <div
+        className={
+          (compact
+            ? "max-w-full"
+            : "w-full border-l-2 border-rule bg-paper px-4 py-3") +
+          " flex flex-col gap-2"
+        }
+      >
         <div className={`font-mono ${metaSizing} text-muted`}>
           Assistant{compact ? "" : ` · ${MODEL_LABEL}`}
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
-          {" · audit row written"}
+          {" · recorded in Activity Trail"}
         </div>
         <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
           {text}

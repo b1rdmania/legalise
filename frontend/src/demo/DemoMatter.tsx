@@ -102,6 +102,7 @@ export function DemoMatter() {
           onPostureChange={flashPosture}
           mobileOpen={mobileNavOpen}
           onMobileClose={() => setMobileNavOpen(false)}
+          showPosture={false}
         />
         <div className="flex-1 min-w-0">
           <MatterBreadcrumb
@@ -109,8 +110,8 @@ export function DemoMatter() {
             tab={tab}
             onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
           />
-          <div className="flex">
-          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
+          <div className="flex bg-wash">
+          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-8 lg:py-12 min-h-[calc(100vh-80px)]">
             {tab === "assistant" && (
               <AssistantTab
                 matter={matter}
@@ -121,6 +122,7 @@ export function DemoMatter() {
                 setTabAndHash={setTabAndHash}
                 initialMessages={DEMO_SNAPSHOT.assistantMessages}
                 disabled
+                showPostureInPulse={false}
                 disabledPlaceholder="Create a free account to chat with the assistant on your own matter"
                 onDisabledAction={() => flashCta(CTA_CREATE_ACCOUNT)}
               />
@@ -273,31 +275,44 @@ function DemoWorkflowsTab({
   ];
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-8 border-l-2 border-ink pl-4 py-1">
-        <p className="text-sm font-semibold text-ink">Actions ready on this matter.</p>
-        <p className="mt-1 text-sm text-prose max-w-2xl">
-          Each action says what it reads, what it writes, and what happened last.
-          Open a preview, or create an account to run it against your own matter.
+    <div className="max-w-5xl">
+      <div className="mb-8 border border-rule bg-paper-sunken p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+          Governed actions
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
+          Pick the work you want the AI to prepare.
+        </h2>
+        <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
+          Each action declares the material it reads, the output it writes, and
+          the record it leaves behind. The demo previews the loop; your own
+          workspace can run it.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {workflows.map((w) => (
-          <section key={w.key} className="border border-rule bg-paper p-5">
-            <div className="text-sm font-semibold text-ink">{w.title}</div>
-            <p className="mt-2 text-sm text-prose leading-relaxed">{w.body}</p>
-            <dl className="mt-4 space-y-1 text-xs">
+          <section key={w.key} className="border border-rule bg-paper p-5 hover:border-ink transition-colors">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-lg font-semibold tracking-tight2 text-ink">{w.title}</div>
+                <p className="mt-2 text-sm text-prose leading-relaxed">{w.body}</p>
+              </div>
+              <span className="shrink-0 border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                Ready
+              </span>
+            </div>
+            <dl className="mt-5 grid gap-2 border-t border-rule pt-4 text-xs">
               <div className="flex gap-2">
-                <dt className="w-14 shrink-0 text-muted">Reads</dt>
+                <dt className="w-14 shrink-0 uppercase tracking-widest text-muted">Reads</dt>
                 <dd className="text-ink">{w.reads}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-14 shrink-0 text-muted">Writes</dt>
+                <dt className="w-14 shrink-0 uppercase tracking-widest text-muted">Writes</dt>
                 <dd className="text-ink">{w.writes}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="w-14 shrink-0 text-muted">Last</dt>
+                <dt className="w-14 shrink-0 uppercase tracking-widest text-muted">Record</dt>
                 <dd className="text-ink">{w.last}</dd>
               </div>
             </dl>
@@ -321,9 +336,9 @@ function DemoWorkflowsTab({
         ))}
       </div>
 
-      <p className="mt-8 text-xs text-muted">
-        Module installation and permission setup are hidden in this public snapshot.
-        They appear when you work inside your own matter.
+      <p className="mt-8 border-t border-rule pt-4 text-xs text-muted">
+        Module installation and permission setup are hidden in this public
+        snapshot. They appear when you work inside your own matter.
       </p>
     </div>
   );
@@ -339,18 +354,23 @@ function DemoDocumentsTab({
   docs: MatterDocument[];
 }) {
   return (
-    <div className="max-w-4xl">
-      <div className="mb-8 border-l-2 border-ink pl-4 py-1">
-        <p className="text-sm font-semibold text-ink">The demo matter is already loaded.</p>
-        <p className="mt-1 text-sm text-prose max-w-2xl">
-          Open a document to see what the assistant and workflows can use. Uploading
-          your own material starts after account creation.
+    <div className="max-w-5xl">
+      <div className="mb-8 border border-rule bg-paper-sunken p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+          Matter file
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
+          The demo matter is already loaded.
+        </h2>
+        <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
+          These are the documents the assistant and actions can cite. In your
+          own workspace, uploaded material is hashed, stored, and recorded.
         </p>
       </div>
 
-      <div className="border-t border-rule overflow-x-auto">
+      <div className="overflow-hidden border border-rule bg-paper">
         <div className="min-w-[680px]">
-          <div className="grid grid-cols-[1.5fr_110px_90px_120px_72px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+          <div className="grid grid-cols-[1.5fr_110px_90px_120px_100px] gap-4 px-5 py-3 text-muted bg-paper-sunken border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
             <span>Document</span>
             <span>Type</span>
             <span>Size</span>
@@ -359,7 +379,7 @@ function DemoDocumentsTab({
           </div>
           {docs.map((d) => (
             <div key={d.id} className="border-b border-rule">
-              <div className="grid grid-cols-[1.5fr_110px_90px_120px_72px] gap-4 px-4 py-3 items-center">
+              <div className="grid grid-cols-[1.5fr_110px_90px_120px_100px] gap-4 px-5 py-4 items-center hover:bg-wash transition-colors">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-ink truncate">{d.filename}</div>
                   <div className="mt-0.5 text-[11px] text-muted truncate">{d.sha256.slice(0, 8)}</div>

@@ -29,6 +29,7 @@ interface Props {
   workflowsGrantedCount?: number;
   // Skip the network call entirely (demo / unauth).
   skipFetch?: boolean;
+  showPosture?: boolean;
 }
 
 export function MatterPulse({
@@ -37,6 +38,7 @@ export function MatterPulse({
   chronologyCount,
   workflowsGrantedCount,
   skipFetch = false,
+  showPosture = true,
 }: Props) {
   const [workflowsGranted, setWorkflowsGranted] = useState<number | null>(
     workflowsGrantedCount ?? null,
@@ -69,22 +71,58 @@ export function MatterPulse({
   const hasDocuments = documentsCount > 0;
   const hasChronology = chronologyCount > 0;
   const hasActions = workflowsGranted !== 0;
+  const actionLabel =
+    workflowsGranted === null
+      ? "Actions checked on sign-in"
+      : `${workflowsGranted} governed action${workflowsGranted === 1 ? "" : "s"} ready`;
 
   return (
     <section
       aria-label="Matter readiness"
-      className="mx-auto w-full max-w-[920px] border-l-2 border-ink pl-4 py-2 text-sm text-prose"
+      className="mx-auto w-full max-w-[920px] border border-rule bg-paper-sunken p-5 text-sm text-prose"
       title={postureBlurb}
     >
-      <span className="font-semibold text-ink">Workspace ready.</span>{" "}
-      <span>
-        {hasDocuments ? "Documents are loaded" : "Add documents to begin"}
-        {hasChronology ? ", the chronology is available" : ""}
-        {hasActions ? ", and governed actions are ready" : ""}.
-      </span>{" "}
-      <span className="text-muted">
-        Every AI step writes to the Activity Trail. {postureLabel} posture.
-      </span>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-xl">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            Matter ready
+          </p>
+          <p className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+            {matter.title} is loaded for supervised AI work.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-prose">
+            The workspace has the documents, a chronology, and governed actions.
+            Every AI step is recorded in the Activity Trail.
+          </p>
+        </div>
+        <div className="grid min-w-[280px] grid-cols-1 gap-2 text-xs sm:grid-cols-3 lg:grid-cols-1">
+          <StatusLine label="Documents" value={hasDocuments ? `${documentsCount} loaded` : "Add documents"} />
+          <StatusLine label="Timeline" value={hasChronology ? `${chronologyCount} events` : "Not started"} />
+          <StatusLine label="Actions" value={hasActions ? actionLabel : "Setup needed"} />
+        </div>
+      </div>
+      {showPosture ? (
+        <p className="mt-4 border-t border-rule pt-3 text-xs text-muted">
+          {postureLabel} posture. This demo is safe to inspect; create an account
+          to run the same loop on your own matter.
+        </p>
+      ) : (
+        <p className="mt-4 border-t border-rule pt-3 text-xs text-muted">
+          This demo is safe to inspect; create an account to run the same loop
+          on your own matter.
+        </p>
+      )}
     </section>
+  );
+}
+
+function StatusLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-rule bg-paper px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+        {label}
+      </div>
+      <div className="mt-0.5 font-medium text-ink">{value}</div>
+    </div>
   );
 }
