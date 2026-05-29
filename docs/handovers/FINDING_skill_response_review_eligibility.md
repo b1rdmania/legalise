@@ -1,8 +1,11 @@
-# Finding — `skill_response` is not supervisor-review-eligible
+# Finding — `skill_response` supervisor-review eligibility — CLOSED
 
-**Type:** narrow backend governance finding (not patched — needs a deliberate call)
+**Type:** narrow backend governance finding
 **Surfaced by:** External Skills Product Loop v1
 **Date:** 2026-05-29
+**Status:** CLOSED 2026-05-29 — reviewer approved widening the eligible
+set; folded into the External Skills Loop v1 branch before merge. The loop
+is now fully reviewable end-to-end (see "Resolution" below).
 
 ## What
 
@@ -52,6 +55,22 @@ the supervised-review rendering (already wired via the new
 
 `skill_response` is generic prompt-runtime output — arbitrary imported
 skills produce it. Making it review-eligible means any imported skill's
-output can enter the human-review queue, which is arguably the right
-supervised-autonomy posture, but it broadens what reviewers must triage.
-That trade-off is the reason this is a finding, not a silent patch.
+output can enter the human-review queue, which is the right
+supervised-autonomy posture: the loop must apply equally to marketplace
+skills, not just first-party modules.
+
+## Resolution (2026-05-29)
+
+Reviewer approved. Applied:
+- `backend/app/models/matter_review.py`: `REVIEW_ELIGIBLE_KINDS =
+  frozenset({"findings_pack", "skill_response"})`.
+- `backend/tests/test_supervisor_review_api.py`:
+  `test_request_review_skill_response_eligible` — request-review returns
+  201 for a `skill_response` artifact.
+- `frontend/src/lib/api.ts`: `REVIEW_ELIGIBLE_KINDS` adds `skill_response`.
+- `frontend/src/matter/ArtifactDetail.test.tsx`: asserts the Request
+  Review CTA renders for a `skill_response` artifact.
+
+Loop now closes end-to-end: Lawve skill → prompt module → install → grant
+→ run → `skill_response` artifact → request supervisor review → decision →
+audit chain.

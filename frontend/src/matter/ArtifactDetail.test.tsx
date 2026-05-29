@@ -80,6 +80,30 @@ describe("ArtifactDetail", () => {
     );
   });
 
+  it("offers Request review for a skill_response artifact (review-eligible)", async () => {
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "art-1",
+      matter_id: "m-1",
+      module_id: "lawve.contract-review",
+      capability_id: "run",
+      invocation_id: "inv-9",
+      kind: "skill_response",
+      created_by_id: "u-1",
+      created_at: "2026-05-29T12:00:00",
+      size_bytes: 200,
+      payload: { output: "Summary.", model_id: "claude-opus-4-7", input: "Summarise." },
+    });
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("skill-response-view")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Supervisor review/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /request review/i }),
+    ).toBeInTheDocument();
+  });
+
   it("falls back to JSON for an unknown kind", async () => {
     vi.spyOn(api, "readArtifact").mockResolvedValue({
       id: "art-1",

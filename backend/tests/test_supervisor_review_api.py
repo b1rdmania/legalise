@@ -109,6 +109,19 @@ async def test_request_review_happy(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_request_review_skill_response_eligible(client) -> None:
+    # Prompt-runtime output (imported Lawve skills) is review-eligible —
+    # the supervised-autonomy loop applies to marketplace skills too.
+    owner = await _register_and_login(client)
+    slug, artifact_id = await _seed_matter_with_artifact(owner, kind="skill_response")
+    resp = await client.post(f"/api/matters/{slug}/reviews", json={"artifact_id": artifact_id})
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["state"] == "pending"
+    assert body["kind"] == "skill_response"
+
+
+@pytest.mark.asyncio
 async def test_request_review_ineligible_kind(client) -> None:
     owner = await _register_and_login(client)
     slug, artifact_id = await _seed_matter_with_artifact(owner, kind="citation_pack")

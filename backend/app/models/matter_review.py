@@ -49,9 +49,12 @@ REVIEW_TERMINAL_STATES = frozenset(
 
 REVIEW_STATE_VALUES = frozenset({REVIEW_PENDING} | REVIEW_TERMINAL_STATES)
 
-# Artifact kinds eligible for supervisor review in v1. Exactly one
-# bounded output type: the Contract Review findings pack.
-REVIEW_ELIGIBLE_KINDS = frozenset({"findings_pack"})
+# Artifact kinds eligible for supervisor review. The Contract Review
+# findings pack plus prompt-runtime skill output — imported Lawve skills
+# produce `skill_response`, and their output must be reviewable for the
+# supervised-autonomy loop to apply equally to marketplace skills, not
+# just first-party modules.
+REVIEW_ELIGIBLE_KINDS = frozenset({"findings_pack", "skill_response"})
 
 
 class MatterReview(Base):

@@ -40,26 +40,27 @@ Auto-detected from an `output` string when no kind hint. This is what an
 imported prompt skill produces, so it's now legible everywhere
 ArtifactPreview is used (invocation result, artifact detail, approvals).
 
-### 3. Supervised review affordance — gated honestly
-`frontend/src/matter/ArtifactDetail.tsx` — the "Request review" section
+### 3. Supervised review of `skill_response` — folded in (Skill Response Review Eligibility v1)
+The "Request review" section in `frontend/src/matter/ArtifactDetail.tsx`
 was hardcoded to `kind === "findings_pack"`. Now gated on a shared
-constant `REVIEW_ELIGIBLE_KINDS` in `frontend/src/lib/api.ts`, which
-mirrors the backend `matter_review.py` set. Behaviour is unchanged today
-(still only `findings_pack`) but the gate is now a single, documented,
-one-line flip.
+constant `REVIEW_ELIGIBLE_KINDS` in `frontend/src/lib/api.ts` mirroring the
+backend `matter_review.py` set.
 
-## The one assumption that failed → filed, not patched
-The original ask included "supervised review of `skill_response`". Backend
-`REVIEW_ELIGIBLE_KINDS = frozenset({"findings_pack"})` — `skill_response`
-is **not** accepted; `POST .../reviews` returns 422 for it. Per the
-directive ("file a narrow backend finding rather than faking it"), I did
-**not** widen the governance surface unilaterally and did **not** ship a
-dead button. The CTA correctly does not appear for `skill_response` yet.
+The original investigation found `skill_response` was NOT backend
+review-eligible, so it was first filed as a finding (not faked). The
+reviewer approved widening the set, so it's now **folded into this branch
+before merge**:
+- `backend/app/models/matter_review.py`: `REVIEW_ELIGIBLE_KINDS =
+  frozenset({"findings_pack", "skill_response"})`.
+- `backend/tests/test_supervisor_review_api.py`:
+  `test_request_review_skill_response_eligible` (request-review → 201).
+- `frontend/src/lib/api.ts`: constant adds `skill_response`.
+- `frontend/src/matter/ArtifactDetail.test.tsx`: asserts the Request
+  Review CTA renders for a `skill_response` artifact.
 
-Finding: `docs/handovers/FINDING_skill_response_review_eligibility.md`.
-The fix is one line (`+ "skill_response"`) in `matter_review.py` + a test,
-then one line in the frontend constant — both documented in the finding.
-This is a deliberate supervised-autonomy scope call for the reviewer.
+Finding `docs/handovers/FINDING_skill_response_review_eligibility.md` is
+marked CLOSED. The loop is now reviewable end-to-end for imported skills,
+not just first-party modules.
 
 ## Scope call: no inline review button in InvocationRunner
 Considered adding "Request review" directly in the post-invocation result
@@ -70,26 +71,33 @@ fragile. The loop already stays continuous via the existing "See all
 artifacts" link → artifact detail → Request review. Flagged for a future
 pass if a uniform result shape is introduced.
 
-## Tests (frontend)
-- `LawveImport.test.tsx` (7): rewrapped in AuthProvider + memory router.
-  New: valid draft shows install CTA for admin; install posts inline
+## Tests
+- Frontend `LawveImport.test.tsx` (7): rewrapped in AuthProvider + memory
+  router. Valid draft shows install CTA for admin; install posts inline
   manifest (`source:"manifest"`, `runtime:"prompt"`) + navigates to
   ceremony; non-admin sees ask-an-admin note and no button.
-- `ArtifactPreview.test.tsx` (+2): `skill_response` renders output +
-  request + model; auto-detect from `output` string.
-- Gate: `tsc -b` clean · full vitest **174/174** · `vite build` OK.
-- Backend untouched (finding filed only) — no backend gate needed.
+- Frontend `ArtifactPreview.test.tsx` (+2): `skill_response` renders output
+  + request + model; auto-detect from `output` string.
+- Frontend `ArtifactDetail.test.tsx` (+1): Request Review CTA renders for a
+  `skill_response` artifact.
+- Backend `test_supervisor_review_api.py` (+1): request-review → 201 for
+  `skill_response`.
+- Gate: frontend `tsc -b` clean · full vitest **175/175** · `vite build`
+  OK. Backend full suite **789 passed** (only the 4 known pre-existing env
+  failures — 3 macOS sandbox + demo-seed count).
 
 ## Acceptance vs the ask
 - Continuity (discovery→installed): ✓ one-click install from a valid draft
-- State: ✓ ceremony + installed-status already surfaced in `/modules`;
-  importer now links into the ceremony and shows the lifecycle breadcrumb
+- State: ✓ ceremony + installed-status surfaced in `/modules`; importer
+  links into the ceremony and shows the lifecycle breadcrumb
 - Artifact rendering: ✓ `skill_response` first-class
-- Supervised review of `skill_response`: **blocked on the filed finding**
-  (one-line backend governance call); everything else for it is wired so
-  it lights up the moment the kind is made eligible
+- Supervised review of `skill_response`: ✓ folded in — reviewable
+  end-to-end (Skill Response Review Eligibility v1)
+
+The full loop now closes: Lawve skill → prompt module → install → grant →
+run → `skill_response` artifact → request supervisor review → decision →
+audit chain.
 
 ## For reviewer
-Diff-review `external-skills-loop-v1`. Two calls for you: (1) merge; (2)
-the `skill_response` review-eligibility finding — a one-line backend
-change if you want supervised review of imported-skill output in v1.
+Diff-review `external-skills-loop-v1`, then merge. Both the loop and the
+review-eligibility close are folded into this one branch.

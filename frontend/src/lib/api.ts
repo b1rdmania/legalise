@@ -797,10 +797,11 @@ export const listSupervisorReviews = (slug: string) =>
 // Artifact kinds the backend supervisor-review API accepts. Mirrors
 // `backend/app/models/matter_review.py:REVIEW_ELIGIBLE_KINDS`. Keep these
 // in sync — the frontend only offers "Request review" for kinds the
-// backend will accept (no dead buttons). `skill_response` is NOT yet
-// eligible backend-side; see the External Skills Loop v1 handover for the
-// filed finding to add it.
-export const REVIEW_ELIGIBLE_KINDS: readonly string[] = ["findings_pack"];
+// backend will accept (no dead buttons).
+export const REVIEW_ELIGIBLE_KINDS: readonly string[] = [
+  "findings_pack",
+  "skill_response",
+];
 
 export const requestReview = (slug: string, artifactId: string) =>
   apiFetch(`${API}/matters/${encodeURIComponent(slug)}/reviews`, {
