@@ -31,7 +31,7 @@ The inventory found the foundations ~80% built (S3 documents, Postgres jobs + ar
 - Close-out: full backend pytest = **775 passed, 4 failed** — the 4 are the known pre-existing env/platform failures (3 macOS-only sandbox/rlimit tests + 1 demo-seed audit-count test) that fail on master too; **zero failures attributable to this work**. Full backend runs in-container at CI (where those env tests pass).
 
 ## Residual / out-of-scope
-- **No UI for Close yet** — the endpoint exists; surfacing a "Close matter" button in the matter UI is a small frontend follow-up (the plan kept this backend-first).
+- ~~**No UI for Close yet**~~ — **superseded:** the Matter Lifecycle + Export UX v1 work (`HANDOVER_MATTER_LIFECYCLE_EXPORT_UX_V1_DONE.md`) shipped the `/matters/{slug}/lifecycle` page with the Close action, in the same branch batch.
 - Reopen-after-close not implemented (close is one-way in v1).
 - No true crypto-purge (delete uses `delete_prefix`; deeper shred is not-in-v1).
 - Legacy artifacts (pre-cutover) remain unavailable by design (forward-only, no backfill).
