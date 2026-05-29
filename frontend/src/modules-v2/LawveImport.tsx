@@ -24,10 +24,12 @@ type ListQuery =
   | { status: "ready"; skills: LawveSkillRow[] }
   | { status: "error"; message: string };
 
-// Derive the headline trust state from validity + warnings.
+// Derive the headline trust state from validity + warnings. Prompt-only
+// skills now convert to a valid `prompt`-runtime draft, so the common
+// outcome is "Ready to sign" unless a licence/script review is pending.
 function trustState(d: LawveDraftResult): string {
+  if (!d.valid) return "Validation failed";
   const codes = new Set(d.warnings.map((w) => w.code));
-  if (codes.has("needs_runtime_decision") || !d.valid) return "Imported draft — not yet valid";
   if (codes.has("license_review") || codes.has("license_unknown")) return "Needs licence review";
   if (codes.has("script_review")) return "Needs script review";
   return "Ready to sign";

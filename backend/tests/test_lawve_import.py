@@ -124,31 +124,37 @@ async def test_get_skill_unknown_returns_none() -> None:
 
 
 @pytest.mark.asyncio
-async def test_draft_prompt_only_is_invalid_with_runtime_warning() -> None:
-    # Honest stop-condition behaviour: a prompt-only skill has no honest
-    # native/mcp runtime, so the draft omits runtime/entrypoint and is
-    # invalid with a needs_runtime_decision warning — no fabricated fields.
+async def test_draft_prompt_only_validates_as_prompt_runtime() -> None:
+    # Prompt Runtime v1: a prompt-only SKILL.md maps honestly to the
+    # first-class `prompt` runtime — instructions inline, no fabricated
+    # native/mcp fields — and validates against the existing validator.
     res = await lwv.build_draft("contract-review-anthropic")
     assert res is not None
-    assert res["valid"] is False
-    assert "runtime" not in res["manifest"]
-    assert "entrypoint" not in res["manifest"]
+    assert res["valid"] is True, res["errors"]
+    assert res["manifest"]["runtime"] == "prompt"
+    entry = res["manifest"]["entrypoint"]
+    assert entry["prompt_source"] == "manifest"
+    # Instructions are the SKILL.md body, frontmatter stripped.
+    assert "Review the contract clause by clause." in entry["instructions"]
+    assert "---" not in entry["instructions"]
+    # No leftover runtime-decision warning on the happy path.
     codes = {w["code"] for w in res["warnings"]}
-    assert "needs_runtime_decision" in codes
-    # Conservative defaults are present; provenance lives in the response
-    # envelope (the v2 schema forbids extra top-level keys).
+    assert "needs_runtime_decision" not in codes
+    # Conservative capability defaults + top-level provenance.
     cap = res["manifest"]["capabilities"][0]
     assert cap["reads"] == ["document.body.read"]
     assert cap["advice_tier_max"] == "draft_advice"
-    assert "metadata" not in res["manifest"]
+    assert res["manifest"]["license"] == "Apache-2.0"
+    assert res["manifest"]["source_url"].endswith(
+        "/tree/abc123sha/skills/contract-review-anthropic"
+    )
     assert res["source_provenance"]["ref"] == "abc123sha"
 
 
 @pytest.mark.asyncio
-async def test_draft_validates_once_a_runtime_is_supplied() -> None:
-    # When the human supplies a real runtime + entrypoint, the SAME draft
-    # validates against the existing validator — proving the path works
-    # once the runtime-representation decision is made.
+async def test_draft_native_override_still_validates() -> None:
+    # The human can still override to a native runtime + entrypoint; the
+    # SAME draft validates against the existing validator.
     res = await lwv.build_draft(
         "contract-review-anthropic",
         {
@@ -158,6 +164,7 @@ async def test_draft_validates_once_a_runtime_is_supplied() -> None:
     )
     assert res is not None
     assert res["valid"] is True, res["errors"]
+    assert res["manifest"]["runtime"] == "native"
 
 
 @pytest.mark.asyncio

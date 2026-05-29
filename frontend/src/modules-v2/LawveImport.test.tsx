@@ -51,11 +51,17 @@ function detail(over: Partial<LawveSkillDetail> = {}): LawveSkillDetail {
 
 function draft(over: Partial<LawveDraftResult> = {}): LawveDraftResult {
   return {
-    manifest: { schema_version: "2.0.0", id: "lawve.contract-review-anthropic", capabilities: [] },
-    valid: false,
-    errors: [{ path: "/", message: "'runtime' is a required property" }],
+    manifest: {
+      schema_version: "2.0.0",
+      id: "lawve.contract-review-anthropic",
+      runtime: "prompt",
+      entrypoint: { prompt_source: "manifest", instructions: "Review the contract." },
+      capabilities: [],
+    },
+    valid: true,
+    errors: [],
     warnings: [
-      { code: "needs_runtime_decision", message: "prompt-only skill — runtime decision needed" },
+      { code: "references_present", message: "References are source material, not runtime code." },
     ],
     source_provenance: { repo_url: "x", ref: "abc123sha", source_path: "y" },
     next_steps: ["Review permissions", "Sign + install via the ceremony"],
@@ -100,7 +106,7 @@ describe("LawveImport", () => {
     expect(screen.getByTestId("lawve-script-flag")).toHaveTextContent(/not imported or executed/i);
   });
 
-  it("converts to a draft and honestly shows it is not yet valid (no install button)", async () => {
+  it("converts a prompt-only skill to a valid draft (Ready to sign, no install button)", async () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
     render(<LawveImport />);
@@ -109,10 +115,24 @@ describe("LawveImport", () => {
     await waitFor(() => expect(screen.getByTestId("convert-draft")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("convert-draft"));
     await waitFor(() => expect(screen.getByTestId("draft-review")).toBeInTheDocument());
-    expect(screen.getByTestId("draft-trust-state")).toHaveTextContent(/not yet valid/i);
-    expect(screen.getByText(/needs_runtime_decision/)).toBeInTheDocument();
-    // No install affordance.
+    expect(screen.getByTestId("draft-trust-state")).toHaveTextContent(/ready to sign/i);
+    // Manifest carries the prompt runtime.
+    expect(screen.getByTestId("draft-review")).toHaveTextContent(/"runtime": "prompt"/);
+    // No install affordance — sign/install only through the ceremony.
     expect(screen.queryByText(/^install$/i)).toBeNull();
     expect(screen.getByText(/Download manifest/)).toBeInTheDocument();
+  });
+
+  it("shows Needs licence review when an AGPL warning is present", async () => {
+    vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
+    vi.spyOn(api, "draftLawveModule").mockResolvedValue(
+      draft({ warnings: [{ code: "license_review", message: "AGPL — review before install." }] }),
+    );
+    render(<LawveImport />);
+    await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("lawve-card-contract-review-anthropic"));
+    await waitFor(() => expect(screen.getByTestId("convert-draft")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("convert-draft"));
+    await waitFor(() => expect(screen.getByTestId("draft-trust-state")).toHaveTextContent(/needs licence review/i));
   });
 });

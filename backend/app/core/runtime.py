@@ -248,6 +248,23 @@ async def dispatch_capability(
     if not capability_id:
         raise CapabilityNotDeclared(installed_module.module_id, "<missing-id>")
 
+    # Runtime branch. ``prompt`` modules have no importable Python
+    # entrypoint — the host executes them directly from the manifest
+    # instructions, under the same posture/grant/audit seams as native.
+    runtime_kind = (installed_module.manifest_snapshot or {}).get("runtime")
+    if runtime_kind == "prompt":
+        from app.core.prompt_runtime import run_prompt_capability
+
+        return await run_prompt_capability(
+            session=session,
+            installed_module=installed_module,
+            capability_declaration=capability_declaration,
+            matter=matter,
+            context=context,
+            args=args,
+            provider_call=provider_call,
+        )
+
     entry_class = _resolve_entrypoint(installed_module)
     entry = entry_class()
 

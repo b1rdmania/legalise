@@ -299,10 +299,6 @@ def build_manifest_draft(detail: dict, overrides: dict | None = None) -> dict:
     capability_id = overrides.get("capability_id") or DEFAULT_CAPABILITY_ID
     audit_events = overrides.get("audit_events") or list(DEFAULT_AUDIT_EVENTS)
 
-    # NB: the v2 schema forbids extra top-level keys (no `metadata`), so
-    # import provenance/licence live in the draft *response* envelope
-    # (source_provenance + warnings), not in the manifest itself.
-    _ = lic  # surfaced via warnings/provenance, not the manifest
     manifest: dict[str, Any] = {
         "schema_version": "2.0.0",
         "id": module_id,
@@ -328,17 +324,36 @@ def build_manifest_draft(detail: dict, overrides: dict | None = None) -> dict:
             }
         ],
     }
-    # runtime + entrypoint: the v2 schema only allows native|mcp, and an
-    # MCP transport / native python_module. A prompt-only SKILL.md maps
-    # to NEITHER honestly — fabricating one would be a dishonest field
-    # (Build Brief forbids it; it's also an explicit stop condition). So
-    # we only set them when the human supplies a real mapping via
-    # overrides; otherwise they're omitted and the draft validates as
-    # false with a `needs_runtime_decision` warning.
+
+    # Optional top-level provenance/licence fields the v2 schema permits.
+    description = detail.get("description")
+    if description:
+        manifest["description"] = str(description)
+    if lic:
+        manifest["license"] = str(lic)
+    ref = detail.get("ref")
+    if ref:
+        manifest["source_url"] = f"https://github.com/{LAWVE_REPO}/tree/{ref}/{_skill_dir(slug)}"
+
+    # runtime + entrypoint. A prompt-only SKILL.md now maps honestly to
+    # the first-class `prompt` runtime (Prompt Runtime v1): the skill
+    # instructions live inline in the manifest entrypoint and the host
+    # prompt runtime executes them under the existing posture/grant/audit
+    # seams. Scripts are still never imported or executed. A human can
+    # override runtime/entrypoint for the native/mcp case.
     if overrides.get("runtime"):
         manifest["runtime"] = overrides["runtime"]
+    else:
+        manifest["runtime"] = "prompt"
     if overrides.get("entrypoint"):
         manifest["entrypoint"] = overrides["entrypoint"]
+    elif manifest["runtime"] == "prompt":
+        _, body = _parse_frontmatter(detail.get("skill_markdown") or "")
+        instructions = body or detail.get("skill_markdown") or name
+        manifest["entrypoint"] = {
+            "prompt_source": "manifest",
+            "instructions": instructions,
+        }
     return manifest
 
 
@@ -354,12 +369,10 @@ async def build_draft(slug: str, overrides: dict | None = None) -> dict | None:
             {
                 "code": "needs_runtime_decision",
                 "message": (
-                    "This is a prompt-only skill (SKILL.md instructions). The v2 "
-                    "manifest schema only supports native/mcp runtimes, which a "
-                    "prompt-only skill can't honestly claim — so the draft is "
-                    "intentionally invalid until a runtime mapping is decided "
-                    "(e.g. a 'prompt' runtime, or wrapping it in a native "
-                    "prompt-runner). No runtime/entrypoint was fabricated."
+                    "A runtime override was supplied without a matching "
+                    "entrypoint (e.g. native runtime with no python_module). "
+                    "Provide the entrypoint, or drop the override to use the "
+                    "default prompt runtime."
                 ),
             }
         )

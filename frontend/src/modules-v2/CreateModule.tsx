@@ -23,8 +23,8 @@ const REQUIRED_FIELDS: { field: string; what: string }[] = [
   { field: "version", what: "module version" },
   { field: "publisher", what: "who publishes it" },
   { field: "visibility", what: "first_party / community / private" },
-  { field: "runtime", what: "how the module executes" },
-  { field: "entrypoint", what: "what the runtime invokes" },
+  { field: "runtime", what: "how the module executes — native, mcp, or prompt" },
+  { field: "entrypoint", what: 'what the runtime invokes (prompt runtime: { "prompt_source": "manifest", "instructions": "..." })' },
   { field: "capabilities", what: "what it may read/write, gates, advice tier, declared audit events" },
 ];
 
