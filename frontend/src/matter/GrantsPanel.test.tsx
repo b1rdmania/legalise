@@ -150,6 +150,67 @@ describe("GrantsPanel — create", () => {
     });
   });
 
+  it("offers installed inline modules that are not in the v2 registry catalog", async () => {
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [],
+      ui_slots: [],
+    });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+      {
+        module_id: "contract-review-anthropic",
+        version: "2026.01.30",
+        publisher: "Anthropic",
+        visibility: "community",
+        signature_status: "unsigned",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+        capabilities: [
+          {
+            id: "default",
+            kind: "skill",
+            scope: "matter",
+            reads: ["matter.document.read"],
+            writes: ["matter.artifact.write"],
+          },
+        ],
+      },
+    ]);
+    const create = vi.spyOn(api, "createGrant").mockResolvedValue({
+      matter_id: "m-1",
+      parent_capability_id: "default",
+      module_id: "contract-review-anthropic",
+      grants: [],
+      was_idempotent_noop: false,
+    });
+
+    render(<GrantsPanel slug="khan" />);
+    await waitFor(() => {
+      expect(
+        screen.getByText(/contract-review-anthropic/i),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText(/Module/i), {
+      target: { value: "contract-review-anthropic" },
+    });
+    fireEvent.change(screen.getByLabelText(/Capability/i), {
+      target: { value: "default" },
+    });
+    fireEvent.click(screen.getByText("Grant"));
+
+    await waitFor(() => {
+      expect(create).toHaveBeenCalledWith("khan", {
+        module_id: "contract-review-anthropic",
+        capability_id: "default",
+      });
+    });
+  });
+
   it("surfaces 404 module_not_installed inline", async () => {
     vi.spyOn(api, "listGrants").mockResolvedValue({ matter_id: "m-1", grants: [] });
     vi.spyOn(api, "getModulesV2").mockResolvedValue({

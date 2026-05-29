@@ -50,6 +50,7 @@ def _make_installed_row(
     visibility: str = "first_party",
     signature_status: str = "verified",
     installed_by_user_id: uuid.UUID | None = None,
+    capabilities: list[dict] | None = None,
 ) -> InstalledModule:
     return InstalledModule(
         id=uuid.uuid4(),
@@ -62,7 +63,7 @@ def _make_installed_row(
         verified_at=installed_at,
         install_path="<inline>",
         manifest_snapshot={"id": module_id, "version": version},
-        permissions_snapshot={},
+        permissions_snapshot={"capabilities": capabilities or []},
         installed_at=installed_at,
         installed_by_user_id=installed_by_user_id,
         enabled=enabled,
@@ -230,6 +231,7 @@ async def test_response_shape_excludes_secrets_and_internals(client, db_session)
         "publisher",
         "visibility",
         "signature_status",
+        "capabilities",
         "enabled",
         "installed_at",
         "installed_by_user_id",
@@ -240,6 +242,48 @@ async def test_response_shape_excludes_secrets_and_internals(client, db_session)
     assert "permissions_snapshot" not in matching
     assert "install_path" not in matching
     assert "signed_by" not in matching
+
+
+@pytest.mark.asyncio
+async def test_capability_summaries_surface_without_full_manifest(
+    client, db_session
+):
+    """Imported inline modules are not in the registry catalogue, so
+    the grants UI needs capability summaries from the installed row.
+    Surface just that grantable shape, not the full manifest snapshot."""
+    await _register_and_login(client)
+    module_id = f"phase145b-caps-{uuid.uuid4().hex[:6]}"
+    db_session.add(_make_installed_row(
+        module_id=module_id,
+        version="0.1.0",
+        installed_at=datetime(2026, 3, 2, tzinfo=UTC),
+        capabilities=[
+            {
+                "id": "default",
+                "kind": "skill",
+                "scope": "matter",
+                "reads": ["matter.document.read"],
+                "writes": ["matter.artifact.write"],
+            }
+        ],
+    ))
+    await db_session.flush()
+
+    resp = await client.get("/api/modules/installed")
+    rows = resp.json()
+    matching = next((r for r in rows if r["module_id"] == module_id), None)
+    assert matching is not None
+    assert matching["capabilities"] == [
+        {
+            "id": "default",
+            "kind": "skill",
+            "scope": "matter",
+            "reads": ["matter.document.read"],
+            "writes": ["matter.artifact.write"],
+        }
+    ]
+    assert "manifest_snapshot" not in matching
+    assert "permissions_snapshot" not in matching
 
 
 # ---------------------------------------------------------------------------

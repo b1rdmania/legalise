@@ -318,6 +318,7 @@ export interface InstalledModule {
   publisher: string;
   visibility: string;
   signature_status: string;
+  capabilities?: unknown[];
   enabled: boolean;
   installed_at: string;
   installed_by_user_id: string | null;

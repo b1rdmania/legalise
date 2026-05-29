@@ -589,6 +589,7 @@ class InstalledModuleOut(BaseModel):
     publisher: str
     visibility: str
     signature_status: str
+    capabilities: list[dict[str, Any]] = []
     enabled: bool
     installed_at: str  # ISO-8601
     installed_by_user_id: str | None
@@ -636,6 +637,7 @@ async def list_installed_modules(
             sub.c.publisher,
             sub.c.visibility,
             sub.c.signature_status,
+            sub.c.permissions_snapshot,
             sub.c.enabled,
             sub.c.installed_at,
             sub.c.installed_by_user_id,
@@ -651,6 +653,11 @@ async def list_installed_modules(
             publisher=r.publisher,
             visibility=r.visibility,
             signature_status=r.signature_status,
+            capabilities=(
+                r.permissions_snapshot.get("capabilities", [])
+                if isinstance(r.permissions_snapshot, dict)
+                else []
+            ),
             enabled=r.enabled,
             installed_at=r.installed_at.isoformat(),
             installed_by_user_id=(
@@ -1262,5 +1269,4 @@ async def get_skill_body(
         raise HTTPException(404, f"skill not found: {plugin}/{skill}")
     manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
     return PlainTextResponse(manifest.body.strip())
-
 

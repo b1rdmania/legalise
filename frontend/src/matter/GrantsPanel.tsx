@@ -110,6 +110,19 @@ function manifestName(entry: V2ManifestEntry): string {
   return typeof n === "string" ? n : entry.module_id;
 }
 
+function installedModuleEntry(row: InstalledModule): V2ManifestEntry {
+  return {
+    module_id: row.module_id,
+    source_kind: "installed",
+    manifest: {
+      name: row.module_id,
+      capabilities: Array.isArray(row.capabilities) ? row.capabilities : [],
+    },
+    is_valid: true,
+    validation_errors: [],
+  };
+}
+
 export function GrantsPanel({ slug }: { slug: string }) {
   const [grants, setGrants] = useState<GrantsQuery>({ status: "loading" });
   const [catalog, setCatalog] = useState<CatalogQuery>({ status: "loading" });
@@ -179,12 +192,21 @@ export function GrantsPanel({ slug }: { slug: string }) {
   // retained server-side as defence-in-depth.
   const moduleOptions = useMemo(() => {
     if (catalog.status !== "ready") return [];
-    return catalog.modules.filter(
+    const byId = new Map<string, V2ManifestEntry>();
+    for (const m of catalog.modules) byId.set(m.module_id, m);
+    if (installed !== null) {
+      for (const row of installed.values()) {
+        if (!byId.has(row.module_id)) {
+          byId.set(row.module_id, installedModuleEntry(row));
+        }
+      }
+    }
+    return Array.from(byId.values()).filter(
       (m) =>
         m.is_valid &&
         capabilitiesOf(m).some((c) => c.scope === "matter"),
     );
-  }, [catalog]);
+  }, [catalog, installed]);
 
   const selectedManifest = useMemo(
     () => moduleOptions.find((m) => m.module_id === selectedModule) ?? null,
@@ -295,7 +317,14 @@ export function GrantsPanel({ slug }: { slug: string }) {
       capabilityId: string;
       moduleName: string;
     }> = [];
-    for (const m of catalog.modules) {
+    const byId = new Map<string, V2ManifestEntry>();
+    for (const m of catalog.modules) byId.set(m.module_id, m);
+    for (const row of installed.values()) {
+      if (!byId.has(row.module_id)) {
+        byId.set(row.module_id, installedModuleEntry(row));
+      }
+    }
+    for (const m of byId.values()) {
       if (!m.is_valid) continue;
       // Phase 14.5 B — extra AND clause: module must be installed
       // AND enabled. Strictly an addition to the Phase 14 D
