@@ -38,7 +38,9 @@ from app.core.matter_artifacts import write_artifact
 from app.core.phase1_runtime import audit_phase1
 from app.core.posture_gate import PostureBlocked, check_posture
 from app.core.runtime import InvocationContext
+from app.core.source_anchors import build_document_anchor
 from app.models import Document, DocumentBody, Matter
+from app.models.document_body import BODY_KIND_EXTRACTED
 
 
 MODULE_ID = "examples.contract-review"
@@ -57,14 +59,21 @@ class Finding:
     severity: str  # "low" | "medium" | "high"
     comment: str
     citation: str
+    source_handles: list[str] | None = None
+    quote: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "clause_id": self.clause_id,
             "severity": self.severity,
             "comment": self.comment,
             "citation": self.citation,
         }
+        if self.source_handles:
+            out["source_handles"] = self.source_handles
+        if self.quote:
+            out["quote"] = self.quote
+        return out
 
 
 @dataclass
@@ -192,6 +201,7 @@ async def review_contract(
     body = await session.scalar(
         select(DocumentBody).where(
             DocumentBody.document_id == document_id,
+            DocumentBody.kind == BODY_KIND_EXTRACTED,
         )
     )
     document_text = body.extracted_text if body is not None else ""
@@ -232,7 +242,10 @@ async def review_contract(
         "You are a UK contract review assistant. Identify clauses "
         "that warrant a solicitor's attention. Return STRICT JSON: "
         '{"findings": [{"clause_id":str,"severity":str,'
-        '"comment":str,"citation":str}]}. No prose.'
+        '"comment":str,"citation":str,'
+        '"source_handles":["D1"],"quote":"verbatim excerpt"}]}. '
+        "Use source_handles only from the document handles in the prompt. "
+        "No prose."
     )
     response = await provider_call(prompt, system=system)
 
@@ -275,7 +288,10 @@ async def review_contract(
         module_id=MODULE_ID,
         invocation_id=invocation_id,
         kind="findings_pack",
-        payload={"findings": [f.to_dict() for f in findings]},
+        payload={
+            "findings": [f.to_dict() for f in findings],
+            **_build_source_payload(document, document_text, findings),
+        },
         actor_user_id=actor_user_id,
     )
 
@@ -323,6 +339,7 @@ def _build_prompt(document: Document, document_text: str) -> str:
     return (
         f"Review the following contract for clauses warranting "
         f"attention.\n\n"
+        "Document handle: D1\n"
         f"Document: {document.filename}\n"
         f"Content begins below:\n---\n"
         f"{body_block}\n---"
@@ -346,12 +363,74 @@ def _parse_findings(text: str) -> list[Finding]:
     for entry in raw_findings:
         if not isinstance(entry, dict):
             continue
+        raw_handles = entry.get("source_handles")
+        source_handles = (
+            [str(h) for h in raw_handles if isinstance(h, str)]
+            if isinstance(raw_handles, list)
+            else None
+        )
         out.append(
             Finding(
                 clause_id=str(entry.get("clause_id", "")),
                 severity=str(entry.get("severity", "low")),
                 comment=str(entry.get("comment", "")),
                 citation=str(entry.get("citation", "")),
+                source_handles=source_handles or None,
+                quote=str(entry["quote"]) if entry.get("quote") else None,
             )
         )
     return out
+
+
+def _build_source_payload(
+    document: Document,
+    document_text: str,
+    findings: list[Finding],
+) -> dict[str, Any]:
+    """Build the structured Source Anchors payload for Contract Review.
+
+    Contract Review v1 operates on exactly one document. The model may
+    cite the handle ``D1`` and suggest a quote, but server code fills
+    the real document identity and checks whether the quote occurs in
+    the extracted body. Unknown handles are ignored. There is no
+    verified/proven flag.
+    """
+    anchors: list[dict[str, Any]] = [
+        build_document_anchor(
+            anchor_id="src_d1",
+            document_id=str(document.id),
+            filename=document.filename,
+            sha256=document.sha256,
+            body_text=document_text,
+        )
+    ]
+    claims: list[dict[str, Any]] = []
+    quote_n = 0
+    for idx, finding in enumerate(findings, start=1):
+        anchor_ids: list[str] = []
+        if finding.source_handles and "D1" in finding.source_handles:
+            anchor_ids.append("src_d1")
+            if finding.quote:
+                quote_n += 1
+                quote_id = f"src_q{quote_n}"
+                anchors.append(
+                    build_document_anchor(
+                        anchor_id=quote_id,
+                        document_id=str(document.id),
+                        filename=document.filename,
+                        sha256=document.sha256,
+                        body_text=document_text,
+                        quote=finding.quote,
+                    )
+                )
+                anchor_ids.append(quote_id)
+        claim_text = finding.comment or finding.citation or finding.clause_id
+        if claim_text:
+            claims.append(
+                {
+                    "id": f"finding_{idx}",
+                    "text": claim_text,
+                    "anchor_ids": anchor_ids,
+                }
+            )
+    return {"source_anchors": anchors, "claims": claims}
