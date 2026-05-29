@@ -12,8 +12,8 @@
  *             sandbox_profile_missing
  *
  * Action policy (mirrors substrate):
- *   - "trust"  — non-terminal, non-granted: advance one step
- *   - "grant"  — only valid at the granted-ready boundary; persists
+ *   - "trust"  — non-terminal, non-granted: advance one review step
+ *   - "grant"  — only rendered at the granted-ready boundary; persists
  *                InstalledModule and emits module.enabled
  *   - "reject" — any non-terminal: emits module.denied + returns to /modules
  *
@@ -147,6 +147,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
   const c = q.ceremony;
   const isTerminal = c.is_terminal;
   const isFailure = TERMINAL_FAILURE_STATES.has(c.state);
+  const canEnable = c.state === "granted";
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
@@ -185,28 +186,30 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
       {/* Controls */}
       {!isTerminal && (
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => onAdvance("trust")}
-            disabled={adv.kind === "running"}
-            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
-          >
-            {adv.kind === "running" && adv.action === "trust"
-              ? "Advancing…"
-              : c.state === "granted"
-                ? "Trust (already granted)"
-                : "Trust + continue"}
-          </button>
-          <button
-            type="button"
-            onClick={() => onAdvance("grant")}
-            disabled={adv.kind === "running"}
-            className="inline-flex items-center rounded-md border border-ink px-4 py-2 text-ink hover:bg-ink hover:text-paper disabled:opacity-50"
-          >
-            {adv.kind === "running" && adv.action === "grant"
-              ? "Enabling…"
-              : "Grant + enable"}
-          </button>
+          {!canEnable && (
+            <button
+              type="button"
+              onClick={() => onAdvance("trust")}
+              disabled={adv.kind === "running"}
+              className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+            >
+              {adv.kind === "running" && adv.action === "trust"
+                ? "Advancing…"
+                : "Continue review"}
+            </button>
+          )}
+          {canEnable && (
+            <button
+              type="button"
+              onClick={() => onAdvance("grant")}
+              disabled={adv.kind === "running"}
+              className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+            >
+              {adv.kind === "running" && adv.action === "grant"
+                ? "Enabling…"
+                : "Enable module"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onAdvance("reject")}
