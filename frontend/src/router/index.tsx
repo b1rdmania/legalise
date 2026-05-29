@@ -24,6 +24,7 @@ import { AuthGate } from "../app/AuthGate";
 import { ModulesCatalog } from "../modules-v2/ModulesCatalog";
 import { ModuleDetail } from "../modules-v2/ModuleDetail";
 import { CreateModule } from "../modules-v2/CreateModule";
+import { LawveImport } from "../modules-v2/LawveImport";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
@@ -267,6 +268,12 @@ const createModuleRoute = createRoute({
   component: CreateModule,
 });
 
+const lawveImportRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/modules/lawve",
+  component: LawveImport,
+});
+
 const moduleDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/modules/$moduleId",
@@ -399,6 +406,7 @@ const routeTree = rootRoute.addChildren([
     settingsKeysRoute,
     settingsPreferencesRoute,
     createModuleRoute,
+    lawveImportRoute,
     moduleDetailRoute,
     moduleInstallRoute,
     matterAuditRoute,
