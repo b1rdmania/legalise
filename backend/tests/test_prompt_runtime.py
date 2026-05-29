@@ -59,7 +59,7 @@ def _prompt_manifest(*, with_instructions: bool = True) -> dict:
                 "scope": "matter",
                 "reads": ["document.body.read"],
                 "writes": ["matter.artifact.write"],
-                "model_access": "optional",
+                "model_access": "required",
                 "external_network": False,
                 "data_movement": {"external_destinations": [], "local_only": True},
                 "gates": ["privilege_posture"],
@@ -71,7 +71,22 @@ def _prompt_manifest(*, with_instructions: bool = True) -> dict:
                     "model.invoked",
                     "module.capability.completed",
                 ],
-            }
+            },
+            {
+                "id": "default-provider",
+                "kind": "provider",
+                "scope": "workspace",
+                "reads": [],
+                "writes": [],
+                "model_access": "none",
+                "external_network": False,
+                "data_movement": {"external_destinations": [], "local_only": True},
+                "gates": [],
+                "ui": {"slot": "matter.workflows", "label": "Provider (internal)"},
+                "streaming_mode": "sync",
+                "advice_tier_max": "factual_extraction",
+                "audit_events": ["model.invoked"],
+            },
         ],
     }
 
@@ -263,7 +278,7 @@ async def test_prompt_invocation_happy_path(client, stub_gateway) -> None:
         )
     assert "module.capability.invoked" in actions
     assert "module.capability.completed" in actions
-    assert any(a.startswith("model.") for a in actions)
+    assert "model.invoked" in actions
 
 
 @pytest.mark.asyncio
@@ -308,6 +323,35 @@ async def test_prompt_invocation_requires_read_grant(client, stub_gateway) -> No
     detail = resp.json()["detail"]
     assert detail["error"] == "capability_denied"
     assert detail["capability"] == "document.body.read"
+
+
+@pytest.mark.asyncio
+async def test_advice_boundary_denial_translates_to_403(client, stub_gateway, monkeypatch) -> None:
+    # The executor raises PermissionError when the advice-boundary gate
+    # denies. The endpoint must surface that as a structured 403, not a
+    # generic 500. Guard the translation directly.
+    email = await _register_admin_solicitor(client)
+    await _install_prompt_module(client)
+    slug, _matter_id, _doc_id = await _make_cleared_matter(client, email)
+    await _grant_caps(client, slug)
+
+    import app.api.invocations as inv
+
+    async def _raise_permission(*args, **kwargs):
+        raise PermissionError("advice-boundary gate denied: {'status': 'denied'}")
+
+    monkeypatch.setattr(inv, "dispatch_capability", _raise_permission)
+
+    resp = await client.post(
+        f"/api/matters/{slug}/invocations",
+        json={
+            "module_id": MODULE_ID,
+            "capability_id": CAPABILITY_ID,
+            "args": {"input": "x"},
+        },
+    )
+    assert resp.status_code == 403, resp.text
+    assert resp.json()["detail"]["error"] == "advice_boundary_denied"
 
 
 @pytest.mark.asyncio

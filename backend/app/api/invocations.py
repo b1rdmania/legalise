@@ -309,6 +309,14 @@ async def invoke_capability_endpoint(
                 "message": str(exc),
             },
         )
+    except PermissionError as exc:
+        # Advice-boundary gate denial (capability raises PermissionError
+        # when advice_boundary_check returns not-allowed). Surface as a
+        # structured 403 rather than a generic 500.
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "advice_boundary_denied", "message": str(exc)},
+        )
     except ValueError as exc:
         # The capability raised on bad args (or unknown claim_type,
         # empty document_ids, etc.).

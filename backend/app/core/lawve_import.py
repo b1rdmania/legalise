@@ -313,7 +313,13 @@ def build_manifest_draft(detail: dict, overrides: dict | None = None) -> dict:
                 "scope": "matter",
                 "reads": cap.get("reads") or list(DEFAULT_READS),
                 "writes": cap.get("writes") or list(DEFAULT_WRITES),
-                "model_access": cap.get("model_access") or "optional",
+                # A prompt-runtime skill always calls the model gateway, so
+                # it declares model access as REQUIRED (not "optional") —
+                # honest declaration on the permission card. The validator
+                # then requires a provider capability; the internal
+                # provider capability below satisfies it, mirroring the
+                # first-party Contract Review / Pre-Motion pattern.
+                "model_access": cap.get("model_access") or "required",
                 "external_network": False,
                 "data_movement": {"external_destinations": [], "local_only": True},
                 "gates": cap.get("gates") or list(DEFAULT_GATES),
@@ -321,7 +327,27 @@ def build_manifest_draft(detail: dict, overrides: dict | None = None) -> dict:
                 "streaming_mode": "sync",
                 "advice_tier_max": cap.get("advice_tier_max") or DEFAULT_ADVICE_TIER_MAX,
                 "audit_events": audit_events,
-            }
+            },
+            # Internal provider capability — declares the module's model
+            # dependency. kind=provider + scope=workspace keeps it
+            # non-invokable directly (it's not in the invokable-kinds set);
+            # the prompt runtime routes model calls through the host
+            # gateway with the user's configured provider key.
+            {
+                "id": "default-provider",
+                "kind": "provider",
+                "scope": "workspace",
+                "reads": [],
+                "writes": [],
+                "model_access": "none",
+                "external_network": False,
+                "data_movement": {"external_destinations": [], "local_only": True},
+                "gates": [],
+                "ui": {"slot": "matter.workflows", "label": "Provider (internal)"},
+                "streaming_mode": "sync",
+                "advice_tier_max": "factual_extraction",
+                "audit_events": ["model.invoked"],
+            },
         ],
     }
 

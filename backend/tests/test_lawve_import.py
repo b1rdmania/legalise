@@ -141,9 +141,15 @@ async def test_draft_prompt_only_validates_as_prompt_runtime() -> None:
     codes = {w["code"] for w in res["warnings"]}
     assert "needs_runtime_decision" not in codes
     # Conservative capability defaults + top-level provenance.
-    cap = res["manifest"]["capabilities"][0]
+    caps = res["manifest"]["capabilities"]
+    cap = caps[0]
     assert cap["reads"] == ["document.body.read"]
     assert cap["advice_tier_max"] == "draft_advice"
+    # A prompt runtime always calls the model — declared honestly as
+    # required, satisfied by the internal provider capability (mirrors the
+    # first-party module pattern, keeps direct provider invocation blocked).
+    assert cap["model_access"] == "required"
+    assert any(c["kind"] == "provider" for c in caps)
     assert res["manifest"]["license"] == "Apache-2.0"
     assert res["manifest"]["source_url"].endswith(
         "/tree/abc123sha/skills/contract-review-anthropic"

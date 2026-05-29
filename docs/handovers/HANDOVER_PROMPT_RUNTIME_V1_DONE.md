@@ -92,12 +92,13 @@ reference bodies get embedded later and manifests grow large, revisit a
 module-package storage shape (flagged, not hit).
 
 ## Tests
-- `backend/tests/test_prompt_runtime.py` (new, 6): schema accepts prompt
+- `backend/tests/test_prompt_runtime.py` (new, 7): schema accepts prompt
   runtime; schema rejects prompt without instructions; invocation happy
-  path (200 + `skill_response` artifact + invoked/model/completed audit
-  chain); write-grant enforced (no-doc invoke → 403 on
+  path (200 + `skill_response` artifact + invoked/`model.invoked`/completed
+  audit chain); write-grant enforced (no-doc invoke → 403 on
   `matter.artifact.write`); read-grant enforced (doc invoke → 403 on
-  `document.body.read`); missing provider key → 422.
+  `document.body.read`); advice-boundary denial → 403
+  `advice_boundary_denied`; missing provider key → 422.
 - `backend/tests/test_lawve_import.py` (updated): prompt-only draft now
   validates as `runtime: "prompt"`; native override still validates.
 - `frontend` `LawveImport.test.tsx` (updated, 4): prompt-only convert →
@@ -118,11 +119,25 @@ module-package storage shape (flagged, not hit).
 - audit/reconstruction shows module/model/artifact chain ✓
 - scripts unexecuted ✓ · licence/provenance warnings visible ✓
 
+## Reviewer redlines applied (post-review patch)
+- **P1 — `model_access: required` (was `optional`).** An always-model-
+  calling runtime under-declaring as optional was too slippery. Imported
+  prompt skills now declare the skill capability `model_access:
+  "required"` and carry an internal `kind: "provider"` capability
+  (`default-provider`, scope `workspace`, model_access `none`) — mirrors
+  the Contract Review / Pre-Motion pattern and satisfies the validator's
+  required-provider check. Provider kind stays non-invokable (not in the
+  invokable-kinds set). Test added: prompt draft validates with
+  `model_access: required` + a provider capability present.
+- **P2 — advice-boundary denial → 403.** `invocations.py` now translates
+  `PermissionError` to a structured `403 advice_boundary_denied` (was an
+  untranslated 500). Covers prompt runtime AND the inherited Contract
+  Review/Pre-Motion path. Regression test added.
+- **P2 — happy-path test pins `model.invoked`** specifically (was
+  `startswith("model.")`).
+
 ## Remaining limitations / next
 - Reference bodies not embedded (see above).
-- `model_access` stays `optional` for imported skills (avoids the
-  validator's required-provider check, which expects a provider
-  capability/dependency). The prompt runtime still calls the model.
 - No MCP runtime yet (separate track).
 
 ## For reviewer
