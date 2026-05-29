@@ -238,6 +238,7 @@ export function GrantsPanel({
   const [keys, setKeys] = useState<KeyQuery>({ status: "loading" });
   const [createState, setCreateState] = useState<CreateState>({ kind: "idle" });
   const [revokeState, setRevokeState] = useState<RevokeState>({ kind: "idle" });
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [selectedCap, setSelectedCap] = useState<string>("");
@@ -472,6 +473,70 @@ export function GrantsPanel({
     return out;
   }, [catalog, defaultModelId, grants, installed, keys]);
 
+  const setupSuggestions = useMemo<
+    Array<{
+      moduleId: string;
+      capabilityId: string;
+      moduleName: string;
+      granted: number;
+      required: number;
+      status: "ready" | "needs_permissions";
+    }>
+  >(() => {
+    if (
+      catalog.status !== "ready" ||
+      grants.status !== "ready" ||
+      installed === null
+    ) {
+      return [];
+    }
+    const matterGrantsBySkill = new Map<string, Set<string>>();
+    for (const g of grants.grants) {
+      if (g.scope_type !== "matter") continue;
+      const key = `${g.plugin}::${g.skill}`;
+      const bag = matterGrantsBySkill.get(key) ?? new Set<string>();
+      bag.add(g.capability);
+      matterGrantsBySkill.set(key, bag);
+    }
+    const byId = new Map<string, V2ManifestEntry>();
+    for (const m of catalog.modules) byId.set(m.module_id, m);
+    for (const row of installed.values()) {
+      if (!byId.has(row.module_id)) byId.set(row.module_id, installedModuleEntry(row));
+    }
+    const out: Array<{
+      moduleId: string;
+      capabilityId: string;
+      moduleName: string;
+      granted: number;
+      required: number;
+      status: "ready" | "needs_permissions";
+    }> = [];
+    for (const m of byId.values()) {
+      if (!m.is_valid) continue;
+      const inst = installed.get(m.module_id);
+      if (!inst || !inst.enabled) continue;
+      for (const c of capabilitiesOf(m)) {
+        if (c.scope !== "matter") continue;
+        const required = [...c.reads, ...c.writes];
+        if (required.length === 0) continue;
+        const bag = matterGrantsBySkill.get(`${m.module_id}::${c.id}`) ?? new Set<string>();
+        const granted = required.filter((s) => bag.has(s)).length;
+        out.push({
+          moduleId: m.module_id,
+          capabilityId: c.id,
+          moduleName: manifestName(m),
+          granted,
+          required: required.length,
+          status: granted === required.length ? "ready" : "needs_permissions",
+        });
+      }
+    }
+    return out.sort((a, b) => {
+      if (a.status !== b.status) return a.status === "ready" ? -1 : 1;
+      return `${a.moduleName} ${a.capabilityId}`.localeCompare(`${b.moduleName} ${b.capabilityId}`);
+    });
+  }, [catalog, grants, installed]);
+
   return (
     <section className="mt-10 rounded-md border border-line bg-paper p-4">
       <h2 className="text-sm uppercase tracking-widest text-muted">
@@ -482,6 +547,50 @@ export function GrantsPanel({
         records what each action touched, which model ran, what output
         was written, and how it was reviewed.
       </p>
+
+      {setupSuggestions.length > 0 && (
+        <div className="mt-4 grid gap-px border border-line bg-line sm:grid-cols-2">
+          {setupSuggestions.slice(0, 4).map((item) => (
+            <div key={`${item.moduleId}::${item.capabilityId}`} className="bg-paper p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-ink">{item.capabilityId}</p>
+                  <p className="mt-0.5 font-mono text-[11px] text-muted">
+                    {item.moduleName === item.moduleId
+                      ? "Installed module"
+                      : item.moduleName}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${
+                    item.status === "ready"
+                      ? "border-line text-muted"
+                      : "border-amber-500/40 bg-amber-50 text-amber-900"
+                  }`}
+                >
+                  {item.status === "ready" ? "Runnable" : "Needs grant"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-muted">
+                {item.granted}/{item.required} permissions granted on this matter.
+              </p>
+              {item.status === "needs_permissions" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedModule(item.moduleId);
+                    setSelectedCap(item.capabilityId);
+                    setSetupOpen(true);
+                  }}
+                  className="mt-3 text-xs underline underline-offset-4 hover:text-seal"
+                >
+                  Grant permissions
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Phase 14 D — runnable capabilities */}
       {runnablePairs.length > 0 && (
@@ -534,7 +643,11 @@ export function GrantsPanel({
         </div>
       )}
 
-      <details className="mt-6 rounded-md border border-line bg-paper-sunken p-4">
+      <details
+        className="mt-6 rounded-md border border-line bg-paper-sunken p-4"
+        open={setupOpen}
+        onToggle={(e) => setSetupOpen(e.currentTarget.open)}
+      >
         <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted">
           Permissions and setup
         </summary>

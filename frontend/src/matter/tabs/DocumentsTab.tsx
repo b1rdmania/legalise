@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, DragEvent } from "react";
 import { Link } from "@tanstack/react-router";
+import { FileUp } from "lucide-react";
 import type { MatterDocument } from "../../lib/api";
 import { UploadError } from "../../lib/api";
 import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
@@ -36,6 +37,22 @@ function formatDate(iso: string): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+type IngressStatus =
+  | { kind: "idle" }
+  | { kind: "uploading"; done: number; total: number; current: string }
+  | { kind: "done"; count: number }
+  | { kind: "error"; message: string };
+
+const TAG_OPTIONS = [
+  { value: "", label: "No tag" },
+  { value: "disclosure", label: "Disclosure" },
+  { value: "draft", label: "Draft" },
+  { value: "cleared", label: "Cleared" },
+  { value: "signed", label: "Signed" },
+] as const;
+
+const ACCEPTED_TYPES = ".pdf,.docx,.txt";
+
 export function DocumentsTab({
   slug,
   docs,
@@ -52,32 +69,48 @@ export function DocumentsTab({
   const [tag, setTag] = useState("");
   const [fromDisclosure, setFromDisclosure] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [ingress, setIngress] = useState<IngressStatus>({ kind: "idle" });
+  const [dragging, setDragging] = useState(false);
 
-  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploadError(null);
-    try {
-      await onUpload(file, tag || undefined, fromDisclosure || undefined);
-    } catch (err) {
-      // Caller may rethrow UploadError so the inline banner can show
-      // the friendly message. Anything else falls through to a
-      // generic message; the page-level banner still catches it too.
-      if (err instanceof UploadError) {
-        setUploadError(err.message);
-      } else {
-        setUploadError("Upload failed. Try again or pick a different file.");
+    setIngress({ kind: "uploading", done: 0, total: files.length, current: files[0].name });
+    for (let i = 0; i < files.length; i += 1) {
+      const file = files[i];
+      setIngress({ kind: "uploading", done: i, total: files.length, current: file.name });
+      try {
+        await onUpload(file, tag || undefined, fromDisclosure || undefined);
+      } catch (err) {
+        // Caller may rethrow UploadError so the inline banner can show
+        // the friendly message. Anything else falls through to a
+        // generic message; the page-level banner still catches it too.
+        const message =
+          err instanceof UploadError
+            ? err.message
+            : `Upload failed for ${file.name}. Try again or pick a different file.`;
+        setUploadError(message);
+        setIngress({ kind: "error", message });
+        return;
       }
     }
+    setIngress({ kind: "done", count: files.length });
+  };
+
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    await uploadFiles(files);
     e.target.value = "";
   };
 
-  // Phase 17-IA-B: compact upload control. The prior version was an
-  // outsized band (big input + large padding) that dominated the
-  // documents view (MD-3). Keep 16px text (mobile no-zoom) but tighten
-  // padding and constrain the tag field width.
+  const onDrop = async (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    await uploadFiles(Array.from(e.dataTransfer.files ?? []));
+  };
+
   const inputCls =
-    "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink w-44";
+    "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
 
   // Column template shared by the header row and each data row so columns
   // stay aligned. Document gets the largest fr; full SHA moves into the
@@ -88,27 +121,85 @@ export function DocumentsTab({
 
   return (
     <div className="max-w-4xl">
-      <form className="mb-8 flex flex-wrap items-center gap-3 border border-rule bg-wash px-3 py-2.5">
-        <input
-          value={tag}
-          onChange={(e) => setTag(e.target.value)}
-          className={inputCls}
-          placeholder="Tag (optional)"
-          aria-label="Document tag"
-        />
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            checked={fromDisclosure}
-            onChange={(e) => setFromDisclosure(e.target.checked)}
-          />
-          From disclosure (CPR 31)
-        </label>
-        <label className="ml-auto bg-ink text-paper px-3 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[40px] inline-flex items-center cursor-pointer">
-          Upload document
-          <input type="file" className="hidden" onChange={onFile} />
-        </label>
-      </form>
+      <section className="mb-8 border border-rule bg-paper">
+        <div className="border-b border-rule px-4 py-3">
+          <h2 className="text-sm font-semibold text-ink">Bring documents in</h2>
+          <p className="mt-1 text-sm text-muted">
+            Upload PDFs, Word files, or text. Legalise extracts text, records the
+            SHA, and writes the document upload trail automatically.
+          </p>
+        </div>
+        <div className="grid gap-px bg-rule md:grid-cols-[1.4fr_1fr]">
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            className={`flex min-h-[156px] cursor-pointer flex-col justify-center bg-paper p-5 transition-colors ${
+              dragging ? "bg-wash" : "hover:bg-wash"
+            }`}
+          >
+            <span className="flex h-10 w-10 items-center justify-center border border-rule bg-paper-sunken">
+              <FileUp size={18} aria-hidden="true" />
+            </span>
+            <span className="mt-4 text-base font-medium text-ink">
+              Drop documents here, or click to browse
+            </span>
+            <span className="mt-1 text-sm text-muted">
+              Batch upload is handled one file at a time so each document gets
+              its own hash, extraction result, and audit row.
+            </span>
+            <input
+              type="file"
+              className="hidden"
+              onChange={onFile}
+              multiple
+              accept={ACCEPTED_TYPES}
+              aria-label="Upload documents"
+            />
+          </label>
+          <div className="bg-paper p-5">
+            <div className="grid gap-3">
+              <label className="text-xs uppercase tracking-widest text-muted">
+                Tag
+                <select
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  className={`${inputCls} mt-1 w-full normal-case tracking-normal`}
+                >
+                  {TAG_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-start gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={fromDisclosure}
+                  onChange={(e) => setFromDisclosure(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  From disclosure{" "}
+                  <span className="text-muted">(CPR 31 material)</span>
+                </span>
+              </label>
+              <div className="border-t border-rule pt-3 text-sm text-muted" data-testid="document-ingress-status">
+                {ingress.kind === "idle" && "Ready for matter documents."}
+                {ingress.kind === "uploading" &&
+                  `Uploading ${ingress.done + 1}/${ingress.total}: ${ingress.current}`}
+                {ingress.kind === "done" &&
+                  `${ingress.count} document${ingress.count === 1 ? "" : "s"} uploaded and queued for use.`}
+                {ingress.kind === "error" && ingress.message}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {uploadError && <ErrorCallout message={uploadError} compact />}
 

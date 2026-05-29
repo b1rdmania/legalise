@@ -14,7 +14,7 @@
  * not make it "ready everywhere" — running it is granted from a matter.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   getModulesV2,
@@ -28,6 +28,7 @@ import { PageHeader } from "../ui/primitives";
 import { useAuth } from "../auth/AuthProvider";
 
 type ModuleState = "available" | "installed" | "disabled";
+type StateFilter = "all" | ModuleState;
 
 function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
   const v = (entry.manifest as Record<string, unknown>)[key];
@@ -36,6 +37,25 @@ function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
 function capCount(entry: V2ManifestEntry): number {
   const caps = (entry.manifest as Record<string, unknown>).capabilities;
   return Array.isArray(caps) ? caps.length : 0;
+}
+function capabilityStrings(entry: V2ManifestEntry, key: "reads" | "writes"): string[] {
+  const caps = (entry.manifest as Record<string, unknown>).capabilities;
+  if (!Array.isArray(caps)) return [];
+  const out = new Set<string>();
+  for (const raw of caps) {
+    if (!raw || typeof raw !== "object") continue;
+    const values = (raw as Record<string, unknown>)[key];
+    if (!Array.isArray(values)) continue;
+    for (const value of values) {
+      if (typeof value === "string") out.add(value);
+    }
+  }
+  return [...out].sort();
+}
+function shortPermissionList(values: string[]): string {
+  if (values.length === 0) return "None declared";
+  if (values.length <= 2) return values.join(", ");
+  return `${values.slice(0, 2).join(", ")} +${values.length - 2}`;
 }
 function suiteLabel(plugin: string): string {
   return plugin
@@ -63,6 +83,8 @@ export function ModulesCatalog() {
   const [skillsRepo, setSkillsRepo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSkills, setShowSkills] = useState(false);
+  const [query, setQuery] = useState("");
+  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +123,37 @@ export function ModulesCatalog() {
     return row.enabled ? "installed" : "disabled";
   };
 
+  const filteredModules = useMemo(() => {
+    if (modules === null) return null;
+    const q = query.trim().toLowerCase();
+    return modules.filter((m) => {
+      const st = stateOf(m.module_id);
+      if (stateFilter !== "all" && st !== stateFilter) return false;
+      if (!q) return true;
+      const haystack = [
+        m.module_id,
+        manifestStr(m, "name") ?? "",
+        manifestStr(m, "publisher") ?? "",
+        manifestStr(m, "description") ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [installed, modules, query, stateFilter]);
+
+  const stateCounts = useMemo(() => {
+    const counts: Record<ModuleState, number> = {
+      available: 0,
+      installed: 0,
+      disabled: 0,
+    };
+    if (modules) {
+      for (const m of modules) counts[stateOf(m.module_id)] += 1;
+    }
+    return counts;
+  }, [installed, modules]);
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
@@ -131,9 +184,41 @@ export function ModulesCatalog() {
 
       {/* Primary: reference modules (v2 registry) */}
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-muted">
-          Reference modules
-        </h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xs uppercase tracking-widest text-muted">
+              Reference modules
+            </h2>
+            {modules && (
+              <p className="mt-1 text-sm text-muted">
+                {stateCounts.installed} installed · {stateCounts.disabled} disabled ·{" "}
+                {stateCounts.available} available
+              </p>
+            )}
+          </div>
+          {authed && modules && modules.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search modules"
+                aria-label="Search modules"
+                className="min-h-[38px] w-48 border border-rule bg-paper px-3 text-[16px] text-ink focus:border-ink focus:outline-none"
+              />
+              <select
+                value={stateFilter}
+                onChange={(e) => setStateFilter(e.target.value as StateFilter)}
+                aria-label="Filter module state"
+                className="min-h-[38px] border border-rule bg-paper px-3 text-sm text-ink focus:border-ink focus:outline-none"
+              >
+                <option value="all">All states</option>
+                <option value="installed">Installed</option>
+                <option value="available">Available</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+          )}
+        </div>
         {!authed ? (
           <p className="mt-3 text-sm text-muted" data-testid="modules-signin-prompt">
             Sign in to install and manage governed reference modules. The open
@@ -145,11 +230,17 @@ export function ModulesCatalog() {
           <p className="mt-3 text-sm text-muted">
             No reference modules in the registry yet.
           </p>
+        ) : filteredModules?.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No modules match that search and state filter.
+          </p>
         ) : (
           <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
-            {modules.map((m) => {
+            {filteredModules?.map((m) => {
               const st = stateOf(m.module_id);
               const caps = capCount(m);
+              const reads = capabilityStrings(m, "reads");
+              const writes = capabilityStrings(m, "writes");
               return (
                 <li key={m.module_id} className="bg-paper p-4 hover:bg-wash transition-colors">
                   <Link
@@ -182,6 +273,28 @@ export function ModulesCatalog() {
                     <p className="mt-2 text-xs text-muted">
                       {caps} capabilit{caps === 1 ? "y" : "ies"}
                       {!m.is_valid ? " · manifest invalid" : ""}
+                    </p>
+                    <dl className="mt-3 grid grid-cols-1 gap-2 border-t border-rule pt-3 text-xs sm:grid-cols-2">
+                      <div>
+                        <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+                          Reads
+                        </dt>
+                        <dd className="mt-1 text-ink">
+                          {shortPermissionList(reads)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+                          Writes
+                        </dt>
+                        <dd className="mt-1 text-ink">
+                          {shortPermissionList(writes)}
+                        </dd>
+                      </div>
+                    </dl>
+                    <p className="mt-3 text-xs text-muted">
+                      Running happens inside a matter after permissions are
+                      granted. Install state here is workspace-level.
                     </p>
                   </Link>
                 </li>
