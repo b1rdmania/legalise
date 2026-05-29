@@ -17,7 +17,12 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { readArtifact, requestReview, type ArtifactRead } from "../lib/api";
+import {
+  readArtifact,
+  requestReview,
+  REVIEW_ELIGIBLE_KINDS,
+  type ArtifactRead,
+} from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
 import { DescItem as DT, PageHeader } from "../ui/primitives";
 
@@ -109,7 +114,7 @@ export function ArtifactDetail({
         <ArtifactPreview payload={a.payload} kindHint={a.kind} />
       </section>
 
-      {a.kind === "findings_pack" && (
+      {REVIEW_ELIGIBLE_KINDS.includes(a.kind) && (
         <section className="mt-8 border border-rule p-4">
           <h2 className="text-sm uppercase tracking-widest text-muted">
             Supervisor review

@@ -97,6 +97,30 @@ describe("ArtifactPreview", () => {
     expect(screen.getByText("para 9")).toBeInTheDocument();
   });
 
+  it("renders skill_response as output text + request/model header", () => {
+    // Prompt Runtime writes this kind. Shape per
+    // backend/app/core/prompt_runtime.py write_artifact payload.
+    render(
+      <ArtifactPreview
+        kindHint="skill_response"
+        payload={{
+          output: "The clause is enforceable under UK law.",
+          model_id: "claude-opus-4-7",
+          input: "Is clause 4 enforceable?",
+        }}
+      />,
+    );
+    expect(screen.getByTestId("skill-response-view")).toBeInTheDocument();
+    expect(screen.getByText(/enforceable under UK law/)).toBeInTheDocument();
+    expect(screen.getByText("Is clause 4 enforceable?")).toBeInTheDocument();
+    expect(screen.getByText("claude-opus-4-7")).toBeInTheDocument();
+  });
+
+  it("auto-detects skill_response from an output string when no kindHint", () => {
+    render(<ArtifactPreview kindHint={null} payload={{ output: "hello" }} />);
+    expect(screen.getByTestId("skill-response-view")).toBeInTheDocument();
+  });
+
   it("renders JSON fallback for unknown kinds", () => {
     render(
       <ArtifactPreview

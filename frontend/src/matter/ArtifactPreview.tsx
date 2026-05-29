@@ -46,6 +46,12 @@ interface FindingsPackPayload {
   findings: Finding[];
 }
 
+interface SkillResponsePayload {
+  output: string;
+  model_id?: string;
+  input?: string | null;
+}
+
 function looksLikeMotionDraft(p: unknown): p is MotionDraftPayload {
   if (!p || typeof p !== "object") return false;
   const v = (p as Record<string, unknown>).markdown;
@@ -62,6 +68,12 @@ function looksLikeFindingsPack(p: unknown): p is FindingsPackPayload {
   if (!p || typeof p !== "object") return false;
   const v = (p as Record<string, unknown>).findings;
   return Array.isArray(v);
+}
+
+function looksLikeSkillResponse(p: unknown): p is SkillResponsePayload {
+  if (!p || typeof p !== "object") return false;
+  const v = (p as Record<string, unknown>).output;
+  return typeof v === "string";
 }
 
 export function ArtifactPreview({
@@ -82,7 +94,9 @@ export function ArtifactPreview({
         ? "findings_pack"
         : looksLikeEvidenceList(payload)
           ? "evidence_list"
-          : null);
+          : looksLikeSkillResponse(payload)
+            ? "skill_response"
+            : null);
 
   if (kind === "motion_draft" && looksLikeMotionDraft(payload)) {
     return <MotionDraftView payload={payload} />;
@@ -92,6 +106,9 @@ export function ArtifactPreview({
   }
   if (kind === "evidence_list" && looksLikeEvidenceList(payload)) {
     return <EvidenceListView payload={payload} />;
+  }
+  if (kind === "skill_response" && looksLikeSkillResponse(payload)) {
+    return <SkillResponseView payload={payload} />;
   }
   return <JsonFallback payload={payload} />;
 }
@@ -193,6 +210,31 @@ function FindingsPackView({ payload }: { payload: FindingsPackPayload }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function SkillResponseView({ payload }: { payload: SkillResponsePayload }) {
+  return (
+    <div className="mt-3" data-testid="skill-response-view">
+      {(payload.input || payload.model_id) && (
+        <div className="rounded-md border border-line bg-paper-sunken px-3 py-2 text-sm">
+          {payload.input && (
+            <>
+              <p className="text-xs uppercase tracking-widest text-muted">Request</p>
+              <p className="mt-1">{payload.input}</p>
+            </>
+          )}
+          {payload.model_id && (
+            <p className="mt-1 text-xs text-muted">
+              Model: <code className="font-mono">{payload.model_id}</code>
+            </p>
+          )}
+        </div>
+      )}
+      <pre className="mt-3 max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-paper px-3 py-2 text-sm">
+        {payload.output || "(empty response)"}
+      </pre>
     </div>
   );
 }

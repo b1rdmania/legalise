@@ -1,17 +1,60 @@
 /**
- * Lawve Skill Importer v1 — LawveImport focused tests.
+ * Lawve Skill Importer v1 + External Skills Loop v1 — LawveImport tests.
  *
  * List/search render; detail shows provenance + the scripts manual-review
- * flag; convert shows the draft trust-state + warnings + manifest, and a
- * prompt-only skill is honestly NOT installable (no install button).
+ * flag; convert shows the draft trust-state + warnings + manifest. Loop v1:
+ * a valid draft offers a one-click "Install this draft" CTA to admins
+ * (posts the inline manifest + navigates to the trust ceremony) and a
+ * softened "ask an administrator" note to non-admins — never a dead button.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+} from "@tanstack/react-router";
 
 import { LawveImport } from "./LawveImport";
+import { AuthProvider } from "../auth/AuthProvider";
 import * as api from "../lib/api";
 import type { LawveDraftResult, LawveSkillDetail, LawveSkillRow } from "../lib/api";
+
+function mountLawve() {
+  const root = createRootRoute({ component: () => <Outlet /> });
+  const lawveRoute = createRoute({
+    getParentRoute: () => root,
+    path: "/modules/lawve",
+    component: () => <LawveImport />,
+  });
+  const ceremonyStub = createRoute({
+    getParentRoute: () => root,
+    path: "/modules/install/$ceremonyId",
+    component: () => <div data-testid="ceremony-stub" />,
+  });
+  const router = createRouter({
+    routeTree: root.addChildren([lawveRoute, ceremonyStub]),
+    history: createMemoryHistory({ initialEntries: ["/modules/lawve"] }),
+  });
+  return render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  );
+}
+
+function mockUser(isAdmin: boolean) {
+  vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+    id: "u-1",
+    email: isAdmin ? "admin@example.com" : "user@example.com",
+    role: "qualified_solicitor",
+    is_superuser: isAdmin,
+  } as never);
+}
 
 function row(over: Partial<LawveSkillRow> = {}): LawveSkillRow {
   return {
@@ -71,6 +114,7 @@ function draft(over: Partial<LawveDraftResult> = {}): LawveDraftResult {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  mockUser(true);
   vi.spyOn(api, "listLawveSkills").mockResolvedValue({
     source: "lawve",
     repo: "lawve-ai/awesome-legal-skills",
@@ -85,7 +129,7 @@ afterEach(() => cleanup());
 
 describe("LawveImport", () => {
   it("lists skills and filters by search", async () => {
-    render(<LawveImport />);
+    mountLawve();
     await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());
     expect(screen.getByTestId("lawve-card-office-processor")).toBeInTheDocument();
     fireEvent.change(screen.getByTestId("lawve-search"), { target: { value: "office" } });
@@ -99,7 +143,7 @@ describe("LawveImport", () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(
       detail({ slug: "office-processor", name: "Office Processor", has_scripts: true, scripts: ["skills/office-processor/scripts/run.py"] }),
     );
-    render(<LawveImport />);
+    mountLawve();
     await waitFor(() => expect(screen.getByTestId("lawve-card-office-processor")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("lawve-card-office-processor"));
     await waitFor(() => expect(screen.getByTestId("lawve-detail")).toBeInTheDocument());
@@ -109,7 +153,7 @@ describe("LawveImport", () => {
   it("converts a prompt-only skill to a valid draft (Ready to sign, no install button)", async () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
-    render(<LawveImport />);
+    mountLawve();
     await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("lawve-card-contract-review-anthropic"));
     await waitFor(() => expect(screen.getByTestId("convert-draft")).toBeInTheDocument());
@@ -118,9 +162,46 @@ describe("LawveImport", () => {
     expect(screen.getByTestId("draft-trust-state")).toHaveTextContent(/ready to sign/i);
     // Manifest carries the prompt runtime.
     expect(screen.getByTestId("draft-review")).toHaveTextContent(/"runtime": "prompt"/);
-    // No install affordance — sign/install only through the ceremony.
-    expect(screen.queryByText(/^install$/i)).toBeNull();
     expect(screen.getByText(/Download manifest/)).toBeInTheDocument();
+    // Continuity: a valid draft is installable by an admin (default user).
+    expect(screen.getByTestId("install-draft")).toBeInTheDocument();
+  });
+
+  it("installs a valid draft: posts the inline manifest + navigates to the ceremony", async () => {
+    vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
+    vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
+    const startInstall = vi
+      .spyOn(api, "startInstall")
+      .mockResolvedValue({ ceremony_id: "cer-123" } as never);
+    mountLawve();
+    await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("lawve-card-contract-review-anthropic"));
+    await waitFor(() => expect(screen.getByTestId("convert-draft")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("convert-draft"));
+    await waitFor(() => expect(screen.getByTestId("install-draft")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("install-draft"));
+    await waitFor(() => {
+      expect(startInstall).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "manifest" }),
+      );
+    });
+    // Navigated to the trust ceremony stub.
+    await waitFor(() => expect(screen.getByTestId("ceremony-stub")).toBeInTheDocument());
+    const arg = startInstall.mock.calls[0][0] as { manifest?: { runtime?: string } };
+    expect(arg.manifest?.runtime).toBe("prompt");
+  });
+
+  it("hides the install button for non-admins and shows an ask-an-admin note", async () => {
+    mockUser(false);
+    vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
+    vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
+    mountLawve();
+    await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("lawve-card-contract-review-anthropic"));
+    await waitFor(() => expect(screen.getByTestId("convert-draft")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("convert-draft"));
+    await waitFor(() => expect(screen.getByTestId("install-admin-note")).toBeInTheDocument());
+    expect(screen.queryByTestId("install-draft")).toBeNull();
   });
 
   it("shows Needs licence review when an AGPL warning is present", async () => {
@@ -128,7 +209,7 @@ describe("LawveImport", () => {
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(
       draft({ warnings: [{ code: "license_review", message: "AGPL — review before install." }] }),
     );
-    render(<LawveImport />);
+    mountLawve();
     await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());
     fireEvent.click(screen.getByTestId("lawve-card-contract-review-anthropic"));
     await waitFor(() => expect(screen.getByTestId("convert-draft")).toBeInTheDocument());

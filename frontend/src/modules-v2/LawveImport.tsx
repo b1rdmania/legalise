@@ -9,14 +9,17 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   draftLawveModule,
   getLawveSkill,
   listLawveSkills,
+  startInstall,
   type LawveDraftResult,
   type LawveSkillDetail,
   type LawveSkillRow,
 } from "../lib/api";
+import { useAuth } from "../auth/AuthProvider";
 import { Badge, ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
 
 type ListQuery =
@@ -250,6 +253,29 @@ export function LawveImport() {
 function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string }) {
   const manifestJson = JSON.stringify(draft.manifest, null, 2);
   const [copied, setCopied] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [installErr, setInstallErr] = useState<string | null>(null);
+  const auth = useAuth();
+  const nav = useNavigate();
+  const isAdmin = auth.user?.is_superuser === true;
+
+  const install = async () => {
+    setInstalling(true);
+    setInstallErr(null);
+    try {
+      const ceremony = await startInstall({
+        source: "manifest",
+        manifest: draft.manifest as Record<string, unknown>,
+      });
+      void nav({
+        to: "/modules/install/$ceremonyId",
+        params: { ceremonyId: ceremony.ceremony_id },
+      });
+    } catch (err) {
+      setInstallErr(String(err));
+      setInstalling(false);
+    }
+  };
 
   const copy = async () => {
     try {
@@ -321,18 +347,48 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
         </button>
       </div>
 
-      <div className="mt-3 text-xs text-muted">
-        <p className="font-semibold text-ink">Next steps (the importer never installs):</p>
-        <ul className="mt-1 list-disc pl-4">
+      {/* Continuity: a valid draft installs through the trust ceremony
+          directly — no copy-paste into another screen. Install is
+          admin-gated (the ceremony's grant step is require_admin), so
+          non-admins get a clear ask rather than a dead button. */}
+      <div className="mt-4 border-t border-rule pt-3">
+        <p className="text-xs uppercase tracking-widest text-muted">
+          Imported skill → module draft → trust ceremony → installed module → grant per matter
+        </p>
+        {draft.valid ? (
+          isAdmin ? (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={install}
+                disabled={installing}
+                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+                data-testid="install-draft"
+              >
+                {installing ? "Starting ceremony…" : "Install this draft"}
+              </button>
+              <p className="mt-2 text-xs text-muted">
+                Opens the trust ceremony — you review permissions and grant before it
+                installs. The importer never installs without that confirmation.
+              </p>
+              {installErr && <ErrorCallout message={installErr} compact />}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-muted" data-testid="install-admin-note">
+              Installing a module is an administrator action. Ask an administrator to
+              install this module, or copy/download the manifest above to hand off.
+            </p>
+          )
+        ) : (
+          <p className="mt-2 text-xs text-muted">
+            Resolve the validation errors above before this draft can be installed.
+          </p>
+        )}
+        <ul className="mt-3 list-disc pl-4 text-xs text-muted">
           {draft.next_steps.map((s, i) => (
             <li key={i}>{s}</li>
           ))}
         </ul>
-        <p className="mt-2">
-          Validate + sign + install through the existing module flow —{" "}
-          <a href="/modules/create" className="underline hover:text-ink">/modules/create</a>{" "}
-          and the trust ceremony. No one-click install here.
-        </p>
       </div>
     </div>
   );
