@@ -443,7 +443,12 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
           {tab === "research" && matter && <ResearchTab matter={matter} />}
-          {matter && <GrantsPanel slug={matter.slug} />}
+          {matter && (
+            <GrantsPanel
+              slug={matter.slug}
+              defaultModelId={matter.default_model_id}
+            />
+          )}
         </main>
         {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
           <RightRailAssistant

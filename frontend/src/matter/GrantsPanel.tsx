@@ -26,6 +26,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createGrant,
   getModulesV2,
+  listApiKeys,
   listGrants,
   listInstalledModules,
   ModuleDisabledError,
@@ -33,6 +34,7 @@ import {
   revokeGrant,
   type GrantRow,
   type InstalledModule,
+  type UserApiKeyRead,
   type V2ManifestEntry,
 } from "../lib/api";
 import { InvocationRunner } from "./InvocationRunner";
@@ -65,6 +67,7 @@ interface ManifestCapability {
   id: string;
   scope?: string;
   kind?: string;
+  modelAccess?: string;
   // Substrate-truth: when a capability is granted via
   // create_grants_for_capability (grants_lifecycle.py:355-389), it
   // creates one WorkspaceSkillCapabilityGrant row per string in
@@ -98,6 +101,7 @@ function capabilitiesOf(entry: V2ManifestEntry): ManifestCapability[] {
         id,
         scope: typeof c.scope === "string" ? c.scope : undefined,
         kind: typeof c.kind === "string" ? c.kind : undefined,
+        modelAccess: typeof c.model_access === "string" ? c.model_access : undefined,
         reads: stringArray(c.reads),
         writes: stringArray(c.writes),
       };
@@ -123,7 +127,105 @@ function installedModuleEntry(row: InstalledModule): V2ManifestEntry {
   };
 }
 
-export function GrantsPanel({ slug }: { slug: string }) {
+function providerForModel(modelId: string | null | undefined): string | null {
+  const value = (modelId ?? "").trim().toLowerCase();
+  if (!value || value === "stub-echo" || value.includes("ollama")) return null;
+  if (value.includes("claude") || value.includes("anthropic")) return "anthropic";
+  if (
+    value.includes("openai") ||
+    value.includes("gpt") ||
+    /^o[134](?:-|$)/.test(value)
+  ) {
+    return "openai";
+  }
+  return null;
+}
+
+function moduleRequiresModel(entry: V2ManifestEntry, cap: ManifestCapability): boolean {
+  if (cap.modelAccess === "required") return true;
+  return capabilitiesOf(entry).some(
+    (c) => c.kind === "provider" || c.modelAccess === "required",
+  );
+}
+
+type KeyQuery =
+  | { status: "loading" }
+  | { status: "ready"; keys: UserApiKeyRead[] }
+  | { status: "error" };
+
+type RunReadiness = {
+  disabled: boolean;
+  title: string;
+  body: string;
+  provider?: string | null;
+};
+
+function readinessFor(opts: {
+  defaultModelId?: string | null;
+  requiresModel: boolean;
+  keyQuery: KeyQuery;
+}): RunReadiness {
+  if (!opts.requiresModel) {
+    return {
+      disabled: false,
+      title: "Ready to run",
+      body: "This capability does not declare model access.",
+    };
+  }
+
+  const provider = providerForModel(opts.defaultModelId);
+  if (provider === null) {
+    return {
+      disabled: false,
+      title: "Ready: keyless/local model",
+      body: `Matter model ${opts.defaultModelId || "stub-echo"} does not need a BYO provider key.`,
+      provider,
+    };
+  }
+
+  const providerLabel = provider.charAt(0).toUpperCase() + provider.slice(1);
+  if (opts.keyQuery.status === "loading") {
+    return {
+      disabled: true,
+      title: `Checking ${providerLabel} key`,
+      body: "Legalise is checking whether your account has the provider key this matter needs.",
+      provider,
+    };
+  }
+  if (opts.keyQuery.status === "error") {
+    return {
+      disabled: false,
+      title: "Provider key status unavailable",
+      body: `This action uses ${providerLabel}. Run may fail if no key is configured.`,
+      provider,
+    };
+  }
+
+  const hasKey = opts.keyQuery.keys.some((k) => k.provider === provider);
+  if (!hasKey) {
+    return {
+      disabled: true,
+      title: `${providerLabel} key needed`,
+      body: `This matter uses ${opts.defaultModelId}. Add your ${providerLabel} key before running this action.`,
+      provider,
+    };
+  }
+
+  return {
+    disabled: false,
+    title: `${providerLabel} key configured, not tested`,
+    body: "A key is on file. Legalise has not validated it against the provider until the run starts.",
+    provider,
+  };
+}
+
+export function GrantsPanel({
+  slug,
+  defaultModelId,
+}: {
+  slug: string;
+  defaultModelId?: string | null;
+}) {
   const [grants, setGrants] = useState<GrantsQuery>({ status: "loading" });
   const [catalog, setCatalog] = useState<CatalogQuery>({ status: "loading" });
   // Phase 14.5 B — installed-module state. ONE extra AND clause for
@@ -133,6 +235,7 @@ export function GrantsPanel({ slug }: { slug: string }) {
   const [installed, setInstalled] = useState<Map<string, InstalledModule> | null>(
     null,
   );
+  const [keys, setKeys] = useState<KeyQuery>({ status: "loading" });
   const [createState, setCreateState] = useState<CreateState>({ kind: "idle" });
   const [revokeState, setRevokeState] = useState<RevokeState>({ kind: "idle" });
 
@@ -178,6 +281,13 @@ export function GrantsPanel({ slug }: { slug: string }) {
         // looks installed → no runnable pairs render. Safer than
         // assuming everything is installed.
         if (!cancelled) setInstalled(new Map());
+      });
+    listApiKeys()
+      .then((rows) => {
+        if (!cancelled) setKeys({ status: "ready", keys: rows });
+      })
+      .catch(() => {
+        if (!cancelled) setKeys({ status: "error" });
       });
     return () => {
       cancelled = true;
@@ -288,7 +398,12 @@ export function GrantsPanel({ slug }: { slug: string }) {
   //   the substrate would 403 at dispatch, potentially after a
   //   provider call.
   const runnablePairs = useMemo<
-    Array<{ moduleId: string; capabilityId: string; moduleName: string }>
+    Array<{
+      moduleId: string;
+      capabilityId: string;
+      moduleName: string;
+      readiness: RunReadiness;
+    }>
   >(() => {
     // Wait until installed state has resolved before deriving. Pre-
     // resolution we don't know if a module is installed/enabled,
@@ -316,6 +431,7 @@ export function GrantsPanel({ slug }: { slug: string }) {
       moduleId: string;
       capabilityId: string;
       moduleName: string;
+      readiness: RunReadiness;
     }> = [];
     const byId = new Map<string, V2ManifestEntry>();
     for (const m of catalog.modules) byId.set(m.module_id, m);
@@ -345,11 +461,16 @@ export function GrantsPanel({ slug }: { slug: string }) {
           moduleId: m.module_id,
           capabilityId: c.id,
           moduleName: name,
+          readiness: readinessFor({
+            defaultModelId,
+            requiresModel: moduleRequiresModel(m, c),
+            keyQuery: keys,
+          }),
         });
       }
     }
     return out;
-  }, [catalog, grants, installed]);
+  }, [catalog, defaultModelId, grants, installed, keys]);
 
   return (
     <section className="mt-10 rounded-md border border-line bg-paper p-4">
@@ -369,27 +490,42 @@ export function GrantsPanel({ slug }: { slug: string }) {
           data-testid="runnable-capabilities"
         >
           <h3 className="text-xs uppercase tracking-widest text-muted">
-            Run a capability
+            Available actions
           </h3>
+          <p className="mt-2 text-xs text-muted">
+            These actions are installed, enabled, and fully granted on this
+            matter. Readiness shows the provider-key boundary before a run
+            starts.
+          </p>
           <ul className="mt-3 space-y-3">
             {runnablePairs.map((p) => (
               <li
                 key={`${p.moduleId}::${p.capabilityId}`}
                 className="border-t border-line pt-3 first:border-t-0 first:pt-0"
               >
-                <div className="flex items-baseline justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm">{p.moduleName}</p>
                     <p className="text-xs font-mono text-muted">
                       {p.moduleId} · {p.capabilityId}
                     </p>
                   </div>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-widest ${
+                      p.readiness.disabled
+                        ? "border-amber-500/40 bg-amber-50 text-amber-900"
+                        : "border-line bg-paper-sunken text-muted"
+                    }`}
+                  >
+                    {p.readiness.disabled ? "Needs setup" : "Ready"}
+                  </span>
                 </div>
                 <div className="mt-2">
                   <InvocationRunner
                     slug={slug}
                     moduleId={p.moduleId}
                     capabilityId={p.capabilityId}
+                    readiness={p.readiness}
                   />
                 </div>
               </li>

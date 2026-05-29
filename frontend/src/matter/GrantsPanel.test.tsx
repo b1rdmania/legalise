@@ -15,6 +15,7 @@ beforeEach(() => {
   // they expect. Tests that assert Run is ABSENT can rely on this
   // default — no installed row → no runnable pair.
   vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+  vi.spyOn(api, "listApiKeys").mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();
@@ -509,6 +510,105 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
         screen.getByTestId("run-contract-review-review"),
       ).toBeInTheDocument();
     });
+  });
+
+  it("blocks Run up front when the matter model needs a missing provider key", async () => {
+    const MODEL_CAP_MANIFEST = {
+      ...MULTI_CAP_MANIFEST,
+      manifest: {
+        ...MULTI_CAP_MANIFEST.manifest,
+        capabilities: [
+          {
+            id: "review",
+            scope: "matter",
+            model_access: "required",
+            reads: ["matter.document.read"],
+            writes: ["matter.artifact.write"],
+          },
+          {
+            id: "default-provider",
+            kind: "provider",
+            scope: "workspace",
+            model_access: "none",
+            reads: [],
+            writes: [],
+          },
+        ],
+      },
+    };
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "review", "matter.document.read"),
+        grant("contract-review", "review", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MODEL_CAP_MANIFEST],
+      ui_slots: [],
+    });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+      module_id: "contract-review",
+      version: "0.1.0",
+      publisher: "legalise",
+      visibility: "first_party",
+      signature_status: "verified",
+      enabled: true,
+      installed_at: "2026-01-01T00:00:00",
+      installed_by_user_id: null,
+    }]);
+
+    render(<GrantsPanel slug="khan" defaultModelId="claude-opus-4-7" />);
+    const run = await screen.findByTestId("run-contract-review-review");
+
+    expect(run).toBeDisabled();
+    expect(screen.getByText(/anthropic key needed/i)).toBeInTheDocument();
+    expect(screen.getByText(/configure provider keys/i)).toBeInTheDocument();
+  });
+
+  it("shows a ready keyless status for stub-model matter actions", async () => {
+    const MODEL_CAP_MANIFEST = {
+      ...MULTI_CAP_MANIFEST,
+      manifest: {
+        ...MULTI_CAP_MANIFEST.manifest,
+        capabilities: [
+          {
+            id: "review",
+            scope: "matter",
+            model_access: "required",
+            reads: ["matter.document.read"],
+            writes: ["matter.artifact.write"],
+          },
+        ],
+      },
+    };
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        grant("contract-review", "review", "matter.document.read"),
+        grant("contract-review", "review", "matter.artifact.write"),
+      ],
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [MODEL_CAP_MANIFEST],
+      ui_slots: [],
+    });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([{
+      module_id: "contract-review",
+      version: "0.1.0",
+      publisher: "legalise",
+      visibility: "first_party",
+      signature_status: "verified",
+      enabled: true,
+      installed_at: "2026-01-01T00:00:00",
+      installed_by_user_id: null,
+    }]);
+
+    render(<GrantsPanel slug="khan" defaultModelId="stub-echo" />);
+    const run = await screen.findByTestId("run-contract-review-review");
+
+    expect(run).not.toBeDisabled();
+    expect(screen.getByText(/ready: keyless\/local model/i)).toBeInTheDocument();
   });
 
   it("does NOT show Run when the module is installed but disabled", async () => {
