@@ -401,7 +401,15 @@ export function MatterDetail({ slug }: { slug: string }) {
               onConfirmGate={onConfirmGate}
             />
           )}
-          {tab === "workflows" && <WorkflowsTab slug={slug} />}
+          {tab === "workflows" && (
+            <div className="space-y-8">
+              <WorkflowsTab slug={slug} />
+              <GrantsPanel
+                slug={matter.slug}
+                defaultModelId={matter.default_model_id}
+              />
+            </div>
+          )}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
           {tab === "approvals" && <ApprovalsTab slug={matter.slug} />}
           {/* Workflow surfaces - reached via Workflows page; sidebar highlights Workflows. */}
@@ -443,12 +451,6 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
           {tab === "research" && matter && <ResearchTab matter={matter} />}
-          {matter && (
-            <GrantsPanel
-              slug={matter.slug}
-              defaultModelId={matter.default_model_id}
-            />
-          )}
         </main>
         {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
           <RightRailAssistant

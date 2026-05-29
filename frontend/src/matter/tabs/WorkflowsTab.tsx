@@ -74,7 +74,11 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
       .catch((e) => {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e);
-          setError(`Could not load workflows for this matter. ${msg}`);
+          if (msg.includes("401")) {
+            setError("Sign in to see which workflows are runnable on this matter.");
+          } else {
+            setError("Workflows could not be loaded. Try again, or open the module catalogue.");
+          }
         }
       });
     return () => {
@@ -85,7 +89,8 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
   return (
     <div className="max-w-4xl">
       <p className="text-sm text-prose max-w-2xl leading-relaxed mb-8">
-        Installed legal modules. Click to open.
+        Run the installed legal actions for this matter. Each card says whether
+        it is ready before you open it.
       </p>
 
       {error && <ErrorCallout message={error} />}

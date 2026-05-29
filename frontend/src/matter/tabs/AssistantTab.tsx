@@ -226,7 +226,7 @@ export function AssistantTab({
 
   return (
     <div className="mx-auto w-full max-w-[920px] flex flex-col min-h-[520px]">
-      <div className="mb-4">
+      <div className="mb-6">
         <MatterPulse
           matter={matter}
           documentsCount={docs?.length ?? 0}
@@ -236,6 +236,28 @@ export function AssistantTab({
           skipFetch={disabled}
         />
       </div>
+      {loaded && messages.length > 0 && (
+        <div className="mb-6 border border-rule bg-paper p-4">
+          <p className="text-sm font-semibold text-ink">
+            Ask against the matter file, not a blank chatbot.
+          </p>
+          <p className="mt-1 text-sm text-prose">
+            Answers should show sources, suggest the next legal action, and write the audit trail.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSuggestion(s)}
+                className="border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors text-left"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto pt-2 pb-6 space-y-6 max-h-[64vh]"

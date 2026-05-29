@@ -3,7 +3,7 @@
 // the hard-coded snapshot. Mutation handlers flash a workspace-framed
 // sign-up CTA. Zero backend calls.
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useState } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
@@ -11,7 +11,6 @@ import { MatterNav } from "../matter/MatterNav";
 import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
 import { RightRailAssistant } from "../matter/RightRailAssistant";
 import { isTabKey, type TabKey } from "../matter/tabs/types";
-import { WorkflowsTab } from "../matter/tabs/WorkflowsTab";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { PreMotionTab } from "../matter/tabs/PreMotionTab";
 import { LettersTab } from "../matter/tabs/LettersTab";
@@ -92,11 +91,12 @@ export function DemoMatter() {
 
   const [showSoF, setShowSoF] = useState(false);
   const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === "undefined") return true;
     try {
-      return window.localStorage.getItem("legalise.right-rail.collapsed") === "1";
+      const stored = window.localStorage.getItem("legalise.right-rail.collapsed");
+      return stored === null ? true : stored === "1";
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -161,7 +161,9 @@ export function DemoMatter() {
                 onConfirmGate={noop}
               />
             )}
-            {tab === "workflows" && <WorkflowsTab slug={matter.slug} />}
+            {tab === "workflows" && (
+              <DemoWorkflowsTab onOpen={setTabAndHash} onRun={() => flashCta(CTA_CREATE_ACCOUNT)} />
+            )}
             {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} matter={matter} />}
             {tab === "premotion" && (
               <PreMotionTab
@@ -213,7 +215,7 @@ export function DemoMatter() {
               <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
             )}
           </main>
-          {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
+          {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && !rightRailCollapsed && (
             <RightRailAssistant
               matter={matter}
               collapsed={rightRailCollapsed}
@@ -253,81 +255,160 @@ function FlashCta({ message, onClose }: { message: string; onClose: () => void }
   );
 }
 
+function DemoWorkflowsTab({
+  onOpen,
+  onRun,
+}: {
+  onOpen: (tab: TabKey) => void;
+  onRun: () => void;
+}) {
+  const workflows: Array<{
+    key: TabKey;
+    title: string;
+    body: string;
+    reads: string;
+    writes: string;
+    last: string;
+  }> = [
+    {
+      key: "contract-review",
+      title: "Review the NDA",
+      body: "Flags enforceability, data-protection and missing governing-law issues.",
+      reads: "synthetic-mutual-nda.docx",
+      writes: "findings pack",
+      last: "Ready in demo",
+    },
+    {
+      key: "premotion",
+      title: "Pre-motion analysis",
+      body: "Tests the conduct dismissal framing against the documents and chronology.",
+      reads: "dismissal letter, witness statement",
+      writes: "motion draft",
+      last: "Preview available",
+    },
+    {
+      key: "letters",
+      title: "Draft a letter before action",
+      body: "Produces a first draft from the dismissal facts and limitation dates.",
+      reads: "matter record",
+      writes: "letter draft",
+      last: "Preview available",
+    },
+    {
+      key: "research",
+      title: "Check authorities",
+      body: "Surfaces relevant authorities for the point being worked on.",
+      reads: "issue framing",
+      writes: "case-law note",
+      last: "Preview available",
+    },
+  ];
+
+  return (
+    <div className="max-w-4xl">
+      <div className="mb-8 border-l-2 border-ink pl-4 py-1">
+        <p className="text-sm font-semibold text-ink">Actions ready on this matter.</p>
+        <p className="mt-1 text-sm text-prose max-w-2xl">
+          Each action says what it reads, what it writes, and what happened last.
+          Open a preview, or create an account to run it against your own matter.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {workflows.map((w) => (
+          <section key={w.key} className="border border-rule bg-paper p-5">
+            <div className="text-sm font-semibold text-ink">{w.title}</div>
+            <p className="mt-2 text-sm text-prose leading-relaxed">{w.body}</p>
+            <dl className="mt-4 space-y-1 text-xs">
+              <div className="flex gap-2">
+                <dt className="w-14 shrink-0 text-muted">Reads</dt>
+                <dd className="text-ink">{w.reads}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-14 shrink-0 text-muted">Writes</dt>
+                <dd className="text-ink">{w.writes}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-14 shrink-0 text-muted">Last</dt>
+                <dd className="text-ink">{w.last}</dd>
+              </div>
+            </dl>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => onOpen(w.key)}
+                className="border border-rule px-3 py-2 text-sm text-ink hover:border-ink hover:bg-wash transition-colors"
+              >
+                Open preview
+              </button>
+              <button
+                type="button"
+                onClick={onRun}
+                className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black transition-colors"
+              >
+                Run on my matter
+              </button>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <p className="mt-8 text-xs text-muted">
+        Module installation and permission setup are hidden in this public snapshot.
+        They appear when you work inside your own matter.
+      </p>
+    </div>
+  );
+}
+
 // -- Documents (demo variant) ----------------------------------------------
 // Mirrors DocumentsTab's layout but expansion shows a sign-up CTA panel
 // instead of the live EditPanel / AnonymiseButton (both of which fetch).
 
 function DemoDocumentsTab({
   docs,
-  onUpload,
   onEdit,
 }: {
   docs: MatterDocument[];
   onUpload: () => void;
   onEdit: () => void;
 }) {
-  const [tag, setTag] = useState("");
-  const [fromDisclosure, setFromDisclosure] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
-    onUpload();
-    e.target.value = "";
-  };
-
-  const inputCls =
-    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink";
-
   return (
-    <div>
-      <form className="mb-10 flex flex-wrap items-end gap-4" onSubmit={(e) => e.preventDefault()}>
-        <label className="flex flex-col gap-1.5">
-          <span className="eyebrow">Tag</span>
-          <input
-            value={tag}
-            onChange={(e) => setTag(e.target.value)}
-            className={inputCls}
-            placeholder="pleadings"
-          />
-          <span className="text-xs text-muted">optional - e.g. pleadings, disclosure</span>
-        </label>
-        <label className="flex items-center gap-2 min-h-[44px]">
-          <input
-            type="checkbox"
-            checked={fromDisclosure}
-            onChange={(e) => setFromDisclosure(e.target.checked)}
-          />
-          <span className="text-sm text-ink">From disclosure (CPR 31)</span>
-        </label>
-        <label className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center cursor-pointer">
-          Upload document
-          <input type="file" className="hidden" onChange={onFile} />
-        </label>
-      </form>
+    <div className="max-w-4xl">
+      <div className="mb-8 border-l-2 border-ink pl-4 py-1">
+        <p className="text-sm font-semibold text-ink">The demo matter is already loaded.</p>
+        <p className="mt-1 text-sm text-prose max-w-2xl">
+          Open a document to see what the assistant and workflows can use. Uploading
+          your own material starts after account creation.
+        </p>
+      </div>
 
       <div className="border-t border-rule overflow-x-auto">
-        <div className="min-w-[720px]">
-          <div className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-            <span>SHA</span>
-            <span>Filename</span>
+        <div className="min-w-[680px]">
+          <div className="grid grid-cols-[1.5fr_110px_90px_120px_72px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <span>Document</span>
+            <span>Type</span>
             <span>Size</span>
-            <span>Tag</span>
-            <span>Disclosure</span>
+            <span>Source</span>
             <span className="text-right">Action</span>
           </div>
           {docs.map((d) => (
             <div key={d.id} className="border-b border-rule">
               <div
-                className="grid grid-cols-[110px_1fr_90px_120px_120px_72px] gap-4 px-4 py-3 hover:bg-wash transition-colors font-mono text-[11px] items-center cursor-pointer"
+                className="grid grid-cols-[1.5fr_110px_90px_120px_72px] gap-4 px-4 py-3 hover:bg-wash transition-colors items-center cursor-pointer"
                 onClick={() => setEditingId(editingId === d.id ? null : d.id)}
               >
-                <span className="text-muted truncate">{d.sha256.slice(0, 8)}</span>
-                <span className="text-ink truncate">{d.filename}</span>
-                <span className="text-ink">{formatBytes(d.size_bytes)}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-ink truncate">{d.filename}</div>
+                  <div className="mt-0.5 text-[11px] text-muted truncate">{d.sha256.slice(0, 8)}</div>
+                </div>
                 <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
-                <span>{d.from_disclosure && <Badge>CPR 31</Badge>}</span>
+                <span className="text-xs text-ink">{formatBytes(d.size_bytes)}</span>
+                <span>{d.from_disclosure ? <Badge>CPR 31</Badge> : <span className="text-xs text-muted">Upload</span>}</span>
                 <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                  {editingId === d.id ? "Close" : "Edit"}
+                  {editingId === d.id ? "Close" : "Open"}
                 </span>
               </div>
               {editingId === d.id && (

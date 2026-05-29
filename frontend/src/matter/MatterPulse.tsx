@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { getMatterWorkflows, type Matter } from "../lib/api";
 
-// Matter Pulse - the calm-power data strip on the Assistant landing.
-// Per JOY.md "Required Patterns / Matter Pulse": at a glance, show that
-// the workspace already understands the file. Five cells, no shouting.
+// Matter Pulse - the calm-power readiness line on the Assistant landing.
+// Per JOY.md, this should prove the workspace already understands the
+// file. It must not become a dashboard strip competing with the answer.
 //
 // Counts are passed in from MatterDetail / DemoMatter (already in scope).
 // Workflows count is fetched here unless `workflowsGrantedCount` is supplied
@@ -67,51 +67,28 @@ export function MatterPulse({
   const postureLabel = POSTURE_LABEL[matter.privilege_posture] ?? matter.privilege_posture;
   const postureBlurb = POSTURE_BLURB[matter.privilege_posture] ?? matter.privilege_posture;
 
+  const workflowText =
+    workflowsGranted === null
+      ? "actions checked when signed in"
+      : `${fmt(workflowsGranted)} governed action${workflowsGranted === 1 ? "" : "s"}`;
+
   return (
     <section
-      aria-label="Matter pulse"
-      className="mx-auto w-full max-w-[920px] border border-rule bg-paper grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y divide-rule sm:divide-y-0 sm:divide-x sm:divide-rule"
+      aria-label="Matter readiness"
+      className="mx-auto w-full max-w-[920px] border-l-2 border-ink pl-4 py-2 text-sm text-prose"
+      title={postureBlurb}
     >
-      <PulseCell label="Documents" value={fmt(documentsCount)} />
-      <PulseCell label="Chronology" value={fmt(chronologyCount)} />
-      <PulseCell
-        label="Workflows"
-        value={workflowsGranted === null ? "-" : fmt(workflowsGranted)}
-        title={
-          workflowsGranted === null
-            ? "Workflows unavailable in this view"
-            : `${workflowsGranted} granted workflow${workflowsGranted === 1 ? "" : "s"}`
-        }
-      />
-      <PulseCell label="Audit rows" value={fmt(auditCount)} />
-      <PulseCell label="Posture" value={postureLabel} title={postureBlurb} mono={false} />
+      <span className="font-semibold text-ink">Workspace ready.</span>{" "}
+      <span>{fmt(documentsCount)} documents read</span>
+      <span className="text-muted"> · </span>
+      <span>{fmt(chronologyCount)} chronology events</span>
+      <span className="text-muted"> · </span>
+      <span>{workflowText}</span>
+      <span className="text-muted"> · </span>
+      <span>{fmt(auditCount)} audit rows</span>
+      <span className="text-muted"> · </span>
+      <span>{postureLabel} posture</span>
     </section>
-  );
-}
-
-function PulseCell({
-  label,
-  value,
-  title,
-  mono = true,
-}: {
-  label: string;
-  value: string;
-  title?: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="px-4 py-3" title={title}>
-      <div className="eyebrow">{label}</div>
-      <div
-        className={
-          (mono ? "font-mono tabular-nums " : "") +
-          "text-[18px] text-ink leading-tight mt-1"
-        }
-      >
-        {value}
-      </div>
-    </div>
   );
 }
 
