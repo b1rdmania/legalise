@@ -28,7 +28,7 @@ export function MatterBreadcrumb({
   onToggleMobileNav?: () => void;
 }) {
   const tabLabel = labelFor(tab);
-  // For workflow surfaces, show Matters / title / Workflows / surface
+  // For workflow surfaces, show Matters / title / Actions / surface
   const isWorkflowSurface = WORKFLOW_TABS.some((t) => t.key === tab);
 
   return (
@@ -62,7 +62,7 @@ export function MatterBreadcrumb({
                   href={`/matters/${matter.slug}/workflows`}
                   className="text-muted hover:text-ink transition-colors shrink-0"
                 >
-                  Workflows
+                  Actions
                 </a>
                 <span className="text-muted mx-2 shrink-0">/</span>
               </>

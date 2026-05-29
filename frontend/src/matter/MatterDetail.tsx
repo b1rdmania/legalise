@@ -30,9 +30,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useDrawer } from "../app/DrawerContext";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { GrantsPanel } from "./GrantsPanel";
-import { MatterRecordSummary } from "./MatterRecordSummary";
 import { PostureBanner } from "./PostureBanner";
-import { RightRailAssistant } from "./RightRailAssistant";
 import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
 import { DocumentsTab } from "./tabs/DocumentsTab";
 import { ReviewsTab } from "./tabs/ReviewsTab";
@@ -113,26 +111,6 @@ export function MatterDetail({ slug }: { slug: string }) {
   const [letterDrafting, setLetterDrafting] = useState(false);
   const [letterError, setLetterError] = useState<string | null>(null);
   const [letterKeyMissing, setLetterKeyMissing] = useState<string | null>(null);
-  const [rightRailCollapsed, setRightRailCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      // Default collapsed (MD-2): the record leads, the assistant is
-      // opt-in. Respect a prior explicit choice if the user set one.
-      const stored = window.localStorage.getItem("legalise.right-rail.collapsed");
-      return stored === null ? true : stored === "1";
-    } catch {
-      return true;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("legalise.right-rail.collapsed", rightRailCollapsed ? "1" : "0");
-    } catch {
-      // ignore
-    }
-  }, [rightRailCollapsed]);
-
   const load = () => {
     getMatter(slug)
       .then((m) => {
@@ -367,12 +345,6 @@ export function MatterDetail({ slug }: { slug: string }) {
         <div className="flex">
         <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
           {error && matter && <ErrorCallout message={error} compact />}
-          <MatterRecordSummary
-            matter={matter}
-            docs={docs}
-            audit={audit}
-            onSelectTab={setTabAndHash}
-          />
           {matter && (
             <PostureBanner
               posture={matter.privilege_posture}
@@ -453,14 +425,6 @@ export function MatterDetail({ slug }: { slug: string }) {
           {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
           {tab === "research" && matter && <ResearchTab matter={matter} />}
         </main>
-        {tab !== "assistant" && tab !== "workflows" && tab !== "audit" && (
-          <RightRailAssistant
-            matter={matter}
-            collapsed={rightRailCollapsed}
-            onToggleCollapsed={() => setRightRailCollapsed((v) => !v)}
-            onOpenFull={() => setTabAndHash("assistant")}
-          />
-        )}
         </div>
     </div>
   );

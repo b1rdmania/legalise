@@ -24,11 +24,11 @@ export type TabKey =
   | "research";
 
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
-  { key: "assistant", label: "Assistant" },
+  { key: "assistant", label: "Matter desk" },
   { key: "documents", label: "Documents" },
   { key: "audit", label: "Activity Trail" },
   { key: "chronology", label: "Chronology" },
-  { key: "workflows", label: "Workflows" },
+  { key: "workflows", label: "Actions" },
   { key: "approvals", label: "Approvals" },
 ];
 

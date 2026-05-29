@@ -35,7 +35,6 @@ export function MatterPulse({
   matter,
   documentsCount,
   chronologyCount,
-  auditCount,
   workflowsGrantedCount,
   skipFetch = false,
 }: Props) {
@@ -67,10 +66,9 @@ export function MatterPulse({
   const postureLabel = POSTURE_LABEL[matter.privilege_posture] ?? matter.privilege_posture;
   const postureBlurb = POSTURE_BLURB[matter.privilege_posture] ?? matter.privilege_posture;
 
-  const workflowText =
-    workflowsGranted === null
-      ? "actions checked when signed in"
-      : `${fmt(workflowsGranted)} governed action${workflowsGranted === 1 ? "" : "s"}`;
+  const hasDocuments = documentsCount > 0;
+  const hasChronology = chronologyCount > 0;
+  const hasActions = workflowsGranted !== 0;
 
   return (
     <section
@@ -79,19 +77,14 @@ export function MatterPulse({
       title={postureBlurb}
     >
       <span className="font-semibold text-ink">Workspace ready.</span>{" "}
-      <span>{fmt(documentsCount)} documents read</span>
-      <span className="text-muted"> · </span>
-      <span>{fmt(chronologyCount)} chronology events</span>
-      <span className="text-muted"> · </span>
-      <span>{workflowText}</span>
-      <span className="text-muted"> · </span>
-      <span>{fmt(auditCount)} audit rows</span>
-      <span className="text-muted"> · </span>
-      <span>{postureLabel} posture</span>
+      <span>
+        {hasDocuments ? "Documents are loaded" : "Add documents to begin"}
+        {hasChronology ? ", the chronology is available" : ""}
+        {hasActions ? ", and governed actions are ready" : ""}.
+      </span>{" "}
+      <span className="text-muted">
+        Every AI step writes to the Activity Trail. {postureLabel} posture.
+      </span>
     </section>
   );
-}
-
-function fmt(n: number): string {
-  return Number.isFinite(n) ? String(n) : "-";
 }

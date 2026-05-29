@@ -16,7 +16,7 @@ import {
   type WorkflowGrant,
   type WorkflowState,
 } from "../../lib/api";
-import { ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { LoadingLine } from "../../ui/primitives";
 
 const GRANT_LABEL: Record<WorkflowGrant, string> = {
   granted: "granted",
@@ -93,7 +93,18 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
         it is ready before you open it.
       </p>
 
-      {error && <ErrorCallout message={error} />}
+      {error && (
+        <div className="border border-rule bg-paper p-5 text-sm">
+          <p className="font-semibold text-ink">Actions are available inside your workspace.</p>
+          <p className="mt-2 text-muted">{error}</p>
+          <a
+            href="/auth/signup"
+            className="mt-4 inline-flex bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black"
+          >
+            Create account
+          </a>
+        </div>
+      )}
       {!data && !error && <LoadingLine label="loading workflows" />}
 
       {data && (
