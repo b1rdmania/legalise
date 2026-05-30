@@ -1,11 +1,14 @@
-"""Installed skill catalogue.
+"""Module catalogue + install + lifecycle endpoints.
 
-This is the v0.1 Discovery layer: a read-only view over the SKILL.md files
-present at PLUGINS_ROOT. Install and approval remain a Git workflow.
+Two manifest surfaces coexist:
 
-Phase 2 adds three new endpoints exposing the v2 manifest surface
-(`/v2`, `/v2/{module_id}`, `/v2/capabilities`). Existing v1 endpoints
-are unchanged so existing clients continue to function.
+- v1 SKILL.md discovery at PLUGINS_ROOT (read-only view used by older
+  clients);
+- v2 manifest surface (`/v2`, `/v2/{module_id}`, `/v2/capabilities`)
+  read by the current frontend catalogue.
+
+Install + revoke + update + the trust ceremony are admin-gated and emit
+the canonical `module.*` audit chain.
 """
 
 from __future__ import annotations
@@ -366,12 +369,12 @@ async def list_modules(
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 — v2 manifest surface
+# v2 manifest surface
 # ---------------------------------------------------------------------------
 #
-# Three new endpoints that expose discovered modules in their v2
-# manifest shape. v1 endpoints above are untouched. Phase 12 frontend
-# work will read these endpoints; existing v1 clients keep working.
+# Three endpoints exposing discovered modules in their v2 manifest shape.
+# The current frontend catalogue reads these; v1 SKILL.md endpoints above
+# remain so older clients keep working.
 
 
 class V2ManifestEntry(BaseModel):

@@ -54,6 +54,30 @@ def test_parse_malformed_json_never_loses_the_answer() -> None:
     # Valid JSON but no string output key → keep raw text.
     raw = '{"foo": 1}'
     assert _parse_model_output(raw) == (raw, [])
+
+
+def test_parse_malformed_fenced_json_preserves_the_prose_answer() -> None:
+    # Prose with a fenced JSON block whose contents are malformed: the
+    # envelope must fall through and the *prose* answer must survive
+    # (regression — the fenced extractor's safety contract).
+    text = "Here's the answer.\n```json\n{\"output\": \"ok\n```"
+    output, claims = _parse_model_output(text)
+    assert output == text
+    assert claims == []
+    # Fenced block whose JSON is valid but has no string `output` key →
+    # also fall through and preserve the surrounding prose.
+    text2 = "Some prose\n```json\n{\"foo\": 1}\n```\nMore prose."
+    output2, claims2 = _parse_model_output(text2)
+    assert output2 == text2
+    assert claims2 == []
+
+
+def test_parse_fenced_json_envelope_extracts_output() -> None:
+    # Positive case: a valid fenced envelope with `output` is correctly used.
+    text = '```json\n{"output": "Answer.", "claims": []}\n```'
+    output, claims = _parse_model_output(text)
+    assert output == "Answer."
+    assert claims == []
     # Fenced but malformed → keep raw text.
     fenced = '```json\n{"output": "oops"\n```'
     assert _parse_model_output(fenced) == (fenced, [])

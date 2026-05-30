@@ -37,7 +37,7 @@ from app.core.model_gateway import (
     gateway as model_gateway,
 )
 from app.models import Document, Matter
-from app.models.document_body import BODY_KIND_EXTRACTED, DocumentBody
+from app.models.document_body import extracted_body_for
 
 from .agents import (
     AgentCall,
@@ -168,9 +168,12 @@ async def _load_contract_body(
 ) -> tuple[Document, str]:
     """Resolve the extracted body for a matter document.
 
-    v0.1 uses extracted (original) body unconditionally — contract analysis
-    is internal and needs real content. Anonymised bodies are not consumed
-    here even when present. Returns (Document, body_text).
+    Uses the ``extracted`` body unconditionally — contract analysis is
+    internal and needs real content. Anonymised bodies are not consumed
+    here even when present. Goes through ``extracted_body_for`` so the
+    body-kind filter cannot be silently forgotten — the same convention
+    that protects source-anchor integrity in the prompt runtime.
+    Returns ``(Document, body_text)``.
     """
     doc = await session.scalar(
         select(Document).where(Document.id == document_id, Document.matter_id == matter_id)
@@ -179,12 +182,7 @@ async def _load_contract_body(
         raise ValueError(
             f"document {document_id} not found on matter {matter_id}"
         )
-    body = await session.scalar(
-        select(DocumentBody).where(
-            DocumentBody.document_id == doc.id,
-            DocumentBody.kind == BODY_KIND_EXTRACTED,
-        )
-    )
+    body = await extracted_body_for(session, doc.id)
     if body is None or not body.extracted_text:
         raise ValueError(
             f"document {doc.filename} has no extracted body — upload or re-extract first"
