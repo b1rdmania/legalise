@@ -1,22 +1,21 @@
-"""Phase 5 — audit reconstruction timeline builder.
+"""Audit reconstruction timeline builder.
 
 Read-only, matter-scoped, pure-functional. Given a matter_id +
 optional time window + source filter, returns a chronologically-
 ordered timeline of every event the matter produced — audit rows,
 state-machine transitions, and advice-boundary decisions.
 
-This is the load-bearing surface for the "supervised autonomy"
-claim: without a query that reconstructs what happened, the audit
-log is write-only theatre.
+This is the load-bearing surface for the supervised-autonomy claim:
+without a query that reconstructs what happened, the audit log is
+write-only theatre.
 
-Architectural decisions (ratified at Phase 5 v3):
+Architectural decisions:
 
 1. **Matter-scoped only.** No cross-matter view at this layer.
-2. **Three sources, not four.** The original plan named a separate
-   ``ceremony`` source, but ceremony events (``module.ceremony.*``,
-   ``module.installed``, etc.) are emitted via the standard audit
-   path — they live in ``audit_entries`` already. A dedicated source
-   would have been redundant.
+2. **Three sources, not four.** Ceremony events
+   (``module.ceremony.*``, ``module.installed``, etc.) are emitted
+   via the standard audit path — they live in ``audit_entries``
+   already, so a dedicated ``ceremony`` source would be redundant.
 3. **Cursor shape:** ``{source, occurred_at, source_row_id}``.
    ``(occurred_at, id)`` alone duplicates or skips rows on timestamp
    ties across the three source tables (different id spaces).

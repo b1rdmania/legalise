@@ -1,4 +1,4 @@
-"""Phase 5 — audit reconstruction API.
+"""Audit reconstruction API.
 
 Single endpoint:
 
@@ -16,14 +16,10 @@ on the matter does NOT, on its own, satisfy access. Only:
 - the matter owner (``Matter.created_by_id``), OR
 - a workspace superuser (``User.is_superuser``)
 
-are admitted. The explicit-matter-role surface from the v2 plan
-is a Phase 7+ extension; until then those two are the canonical
-checks.
-
-Reviewer redline (Phase 5 v2 R2 P1) is the reason this endpoint
-does NOT honour ``WorkspaceSkillCapabilityGrant`` rows for access.
-A grant lets you RUN a capability; it does not let you READ the
-audit trail of every other capability the matter has run.
+are admitted. **A grant lets you RUN a capability; it does not let
+you READ the audit trail of every other capability the matter has
+run.** That separation is the reason this endpoint does not honour
+``WorkspaceSkillCapabilityGrant`` rows for access.
 
 Audit emission: every successful view writes an
 ``audit.reconstruction.viewed`` row so the inspector is themselves

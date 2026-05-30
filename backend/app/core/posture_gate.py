@@ -1,21 +1,19 @@
-"""Phase 8 — posture-aware gate.
+"""Posture-aware gate.
 
-Matter ``privilege_posture`` is recorded by the substrate today (it
-lives on the ``Matter`` row, and Phase 6 captures it in
-reconstruction provenance) but does NOT actively gate anything.
-Phase 8 makes it policy.
+Matter ``privilege_posture`` lives on the ``Matter`` row and is captured
+in reconstruction provenance; this gate turns it into a policy enforced
+before any capability runs.
 
-The policy table is the entire decision. It lives here as a
-constant dict so a change is a reviewable diff, not runtime config
-drift:
+The policy table is the entire decision. It lives here as a constant
+dict so a change is a reviewable diff, not runtime config drift:
 
     A_cleared          → any_authenticated      (cleared for non-solicitor handling)
     B_mixed (default)  → qualified_solicitor    (privileged content present)
     C_paused           → nobody                 (matter is paused; no capability runs)
 
-The gate fires BEFORE ``require_capability`` so a non-solicitor on
-a B_mixed matter gets a posture-shaped denial, not a grant-shaped
-one. Order in Contract Review:
+The gate fires BEFORE ``require_capability`` so a non-solicitor on a
+B_mixed matter gets a posture-shaped denial, not a grant-shaped one.
+Order in Contract Review:
 
     check_posture
         → require_capability(read)
@@ -24,10 +22,9 @@ one. Order in Contract Review:
         → require_capability(write)
         → write_artifact
 
-Audit shape (per Phase 8 v2 Decision #4):
+Audit shape:
 
-- action:          ``posture_gate.check.blocked`` (new Phase 8
-                   action, named per the
+- action:          ``posture_gate.check.blocked`` (named per the
                    ``<primitive>.<operation>.blocked`` convention)
 - blocked_reason:  ``BlockedReason.GATE_BLOCKED`` (canonical enum)
 - gate_state:      {gate, posture, required_role, actor_role, reason}

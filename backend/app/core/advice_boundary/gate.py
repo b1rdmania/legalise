@@ -1,10 +1,8 @@
-"""Advice boundary gate — the callable Phase 1 invokes per output.
+"""Advice boundary gate — the callable invoked per output to decide
+whether the requested advice tier is allowed for this actor, transition,
+and declared-tier ceiling.
 
 Per docs/architecture/ADVICE_BOUNDARY.md §Gate API Surface.
-
-Phase 1 scope: callable gate API + REST endpoint. Manifest-driven
-enforcement (reading ``advice_tier_max`` from the manifest and
-auto-injecting the check at the capability boundary) lands in Phase 2.
 
 The gate writes one ``AdviceBoundaryDecision`` row per call regardless
 of outcome (completed, blocked, denied, failed). Audit row emitted in

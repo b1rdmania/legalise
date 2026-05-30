@@ -1,20 +1,21 @@
-"""Phase 10 — host-side runtime: invocation context, provider adapter,
-capability dispatcher.
+"""Host-side runtime: invocation context, provider adapter, capability
+dispatcher.
 
 Three public types + one helper + one dispatcher:
 
 - ``InvocationContext`` — the trusted invocation envelope the host
-  populates and modules read. Phase 6 R2 P1#3 established the
-  contract; Phase 9 surfaced that Contract Review and Pre-Motion
-  declared identical local versions; Phase 10 lifts it to substrate.
+  populates and modules read. The host builds it from the
+  authenticated user; the module reads it but cannot construct one
+  with elevated values (closing the "module self-asserts its role"
+  hole).
 
 - ``ProviderResponse`` — canonical seven-field shape modules expect
-  back from ``provider_call``. Same convergence story.
+  back from ``provider_call``.
 
 - ``make_provider_call(...)`` — adapter that wraps
   ``app.core.api.model_gateway.call(...)`` and translates the
   ``ModelResult`` shape into ``ProviderResponse``. Pinned to the
-  real gateway signature (Phase 10 v3 redline).
+  real gateway signature.
 
 - ``dispatch_capability(...)`` — resolves a module entrypoint via
   ``importlib`` and dispatches the capability invoke. Pre-dispatch

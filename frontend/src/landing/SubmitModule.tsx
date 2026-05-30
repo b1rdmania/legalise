@@ -12,10 +12,19 @@ import {
 } from "../lib/api";
 import { Footer } from "../ui/Footer";
 
-// Pre-login surface. Turnstile widget + per-IP token bucket gate the
-// POST; backend opens a draft PR on b1rdmania/claude-for-uk-legal via
-// a b1rdmania-scoped PAT. SKILL.md frontmatter is synthesised
-// authoritatively server-side - this client preview is a UX aid only.
+// Pre-login community submission surface — distinct from /modules/create.
+//
+//   /modules/submit (this file): anyone submits a SKILL.md for review;
+//                                 backend opens a draft PR on the
+//                                 b1rdmania/claude-for-uk-legal repo.
+//   /modules/create:              operator manifest validator used to
+//                                 install a manifest you already have.
+//
+// They serve different audiences and are not redundant — do not collapse.
+//
+// Turnstile widget + per-IP token bucket gate the POST. SKILL.md
+// frontmatter is synthesised authoritatively server-side; this client
+// preview is a UX aid only.
 
 declare global {
   interface Window {

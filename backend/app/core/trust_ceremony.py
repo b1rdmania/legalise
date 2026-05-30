@@ -24,9 +24,10 @@ return a ``PermissionCard`` derived from the manifest's
 ``data_movement`` block so the frontend can render exactly what the
 module will see and send.
 
-Phase 3 ships the state machine + permission-card builder. Phase 12
-builds the frontend modal UI. Phase 4 wires the per-grant lifecycle
-(re-prompt on permission expansion).
+This module ships the state machine + permission-card builder; the
+frontend drives it through ``/api/modules/install`` + ``/install/{id}/
+advance``. Per-grant lifecycle (re-prompt on permission expansion) is
+wired through ``grants_lifecycle``.
 """
 
 from __future__ import annotations

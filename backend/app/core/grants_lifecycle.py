@@ -1,7 +1,5 @@
 """Grant lifecycle — permission expansion detection.
 
-Phase 4 implementation per docs/handovers/PHASE_4_BUILD_PLAN.md §Step 1.
-
 When a module is updated to a new version, we diff the new manifest's
 permission shape against the previously-installed permission shape.
 Expansion (e.g. new write capability, higher advice tier, network

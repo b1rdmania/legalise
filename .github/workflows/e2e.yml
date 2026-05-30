@@ -3,15 +3,21 @@ name: e2e
 on:
   push:
     branches: [runtime-rewrite, master]
+    # Skip the expensive Playwright run for docs-only pushes.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
     branches: [runtime-rewrite, master]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 
-# Phase 15 F — Playwright e2e job. Spins the existing docker-
-# compose stack, runs `npm run e2e` against the built frontend served
-# by the e2e static preview server. Trace + video artifacts uploaded
-# on failure.
+# Playwright e2e job. Spins the existing docker-compose stack, runs
+# `npm run e2e` against the built frontend served by the e2e static
+# preview server. Trace + video artifacts uploaded on failure.
 #
-# Single job; single worker (tests share a DB per the v3 plan).
+# Single job; single worker (tests share a DB).
 
 jobs:
   e2e:

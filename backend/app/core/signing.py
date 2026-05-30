@@ -1,17 +1,12 @@
 """Manifest signature verification.
 
-Phase 3 ships a *structural* signature verifier — the trust ceremony
-gets a clean four-state outcome (verified / unsigned / invalid /
-unknown_publisher) without depending on the sigstore Python library
-or a real signing pipeline.
-
-The real cryptographic chain verification (sigstore Rekor lookup +
-X.509 chain + OIDC identity claim) lands in Phase 11 when the
-connector proof set actually publishes signed releases. The API
-contract here is designed so Phase 11 swaps the verifier
-implementation without touching callers.
-
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 2.
+A *structural* signature verifier — the trust ceremony gets a clean
+four-state outcome (verified / unsigned / invalid / unknown_publisher)
+without depending on the sigstore Python library or a real signing
+pipeline. Real cryptographic chain verification (sigstore Rekor lookup
++ X.509 chain + OIDC identity claim) is sigstore-hardening backlog;
+the API contract here is designed so the verifier implementation can
+swap without touching callers.
 """
 
 from __future__ import annotations
@@ -147,15 +142,15 @@ def verify_manifest_signature(
         )
 
     # Structural pass.
-    # TODO(phase-11): wire sigstore Rekor lookup + X.509 chain
-    # verification + OIDC identity claim check here. Until then
-    # this is a structural verifier only; a forged signature with the
-    # correct shape would pass.
+    # TODO(sigstore-hardening): wire sigstore Rekor lookup + X.509 chain
+    # verification + OIDC identity claim check here. Until then this is
+    # a structural verifier only; a forged signature with the correct
+    # shape would pass.
     return SignatureResult(
         status=SignatureStatus.VERIFIED,
         publisher=publisher,
         signed_by=signed_by or publisher,
-        notes="structural verification only; cryptographic check deferred to Phase 11",
+        notes="structural verification only; cryptographic check is sigstore-hardening backlog",
     )
 
 
