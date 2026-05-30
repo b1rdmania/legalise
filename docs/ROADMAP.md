@@ -10,24 +10,43 @@ evaluation copy. The hosted site is not for live client matters.
 
 Shipped surfaces:
 
-- Matter spine - slug, title, parties, documents, audit, chronology, privilege posture
-- Privilege-aware model gateway (Anthropic / OpenAI / Ollama)
-- Audit middleware over every model call and matter mutation
-- Pre-Motion (adversarial premortem, four stages, nine model calls)
-- Contract Review (parser / analyst / redliner / summariser pipeline, SSE-streamed)
-- Letters (procedural `.docx` generator across all letter types in v0.1; template-driven LBA returns in v0.2)
-- Anonymisation (Presidio detection + deterministic token map + detokenise round-trip)
-- Assistant (matter-scoped chat with document / chronology citations and action chips into modules)
-- Tracked-changes document editing with accept / reject and version timeline
-- Tabular review across multiple documents
-- Public module submission flow opens a draft PR against `claude-for-uk-legal`
-- Read-only installed-skills view at `#/modules` with declared + granted capabilities + trust posture per skill
-- Module enable/disable enforcement at the `(plugin, skill)` layer
-- `module.json` schema validation surfaces broken manifests in the UI
-- Per-skill capability and trust-posture overrides in the manifest schema
-- **Runtime capability enforcement.** `workspace_skill_capability_grants` table, `require_capability` helper, wired at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). Auto-grant on signup. Denied attempts emit a structured 403 plus a `module.capability.denied` audit row.
-- fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Smoke evals + real-DB E2E coverage across auth, chronology, modules, matters, documents, audit, letters, workspace skills, capabilities, seed audit
+- **Matter-first workspace**, four-tab compression: Matter desk, Documents,
+  Actions, Activity Trail.
+- **Documents** as first-class records: ingress, extraction, versions,
+  optional anonymisation (Presidio detection + deterministic token map +
+  detokenise round-trip), original-file retrieval through an owner-only
+  backend proxy, `document.original.accessed` audit row on access.
+- **Capability runtime.** Manifests declare what a module needs; the
+  workspace grants it on a matter; the runtime checks at every privileged
+  boundary. Denied attempts emit structured 403 + canonical `*.blocked`
+  audit row via the `audit_failure` helper.
+- **Privilege-aware model gateway** (Anthropic / OpenAI / Ollama) with
+  advice-boundary and posture gates before every call.
+- **BYO model keys**, AES-256-GCM-encrypted per user. Legalise itself does
+  not provide model access.
+- **Two module runtimes:** first-party native modules (`examples.contract-review`,
+  `examples.pre-motion`), and a `prompt` runtime for Lawve `SKILL.md` imports.
+- **Source anchors v1** across both runtimes. Server-known anchors for every
+  loaded document, independent of the model; optional `quote_found_in_source`
+  flag for model-supplied quotes (normalised substring check against the
+  extracted body). Cited for review, not certified.
+- **Professional Sign-Off.** Author reads an AI-prepared output and records
+  `signed` / `signed_with_observations` / `rejected`. Append-only history.
+  Output payload pinned by hash; signature attaches to the hash.
+- **Supervisor Review** as an optional separate review path (firm-mode
+  second pair of eyes), does not compete with author sign-off.
+- **Export Gating v1.1.** Matter export ZIP carries documents, artifacts
+  with `signoff_status` + `signoff_hash_matches` integrity flag,
+  `signoffs.json`, `reviews.json`, and a reconstruction timeline.
+- **Audit reconstruction.** Ordered timeline merged from audit, state-machine,
+  and advice-boundary sources, with decision events in the foreground lane.
+- **Module catalogue + install ceremony** with declared/granted capabilities,
+  per-skill trust posture, `module.json` schema validation, public submission
+  flow that opens a draft PR against `claude-for-uk-legal`.
+- **fastapi-users cookie sessions** + email verification.
+- Smoke evals + real-DB E2E coverage across auth, chronology, modules,
+  matters, documents, audit, letters, workspace skills, capabilities,
+  sign-offs, reviews, export.
 
 ## Live-matter readiness: locked direction
 
@@ -133,15 +152,13 @@ Theme: signed identity, submission infrastructure, and portability.
 
 ## v0.5+: practice-ready
 
-- Named supervisor gates. A gate is not a boolean. It carries supervisor
-  identity, role, SRA reference where applicable, scope of approval, evidence
-  reviewed, override notes, timestamp, and immutable audit link.
-- Regulator reconstruction view. A reviewer should be able to walk one matter
-  from source document to model call to module output to human approval without
-  reading raw database rows.
+- Named supervisor gates beyond the current Supervisor Review path: SRA
+  reference where applicable, scope of approval, evidence reviewed,
+  override notes, immutable audit link.
 - PI / liability evidence chain. The system should help a firm show what was
   supervised, what was delegated, what was refused, and where solicitor
-  judgement entered the workflow.
+  judgement entered the workflow. (V1 reconstruction view + Professional
+  Sign-Off are the substrate; this is the firm-facing surface on top.)
 - Multi-tenant isolation
 - Client portal (read-only, scoped to specific matters)
 - Conflict checks at matter intake
