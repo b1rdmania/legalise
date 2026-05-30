@@ -1,5 +1,5 @@
 /**
- * Phase 14 C — PostureBanner.
+ * PostureBanner.
  *
  * Renders the (actor role × matter posture) cell from POSTURE_GATE_UX.md.
  *
@@ -12,19 +12,12 @@
  *   A_cleared : no banner, full UI
  *   B_mixed   : banner unless actor.role === "qualified_solicitor"
  *               (substrate uses the role string verbatim; is_superuser
- *               does NOT bypass the posture check — Phase 10 builds
- *               InvocationContext.actor_role from user.role only, not
- *               from is_superuser)
+ *               does NOT bypass the posture check — InvocationContext
+ *               is built from user.role only, not from is_superuser)
  *   C_paused  : banner ALWAYS — even admins can't run on paused matters
  *
- * Reviewer-narrow per the Phase 14 C brief: no reconstruction deep-link
- * here. The matter audit reconstruction view is still a placeholder
- * (Phase 14 E target). When E lands, the banner can carry the link the
- * spec describes without churn. Tracked as BACKEND_GAP_AUDIT 14-B-#2 +
- * Phase 14 E.
- *
- * No "Change posture" admin shortcut here either — that's a Phase 14 G
- * settings touchpoint per the build plan.
+ * No "Change posture" admin shortcut here — posture changes live in
+ * settings, not on the matter rail.
  */
 
 import { useState } from "react";

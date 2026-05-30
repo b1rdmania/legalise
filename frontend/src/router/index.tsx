@@ -1,14 +1,14 @@
 /**
- * TanStack Router — Phase 14 A0.
+ * TanStack Router — full route tree.
  *
- * Migrated from a hash-based switch in App.tsx. All routes are now
- * path-based; legacy hash URLs are caught at boot in main.tsx and
- * rewritten in-place via history.replaceState (see `redirectLegacyHash`).
+ * All routes are path-based; legacy hash URLs are caught at boot in
+ * main.tsx and rewritten in-place via history.replaceState (see
+ * `redirectLegacyHash`).
  *
- * Routes are code-based (not the vite-plugin codegen flow). One file per
- * route would be cleaner — for A0 we keep them inline so the whole tree
- * is reviewable in a single read. Splitting per file is a future
- * mechanical refactor with no behavioural delta.
+ * Routes are code-based (not the vite-plugin codegen flow). The whole
+ * tree lives in this file so it is reviewable in a single read;
+ * splitting per file is a future mechanical refactor with no
+ * behavioural delta.
  */
 
 import {

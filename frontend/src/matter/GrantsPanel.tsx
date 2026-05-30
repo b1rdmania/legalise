@@ -1,10 +1,11 @@
 /**
- * Phase 14 C — matter-scoped grants panel.
+ * Matter-scoped grants panel.
  *
  * Renders:
  *   - Current grants on this matter (one row per plugin/skill/capability)
  *     with a Revoke button per row.
  *   - Add-grant control: pick a module → pick a capability → POST.
+ *   - Runnable-capability list with readiness + InvocationRunner.
  *
  * Substrate truth (backend/app/api/grants.py):
  *   - POST /api/matters/{slug}/grants {module_id, capability_id}
@@ -14,12 +15,8 @@
  *       → 409 module_disabled (installed but admin disabled it)
  *   - DELETE /api/matters/{slug}/grants/{grant_id} → 204 (or 404)
  *
- * Reviewer-narrow per the Phase 14 C brief:
- *   - No invoke UI here (Phase 14 D)
- *   - No reconstruction deep-link (Phase 14 E target; tracked as
- *     BACKEND_GAP_AUDIT 14-B-#2 for a workspace-scoped audit view)
- *   - No admin lifecycle (install/revoke module) — those live on the
- *     module detail page (Phase 14 B)
+ * Admin lifecycle (install/revoke module) lives on the module detail
+ * page, not here.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";

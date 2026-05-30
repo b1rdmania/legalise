@@ -1,9 +1,9 @@
 /**
- * Phase 14 E — /matters/{slug}/audit.
+ * Activity Trail page — `/matters/{slug}/audit`.
  *
- * Reconstruction timeline against `GET /api/matters/{slug}/audit/reconstruction`
- * (Phase 5 endpoint). The page is the deep-link target every prior
- * Phase 14 sub-step pinned its links to:
+ * Reconstruction timeline against
+ * `GET /api/matters/{slug}/audit/reconstruction`. This page is the
+ * deep-link target referenced from elsewhere in the product:
  *   - InstallCeremony's 409 banner names module.ceremony.rejected
  *   - PostureBanner / posture-blocked invocation runner banner cites
  *     posture_gate.check.blocked

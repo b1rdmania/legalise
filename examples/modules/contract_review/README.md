@@ -1,4 +1,4 @@
-# Contract Review (Phase 6 vertical slice)
+# Contract Review
 
 A reference module — the smallest real proof of the Legalise v2 substrate.
 
@@ -7,11 +7,13 @@ A reference module — the smallest real proof of the Legalise v2 substrate.
 One capability: `review`. Given a matter document, it:
 
 1. Reads the document (capability scope: `matter.document.read`)
-2. Checks the privilege-posture gate (Phase 1 advice-boundary substrate)
+2. Checks the posture + advice-boundary gates
 3. Calls the matter's configured provider with a structured prompt
 4. Parses the model output into a typed findings list
-5. Writes a `findings_pack` artifact under the matter file store
-6. Returns `{findings_artifact_id, findings_count}`
+5. Emits `source_anchors` (document-level + optional model-quote anchors
+   with `quote_found_in_source`) into the artifact payload
+6. Writes a `findings_pack` artifact
+7. Returns `{findings_artifact_id, findings_count}`
 
 Every step writes an audit row. After one invocation the matter's
 `GET /audit/reconstruction` endpoint returns a complete trail:
@@ -20,13 +22,13 @@ model invocation (with cost columns) → artifact creation → completion.
 
 ## What it doesn't do
 
-- **No streaming.** Phase 6 keeps the slice synchronous. Long-running
-  variants go through the parked Phase 7+ async runtime.
+- **No streaming.** The slice is synchronous; long-running variants
+  would go through a durable-job runtime.
 - **No multi-document review.** One document per invocation.
 - **No autonomous redlining.** Output is flags, not edits — advice tier
   is `draft_advice`, no further.
 - **No real signature.** The signature on `module.json` is a structural
-  placeholder (canonical SHA-256). Phase 11 swaps in real sigstore.
+  placeholder (canonical SHA-256); sigstore is hardening backlog.
 
 ## Installing
 
