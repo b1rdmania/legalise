@@ -38,9 +38,9 @@ export type Route =
   | { name: "new" }
   | { name: "detail"; slug: string; tab?: string }
   | { name: "settings"; tab: "profile" | "keys" | "preferences" }
-  // Phase 14 placeholder routes — present in the Route union so TopBar /
-  // Drawer can pattern-match without crashing, but resolved to the
-  // PlaceholderPage component until the relevant sub-step lands.
+  // Product routes beyond the original matter list/detail shell. Kept
+  // in this compatibility union so legacy consumers can keep matching
+  // route.name while TanStack Router owns the actual route tree.
   | { name: "appHome" }
   | { name: "moduleDetail"; moduleId: string }
   | { name: "moduleInstall"; ceremonyId: string }

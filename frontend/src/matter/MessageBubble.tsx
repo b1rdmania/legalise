@@ -5,7 +5,7 @@ import type {
   SuggestedAction,
 } from "../lib/api";
 
-// Shared message renderer for AssistantTab (full) and RightRailAssistant (compact).
+// Shared message renderer for matter assistant surfaces.
 //
 // Shape rules (from chat redesign brief, 2026-05-19):
 // - User: right-aligned, bg-wash + border, ink text. Never bg-ink (reserved for primary actions).

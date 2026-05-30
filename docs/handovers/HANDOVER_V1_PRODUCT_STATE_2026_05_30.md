@@ -4,6 +4,16 @@ Branch: `master`
 Current head at write time: `4d37368` (`ux: polish public matter demo`)
 Production status: CI, e2e, and frontend deploy green for the current head.
 
+This is the current state handover. For navigation rules and archive policy,
+see `docs/handovers/INDEX.md`.
+
+It supersedes the recent per-feature handovers for Professional Sign-Off, Export
+Gating, Source Anchors, Contract Review Source Anchors, Matter Desk UX, V1 KISS
+Compression, Document Ingress, Document Workspace, Original File Retrieval,
+Module Standalone/Create, Prompt Runtime, External Skills Loop, Guided Demo
+Loop, and Provider Readiness. Those files remain useful history, but this file
+is the current product summary.
+
 ## Purpose
 
 This handover consolidates the recent V1 shaping work after the product moved from

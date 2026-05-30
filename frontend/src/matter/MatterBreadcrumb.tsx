@@ -1,5 +1,4 @@
-// MatterBreadcrumb - slim path strip above the content column (v0.4).
-// Replaces the v0.3.1 MatterHeader full metadata block. Single line:
+// MatterBreadcrumb - slim path strip above the content column. Single line:
 // Matters / {matter title} / {tab label}. Posture lives in the
 // sidebar matter card. Surfaces that need more metadata render it
 // inline within the tab body.

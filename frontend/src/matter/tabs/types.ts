@@ -1,15 +1,14 @@
-// Matter shell taxonomy (v1 — compressed matter rail).
+// Matter shell taxonomy (V1 — compressed matter rail).
 //
 // SIDEBAR_NAV is the core nav that renders in the matter rail.
 // Secondary/legacy surfaces (chronology, approvals, individual
 // workflow pages) remain routable for deep links but do not compete
 // with the main documents → actions → trail loop.
-// WORKFLOW_TABS are the installed-module surfaces reached from the
-// Actions page; they keep their hash routes for deep-linking but
+// WORKFLOW_TABS are historical built-in action surfaces reached from
+// the Actions page; they keep their routes for deep-linking but
 // do not surface as their own sidebar items.
 //
-// "overview" is retired in v0.4. Bare /matters/{slug} redirects
-// to /matters/{slug}/assistant.
+// Bare /matters/{slug} lands on Documents.
 
 export type TabKey =
   | "assistant"
@@ -18,8 +17,8 @@ export type TabKey =
   | "workflows"
   | "audit"
   | "approvals"
-  // Workflow surfaces (reached via the Workflows page; sidebar shows
-  // them as Workflows-active when one is open)
+  // Built-in action surfaces (reached via Actions; sidebar highlights
+  // Actions when one is open)
   | "premotion"
   | "letters"
   | "contract-review"

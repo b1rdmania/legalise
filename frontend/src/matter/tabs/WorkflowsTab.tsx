@@ -1,8 +1,7 @@
-// WorkflowsTab - catalogue of installed legal modules (v0.4).
-// Replaces the v0.3.1 top-level slots for Pre-Motion / Letters /
-// Contract review / Tabular Review / Case law. Each module is a card
-// linking to its surface; the surface keeps its hash route for deep
-// linking, and the sidebar highlights "Workflows" when one is open.
+// WorkflowsTab - historical filename for the matter Actions page.
+// Built-in legal actions (Pre-Motion / Letters / Contract Review /
+// Tabular Review / Case Law) render as cards linking to their surfaces;
+// the sidebar highlights Actions when one is open.
 //
 // State (grant + availability + last_run_at) is fetched from the
 // backend per matter; no static placeholders.

@@ -6,10 +6,9 @@
  * rendering via ArtifactPreview.
  *
  * Deep-link to reconstruction: the result panel + this page both link
- * to `/matters/{slug}/audit?invocation_id=<id>`. That route is
- * registered (Phase 14 A0 placeholder); the query-param contract
- * here is the one Phase 14 E will honour. Unlike the Phase 14 B
- * `/admin/audit` redline, this link goes to a route that exists.
+ * to `/matters/{slug}/audit?invocation_id=<id>`. Activity Trail is the
+ * product-facing reconstruction surface; the query-param contract is
+ * preserved for signed/exported output chains.
  *
  * Per Phase 13b Decision #1, reads do NOT emit audit — substrate-
  * verified at artifacts.py.

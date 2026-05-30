@@ -399,5 +399,5 @@ function DemoDocumentsTab({
   );
 }
 
-// v0.4: demo shares the same MatterNav + MatterBreadcrumb shell as the
+// Public demo shares the MatterNav + MatterBreadcrumb shell with the
 // live workspace. Mutation handlers flash a sign-up CTA.

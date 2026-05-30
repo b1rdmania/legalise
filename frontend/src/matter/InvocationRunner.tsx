@@ -19,10 +19,9 @@
  *
  * Per Reviewer-narrow brief, this component handles invocation +
  * result rendering only. No reconstruction inline, no admin, no
- * settings, no async. The "View in audit trail" link from the result
- * panel points at /matters/{slug}/audit?invocation_id=… (Phase 14 E
- * route is registered as a placeholder so the link doesn't 404;
- * meaningful content lands when E ratifies).
+ * settings, no async. The "View in Activity Trail" link from the result
+ * panel points at /matters/{slug}/audit?invocation_id=…, preserving the
+ * reconstruction deep-link for the output chain.
  */
 
 import { useState } from "react";

@@ -67,8 +67,8 @@ export function MatterDetail({ slug }: { slug: string }) {
     onTabChange(tab);
   }, [tab, onTabChange]);
 
-  // sync tab from hash when it changes (back/forward). Bare /matters/:slug
-  // (no tab segment) lands on assistant - the workspace front door in v0.4.
+  // Sync tab from path changes (back/forward). Bare /matters/:slug
+  // lands on Documents — the record-first workspace front door.
   useEffect(() => {
     if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab);
@@ -385,7 +385,7 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
           {tab === "approvals" && <ApprovalsTab slug={matter.slug} />}
-          {/* Workflow surfaces - reached via Workflows page; sidebar highlights Workflows. */}
+          {/* Action surfaces reached from Actions; sidebar highlights Actions. */}
           {tab === "premotion" && (
             <PreMotionTab
               matter={matter}
@@ -430,7 +430,6 @@ export function MatterDetail({ slug }: { slug: string }) {
   );
 }
 
-// v0.4: compact left rail (MatterNav) + slim breadcrumb (MatterBreadcrumb)
-// replace the v0.3.1 MatterHeader + MatterTabBar. Five sidebar primitives;
-// installed modules nest behind Workflows. Bare /matters/:slug lands on
-// the Assistant tab. See docs/DESIGN.md "What changed in v0.4".
+// MatterDetail should stay a shell + tab switch. Historical workflow
+// surfaces still live here, but new work should move loading/effects into
+// the surface it touches instead of growing this component.

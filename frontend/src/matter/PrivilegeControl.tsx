@@ -1,9 +1,9 @@
 // PrivilegeControl - monochrome posture selector.
-// v0.3: no semantic colour fills for A_cleared / B_mixed. Reads as a
+// No semantic colour fills for A_cleared / B_mixed. Reads as a
 // plain mono dropdown sitting inline with the surrounding sidebar text.
 // Matches the document-as-product idiom.
 //
-// v0.4: C_paused is the single exception — text turns seal because
+// C_paused is the single exception — text turns seal because
 // posture C refuses cloud calls, and the gateway refusal is itself an
 // audited event. The seal hint flags it before any action is attempted.
 
