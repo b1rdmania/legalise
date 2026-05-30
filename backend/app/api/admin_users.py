@@ -1,18 +1,15 @@
-"""Phase 11 — admin user role management.
+"""Admin user role management.
 
 Single endpoint:
 
   POST /api/admin/users/{user_id}/role
 
 Body ``{role}``. Superuser-only. Same endpoint serves promotion AND
-demotion. Self-promotion forbidden. Idempotent — re-posting the
+demotion. Self-promotion is forbidden. Idempotent — re-posting the
 current role is a no-op (200, no audit row).
 
-Closes the demo-role gap Phase 8 flagged: until this endpoint
-existed, a default ``solicitor`` user could not run any module on
-a ``B_mixed`` matter (the seeded Khan v Acme posture); only direct
-DB mutation could promote them. After Phase 11 a real superuser
-promotes via HTTP.
+Closes the demo-role gap: a default ``solicitor`` user could not run any
+module on a ``B_mixed`` matter; only a real superuser promotes via HTTP.
 
 Audit shape: one row per actual change.
 
@@ -21,8 +18,8 @@ Audit shape: one row per actual change.
   actor_id:  the calling superuser
   payload:   {target_user_id, from_role, to_role, reason}
 
-Reason is reserved for future structured codes (SRA roll lapse,
-manual review, etc); Phase 11 stamps it ``"manual_admin_action"``.
+Reason is reserved for future structured codes (SRA roll lapse, manual
+review, etc); currently stamped ``"manual_admin_action"``.
 """
 
 from __future__ import annotations
@@ -43,12 +40,12 @@ from app.models import User
 router = APIRouter()
 
 
-# Locked vocabulary — Phase 11 Decision #1.
+# Locked role vocabulary.
 #
-# Three tokens in active substrate use across Phase 1 (advice-boundary
-# tiers) and Phase 8 (posture gate). ``any_authenticated`` is a
-# requirement token (the gate accepts any logged-in role); it is NOT a
-# settable role on User. SRA-verified subclasses are deferred.
+# Three tokens in active substrate use across the advice-boundary tiers
+# and the posture gate. ``any_authenticated`` is a *requirement* token
+# (the gate accepts any logged-in role); it is NOT a settable role on
+# User. SRA-verified subclasses are deferred.
 ALLOWED_ROLES: frozenset[str] = frozenset(
     {"solicitor", "qualified_solicitor", "workspace_admin"}
 )

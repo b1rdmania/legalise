@@ -1,4 +1,4 @@
-"""Phase 7 — per-matter, per-user grant endpoints.
+"""Per-matter, per-user grant endpoints.
 
 Three endpoints under ``/api/matters/{slug}/grants``:
 
@@ -6,14 +6,10 @@ Three endpoints under ``/api/matters/{slug}/grants``:
 - ``DELETE /{grant_id}`` — revoke a specific grant row.
 - ``GET``    — list current grants on this matter, grouped by parent capability.
 
-All three apply the strict matter-access predicate (Phase 5 shape):
-matter owner OR workspace superuser. A capability-grant on the
-matter does NOT, on its own, satisfy access — granting your own
-authority is a privileged surface; only the matter owner uses it.
-
-Closes the Phase 6 install-to-run gap: until Phase 7, the vertical
-slice could only insert grant rows from test fixtures. Now real
-HTTP clients walk install (admin) → grant (per-user) → invoke.
+All three apply the strict matter-access predicate: matter owner OR
+workspace superuser. A capability-grant on the matter does NOT, on its
+own, satisfy access — granting your own authority is a privileged
+surface; only the matter owner uses it.
 """
 
 from __future__ import annotations

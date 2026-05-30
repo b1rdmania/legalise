@@ -1,18 +1,15 @@
 /**
  * Route compatibility shim.
  *
- * Pre-A0 this file was a hand-rolled hash-based router. Phase 14 A0
- * replaced the router with TanStack Router (path-based, see
- * `src/router/index.tsx`). This file now provides a *compatibility
- * surface* so existing components that use `useRoute()` / `navigate()`
- * keep working unchanged.
- *
- * The Route discriminated union is reconstructed from the TanStack
- * location on every render. Components that just need `route.name` or
- * `route.slug` see the same shape they always did.
+ * The real router is TanStack Router (path-based, see
+ * `src/router/index.tsx`). This file provides a *compatibility surface*
+ * so existing components that use `useRoute()` / `navigate()` keep
+ * working unchanged: the Route discriminated union is reconstructed from
+ * the TanStack location on every render.
  *
  * New components should prefer TanStack's own hooks (`useRouterState`,
- * route-level `useParams`, `<Link>`) — this shim is a one-release bridge.
+ * route-level `useParams`, `<Link>`) — this shim is a bridge for the
+ * older hash-router call sites.
  */
 
 import { useRouterState } from "@tanstack/react-router";
@@ -216,9 +213,8 @@ export const isPublicRoute = (route: Route): boolean =>
   PUBLIC_ROUTE_NAMES.has(route.name);
 
 /**
- * Pre-A0 had `parseHash()` for tests. Phase 14 A0 keeps the same
- * function name so any consumers still see a Route, but it now accepts
- * either `#/foo` or `/foo` and routes through routeFromPath.
+ * Compatibility helper for older tests that called `parseHash`. Accepts
+ * either `#/foo` or `/foo` and routes through `routeFromPath`.
  */
 export function parseHash(hash: string): Route {
   const raw = hash.replace(/^#/, "");

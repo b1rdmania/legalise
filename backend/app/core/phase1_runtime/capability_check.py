@@ -1,22 +1,20 @@
-"""Phase 1 capability check helper.
+"""Substrate-level capability check helper.
 
-Wraps the existing ``require_capability`` with the
-``plugin="core"`` convention for substrate-level capability checks
-(architectural decision #1 in PHASE_1_BUILD_PLAN.md).
+Wraps the existing ``require_capability`` with the ``plugin="core"``
+convention for substrate-level checks.
 
-On denial, emits the Phase 1 canonical ``*.blocked`` audit row
-*in addition* to the existing ``module.capability.denied`` row that
-``require_capability`` writes (architectural decision #2). Both rows
-are needed: the existing row preserves the legacy capability-denial
-shape for the existing 403 handler; the Phase 1 row carries the
-canonical ``BlockedPayload`` for substrate reconstruction.
+On denial, emits the canonical ``*.blocked`` audit row *in addition* to
+the existing ``module.capability.denied`` row that ``require_capability``
+writes. Both rows are needed: the existing row preserves the legacy
+capability-denial shape for the existing 403 handler; the blocked row
+carries the canonical ``BlockedPayload`` for substrate reconstruction.
 
-The Phase 1 row is written via ``audit_failure`` (independent
-transaction) because ``require_capability`` commits the session on
-its way out before raising ``CapabilityDenied`` — so a second
-``session.add`` would either be in a new transaction the caller
-hasn't started or get lost to the caller's eventual rollback. Using
-``audit_failure`` keeps the Phase 1 row guaranteed-persisted.
+The blocked row is written via ``audit_failure`` (independent
+transaction) because ``require_capability`` commits the session on its
+way out before raising ``CapabilityDenied`` — so a second ``session.add``
+would either be in a new transaction the caller hasn't started or get
+lost to the caller's eventual rollback. Using ``audit_failure`` keeps
+the row guaranteed-persisted.
 """
 
 from __future__ import annotations
@@ -56,7 +54,7 @@ async def check_or_block(
        internally. Commits via the session, then commits again
        defensively. Existing 403 handler in ``app.main`` knows this
        row's shape.
-    2. ``<block_action>`` — Phase 1 canonical ``*.blocked`` row with
+    2. ``<block_action>`` — canonical ``*.blocked`` row with
        ``BlockedPayload(blocked_reason=CAPABILITY_DENIED,
        denied_capability=capability)``. Written via
        ``audit_failure`` (independent transaction) so it survives
@@ -75,7 +73,7 @@ async def check_or_block(
         Substrate primitive name (e.g. ``"matter_context"``).
         Used for the audit ``module`` column.
     block_action
-        Canonical Phase 1 event name for the block, e.g.
+        Canonical event name for the block, e.g.
         ``"matter_context.write.blocked"``,
         ``"state_machine.transition.blocked"``.
     plugin
@@ -85,7 +83,7 @@ async def check_or_block(
         Grant table skill field. Defaults to ``primitive`` value
         when omitted, so a substrate caller can leave it implicit.
     actor_id, matter_id, resource_type, resource_id
-        Forwarded to the Phase 1 audit row.
+        Forwarded to the canonical audit row.
 
     Raises
     ------
@@ -103,7 +101,7 @@ async def check_or_block(
         )
     except CapabilityDenied:
         # require_capability has already written `module.capability.denied`
-        # and committed it. Now write the Phase 1 canonical row via
+        # and committed it. Now write the canonical row via
         # audit_failure so it survives any rollback the caller does after
         # we re-raise.
         blocked = BlockedPayload(

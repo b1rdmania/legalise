@@ -45,17 +45,17 @@ import { AssistantTab } from "./tabs/AssistantTab";
 import { WorkflowsTab } from "./tabs/WorkflowsTab";
 
 export function MatterDetail({ slug }: { slug: string }) {
-  // Phase 14 A0 — drawer state is now in a context. Pre-A0 callers
+  // drawer state is now in a context. Pre-A0 callers
   // passed onMatterLoaded / onTabChange as props from App.tsx; with
   // routed pages those callers no longer exist, so MatterDetail reads
   // the same setters from DrawerContext directly.
   const { setDrawerMatter, setDrawerTab } = useDrawer();
   const onMatterLoaded = setDrawerMatter;
   const onTabChange = setDrawerTab;
-  // Phase 14 C — posture banner reads the current user role.
+  // posture banner reads the current user role.
   const auth = useAuth();
   const route = useRoute();
-  // Phase 17-IA-B: a freshly-opened matter leads with the record
+  // a freshly-opened matter leads with the record
   // (documents), not the assistant chat (MD-2). The assistant is the
   // collapsible right rail / its own sidebar item, not the front door.
   const initialTab: TabKey =
@@ -86,7 +86,7 @@ export function MatterDetail({ slug }: { slug: string }) {
   const [matter, setMatter] = useState<Matter | null>(null);
   const [docs, setDocs] = useState<MatterDocument[] | null>(null);
   const [audit, setAudit] = useState<AuditEntry[] | null>(null);
-  // Phase 17.5 — whether the firm role hierarchy is enforced. Drives
+  // whether the firm role hierarchy is enforced. Drives
   // the posture banner: dormant (default) means no B_mixed
   // qualified-solicitor blocker. Defaults true (enforced) until the
   // system state resolves, so we never silently hide a live gate.

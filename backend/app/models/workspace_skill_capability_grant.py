@@ -11,20 +11,20 @@ asserts that ``user_id`` has authorised ``(plugin, skill)`` to exercise
 The runtime check in ``app.core.capabilities.require_capability``
 reads this table on every privileged boundary.
 
-Phase 7 added ``scope_type`` + ``scope_id`` as first-class columns
-(migration 0019) so the same user can hold the same capability at
-different scopes (e.g. matter A and matter B) without collision.
-Uniqueness is now the 6-tuple:
+``scope_type`` + ``scope_id`` are first-class columns (migration 0019)
+so the same user can hold the same capability at different scopes
+(e.g. matter A and matter B) without collision. Uniqueness is the
+6-tuple:
 
     (user_id, plugin, skill, capability, scope_type, scope_id)
 
 …enforced via ``uq_grant_user_plugin_skill_cap_scope`` with the
-``NULLS NOT DISTINCT`` modifier so two workspace-scope grants for
-the same 4-tuple collide cleanly (Postgres 15+).
+``NULLS NOT DISTINCT`` modifier so two workspace-scope grants for the
+same 4-tuple collide cleanly (Postgres 15+).
 
 ``ck_grant_scope_pairing`` enforces ``(scope_type = 'matter') =
-(scope_id IS NOT NULL)``; ``ck_grant_scope_type_vocab`` (migration
-0020) pins ``scope_type`` to the two-value vocabulary.
+(scope_id IS NOT NULL)``; ``ck_grant_scope_type_vocab`` (migration 0020)
+pins ``scope_type`` to the two-value vocabulary.
 
 ``granted_by_user_id`` records the actor who granted the capability
 for audit trails (NULL for system auto-grants at signup).
