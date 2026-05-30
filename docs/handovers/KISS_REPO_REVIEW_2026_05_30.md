@@ -251,6 +251,127 @@ Recommendation:
 - Update the package docstrings opportunistically.
 - Do not burn a separate build cycle on them unless doing the docs cleanup.
 
+## Reviewer Refinements To Fold In
+
+These refinements came after the first review and should be treated as part of
+the execution plan, not optional commentary.
+
+### 1. Handover Index Needs A Rule
+
+The index/archive step should create an ongoing rule, not a one-time tidy.
+
+Suggested rule:
+
+- only the most recent `DONE` handover per active feature remains at top level;
+- older per-feature handovers move to `docs/handovers/archive/` on the next
+  consolidated state-doc commit;
+- each consolidated state doc names the handovers it supersedes;
+- future agents start at `docs/handovers/INDEX.md`, then the current state doc.
+
+Pilot this with `HANDOVER_V1_PRODUCT_STATE_2026_05_30.md`: have it name the
+recent feature handovers it consolidates, then archive those older handovers in
+the same mechanical commit.
+
+Without this rule, the handover directory will regrow immediately.
+
+### 2. Canonical Docs Rewrite Is A Public-Claim Decision
+
+The doc sync is not mechanical copy cleanup. Replacing "substrate only /
+supervisor gate lands later" with a stronger V1 claim is a public positioning
+change.
+
+This wording affects:
+
+- README;
+- `docs/SUPERVISED_AUTONOMY.md`;
+- launch/outreach docs;
+- any future SRA/pre-application reader.
+
+The target claim should be written/reviewed deliberately by the project owner.
+A draft is fine, but it should not be merged as a routine hygiene patch.
+
+Guardrail:
+
+- stronger than "substrate only";
+- still not legal advice;
+- still not a law firm;
+- still not live-client-ready by default;
+- source anchors are cited-for-review, not proof;
+- Professional Sign-Off is professional ownership in Legalise, not regulator
+  certification.
+
+### 3. Deletion Requires Explicit Grep Proof
+
+Before deleting stranded frontend files, run explicit symbol searches, not just
+route-import checks.
+
+Minimum proof:
+
+```bash
+rg -n "PlaceholderPage|MatterRecordSummary|RightRailAssistant" frontend/src
+```
+
+Expected:
+
+- remove source file and test together where the test is the only reference;
+- check for lazy imports, comments, and dynamic references;
+- run focused frontend tests, then full frontend gate.
+
+### 4. `MatterDetail` Extraction Needs A Target Shape
+
+"Extract on touch" is right, but needs a small contract to prevent three new
+mini-monoliths.
+
+Proposed extracted-surface contract:
+
+- `MatterDetail` owns shell, matter identity, and tab routing only;
+- each tab/surface owns its own data loading where possible;
+- shared matter-level data is passed as props only if needed by two or more
+  surfaces;
+- route/deep-link behaviour stays in router/tabs taxonomy, not buried inside a
+  surface;
+- side effects that refresh audit/doc lists should be explicit callbacks, not
+  hidden global reloads.
+
+Write this contract before the first extraction.
+
+### 5. CI Docs-Only Optimization Has Gotchas
+
+`paths-ignore` is probably right, but remember:
+
+- GitHub skips only when all changed files match the ignore patterns;
+- one source-file change pulls docs along into the normal gate, which is
+  usually desired;
+- PR/fork settings can behave differently from push workflows;
+- the only real verification is a docs-only push after the workflow change.
+
+Alternative: a `[skip ci]` convention for docs-only commits. It is simpler and
+observable, but easier to forget.
+
+### 6. Memory Files Are The Same Class Of Problem
+
+Project memory has also grown chronologically. It should point to the canonical
+state handover and stay short:
+
+- where we are now;
+- what changed since last session;
+- what is next.
+
+Do not duplicate the full phase history in memory if
+`HANDOVER_V1_PRODUCT_STATE_2026_05_30.md` is canonical.
+
+### 7. Module READMEs May Be Stale Too
+
+Step 1 should include module docs, especially:
+
+- `examples/modules/contract_review/README.md`
+- `examples/modules/pre_motion/README.md`
+- any manifest/reference docs that describe output payloads, artifacts, or
+  citation/source behaviour.
+
+Contract Review now emits `source_anchors`; its docs may still describe only
+plain citations.
+
 ## Suggested Cleanup Plan
 
 ### Step 1 — Canonical Docs Sync
@@ -261,6 +382,7 @@ Files:
 - `docs/SUPERVISED_AUTONOMY.md`
 - `docs/ROADMAP.md`
 - `docs/DESIGN.md` or replacement `docs/INTERFACE.md`
+- relevant module READMEs under `examples/modules/*`
 
 Goal:
 
