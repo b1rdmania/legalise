@@ -197,9 +197,9 @@ async def _ensure_demo_matter(session: AsyncSession, user: User) -> tuple[Matter
     if matter is None:
         matter = Matter(
             slug=DEMO_MATTER_SLUG,
-            title="Guided Demo — Governed Loop (stub model)",
+            title="Guided Demo — Employment Tribunal (keyless)",
             matter_type="employment_tribunal",
-            cause="Demo — not a real matter",
+            cause="Demo — modelled on the Khan v Acme employment dispute. Not a real matter.",
             status=STATUS_OPEN,
             privilege_posture=PRIVILEGE_CLEARED,
             default_model_id="stub-echo",

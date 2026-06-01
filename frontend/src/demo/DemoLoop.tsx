@@ -96,8 +96,8 @@ export function DemoLoop() {
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Demo"
-        title="Try the governed loop"
-        description="Watch the full supervised-autonomy loop run end to end — no provider key needed. This uses a keyless stub model on a clearly-labelled demo matter. Bring a real provider key (Settings → Keys) to run real models on your own matters."
+        title="Watch the governed loop"
+        description="Watch the full supervised-autonomy loop run end to end — no provider key needed. This is a keyless demonstration matter modelled on the Khan v Acme employment dispute; real Khan remains the full workspace matter. Bring a real provider key (Settings → Keys) to run real models on your own matters."
       />
 
       {error && <ErrorCallout message={error} />}
@@ -107,8 +107,8 @@ export function DemoLoop() {
         <div className="space-y-6">
           <div className="rounded-md border border-seal/40 bg-seal/5 p-3 text-xs text-seal" data-testid="demo-banner">
             Demo · matter <span className="font-mono">{handles.matter_slug}</span> ·
-            model <span className="font-mono">{handles.model_id}</span>. Synthetic content,
-            not legal advice. Outputs come from a toy model — bring a key for real providers.
+            model <span className="font-mono">{handles.model_id}</span>. Keyless demonstration
+            modelled on Khan v Acme. Not legal advice. Bring a key for real providers.
           </div>
 
           {/* Step 1 — run */}

@@ -223,7 +223,7 @@ function AuthedHome() {
         data-testid="try-governed-loop"
       >
         <span>
-          <span className="text-sm font-medium">Try the governed loop</span>
+          <span className="text-sm font-medium">Watch the governed loop</span>
           <span className="mt-0.5 block text-xs opacity-80">
             Run a skill → artifact → review → audit trail. No provider key needed.
           </span>

@@ -50,7 +50,7 @@ function mountDemo() {
 
 const HANDLES = {
   matter_slug: "guided-demo-loop",
-  matter_title: "Guided Demo — Governed Loop (stub model)",
+  matter_title: "Guided Demo — Employment Tribunal (keyless)",
   module_id: "demo.guided-skill",
   capability_id: "summarise",
   document_id: "doc-1",
