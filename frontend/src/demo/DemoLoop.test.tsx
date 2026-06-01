@@ -94,13 +94,29 @@ describe("DemoLoop", () => {
     expect(screen.getByTestId("demo-banner")).toHaveTextContent(/stub-echo/);
     const runBtn = await screen.findByTestId("demo-run");
 
-    // Trust & Review card present from the start, with the three facts and one CTA.
+    // Trust & Review card present from the start, with the three facts and View proof CTA.
     const card = screen.getByTestId("trust-review-card");
     expect(card).toHaveTextContent(/Audit trail/);
     expect(card).toHaveTextContent(/Human review/);
     expect(card).toHaveTextContent(/Source visibility/);
     expect(card).not.toHaveTextContent(/verified/i);
-    expect(screen.getByTestId("trust-review-open-trail")).toBeInTheDocument();
+    const viewProof = screen.getByTestId("trust-review-view-proof");
+    expect(viewProof).toBeInTheDocument();
+
+    // Clicking View proof opens the four-question Proof drawer (pre-run shape).
+    fireEvent.click(viewProof);
+    const drawer = screen.getByTestId("proof-drawer");
+    expect(drawer).toHaveTextContent(/Proof record/);
+    expect(drawer).not.toHaveTextContent(/Verified proof/i);
+    expect(drawer).toHaveTextContent(/What did it see\?/);
+    expect(drawer).toHaveTextContent(/Under what protection\?/);
+    expect(drawer).toHaveTextContent(/What did it produce\?/);
+    expect(drawer).toHaveTextContent(/Who remains accountable\?/);
+    expect(drawer).toHaveTextContent(/Run not yet executed/);
+    // Pre-run: no invocation id yet, so the Activity Trail link is absent.
+    expect(screen.queryByTestId("proof-drawer-open-trail")).toBeNull();
+    fireEvent.click(screen.getByTestId("proof-drawer-close"));
+    expect(screen.queryByTestId("proof-drawer")).toBeNull();
 
     // Run → artifact renders via ArtifactPreview skill_response branch.
     fireEvent.click(runBtn);
@@ -114,6 +130,18 @@ describe("DemoLoop", () => {
     expect(screen.getByTestId("demo-review-note")).toHaveTextContent(/cannot approve their own/i);
     expect(screen.getByTestId("demo-open-trail")).toBeInTheDocument();
     expect(api.requestReview).toHaveBeenCalledWith("guided-demo-loop", "art-1");
+
+    // Post-review: re-open the Proof drawer. The artifact + invocation id
+    // are now in scope, so What did it produce? renders the kind + output
+    // preview, Who remains accountable? notes review requested, and the
+    // deeper "Open full Activity Trail" link is present.
+    fireEvent.click(screen.getByTestId("trust-review-view-proof"));
+    const postRunDrawer = screen.getByTestId("proof-drawer");
+    expect(postRunDrawer).toHaveTextContent(/skill_response/);
+    expect(postRunDrawer).toHaveTextContent(/Three bullet summary/);
+    expect(postRunDrawer).toHaveTextContent(/Review/);
+    expect(postRunDrawer).toHaveTextContent(/separate reviewer/i);
+    expect(screen.getByTestId("proof-drawer-open-trail")).toBeInTheDocument();
   });
 
   it("surfaces an error if the run fails", async () => {

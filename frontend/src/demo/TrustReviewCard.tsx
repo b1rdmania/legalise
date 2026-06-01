@@ -2,24 +2,24 @@
  * Compact Trust and Review card for the guided demo (`/demo-loop`).
  *
  * States the three governance facts that hold for every run on this matter,
- * with a single CTA into the Activity Trail. Kept narrowly scoped to the
- * guided exhibit for now — proves the pattern before any matter-shell-wide
- * rollout.
+ * with a single CTA that opens the four-question Proof drawer. The drawer
+ * itself carries the deeper link into Activity Trail; the card is the
+ * first humane proof layer.
  *
  * Honesty boundary: no "verified" wording, no audit-row count. Claims are
  * only what the current substrate actually delivers — runs are recorded,
  * sign-off gates final treatment, artifact contents and source references
  * are visible per output.
+ *
+ * Scoped narrowly to /demo-loop. Matter-shell rollout is a separate later
+ * call (see memory: legalise-trust-card-rollout-caveat).
  */
 
-import { Link } from "@tanstack/react-router";
-
 type TrustReviewCardProps = {
-  matterSlug: string;
-  invocationId?: string;
+  onViewProof: () => void;
 };
 
-export function TrustReviewCard({ matterSlug, invocationId }: TrustReviewCardProps) {
+export function TrustReviewCard({ onViewProof }: TrustReviewCardProps) {
   return (
     <aside
       className="rounded-md border border-rule bg-wash p-4"
@@ -42,15 +42,14 @@ export function TrustReviewCard({ matterSlug, invocationId }: TrustReviewCardPro
         </li>
       </ul>
       <p className="mt-3">
-        <Link
-          to="/matters/$slug/audit"
-          params={{ slug: matterSlug }}
-          search={invocationId ? { invocation_id: invocationId } : {}}
+        <button
+          type="button"
+          onClick={onViewProof}
           className="inline-flex items-center rounded-md border border-rule px-3 py-1.5 text-xs hover:border-ink"
-          data-testid="trust-review-open-trail"
+          data-testid="trust-review-view-proof"
         >
-          Open Activity Trail &rarr;
-        </Link>
+          View proof &rarr;
+        </button>
       </p>
     </aside>
   );
