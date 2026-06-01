@@ -1,27 +1,27 @@
 /**
- * Phase 14 A — `/app` first-run + authed home.
+ * `/app` first-run + authed home.
  *
  * Three-state machine driven by GET /api/system/bootstrap-state
- * (Phase 13b C, no auth required) and the AuthProvider session:
+ * (no auth required) and the AuthProvider session:
  *
  *   1. user_count === 0
  *      Empty state. "No accounts yet. Register the first account."
  *      Primary CTA → /auth/register (a.k.a. /auth/signup).
  *      Does NOT claim registration grants admin — bootstrap is a
- *      separate step (Phase 12 CLI).
+ *      separate CLI step.
  *
  *   2. user_count > 0 && has_superuser === false
  *      "Bootstrap administrator required" — literal CLI command + the
  *      binary path. Deliberately no UI shortcut; bootstrap stays a
- *      host-side action per Phase 12 scope.
+ *      host-side action.
  *
  *   3. has_superuser === true
  *      If unauth → bounce to /auth/signin (or /waitlist when
  *      HOSTED_ACCESS_WAITLIST). If authed → render the home (recent
  *      matters + "Open Khan v Acme" CTA).
  *
- * Reviewer-narrow scope (Phase 14 A): no module catalog, no grants,
- * no reconstruction, no admin. The home renders matter list + Khan
+ * Reviewer-narrow scope: no module catalog, no grants, no
+ * reconstruction, no admin. The home renders matter list + Khan
  * CTA and stops.
  */
 

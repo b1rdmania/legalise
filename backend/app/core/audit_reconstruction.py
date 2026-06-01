@@ -1,22 +1,21 @@
-"""Phase 5 — audit reconstruction timeline builder.
+"""Audit reconstruction timeline builder.
 
 Read-only, matter-scoped, pure-functional. Given a matter_id +
 optional time window + source filter, returns a chronologically-
 ordered timeline of every event the matter produced — audit rows,
 state-machine transitions, and advice-boundary decisions.
 
-This is the load-bearing surface for the "supervised autonomy"
-claim: without a query that reconstructs what happened, the audit
-log is write-only theatre.
+This is the load-bearing surface for the supervised-autonomy claim:
+without a query that reconstructs what happened, the audit log is
+write-only theatre.
 
-Architectural decisions (ratified at Phase 5 v3):
+Architectural decisions:
 
 1. **Matter-scoped only.** No cross-matter view at this layer.
-2. **Three sources, not four.** The original plan named a separate
-   ``ceremony`` source, but ceremony events (``module.ceremony.*``,
-   ``module.installed``, etc.) are emitted via the standard audit
-   path — they live in ``audit_entries`` already. A dedicated source
-   would have been redundant.
+2. **Three sources, not four.** Ceremony events
+   (``module.ceremony.*``, ``module.installed``, etc.) are emitted
+   via the standard audit path — they live in ``audit_entries``
+   already, so a dedicated ``ceremony`` source would be redundant.
 3. **Cursor shape:** ``{source, occurred_at, source_row_id}``.
    ``(occurred_at, id)`` alone duplicates or skips rows on timestamp
    ties across the three source tables (different id spaces).
@@ -119,8 +118,7 @@ def decode_cursor(cursor: str) -> dict[str, Any]:
     Raises ``ValueError`` on ANY malformed input — bad base64, bad
     JSON, missing keys, bad timestamp. The API layer (``api/audit.py``)
     catches ``ValueError`` and translates to HTTP 422. Without the
-    catch-all, base64/JSON/datetime errors leaked as HTTP 500
-    (Reviewer Phase 5 R2 P2).
+    catch-all, base64/JSON/datetime errors leaked as HTTP 500.
     """
     try:
         raw = base64.urlsafe_b64decode(cursor.encode("ascii"))
@@ -173,8 +171,8 @@ def _cursor_predicate(
     """Build a SQL predicate that filters rows strictly AFTER the
     global cursor key for this source.
 
-    Reviewer Phase 5 R2 P1: the previous implementation only applied
-    the strict-after filter to the cursor's own source. Other sources
+    The strict-after filter applies to every source — not only the
+    cursor's own. Earlier implementations skipped this, and other sources
     re-queried from the start of the window with LIMIT N — so when
     a non-cursor source had many pre-cursor rows, the first N all
     sorted BEFORE the cursor and got dropped in memory. Later rows
@@ -230,7 +228,7 @@ async def _query_audit_rows(
         stmt = stmt.where(AuditEntry.timestamp >= since)
     if until is not None:
         stmt = stmt.where(AuditEntry.timestamp <= until)
-    # Phase 14.5 A — filters BEFORE pagination. Each filter pushes into
+    # Filters apply BEFORE pagination. Each filter pushes into
     # SQL so the cursor + limit+1 over-fetch operates on the filtered
     # set, not the full source. Without this, a target row at the tail
     # of a dense non-matching window would never enter `pulls`.
@@ -255,8 +253,8 @@ async def _query_audit_rows(
 
 def _audit_to_entry(r: AuditEntry) -> TimelineEntry:
     payload = dict(r.payload or {})
-    # Pull module_id / capability_id from payload if present (Phase 1
-    # convention from audit_phase1).
+    # Pull module_id / capability_id from payload if present (the
+    # audit substrate's convention).
     module_id = payload.pop("module_id", None) or r.module
     capability_id = payload.pop("capability_id", None)
     # Cost columns surface alongside payload so readers can find them
@@ -301,17 +299,17 @@ async def _query_state_machine_rows(
     invocation_id: str | None = None,
     action: str | None = None,
 ) -> list[TimelineEntry]:
-    # Phase 14.5 A — workspace scope (matter_id is None) has no
-    # state_machine rows by substrate design (StateMachineInstance
-    # rows always carry a matter owner). Return empty cleanly.
+    # Workspace scope (matter_id is None) has no state_machine rows
+    # by substrate design (StateMachineInstance rows always carry a
+    # matter owner). Return empty cleanly.
     if matter_id is None:
         return []
-    # Phase 14.5 A — invocation_id filter: state_machine transitions
-    # don't carry invocation_id as a deterministic column. Honest
-    # behaviour is to return empty when the caller filters by it.
+    # invocation_id filter: state_machine transitions don't carry
+    # invocation_id as a deterministic column. Honest behaviour is
+    # to return empty when the caller filters by it.
     if invocation_id is not None:
         return []
-    # Phase 14.5 A — action filter: synthesised action is
+    # action filter: synthesised action is
     # `state_machine.transition.<status>`. If the action filter
     # doesn't start with that prefix the source matches nothing;
     # if it does we push the status into SQL.
@@ -394,13 +392,13 @@ async def _query_advice_boundary_rows(
     invocation_id: str | None = None,
     action: str | None = None,
 ) -> list[TimelineEntry]:
-    # Phase 14.5 A — workspace scope has no advice_boundary rows by
-    # substrate design (AdviceBoundaryDecision.gate_state always
-    # carries matter_id; the table is matter-bound).
+    # Workspace scope has no advice_boundary rows by substrate
+    # design (AdviceBoundaryDecision.gate_state always carries
+    # matter_id; the table is matter-bound).
     if matter_id is None:
         return []
-    # Phase 14.5 A — action filter parallel to state_machine: the
-    # synthesised action is `advice_boundary.decision.<status>`.
+    # action filter parallel to state_machine: the synthesised
+    # action is `advice_boundary.decision.<status>`.
     status_filter: str | None = None
     if action is not None:
         if not action.startswith(_ADVICE_BOUNDARY_ACTION_PREFIX):
@@ -416,9 +414,9 @@ async def _query_advice_boundary_rows(
     if status_filter is not None:
         stmt = stmt.where(AdviceBoundaryDecision.status == status_filter)
     if invocation_id is not None:
-        # Phase 9 convention: AdviceBoundaryDecision.output_id carries
-        # the invocation_id verbatim (string form). Test pin at
-        # test_phase9_pre_motion_vertical_slice.py:355.
+        # Substrate convention: AdviceBoundaryDecision.output_id
+        # carries the invocation_id verbatim (string form). See the
+        # pre-motion vertical-slice regression test.
         stmt = stmt.where(AdviceBoundaryDecision.output_id == invocation_id)
     pred = _cursor_predicate(
         cursor_key,
@@ -497,7 +495,7 @@ async def reconstruct(
         Read-only AsyncSession.
     matter_id
         Matter to scope to. ``None`` selects the workspace scope
-        (Phase 14.5 C — audit-source rows where matter_id IS NULL).
+        (audit-source rows where matter_id IS NULL).
     since, until
         Optional ISO8601 time window. Defaults are open-ended.
     sources
@@ -508,14 +506,14 @@ async def reconstruct(
     limit
         Max entries per page. Capped at ``MAX_LIMIT``.
     invocation_id
-        Phase 14.5 A — filter to rows matching this invocation. For
-        audit rows, matches ``payload.invocation_id``. For
-        advice_boundary rows, matches ``output_id`` (Phase 9
-        convention). State_machine rows have no deterministic
-        invocation_id carrier and return empty under this filter.
+        Filter to rows matching this invocation. For audit rows,
+        matches ``payload.invocation_id``. For advice_boundary rows,
+        matches ``output_id`` (substrate convention). State_machine
+        rows have no deterministic invocation_id carrier and return
+        empty under this filter.
     action
-        Phase 14.5 A — filter to rows where the synthesised action
-        equals this string verbatim. State_machine + advice_boundary
+        Filter to rows where the synthesised action equals this
+        string verbatim. State_machine + advice_boundary
         sources only match if the string carries their respective
         ``state_machine.transition.<status>`` / ``advice_boundary.decision.<status>``
         prefix.
@@ -548,10 +546,9 @@ async def reconstruct(
             )
 
     # Decode cursor → global key applied to EVERY source's SQL via
-    # _cursor_predicate. Reviewer Phase 5 R2 P1 fix: the previous
-    # implementation applied the strict-after filter only to the
-    # cursor's own source. Non-cursor sources with many pre-cursor
-    # rows could permanently lose later rows to the LIMIT N cap.
+    # _cursor_predicate. The strict-after filter must apply to every
+    # source — non-cursor sources with many pre-cursor rows would
+    # otherwise lose later rows to the LIMIT N cap.
     cursor_key: tuple | None = None
     if cursor is not None:
         decoded = decode_cursor(cursor)

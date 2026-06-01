@@ -1,10 +1,10 @@
 /**
- * Phase 14.5 C — /admin/audit.
+ * /admin/audit.
  *
  * Workspace / admin audit reconstruction. Structurally mirrors
- * `/matters/{slug}/audit` (Phase 14 E) but with no matter scope.
+ * `/matters/{slug}/audit` but with no matter scope.
  *
- * Substrate truth (per Phase 14.5 C):
+ * Substrate truth:
  *   - Only `source="audit"` returns rows. state_machine +
  *     advice_boundary are matter-bound; request is accepted but
  *     returns empty for those values.

@@ -1,8 +1,7 @@
 """Pre-Motion — draft_motion capability implementation.
 
-The capability follows the canonical order Contract Review pinned
-in Phase 6 R2, extended for multi-document input + multi-artifact
-output:
+The capability follows the canonical order Contract Review pinned,
+extended for multi-document input + multi-artifact output:
 
   0. check_posture(matter, actor_role)
   1. require_capability(matter.document.read, matter_id=matter.id)
@@ -20,7 +19,7 @@ output:
  13. Return DraftMotionResult
 
 Args (validated in code; documented in README — no manifest
-args_schema field per Phase 9 v2 Decision #6):
+args_schema field — manifest does not declare arg shape):
 
 - ``claim_type``: one of ``"breach_of_contract"``,
   ``"misrepresentation"``, ``"unfair_dismissal"``.
@@ -63,7 +62,7 @@ CAP_WRITE = "matter.artifact.write"
 
 # Module-defined claim-type vocabulary. README documents it; the
 # capability validates it. No host-side enforcement (no args_schema
-# manifest field — Phase 9 v2 Decision #6).
+# manifest field — manifest does not carry arg shapes).
 CLAIM_TYPES: frozenset[str] = frozenset(
     {"breach_of_contract", "misrepresentation", "unfair_dismissal"}
 )
@@ -146,7 +145,7 @@ async def draft_motion(
     See module docstring for the canonical execution order. The two
     artifacts (motion_draft + evidence_list) land under the same
     ``invocation_id`` with distinct ``kind`` values — the substrate
-    permits this via Phase 6's UNIQUE(invocation_id, kind).
+    permits this via the UNIQUE(invocation_id, kind) constraint.
     """
     actor_user_id = context.actor_user_id
     invocation_id = context.invocation_id
@@ -269,7 +268,7 @@ async def draft_motion(
     motion_payload, evidence_items = _parse_response(response.text)
 
     # 9. Write grant (matter-scoped) — checked AFTER the model call
-    #    per Phase 6 R2 ordering (read first, write before persistence).
+    #    per canonical ordering (read first, write before persistence).
     await require_capability(
         session,
         user_id=actor_user_id,
@@ -338,7 +337,7 @@ def _build_prompt(
 ) -> str:
     """Concat document text with claim-type framing.
 
-    Phase 9 keeps prompts inline. A future module-author guide may
+    Prompts stay inline. A future module-author guide may
     extract prompt templates as a separate file alongside the module
     version.
     """

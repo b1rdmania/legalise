@@ -1,1 +1,1 @@
-"""Pre-build placeholder — real implementation lands during v0.1 build."""
+"""Core substrate: runtime, audit, gates, signing, storage, model gateway."""

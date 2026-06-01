@@ -1,9 +1,9 @@
 """Document edit-instruction module.
 
-Phase A surface: structured edit-instruction input (textarea + mode +
-preset buttons) → model call returning a structured JSON `changes[]`
-envelope → persisted `DocumentVersion` (kind=assistant_edit) + pending
-`DocumentEdit` rows. Accept/reject UI lands in Phase B (§4a).
+Structured edit-instruction input (textarea + mode + preset buttons)
+→ model call returning a structured JSON `changes[]` envelope →
+persisted `DocumentVersion` (kind=assistant_edit) + pending
+`DocumentEdit` rows. Accept/reject UI is wired separately.
 
 Five modes are supported, each with its own system prompt:
   - tighten              shorten + remove ambiguous timing language

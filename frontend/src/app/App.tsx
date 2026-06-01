@@ -1,5 +1,5 @@
 /**
- * Phase 14 A0 — App entry.
+ * App entry.
  *
  * Pre-A0 this file owned the shell layout and a giant switch over the
  * hash-router's Route discriminated union. Both moved out:

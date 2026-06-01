@@ -1,10 +1,10 @@
 /**
- * Phase 14 F — /admin/users.
+ * /admin/users.
  *
  * Lists workspace users with optional role + is_superuser filters.
- * Substrate endpoint (Phase 13b B) is superuser-only — non-superusers
- * see an inline "admin required" message rather than a stack trace,
- * mirroring the no-smuggled-authority discipline from Phase 14 B/D.
+ * The substrate endpoint is superuser-only — non-superusers see an
+ * inline "admin required" message rather than a stack trace,
+ * mirroring the no-smuggled-authority discipline used elsewhere.
  *
  * Reviewer-narrow per the F brief:
  *   - No row-level role editor here — clicking a row navigates to

@@ -1,7 +1,7 @@
 // TrackedChangesView - interactive accept/reject panel for proposed edits.
 //
-// Replaces Phase A's read-only PendingEditsList. Renders per-edit DiffRows
-// with inline Accept / Reject buttons + bulk header buttons. Updates the
+// Renders per-edit DiffRows with inline Accept / Reject buttons + bulk
+// header buttons. Updates the
 // `result.pending_edits` array in place from API responses so we never
 // re-call the model on resolution.
 

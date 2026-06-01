@@ -48,174 +48,50 @@ export interface MatterCreate {
   retention_until?: string | null;
 }
 
-// API prefix. In dev/self-host the Vite proxy or compose network resolves
-// `/api/...` to the backend. On a split live deploy (Cloudflare Pages +
-// Fly.io backend), set VITE_API_BASE_URL at build time to the absolute
-// API root including the `/api` segment — e.g.
-// `VITE_API_BASE_URL=https://api.legalise.dev/api`. Backend routes are
-// mounted under `/api/...` regardless of host, so the env var carries
-// both the origin and the `/api` segment.
-export const API = import.meta.env.VITE_API_BASE_URL || "/api";
+// Core fetch wrapper, error envelopes, and origin constants live in
+// `./api/_core`. Re-export so existing `../lib/api` import paths keep
+// resolving every public symbol unchanged.
+export {
+  API,
+  BACKEND_ROOT,
+  ProviderKeyMissingError,
+  providerKeyMissingFromBody,
+  ProviderUpstreamError,
+  tryParseProviderUpstream,
+  providerUpstreamMessage,
+  jsonOrThrow,
+  apiFetch,
+} from "./api/_core";
+export type { ProviderUpstreamCode } from "./api/_core";
 
-// Backend origin (no `/api` suffix). The health endpoint lives at the
-// backend root, not under /api, so it needs the origin alone.
-export const BACKEND_ROOT = API.replace(/\/api\/?$/, "") || "";
-
-// Typed error for the canonical 422 provider_key_missing envelope:
-// `{detail: {error: "provider_key_missing", provider, message}}`.
-// Callers catch this with `instanceof ProviderKeyMissingError` so they
-// can render the inline "add a key in Settings" banner instead of a
-// generic error blob.
-export class ProviderKeyMissingError extends Error {
-  readonly provider: string;
-  readonly status = 422;
-  constructor(provider: string, message: string) {
-    super(message || `Provider key missing for ${provider}.`);
-    this.name = "ProviderKeyMissingError";
-    this.provider = provider;
-  }
-}
-
-// Inspect a 422 body for the canonical provider_key_missing envelope
-// and return a typed error. Tolerant of both `{detail: {...}}` (FastAPI
-// HTTPException) and a bare `{error, provider, message}` payload.
-export function providerKeyMissingFromBody(body: unknown): ProviderKeyMissingError | null {
-  if (!body || typeof body !== "object") return null;
-  const obj = body as Record<string, unknown>;
-  const candidate =
-    obj.detail && typeof obj.detail === "object" ? (obj.detail as Record<string, unknown>) : obj;
-  if (candidate.error !== "provider_key_missing") return null;
-  const provider = typeof candidate.provider === "string" ? candidate.provider : "unknown";
-  const message = typeof candidate.message === "string" ? candidate.message : "";
-  return new ProviderKeyMissingError(provider, message);
-}
-
-// Structured upstream-provider error. Backend returns
-//   502 { detail: { error: "provider_invalid_key" | ..., provider, upstream_status, message } }
-// when an Anthropic / OpenAI / Ollama call fails. Surfacing the code on
-// a typed error lets the UI render a friendly banner instead of an
-// opaque "Error: 502 ...".
-export type ProviderUpstreamCode =
-  | "provider_invalid_key"
-  | "provider_rate_limited"
-  | "provider_overloaded"
-  | "provider_error";
-
-export class ProviderUpstreamError extends Error {
-  readonly code: ProviderUpstreamCode;
-  readonly provider: string;
-  readonly upstreamStatus: number | null;
-  constructor(
-    code: ProviderUpstreamCode,
-    provider: string,
-    upstreamStatus: number | null,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ProviderUpstreamError";
-    this.code = code;
-    this.provider = provider;
-    this.upstreamStatus = upstreamStatus;
-  }
-}
-
-const _PROVIDER_UPSTREAM_CODES = new Set<ProviderUpstreamCode>([
-  "provider_invalid_key",
-  "provider_rate_limited",
-  "provider_overloaded",
-  "provider_error",
-]);
-
-// Attempt to read a `ProviderUpstreamError` out of an arbitrary detail
-// object. Returns null if the shape doesn't match. Accepts both the
-// router envelope (`{detail: {error, provider, ...}}`) and the SSE
-// stream envelope (`{error, provider, ...}`).
-export function tryParseProviderUpstream(value: unknown): ProviderUpstreamError | null {
-  if (!value || typeof value !== "object") return null;
-  const v = value as Record<string, unknown>;
-  const detail = v.detail && typeof v.detail === "object" ? (v.detail as Record<string, unknown>) : v;
-  const code = detail.error;
-  if (typeof code !== "string") return null;
-  if (!_PROVIDER_UPSTREAM_CODES.has(code as ProviderUpstreamCode)) return null;
-  const provider = typeof detail.provider === "string" ? detail.provider : "unknown";
-  const upstream = typeof detail.upstream_status === "number" ? detail.upstream_status : null;
-  const message = typeof detail.message === "string" ? detail.message : `${provider}: ${code}`;
-  return new ProviderUpstreamError(code as ProviderUpstreamCode, provider, upstream, message);
-}
-
-async function jsonOrThrow<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    if (res.status === 422) {
-      // Try the structured envelope before falling back to a text throw.
-      const text = await res.text();
-      let parsed: unknown = null;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        // Not JSON. Fall through to the generic throw below.
-      }
-      const pk = providerKeyMissingFromBody(parsed);
-      if (pk) throw pk;
-      throw new Error(`${res.status} ${res.statusText}: ${text}`);
-    }
-    const text = await res.text();
-    if (res.status === 502) {
-      try {
-        const body = JSON.parse(text);
-        const parsed = tryParseProviderUpstream(body);
-        if (parsed) throw parsed;
-      } catch (e) {
-        if (e instanceof ProviderUpstreamError) throw e;
-        // not JSON, fall through to the generic Error
-      }
-    }
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json() as Promise<T>;
-}
-
-// Translate a `ProviderUpstreamError` code into a human readable banner
-// string. `{provider}` is substituted with the actual provider name so
-// the same map serves Anthropic, OpenAI, and Ollama.
-export function providerUpstreamMessage(err: ProviderUpstreamError): string {
-  const provider = err.provider.charAt(0).toUpperCase() + err.provider.slice(1);
-  switch (err.code) {
-    case "provider_invalid_key":
-      return `${provider} rejected the API key. Re-check it in Settings.`;
-    case "provider_rate_limited":
-      return `${provider} is rate-limiting requests. Try again in a moment.`;
-    case "provider_overloaded":
-      return `${provider} is overloaded. Try again shortly.`;
-    case "provider_error":
-    default:
-      return `${provider} returned an error. Check Settings or try a different model.`;
-  }
-}
-
-// Every authenticated cross-origin call MUST send the session cookie
-// Cookie/CORS coherence invariant. All app fetches
-// route through `apiFetch` so `credentials: "include"` is uniform.
-export function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(input, { credentials: "include", ...init });
-}
+// Local imports for everything below that still uses the core helpers.
+import {
+  API,
+  BACKEND_ROOT,
+  providerKeyMissingFromBody,
+  tryParseProviderUpstream,
+  jsonOrThrow,
+  apiFetch,
+} from "./api/_core";
+import { AUTH } from "./api/auth";
 
 export interface BootstrapState {
   user_count: number;
   has_superuser: boolean;
-  // Phase 17.5 — when false (default), the firm role hierarchy is
-  // dormant: don't present B_mixed qualified-solicitor blockers.
+  // When false (default), the firm role hierarchy is dormant:
+  // don't present B_mixed qualified-solicitor blockers.
   firm_role_gates_enabled?: boolean;
 }
 
-// Phase 13b C — no auth required. The /app first-run screen reads this
-// to decide between empty-state / bootstrap-required / authed-home.
+// No auth required. The /app first-run screen reads this to decide
+// between empty-state / bootstrap-required / authed-home.
 export const getBootstrapState = () =>
   apiFetch(`${API}/system/bootstrap-state`).then((r) =>
     jsonOrThrow<BootstrapState>(r),
   );
 
 // ---------------------------------------------------------------------------
-// Phase 14 B — v2 module catalog + trust ceremony
+// v2 module catalog + trust ceremony
 // ---------------------------------------------------------------------------
 
 export interface V2ManifestEntry {
@@ -313,7 +189,7 @@ export const draftLawveModule = (slug: string, overrides?: Record<string, unknow
     body: JSON.stringify(overrides ?? {}),
   }).then((r) => jsonOrThrow<LawveDraftResult>(r));
 
-// Phase 14.5 B — installed-modules listing. One row per module_id
+// Installed-modules listing. One row per module_id
 // (most recent installed_at). Frontend uses it for the catalog
 // badge and as one AND clause in GrantsPanel.runnablePairs.
 export interface InstalledModule {
@@ -452,7 +328,7 @@ export const revokeModuleV2 = (moduleId: string) =>
   }).then((r) => jsonOrThrow<{ module_id: string; disabled_rows: number; revoked_grants: number }>(r));
 
 // ---------------------------------------------------------------------------
-// Phase 14 C — matter-scoped grants
+// Matter-scoped grants
 // ---------------------------------------------------------------------------
 
 export interface GrantRow {
@@ -485,7 +361,7 @@ export const listGrants = (slug: string) =>
 
 /**
  * Distinguishable errors for the substrate's two non-200 paths on
- * grant creation. Phase 7 returns:
+ * grant creation. The endpoint returns:
  *   - 404 module_not_installed
  *   - 409 module_disabled (installed but admin disabled it)
  * Both carry structured bodies the substrate documents at
@@ -560,7 +436,7 @@ export const revokeGrant = (slug: string, grantId: string) =>
   });
 
 // ---------------------------------------------------------------------------
-// Phase 14 D — invocation + artifacts
+// Invocation + artifacts
 // ---------------------------------------------------------------------------
 
 export interface InvocationResponse {
@@ -737,7 +613,7 @@ export const invokeCapability = async (
   }
 };
 
-// Phase 13b A — matter artifacts
+// Matter artifacts
 // ---------------------------------------------------------------------------
 // Guided Demo Loop v1 — keyless end-to-end proof
 // ---------------------------------------------------------------------------
@@ -893,7 +769,7 @@ export const decideReview = (
   ).then((r) => jsonOrThrow<SupervisorReview>(r));
 
 // ---------------------------------------------------------------------------
-// Phase 14 E — reconstruction (Phase 5 endpoint)
+// Reconstruction
 // ---------------------------------------------------------------------------
 
 // The three legal source values per backend/app/core/audit_reconstruction.py.
@@ -938,16 +814,16 @@ export interface ReconstructionOptions {
   include?: ReconstructionSource[];
   cursor?: string;
   limit?: number;
-  // Phase 14.5 A — substrate-side filters. Pre-14.5 the frontend
-  // filtered these client-side, which produced false-negatives on
-  // dense matter timelines (Phase 14 E P1 redline). They're now
-  // server-pushdown filters that apply BEFORE pagination.
+  // Substrate-side filters. Earlier the frontend filtered these
+  // client-side, which produced false-negatives on dense matter
+  // timelines. They're now server-pushdown filters that apply
+  // BEFORE pagination.
   invocation_id?: string;
   action?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Phase 14 F — admin users
+// Admin users
 // ---------------------------------------------------------------------------
 
 // Locked vocabulary — substrate ALLOWED_ROLES at admin_users.py:52.
@@ -1065,8 +941,8 @@ export const getAdminUser = async (userId: string): Promise<UserAdminRead> => {
 };
 
 // POST body is {role} ONLY — substrate RoleChangeRequest at
-// admin_users.py:57. Operator-supplied "reason" is a backend phase,
-// not a frontend invention (Phase 14 v2 decision #8).
+// admin_users.py:57. Operator-supplied "reason" is a backend
+// concern, not a frontend invention.
 export const changeUserRole = async (
   userId: string,
   role: UserRole,
@@ -1104,7 +980,7 @@ export const changeUserRole = async (
   return jsonOrThrow<UserRoleOut>(res);
 };
 
-// Phase 14.5 C — workspace / admin reconstruction. Same shape as
+// Workspace / admin reconstruction. Same shape as
 // the matter endpoint; no slug. Substrate gates on superuser; UI
 // also gates upstream to avoid pointless 403s.
 export const getAdminReconstruction = (
@@ -1641,7 +1517,7 @@ export const draftLetter = (slug: string, letterType: string, inputs: Record<str
     body: JSON.stringify({ letter_type: letterType, inputs }),
   }).then((r) => jsonOrThrow<LetterDraft>(r));
 
-// ----- Document body + edit instructions (Phase A) -----------------------
+// ----- Document body + edit instructions ---------------------------------
 
 export interface DocumentBody {
   document_id: string;
@@ -1774,7 +1650,7 @@ export const postEditInstruction = (
     body: JSON.stringify({ instruction, mode }),
   }).then((r) => jsonOrThrow<EditInstructionResponse>(r));
 
-// ----- Generated .docx export (Phase B W1) ------------------------------
+// ----- Generated .docx export --------------------------------------------
 
 export interface GeneratedDocxResponse {
   file_uuid: string;
@@ -1809,7 +1685,7 @@ export async function downloadGeneratedDocx(fileUuid: string): Promise<Blob> {
   return resp.blob();
 }
 
-// ----- Tracked changes accept/reject (Phase B W2) -----------------------
+// ----- Tracked changes accept/reject -------------------------------------
 
 export interface EditResolutionResponse {
   edit: DocumentEditRead;
@@ -1872,124 +1748,21 @@ export const getDocumentVersions = (documentId: string) =>
   );
 
 // ----- Auth + user --------------------------------------------------------
-
-// Auth endpoints sit at the backend origin, NOT under /api. See main.py:
-//   app.include_router(auth_router, prefix="/auth", ...)
-export const AUTH = BACKEND_ROOT ? `${BACKEND_ROOT}/auth` : "/auth";
-
-export interface CurrentUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  // v0.1 plan tier - display only. No billing enforcement.
-  plan: string;
-  default_model_id: string | null;
-  default_privilege_posture: string | null;
-  is_active: boolean;
-  is_verified: boolean;
-  is_superuser: boolean;
-}
-
-export interface AuthError extends Error {
-  status: number;
-  detail: unknown;
-}
-
-async function readDetail(res: Response): Promise<unknown> {
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-}
-
-async function authJsonOrThrow<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const detail = await readDetail(res);
-    const err = new Error(
-      `${res.status} ${res.statusText}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`,
-    ) as AuthError;
-    err.status = res.status;
-    err.detail = detail;
-    throw err;
-  }
-  // Some endpoints (logout, verify) return 204 no body.
-  if (res.status === 204 || res.headers.get("Content-Length") === "0") {
-    return undefined as unknown as T;
-  }
-  const ct = res.headers.get("Content-Type") || "";
-  if (!ct.includes("application/json")) {
-    return undefined as unknown as T;
-  }
-  return res.json() as Promise<T>;
-}
-
-export const getCurrentUser = async (): Promise<CurrentUser | null> => {
-  const res = await apiFetch(`${AUTH}/users/me`);
-  if (res.status === 401) return null;
-  return authJsonOrThrow<CurrentUser>(res);
-};
-
-export const signin = (email: string, password: string) =>
-  apiFetch(`${AUTH}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ username: email, password }).toString(),
-  }).then((r) => authJsonOrThrow<unknown>(r));
-
-export const signout = () =>
-  apiFetch(`${AUTH}/logout`, { method: "POST" }).then((r) => authJsonOrThrow<unknown>(r));
-
-export const signup = (email: string, password: string, name: string = "") =>
-  apiFetch(`${AUTH}/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, name }),
-  }).then((r) => authJsonOrThrow<CurrentUser>(r));
-
-export const forgotPassword = (email: string) =>
-  apiFetch(`${AUTH}/forgot-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  }).then((r) => authJsonOrThrow<unknown>(r));
-
-export const resetPassword = (token: string, password: string) =>
-  apiFetch(`${AUTH}/reset-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, password }),
-  }).then((r) => authJsonOrThrow<unknown>(r));
-
-export const verifyEmail = (token: string) =>
-  apiFetch(`${AUTH}/verify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  }).then((r) => authJsonOrThrow<CurrentUser>(r));
-
-export const requestVerifyToken = (email: string) =>
-  apiFetch(`${AUTH}/request-verify-token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  }).then((r) => authJsonOrThrow<unknown>(r));
-
-export interface UserProfileUpdate {
-  name?: string;
-  default_model_id?: string | null;
-  default_privilege_posture?: string | null;
-  password?: string;
-}
-
-export const updateProfile = (body: UserProfileUpdate) =>
-  apiFetch(`${AUTH}/users/me`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).then((r) => authJsonOrThrow<CurrentUser>(r));
+// Auth endpoints live in `./api/auth` (sit at backend origin, NOT under
+// /api). Re-exported here so `../lib/api` consumers keep working.
+export {
+  AUTH,
+  getCurrentUser,
+  signin,
+  signout,
+  signup,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
+  requestVerifyToken,
+  updateProfile,
+} from "./api/auth";
+export type { CurrentUser, AuthError, UserProfileUpdate } from "./api/auth";
 
 // ----- Settings: API keys ------------------------------------------------
 
@@ -2019,7 +1792,7 @@ export const deleteApiKey = (provider: string) =>
     }
   });
 
-// ----- Installed-skill catalogue extensions (Phase D W1) -----------------
+// ----- Installed-skill catalogue extensions ------------------------------
 
 export interface BrokenManifest {
   plugin: string;
@@ -2631,7 +2404,7 @@ export const exportContractReviewDocx = (
     body: JSON.stringify(result),
   }).then((r) => jsonOrThrow<DocxExportResult>(r));
 
-// Public module submission flow (Phase D W3). The submitter never
+// Public module submission flow. The submitter never
 // supplies frontmatter — the backend synthesises the SKILL.md
 // authoritatively via `frontmatter.dump`. Frontend preview is a UX
 // aid, not a wire contract.

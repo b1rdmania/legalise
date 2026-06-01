@@ -11,7 +11,7 @@ The runtime owns:
 - executing per-transition gates (registered via ``register_gate``)
 - updating ``instance.current_state`` on successful transitions
 - appending the transition row with the final status
-- emitting the canonical Phase 1 audit event for every outcome
+- emitting the canonical substrate audit event for every outcome
   (completed, blocked, failed)
 
 The runtime fails closed: any unexpected exception inside the request
@@ -235,7 +235,7 @@ async def _emit_outcome_audit(
     blocked: BlockedPayload | None = None,
     extra_payload: dict | None = None,
 ) -> None:
-    """Emit the canonical Phase 1 audit row for a transition outcome."""
+    """Emit the canonical substrate audit row for a transition outcome."""
     payload: dict[str, Any] = {
         "instance_id": str(instance.id),
         "transition_id": str(transition_row.id),
@@ -430,7 +430,7 @@ async def request_transition(
             )
         except Phase1Blocked as exc:
             # check_or_block has already written the dual audit rows
-            # (legacy module.capability.denied + Phase 1 *.blocked).
+            # (legacy module.capability.denied + substrate *.blocked).
             # Append the transition row so the state-machine history is
             # consistent. The append is in-session and survives the
             # caller's eventual commit.

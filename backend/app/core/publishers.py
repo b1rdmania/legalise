@@ -4,11 +4,8 @@ Modules in the v2 catalogue declare a ``publisher`` string. The trust
 ceremony reads this registry to decide between the verified fast-path
 (3 steps) and the unverified full-inspection path (7 steps).
 
-Phase 3 ships a hardcoded in-memory registry. Phase 4+ may move this
-to a DB-backed config so workspace admins can verify their firm's own
-publisher id.
-
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 1.
+Ships a hardcoded in-memory registry. May move to a DB-backed
+config so workspace admins can verify their firm's own publisher id.
 """
 
 from __future__ import annotations
@@ -36,11 +33,11 @@ class PublisherInfo:
     notes: str = ""
 
 
-# First-party + dev/test publishers. Hardcoded for Phase 3.
+# First-party + dev/test publishers. Hardcoded for now.
 #
-# Phase 4 may make this DB-backed. Phase 11 (when modules start
-# getting cryptographically signed) wires the trust_root to sigstore
-# identity claims (e.g. ``OIDC:github:legalise``).
+# May move to DB-backed. When sigstore signing lands, the
+# trust_root wires to sigstore identity claims (e.g.
+# ``OIDC:github:legalise``).
 _VERIFIED: dict[str, PublisherInfo] = {
     "legalise": PublisherInfo(
         publisher_id="legalise",
@@ -48,8 +45,8 @@ _VERIFIED: dict[str, PublisherInfo] = {
         trust_root="github_org:b1rdmania/legalise",
         notes=(
             "First-party publisher. All modules under this id are "
-            "shipped from the legalise repo and signed (Phase 11) by "
-            "the legalise release pipeline."
+            "shipped from the legalise repo and (once sigstore lands) "
+            "signed by the legalise release pipeline."
         ),
     ),
     "example": PublisherInfo(

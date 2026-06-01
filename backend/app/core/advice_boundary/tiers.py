@@ -17,8 +17,8 @@ Workspace role tokens used in ``ROLE_REQUIREMENTS``:
 
 - ``"any_authenticated"`` — any logged-in user with matter access
 - ``"qualified_solicitor"`` — workspace role indicating SRA-roll
-  membership (Phase 1: generic role string; Phase 2 wires
-  SRA verification)
+  membership (currently a generic role string; SRA verification
+  lands later)
 - ``"workspace_admin"`` — workspace administrator (override path for
   the final approval transition)
 """
@@ -120,10 +120,10 @@ ROLE_REQUIREMENTS: dict[tuple[str, str], frozenset[str]] = {
 # approved advice must not skip supervised. Initial-tier setting is a
 # distinct code path that needs the same guarantee.
 #
-# When the output-lifecycle reference module ships in Phase 7+ and can
-# prove prior state, this table may be revisited so a solicitor can
+# When the output-lifecycle reference module ships and can prove
+# prior state, this table may be revisited so a solicitor can
 # directly create an output at supervised tier if there's a documented
-# prior-tier history elsewhere. For Phase 1 the safe default is no
+# prior-tier history elsewhere. Until then the safe default is no
 # initial-tier creation above draft_advice.
 INITIAL_TIER_ROLE_REQUIREMENTS: dict[str, frozenset[str]] = {
     ADVICE_TIER_FACTUAL_EXTRACTION: frozenset({"any_authenticated"}),

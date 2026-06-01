@@ -6,16 +6,18 @@ name: CI
 
 on:
   push:
-    # `master` is the live branch; `runtime-rewrite` is the long-lived
-    # rewrite branch where Phase 1+ substrate primitives land. Both
-    # need CI to fire on every push so the test sweep gates work
-    # before any handover to Reviewer (per the round-1 to round-5
-    # back-and-forth on Phase 1 — builder should hand to Reviewer
-    # green, not let Reviewer find failures via -x).
     branches:
       - master
       - runtime-rewrite
+    # Skip the expensive sweep for docs-only pushes. Source changes
+    # still run the full gate; handover docs and READMEs do not.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

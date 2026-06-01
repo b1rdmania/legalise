@@ -1,4 +1,4 @@
-"""MatterContextItem — Phase 1 substrate primitive model.
+"""MatterContextItem — substrate primitive model.
 
 Items are the actual matter-scoped data rows written under a namespace.
 Each item carries its ``schema_id`` and ``schema_version`` so the
@@ -13,7 +13,7 @@ Append-only semantics:
 - Supersession is the supported soft-delete: a new item is written
   with ``superseded_by_id`` set on the older row, preserving history.
 - True deletes are not supported in v0.2; if needed, withdraw the item
-  (sets a tombstone flag via status, planned in Phase 2 reference
+  (sets a tombstone flag via status, planned for a future reference
   module).
 
 Per docs/architecture/MATTER_CONTEXT_STORE.md.
@@ -79,7 +79,7 @@ class MatterContextItem(Base):
     # Schema linkage — every item is bound to the schema it was
     # validated against. Reviewer P1.2 round 2: schema_version is
     # denormalised so reads work even if the schema row is later
-    # archived (though Phase 1 does not archive schemas).
+    # archived (though the substrate does not archive schemas yet).
     schema_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("matter_context_schemas.id"),

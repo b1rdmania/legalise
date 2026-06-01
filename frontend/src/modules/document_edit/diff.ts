@@ -1,6 +1,6 @@
 // diff.ts — typed wrapper around diff-match-patch for inline tracked-change
-// rendering. Backend resolution uses anchor substitution (Phase B W2 gotcha
-// 1); this module is for visual diffs only.
+// rendering. Backend resolution uses anchor substitution; this module is
+// for visual diffs only.
 
 import { diff_match_patch } from "diff-match-patch";
 

@@ -177,8 +177,7 @@ async def post_edit_instruction(
 ) -> EditInstructionResponse:
     """Propose model edits to a document.
 
-    Returns a new `assistant_edit` version + pending edits. Accept/reject
-    UI (and the matching endpoint) lands in Phase B. The audit log carries
+    Returns a new `assistant_edit` version + pending edits. The audit log carries
     a `module=document_edit, action=document.edit_instruction.invoked` row
     alongside the `model.call` row written by the gateway.
     """
@@ -227,7 +226,7 @@ async def post_edit_instruction(
     )
 
 
-# -- Generated .docx download (Phase B W1) ---------------------------------
+# -- Generated .docx download ----------------------------------------------
 
 
 _FILENAME_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -610,7 +609,7 @@ async def get_document_versions(
     return out
 
 
-# -- Anonymisation (Phase C / Workstream 2) --------------------------------
+# -- Anonymisation ---------------------------------------------------------
 
 
 async def _load_owned_document(

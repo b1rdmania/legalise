@@ -15,8 +15,8 @@ Hard guards:
 - SKILL.md frontmatter is synthesised authoritatively server-side
   via `frontmatter.dump(post, handler=frontmatter.YAMLHandler())`
   (NOT string concatenation). Submitters never supply raw YAML.
-  This closes Phase D W3 Gotcha 9 (YAML injection) by library, not
-  by hand-validation.
+  This closes the YAML-injection risk by library, not by
+  hand-validation.
 - No PII in audit beyond the submitter handle/contact, both
   voluntarily provided.
 

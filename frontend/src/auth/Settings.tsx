@@ -40,7 +40,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
 
   // Preferences is an empty v0.2 placeholder — the route still resolves
   // (deep links don't 404) but it's hidden from nav until it has a real
-  // setting, so the product doesn't read as unfinished (Phase 18-C).
+  // setting, so the product doesn't read as unfinished.
   const sidebarItems: { key: SettingsTab; label: string }[] = [
     { key: "profile", label: "Profile" },
     { key: "keys", label: "Provider keys" },
@@ -495,7 +495,7 @@ function SettingsKeys() {
   );
 }
 
-// Phase 18-C — honest "can I run real model calls?" status. We never
+// Honest "can I run real model calls?" status. We never
 // claim a key is *valid* (no provider test-call endpoint exists; that's
 // a filed, deferred backend gap). Presence on file = "configured, not
 // tested"; absence = keyless demo model.

@@ -1,5 +1,5 @@
 /**
- * Sidebar — Phase 17 IA shell.
+ * Sidebar — IA shell.
  *
  * The single persistent navigation surface for the logged-in app.
  * Replaces the top-nav + hamburger-drawer model (the "user mess on

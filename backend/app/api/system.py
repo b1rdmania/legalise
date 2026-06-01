@@ -1,16 +1,15 @@
-"""Phase 13b C — system bootstrap-state endpoint.
+"""System bootstrap-state endpoint.
 
   GET /api/system/bootstrap-state  →  {user_count, has_superuser}
 
-Closes Gap #5 from ``BACKEND_GAP_AUDIT.md``. The SPA's first-run
-detection (Journey 00 Step 1) needs to distinguish "fresh fork,
+The SPA's first-run detection needs to distinguish "fresh fork,
 no users yet" from "not logged in". This endpoint is the gate.
 
-Phase 13b Decision #3: NO authentication required. The endpoint
-must be callable before the first auth flow; gating it would mean
-no SPA can ever detect first-run state. The response carries only
-two integers/booleans — the same information visible from any
-failed login attempt; not a leak worth gating.
+NO authentication required. The endpoint must be callable before
+the first auth flow; gating it would mean no SPA can ever detect
+first-run state. The response carries only two integers/booleans —
+the same information visible from any failed login attempt; not a
+leak worth gating.
 
 Read-only; no audit emission.
 """
@@ -32,9 +31,9 @@ router = APIRouter()
 class BootstrapState(BaseModel):
     user_count: int
     has_superuser: bool
-    # Phase 17.5 — surfaced so the SPA knows whether to present the
-    # firm role hierarchy (e.g. the B_mixed qualified-solicitor posture
-    # banner). False (default) = dormant: don't show role blockers.
+    # Surfaced so the SPA knows whether to present the firm role
+    # hierarchy (e.g. the B_mixed qualified-solicitor posture banner).
+    # False (default) = dormant: don't show role blockers.
     firm_role_gates_enabled: bool
 
 

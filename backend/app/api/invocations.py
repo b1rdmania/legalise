@@ -1,4 +1,4 @@
-"""Phase 10 — HTTP invoke endpoint.
+"""HTTP invoke endpoint.
 
 Single endpoint:
 
@@ -8,17 +8,17 @@ Single endpoint:
 synchronously, returns its result. Closes the last fake step in the
 demo sentence: install → grant → **run** → reconstruct, all via HTTP.
 
-Endpoint flow (Phase 10 v3 plan, Steps 3 + Decisions #5 v2 + #7):
+Endpoint flow:
 
 1. Strict matter-access predicate (owner OR superuser; uniform 404)
 2. Load InstalledModule → 404 module_not_installed; 409 module_disabled
 3. Find capability declaration in manifest → 404 capability_not_declared
-4. Decision #7 scope check → 422 capability_scope_not_supported_here
-5. Decision #7 kind check → 422 capability_kind_not_invokable
+4. Scope check → 422 capability_scope_not_supported_here
+5. Kind check → 422 capability_kind_not_invokable
 6. Build provider_call adapter
 7. Build InvocationContext from authenticated user + fresh invocation_id
 8. dispatch_capability(...)
-9. Translate exceptions per Decision #5 v2
+9. Translate exceptions to HTTP codes
 10. Commit + return
 
 Audit emission stays inside the capability — the endpoint adds no
@@ -81,7 +81,7 @@ class InvocationResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Matter-access predicate — same shape as Phase 5 reconstruction + Phase 7 grants
+# Matter-access predicate — same shape as reconstruction + grants endpoints
 # ---------------------------------------------------------------------------
 
 

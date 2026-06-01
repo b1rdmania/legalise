@@ -1,7 +1,7 @@
 // VersionTimeline - vertical list of document versions with edit counts.
 //
 // Fetches `getDocumentVersions(documentId)` on mount + whenever `refreshKey`
-// changes. Renders nothing if no versions exist (Phase A invariant: every
+// changes. Renders nothing if no versions exist (invariant: every
 // document has at least a v1 upload).
 
 import { useEffect, useState } from "react";

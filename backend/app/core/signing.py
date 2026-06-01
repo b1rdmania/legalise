@@ -1,17 +1,12 @@
 """Manifest signature verification.
 
-Phase 3 ships a *structural* signature verifier — the trust ceremony
-gets a clean four-state outcome (verified / unsigned / invalid /
-unknown_publisher) without depending on the sigstore Python library
-or a real signing pipeline.
-
-The real cryptographic chain verification (sigstore Rekor lookup +
-X.509 chain + OIDC identity claim) lands in Phase 11 when the
-connector proof set actually publishes signed releases. The API
-contract here is designed so Phase 11 swaps the verifier
-implementation without touching callers.
-
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 2.
+A *structural* signature verifier — the trust ceremony gets a clean
+four-state outcome (verified / unsigned / invalid / unknown_publisher)
+without depending on the sigstore Python library or a real signing
+pipeline. Real cryptographic chain verification (sigstore Rekor lookup
++ X.509 chain + OIDC identity claim) is sigstore-hardening backlog;
+the API contract here is designed so the verifier implementation can
+swap without touching callers.
 """
 
 from __future__ import annotations
@@ -53,8 +48,8 @@ def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     """Stable canonical-JSON SHA-256 hash of a manifest.
 
     Used for: (a) detecting tampering between install time and
-    invocation time, (b) Phase 11 sigstore signing input, (c) audit
-    row provenance.
+    invocation time, (b) sigstore signing input, (c) audit row
+    provenance.
 
     Sorts keys recursively and uses compact separators so the same
     semantic content always hashes to the same digest regardless of
@@ -74,7 +69,7 @@ def verify_manifest_signature(
     """Verify a manifest's signature against the verified-publisher
     registry.
 
-    Phase 3 implementation is structural — it does not perform real
+    Current implementation is structural — it does not perform real
     cryptographic verification. The four outcomes:
 
     - ``UNSIGNED``: ``signature`` is None or empty. Manifest may still
@@ -88,10 +83,10 @@ def verify_manifest_signature(
     - ``VERIFIED``: ``signature`` is present, structurally valid, the
       publisher is verified, and ``signed_by`` matches.
 
-    Note: Phase 3 does NOT verify cryptographic provenance. A
+    Note: this does NOT verify cryptographic provenance. A
     publisher-key mismatch returns INVALID; a forged signature with
-    correct shape returns VERIFIED. Phase 11 wires real verification
-    via the sigstore Rekor transparency log.
+    correct shape returns VERIFIED. Real verification via the
+    sigstore Rekor transparency log lands with sigstore hardening.
     """
     publisher = manifest.get("publisher")
     signed_by = manifest.get("signed_by")
@@ -147,15 +142,15 @@ def verify_manifest_signature(
         )
 
     # Structural pass.
-    # TODO(phase-11): wire sigstore Rekor lookup + X.509 chain
-    # verification + OIDC identity claim check here. Until then
-    # this is a structural verifier only; a forged signature with the
-    # correct shape would pass.
+    # TODO(sigstore-hardening): wire sigstore Rekor lookup + X.509 chain
+    # verification + OIDC identity claim check here. Until then this is
+    # a structural verifier only; a forged signature with the correct
+    # shape would pass.
     return SignatureResult(
         status=SignatureStatus.VERIFIED,
         publisher=publisher,
         signed_by=signed_by or publisher,
-        notes="structural verification only; cryptographic check deferred to Phase 11",
+        notes="structural verification only; cryptographic check is sigstore-hardening backlog",
     )
 
 

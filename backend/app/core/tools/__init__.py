@@ -1,6 +1,6 @@
-"""Gateway tools registry — Phase A.
+"""Gateway tools registry.
 
-Three tools land in Phase A:
+Three model-callable tools:
   - `generate_docx` — render markdown to a .docx under matter_fs
   - `edit_document` — persist a batch of pending edits against a version
   - `replicate_document` — clone the latest version to a new working copy
@@ -9,8 +9,8 @@ Each tool declares Pydantic input/output models (JSON Schema derived via
 `model_json_schema()`); the gateway validates both sides. Posture gating
 applies uniformly — see `ModelGateway.invoke_tool`.
 
-The `register_phase_a_tools(gateway)` helper is invoked from `main.lifespan`
-at startup.
+The `register_phase_a_tools(gateway)` helper (name preserved for caller
+compatibility) is invoked from `main.lifespan` at startup.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from app.core.tools.schemas import (
 
 
 def register_phase_a_tools(gateway: ModelGateway) -> None:
-    """Register the three Phase A tools on the supplied gateway.
+    """Register the three model-callable tools on the supplied gateway.
 
     Idempotent-ish: calling twice re-registers (last write wins). Tests
     should call `gateway.clear_tools()` between cases.

@@ -1,22 +1,19 @@
-"""Phase 13b A — matter artifact listing + read.
+"""Matter artifact listing + read.
 
 Two endpoints, both under ``/api/matters/{slug}/``:
 
-  GET  /api/matters/{slug}/artifacts            — list artifacts on this matter
-  GET  /api/matters/{slug}/artifacts/{id}       — read a single artifact's payload
+  GET  /api/matters/{slug}/artifacts        — list artifacts on this matter
+  GET  /api/matters/{slug}/artifacts/{id}   — read a single artifact's payload
 
-Closes Gap #1 + Gap #2 from ``BACKEND_GAP_AUDIT.md``.
+**Reads do NOT emit an audit row.** Reads aren't load-bearing state
+changes; ``audit.reconstruction.viewed`` already captures navigation to
+the trail. Per-read auditing would balloon the log with low-signal
+events. If a future regulator needs read-tracking, it lands as a
+deliberate feature with consent/disclosure UX, not a silent server-side
+row.
 
-Phase 13b Decision #1: artifact reads do NOT emit an audit row.
-Reads aren't load-bearing state changes; reconstruction.viewed
-already captures navigation to the trail. Per-read auditing would
-balloon the log with low-signal events. If a future regulator
-needs read-tracking, it lands as a Phase 14+ feature with
-consent/disclosure UX, not a silent server-side row.
-
-Matter-access predicate identical to Phase 5 audit + Phase 7
-grants: matter owner OR workspace superuser. Uniform 404 for
-non-owner so the endpoint never leaks which matters exist.
+Matter-access predicate: matter owner OR workspace superuser. Uniform
+404 for non-owner so the endpoint never leaks which matters exist.
 """
 
 from __future__ import annotations
@@ -64,7 +61,7 @@ class ArtifactRead(ArtifactSummary):
 
 
 # ---------------------------------------------------------------------------
-# Matter-access predicate — same shape as Phase 5 + Phase 7
+# Matter-access predicate — same shape as the reconstruction + grants endpoints
 # ---------------------------------------------------------------------------
 
 

@@ -1,21 +1,21 @@
 """MCP transports.
 
-Three transports for Phase 3:
+Three transports:
 
 1. ``StdioTransport`` — wraps a ``SandboxedProcess`` from
    ``core.sandbox``. The MCP server reads JSON-RPC frames on stdin
-   and writes responses on stdout. Phase 3 ships the transport
+   and writes responses on stdout. This ships the transport
    plumbing; the actual JSON-RPC framing is handled by callers (the
    real ``mcp`` SDK or an equivalent client).
 
-2. ``SseTransport`` — for remote MCP endpoints. Phase 3 ships the
-   shape; the actual SSE/HTTP plumbing is delegated to whichever
-   HTTP client the caller chooses. The transport here owns the URL
-   + headers contract.
+2. ``SseTransport`` — for remote MCP endpoints. Ships the shape;
+   the actual SSE/HTTP plumbing is delegated to whichever HTTP
+   client the caller chooses. The transport here owns the URL +
+   headers contract.
 
 3. ``InMemoryTransport`` — test fixture. Callers pre-register
    responses keyed by method + params; the transport returns them
-   synchronously. Used by Phase 3's unit tests.
+   synchronously. Used by unit tests.
 
 All three implement the abstract ``MCPTransport`` interface.
 """
@@ -52,7 +52,7 @@ class MCPTransport(ABC):
 class StdioTransport(MCPTransport):
     """Transport over a sandboxed subprocess's stdio.
 
-    Phase 3 implementation is a thin shim: it owns the subprocess
+    Implementation is a thin shim: it owns the subprocess
     handle and supplies a synchronous send/receive loop using
     newline-delimited JSON. The real MCP SDK does framing differently
     (Content-Length headers) but the contract is the same — the host
@@ -91,7 +91,7 @@ class StdioTransport(MCPTransport):
 class SseTransport(MCPTransport):
     """Transport over a remote SSE/HTTP MCP endpoint.
 
-    Phase 3 ships the contract only. The actual HTTP plumbing is
+    Ships the contract only. The actual HTTP plumbing is
     delegated to the caller's HTTP client (passed in via ``http_call``).
     This keeps the host module free of any specific HTTP library
     dependency and lets the existing ``httpx`` usage elsewhere in the

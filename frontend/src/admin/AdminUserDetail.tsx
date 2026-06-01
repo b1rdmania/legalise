@@ -1,5 +1,5 @@
 /**
- * Phase 14 F — /admin/users/{userId}.
+ * /admin/users/{userId}.
  *
  * Shows the substrate's UserAdminRead fields + a role-mutation form.
  *
@@ -7,7 +7,7 @@
  *   - POST /api/admin/users/{id}/role takes {role} ONLY. The audit
  *     reason is server-hardcoded to "manual_admin_action"
  *     (admin_users.py:182). Operator-supplied reasons would be a
- *     backend phase (Phase 14 v2 decision #8); UI does not collect.
+ *     backend extension; UI does not collect.
  *   - Self-promotion is forbidden (admin_users.py:152).
  *   - Same-role POST is idempotent (200, no audit row).
  *   - Allowed values come from ALLOWED_ROLES (admin_users.py:52).
@@ -43,12 +43,12 @@ type Mutation =
   | { kind: "invalid_role"; supplied: string; allowed: string[] }
   | { kind: "error"; message: string };
 
-// No "noop" mutation kind. The Phase 11 endpoint returns
+// No "noop" mutation kind. The role-change endpoint returns
 // {id,email,role,is_superuser} with no `changed` flag, so the UI
 // cannot reliably distinguish a fresh write from an idempotent
 // no-op via the response. Same-role submit is disabled by the
 // form, and the substrate's idempotent contract is mentioned in
-// the explainer copy. If a backend phase adds `changed:bool` later
+// the explainer copy. If the backend adds `changed:bool` later
 // the UI can branch honestly; until then, claiming no-op from a
 // role-comparison inference would race against stale-data scenarios.
 
@@ -143,7 +143,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
     setM({ kind: "submitting" });
     try {
       const updated = await changeUserRole(userId, draftRole);
-      // No noop branch here. The Phase 11 response carries no
+      // No noop branch here. The role-change response carries no
       // `changed` flag, so we can't honestly distinguish a fresh
       // write from an idempotent no-op via the response alone. The
       // submit button is disabled when draftRole === user.role, so

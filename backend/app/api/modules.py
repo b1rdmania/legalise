@@ -1,11 +1,14 @@
-"""Installed skill catalogue.
+"""Module catalogue + install + lifecycle endpoints.
 
-This is the v0.1 Discovery layer: a read-only view over the SKILL.md files
-present at PLUGINS_ROOT. Install and approval remain a Git workflow.
+Two manifest surfaces coexist:
 
-Phase 2 adds three new endpoints exposing the v2 manifest surface
-(`/v2`, `/v2/{module_id}`, `/v2/capabilities`). Existing v1 endpoints
-are unchanged so existing clients continue to function.
+- v1 SKILL.md discovery at PLUGINS_ROOT (read-only view used by older
+  clients);
+- v2 manifest surface (`/v2`, `/v2/{module_id}`, `/v2/capabilities`)
+  read by the current frontend catalogue.
+
+Install + revoke + update + the trust ceremony are admin-gated and emit
+the canonical `module.*` audit chain.
 """
 
 from __future__ import annotations
@@ -366,12 +369,12 @@ async def list_modules(
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 — v2 manifest surface
+# v2 manifest surface
 # ---------------------------------------------------------------------------
 #
-# Three new endpoints that expose discovered modules in their v2
-# manifest shape. v1 endpoints above are untouched. Phase 12 frontend
-# work will read these endpoints; existing v1 clients keep working.
+# Three endpoints exposing discovered modules in their v2 manifest shape.
+# The current frontend catalogue reads these; v1 SKILL.md endpoints above
+# remain so older clients keep working.
 
 
 class V2ManifestEntry(BaseModel):
@@ -484,8 +487,8 @@ async def list_v2_capabilities(
     """Flat catalogue of capabilities declared across all discovered
     modules.
 
-    Used by Phase 4 grant lifecycle (snapshot storage) and Phase 12
-    frontend (grant UI / module catalogue).
+    Feeds the grant-lifecycle snapshot store and the frontend grant
+    UI / module catalogue.
     """
     catalogue = list_capabilities()
     return [V2CapabilityEntry(**cap) for cap in catalogue]
@@ -561,7 +564,7 @@ async def get_v2_module(
         validation_errors=errors,
     )
 # ---------------------------------------------------------------------------
-# Phase 14.5 B — installed-modules listing
+# Installed-modules listing
 # ---------------------------------------------------------------------------
 #
 # GET /api/modules/installed
@@ -572,15 +575,14 @@ async def get_v2_module(
 # vX.Y" / "Installed (disabled)" badge without N+1 fetches.
 #
 # Auth: any authenticated user (mirrors GET /api/modules/v2).
-# Audit: NONE — read endpoint, per Phase 13b Decision #1 reads don't
-#        emit audit rows.
+# Audit: NONE — reads don't emit audit rows.
 #
-# Frontend (Phase 14.5 B): this endpoint is the source of truth for
-# "is module X installed and enabled?" — feeding the catalog badge
-# and the GrantsPanel runnable-pair AND-gate. Capability shape
-# (reads/writes) still comes from the v2 manifest; grant existence
-# still comes from /api/matters/{slug}/grants; this endpoint adds
-# the third strict AND clause.
+# This endpoint is the source of truth for "is module X installed
+# and enabled?" — feeding the catalog badge and the GrantsPanel
+# runnable-pair AND-gate. Capability shape (reads/writes) still
+# comes from the v2 manifest; grant existence still comes from
+# /api/matters/{slug}/grants; this endpoint adds the third strict
+# AND clause.
 
 
 class InstalledModuleOut(BaseModel):
@@ -619,8 +621,8 @@ async def list_installed_modules(
     # one row per module without an N+1 group-by-then-fetch.
     from sqlalchemy import desc as _desc, func as _func
 
-    # Phase 14.5 B ratification P3 — add `id DESC` as a deterministic
-    # tie-breaker. `installed_at` is high-resolution (timestamp with
+    # `id DESC` is a deterministic tie-breaker. `installed_at` is
+    # high-resolution (timestamp with
     # microseconds) so collisions are rare in practice, but window
     # functions over a non-unique key are non-deterministic by SQL
     # standard. The tie-breaker pins the "most recent" choice to a
@@ -669,7 +671,7 @@ async def list_installed_modules(
 
 
 # ---------------------------------------------------------------------------
-# Phase 3 — trust ceremony / install endpoints
+# Trust ceremony / install endpoints
 # ---------------------------------------------------------------------------
 #
 # POST /api/modules/install          start a new ceremony
@@ -677,13 +679,13 @@ async def list_installed_modules(
 # GET  /api/modules/install/{id}     read current ceremony state
 #
 # All admin-gated via require_admin (same pattern as schema +
-# definition registration — Phase 2 Reviewer P1#3 + P1#2 round 2).
+# definition registration).
 
 
 class StartInstallRequest(BaseModel):
     """Body for ``POST /api/modules/install``.
 
-    Phase 3 ships two source modes:
+    Two source modes:
     - ``"registry"`` — install a module already discoverable via
       ``core.registry.discover_modules`` (by id)
     - ``"manifest"`` — install from an inline v2 manifest payload
@@ -760,13 +762,13 @@ async def _persist_install(
     """Write the installed_modules row at the end of a ceremony.
 
     Called when the ceremony reaches ``enabled``. The manifest +
-    permissions snapshots are captured here for Phase 4 lifecycle.
+    permissions snapshots are captured here for the grant lifecycle.
     """
     from datetime import datetime, timezone
 
     manifest = ceremony.manifest
     card = ceremony.permission_card
-    # Aggregated permissions for Phase 4 fast-diff.
+    # Aggregated permissions for grant-diff comparisons.
     permissions_snapshot = {
         "data_movement": card.data_movement_summary,
         "gates": card.gates,
@@ -813,7 +815,7 @@ async def start_install_endpoint(
     - ``source="manifest"``: install from an inline v2 manifest
 
     Returns the initial ceremony state + permission card. The
-    frontend (Phase 12) drives the ceremony to completion via
+    frontend drives the ceremony to completion via
     ``POST /install/{id}/advance``.
     """
     require_admin(user, action_label="module install")
@@ -866,10 +868,9 @@ async def start_install_endpoint(
             },
         )
 
-    # Round-2 Reviewer P1#3: enforce dependency resolution BEFORE
-    # the ceremony starts. Phase 5 carry-over tidy removed the
-    # CeremonyState.DEPENDENCY_MISSING terminal — the 422 here is the
-    # canonical signal; the state machine carries no dead transition.
+    # Enforce dependency resolution BEFORE the ceremony starts. The
+    # 422 here is the canonical signal — there is no
+    # CeremonyState.DEPENDENCY_MISSING terminal in the state machine.
     from app.core.dependency_resolver import resolve_dependencies
 
     resolution = await resolve_dependencies(manifest, session=session)
@@ -933,8 +934,8 @@ async def advance_install_endpoint(
             },
         )
     except InvalidCeremonyTransition as exc:
-        # Phase 5 Step 6: emit a module.ceremony.rejected audit row so
-        # bypass attempts are observable in the reconstruction view.
+        # Emit a module.ceremony.rejected audit row so bypass
+        # attempts are observable in the reconstruction view.
         # Use audit_failure (independent committed session) because the
         # HTTPException below will roll back the request session.
         from app.core.api import audit_failure
@@ -996,7 +997,7 @@ async def get_install_endpoint(
 
 
 # ---------------------------------------------------------------------------
-# Phase 4 — revoke / update endpoints
+# Revoke / update endpoints
 # ---------------------------------------------------------------------------
 #
 # POST /api/modules/{module_id}/revoke   admin-only; disables the
@@ -1072,8 +1073,8 @@ async def revoke_module_endpoint(
         row.enabled = False
         session.add(row)
         # Revoke grants for this module's plugin namespace.
-        # The plugin column on grants is the module identity from the
-        # caller's perspective; for Phase 2+ installs that should be
+        # The plugin column on grants is the module identity from
+        # the caller's perspective; for v2 installs that is the
         # module_id directly.
         grants = (
             await session.scalars(

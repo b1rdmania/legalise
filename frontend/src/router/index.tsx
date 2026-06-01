@@ -1,14 +1,14 @@
 /**
- * TanStack Router — Phase 14 A0.
+ * TanStack Router — full route tree.
  *
- * Migrated from a hash-based switch in App.tsx. All routes are now
- * path-based; legacy hash URLs are caught at boot in main.tsx and
- * rewritten in-place via history.replaceState (see `redirectLegacyHash`).
+ * All routes are path-based; legacy hash URLs are caught at boot in
+ * main.tsx and rewritten in-place via history.replaceState (see
+ * `redirectLegacyHash`).
  *
- * Routes are code-based (not the vite-plugin codegen flow). One file per
- * route would be cleaner — for A0 we keep them inline so the whole tree
- * is reviewable in a single read. Splitting per file is a future
- * mechanical refactor with no behavioural delta.
+ * Routes are code-based (not the vite-plugin codegen flow). The whole
+ * tree lives in this file so it is reviewable in a single read;
+ * splitting per file is a future mechanical refactor with no
+ * behavioural delta.
  */
 
 import {
@@ -135,10 +135,10 @@ const verifyRoute = createRoute({
   }),
 });
 
-// Phase 14 B — /modules is now the v2 catalog (ModulesCatalog).
-// The pre-Phase-14 Modules component (v1 skill enable/disable) is
-// retained in the codebase under src/modules-page/ for reference but
-// no longer mounted on a route. Importing it elsewhere still works.
+// /modules is the v2 catalog (ModulesCatalog). The earlier Modules
+// component (v1 skill enable/disable) is retained in the codebase
+// under src/modules-page/ for reference but no longer mounted on a
+// route. Importing it elsewhere still works.
 const modulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/modules",
@@ -243,11 +243,10 @@ const settingsPreferencesRoute = createRoute({
 });
 
 // ---------------------------------------------------------------------------
-// Phase 14 sub-step routes.
+// App sub-routes.
 //
-// A through F have shipped real components. G (settings polish) is
-// the last sub-step and reuses the existing /settings routes rather
-// than adding new ones, so no placeholder remains here.
+// Settings polish reuses the existing /settings routes rather than
+// adding new ones, so no placeholder remains here.
 //
 // All routes inherit the authed gate via __authed except `/app`,
 // which is intentionally public — see appHomeRoute below.
@@ -301,8 +300,9 @@ const moduleInstallRoute = createRoute({
   },
 });
 
-// Phase 14 E — reconstruction. Query-param contract pinned by
-// earlier sub-step deep-links: ?invocation_id=… (D), ?action=… (B/C).
+// Reconstruction. Query-param contract: ?invocation_id=… (deep
+// links from invocations), ?action=… (deep links from ceremonies
+// and grants).
 type MatterAuditSearch = { invocation_id?: string; action?: string };
 export const matterAuditRoute = createRoute({
   getParentRoute: () => authedRoute,
@@ -387,11 +387,10 @@ const adminUserDetailRoute = createRoute({
   },
 });
 
-// Phase 14.5 C — workspace / admin audit reconstruction. Mirrors the
-// query-param contract from matterAuditRoute (Phase 14 E):
-// ?invocation_id=… + ?action=… both honoured. Substrate gates on
-// superuser; AdminAuditView mirrors the AdminUsersList belt-and-
-// braces UI gate.
+// Workspace / admin audit reconstruction. Mirrors the query-param
+// contract from matterAuditRoute: ?invocation_id=… + ?action=… both
+// honoured. Substrate gates on superuser; AdminAuditView mirrors
+// the AdminUsersList belt-and-braces UI gate.
 type AdminAuditSearch = { invocation_id?: string; action?: string };
 export const adminAuditRoute = createRoute({
   getParentRoute: () => authedRoute,

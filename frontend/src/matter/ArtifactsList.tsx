@@ -1,18 +1,13 @@
 /**
- * Phase 14 D — /matters/{slug}/artifacts.
+ * Outputs list page — `/matters/{slug}/artifacts`.
  *
- * Hits Phase 13b A's `GET /api/matters/{slug}/artifacts` and renders
- * the list as a table. The substrate returns rows desc by created_at
- * (artifacts.py:121) so no client-side sort is needed.
+ * Hits `GET /api/matters/{slug}/artifacts` and renders the list as a
+ * table, with a per-row sign-off badge (Draft / Signed / Signed
+ * (obs.) / Rejected) derived from current sign-offs. The substrate
+ * returns rows desc by created_at, so no client-side sort is needed.
  *
- * Reviewer-narrow: no audit deep-link inline (Phase 14 E will land
- * the audit page; the artifact detail page links to it once a single
- * row is open). No archive / pin / share affordances. List + click
- * into detail.
- *
- * Per Phase 13b Decision #1, reads do NOT emit audit. This page
- * triggers two reads (the list + matter fetch on the matter route)
- * and no audit row should land — that contract is substrate-verified.
+ * Audit-trail deep-links live on artifact detail, not on this list.
+ * Reads do NOT emit audit (substrate-verified at artifacts.py).
  */
 
 import { useEffect, useState } from "react";

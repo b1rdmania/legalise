@@ -287,8 +287,8 @@ async def export_docx(
             f"run envelope matter_slug={result.matter_slug} does not match url slug={slug}",
         )
 
-    # TODO(unit-4-jobs): once Unit 2 migrates /run and /run-stream to durable
-    # jobs, add check_generated_artefact to the job-completion path in jobs.py.
+    # TODO(durable-job-runs): once /run + /run-stream move to durable jobs,
+    # add check_generated_artefact to the job-completion path in jobs.py.
     await check_generated_artefact(user.id, session)
 
     body_markdown = render_contract_review_markdown(matter, result)

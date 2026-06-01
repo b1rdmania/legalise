@@ -1,8 +1,5 @@
 """Subprocess sandbox for MCP servers.
 
-Phase 3 supply-chain layer per docs/handovers/PHASE_3_BUILD_PLAN.md
-§Step 3.
-
 Modules run in subprocesses with:
 - RLIMIT_AS (memory) + RLIMIT_CPU (CPU seconds) enforcement
   (universal — works on macOS and Linux)

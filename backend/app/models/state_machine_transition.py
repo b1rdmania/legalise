@@ -1,4 +1,4 @@
-"""StateMachineTransition — Phase 1 substrate primitive model.
+"""StateMachineTransition — substrate primitive model.
 
 A transition row records one requested change to an instance's state.
 Rows are append-only: WORM-enforced via a Postgres trigger in migration

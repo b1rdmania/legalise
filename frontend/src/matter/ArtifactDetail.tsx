@@ -1,17 +1,14 @@
 /**
- * Phase 14 D — /matters/{slug}/artifacts/{artifactId}.
+ * Output detail page — `/matters/{slug}/artifacts/{artifactId}`.
  *
- * Hits Phase 13b A's `GET /api/matters/{slug}/artifacts/{id}` which
- * returns ArtifactSummary fields + parsed `payload`. Kind-aware
- * rendering via ArtifactPreview.
+ * Hits `GET /api/matters/{slug}/artifacts/{id}` (returns ArtifactSummary
+ * fields + parsed `payload`). Kind-aware rendering via ArtifactPreview.
  *
- * Deep-link to reconstruction: the result panel + this page both link
- * to `/matters/{slug}/audit?invocation_id=<id>`. Activity Trail is the
- * product-facing reconstruction surface; the query-param contract is
- * preserved for signed/exported output chains.
+ * Deep-link to the Activity Trail: this page links to
+ * `/matters/{slug}/audit?invocation_id=<id>`. The query-param contract
+ * is preserved for signed/exported output chains.
  *
- * Per Phase 13b Decision #1, reads do NOT emit audit — substrate-
- * verified at artifacts.py.
+ * Reads do NOT emit audit (substrate-verified in artifacts.py).
  */
 
 import { useEffect, useState } from "react";

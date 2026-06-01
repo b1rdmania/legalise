@@ -1,26 +1,22 @@
-"""Phase 5 — model-invocation cost metadata helper.
+"""Model-invocation cost metadata helper.
 
 The single function in this module — ``audit_emit_model_invoked`` —
-writes a canonical ``model.invoked`` audit row with cost data
-promoted to first-class columns on ``audit_entries`` (Phase 5
-migration ``0017``).
+writes a canonical ``model.invoked`` audit row with cost data promoted
+to first-class columns on ``audit_entries`` so cost rollups are an
+index scan rather than a JSONB scan.
 
 Why this exists
 ---------------
-``app.core.api.audit.log`` is the generic emission helper. Every
-caller passes ``payload`` JSONB and a handful of structured fields.
-Pre-Phase-5, cost data (tokens, $$, provider, model) lived only in
-``payload``, making cost rollups a JSONB scan.
-
-Phase 5 promotes those fields to indexed columns. To keep emission
-sites honest, this helper:
+``app.core.api.audit.log`` is the generic emission helper. Cost data
+(tokens, $$, provider, model) needs both the indexed columns AND the
+JSONB payload (so readers that only look at JSONB still work). To
+keep emission sites honest, this helper:
 
 1. Validates the cost/currency pairing (``(cost_micros NULL) =
    (currency NULL)``) BEFORE the row reaches Postgres — so the
    check constraint catches drift, not the user.
-2. Populates BOTH the new columns AND the JSONB payload — so
-   existing readers that only look at JSONB still work
-   (backwards-compatible forward).
+2. Populates BOTH the new columns AND the JSONB payload —
+   backwards-compatible forward.
 3. Routes through ``audit.log`` so WORM triggers, transaction
    semantics, and standard plumbing all apply identically.
 
@@ -28,11 +24,11 @@ It does NOT commit. Caller commits — same contract as ``audit.log``.
 
 Usage
 -----
-Phase 6 reference modules (Contract Review first) call this from
-the post-provider-call site. The model gateway can also route
-through it once providers report token / cost. Today's stub
-provider returns token count only; ``cost_micros`` and ``currency``
-stay None until a real provider plumbs the cost band through.
+Reference modules (Contract Review first) call this from the
+post-provider-call site. The model gateway can also route through it
+once providers report token / cost. Today's stub provider returns
+token count only; ``cost_micros`` and ``currency`` stay None until a
+real provider plumbs the cost band through.
 """
 
 from __future__ import annotations
@@ -77,7 +73,7 @@ async def audit_emit_model_invoked(
         User on whose behalf the invocation ran.
     module_id, capability_id
         Module + capability that triggered the invocation. Stored in
-        the JSONB payload (matches Phase 1 ``audit_phase1`` shape).
+        the JSONB payload (matches the substrate ``audit_phase1`` shape).
     model_id, provider
         The actual model + provider used. Both columns and payload.
     tokens_in, tokens_out
@@ -142,8 +138,7 @@ async def audit_emit_model_invoked(
             else None
         ),
         payload=payload,
-        # Phase 5 cost columns. ``audit.log`` accepts these kwargs as
-        # of Phase 5 (extension to the helper signature).
+        # Cost columns. ``audit.log`` accepts these kwargs.
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_micros=cost_micros,

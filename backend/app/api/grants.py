@@ -1,4 +1,4 @@
-"""Phase 7 — per-matter, per-user grant endpoints.
+"""Per-matter, per-user grant endpoints.
 
 Three endpoints under ``/api/matters/{slug}/grants``:
 
@@ -6,14 +6,10 @@ Three endpoints under ``/api/matters/{slug}/grants``:
 - ``DELETE /{grant_id}`` — revoke a specific grant row.
 - ``GET``    — list current grants on this matter, grouped by parent capability.
 
-All three apply the strict matter-access predicate (Phase 5 shape):
-matter owner OR workspace superuser. A capability-grant on the
-matter does NOT, on its own, satisfy access — granting your own
-authority is a privileged surface; only the matter owner uses it.
-
-Closes the Phase 6 install-to-run gap: until Phase 7, the vertical
-slice could only insert grant rows from test fixtures. Now real
-HTTP clients walk install (admin) → grant (per-user) → invoke.
+All three apply the strict matter-access predicate: matter owner OR
+workspace superuser. A capability-grant on the matter does NOT, on its
+own, satisfy access — granting your own authority is a privileged
+surface; only the matter owner uses it.
 """
 
 from __future__ import annotations
@@ -80,7 +76,7 @@ class GrantCreateResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Strict matter-access lookup — same shape as Phase 5 reconstruction
+# Strict matter-access lookup — same shape as the reconstruction endpoint
 # ---------------------------------------------------------------------------
 
 
@@ -136,11 +132,12 @@ async def create_grant_endpoint(
     """Grant a capability on this matter to the calling user.
 
     The user grants capabilities to *themselves* — this endpoint
-    intentionally has no cross-user variant (admin granting to
-    another user is Phase 8+).
+    intentionally has no cross-user variant (admin granting on
+    behalf of another user is not yet supported).
 
     Returns ``201`` on a write, ``200`` on an idempotent no-op.
-    Per Phase 7 v2 Decision #4, the no-op path emits zero audit rows.
+    The no-op path emits zero audit rows — repeated grant attempts
+    must not flood the trail.
     """
     matter = await _load_matter_or_404(session, slug=slug, user=user)
 

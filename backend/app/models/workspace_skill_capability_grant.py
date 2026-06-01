@@ -11,20 +11,20 @@ asserts that ``user_id`` has authorised ``(plugin, skill)`` to exercise
 The runtime check in ``app.core.capabilities.require_capability``
 reads this table on every privileged boundary.
 
-Phase 7 added ``scope_type`` + ``scope_id`` as first-class columns
-(migration 0019) so the same user can hold the same capability at
-different scopes (e.g. matter A and matter B) without collision.
-Uniqueness is now the 6-tuple:
+``scope_type`` + ``scope_id`` are first-class columns (migration 0019)
+so the same user can hold the same capability at different scopes
+(e.g. matter A and matter B) without collision. Uniqueness is the
+6-tuple:
 
     (user_id, plugin, skill, capability, scope_type, scope_id)
 
 …enforced via ``uq_grant_user_plugin_skill_cap_scope`` with the
-``NULLS NOT DISTINCT`` modifier so two workspace-scope grants for
-the same 4-tuple collide cleanly (Postgres 15+).
+``NULLS NOT DISTINCT`` modifier so two workspace-scope grants for the
+same 4-tuple collide cleanly (Postgres 15+).
 
 ``ck_grant_scope_pairing`` enforces ``(scope_type = 'matter') =
-(scope_id IS NOT NULL)``; ``ck_grant_scope_type_vocab`` (migration
-0020) pins ``scope_type`` to the two-value vocabulary.
+(scope_id IS NOT NULL)``; ``ck_grant_scope_type_vocab`` (migration 0020)
+pins ``scope_type`` to the two-value vocabulary.
 
 ``granted_by_user_id`` records the actor who granted the capability
 for audit trails (NULL for system auto-grants at signup).
@@ -52,8 +52,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
 
-# Scope vocabulary (Phase 7 v2 — per Andy's note #2: small constants,
-# not raw strings repeated across call sites).
+# Scope vocabulary — small constants, not raw strings repeated
+# across call sites.
 SCOPE_TYPE_WORKSPACE = "workspace"
 SCOPE_TYPE_MATTER = "matter"
 SCOPE_TYPE_VALUES = frozenset({SCOPE_TYPE_WORKSPACE, SCOPE_TYPE_MATTER})
@@ -86,39 +86,39 @@ class WorkspaceSkillCapabilityGrant(Base):
         nullable=True,
     )
 
-    # Phase 2 v2 manifest support — all three columns nullable so
-    # existing v1 grants (capability_version=NULL,
+    # v2 manifest support — all three columns nullable so existing
+    # v1 grants (capability_version=NULL,
     # granted_at_module_version=NULL, granted_permissions_snapshot=NULL)
     # continue to resolve via require_capability unchanged.
 
     # Semver of the capability vocabulary the grant was made under.
     # v2 grants carry the module's manifest schema_version here so
-    # Phase 4 grant-lifecycle can detect grammar drift.
+    # grant-lifecycle can detect grammar drift.
     capability_version: Mapped[str | None] = mapped_column(
         String(32), nullable=True
     )
 
-    # The module's version at grant time. Phase 4 reads this on
-    # module update to detect whether the grant set has changed and
-    # whether a re-prompt is required.
+    # The module's version at grant time. Read on module update to
+    # detect whether the grant set has changed and whether a
+    # re-prompt is required.
     granted_at_module_version: Mapped[str | None] = mapped_column(
         String(32), nullable=True
     )
 
     # Snapshot of what was granted (reads, writes, gates, data_movement,
-    # advice_tier_max, external_destinations). Phase 4 diffs this
-    # against the new manifest on update to detect permission
-    # expansion. Empty/NULL for legacy v1 grants.
+    # advice_tier_max, external_destinations). Diffed against the
+    # new manifest on update to detect permission expansion.
+    # Empty/NULL for legacy v1 grants.
     granted_permissions_snapshot: Mapped[dict | None] = mapped_column(
         JSONB, nullable=True
     )
 
-    # Phase 7 v2 — scope is first-class. Pre-Phase-7 the grant's
-    # matter scope lived inside granted_permissions_snapshot.matter_id;
-    # that made it impossible to hold the same (plugin, skill,
-    # capability) for two matters because the uniqueness primitive
-    # didn't include scope. The columns + the new uniqueness close
-    # that gap. ``granted_permissions_snapshot`` stays as provenance.
+    # Scope is first-class. Previously the grant's matter scope
+    # lived inside granted_permissions_snapshot.matter_id; that made
+    # it impossible to hold the same (plugin, skill, capability) for
+    # two matters because the uniqueness primitive didn't include
+    # scope. These columns + the new uniqueness close that gap.
+    # ``granted_permissions_snapshot`` stays as provenance.
     #
     # ``scope_type`` is one of ``SCOPE_TYPE_VALUES``. ``scope_id``
     # is NULL for workspace scope, the matter UUID for matter scope.
@@ -133,6 +133,7 @@ class WorkspaceSkillCapabilityGrant(Base):
     __table_args__ = (
         UniqueConstraint(
             "user_id", "plugin", "skill", "capability", "scope_type", "scope_id",
+            postgresql_nulls_not_distinct=True,
             name="uq_grant_user_plugin_skill_cap_scope",
         ),
         CheckConstraint(

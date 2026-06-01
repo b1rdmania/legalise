@@ -1,6 +1,6 @@
 """Module discovery — walks declared paths and surfaces manifests.
 
-Sources discovered (Phase 2):
+Sources discovered:
 
 1. ``backend/app/modules/<name>/`` — first-party native modules.
    Discovery looks for an optional ``legalise.module.json`` (v2) at

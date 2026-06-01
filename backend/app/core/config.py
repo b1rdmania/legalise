@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     allow_server_key_fallback: bool = Field(
         default=False, alias="LEGALISE_ALLOW_SERVER_KEY_FALLBACK"
     )
-    # Phase 17.5 — firm role gates. When true, the law-firm role
+    # Firm role gates. When true, the law-firm role
     # hierarchy is enforced: B_mixed matters require qualified_solicitor
     # (posture gate) and advice-boundary tiers enforce their role rules.
     # When false (the default for local/hosted/eval), those gates go
@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     plugins_repo: str | None = "https://github.com/b1rdmania/claude-for-uk-legal"
     plugins_repo_ref: str | None = "f8201f1da72f6485c296eff620b19db18f016b68"
 
-    # Public module submission flow (Phase D W3). Opens a draft PR on
+    # Public module submission flow. Opens a draft PR on
     # `b1rdmania/claude-for-uk-legal` via a fine-grained PAT scoped to that
     # repo only. PAT owner MUST be `b1rdmania` — NOT `ziggythebot`. The
     # endpoint degrades to 503 when the token is unset so the surface

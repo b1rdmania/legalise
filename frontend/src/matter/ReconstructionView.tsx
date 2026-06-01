@@ -1,9 +1,9 @@
 /**
- * Phase 14 E — /matters/{slug}/audit.
+ * Activity Trail page — `/matters/{slug}/audit`.
  *
- * Reconstruction timeline against `GET /api/matters/{slug}/audit/reconstruction`
- * (Phase 5 endpoint). The page is the deep-link target every prior
- * Phase 14 sub-step pinned its links to:
+ * Reconstruction timeline against
+ * `GET /api/matters/{slug}/audit/reconstruction`. This page is the
+ * deep-link target referenced from elsewhere in the product:
  *   - InstallCeremony's 409 banner names module.ceremony.rejected
  *   - PostureBanner / posture-blocked invocation runner banner cites
  *     posture_gate.check.blocked
@@ -25,8 +25,8 @@
  * subsequent visits — "who looked at the trail when" is itself
  * provenance.
  *
- * Reviewer-narrow: no admin filter (Phase 14 F surface), no
- * settings export (Phase 14 G), no async polling.
+ * Reviewer-narrow: no admin filter, no settings export, no async
+ * polling.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -127,7 +127,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
   const loadPage = useCallback(
     async (cursor: string | null) => {
       try {
-        // Phase 14.5 A — filters are server-pushdown now. The client
+        // Filters are server-pushdown. The client
         // no longer over-fetches and filters; the substrate applies
         // invocation_id + action BEFORE pagination, so a deep-linked
         // row enters page 1 even on dense timelines.
@@ -180,7 +180,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
     });
   };
 
-  // Phase 14.5 A — filtering is server-authoritative. The substrate
+  // Filtering is server-authoritative. The substrate
   // knows the per-source carrier columns (payload.invocation_id for
   // audit, output_id for advice_boundary, etc.); the previous
   // client-side defence-in-depth filter checked only
@@ -395,10 +395,9 @@ export function ReconstructionView({ slug }: { slug: string }) {
             </div>
           )}
 
-          {/* Phase 14.5 A — substrate now applies filters before
-              pagination. The partial-page advisory the Phase 14 E
-              P1 redline added is no longer needed; an empty filtered
-              page accurately means "no matching rows in window." */}
+          {/* The substrate applies filters before pagination. An
+              empty filtered page accurately means "no matching rows
+              in window." */}
 
           {visibleEntries.length === 0 ? (
             <EmptyState filtersActive={deepLinked} />
@@ -490,9 +489,8 @@ export function ReconstructionView({ slug }: { slug: string }) {
 // ---------------------------------------------------------------------------
 
 function EmptyState({ filtersActive }: { filtersActive: boolean }) {
-  // Phase 14.5 A — substrate filters before paginating, so an
-  // empty filtered page is now substrate-truthful. No more
-  // partial-page disclaimer needed.
+  // Substrate filters before paginating, so an empty filtered page
+  // is substrate-truthful. No partial-page disclaimer needed.
   if (filtersActive) {
     return (
       <p

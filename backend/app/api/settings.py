@@ -77,7 +77,7 @@ async def upsert_key(
     )
     is_rotation = existing is not None
     row = await upsert_user_provider_key(session, user.id, body.provider, body.api_key)
-    # Phase 13b D — audit row.
+    # Audit row.
     from app.core.api import audit
 
     await audit.log(
@@ -116,7 +116,7 @@ async def delete_key(
     )
     if result.rowcount == 0:
         raise HTTPException(404, f"no key found for provider: {provider}")
-    # Phase 13b D — audit row.
+    # Audit row.
     from app.core.api import audit
 
     await audit.log(

@@ -249,8 +249,8 @@ async def _ensure_initial_version(
 ) -> None:
     """Idempotent insert of the v1 `upload` DocumentVersion for a seed doc.
 
-    Phase A invariant: every Document has a v1 DocumentVersion of
-    kind=upload. Edit-instruction + replicate_document derive new version
+    Invariant: every Document has a v1 DocumentVersion of kind=upload.
+    Edit-instruction + replicate_document derive new version
     numbers from `max(version_number)+1`, so missing v1 produces incorrect
     numbering on the first model-assisted edit.
     """

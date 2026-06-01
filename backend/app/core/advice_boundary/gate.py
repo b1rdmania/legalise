@@ -1,10 +1,8 @@
-"""Advice boundary gate — the callable Phase 1 invokes per output.
+"""Advice boundary gate — the callable invoked per output to decide
+whether the requested advice tier is allowed for this actor, transition,
+and declared-tier ceiling.
 
 Per docs/architecture/ADVICE_BOUNDARY.md §Gate API Surface.
-
-Phase 1 scope: callable gate API + REST endpoint. Manifest-driven
-enforcement (reading ``advice_tier_max`` from the manifest and
-auto-injecting the check at the capability boundary) lands in Phase 2.
 
 The gate writes one ``AdviceBoundaryDecision`` row per call regardless
 of outcome (completed, blocked, denied, failed). Audit row emitted in
@@ -55,7 +53,7 @@ def _blocked_to_decision_gate_state(blocked: BlockedPayload) -> dict[str, Any]:
     ``gate_state`` JSONB column expects.
 
     The audit row uses the canonical nested ``BlockedPayload.to_dict()``
-    shape (so Phase 5 audit reconstruction can detect blocked rows by
+    shape (so audit reconstruction can detect blocked rows by
     the top-level ``status`` key). The decision row's ``gate_state``
     column is the gate's *execution* state, not a wrapped audit
     payload, so the BlockedPayload's inner ``gate_state`` dict is
@@ -333,7 +331,7 @@ async def check(
             }
         role_requirement = INITIAL_TIER_ROLE_REQUIREMENTS[requested_tier]
 
-    # Role check. Phase 17.5: when firm role gates are dormant
+    # Role check. When firm role gates are dormant
     # (LEGALISE_FIRM_ROLE_GATES_ENABLED=false, the default for
     # local/hosted/eval), the firm role hierarchy is not enforced —
     # any authenticated actor satisfies the tier role requirement.
@@ -381,8 +379,8 @@ async def check(
             "gate_state": decision.gate_state,
         }
 
-    # declared_tier_max enforcement (Phase 2 manifest-driven, but
-    # honoured when supplied directly in Phase 1).
+    # declared_tier_max enforcement (manifest-driven, but honoured
+    # when supplied directly via the API).
     if declared_tier_max is not None:
         if tier_rank(requested_tier) > tier_rank(declared_tier_max):
             blocked = BlockedPayload(
@@ -418,11 +416,11 @@ async def check(
                 "gate_state": decision.gate_state,
             }
     else:
-        # Null declared_tier_max — Phase 1 mode. Allowed but logged.
+        # Null declared_tier_max — allowed but logged.
         pass
 
     # All checks passed.
-    # Phase 5 reconstruction filters advice_boundary_decisions by
+    # Reconstruction filters advice_boundary_decisions by
     # ``gate_state->>'matter_id'`` — so when a caller supplies
     # matter_id, inject it into the gate_state JSONB so the row
     # shows up in the matter's timeline.

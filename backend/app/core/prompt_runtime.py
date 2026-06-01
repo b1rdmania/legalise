@@ -10,7 +10,7 @@ existing model gateway, and writes the result as a matter artifact.
 This is the third runtime alongside ``native`` and ``mcp``. It uses the
 SAME governance seams as a native capability — posture gate, per-matter
 read/write grants, advice-boundary gate, the model gateway adapter, and
-the Phase 1 audit helpers. It bypasses none of them. Imported Lawve
+the substrate audit helpers. It bypasses none of them. Imported Lawve
 ``SKILL.md`` files become governed modules through this path.
 
 The executor mirrors the canonical invocation order in
@@ -42,7 +42,7 @@ from app.core.advice_boundary import (
     check as advice_boundary_check,
 )
 from app.core.source_anchors import build_document_anchor
-from app.models.document_body import BODY_KIND_EXTRACTED
+from app.models.document_body import extracted_body_for
 from app.core.advice_boundary.tiers import ADVICE_TIER_DRAFT_ADVICE
 from app.core.audit_cost import audit_emit_model_invoked
 from app.core.capabilities import require_capability
@@ -50,7 +50,7 @@ from app.core.matter_artifacts import write_artifact
 from app.core.phase1_runtime import audit_phase1
 from app.core.posture_gate import PostureBlocked, check_posture
 from app.core.runtime import InvocationContext, ProviderCallable
-from app.models import Document, DocumentBody, InstalledModule, Matter
+from app.models import Document, InstalledModule, Matter
 
 # Single, consistent artifact kind for prompt-runtime output (Build Brief
 # — "pick one and use consistently").
@@ -105,17 +105,11 @@ async def _load_documents(
             raise ValueError(
                 f"document {doc_id} not found in matter {matter.id}"
             )
-        # Source-anchor integrity (Source Anchors v1 redline P1): a document
-        # may have multiple body rows (extracted / redacted / summary). The
-        # anchor must hash and cite the EXTRACTED body, not whichever row
-        # SQL returns first; otherwise quote checks and body_sha256 could
-        # silently reference a redacted or derivative copy.
-        body = await session.scalar(
-            select(DocumentBody).where(
-                DocumentBody.document_id == doc_id,
-                DocumentBody.kind == BODY_KIND_EXTRACTED,
-            )
-        )
+        # Source-anchor integrity: a document may have multiple body rows
+        # (extracted / redacted / summary). The anchor must hash and cite
+        # the EXTRACTED body — go through ``extracted_body_for`` so the
+        # filter cannot be silently forgotten by a future change.
+        body = await extracted_body_for(session, doc_id)
         docs.append(
             {
                 "handle": f"D{idx}",

@@ -1,4 +1,4 @@
-"""Phase 1 advice boundary primitive.
+"""Advice boundary primitive.
 
 Generic gate enforcing the legal-advice tier of every output that flows
 through the runtime. Required for SRA / PI / regulatory framing.

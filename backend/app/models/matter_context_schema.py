@@ -1,4 +1,4 @@
-"""MatterContextSchema — Phase 1 substrate primitive model.
+"""MatterContextSchema — substrate primitive model.
 
 A schema declares the typed shape of items stored under a matter-context
 namespace. Schemas are versioned. Items written under a namespace are

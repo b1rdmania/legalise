@@ -1,8 +1,6 @@
 """Subprocess MCP server launcher with RLIMIT + optional Linux
 seccomp/AppArmor.
 
-Phase 3 implementation per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 3.
-
 Design notes:
 
 - ``launch_mcp_server`` returns a ``SandboxedProcess`` wrapper around
@@ -19,8 +17,8 @@ Design notes:
   sandbox gap doesn't translate to a privilege escalation.
 - ``SandboxUnavailableError`` is raised only when the caller asks
   for a Linux-only feature that the host cannot honour AND the
-  profile marks it as required (``require_os_sandbox=True`` — Phase 4
-  add). Phase 3's profiles do not set this flag, so the launcher
+  profile marks it as required (``require_os_sandbox=True`` —
+  pending). Current profiles do not set this flag, so the launcher
   always proceeds.
 """
 
@@ -133,13 +131,13 @@ def _apply_seccomp(profile: SandboxProfile) -> bool:
 
 def _apply_apparmor() -> bool:
     """Apply AppArmor confinement if libapparmor + a profile is
-    available. Phase 3 ships a no-op stub — Linux deployments can
+    available. Ships a no-op stub — Linux deployments can
     install ``apparmor-utils`` and a Legalise profile to enable this.
     Returns True if applied, False otherwise."""
     if platform.system() != "Linux":
         return False
-    # Phase 4 may wire this. Phase 3 stub keeps the API in place so
-    # the launcher's applied_os_features bookkeeping works.
+    # Stub keeps the API in place so the launcher's
+    # applied_os_features bookkeeping works.
     return False
 
 
@@ -211,7 +209,7 @@ def launch_mcp_server(
     # Best-effort feature bookkeeping. Note: this runs in the parent
     # so we can only check whether the *modules* are available,
     # not whether the actual filter applied in the child (subprocess
-    # already detached). Phase 4 may add a heartbeat probe.
+    # already detached). A heartbeat probe may be added later.
     if platform.system() == "Linux":
         try:
             import pyseccomp  # type: ignore[import-not-found]  # noqa: F401

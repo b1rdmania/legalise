@@ -1,10 +1,15 @@
 # Legalise
 
-Open-source infrastructure for supervised legal AI in England & Wales.
+Open-source infrastructure for solicitor-owned AI preparation in
+England & Wales.
 
-Open a matter. Ask the assistant. Install legal modules. Run them through capability and privilege gates. Keep the audit trail.
+Open a matter. Add documents. Run governed actions. Review outputs with
+cited sources visible. **Sign the output as a record of professional
+judgement.** Export the matter record.
 
-Legalise is open source. The hosted site is a limited evaluation environment. Real AI workflows require your own model key. Legalise does not provide model access and is not for live client matters.
+Legalise is open source. The hosted site is a limited evaluation
+environment. Real AI workflows require your own model key. Legalise
+does not provide model access and is not for live client matters.
 
 ![Audit tab. Khan v Acme sample matter.](docs/img/audit-tab.png)
 
@@ -12,13 +17,22 @@ Legalise is open source. The hosted site is a limited evaluation environment. Re
 
 ## Why
 
-The interesting question in legal AI is no longer only what AI can automate.
+The interesting question in legal AI is no longer only what AI can
+automate.
 
-It is what a firm should choose not to automate, where human judgement must stay named, and how the system proves that boundary held.
+It is what a firm should choose not to automate, where human judgement
+must stay named, and how the system proves that boundary held.
 
-Legalise is an open-source substrate for that problem. The bet is simple: legal AI should not just be a chatbot that answers questions. If it touches legal work, it should sit inside a matter file. It should know what documents it used, what permissions it had, what it produced, and which qualified human remained responsible for the important calls.
+Legalise treats AI as preparation, not as the deliverable. Outputs sit
+inside a matter file. They know what documents they used, what
+permissions they had, what they produced. A solicitor reads the output
+with its cited sources visible, takes professional ownership by signing
+it, and the system preserves what was signed — content pinned by a
+hash, available for export as a defensible record.
 
-The audit trail matters because it makes the work inspectable. But audit is not the product. Audit is the receipt.
+The audit trail makes the work inspectable. The signature makes a
+human accountable. Together they are the product. Audit alone is just
+the receipt.
 
 The full thesis lives in [`docs/MANIFESTO.md`](./docs/MANIFESTO.md). The claim boundary lives in [`docs/SUPERVISED_AUTONOMY.md`](./docs/SUPERVISED_AUTONOMY.md). The hosted site is only an evaluation environment.
 
@@ -26,18 +40,56 @@ The full thesis lives in [`docs/MANIFESTO.md`](./docs/MANIFESTO.md). The claim b
 
 ## What is in the repo
 
-Legalise currently ships a worked evaluation workspace around the Khan v Acme sample matter:
+Legalise currently ships a worked evaluation workspace around the
+Khan v Acme sample matter. The matter surface compresses to four tabs:
 
-- **Matter workspace:** parties, documents, chronology, privilege posture, retention clock, audit trail.
-- **Assistant:** matter-scoped chat with document and chronology citations.
-- **Workflows / modules:** Pre-Motion, Contract Review, Letters, Tabular Review, Case Law, Anonymisation, document edit.
-- **Capability gates:** manifests declare what a skill needs; the workspace grants it; runtime checks it.
-- **Privilege-aware gateway:** Anthropic, OpenAI, and Ollama behind one dispatch layer.
-- **BYO keys:** users store their own provider keys encrypted at rest.
-- **Audit trail:** model calls, module actions, denials, mutations, provider failures, and storage failures leave rows.
-- **Hosted-access posture:** public evaluation signup is open; real AI workflows still require your own model key.
+- **Matter desk:** parties, posture, retention clock, readiness.
+- **Documents:** drag/drop ingress, extracted bodies, version history,
+  CPR 31.22 disclosure flag, original-file retrieval through an
+  owner-only backend proxy.
+- **Actions:** governed actions an installed module can run on this
+  matter — readiness shown up-front (`Ready` / `Keyless demo model` /
+  `Requires Anthropic key` / `Requires OpenAI key`).
+- **Activity Trail:** the matter's record of what happened — module
+  invoked, model called, output written, sign-off recorded, supervisor
+  decision (when used), gate denials.
 
-The plugin layer, where most of the legal logic lives, is [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal): 15 skills across UK employment law, civil litigation, and legal research.
+Available actions produce **outputs** (artifacts) the user reviews,
+signs, and exports:
+
+- **Professional Sign-Off:** the author reads an AI-prepared output and
+  records `signed` / `signed_with_observations` / `rejected`. The
+  signature pins the exact output by hash; the record is append-only.
+  Supervisor Review remains available as an optional separate review
+  path.
+- **Source anchors:** an output carries the documents it cited.
+  Document anchors are server-known (independent of the model). Where a
+  model supplied a quote, Legalise checks whether the quoted text is
+  present in the extracted document body — `quote_found_in_source`,
+  *cited for review*, not certified.
+- **Export:** the matter export ZIP carries documents, audit trail,
+  outputs, sign-off records, source anchors, and an integrity flag
+  showing whether each signed output's payload still matches its
+  pinned hash.
+
+Supporting substrate:
+
+- **Capability gates:** manifests declare what a module needs; the
+  workspace grants it on a matter; runtime checks it.
+- **Privilege posture + advice-boundary gate** before every model call.
+- **Matter-scoped model gateway** across Anthropic, OpenAI, and Ollama.
+- **BYO keys:** users store their own provider keys encrypted at rest;
+  Legalise itself does not provide model access.
+- **Audit trail:** model calls, module actions, denials, mutations,
+  provider failures, and storage failures leave rows.
+
+A second module path imports prompt-only skills from the
+[`awesome-legal-skills`](https://github.com/lawve-ai/awesome-legal-skills)
+catalogue and runs them under the same governance — a `prompt` runtime
+that produces a `skill_response` artifact subject to the same sign-off
+and source-anchor handling. The first-party plugin layer where most
+legal logic lives is
+[`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal).
 
 ---
 
@@ -142,33 +194,60 @@ To prove the fork is healthy end-to-end without driving the UI by hand, run `./s
 
 ## Status
 
-Evaluation release candidate. Honest about what's in and what isn't.
+Evaluation release. Honest about what's in and what isn't.
 
 **Shipped:**
 
-- Five surfaces wired end-to-end against the Khan v Acme matter
-- Audit middleware on every model call and matter mutation
-- Privilege-aware gateway across Anthropic, OpenAI, Ollama
-- Runtime capability enforcement at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes)
-- Tracked-changes editing with accept / reject and version timeline
-- fastapi-users cookie sessions, email verification, per-user AES-256-GCM-encrypted provider keys
-- Bootstrap audit rows on per-user seed so the Audit tab is non-empty on first paint
-- Real-DB E2E test infrastructure; 155 passed, 53 skipped in backend CI
+- Compressed four-tab matter surface (Matter desk / Documents / Actions
+  / Activity Trail) with the Activity Trail as the explanatory spine.
+- Documents are first-class: routed detail page, body/versions/
+  anonymisation/edit surfaces, original-file retrieval through an
+  owner-only backend proxy with an `document.original.accessed` audit
+  row on successful access.
+- Governed actions on a matter, with readiness shown up-front from a
+  single backend `Matter.required_provider` field — no model-family
+  guessing in the UI.
+- Two module runtimes:
+  - **Native modules** (`examples.contract-review`, `examples.pre-motion`)
+    that emit source anchors and `findings_pack` / `motion_draft` /
+    `evidence_list` artifacts.
+  - **Prompt runtime** for Lawve `SKILL.md` imports — manifest-contained
+    instructions, server-built document anchors, optional model claim
+    enrichment with `quote_found_in_source`.
+- **Professional Sign-Off:** author sign-off as the matter's main
+  decision point. Append-only history. Hash pinning. Activity Trail
+  promotes sign-off as a foreground event.
+- **Source anchors v1** across the prompt runtime and Contract Review.
+- **Export Gating v1.1:** sign-off status + integrity flag + source
+  anchors preserved in the export bundle; README in the bundle
+  describes the honesty boundaries.
+- Capability enforcement at five runtime boundaries; per-matter
+  matter-scoped grants; idempotent re-grants.
+- Privilege-aware gateway across Anthropic, OpenAI, Ollama, and a
+  keyless `stub-echo` demo provider.
+- `fastapi-users` cookie sessions, email verification, per-user AES-256-
+  GCM-encrypted provider keys, owner-only matter access (no superuser
+  signing or read shortcut on matters; sign-off is *personal*
+  accountability).
+- Audit middleware on every model call and matter mutation; matter
+  reconstruction endpoint merges audit / state-machine / advice-
+  boundary sources into one ordered timeline.
+- Real-DB E2E test infrastructure with the backend and Playwright suite
+  exercised on every push.
 
-**Live-matter readiness gates:**
+**Live-matter readiness gates (still):**
 
-- Real R2/S3 object storage for uploaded and generated artefacts. Fly filesystem remains cache/materialisation only.
-- Durable jobs (`arq` + Redis + `jobs` table). Long runs should not depend on a live request.
-- Release-step migrations instead of app-boot schema mutation.
-- Hosted evaluation limits: storage, workflow runs, active jobs, generated artefacts, and public submissions.
-- Matter export / delete with retention-aware audit handling.
-- WORM audit groundwork.
-- Key-rotation runbook for encrypted provider keys.
-
-**v0.6 trust layer:**
-
-- Configurable prompt shroud before cloud model dispatch.
-- Legal-quality evals for grounding, citation integrity, refusal behaviour, and module regressions.
+- Append-only audit is enforced by application convention; Postgres-
+  level WORM grants are a future gate, so the audit trail is **not**
+  forensically tamper-resistant against a DB superuser.
+- Sigstore-level signature verification on installed modules is
+  structural today; cryptographic chain verification is hardening
+  backlog.
+- Hosted evaluation limits on storage, workflow runs, active jobs,
+  generated artefacts, and public module submissions.
+- Configurable prompt shroud before cloud-model dispatch.
+- Legal-quality evals for grounding, citation integrity, refusal
+  behaviour, and module regressions.
 
 Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 

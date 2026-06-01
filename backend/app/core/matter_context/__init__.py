@@ -1,4 +1,4 @@
-"""Phase 1 matter context store primitive.
+"""Matter context store primitive.
 
 Generic structured-data substrate consumed by reference modules
 (``legalise-matter-memory``, future connector modules that write

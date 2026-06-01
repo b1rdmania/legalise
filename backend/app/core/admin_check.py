@@ -1,12 +1,12 @@
-"""Workspace-admin gate for Phase 1 control-plane endpoints.
+"""Workspace-admin gate for control-plane endpoints.
 
 Used by registry endpoints (matter-context schemas, state-machine
 definitions) where allowing arbitrary authenticated users to write
 would let them squat or poison namespaces / module identities used by
 first-party or firm-private modules.
 
-Phase 1 gates on ``User.is_superuser`` as the workspace-admin proxy.
-Phase 2 may introduce a finer-grained workspace role.
+Gates on ``User.is_superuser`` as the workspace-admin proxy. A
+finer-grained workspace role may replace this later.
 """
 
 from __future__ import annotations

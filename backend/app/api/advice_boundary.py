@@ -1,35 +1,33 @@
 """Advice boundary HTTP API.
 
-One endpoint per ``HANDOVER_PHASE_1_START.md`` and
-``ADVICE_BOUNDARY.md``:
+One endpoint per ``ADVICE_BOUNDARY.md``:
 
     POST /api/advice-boundary/check
 
-Phase 1: the gate is invokable directly. Phase 2 will wire it from
-manifest ``advice_tier_max``.
+The gate is invokable directly; manifest ``advice_tier_max`` wiring
+arrives once dispatcher integration lands.
 
-**Role derivation policy (Phase 1):** the actor's workspace role is
-derived server-side from the authenticated ``User`` row, not accepted
-from the request body. Without this, any authenticated user could
-submit ``qualified_solicitor`` and approve supervised/final advice
+**Role derivation policy:** the actor's workspace role is derived
+server-side from the authenticated ``User`` row, not accepted from
+the request body. Without this, any authenticated user could submit
+``qualified_solicitor`` and approve supervised/final advice
 transitions — which would defeat the entire supervision primitive.
 
-The Phase 1 derivation:
+The derivation:
 
 - ``user.is_superuser`` → ``workspace_admin``
 - otherwise            → ``any_authenticated``
 
-Phase 1 has no SRA roll verification (per ``ADVICE_BOUNDARY.md``
-§Phase 1 Scope — deferred to Phase 7+ with the intake reference
-module). As a consequence, supervised-legal-advice and
+There is no SRA roll verification yet (deferred to the intake
+reference module). As a consequence, supervised-legal-advice and
 approved-final-advice transitions are reachable via the HTTP API
-*only* by workspace admins in Phase 1, and only for the
+*only* by workspace admins, and only for the
 ``supervised_legal_advice → approved_final_advice`` step (the
 ``draft_advice → supervised_legal_advice`` step requires
-``qualified_solicitor`` per the architecture doc and Phase 1 cannot
-yet assign that role). Internal callers (workflows, reference modules)
-that have already verified solicitor status can still invoke
-``core.advice_boundary.check()`` directly with an explicit ``actor_role``.
+``qualified_solicitor``, which cannot yet be assigned). Internal
+callers (workflows, reference modules) that have already verified
+solicitor status can still invoke ``core.advice_boundary.check()``
+directly with an explicit ``actor_role``.
 """
 
 from __future__ import annotations

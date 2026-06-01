@@ -12,7 +12,7 @@ Item reads:
   ``matter.context.<namespace>.read``.
 - Audited per ``MATTER_CONTEXT_STORE.md`` §109 ("Read events may be
   sampled or aggregated later, but V1 should audit module reads that
-  feed model calls"). Phase 1 emits one audit row per read call.
+  feed model calls"). One audit row per read call.
 
 Supersession:
 - ``supersede_item`` writes a new item and sets ``superseded_by_id``
@@ -85,7 +85,7 @@ async def write_item(
 
     Capability check uses ``matter.context.<namespace>.write``. On
     denial the dual-audit pattern fires (legacy
-    ``module.capability.denied`` + Phase 1
+    ``module.capability.denied`` +
     ``matter_context.write.blocked``) and ``Phase1Blocked`` is raised
     with ``BlockedReason.CAPABILITY_DENIED``.
     """

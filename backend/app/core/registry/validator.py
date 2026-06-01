@@ -62,7 +62,7 @@ def _v2_schema() -> dict:
     candidates = ", ".join(str(path) for path in _SCHEMA_CANDIDATES)
     raise FileNotFoundError(
         f"schemas/module.v2.json not found in any of: {candidates}; "
-        "Phase 2 cannot validate manifests without it"
+        "the v2 registry cannot validate manifests without it"
     )
 
 

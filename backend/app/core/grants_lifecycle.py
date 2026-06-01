@@ -1,7 +1,5 @@
 """Grant lifecycle — permission expansion detection.
 
-Phase 4 implementation per docs/handovers/PHASE_4_BUILD_PLAN.md §Step 1.
-
 When a module is updated to a new version, we diff the new manifest's
 permission shape against the previously-installed permission shape.
 Expansion (e.g. new write capability, higher advice tier, network
@@ -26,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.advice_boundary.tiers import ADVICE_TIER_FACTUAL_EXTRACTION, tier_rank
 
 
-# Ordering of model_access strictness — Phase 4 detects increases as
+# Ordering of model_access strictness — increases count as
 # expansion (none < optional < required < delegated).
 _MODEL_ACCESS_ORDER = {
     "none": 0,
@@ -235,15 +233,15 @@ def requires_reprompt(report: ExpansionReport) -> bool:
     """True if the expansion is material enough to require a fresh
     trust ceremony.
 
-    Phase 4 policy: any expansion at all triggers re-prompt. Phase 5+
-    may relax this for low-risk dimensions (e.g. gate removal alone
+    Current policy: any expansion at all triggers re-prompt. May
+    relax later for low-risk dimensions (e.g. gate removal alone
     might be OK; new audit_events alone is fine).
     """
     return report.any_expansion
 
 
 # ---------------------------------------------------------------------------
-# Phase 7 — grant creation / revocation helpers used by /api/matters/{slug}/grants
+# Grant creation / revocation helpers used by /api/matters/{slug}/grants
 # ---------------------------------------------------------------------------
 
 
@@ -252,9 +250,9 @@ class CapabilityScopeUnsupported(Exception):
     whose manifest declares ``scope: workspace`` or ``scope: global``.
 
     The matter-scoped endpoint must refuse to silently create
-    workspace authority — Reviewer Phase 7 v2 P1#2. The API layer
-    catches this and returns HTTP 422 with the structured error
-    code ``capability_scope_not_supported_here``.
+    workspace authority. The API layer catches this and returns
+    HTTP 422 with the structured error code
+    ``capability_scope_not_supported_here``.
     """
 
     def __init__(self, capability_id: str, capability_scope: str) -> None:
@@ -272,9 +270,8 @@ class GrantCreationResult:
 
     Splits newly-written rows from already-existing rows so the
     endpoint knows whether to emit ``module.grant.created`` audit
-    rows (per Phase 7 v2 Decision #4: idempotent no-op emits no
-    audit). ``all_rows`` is the full set the client should see in
-    the response.
+    rows (idempotent no-op emits no audit). ``all_rows`` is the
+    full set the client should see in the response.
     """
 
     created: list  # newly-inserted WorkspaceSkillCapabilityGrant rows
@@ -316,7 +313,7 @@ async def create_grants_for_capability(
     string declared in a capability's reads + writes.
 
     Idempotent on ``(user, plugin, skill, capability, scope_type='matter', scope_id=matter.id)``
-    via the Phase 7 v2 unique constraint.
+    via the composite unique constraint.
 
     Raises ``CapabilityScopeUnsupported`` if the capability's manifest
     declaration is anything other than ``scope: matter`` — matter
@@ -404,9 +401,9 @@ async def create_grants_for_capability(
     if created:
         await session.flush()
 
-    # Emit module.grant.created ONLY for newly-written rows. Phase 7
-    # v2 Decision #4 + Andy's note #4: an idempotent no-op POST must
-    # not produce duplicate audit rows.
+    # Emit module.grant.created ONLY for newly-written rows. An
+    # idempotent no-op POST must not produce duplicate audit rows —
+    # repeated grant attempts would otherwise flood the trail.
     if created:
         from app.core.api import audit
 

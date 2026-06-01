@@ -2,10 +2,10 @@
 
 The capability:
 1. Resolves a matter document by id (read scoped to the grant).
-2. Invokes the privilege-posture gate via the Phase 1 substrate.
+2. Invokes the privilege-posture gate via the substrate.
 3. Calls the matter's default provider with a structured prompt.
 4. Parses the model output into a typed findings list.
-5. Writes a ``findings_pack`` artifact via the Phase 6 artifact helper.
+5. Writes a ``findings_pack`` artifact via the artifact helper.
 6. Returns ``{findings_artifact_id, findings_count}``.
 
 The audit emissions happen inside the substrate helpers
@@ -93,7 +93,7 @@ class ReviewResult:
 class ContractReviewModule:
     """Entry point class — the runtime instantiates this once at install.
 
-    Phase 6 keeps the surface tiny: a single ``invoke`` method that
+    The surface is intentionally tiny: a single ``invoke`` method that
     dispatches the one capability. Larger modules would register
     multiple capabilities here.
     """
@@ -156,7 +156,7 @@ async def review_contract(
 
     # 0. Posture gate — fires BEFORE require_capability so a
     #    non-solicitor on a B_mixed matter gets a posture-shaped
-    #    denial, not a grant-shaped one. Phase 8 v2 Decision #5.
+    #    denial, not a grant-shaped one.
     posture = await check_posture(
         session,
         matter=matter,

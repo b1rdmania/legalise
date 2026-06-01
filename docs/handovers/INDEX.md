@@ -34,25 +34,26 @@ When a consolidated state handover lands:
 
 ## Recent Product Handovers Consolidated By Current State
 
-The current V1 product state handover should be treated as the summary over:
+The current V1 product state handover supersedes these per-feature
+handovers, all moved to `archive/` per the rule above:
 
-- `HANDOVER_PROFESSIONAL_SIGNOFF_V1_DONE.md`
-- `HANDOVER_EXPORT_GATING_V1_1_DONE.md`
-- `HANDOVER_SOURCE_ANCHORS_V1_DONE.md`
-- `HANDOVER_CONTRACT_REVIEW_SOURCE_ANCHORS_V1_DONE.md`
-- `HANDOVER_MATTER_DESK_UX_PASS_DONE.md`
-- `HANDOVER_V1_KISS_COMPRESSION_PASS_DONE.md`
-- `HANDOVER_DOCUMENT_INGRESS_MARKETPLACE_V1_DONE.md`
-- `HANDOVER_DOCUMENT_WORKSPACE_V1_DONE.md`
-- `HANDOVER_ORIGINAL_FILE_RETRIEVAL_V1_DONE.md`
-- `HANDOVER_MODULE_STANDALONE_CREATE_V1_DONE.md`
-- `HANDOVER_PROMPT_RUNTIME_V1_DONE.md`
-- `HANDOVER_EXTERNAL_SKILLS_LOOP_V1_DONE.md`
-- `HANDOVER_GUIDED_DEMO_LOOP_V1_DONE.md`
-- `HANDOVER_PROVIDER_READINESS_HINT_DONE.md`
+- `archive/HANDOVER_PROFESSIONAL_SIGNOFF_V1_DONE.md`
+- `archive/HANDOVER_EXPORT_GATING_V1_1_DONE.md`
+- `archive/HANDOVER_SOURCE_ANCHORS_V1_DONE.md`
+- `archive/HANDOVER_CONTRACT_REVIEW_SOURCE_ANCHORS_V1_DONE.md`
+- `archive/HANDOVER_MATTER_DESK_UX_PASS_DONE.md`
+- `archive/HANDOVER_V1_KISS_COMPRESSION_PASS_DONE.md`
+- `archive/HANDOVER_DOCUMENT_INGRESS_MARKETPLACE_V1_DONE.md`
+- `archive/HANDOVER_DOCUMENT_WORKSPACE_V1_DONE.md`
+- `archive/HANDOVER_ORIGINAL_FILE_RETRIEVAL_V1_DONE.md`
+- `archive/HANDOVER_MODULE_STANDALONE_CREATE_V1_DONE.md`
+- `archive/HANDOVER_PROMPT_RUNTIME_V1_DONE.md`
+- `archive/HANDOVER_EXTERNAL_SKILLS_LOOP_V1_DONE.md`
+- `archive/HANDOVER_GUIDED_DEMO_LOOP_V1_DONE.md`
+- `archive/HANDOVER_PROVIDER_READINESS_HINT_DONE.md`
 
-Do not treat older wording in those files as more current than the consolidated
-state handover.
+Do not treat older wording in those files as more current than the
+consolidated state handover.
 
 ## Archive Policy
 

@@ -1,8 +1,7 @@
-"""Pydantic input/output models for Phase A gateway tools.
+"""Pydantic input/output models for the gateway tools.
 
 JSON Schema is derived on-demand via `Model.model_json_schema()` — we don't
-keep a parallel hand-written schema dict. Per design call G4.1 (no
-`jsonschema` library dependency).
+keep a parallel hand-written schema dict. No `jsonschema` library dependency.
 """
 
 from __future__ import annotations

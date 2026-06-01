@@ -1,4 +1,4 @@
-"""StateMachineInstance — Phase 1 substrate primitive model.
+"""StateMachineInstance — substrate primitive model.
 
 An instance is one running state machine bound to an `(owner_scope,
 owner_id)` tuple. The owner could be a matter, a workspace, a prospect

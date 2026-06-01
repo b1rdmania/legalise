@@ -1,10 +1,11 @@
-"""Accept/reject resolver for tracked changes (Phase B W2 §4a).
+"""Accept/reject resolver for tracked changes.
 
 Single entry point for both per-edit and bulk resolution. Handles the
 three thorny invariants from the delta sheet:
 
-1. Anchor-based substitution. Phase A persists `(deleted_text,
-   inserted_text, context_before, context_after)` but no offset. We
+1. Anchor-based substitution. The edit-instruction surface persists
+   `(deleted_text, inserted_text, context_before, context_after)` but
+   no offset. We
    reconstruct the anchor `context_before + deleted_text + context_after`
    and locate it in the base text. Unique match → substitute; zero
    matches → record drift and skip; multiple matches → first wins (v0.2

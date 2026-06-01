@@ -1,21 +1,19 @@
-"""Phase 8 — posture-aware gate.
+"""Posture-aware gate.
 
-Matter ``privilege_posture`` is recorded by the substrate today (it
-lives on the ``Matter`` row, and Phase 6 captures it in
-reconstruction provenance) but does NOT actively gate anything.
-Phase 8 makes it policy.
+Matter ``privilege_posture`` lives on the ``Matter`` row and is captured
+in reconstruction provenance; this gate turns it into a policy enforced
+before any capability runs.
 
-The policy table is the entire decision. It lives here as a
-constant dict so a change is a reviewable diff, not runtime config
-drift:
+The policy table is the entire decision. It lives here as a constant
+dict so a change is a reviewable diff, not runtime config drift:
 
     A_cleared          → any_authenticated      (cleared for non-solicitor handling)
     B_mixed (default)  → qualified_solicitor    (privileged content present)
     C_paused           → nobody                 (matter is paused; no capability runs)
 
-The gate fires BEFORE ``require_capability`` so a non-solicitor on
-a B_mixed matter gets a posture-shaped denial, not a grant-shaped
-one. Order in Contract Review:
+The gate fires BEFORE ``require_capability`` so a non-solicitor on a
+B_mixed matter gets a posture-shaped denial, not a grant-shaped one.
+Order in Contract Review:
 
     check_posture
         → require_capability(read)
@@ -24,10 +22,9 @@ one. Order in Contract Review:
         → require_capability(write)
         → write_artifact
 
-Audit shape (per Phase 8 v2 Decision #4):
+Audit shape:
 
-- action:          ``posture_gate.check.blocked`` (new Phase 8
-                   action, named per the
+- action:          ``posture_gate.check.blocked`` (named per the
                    ``<primitive>.<operation>.blocked`` convention)
 - blocked_reason:  ``BlockedReason.GATE_BLOCKED`` (canonical enum)
 - gate_state:      {gate, posture, required_role, actor_role, reason}
@@ -37,7 +34,7 @@ the capability covers it.
 
 The gate uses ``audit_failure`` (independent committed transaction)
 on block so the audit row survives the HTTP-shaped rollback when
-the capability raises ``PostureBlocked``. Same pattern Phase 1
+the capability raises ``PostureBlocked``. Same pattern
 ``check_or_block`` uses for capability-denied audits.
 """
 
@@ -119,10 +116,10 @@ def _build_gate_state(
 ) -> dict[str, Any]:
     """Canonical gate_state shape — readers key off ``gate``.
 
-    Phase 17.5: every emitted gate decision records whether the firm
-    role hierarchy was enforced or dormant, so the audit stays truthful
-    about *why* a check resolved the way it did. The actor role is never
-    faked.
+    Every emitted gate decision records whether the firm role
+    hierarchy was enforced or dormant, so the audit stays truthful
+    about *why* a check resolved the way it did. The actor role is
+    never faked.
     """
     return {
         "gate": "privilege_posture",
@@ -147,7 +144,7 @@ def _evaluate_posture(
 ) -> PostureGateResult:
     """Pure-functional core: no IO, no audit. Caller emits.
 
-    Phase 17.5: when ``firm_role_gates_enabled`` is False the firm role
+    When ``firm_role_gates_enabled`` is False the firm role
     hierarchy is dormant — any authenticated actor satisfies a
     non-paused posture, so B_mixed no longer demands qualified_solicitor.
     ``C_paused`` is a hard stop regardless of the flag (it means the

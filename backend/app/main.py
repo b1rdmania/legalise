@@ -142,7 +142,7 @@ async def lifespan(app: FastAPI):
     # `local-models` compose profile doesn't poison B_mixed routing.
     await register_providers(model_gateway)
 
-    # Register Phase A model-callable tools (generate_docx, edit_document,
+    # Register model-callable tools (generate_docx, edit_document,
     # replicate_document). Each goes through the same posture/audit rails
     # as `gateway.call()`. Pydantic input/output models per tool; JSON Schema
     # derived on demand via `model_json_schema()`.
@@ -202,7 +202,7 @@ from fastapi.exceptions import RequestValidationError
 async def _request_validation_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """Default 422 response + Phase 5 ceremony-rejection audit emission.
+    """Default 422 response + ceremony-rejection audit emission.
 
     FastAPI's default RequestValidationError handler returns 422 with
     the field errors. We preserve that behaviour, but additionally
@@ -301,30 +301,26 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(usage_router, prefix="/api", tags=["usage"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
-# Phase 5 audit reconstruction. Mounted UNDER /api/matters but
-# registered AFTER the broad matters router so the catch-all
-# /{slug} route in matters_router doesn't shadow this specific
-# /{slug}/audit/reconstruction path. FastAPI matches longest
-# specific path first per route, but registration order is the
+# Audit reconstruction nested under /api/matters. Registered AFTER the
+# broad matters router so the catch-all /{slug} route doesn't shadow this
+# specific /{slug}/audit/reconstruction path. Registration order is the
 # canonical tiebreaker — keep this line where it is.
 app.include_router(audit_router, prefix="/api/matters", tags=["audit"])
 app.include_router(
     audit_admin_router, prefix="/api/admin/audit", tags=["audit", "admin"],
 )
-# Phase 7 grants endpoints — same nest-under-matters pattern as
-# Phase 5 audit. Registered AFTER the broad matters router so
-# /{slug}/grants doesn't collide with the catch-all matter detail.
+# Grants endpoints — same nest-under-matters pattern. Registered AFTER
+# the broad matters router so /{slug}/grants doesn't collide with the
+# catch-all matter detail.
 app.include_router(grants_router, prefix="/api/matters", tags=["grants"])
-# Phase 10 invoke endpoint. Same nest-under-matters pattern as
-# Phase 5 audit + Phase 7 grants. Registered AFTER the broad matters
-# router so /{slug}/invocations doesn't collide with the catch-all
-# matter detail route.
+# Invoke endpoint. Same nest-under-matters pattern; registered after the
+# broad matters router so /{slug}/invocations doesn't collide with the
+# catch-all matter detail route.
 app.include_router(
     invocations_router, prefix="/api/matters", tags=["invocations"]
 )
-# Phase 13b A — artifact list/read. Same nest-under-matters pattern
-# as Phase 5 audit + Phase 7 grants. Registered AFTER the broad
-# matters router so /{slug}/artifacts doesn't collide.
+# Artifact list/read. Same nest-under-matters pattern; registered AFTER
+# the broad matters router so /{slug}/artifacts doesn't collide.
 app.include_router(
     artifacts_router, prefix="/api/matters", tags=["artifacts"]
 )
@@ -333,11 +329,10 @@ app.include_router(
 # so /{slug}/reviews doesn't collide with the catch-all matter detail.
 app.include_router(reviews_router, prefix="/api/matters", tags=["reviews"])
 app.include_router(signoffs_router, prefix="/api/matters", tags=["signoffs"])
-# Phase 11 admin role endpoint. Future admin endpoints land
-# alongside under /api/admin.
+# Admin role endpoint. Future admin endpoints land alongside under
+# /api/admin.
 app.include_router(admin_users_router, prefix="/api/admin", tags=["admin"])
-# Phase 13b C — bootstrap-state endpoint. Open (no auth) — gate to
-# the first-auth flow.
+# Bootstrap-state endpoint. Open (no auth) — gate to the first-auth flow.
 app.include_router(system_router, prefix="/api/system", tags=["system"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
@@ -358,7 +353,7 @@ app.include_router(lawve_import_router, prefix="/api/modules", tags=["lawve-impo
 app.include_router(demo_router)
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
 
-# Phase 1 substrate primitives.
+# Substrate primitives (state machine + matter context).
 app.include_router(
     state_machine_router,
     prefix="/api/state-machine",
