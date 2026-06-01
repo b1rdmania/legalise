@@ -140,8 +140,12 @@ async def _bootstrap(
         resource_type="user",
         resource_id=str(target.id),
         payload={
+            # PII boundary: raw email omitted from this immutable audit
+            # row. target_user_id + resource_id identify the subject;
+            # email_present asserts an email was set without disclosing
+            # the value.
             "target_user_id": str(target.id),
-            "target_email": target.email,
+            "email_present": bool(target.email),
             "is_superuser_was": is_superuser_was,
             "is_superuser_is": True,
             "role_was": role_was,

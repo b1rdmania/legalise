@@ -153,7 +153,8 @@ export function providerUpstreamMessage(err: ProviderUpstreamError): string {
 
 // Every authenticated cross-origin call MUST send the session cookie
 // (Cookie/CORS coherence invariant). All app fetches route through
-// `apiFetch` so `credentials: "include"` is uniform.
+// `apiFetch`; `credentials: "include"` is spread last so a caller-supplied
+// `init` cannot accidentally drop or downgrade it.
 export function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(input, { credentials: "include", ...init });
+  return fetch(input, { ...init, credentials: "include" });
 }

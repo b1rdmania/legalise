@@ -133,6 +133,7 @@ class WorkspaceSkillCapabilityGrant(Base):
     __table_args__ = (
         UniqueConstraint(
             "user_id", "plugin", "skill", "capability", "scope_type", "scope_id",
+            postgresql_nulls_not_distinct=True,
             name="uq_grant_user_plugin_skill_cap_scope",
         ),
         CheckConstraint(

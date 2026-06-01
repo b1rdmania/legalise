@@ -16,8 +16,8 @@
  *               is built from user.role only, not from is_superuser)
  *   C_paused  : banner ALWAYS — even admins can't run on paused matters
  *
- * No "Change posture" admin shortcut here — posture changes live in
- * settings, not on the matter rail.
+ * Superusers see a "Change posture" admin shortcut rendered by
+ * `ChangePostureControl` below; non-admins do not see it.
  */
 
 import { useState } from "react";

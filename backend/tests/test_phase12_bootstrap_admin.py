@@ -125,7 +125,11 @@ async def test_first_bootstrap_success(db_session) -> None:
     assert audit_row.actor_id is None
     payload = audit_row.payload
     assert payload["target_user_id"] == str(refreshed.id)
-    assert payload["target_email"] == email
+    # PII boundary: raw email is not stored in the immutable audit row;
+    # email_present asserts an email was set on the user without
+    # disclosing the value.
+    assert "target_email" not in payload
+    assert payload["email_present"] is True
     assert payload["is_superuser_was"] is False
     assert payload["is_superuser_is"] is True
     assert payload["role_was"] == "solicitor"
