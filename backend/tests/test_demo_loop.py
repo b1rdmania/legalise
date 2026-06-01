@@ -13,7 +13,13 @@ import uuid
 import pytest
 from sqlalchemy import select
 
-from app.core.demo_loop import DEMO_CAPABILITY_ID, DEMO_MATTER_SLUG, DEMO_MODULE_ID
+from app.core.demo_loop import (
+    DEMO_CAPABILITY_ID,
+    DEMO_MATTER_CAUSE,
+    DEMO_MATTER_SLUG,
+    DEMO_MATTER_TITLE,
+    DEMO_MODULE_ID,
+)
 from app.models import AuditEntry, MatterArtifact, Matter, User
 
 
@@ -155,3 +161,30 @@ async def test_review_requestable_but_author_cannot_self_approve(client) -> None
     )
     assert decided.status_code == 403, decided.text
     assert decided.json()["detail"]["error"] == "reviewer_is_author"
+
+
+@pytest.mark.asyncio
+async def test_ensure_drift_corrects_stale_demo_matter_title(client) -> None:
+    # Pre-existing prod matter rows (seeded before the Khan-modelled copy
+    # landed in PR #19) keep the old title/cause until ensure_guided_demo
+    # rewrites them. Regression for the post-#19 browser walk finding.
+    await _register_login(client)
+    from app.main import app
+
+    # First ensure provisions the matter with the current canonical copy.
+    await client.post("/api/demo/guided-loop")
+
+    # Simulate the pre-#19 row by stamping the old copy back on.
+    async with app.state.session_factory() as session:
+        matter = await session.scalar(select(Matter).where(Matter.slug == DEMO_MATTER_SLUG))
+        matter.title = "Guided Demo — Governed Loop (stub model)"
+        matter.cause = "Demo — not a real matter"
+        await session.commit()
+
+    # Re-ensure — drift-correct branch should rewrite both fields.
+    await client.post("/api/demo/guided-loop")
+
+    async with app.state.session_factory() as session:
+        matter = await session.scalar(select(Matter).where(Matter.slug == DEMO_MATTER_SLUG))
+        assert matter.title == DEMO_MATTER_TITLE
+        assert matter.cause == DEMO_MATTER_CAUSE
