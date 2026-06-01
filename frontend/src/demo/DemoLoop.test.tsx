@@ -94,6 +94,14 @@ describe("DemoLoop", () => {
     expect(screen.getByTestId("demo-banner")).toHaveTextContent(/stub-echo/);
     const runBtn = await screen.findByTestId("demo-run");
 
+    // Trust & Review card present from the start, with the three facts and one CTA.
+    const card = screen.getByTestId("trust-review-card");
+    expect(card).toHaveTextContent(/Audit trail/);
+    expect(card).toHaveTextContent(/Human review/);
+    expect(card).toHaveTextContent(/Source visibility/);
+    expect(card).not.toHaveTextContent(/verified/i);
+    expect(screen.getByTestId("trust-review-open-trail")).toBeInTheDocument();
+
     // Run → artifact renders via ArtifactPreview skill_response branch.
     fireEvent.click(runBtn);
     await waitFor(() => expect(screen.getByTestId("demo-artifact")).toBeInTheDocument());
