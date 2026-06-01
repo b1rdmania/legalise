@@ -8,6 +8,15 @@ Start here before reading older phase notes.
   product rules.
 - `KISS_REPO_REVIEW_2026_05_30.md` — current hygiene/KISS cleanup review and
   execution plan.
+- `KRAMER_DEMO_COMPREHENSION.md` — what to lift from the Kramer vs Kramer vs AI
+  build (shipped at divorce.broker 1 Jun 2026) into Legalise's demo layer, and
+  what to leave behind. Demo-comprehension scope only — does not modify the
+  locked v2 architecture plan.
+- `../IMPLEMENTATION_PLAN_REWRITE_ADDENDUM_2026_06_01.md` — factual
+  reconciliation between the v2 plan and master at `c94d0ca`. Pairs with
+  `../IMPLEMENTATION_PLAN_REWRITE.md`.
+- `KHAN_HEALTH_CHECK.md` — non-destructive pre-flight runbook (`legalise
+  doctor`) for Khan demo. Required gate before any Kramer carry-over PR.
 
 ## Current Working Rule
 
