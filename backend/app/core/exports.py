@@ -63,7 +63,9 @@ from app.models import (
     Matter,
     MatterArtifact,
     MatterReview,
-    SIGNOFF_AFFIRMATIVE,
+    SIGNOFF_REJECTED,
+    SIGNOFF_SIGNED,
+    SIGNOFF_SIGNED_WITH_OBSERVATIONS,
 )
 
 
@@ -88,40 +90,66 @@ def _build_readme(
     recon_count: int,
     unavailable_artifacts: list[str],
     signed_count: int,
+    signed_with_observations_count: int,
     rejected_count: int,
     unsigned_count: int,
 ) -> str:
+    # Total of both "signed" decision types — preserved under the existing
+    # "Signed (final material)" label so consumers that key off that copy
+    # keep working. Observations are also broken out on the next line.
+    signed_final_count = signed_count + signed_with_observations_count
+
     lines = [
         f"# Matter export — {matter.title}",
         "",
         f"Slug: `{matter.slug}`  ·  Matter id: `{matter.id}`",
         "",
+        "## What this is",
+        "A working record of one Legalise matter. AI prepared the outputs; a",
+        "human signed (or did not sign) each one. This pack is for review,",
+        "not court filing — it is not a certified legal record.",
+        "",
+        "For a one-page orientation, read `WORKING_PACK.md` first.",
+        "",
         "## Contents",
+        "- `WORKING_PACK.md` — one-page summary; read first.",
         "- `matter_metadata.json` — the matter record.",
         f"- `documents/` — {doc_count} document(s): per-document `metadata.json` + the original uploaded bytes (where retrievable).",
         f"- `artefacts/` — {artifact_count} artefact(s): per-artefact `metadata.json` (incl. `signoff_status`) + the artefact JSON (where retrievable).",
         "- `artefacts.json` — artefact metadata index (each labelled by sign-off status).",
-        f"- `signoffs.json` — Professional Sign-Off records.",
+        "- `signoffs.json` — Professional Sign-Off records.",
         f"- `reviews.json` — {review_count} supervisor review decision(s).",
         f"- `reconstruction.json` — the rebuilt decision timeline ({recon_count} entries).",
         "- `audit.json` — raw audit entries for this matter.",
         "- `jobs.json` — job records for this matter.",
         "",
         "## Sign-off status of outputs",
-        f"- **Signed (final material): {signed_count}** — a solicitor reviewed and took professional ownership of these outputs.",
+        f"- **Signed (final material): {signed_final_count}** — a solicitor reviewed and took professional ownership of these outputs.",
+        f"  - of which signed with observations: {signed_with_observations_count} — signer stands behind the output but recorded points to consider.",
         f"- Rejected: {rejected_count} — the signer did not stand behind these drafts.",
         f"- Unsigned (draft, prepared by AI): {unsigned_count} — no one has signed these; treat them as drafts, not final work product.",
-        "Signed outputs are the preferred final material. Each artefact's "
-        "`metadata.json` carries `signoff_status` and, where the bytes are "
-        "present, `signoff_hash_matches` (false means the output drifted "
-        "after it was signed).",
+        "",
+        "Each artefact's `metadata.json` carries `signoff_status` and, where",
+        "the bytes are present, `signoff_hash_matches` (false means the",
+        "output drifted after it was signed).",
         "",
         "## Source anchors",
-        "Some outputs include `source_anchors` in their artefact JSON. These "
-        "are the documents (and any quoted excerpts) the output cited, for "
-        "review — not proof that the cited material supports the output. A "
-        "`quote_found_in_source: false` flag means Legalise could not locate "
+        "Some outputs include `source_anchors` in their artefact JSON. These",
+        "are the documents (and any quoted excerpts) the output cited, for",
+        "review — not proof that the cited material supports the output. A",
+        "`quote_found_in_source: false` flag means Legalise could not locate",
         "the quoted text in the source body it holds.",
+        "",
+        "## What a human still needs to verify",
+        "Before relying on anything in this pack:",
+        "",
+        "- [ ] Cited sources reviewed against the original documents.",
+        "- [ ] Unsigned outputs treated as drafts, not final work product.",
+        "- [ ] Rejected outputs not used as final material.",
+        "- [ ] Sign-off and review state checked per artefact.",
+        "- [ ] Any onward use (client advice, court filing, regulator-facing",
+        "      record) judged by a qualified solicitor — this pack does not",
+        "      replace that judgement.",
         "",
         "## Limitations",
         "- This is an application-level export, not a certified legal record.",
@@ -134,6 +162,71 @@ def _build_readme(
             + "."
         )
     lines.append("")
+    return "\n".join(lines)
+
+
+def _build_working_pack(
+    *,
+    matter: Matter,
+    doc_count: int,
+    artifact_count: int,
+    review_count: int,
+    signed_count: int,
+    signed_with_observations_count: int,
+    rejected_count: int,
+    unsigned_count: int,
+) -> str:
+    """One-page orientation file (`WORKING_PACK.md`).
+
+    Written into the export zip alongside README.md. Solicitor or evaluator
+    opens the zip, reads this, and knows what they have without parsing
+    JSON. Keeps the same honesty boundaries as the README — no
+    "court-ready", "verified", "certified", or "SRA-approved" copy.
+    """
+    signed_final_count = signed_count + signed_with_observations_count
+    lines = [
+        f"# Working pack — {matter.title}",
+        "",
+        f"Matter slug: `{matter.slug}`",
+        "",
+        "## What this pack is",
+        "A working record of one Legalise matter. AI prepared the outputs;",
+        "a human signed, signed with observations, rejected, or did not yet",
+        "sign each one. This pack is for review and onward solicitor",
+        "judgement — not a court filing, not a certified legal record.",
+        "",
+        "## At a glance",
+        f"- Documents in scope: {doc_count}",
+        f"- Outputs produced: {artifact_count}",
+        f"  - Signed (final material): {signed_final_count}",
+        f"    (of which signed with observations: {signed_with_observations_count})",
+        f"  - Rejected: {rejected_count}",
+        f"  - Unsigned (draft): {unsigned_count}",
+        f"- Supervisor review decisions recorded: {review_count}",
+        "",
+        "## Where to look for what",
+        "- Final material → `artefacts/` entries with `signoff_status` of",
+        "  `signed` or `signed_with_observations`, plus the matching record",
+        "  in `signoffs.json`.",
+        "- Drafts → `artefacts/` entries with `signoff_status` of `unsigned`.",
+        "- Rejected drafts → `artefacts/` entries with `signoff_status` of",
+        "  `rejected`. The signer did not stand behind these. Do not use as",
+        "  final material.",
+        "- Source citations → `source_anchors` in each artefact JSON. These",
+        "  are pointers for review, not proof of correctness.",
+        "- The decision timeline → `reconstruction.json`.",
+        "- The raw audit chain → `audit.json`.",
+        "- Supervisor review state → `reviews.json`.",
+        "",
+        "## Before relying on this pack",
+        "- Treat unsigned outputs as drafts.",
+        "- Treat rejected outputs as not-for-use.",
+        "- Re-read cited sources against the original documents.",
+        "- Have a qualified solicitor judge any onward use.",
+        "",
+        "See `README.md` for the full file index and limitations.",
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -345,12 +438,22 @@ async def build_matter_export(
         ]
         zf.writestr("signoffs.json", _dumps(signoffs_list))
 
-        # Counts for the README sign-off summary.
+        # Counts for the README + WORKING_PACK sign-off summary. The two
+        # affirmative tiers (signed and signed_with_observations) are
+        # broken out separately so the human-facing copy can name them
+        # explicitly, while signed_count below preserves the historical
+        # "signed (final material)" semantics for callers that read the
+        # broader category.
         signed_count = sum(
-            1 for s in current_by_artifact.values() if s.decision in SIGNOFF_AFFIRMATIVE
+            1 for s in current_by_artifact.values() if s.decision == SIGNOFF_SIGNED
+        )
+        signed_with_observations_count = sum(
+            1
+            for s in current_by_artifact.values()
+            if s.decision == SIGNOFF_SIGNED_WITH_OBSERVATIONS
         )
         rejected_count = sum(
-            1 for s in current_by_artifact.values() if s.decision not in SIGNOFF_AFFIRMATIVE
+            1 for s in current_by_artifact.values() if s.decision == SIGNOFF_REJECTED
         )
         unsigned_count = len(artifact_rows) - len(current_by_artifact)
 
@@ -397,7 +500,20 @@ async def build_matter_export(
             cursor = page.next_cursor
         zf.writestr("reconstruction.json", _dumps(recon_entries))
 
-        # --- README.md (manifest of contents + limitations; LMF-2) -----------
+        # --- WORKING_PACK.md (one-page orientation) --------------------------
+        working_pack = _build_working_pack(
+            matter=matter,
+            doc_count=len(doc_rows),
+            artifact_count=len(artifact_rows),
+            review_count=len(review_rows),
+            signed_count=signed_count,
+            signed_with_observations_count=signed_with_observations_count,
+            rejected_count=rejected_count,
+            unsigned_count=unsigned_count,
+        )
+        zf.writestr("WORKING_PACK.md", working_pack.encode("utf-8"))
+
+        # --- README.md (full file index + human verification + limits) ------
         readme = _build_readme(
             matter=matter,
             doc_count=len(doc_rows),
@@ -406,6 +522,7 @@ async def build_matter_export(
             recon_count=len(recon_entries),
             unavailable_artifacts=unavailable_artifacts,
             signed_count=signed_count,
+            signed_with_observations_count=signed_with_observations_count,
             rejected_count=rejected_count,
             unsigned_count=unsigned_count,
         )
