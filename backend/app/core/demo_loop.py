@@ -52,6 +52,10 @@ from app.models.document_body import BODY_KIND_EXTRACTED, DocumentBody
 from app.models.document_version import VERSION_KIND_UPLOAD, DocumentVersion
 
 DEMO_MATTER_SLUG = "guided-demo-loop"
+DEMO_MATTER_TITLE = "Guided Demo — Employment Tribunal (keyless)"
+DEMO_MATTER_CAUSE = (
+    "Demo — modelled on the Khan v Acme employment dispute. Not a real matter."
+)
 DEMO_MODULE_ID = "demo.guided-skill"
 DEMO_CAPABILITY_ID = "summarise"
 DEMO_DOC_FILENAME = "demo-employment-note.txt"
@@ -197,9 +201,9 @@ async def _ensure_demo_matter(session: AsyncSession, user: User) -> tuple[Matter
     if matter is None:
         matter = Matter(
             slug=DEMO_MATTER_SLUG,
-            title="Guided Demo — Employment Tribunal (keyless)",
+            title=DEMO_MATTER_TITLE,
             matter_type="employment_tribunal",
-            cause="Demo — modelled on the Khan v Acme employment dispute. Not a real matter.",
+            cause=DEMO_MATTER_CAUSE,
             status=STATUS_OPEN,
             privilege_posture=PRIVILEGE_CLEARED,
             default_model_id="stub-echo",
@@ -208,6 +212,16 @@ async def _ensure_demo_matter(session: AsyncSession, user: User) -> tuple[Matter
         )
         session.add(matter)
         await session.flush()
+    else:
+        # Drift-correct copy on pre-existing demo matter rows. PR #19 only
+        # set the new title/cause on first-create, so users whose demo
+        # matter pre-dates that PR still see the old "Governed Loop (stub
+        # model)" wording in matter chrome (sidebar, Approvals, audit
+        # filter). Idempotent — no-op once aligned.
+        if matter.title != DEMO_MATTER_TITLE:
+            matter.title = DEMO_MATTER_TITLE
+        if matter.cause != DEMO_MATTER_CAUSE:
+            matter.cause = DEMO_MATTER_CAUSE
 
     document = await session.scalar(
         select(Document).where(
