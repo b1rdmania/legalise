@@ -29,6 +29,7 @@ import {
 } from "../lib/api";
 import { ArtifactPreview } from "../matter/ArtifactPreview";
 import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { ProofDrawer } from "./ProofDrawer";
 import { TrustReviewCard } from "./TrustReviewCard";
 
 type Phase =
@@ -43,6 +44,7 @@ export function DemoLoop() {
   const [handles, setHandles] = useState<GuidedDemoHandles | null>(null);
   const [phase, setPhase] = useState<Phase>({ step: "ensuring" });
   const [error, setError] = useState<string | null>(null);
+  const [proofOpen, setProofOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,13 +114,23 @@ export function DemoLoop() {
             modelled on Khan v Acme. Not legal advice. Bring a key for real providers.
           </div>
 
-          <TrustReviewCard
-            matterSlug={handles.matter_slug}
+          <TrustReviewCard onViewProof={() => setProofOpen(true)} />
+
+          <ProofDrawer
+            open={proofOpen}
+            onClose={() => setProofOpen(false)}
+            handles={handles}
+            artifact={
+              phase.step === "ran" || phase.step === "requesting" || phase.step === "reviewed"
+                ? phase.artifact
+                : undefined
+            }
             invocationId={
               phase.step === "ran" || phase.step === "requesting" || phase.step === "reviewed"
                 ? phase.invocationId
                 : undefined
             }
+            reviewRequested={phase.step === "reviewed"}
           />
 
           {/* Step 1 — run */}
