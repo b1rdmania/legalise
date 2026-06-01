@@ -1,7 +1,5 @@
 """Module dependency resolver — semver constraints + cycle detection.
 
-Phase 4 implementation per docs/handovers/PHASE_4_BUILD_PLAN.md §Step 2.
-
 When a module is installed, its ``requires`` array lists other
 modules it depends on with optional semver version constraints. The
 resolver:
@@ -9,12 +7,12 @@ resolver:
 1. Walks the `requires` array
 2. For each dependency, looks for a satisfying version in:
    - already-installed modules (``installed_modules`` table)
-   - discoverable modules (Phase 2 ``discover_modules()``)
+   - discoverable modules (``discover_modules()``)
 3. Reports any unresolvable dependencies + any cycles in the
    transitive dependency graph
 
-Phase 4 does NOT auto-install transitive dependencies — the admin
-installs each module deliberately. The resolver just reports.
+This resolver does NOT auto-install transitive dependencies — the
+admin installs each module deliberately. The resolver just reports.
 """
 
 from __future__ import annotations
@@ -97,8 +95,8 @@ async def _installed_versions(
 
 
 def _discoverable_versions(module_id: str) -> list[str]:
-    """Return all discoverable versions for module_id (Phase 2 +
-    shim for v1)."""
+    """Return all discoverable versions for module_id (v2 registry
+    plus v1 shim)."""
     versions: list[str] = []
     for entry in discover_modules():
         if entry.module_id != module_id:
@@ -136,9 +134,9 @@ def _build_graph_for_cycle_check(
     """Build a simple adjacency map from the manifest plus any
     transitively-discoverable manifests' requires arrays.
 
-    For Phase 4 we build a shallow graph: the under-test manifest's
-    requires + each direct dependency's own requires (from
-    discover_modules). Phase 5+ may walk deeper.
+    We build a shallow graph: the under-test manifest's requires +
+    each direct dependency's own requires (from discover_modules).
+    May walk deeper later.
     """
     root_id = manifest.get("id", "<root>")
     graph: dict[str, list[str]] = {root_id: []}

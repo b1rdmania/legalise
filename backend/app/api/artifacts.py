@@ -61,7 +61,7 @@ class ArtifactRead(ArtifactSummary):
 
 
 # ---------------------------------------------------------------------------
-# Matter-access predicate — same shape as Phase 5 + Phase 7
+# Matter-access predicate — same shape as the reconstruction + grants endpoints
 # ---------------------------------------------------------------------------
 
 

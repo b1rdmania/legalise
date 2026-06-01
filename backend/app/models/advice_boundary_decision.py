@@ -1,4 +1,4 @@
-"""AdviceBoundaryDecision — Phase 1 substrate primitive model.
+"""AdviceBoundaryDecision — substrate primitive model.
 
 Every call to ``core.advice_boundary.check`` writes one row. The table
 is append-only — WORM-enforced via Postgres trigger in migration 0014
@@ -77,11 +77,11 @@ class AdviceBoundaryDecision(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
 
-    # The output this decision applies to. Phase 1 stores as a free
-    # string — no FK constraint because output identity comes from
-    # whatever module produced it (a generated document id, an export
-    # id, a redline-set id, etc.). Phase 7+ when output-lifecycle
-    # reference module lands may add a typed FK.
+    # The output this decision applies to. Stored as a free string —
+    # no FK constraint because output identity comes from whatever
+    # module produced it (a generated document id, an export id, a
+    # redline-set id, etc.). A typed FK may land when the
+    # output-lifecycle reference module ships.
     output_id: Mapped[str] = mapped_column(String(128), nullable=False)
 
     from_tier: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -91,17 +91,17 @@ class AdviceBoundaryDecision(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
 
-    # Role asserted at decision time. Phase 1 uses generic workspace
-    # roles (``qualified_solicitor``, ``workspace_admin``, etc.) — Phase
-    # 2 wires SRA roll verification.
+    # Role asserted at decision time. Currently generic workspace
+    # roles (``qualified_solicitor``, ``workspace_admin``, etc.) —
+    # SRA roll verification lands later.
     actor_role: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     module_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     capability_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
-    # The capability's declared advice_tier_max (or None in Phase 1
-    # when the gate is called directly — Phase 2 reads this from the
-    # manifest).
+    # The capability's declared advice_tier_max (or None when the
+    # gate is called directly — manifest-driven enforcement reads
+    # this from the manifest).
     declared_tier_max: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # Gate execution state / blocked-payload carrier.

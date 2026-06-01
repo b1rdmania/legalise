@@ -64,9 +64,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         # Never log raw email — PII.
         # user_id is the durable handle; admins join via the users table.
         logger.info("auth.user.registered", user_id=str(user.id))
-        # Phase 13b D — canonical audit row alongside the structured log.
-        # The auth substrate previously emitted log lines only; reconstruction
-        # had no auth-shaped events. Now every register lands a row.
+        # Canonical audit row alongside the structured log so that
+        # reconstruction surfaces auth-shaped events. Every register
+        # lands a row.
         from app.core.api import audit
 
         # Audit payload deliberately carries no email — actor_id +
@@ -128,9 +128,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         get the demo seeded should still be able to sign in and create
         their own matters.
         """
-        # Phase 13b D — auth.user.verified row emitted here (not in
-        # on_after_verify) so it lands on BOTH the dev autoverify path
-        # (which bypasses on_after_verify) and the real verify flow.
+        # auth.user.verified row emitted here (not in on_after_verify)
+        # so it lands on BOTH the dev autoverify path (which bypasses
+        # on_after_verify) and the real verify flow.
         from app.core.api import audit
 
         await audit.log(
@@ -146,7 +146,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             session = self.user_db.session  # SQLAlchemyUserDatabase exposes its session
             matter = await seed_demo_matter_for_user(session, user)
             logger.info("auth.user.demo_seeded", user_id=str(user.id), slug=matter.slug)
-            # Phase 13b D — audit row alongside the structured log.
+            # Audit row alongside the structured log.
             from app.core.api import audit
 
             await audit.log(
@@ -180,7 +180,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 user_id=str(user.id),
                 triples=count,
             )
-            # Phase 13b D — audit row.
+            # Audit row.
             from app.core.api import audit
 
             await audit.log(
@@ -241,7 +241,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         update_dict: dict,
         request: Request | None = None,
     ) -> None:
-        """Phase 13b D — profile update audit row."""
+        """Profile update audit row."""
         from app.core.api import audit
 
         # Don't log the values, just the field names.
@@ -279,8 +279,8 @@ cookie_transport = CookieTransport(
 
 
 class AuditingDatabaseStrategy(DatabaseStrategy[User, uuid.UUID, AccessToken]):
-    """Phase 13b D — emits ``auth.user.logged_in`` / ``auth.user.logged_out``
-    audit rows using the same session that owns the AccessToken write/delete,
+    """Emits ``auth.user.logged_in`` / ``auth.user.logged_out`` audit
+    rows using the same session that owns the AccessToken write/delete,
     so the audit row commits alongside the token.
 
     Middleware-based shimming was the obvious first try, but in

@@ -3,8 +3,9 @@
 Existing first-party modules ship either a ``module.json`` (v1
 plugin-style schema in ``schemas/module.json``) or a SKILL.md
 (prompt-only plugin in ``backend/app/modules/<name>/skills/<slug>/SKILL.md``).
-Phase 2 keeps those modules running while exposing them in the new v2
-catalogue — the shim produces a v2 manifest in memory from the v1
+The registry keeps those modules running while exposing them in the
+new v2 catalogue — the shim produces a v2 manifest in memory from
+the v1
 artefacts so the registry can return a uniform shape.
 
 Two derivation paths:
@@ -19,11 +20,9 @@ Two derivation paths:
 
 Both paths produce a syntactically-valid v2 manifest. They do NOT
 guarantee semantic completeness (e.g. inferred ``data_movement`` is a
-conservative default). Phase 7-9 reference module ports replace these
-shims with hand-authored v2 manifests where the developer can choose
-the exact capability declarations.
-
-Per docs/handovers/PHASE_2_BUILD_PLAN.md §Step 3.
+conservative default). Hand-authored v2 manifests in the reference
+module ports replace these shims where the developer can choose the
+exact capability declarations.
 """
 
 from __future__ import annotations
@@ -38,7 +37,7 @@ def _conservative_data_movement() -> dict[str, Any]:
 
     Conservative defaults: do not send anything externally. Reference
     modules that need broader posture override these via hand-authored
-    v2 manifests in Phase 7-9.
+    v2 manifests.
     """
     return {
         "sends_document_body": False,
@@ -117,7 +116,7 @@ def derive_from_skill_md(
                 "reads": reads,
                 "writes": writes,
                 # Shim default: `optional` even when the legacy
-                # capability list includes `model.invoke`. Real Phase 7+
+                # capability list includes `model.invoke`. Real
                 # ports specify `required` explicitly together with the
                 # provider dependency in `requires`. Optional here lets
                 # the manifest validate without inventing a synthetic
@@ -188,8 +187,8 @@ def derive_from_module_json(payload: dict[str, Any]) -> dict[str, Any]:
                 "writes": writes,
                 # Same shim policy as derive_from_skill_md: optional
                 # by default so the manifest validates without a
-                # synthetic provider dependency. Phase 7+ ports
-                # specify required deliberately.
+                # synthetic provider dependency. Real ports specify
+                # required deliberately.
                 "model_access": (
                     "optional" if "model.invoke" in declared else "none"
                 ),

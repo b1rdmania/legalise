@@ -48,7 +48,7 @@ class AuditEntry(Base):
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Phase 5 — first-class cost metadata for ``model.invoked`` rows.
+    # First-class cost metadata for ``model.invoked`` rows.
     # Populated by ``core.audit_cost.audit_emit_model_invoked``; left
     # NULL for non-cost rows. Currency in ISO 4217. Cost is integer
     # micros (1 GBP = 100_000_000 micros) so sub-penny calls do not

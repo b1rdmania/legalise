@@ -39,7 +39,7 @@ from app.models import InstalledModule, Matter
 
 
 # ---------------------------------------------------------------------------
-# Canonical types lifted from the reference modules (Phase 10 Decision #2)
+# Canonical types lifted from the reference modules
 # ---------------------------------------------------------------------------
 
 
@@ -47,10 +47,10 @@ from app.models import InstalledModule, Matter
 class InvocationContext:
     """Trusted invocation envelope, populated by the host.
 
-    Phase 6 R2 P1#3 established that modules cannot self-assert
-    ``actor_role``. The host builds this dataclass from the
-    authenticated user record and hands it to the capability; the
-    module reads it but cannot construct one with elevated values.
+    Modules cannot self-assert ``actor_role``. The host builds this
+    dataclass from the authenticated user record and hands it to the
+    capability; the module reads it but cannot construct one with
+    elevated values.
     """
 
     actor_user_id: uuid.UUID
@@ -62,11 +62,11 @@ class InvocationContext:
 class ProviderResponse:
     """Canonical shape modules receive back from ``provider_call``.
 
-    Seven fields. Promoted from each module's local declaration in
-    Phase 10 (the v2 review surfaced the duplication). The Phase 5
-    cost-column helper at ``audit_emit_model_invoked`` expects
-    ``cost_micros`` and ``currency`` to be paired (both None or
-    both set) — the adapter at ``make_provider_call`` honours that.
+    Seven fields. Promoted from each module's local declaration
+    after duplication was surfaced in review. The cost-column helper
+    at ``audit_emit_model_invoked`` expects ``cost_micros`` and
+    ``currency`` to be paired (both None or both set) — the adapter
+    at ``make_provider_call`` honours that.
     """
 
     text: str
@@ -79,7 +79,7 @@ class ProviderResponse:
 
 
 # ---------------------------------------------------------------------------
-# Adapter — gateway shape → module shape (Phase 10 v3 Decision #4)
+# Adapter — gateway shape → module shape
 # ---------------------------------------------------------------------------
 
 
@@ -97,9 +97,9 @@ def make_provider_call(
 ) -> ProviderCallable:
     """Build the ``provider_call`` callable the dispatcher hands to modules.
 
-    Wraps ``model_gateway.call(...)`` with the seven-field mapping the
-    Phase 10 v3 plan pinned in Decision #4. Pins to the real gateway
-    signature at ``backend/app/core/model_gateway.py:320`` — uses
+    Wraps ``model_gateway.call(...)`` with the seven-field mapping
+    the runtime contract pinned. Pins to the real gateway signature
+    at ``backend/app/core/model_gateway.py:320`` — uses
     ``model=`` (not ``requested_model=``), ``caller_module=`` (not
     ``module=``), and a ``payload`` deliberately restricted to
     ``capability_id`` + ``invocation_id``.
@@ -107,15 +107,15 @@ def make_provider_call(
     Critical: the payload MUST NOT include ``plugin`` or ``skill``.
     At ``model_gateway.py:364-378`` the gateway runs a legacy
     workspace-scope ``require_capability("model.invoke", ...)`` check
-    whenever both keys are present in the payload. Phase 7's grant
-    lifecycle never creates a ``model.invoke`` workspace grant — only
-    matter-scoped grants from declared reads + writes. A naive payload
-    would make both reference modules fail immediately. Phase 10
-    explicitly keeps this contract; Phase 12+ may revisit if matter-
-    scoped ``model.invoke`` rolls out.
+    whenever both keys are present in the payload. The grant
+    lifecycle never creates a ``model.invoke`` workspace grant —
+    only matter-scoped grants from declared reads + writes. A naive
+    payload would make both reference modules fail immediately. This
+    contract is explicit; revisit if matter-scoped ``model.invoke``
+    rolls out.
 
     Propagates ``ProviderKeyMissing`` and ``ProviderUpstreamError``
-    unchanged so the endpoint can translate them per Decision #5 v2.
+    unchanged so the endpoint can translate them to HTTP codes.
     """
     from app.core.api import model_gateway
 
@@ -148,7 +148,7 @@ def make_provider_call(
             # touching modules.
             tokens_out=0,
             # The gateway doesn't price calls today; cost_micros +
-            # currency stay None together (Phase 5 check constraint).
+            # currency stay None together (DB check constraint pairs them).
             cost_micros=None,
             currency=None,
         )
@@ -157,7 +157,7 @@ def make_provider_call(
 
 
 # ---------------------------------------------------------------------------
-# Dispatcher — importlib-driven, stateless (Phase 10 Decision #3)
+# Dispatcher — importlib-driven, stateless
 # ---------------------------------------------------------------------------
 
 
@@ -216,7 +216,7 @@ def _find_capability_declaration(
 ) -> dict[str, Any] | None:
     """Locate the capability declaration in a v2 manifest snapshot.
 
-    Returns the inner dict or None. Same shape Phase 7
+    Returns the inner dict or None. Same shape
     ``grants_lifecycle._find_capability_declaration`` uses.
     """
     for cap in manifest.get("capabilities") or []:

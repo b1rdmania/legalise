@@ -4,15 +4,14 @@ The ``MCPClient`` owns a single transport and a single MCP server's
 session. The ``MCPHost`` is a registry of active clients keyed by
 installed-module id.
 
-Phase 3 implementation:
+Current implementation:
 - request id auto-increment
 - list_tools / list_resources / list_prompts wrappers around the
   transport's send_request
 - explicit ``close`` to terminate the subprocess + drop from the host
 
-No actual MCP capability negotiation (initialize handshake) in Phase
-3 — Phase 4 may add a heartbeat / negotiation step when grant
-lifecycle wires in.
+No MCP capability negotiation (initialize handshake) yet — a
+heartbeat / negotiation step may land when grant lifecycle wires in.
 """
 
 from __future__ import annotations
@@ -39,7 +38,7 @@ class MCPClient:
 
     Each installed module that runs as ``runtime: mcp`` has one
     ``MCPClient`` bound to its transport. The client is created at
-    install time (Phase 7+) and reused across capability invocations.
+    install time and reused across capability invocations.
     """
 
     def __init__(
@@ -118,8 +117,8 @@ class MCPClient:
 class MCPHost:
     """Registry of active MCP clients keyed by installed-module id.
 
-    Phase 3 ships as an in-process dict. Phase 7+ may move to a more
-    durable structure when modules survive across worker restarts.
+    Ships as an in-process dict. May move to a more durable
+    structure when modules survive across worker restarts.
     """
 
     clients: dict[str, MCPClient] = field(default_factory=dict)

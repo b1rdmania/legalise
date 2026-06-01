@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     allow_server_key_fallback: bool = Field(
         default=False, alias="LEGALISE_ALLOW_SERVER_KEY_FALLBACK"
     )
-    # Phase 17.5 — firm role gates. When true, the law-firm role
+    # Firm role gates. When true, the law-firm role
     # hierarchy is enforced: B_mixed matters require qualified_solicitor
     # (posture gate) and advice-boundary tiers enforce their role rules.
     # When false (the default for local/hosted/eval), those gates go

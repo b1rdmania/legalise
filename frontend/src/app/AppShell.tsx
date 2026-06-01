@@ -1,5 +1,5 @@
 /**
- * AppShell — Phase 14 A0 root layout.
+ * AppShell — root layout.
  *
  * Replaces the giant switch in the pre-A0 App.tsx. Renders TopBar +
  * Drawer + `<Outlet />`. Pages live in their own routes; the shell only
@@ -22,7 +22,7 @@ import { Sidebar } from "../ui/Sidebar";
 import { DrawerProvider, useDrawer } from "./DrawerContext";
 
 // Marketing / auth routes render bare (they bring their own chrome).
-// Everything else, for a logged-in user, renders inside the Phase 17
+// Everything else, for a logged-in user, renders inside the
 // app shell (persistent Sidebar + main). Logged-out users on those
 // routes are redirected by the auth guard below.
 const CHROMELESS_ROUTES = new Set([
@@ -102,7 +102,7 @@ function AppShellInner() {
     if (route.name !== "detail") drawer.setDrawerMatter(null);
   }, [route, drawer]);
 
-  // Phase 17 IA shell: logged-in users on app routes get the
+  // IA shell: logged-in users on app routes get the
   // persistent Sidebar; marketing/auth routes (and logged-out users)
   // keep the legacy TopBar + Drawer chrome untouched.
   const useAppShell = !!auth.user && !CHROMELESS_ROUTES.has(route.name);

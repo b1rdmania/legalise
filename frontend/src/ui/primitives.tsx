@@ -175,10 +175,10 @@ export function ToggleButton({
   );
 }
 
-// Phase 18-F — label-over-value pair, the one cross-screen duplication
-// the Step B-E pass proved out (InstallCeremony, ArtifactDetail,
-// AdminUserDetail each had an identical local `DT`). Consolidated here;
-// no visual change. Used by detail/record pages for metadata grids.
+// Label-over-value pair — cross-screen duplication consolidated
+// here (InstallCeremony, ArtifactDetail, AdminUserDetail each had
+// an identical local `DT`). No visual change. Used by detail/record
+// pages for metadata grids.
 export function DescItem({
   label,
   children,
@@ -194,7 +194,7 @@ export function DescItem({
   );
 }
 
-// Phase 18-G — the one logged-in page-header pattern. Bold-sans
+// The one logged-in page-header pattern. Bold-sans
 // tracking-tight2 heading (serif is retired on operator/admin/settings
 // screens per the ratified design rules; serif stays for marketing /
 // editorial only). eyebrow + h1 + optional mono sub-id + optional

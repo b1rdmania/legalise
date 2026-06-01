@@ -71,11 +71,10 @@ def _row_to_payload(user: User) -> UserRoleOut:
     )
 
 
-# Phase 13b B — admin user list/detail.
+# Admin user list/detail DTO.
 #
-# Decision #2: NEVER returns password hashes, verification tokens,
-# or reset tokens. The User model carries those fields; this DTO
-# explicitly does not.
+# NEVER returns password hashes, verification tokens, or reset tokens.
+# The User model carries those fields; this DTO explicitly does not.
 class UserAdminRead(BaseModel):
     id: str
     email: str
@@ -184,7 +183,7 @@ async def change_user_role_endpoint(
 
 
 # ---------------------------------------------------------------------------
-# Phase 13b B — admin user list + detail
+# Admin user list + detail
 # ---------------------------------------------------------------------------
 
 
@@ -201,8 +200,8 @@ async def list_users_endpoint(
     """List users. Superuser-only.
 
     Optional query filters: ``role`` (one of the locked vocabulary
-    tokens), ``is_superuser`` (true/false). No pagination — Phase
-    13b assumes <100 users per workspace; Phase 14+ adds if needed.
+    tokens), ``is_superuser`` (true/false). No pagination — assumes
+    <100 users per workspace; add pagination if that ceases to hold.
     """
     if not caller.is_superuser:
         raise HTTPException(

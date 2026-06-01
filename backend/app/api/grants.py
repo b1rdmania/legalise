@@ -76,7 +76,7 @@ class GrantCreateResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Strict matter-access lookup — same shape as Phase 5 reconstruction
+# Strict matter-access lookup — same shape as the reconstruction endpoint
 # ---------------------------------------------------------------------------
 
 
@@ -132,11 +132,12 @@ async def create_grant_endpoint(
     """Grant a capability on this matter to the calling user.
 
     The user grants capabilities to *themselves* — this endpoint
-    intentionally has no cross-user variant (admin granting to
-    another user is Phase 8+).
+    intentionally has no cross-user variant (admin granting on
+    behalf of another user is not yet supported).
 
     Returns ``201`` on a write, ``200`` on an idempotent no-op.
-    Per Phase 7 v2 Decision #4, the no-op path emits zero audit rows.
+    The no-op path emits zero audit rows — repeated grant attempts
+    must not flood the trail.
     """
     matter = await _load_matter_or_404(session, slug=slug, user=user)
 

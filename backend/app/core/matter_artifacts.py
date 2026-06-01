@@ -1,4 +1,4 @@
-"""Phase 6 — matter artifact write helper.
+"""Matter artifact write helper.
 
 Single public function: ``write_artifact`` writes a JSON payload to
 the matter filesystem atomically and inserts a ``matter_artifacts``
@@ -13,7 +13,7 @@ Atomic-write contract:
 6. Insert the DB row.
 
 If any step fails before the rename, the temp file may remain — a
-periodic cleanup job (Phase 7+) can sweep them. The DB row only
+periodic cleanup job can sweep them. The DB row only
 lands once the file is in place, so the row is the authoritative
 existence check.
 
@@ -104,7 +104,7 @@ async def write_artifact(
     ``ArtifactBytesUnavailable``.
 
     The WORM row is still the authoritative existence check; the id is
-    generated first so the key is unique per row (Phase 6 R2 P1 #1).
+    generated first so the key is unique per row.
     The helper does NOT commit — caller commits.
     """
     artifact_id = uuid.uuid4()

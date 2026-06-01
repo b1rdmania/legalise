@@ -8,9 +8,9 @@ WORM enforcement (migration 0018):
 - A Postgres trigger (``enforce_matter_artifacts_worm``) blocks
   UPDATE and DELETE at the DB layer.
 
-Phase 6 ships this with a single producer (Contract Review). Phase
-7+ reference modules will write here too — Pre-Motion outputs,
-chronology snapshots, etc.
+Ships with a single producer (Contract Review). Other reference
+modules will write here too — Pre-Motion outputs, chronology
+snapshots, etc.
 """
 
 from __future__ import annotations

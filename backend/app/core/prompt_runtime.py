@@ -10,7 +10,7 @@ existing model gateway, and writes the result as a matter artifact.
 This is the third runtime alongside ``native`` and ``mcp``. It uses the
 SAME governance seams as a native capability — posture gate, per-matter
 read/write grants, advice-boundary gate, the model gateway adapter, and
-the Phase 1 audit helpers. It bypasses none of them. Imported Lawve
+the substrate audit helpers. It bypasses none of them. Imported Lawve
 ``SKILL.md`` files become governed modules through this path.
 
 The executor mirrors the canonical invocation order in

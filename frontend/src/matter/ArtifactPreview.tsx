@@ -1,11 +1,11 @@
 /**
- * Phase 14 D — kind-aware artifact preview.
+ * Kind-aware artifact preview.
  *
  * Renders a structured view for known artifact kinds and falls back to
  * pretty-printed JSON for anything else. Substrate stores artifact
  * payloads opaquely; rendering rules live entirely on the frontend.
  *
- * Known kinds today (per Phase 9 + examples/modules):
+ * Known kinds today (per the reference modules in examples/modules):
  *   - motion_draft: { markdown: string, claim_summary?: string,
  *                     claim_type?: string }
  *   - evidence_list: { evidence: [{ document_id, relevance,

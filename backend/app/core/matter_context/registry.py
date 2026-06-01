@@ -144,7 +144,7 @@ async def latest_version_for_namespace(
     or None if no schema exists yet.
 
     "Latest" is the most recently registered row. Versions are semver
-    strings but Phase 1 does not parse them — the registration order
+    strings but are not parsed yet — the registration order
     is the tie-breaker. Modules should register versions in monotonic
     order; if they don't, callers can specify the exact version they
     want on write.

@@ -55,7 +55,7 @@ CAPABILITY_VOCABULARY: frozenset[str] = frozenset(
 )
 
 
-# Phase 2 capability-grammar extension.
+# v2 capability-grammar extension.
 #
 # v1 vocabulary above is a flat set of seven strings. v2 introduces a
 # typed grammar ``<scope>.<resource>.<action>`` (with optional deeper
@@ -189,8 +189,8 @@ async def require_capability(
     """Raise CapabilityDenied if ``(user, plugin, skill)`` has not been
     granted ``capability``. Returns None on success.
 
-    Matter scoping (Phase 7 v2 — column-backed)
-    --------------------------------------------
+    Matter scoping (column-backed)
+    ------------------------------
     Scope is now a first-class column pair on the grant row:
     ``scope_type`` ("workspace" or "matter") + ``scope_id``
     (matter UUID when scope_type='matter', NULL otherwise).
@@ -198,7 +198,7 @@ async def require_capability(
     ``snapshot.matter_id`` JSONB shape, so this lookup never
     touches the snapshot.
 
-    Two cases, strict (per Andy's note #3 on the Phase 7 plan):
+    Two cases, strict:
 
     1. ``matter_id is None`` → workspace-broad check. Filter
        ``scope_type='workspace' AND scope_id IS NULL``. Matter-
@@ -306,10 +306,10 @@ async def grant(
     unique key ``(user_id, plugin, skill, capability, scope_type,
     scope_id)`` so concurrent grants and re-runs both no-op cleanly.
 
-    Phase 7 v2: ``scope_type`` and ``scope_id`` default to workspace
-    scope so existing callers (auto-grant at signup, legacy
-    workflows) keep behaving identically. Phase 7 grant endpoints
-    pass ``scope_type='matter', scope_id=matter.id`` explicitly.
+    ``scope_type`` and ``scope_id`` default to workspace scope so
+    existing callers (auto-grant at signup, legacy workflows) keep
+    behaving identically. Matter-scoped grant endpoints pass
+    ``scope_type='matter', scope_id=matter.id`` explicitly.
     """
     from app.models import SCOPE_TYPE_MATTER, SCOPE_TYPE_WORKSPACE
 

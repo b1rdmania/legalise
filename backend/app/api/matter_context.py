@@ -99,7 +99,7 @@ class ItemResponse(BaseModel):
 
 
 class PatchItemRequest(BaseModel):
-    action: str = Field(..., description="'supersede' (Phase 1 supported)")
+    action: str = Field(..., description="'supersede' (only currently-supported action)")
     new_payload: dict[str, Any] | None = None
     schema_version: str | None = None
     source_type: str | None = None
@@ -309,7 +309,7 @@ async def patch_item_endpoint(
     user: User = Depends(current_user),
 ) -> ItemResponse:
     """Supersede an existing item with a new one. Only ``action="supersede"``
-    is supported in Phase 1; future ``action="withdraw"`` lands when the
+    is supported today; ``action="withdraw"`` lands when the
     output-lifecycle reference module ships.
 
     Returns the new (superseding) item.
@@ -351,7 +351,7 @@ async def patch_item_endpoint(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail={
             "error": "unsupported_action",
-            "message": f"action={body.action!r} not supported in Phase 1; "
+            "message": f"action={body.action!r} not supported; "
             "supported: 'supersede'",
         },
     )

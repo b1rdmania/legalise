@@ -2,16 +2,14 @@
 all installed modules.
 
 Used by:
-- Phase 4 grant-lifecycle: enumerates known capabilities for snapshot
+- The grant-lifecycle: enumerates known capabilities for snapshot
   storage.
-- Phase 12 frontend: renders the workspace-admin grant UI.
+- The frontend: renders the workspace-admin grant UI.
 - Tests + admin tooling that need a single source of truth for what's
   declared.
 
 The catalogue runs every discovered module through the v1 → v2 shim
 where needed so the output is uniform across v1 and v2 sources.
-
-Per docs/handovers/PHASE_2_BUILD_PLAN.md §Step 3.
 """
 
 from __future__ import annotations
@@ -76,10 +74,10 @@ def list_capabilities(*, include_invalid: bool = False) -> list[dict[str, Any]]:
             continue
         # Round-2 Reviewer P2 fix: skip manifests that fail v2
         # validation so the catalogue cannot expose ungrantable
-        # capabilities. Phase 4 grant lifecycle relies on every
-        # entry being a real grant target; Phase 12 frontend renders
-        # the grant UI from this list. Invalid manifests must not
-        # leak into either.
+        # capabilities. The grant lifecycle relies on every entry
+        # being a real grant target; the frontend renders the grant
+        # UI from this list. Invalid manifests must not leak into
+        # either.
         #
         # ``include_invalid=True`` is a debug/admin escape hatch.
         is_valid, _errors = validate_manifest_v2(manifest)

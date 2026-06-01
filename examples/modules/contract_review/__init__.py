@@ -1,4 +1,4 @@
-"""Contract Review — Phase 6 vertical-slice reference module.
+"""Contract Review — vertical-slice reference module.
 
 Single capability ``review`` that reads a matter document, hits the
 privilege-posture gate, calls a provider with a structured prompt,

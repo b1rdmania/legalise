@@ -2,11 +2,8 @@
 their manifest ``ui.slot`` field.
 
 Modules cannot invent new slots. If a module declares a slot not in
-this registry, the validator rejects the manifest. The slot vocabulary
-ships with Phase 2 and is intentionally narrow; Phase 12 frontend
-work may expand it.
-
-Per docs/handovers/PHASE_2_BUILD_PLAN.md §Step 3.
+this registry, the validator rejects the manifest. The slot
+vocabulary is intentionally narrow; frontend work may expand it.
 """
 
 from __future__ import annotations
@@ -19,12 +16,12 @@ class UnknownUISlotError(ValueError):
 
 class UISlotRegistry:
     """The frozen set of valid UI slot names a module manifest may
-    declare. Hard-coded for Phase 2; future phases may move this to
-    a configuration file when the frontend slot system is built.
+    declare. Hard-coded; may move to a configuration file when the
+    frontend slot system is built.
     """
 
     # Where each slot renders in the workspace. Stable strings —
-    # frontend code (Phase 12) reads them by name.
+    # frontend code reads them by name.
     SLOTS: frozenset[str] = frozenset(
         {
             # Matter workspace surfaces.

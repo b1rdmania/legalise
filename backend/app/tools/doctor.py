@@ -1,4 +1,4 @@
-"""Phase 16 C — `legalise doctor`.
+"""`legalise doctor`.
 
 Inspection-only check command for a local fork. Runs a fixed list of
 checks against the running stack and prints one line per check.
@@ -12,13 +12,13 @@ Exit codes:
     0  every check ok or note
     1  one or more checks failed (`fail` rows)
 
-Doctrine (per the Phase 16 plan):
+Doctrine:
     - No-flag invocation only reads. Never writes, migrates, or seeds.
     - `--create-bucket` is the one explicit mutation allowed; it
       provisions the configured S3 bucket if missing.
     - The Khan demo check is STATEFUL: pre-signup it soft-notes; once
       a user exists it hard-fails if the seed didn't land.
-    - Manifest validation goes through the existing Phase 2 registry +
+    - Manifest validation goes through the existing v2 registry +
       validator path. No hand-rolled JSON-schema work here.
     - The provider check is diagnostic only — a fork with zero
       provider keys is a fully valid state because the stub-echo
@@ -310,7 +310,7 @@ def check_plugins_root_mounted() -> CheckResult:
 
 
 def check_manifests_valid() -> CheckResult:
-    """Run the Phase 2 v2 validator against every discovered module."""
+    """Run the v2 validator against every discovered module."""
     from app.core.registry import (
         InvalidManifestError,
         discover_modules,

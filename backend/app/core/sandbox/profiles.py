@@ -27,8 +27,8 @@ class SandboxProfile:
         killed. None disables the cap.
     allow_network
         If False, the host bridge refuses outbound network calls and
-        AppArmor (when available) blocks socket syscalls. Phase 3
-        does not yet block via seccomp because TCP requires many
+        AppArmor (when available) blocks socket syscalls. Does not
+        yet block via seccomp because TCP requires many
         syscalls; AppArmor + host bridge are the enforcement layers.
     allow_filesystem_paths
         Read/write filesystem paths the subprocess can access. Empty

@@ -1,15 +1,15 @@
 /**
- * Phase 14 B — /modules/{module_id} detail.
+ * /modules/{module_id} detail.
  *
  * Renders the v2 manifest in three sections:
  *   1. Header — name / id / version / publisher / visibility / description
  *   2. Capabilities — table of declared capabilities
  *   3. Lifecycle controls — Install CTA (always), Update + Revoke (admin)
  *
- * Phase 18-B note (supersedes the old 14-B-#1 "no installed badge"
- * gap): the installed/disabled state IS derivable frontend-side via
+ * The installed/disabled state IS derivable frontend-side via
  * listInstalledModules() — GrantsPanel already consumes it — so this
- * page now shows a truthful install-status badge. No backend work.
+ * page shows a truthful install-status badge. No backend work
+ * required.
  *
  * Reviewer-narrow:
  *   - Install CTA POSTs to /api/modules/install and navigates to
@@ -123,7 +123,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
     };
   }, [moduleId]);
 
-  // Phase 18-B — derive install status from the existing installed-
+  // Derive install status from the existing installed-
   // modules listing. Best-effort: on any failure stay "unknown" and
   // render no badge rather than imply a state we can't confirm.
   useEffect(() => {

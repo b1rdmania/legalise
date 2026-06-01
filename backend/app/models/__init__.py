@@ -64,7 +64,7 @@ from app.models.job import (
     JOB_KIND_EXPORT,
 )
 
-# Phase 1 substrate primitives.
+# Substrate primitives.
 from app.models.matter_context_schema import MatterContextSchema
 from app.models.matter_context_item import (
     MatterContextItem,
@@ -105,7 +105,7 @@ from app.models.advice_boundary_decision import (
     DECISION_STATUS_VALUES,
 )
 
-# Phase 3 — installed modules registry.
+# Installed modules registry.
 from app.models.installed_module import InstalledModule
 from app.models.matter_artifact import MatterArtifact
 
@@ -179,7 +179,7 @@ __all__ = [
     "EXTRACTION_METHOD_VALUES",
     "VERSION_KIND_VALUES",
     "EDIT_STATUS_VALUES",
-    # Phase 1 — matter context primitive.
+    # Matter context primitive.
     "MatterContextSchema",
     "MatterContextItem",
     "SOURCE_TYPE_DOCUMENT",
@@ -189,7 +189,7 @@ __all__ = [
     "SOURCE_TYPE_CONNECTOR_RESULT",
     "SOURCE_TYPE_GENERATED_OUTPUT",
     "SOURCE_TYPE_VALUES",
-    # Phase 1 — state machine primitive.
+    # State machine primitive.
     "StateMachineDefinition",
     "StateMachineInstance",
     "StateMachineTransition",
@@ -200,7 +200,7 @@ __all__ = [
     "TRANSITION_STATUS_BLOCKED",
     "TRANSITION_STATUS_FAILED",
     "TRANSITION_STATUS_VALUES",
-    # Phase 1 — advice boundary primitive.
+    # Advice boundary primitive.
     "AdviceBoundaryDecision",
     "ADVICE_TIER_FACTUAL_EXTRACTION",
     "ADVICE_TIER_LEGAL_INFORMATION",
@@ -213,7 +213,7 @@ __all__ = [
     "DECISION_STATUS_DENIED",
     "DECISION_STATUS_FAILED",
     "DECISION_STATUS_VALUES",
-    # Phase 3 — installed modules.
+    # Installed modules.
     "InstalledModule",
     "MatterArtifact",
     "MatterReview",

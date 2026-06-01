@@ -1,6 +1,6 @@
 """InstalledModule — record of an installed Legalise module.
 
-Phase 3 persists every successful trust ceremony as an
+Persists every successful trust ceremony as an
 ``installed_modules`` row. The row captures:
 
 - which module is installed
@@ -12,10 +12,8 @@ Phase 3 persists every successful trust ceremony as an
 - whether it's currently enabled
 
 This is the source-of-truth for the workspace's installed-module set.
-Phase 4 grant-lifecycle reads this on module update to diff
+The grant-lifecycle reads this on module update to diff
 permissions and trigger re-prompt where needed.
-
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 6.
 """
 
 from __future__ import annotations
@@ -64,12 +62,12 @@ class InstalledModule(Base):
     install_path: Mapped[str] = mapped_column(String(512), nullable=False)
 
     # Full manifest payload at install time. Source of truth for the
-    # ceremony's permission-card; Phase 4 reads this on module
-    # update to compute permission expansion.
+    # ceremony's permission-card; the grant-lifecycle reads this on
+    # module update to compute permission expansion.
     manifest_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
     # Aggregated permissions (reads/writes/gates/data_movement/
-    # advice_tier_max) for fast diff in Phase 4.
+    # advice_tier_max) for fast diff against new manifests.
     permissions_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
     installed_at: Mapped[datetime] = mapped_column(

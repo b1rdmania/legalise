@@ -1,8 +1,8 @@
-"""Phase 12 — first-admin bootstrap CLI.
+"""First-admin bootstrap CLI.
 
-Closes the symmetric gap to Phase 11. Phase 11 made role
-promotion real via HTTP, but ``is_superuser`` still required
-direct DB. A hosted evaluator or fresh fork couldn't mint a first
+Closes the symmetric gap to HTTP role promotion. Role promotion is
+real via HTTP, but ``is_superuser`` previously required direct DB
+access. A hosted evaluator or fresh fork couldn't mint a first
 operator without DBA access.
 
 Usage::
@@ -40,9 +40,9 @@ from app.core.config import settings
 from app.models import User
 
 
-# Same vocabulary Phase 11 locks at the HTTP layer. ``solicitor``
-# is the default and explicitly allowed for symmetry — it's a
-# no-op via the flag.
+# Same vocabulary the HTTP role endpoint locks. ``solicitor`` is
+# the default and explicitly allowed for symmetry — it's a no-op
+# via the flag.
 ALLOWED_ROLES: frozenset[str] = frozenset(
     {"solicitor", "qualified_solicitor", "workspace_admin"}
 )
@@ -128,7 +128,8 @@ async def _bootstrap(
     if role is not None:
         target.role = role
 
-    # Audit row — same shape Phase 11 uses (canonical from-to keys).
+    # Audit row — same shape the HTTP role endpoint uses
+    # (canonical from-to keys).
     from app.core.api import audit
 
     await audit.log(
@@ -166,7 +167,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         prog="bootstrap_admin",
         description=(
             "Promote an existing user to is_superuser. Closes the "
-            "first-admin gap Phase 11 left open."
+            "first-admin gap the HTTP role endpoint left open."
         ),
     )
     parser.add_argument(

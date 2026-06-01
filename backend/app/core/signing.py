@@ -48,8 +48,8 @@ def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     """Stable canonical-JSON SHA-256 hash of a manifest.
 
     Used for: (a) detecting tampering between install time and
-    invocation time, (b) Phase 11 sigstore signing input, (c) audit
-    row provenance.
+    invocation time, (b) sigstore signing input, (c) audit row
+    provenance.
 
     Sorts keys recursively and uses compact separators so the same
     semantic content always hashes to the same digest regardless of
@@ -69,7 +69,7 @@ def verify_manifest_signature(
     """Verify a manifest's signature against the verified-publisher
     registry.
 
-    Phase 3 implementation is structural — it does not perform real
+    Current implementation is structural — it does not perform real
     cryptographic verification. The four outcomes:
 
     - ``UNSIGNED``: ``signature`` is None or empty. Manifest may still
@@ -83,10 +83,10 @@ def verify_manifest_signature(
     - ``VERIFIED``: ``signature`` is present, structurally valid, the
       publisher is verified, and ``signed_by`` matches.
 
-    Note: Phase 3 does NOT verify cryptographic provenance. A
+    Note: this does NOT verify cryptographic provenance. A
     publisher-key mismatch returns INVALID; a forged signature with
-    correct shape returns VERIFIED. Phase 11 wires real verification
-    via the sigstore Rekor transparency log.
+    correct shape returns VERIFIED. Real verification via the
+    sigstore Rekor transparency log lands with sigstore hardening.
     """
     publisher = manifest.get("publisher")
     signed_by = manifest.get("signed_by")

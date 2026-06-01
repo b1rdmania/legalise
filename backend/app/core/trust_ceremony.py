@@ -59,11 +59,10 @@ class CeremonyState(str, Enum):
     GRANTED = "granted"
     ENABLED = "enabled"
     # Terminal failure states.
-    # Phase 5 Step 0 carry-over tidy: DEPENDENCY_MISSING removed. The
-    # ceremony state machine never reached it — Phase 4's R2 fix runs
-    # resolve_dependencies BEFORE start_ceremony and returns 422
-    # outright, so the terminal state was unreachable. Dead transitions
-    # in the state machine confuse readers and ratification.
+    # DEPENDENCY_MISSING is intentionally absent. resolve_dependencies
+    # runs BEFORE start_ceremony and returns 422 outright, so this
+    # terminal state would be unreachable; dead transitions confuse
+    # readers and ratification.
     REJECTED_BY_USER = "rejected_by_user"
     SIGNATURE_FAILED = "signature_failed"
     PUBLISHER_BLOCKED = "publisher_blocked"
@@ -92,8 +91,8 @@ _VALID_ACTIONS: frozenset[str] = frozenset({"trust", "reject", "grant"})
 class PermissionCard:
     """User-facing permission card rendered from the manifest.
 
-    Frontend (Phase 12) reads this directly to render the install
-    modal. The shape is locked here so Phase 12 can build against a
+    The frontend reads this directly to render the install modal.
+    The shape is locked here so the frontend can build against a
     stable contract.
     """
 
@@ -116,8 +115,8 @@ class PermissionCard:
 class Ceremony:
     """One in-flight install ceremony.
 
-    Phase 3 stores ceremonies in-process (no DB). Phase 4 may persist
-    them when long-running install workflows need to survive worker
+    Ceremonies are stored in-process (no DB). Persistence will land
+    when long-running install workflows need to survive worker
     restarts.
     """
 
@@ -147,7 +146,7 @@ class InvalidCeremonyTransition(ValueError):
     """
 
 
-# In-process registry of ceremonies in flight. Phase 4 may move to a
+# In-process registry of ceremonies in flight. May move to a
 # DB-backed table if ceremonies need to span workers.
 _CEREMONIES: dict[uuid.UUID, Ceremony] = {}
 

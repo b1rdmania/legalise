@@ -78,20 +78,20 @@ import { AUTH } from "./api/auth";
 export interface BootstrapState {
   user_count: number;
   has_superuser: boolean;
-  // Phase 17.5 — when false (default), the firm role hierarchy is
-  // dormant: don't present B_mixed qualified-solicitor blockers.
+  // When false (default), the firm role hierarchy is dormant:
+  // don't present B_mixed qualified-solicitor blockers.
   firm_role_gates_enabled?: boolean;
 }
 
-// Phase 13b C — no auth required. The /app first-run screen reads this
-// to decide between empty-state / bootstrap-required / authed-home.
+// No auth required. The /app first-run screen reads this to decide
+// between empty-state / bootstrap-required / authed-home.
 export const getBootstrapState = () =>
   apiFetch(`${API}/system/bootstrap-state`).then((r) =>
     jsonOrThrow<BootstrapState>(r),
   );
 
 // ---------------------------------------------------------------------------
-// Phase 14 B — v2 module catalog + trust ceremony
+// v2 module catalog + trust ceremony
 // ---------------------------------------------------------------------------
 
 export interface V2ManifestEntry {
@@ -189,7 +189,7 @@ export const draftLawveModule = (slug: string, overrides?: Record<string, unknow
     body: JSON.stringify(overrides ?? {}),
   }).then((r) => jsonOrThrow<LawveDraftResult>(r));
 
-// Phase 14.5 B — installed-modules listing. One row per module_id
+// Installed-modules listing. One row per module_id
 // (most recent installed_at). Frontend uses it for the catalog
 // badge and as one AND clause in GrantsPanel.runnablePairs.
 export interface InstalledModule {
@@ -328,7 +328,7 @@ export const revokeModuleV2 = (moduleId: string) =>
   }).then((r) => jsonOrThrow<{ module_id: string; disabled_rows: number; revoked_grants: number }>(r));
 
 // ---------------------------------------------------------------------------
-// Phase 14 C — matter-scoped grants
+// Matter-scoped grants
 // ---------------------------------------------------------------------------
 
 export interface GrantRow {
@@ -361,7 +361,7 @@ export const listGrants = (slug: string) =>
 
 /**
  * Distinguishable errors for the substrate's two non-200 paths on
- * grant creation. Phase 7 returns:
+ * grant creation. The endpoint returns:
  *   - 404 module_not_installed
  *   - 409 module_disabled (installed but admin disabled it)
  * Both carry structured bodies the substrate documents at
@@ -436,7 +436,7 @@ export const revokeGrant = (slug: string, grantId: string) =>
   });
 
 // ---------------------------------------------------------------------------
-// Phase 14 D — invocation + artifacts
+// Invocation + artifacts
 // ---------------------------------------------------------------------------
 
 export interface InvocationResponse {
@@ -613,7 +613,7 @@ export const invokeCapability = async (
   }
 };
 
-// Phase 13b A — matter artifacts
+// Matter artifacts
 // ---------------------------------------------------------------------------
 // Guided Demo Loop v1 — keyless end-to-end proof
 // ---------------------------------------------------------------------------
@@ -769,7 +769,7 @@ export const decideReview = (
   ).then((r) => jsonOrThrow<SupervisorReview>(r));
 
 // ---------------------------------------------------------------------------
-// Phase 14 E — reconstruction (Phase 5 endpoint)
+// Reconstruction
 // ---------------------------------------------------------------------------
 
 // The three legal source values per backend/app/core/audit_reconstruction.py.
@@ -814,16 +814,16 @@ export interface ReconstructionOptions {
   include?: ReconstructionSource[];
   cursor?: string;
   limit?: number;
-  // Phase 14.5 A — substrate-side filters. Pre-14.5 the frontend
-  // filtered these client-side, which produced false-negatives on
-  // dense matter timelines (Phase 14 E P1 redline). They're now
-  // server-pushdown filters that apply BEFORE pagination.
+  // Substrate-side filters. Earlier the frontend filtered these
+  // client-side, which produced false-negatives on dense matter
+  // timelines. They're now server-pushdown filters that apply
+  // BEFORE pagination.
   invocation_id?: string;
   action?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Phase 14 F — admin users
+// Admin users
 // ---------------------------------------------------------------------------
 
 // Locked vocabulary — substrate ALLOWED_ROLES at admin_users.py:52.
@@ -941,8 +941,8 @@ export const getAdminUser = async (userId: string): Promise<UserAdminRead> => {
 };
 
 // POST body is {role} ONLY — substrate RoleChangeRequest at
-// admin_users.py:57. Operator-supplied "reason" is a backend phase,
-// not a frontend invention (Phase 14 v2 decision #8).
+// admin_users.py:57. Operator-supplied "reason" is a backend
+// concern, not a frontend invention.
 export const changeUserRole = async (
   userId: string,
   role: UserRole,
@@ -980,7 +980,7 @@ export const changeUserRole = async (
   return jsonOrThrow<UserRoleOut>(res);
 };
 
-// Phase 14.5 C — workspace / admin reconstruction. Same shape as
+// Workspace / admin reconstruction. Same shape as
 // the matter endpoint; no slug. Substrate gates on superuser; UI
 // also gates upstream to avoid pointless 403s.
 export const getAdminReconstruction = (

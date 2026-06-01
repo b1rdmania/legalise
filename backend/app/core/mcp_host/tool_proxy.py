@@ -5,12 +5,10 @@ wants to invoke an MCP tool on behalf of a user. It enforces the
 capability scope per the manifest's declared ``reads`` and ``writes``
 before forwarding to the MCP client.
 
-On capability denial the Phase 1 dual-audit pattern fires (legacy
-module.capability.denied + Phase 1
-``mcp.tool.invoked.blocked``) and ``MCPCapabilityDenied`` is raised
-carrying the canonical ``BlockedPayload``.
-
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 4.
+On capability denial the dual-audit pattern fires (legacy
+module.capability.denied + ``mcp.tool.invoked.blocked``) and
+``MCPCapabilityDenied`` is raised carrying the canonical
+``BlockedPayload``.
 """
 
 from __future__ import annotations

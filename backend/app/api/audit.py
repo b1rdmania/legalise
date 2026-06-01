@@ -121,8 +121,8 @@ async def get_reconstruction(
     invocation_id: str | None = Query(
         None,
         description=(
-            "Phase 14.5 A — filter rows to those matching this "
-            "invocation id. Audit rows match against "
+            "Filter rows to those matching this invocation id. "
+            "Audit rows match against "
             "payload.invocation_id; advice_boundary rows match "
             "against output_id; state_machine source returns empty "
             "under this filter (substrate has no deterministic "
@@ -132,8 +132,8 @@ async def get_reconstruction(
     action: str | None = Query(
         None,
         description=(
-            "Phase 14.5 A — exact-match filter on the synthesised "
-            "action string. State_machine + advice_boundary sources "
+            "Exact-match filter on the synthesised action string. "
+            "State_machine + advice_boundary sources "
             "only match if the action carries their respective "
             "`state_machine.transition.<status>` / "
             "`advice_boundary.decision.<status>` prefix."
@@ -160,8 +160,8 @@ async def get_reconstruction(
     else:
         sources = VALID_SOURCES
 
-    # Phase 14.5 A — validate invocation_id is a UUID before passing
-    # it through to SQL. Substrate writes them as UUID strings; a
+    # Validate invocation_id is a UUID before passing it through to
+    # SQL. Substrate writes them as UUID strings; a
     # caller passing junk should get a structured 422 here rather
     # than a database-side cast error.
     if invocation_id is not None:
@@ -199,10 +199,10 @@ async def get_reconstruction(
     # This row will appear in subsequent reconstruction calls — that's
     # intentional; "who looked at the trail when" is itself provenance.
     #
-    # Phase 14.5 A — unified payload shape across matter + workspace
-    # surfaces. `scope` + `matter_id` + `filters` is the documented
-    # contract; the admin endpoint (Phase 14.5 C) emits the same
-    # action with `scope="workspace"` + `matter_id=null`.
+    # Unified payload shape across matter + workspace surfaces.
+    # `scope` + `matter_id` + `filters` is the documented contract;
+    # the admin endpoint emits the same action with
+    # `scope="workspace"` + `matter_id=null`.
     await audit.log(
         session,
         "audit.reconstruction.viewed",
@@ -234,7 +234,7 @@ async def get_reconstruction(
 
 
 # ---------------------------------------------------------------------------
-# Phase 14.5 C — workspace / admin reconstruction
+# Workspace / admin reconstruction
 # ---------------------------------------------------------------------------
 #
 # Separate router because main.py mounts the matter `router` at
@@ -249,7 +249,7 @@ admin_router = APIRouter()
 # that are NOT bound to any specific matter — install ceremony
 # events, settings key operations, admin role mutations, etc.
 #
-# Reuses `reconstruct()` from Phase 14.5 A with matter_id=None.
+# Reuses the matter `reconstruct()` helper with matter_id=None.
 # Source semantics (substrate-truth per the plan):
 #   - `source="audit"` returns rows with matter_id IS NULL.
 #   - `source="state_machine"` returns []. StateMachineInstance
@@ -259,12 +259,11 @@ admin_router = APIRouter()
 #   The endpoint accepts all three values in `include` (no 422
 #   churn); the empties surface honestly.
 #
-# Auth: superuser-only. Mirrors Phase 13b B + Phase 11.
+# Auth: superuser-only. Mirrors the other admin surfaces.
 #
 # Audit: same action `audit.reconstruction.viewed` as the matter
 # endpoint, with `payload.scope="workspace"` + `payload.matter_id=null`.
-# One row schema across both surfaces; the unified payload contract
-# locked in Phase 14.5 A.
+# One row schema across both surfaces under the unified payload contract.
 
 
 def _require_superuser(user: User) -> None:
@@ -302,14 +301,13 @@ async def get_admin_reconstruction(
     invocation_id: str | None = Query(
         None,
         description=(
-            "Phase 14.5 A — filter rows to those matching this "
-            "invocation id. Audit rows match against "
-            "payload.invocation_id."
+            "Filter rows to those matching this invocation id. "
+            "Audit rows match against payload.invocation_id."
         ),
     ),
     action: str | None = Query(
         None,
-        description="Phase 14.5 A — exact-match filter on the action column.",
+        description="Exact-match filter on the action column.",
     ),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),

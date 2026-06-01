@@ -1,4 +1,4 @@
-"""Phase 1 state machine primitive.
+"""State machine primitive.
 
 Generic state-machine substrate consumed by reference modules
 (``legalise-intake``, ``legalise-output-lifecycle``, future

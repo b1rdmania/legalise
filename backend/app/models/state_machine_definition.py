@@ -1,4 +1,4 @@
-"""StateMachineDefinition — Phase 1 substrate primitive model.
+"""StateMachineDefinition — substrate primitive model.
 
 A definition declares the shape of a state machine: its states, initial
 state, terminal states, and the allowed transitions between states.

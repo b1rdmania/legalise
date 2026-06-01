@@ -96,7 +96,7 @@ class _AuditAPI:
         response_hash: str | None = None,
         token_count: int | None = None,
         latency_ms: int | None = None,
-        # Phase 5 cost columns. Populated by audit_emit_model_invoked
+        # Cost columns. Populated by audit_emit_model_invoked
         # for model.invoked rows; left None for everything else.
         tokens_in: int | None = None,
         tokens_out: int | None = None,

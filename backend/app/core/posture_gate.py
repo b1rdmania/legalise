@@ -34,7 +34,7 @@ the capability covers it.
 
 The gate uses ``audit_failure`` (independent committed transaction)
 on block so the audit row survives the HTTP-shaped rollback when
-the capability raises ``PostureBlocked``. Same pattern Phase 1
+the capability raises ``PostureBlocked``. Same pattern
 ``check_or_block`` uses for capability-denied audits.
 """
 
@@ -116,10 +116,10 @@ def _build_gate_state(
 ) -> dict[str, Any]:
     """Canonical gate_state shape — readers key off ``gate``.
 
-    Phase 17.5: every emitted gate decision records whether the firm
-    role hierarchy was enforced or dormant, so the audit stays truthful
-    about *why* a check resolved the way it did. The actor role is never
-    faked.
+    Every emitted gate decision records whether the firm role
+    hierarchy was enforced or dormant, so the audit stays truthful
+    about *why* a check resolved the way it did. The actor role is
+    never faked.
     """
     return {
         "gate": "privilege_posture",
@@ -144,7 +144,7 @@ def _evaluate_posture(
 ) -> PostureGateResult:
     """Pure-functional core: no IO, no audit. Caller emits.
 
-    Phase 17.5: when ``firm_role_gates_enabled`` is False the firm role
+    When ``firm_role_gates_enabled`` is False the firm role
     hierarchy is dormant — any authenticated actor satisfies a
     non-paused posture, so B_mixed no longer demands qualified_solicitor.
     ``C_paused`` is a hard stop regardless of the flag (it means the

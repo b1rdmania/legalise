@@ -28,13 +28,13 @@ type Posture = "A_cleared" | "B_mixed" | "C_paused" | string;
 interface Props {
   posture: Posture;
   user: CurrentUser | null;
-  // Phase 17.5 — when the firm role hierarchy is dormant (default
+  // When the firm role hierarchy is dormant (default
   // hosted/eval mode), B_mixed does NOT require qualified_solicitor, so
   // the role-blocker banner is suppressed. C_paused still always shows
   // (it's a hard stop, not a role tier). Defaults to true (enforced) so
   // omitting it preserves firm-mode behaviour for existing callers/tests.
   firmRoleGatesEnabled?: boolean;
-  // Phase 14 G — admin posture change. Optional so non-matter
+  // Admin posture change. Optional so non-matter
   // callers (tests, future surfaces) can omit. When provided AND
   // the viewer is a superuser, an inline "Change posture" control
   // renders inside the banner. The callback receives the new
@@ -49,7 +49,7 @@ const ALL_POSTURES: ReadonlyArray<Posture> = [
 ];
 
 // Only `qualified_solicitor` satisfies B_mixed in the substrate.
-// `workspace_admin` / `is_superuser` is NOT a bypass — Phase 10
+// `workspace_admin` / `is_superuser` is NOT a bypass —
 // posture_gate.check_posture compares POSTURE_POLICY[posture] against
 // the actor_role string only. Anything else here would diverge from
 // substrate behaviour (ACCEPTANCE.md §14).
@@ -92,7 +92,7 @@ export function PostureBanner({
   // B_mixed (or any unknown posture — fail closed). Only show the
   // banner when the actor's role doesn't satisfy the requirement.
   if (posture === "B_mixed") {
-    // Phase 17.5 — dormant mode: B_mixed doesn't enforce the firm role
+    // Dormant mode: B_mixed doesn't enforce the firm role
     // hierarchy, so any authenticated user runs it; no blocker banner.
     if (!firmRoleGatesEnabled) return null;
     const satisfies = !!user && user.role === ROLE_THAT_SATISFIES_B_MIXED;
@@ -142,10 +142,10 @@ export function PostureBanner({
 // Banner shell — colour-coded by tone.
 // ---------------------------------------------------------------------------
 
-// Phase 14 G — admin-only inline posture change. Wired against the
-// existing `PATCH /api/matters/{slug}/privilege` (Phase 4) via the
-// onChangePosture callback. Banner re-renders against the new
-// posture once the parent refetches the matter.
+// Admin-only inline posture change. Wired against the existing
+// `PATCH /api/matters/{slug}/privilege` via the onChangePosture
+// callback. Banner re-renders against the new posture once the
+// parent refetches the matter.
 function ChangePostureControl({
   current,
   onChange,

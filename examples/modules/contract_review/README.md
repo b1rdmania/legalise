@@ -48,26 +48,25 @@ POST /api/modules/install
 }
 ```
 
-3 trusts + 1 grant (verified fast path) lands the install. The Phase 4
+3 trusts + 1 grant (verified fast path) lands the install. The
 grant lifecycle holds the per-user capability grants from that point.
 
 ## Architectural notes
 
-Six decisions are documented in
-`docs/handovers/PHASE_6_BUILD_PLAN.md`. The load-bearing ones:
+The load-bearing decisions:
 
-1. **Real signed manifest** (Phase 3 structural verifier; Phase 11
-   real crypto).
+1. **Real signed manifest** (today: structural verifier; sigstore
+   crypto lands later).
 2. **End-to-end acceptance test** at
    `backend/tests/test_phase6_vertical_slice.py` is the contract —
    it walks install → grant → invoke → reconstruct in one function
    against a real Postgres.
 3. **Synchronous; no new infrastructure.** If timeouts hurt, that's
-   the signal to unpark Phase 7+ async — not to inline async here.
+   the signal to unpark async — not to inline async here.
 4. **Artifacts on the matter file store** (`{matter_fs}/artifacts/...`)
    + WORM `matter_artifacts` row as the authoritative reference.
-5. **Privilege gate reuses Phase 1.** No new gate code; this module
-   just declares `gates: ["privilege_posture"]` in its manifest.
+5. **Privilege gate reuses the substrate.** No new gate code; this
+   module just declares `gates: ["privilege_posture"]` in its manifest.
 6. **Provider call is real in production, monkey-patched in tests.**
    Test seam is at the provider-module level only; every other code
    path is production.

@@ -1,5 +1,5 @@
 /**
- * Phase 14 B — /modules/install/{ceremony_id}.
+ * /modules/install/{ceremony_id}.
  *
  * Trust-ceremony stepper. Reads ceremony state via GET /api/modules/install/{id}
  * and lets an admin advance via POST .../advance with action=trust|grant|reject.
@@ -17,12 +17,12 @@
  *                InstalledModule and emits module.enabled
  *   - "reject" — any non-terminal: emits module.denied + returns to /modules
  *
- * 409 invalid-transition path (Phase 5 reviewer fix at modules.py:794):
+ * 409 invalid-transition path:
  *   substrate emits module.ceremony.rejected via audit_failure; this
  *   UI surfaces a structured banner naming that audit row + deep-
- *   links to /admin/audit?action=module.ceremony.rejected (Phase 14.5 C
- *   workspace audit surface). Action-only per the Phase 14.5 plan P1
- *   redline — no ceremony_id query param.
+ *   links to /admin/audit?action=module.ceremony.rejected (workspace
+ *   audit surface). Action-only — no ceremony_id query param
+ *   (the backend only filters by invocation_id + action).
  *
  * Reviewer-narrow: no install retry, no manifest editor here (Update
  * is on the detail page), no telemetry beyond the substrate audit rows.
@@ -311,10 +311,9 @@ function InvalidTransitionBanner({
 }: {
   state: Extract<AdvanceState, { kind: "invalid_transition" }>;
 }) {
-  // Phase 14.5 C — workspace audit surface exists, banner gets its
-  // deep-link back. Action-only per the Phase 14.5 plan P1 redline;
-  // no ?ceremony= query param (the backend only filters by
-  // invocation_id + action).
+  // Workspace audit surface exists, banner gets its deep-link back.
+  // Action-only — no ?ceremony= query param (the backend only
+  // filters by invocation_id + action).
   const auditHref =
     "/admin/audit?action=module.ceremony.rejected";
   return (

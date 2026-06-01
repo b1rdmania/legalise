@@ -73,7 +73,7 @@ async def audit_emit_model_invoked(
         User on whose behalf the invocation ran.
     module_id, capability_id
         Module + capability that triggered the invocation. Stored in
-        the JSONB payload (matches Phase 1 ``audit_phase1`` shape).
+        the JSONB payload (matches the substrate ``audit_phase1`` shape).
     model_id, provider
         The actual model + provider used. Both columns and payload.
     tokens_in, tokens_out
@@ -138,8 +138,7 @@ async def audit_emit_model_invoked(
             else None
         ),
         payload=payload,
-        # Phase 5 cost columns. ``audit.log`` accepts these kwargs as
-        # of Phase 5 (extension to the helper signature).
+        # Cost columns. ``audit.log`` accepts these kwargs.
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cost_micros=cost_micros,

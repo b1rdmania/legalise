@@ -1,5 +1,5 @@
 /**
- * Phase 14 D — InvocationRunner.
+ * InvocationRunner.
  *
  * Renders a single granted (module_id, capability_id) pair as a "Run"
  * affordance with an inline result panel. Each panel owns its own

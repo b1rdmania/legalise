@@ -217,10 +217,10 @@ export function GrantsPanel({
 }) {
   const [grants, setGrants] = useState<GrantsQuery>({ status: "loading" });
   const [catalog, setCatalog] = useState<CatalogQuery>({ status: "loading" });
-  // Phase 14.5 B — installed-module state. ONE extra AND clause for
-  // runnablePairs: a capability is runnable only if its module is
-  // installed AND enabled. This SUPPLEMENTS the Phase 14 D strict
-  // manifest × per-string-grants derivation; it does not replace it.
+  // Installed-module state. ONE extra AND clause for runnablePairs:
+  // a capability is runnable only if its module is installed AND
+  // enabled. This SUPPLEMENTS the strict manifest × per-string-grants
+  // derivation; it does not replace it.
   const [installed, setInstalled] = useState<Map<string, InstalledModule> | null>(
     null,
   );
@@ -266,7 +266,7 @@ export function GrantsPanel({
         setInstalled(idx);
       })
       .catch(() => {
-        // Phase 14.5 B — if the installed-listing fetch fails (anon
+        // If the installed-listing fetch fails (anon
         // race, network blip), fail closed: empty map → no module
         // looks installed → no runnable pairs render. Safer than
         // assuming everything is installed.
@@ -286,7 +286,7 @@ export function GrantsPanel({
 
   // This is the matter-scoped grants UI. The substrate's
   // create_grants_for_capability rejects scope ≠ "matter" with 422 by
-  // design (Phase 7 Decision #5), so workspace/global capabilities
+  // design, so workspace/global capabilities
   // can never be granted via this endpoint. Filter them out here so
   // the user is never offered an impossible choice. The 422 path is
   // retained server-side as defence-in-depth.
@@ -364,15 +364,14 @@ export function GrantsPanel({
     }
   };
 
-  // Phase 14 D Reviewer-fix — runnable pairs are derived strictly,
-  // not from plugin membership.
+  // Runnable pairs are derived strictly, not from plugin membership.
   //
   // A capability is runnable iff:
   //   1. The module is in the v2 catalog (= discoverable).
   //   2. The capability is scope === "matter".
   //   3. The capability declares at least one entry in reads ∪ writes
   //      (capabilities with no required strings cannot be granted in
-  //      the substrate sense; Phase 7 expansion would create zero
+  //      the substrate sense; expansion would create zero
   //      grant rows).
   //   4. EVERY string in reads ∪ writes has a corresponding grant
   //      row on this matter where:
@@ -380,7 +379,7 @@ export function GrantsPanel({
   //         g.skill  === capability_id
   //         g.capability === required_string
   //         g.scope_type === "matter"
-  //   This mirrors the Phase 7 expansion at
+  //   This mirrors the expansion at
   //   grants_lifecycle.py:355-389 (plugin = installed_module.module_id,
   //   skill = capability_id, capability = each entry from
   //   reads + writes). A partially-revoked capability — where one of
@@ -432,10 +431,9 @@ export function GrantsPanel({
     }
     for (const m of byId.values()) {
       if (!m.is_valid) continue;
-      // Phase 14.5 B — extra AND clause: module must be installed
-      // AND enabled. Strictly an addition to the Phase 14 D
-      // derivation; per-capability reads/writes grant existence
-      // stays exactly as before.
+      // Extra AND clause: module must be installed AND enabled.
+      // Strictly an addition to the derivation; per-capability
+      // reads/writes grant existence stays exactly as before.
       const inst = installed.get(m.module_id);
       if (!inst || !inst.enabled) continue;
       const name = manifestName(m);
@@ -582,7 +580,7 @@ export function GrantsPanel({
         </div>
       )}
 
-      {/* Phase 14 D — runnable capabilities */}
+      {/* Runnable capabilities */}
       {runnablePairs.length > 0 && (
         <div
           className="mt-4 rounded-md border border-line p-4"
