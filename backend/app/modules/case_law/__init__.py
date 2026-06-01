@@ -1,4 +1,4 @@
-"""Case-law lookup module (Phase C W1, §4e).
+"""Case-law lookup module.
 
 Skill-bridge surface over the `uk-research-legal/find-case-law` skill, plus a
 matter-scoped persistence layer for citations the user chooses to save.

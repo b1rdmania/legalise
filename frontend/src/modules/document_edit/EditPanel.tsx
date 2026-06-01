@@ -1,9 +1,9 @@
-// EditPanel - structured edit-instruction surface (Phase A, §4-pre-A).
+// EditPanel - structured edit-instruction surface.
 //
 // Per-document panel: textarea + mode dropdown + four preset buttons +
 // submit. Renders pending edits read-only after submission. Accept/reject
-// UI lands in Phase B (§4a); Phase A scope deliberately stops at "model
-// proposed these edits, here they are."
+// UI is the separate TrackedChangesView; this panel deliberately stops at
+// "model proposed these edits, here they are."
 
 import { useState } from "react";
 import {

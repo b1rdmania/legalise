@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     plugins_repo: str | None = "https://github.com/b1rdmania/claude-for-uk-legal"
     plugins_repo_ref: str | None = "f8201f1da72f6485c296eff620b19db18f016b68"
 
-    # Public module submission flow (Phase D W3). Opens a draft PR on
+    # Public module submission flow. Opens a draft PR on
     # `b1rdmania/claude-for-uk-legal` via a fine-grained PAT scoped to that
     # repo only. PAT owner MUST be `b1rdmania` — NOT `ziggythebot`. The
     # endpoint degrades to 503 when the token is unset so the surface

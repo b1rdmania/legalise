@@ -1,8 +1,8 @@
 """Contract Review export — markdown synthesis for the .docx pipeline.
 
-Phase B's `generate_docx` tool does not render markdown tables, so the
-redline section ships as paired Original / Suggested paragraphs rather
-than the two-column diff layout the UI shows.
+The `generate_docx` gateway tool does not render markdown tables, so
+the redline section ships as paired Original / Suggested paragraphs
+rather than the two-column diff layout the UI shows.
 
 The markdown shape mirrors `pre_motion/router.py::_render_synthesis_markdown`
 so the two .docx exports read consistently to a partner skimming both.

@@ -1,2 +1,2 @@
-// Re-export shim. Consolidated into `src/lib/api.ts` in Phase D W1.
+// Re-export shim. Consolidated into `src/lib/api.ts`.
 export * from "../../lib/api";

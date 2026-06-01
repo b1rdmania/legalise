@@ -1517,7 +1517,7 @@ export const draftLetter = (slug: string, letterType: string, inputs: Record<str
     body: JSON.stringify({ letter_type: letterType, inputs }),
   }).then((r) => jsonOrThrow<LetterDraft>(r));
 
-// ----- Document body + edit instructions (Phase A) -----------------------
+// ----- Document body + edit instructions ---------------------------------
 
 export interface DocumentBody {
   document_id: string;
@@ -1650,7 +1650,7 @@ export const postEditInstruction = (
     body: JSON.stringify({ instruction, mode }),
   }).then((r) => jsonOrThrow<EditInstructionResponse>(r));
 
-// ----- Generated .docx export (Phase B W1) ------------------------------
+// ----- Generated .docx export --------------------------------------------
 
 export interface GeneratedDocxResponse {
   file_uuid: string;
@@ -1685,7 +1685,7 @@ export async function downloadGeneratedDocx(fileUuid: string): Promise<Blob> {
   return resp.blob();
 }
 
-// ----- Tracked changes accept/reject (Phase B W2) -----------------------
+// ----- Tracked changes accept/reject -------------------------------------
 
 export interface EditResolutionResponse {
   edit: DocumentEditRead;
@@ -1792,7 +1792,7 @@ export const deleteApiKey = (provider: string) =>
     }
   });
 
-// ----- Installed-skill catalogue extensions (Phase D W1) -----------------
+// ----- Installed-skill catalogue extensions ------------------------------
 
 export interface BrokenManifest {
   plugin: string;
@@ -2404,7 +2404,7 @@ export const exportContractReviewDocx = (
     body: JSON.stringify(result),
   }).then((r) => jsonOrThrow<DocxExportResult>(r));
 
-// Public module submission flow (Phase D W3). The submitter never
+// Public module submission flow. The submitter never
 // supplies frontmatter — the backend synthesises the SKILL.md
 // authoritatively via `frontmatter.dump`. Frontend preview is a UX
 // aid, not a wire contract.

@@ -1,4 +1,4 @@
-"""Case-law lookup router (Phase C W1, §4e).
+"""Case-law lookup router.
 
 Endpoints (mounted at `/api/matters`):
 

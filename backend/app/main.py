@@ -142,7 +142,7 @@ async def lifespan(app: FastAPI):
     # `local-models` compose profile doesn't poison B_mixed routing.
     await register_providers(model_gateway)
 
-    # Register Phase A model-callable tools (generate_docx, edit_document,
+    # Register model-callable tools (generate_docx, edit_document,
     # replicate_document). Each goes through the same posture/audit rails
     # as `gateway.call()`. Pydantic input/output models per tool; JSON Schema
     # derived on demand via `model_json_schema()`.

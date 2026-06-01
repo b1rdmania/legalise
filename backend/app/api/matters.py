@@ -452,8 +452,8 @@ async def upload_document(
     # Establish the v1 `upload` version row immediately. Downstream
     # surfaces (edit-instruction, replicate_document) use
     # `max(version_number)+1`, which requires v1 to exist or assistant
-    # edits would land as version 1 themselves. Phase A invariant: every
-    # Document has a corresponding v1 DocumentVersion of kind=upload.
+    # edits would land as version 1 themselves. Invariant: every Document
+    # has a corresponding v1 DocumentVersion of kind=upload.
     session.add(
         DocumentVersion(
             document_id=doc.id,
