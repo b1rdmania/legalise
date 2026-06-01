@@ -29,6 +29,7 @@ import {
 } from "../lib/api";
 import { ArtifactPreview } from "../matter/ArtifactPreview";
 import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { TrustReviewCard } from "./TrustReviewCard";
 
 type Phase =
   | { step: "ensuring" }
@@ -110,6 +111,15 @@ export function DemoLoop() {
             model <span className="font-mono">{handles.model_id}</span>. Keyless demonstration
             modelled on Khan v Acme. Not legal advice. Bring a key for real providers.
           </div>
+
+          <TrustReviewCard
+            matterSlug={handles.matter_slug}
+            invocationId={
+              phase.step === "ran" || phase.step === "requesting" || phase.step === "reviewed"
+                ? phase.invocationId
+                : undefined
+            }
+          />
 
           {/* Step 1 — run */}
           <Step n={1} title="Run a governed action" done={phase.step !== "ready"}>
