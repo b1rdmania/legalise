@@ -72,7 +72,7 @@ exactly these words in the UI. Variants are not permitted.
 
 | Word | Meaning | Notes |
 | --- | --- | --- |
-| **Matter** | The folder. Contains documents, installed skills, chat, outputs, sign-offs, record. | Not "Project." Matter is the regulated legal noun and is the wedge. Workspace operators see "Matter" too. |
+| **Matter** | The folder. Contains documents, installed skills, chat, outputs, sign-offs, record. | Not "Project." Matter is the regulated legal noun and is the wedge. Workspace operators see "Matter" too. **A matter must still behave like a project folder** — the Notion/Drive mental model (open it, see what's inside, work in place, close it) is the target UX; only the noun is legal. If the matter shell stops feeling like a folder, the reset has failed regardless of vocabulary. |
 | **Document** | A file inside a matter. | Singular "Document," plural "Documents." Not "file," not "asset." |
 | **Skill** | An installable, signed tool that can run inside a matter. | Not "module," not "action," not "agent," not "tool." User-facing word is Skill everywhere. |
 | **Chat** | The primary work surface inside a matter. | Where the user asks and runs. Not "Matter desk." |
@@ -768,7 +768,12 @@ new routes. No layout changes. No new surfaces.
 
 **Gate:**
 
-- Read every user-facing string in the app. Zero forbidden words present.
+- Zero forbidden words (§3) in **primary user chrome, matter shell,
+  default matter surfaces, and non-admin empty states**. Admin /
+  operator / deep-detail surfaces may retain substrate vocabulary
+  (manifest, audit, grant, capability) where legally or technically
+  necessary; the audit is scoped to user-facing chrome, not every
+  string in the codebase.
 - All redirects work. Tests green.
 - Visual diff shows label-only changes; no layout drift.
 
@@ -855,19 +860,30 @@ land on guided onboarding (§6.1).
 
 **Deliverables:**
 
-- Strong document reader: full-fidelity rendering, source anchors clickable
-  from Chat into the reader at the exact location.
-- Redline view: proposed changes from skills shown inline.
+- Document reader using the **best available existing rendering** —
+  whatever the substrate already supports (extracted text, original
+  open/download, any existing preview). Original open/download must
+  remain preserved.
+- Source anchors clickable from Chat into the reader, landing at the
+  anchored location **where the existing rendering supports it**.
+  Where it does not, the source chip opens the document and highlights
+  the matched passage in the extracted text view.
+- Redline view: proposed changes from skills shown inline **using the
+  existing change-representation substrate**. If full DOCX/PDF redline
+  rendering requires new backend, that is a separate post-reset PR;
+  this PR ships the best available existing redline view.
 - Metadata behind a disclosure ("Details"), not as default chrome.
 - Back-to-matter behaviour is one click and returns to the prior surface
   (Chat or Documents list), not always to Documents list.
 
 **Gate:**
 
-- A user clicks a source anchor in Chat and lands inside the document at the
-  anchored location.
-- A redline produced by a skill is reviewable and acceptable/rejectable
-  inline.
+- A user clicks a source anchor in Chat and lands inside the document
+  at the anchored location (or in the extracted text view if the
+  original rendering does not support pixel-accurate anchors).
+- A redline produced by a skill is reviewable and
+  acceptable/rejectable inline using existing substrate capabilities.
+- Original open/download is preserved.
 
 ### PR 7 — Record Compression
 
@@ -905,8 +921,18 @@ level audit collapse into one Record surface.
 
 Every PR ships with:
 
-1. **Comprehension test result** — the 60-second test (§13) re-run by a
-   fresh observer, recorded in the PR description.
+1. **Comprehension check** — recorded in the PR description.
+   - **Structural PRs (PR 2 nav reset, PR 5 chat front door + onboarding,
+     PR 7 record compression):** the formal §13 60-second test, run by a
+     **fresh observer** who has not seen the prior PR.
+   - **Mechanical PRs (PR 1 vocabulary/redirects, PR 3 workspace skills,
+     PR 4 matter skills, PR 6 documents reader):** a **reviewer
+     walkthrough** — the reviewer reproduces the canonical user journey
+     (§6) for the touched surface and confirms no regression. Fresh
+     observer not required.
+   - **Final acceptance:** after PR 7, the full §13 test is run by an
+     observer who has never used Legalise. Failing this blocks the
+     reset from being declared complete.
 2. **Vocabulary audit** — automated grep against forbidden words (§3) shows
    zero matches in user-facing strings.
 3. **Visual diff** — screenshots before/after for every changed surface.
@@ -945,9 +971,15 @@ prompting:
 6. **Where is the signed record?** — points to Record.
 
 The test fails if the observer needs help on any question, or takes longer
-than sixty seconds. Failing this test blocks the next PR. The reset is not
-done until this test passes after PR 7 with a observer who has never used
-Legalise before.
+than sixty seconds.
+
+**When fresh-observer testing is required:** structural PRs (PR 2, PR 5,
+PR 7) and the post-PR 7 final acceptance. Mechanical PRs (PR 1, PR 3,
+PR 4, PR 6) use the reviewer-walkthrough variant in §12 item 1 — running
+a formal fresh-observer test on a label-rename PR is overhead theatre.
+
+**Final acceptance:** the reset is not done until this test passes after
+PR 7 with an observer who has never used Legalise before.
 
 ---
 
