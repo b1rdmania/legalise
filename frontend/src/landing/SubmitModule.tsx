@@ -261,7 +261,7 @@ export function SubmitModule() {
       if (e.status === 503) {
         setErrorState({
           kind: "disabled",
-          message: detail?.message || "Module submissions are currently closed.",
+          message: detail?.message || "Skill submissions are currently closed.",
         });
       } else if (e.status === 403) {
         setErrorState({
@@ -320,7 +320,7 @@ export function SubmitModule() {
       <SubmitShell>
         <div className="bg-wash p-8 border-l-4 border-ink my-4">
           <p className="text-sm font-medium m-0">
-            Module submissions are currently closed.
+            Skill submissions are currently closed.
           </p>
           <p className="text-sm text-muted mt-2 mb-0">
             Visit the catalogue of installed skills, or fork{" "}

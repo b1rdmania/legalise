@@ -249,12 +249,12 @@ export function ReconstructionView({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Matter</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Activity Trail</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Record</h1>
       <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
       <p className="mt-3 text-sm text-muted">
         The main record of what happened on this matter: documents
-        referenced, actions run, models called, outputs written, human
-        reviews, and blocked attempts. Raw substrate rows stay
+        referenced, skills run, models called, outputs written, human
+        reviews, and blocked attempts. Raw audit rows stay
         expandable; the first view is the story.
       </p>
 

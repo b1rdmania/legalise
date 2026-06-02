@@ -48,11 +48,11 @@ export function PreMotionTab({
       {blocked && (
         <div className="border border-rule p-6 mb-6">
           <div className="text-sm font-semibold text-ink mb-1">
-            Privilege posture C_paused
+            Privilege control: C_paused
           </div>
           <p className="text-sm text-prose m-0 leading-relaxed">
-            Cloud model calls are refused while posture is paused. Change
-            the posture in the matter sidebar to run a premortem.
+            Cloud model calls are refused while privilege is paused. Change
+            the privilege control in the matter sidebar to run a premortem.
           </p>
         </div>
       )}

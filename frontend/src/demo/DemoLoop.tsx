@@ -4,7 +4,7 @@
  * A fresh visitor watches the full supervised-autonomy loop run WITHOUT a
  * provider key: a seeded stub-echo matter → run an installed prompt skill →
  * a skill_response artifact appears → request supervisor review → open the
- * Activity Trail and see the chain.
+ * Record and see the chain.
  *
  * Every step calls the real endpoints (ensure / invoke / request-review).
  * Nothing is faked — stub-echo is a genuine keyless provider. The page is
@@ -200,7 +200,7 @@ export function DemoLoop() {
           {phase.step === "reviewed" && (
             <Step n={4} title="See the whole chain" done>
               <p className="text-sm text-muted">
-                The Activity Trail reconstructs everything that just happened: action invoked,
+                The Record reconstructs everything that just happened: action invoked,
                 model called, artifact written, review requested.
               </p>
               <p className="mt-3">
@@ -211,7 +211,7 @@ export function DemoLoop() {
                   className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
                   data-testid="demo-open-trail"
                 >
-                  Open Activity Trail →
+                  Open Record →
                 </Link>
               </p>
             </Step>

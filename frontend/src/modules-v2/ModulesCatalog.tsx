@@ -158,8 +158,8 @@ export function ModulesCatalog() {
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Workspace"
-        title="Modules"
-        description="Governed legal capabilities. Install a reference module at the workspace, then grant and run it per matter — installing here does not make it ready everywhere."
+        title="Skills"
+        description="Governed legal skills. Install a reference skill at the workspace, then enable and run it per matter — installing here does not make it ready everywhere."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link

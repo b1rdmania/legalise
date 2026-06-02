@@ -7,9 +7,9 @@
  *
  * Honesty boundary: header is "Proof record" not "Verified proof". Where
  * a fact is not available client-side (input text pre-run, source anchors,
- * etc.), the drawer says "Recorded in Activity Trail" rather than
+ * etc.), the drawer says "Recorded in Record" rather than
  * fabricating data. The deeper substrate path stays a click away via
- * "Open full Activity Trail".
+ * "Open full Record".
  *
  * Scoped narrowly to /demo-loop. Matter-shell rollout is a separate later
  * call — when that lands, watch out for the supervisor-review vs
@@ -89,11 +89,11 @@ export function ProofDrawer({
           ) : (
             <Fact
               label="Input"
-              value="Recorded in Activity Trail once the skill has been run."
+              value="Recorded in Record once the skill has been run."
               muted
             />
           )}
-          <Fact label="Source anchors" value="Recorded in Activity Trail." muted />
+          <Fact label="Source anchors" value="Recorded in Record." muted />
         </Section>
 
         <Section title="Under what protection?">
@@ -106,12 +106,12 @@ export function ProofDrawer({
             value="Matter-scoped. Capability is granted only on this demo matter."
           />
           <Fact
-            label="Privilege posture"
+            label="Privilege control"
             value="Cleared. Synthetic content; no real party data."
           />
           <Fact
             label="Audit"
-            value="Every read, model call, and write is recorded in Activity Trail."
+            value="Every read, model call, and write is recorded in Record."
           />
         </Section>
 
@@ -121,11 +121,11 @@ export function ProofDrawer({
               <Fact label="Artifact kind" value={artifact.kind} mono />
               <Fact
                 label="Output"
-                value={outputPreview ?? "Recorded in Activity Trail."}
+                value={outputPreview ?? "Recorded in Record."}
               />
               <Fact
                 label="Source visibility"
-                value="Rendered above in the page; full payload available via the Activity Trail."
+                value="Rendered above in the page; full payload available via the Record."
               />
             </>
           ) : (
@@ -137,7 +137,7 @@ export function ProofDrawer({
           <Fact label="Author" value="The signed-in user who triggered the run." />
           <Fact
             label="Self-approval"
-            value="Forbidden by the substrate. Authors cannot decide their own review."
+            value="Forbidden by the runtime. Authors cannot decide their own review."
           />
           {reviewRequested ? (
             <Fact
@@ -162,7 +162,7 @@ export function ProofDrawer({
               className="inline-flex items-center text-sm underline underline-offset-4 hover:text-ink"
               data-testid="proof-drawer-open-trail"
             >
-              Open full Activity Trail &rarr;
+              Open full Record &rarr;
             </Link>
           </p>
         )}

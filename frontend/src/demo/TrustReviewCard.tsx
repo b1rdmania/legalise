@@ -3,7 +3,7 @@
  *
  * States the three governance facts that hold for every run on this matter,
  * with a single CTA that opens the four-question Proof drawer. The drawer
- * itself carries the deeper link into Activity Trail; the card is the
+ * itself carries the deeper link into Record; the card is the
  * first humane proof layer.
  *
  * Honesty boundary: no "verified" wording, no audit-row count. Claims are
@@ -30,7 +30,7 @@ export function TrustReviewCard({ onViewProof }: TrustReviewCardProps) {
       <ul className="mt-2 space-y-1.5 text-sm">
         <li>
           <span className="font-medium">Audit trail.</span>{" "}
-          Every run is recorded in the matter&rsquo;s Activity Trail.
+          Every run is recorded in the matter&rsquo;s Record.
         </li>
         <li>
           <span className="font-medium">Human review.</span>{" "}

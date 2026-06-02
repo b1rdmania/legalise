@@ -528,12 +528,12 @@ export function GrantsPanel({
   return (
     <section className="mt-10 rounded-md border border-line bg-paper p-4">
       <h2 className="text-sm uppercase tracking-widest text-muted">
-        Actions on this matter
+        Skills on this matter
       </h2>
       <p className="mt-2 text-sm text-muted">
-        Run governed actions from installed modules. The Activity Trail
-        records what each action touched, which model ran, what output
-        was written, and how it was reviewed.
+        Run governed skills installed on this matter. The Record captures
+        what each skill touched, which model ran, what output was
+        written, and how it was reviewed.
       </p>
 
       {setupSuggestions.length > 0 && (

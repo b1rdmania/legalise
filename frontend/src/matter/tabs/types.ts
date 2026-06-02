@@ -3,12 +3,19 @@
 // SIDEBAR_NAV is the core nav that renders in the matter rail.
 // Secondary/legacy surfaces (chronology, approvals, individual
 // workflow pages) remain routable for deep links but do not compete
-// with the main documents → actions → trail loop.
-// WORKFLOW_TABS are historical built-in action surfaces reached from
-// the Actions page; they keep their routes for deep-linking but
+// with the main documents → skills → record loop.
+// WORKFLOW_TABS are historical built-in skill surfaces reached from
+// the Skills page; they keep their routes for deep-linking but
 // do not surface as their own sidebar items.
 //
 // Bare /matters/{slug} lands on Documents.
+//
+// PR 1 (IA reset, blueprint §3) — user-facing labels only:
+//   "Matter desk"    → "Chat"
+//   "Actions"        → "Skills"
+//   "Activity Trail" → "Record"
+// Tab URL keys (assistant/workflows/audit) are unchanged; rewiring
+// the route slugs is PR 2 scope.
 
 export type TabKey =
   | "assistant"
@@ -26,18 +33,18 @@ export type TabKey =
   | "research";
 
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
-  { key: "assistant", label: "Matter desk" },
+  { key: "assistant", label: "Chat" },
   { key: "documents", label: "Documents" },
-  { key: "workflows", label: "Actions" },
-  { key: "audit", label: "Activity Trail" },
+  { key: "workflows", label: "Skills" },
+  { key: "audit", label: "Record" },
 ];
 
 export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
-  assistant: "Matter desk",
+  assistant: "Chat",
   documents: "Documents",
   chronology: "Chronology",
-  workflows: "Actions",
-  audit: "Activity Trail",
+  workflows: "Skills",
+  audit: "Record",
   approvals: "Approvals",
   premotion: "Pre-Motion",
   letters: "Letters",

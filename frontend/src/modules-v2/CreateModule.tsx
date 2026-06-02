@@ -59,8 +59,8 @@ export function CreateModule() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Modules"
-        title="Create a module"
+        eyebrow="Skills"
+        title="Create a skill"
         description="Build your own Legalise module. This page explains the manifest and validates a candidate against the same rules the install path uses — it does not install or sign."
       />
 

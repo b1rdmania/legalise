@@ -135,14 +135,28 @@ const verifyRoute = createRoute({
   }),
 });
 
-// /modules is the v2 catalog (ModulesCatalog). The earlier Modules
+// /skills is the v2 catalog (ModulesCatalog). The earlier Modules
 // component (v1 skill enable/disable) is retained in the codebase
 // under src/modules-page/ for reference but no longer mounted on a
 // route. Importing it elsewhere still works.
+//
+// PR 1 (IA reset, blueprint §8): canonical path renamed from
+// /modules → /skills. The legacy /modules path is preserved via
+// `legacyModulesRedirect` below so deep links, bookmarks, and tests
+// continue to work via 302.
 const modulesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/modules",
+  path: "/skills",
   component: ModulesCatalog,
+});
+
+const legacyModulesRedirect = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/modules",
+  beforeLoad: () => {
+    throw redirect({ to: "/skills" });
+  },
+  component: () => null,
 });
 
 const submitModuleRoute = createRoute({
@@ -418,6 +432,7 @@ const routeTree = rootRoute.addChildren([
   verifyPendingRoute,
   verifyRoute,
   modulesRoute,
+  legacyModulesRedirect,
   submitModuleRoute,
   demoIndexRoute,
   demoTabRoute,

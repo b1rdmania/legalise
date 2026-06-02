@@ -28,7 +28,7 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           The audit log is not a nice-to-have. It is the canonical record.
-          Privilege posture is not a preference. It is a constraint on
+          Privilege control is not a preference. It is a constraint on
           dispatch.
         </p>
         <p className="prose-p">
@@ -98,12 +98,12 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           The product mechanic is intentionally plain. A matter carries the
-          parties, documents, chronology, privilege posture, retention clock,
-          module installs, capability grants, model calls, and audit rows.
+          parties, documents, chronology, privilege control, retention clock,
+          skill installs, permission grants, model calls, and audit rows.
           The AI does not float outside the file.
         </p>
         <p className="prose-p">
-          Modules declare what they need. The workspace grants it. Runtime
+          Skills declare what they need. The workspace grants it. Runtime
           checks it. Denials are structured and audited. That is the trust
           model in one line.
         </p>
@@ -163,7 +163,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: "privilege-posture",
-    title: "Privilege posture is a dispatch constraint",
+    title: "Privilege control is a dispatch constraint",
     body: (
       <>
         <p className="prose-p">

@@ -152,7 +152,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
   if (q.status === "error") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-xl font-bold tracking-tight2">Module not found</h1>
+        <h1 className="text-xl font-bold tracking-tight2">Skill not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
     );
@@ -226,7 +226,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
       if (/404/.test(msg) || /not.*install/i.test(msg)) {
         setLife({
           kind: "info",
-          message: "Module is not currently installed.",
+          message: "Skill is not currently installed.",
         });
       } else {
         setLife({ kind: "error", message: msg });
@@ -236,7 +236,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="Module" title={name} subId={entry.module_id} />
+      <PageHeader eyebrow="Skill" title={name} subId={entry.module_id} />
 
       <div className="-mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
         {version && <span>v{version}</span>}

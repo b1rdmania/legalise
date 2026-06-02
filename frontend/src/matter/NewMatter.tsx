@@ -86,7 +86,7 @@ export function NewMatter() {
           />
         </Field>
 
-        <Field label="Privilege posture">
+        <Field label="Privilege control">
           <select
             value={form.privilege_posture}
             onChange={(e) => setForm({ ...form, privilege_posture: e.target.value })}

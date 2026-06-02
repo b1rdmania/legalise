@@ -188,7 +188,7 @@ function PrivilegeControlInline({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      aria-label="Privilege posture"
+      aria-label="Privilege control"
       title={POSTURE_BLURB[value] ?? value}
       className="bg-transparent text-[10px] font-mono font-bold uppercase tracking-track2 text-ink border-none outline-none cursor-pointer p-0 focus-visible:underline focus-visible:underline-offset-4"
     >

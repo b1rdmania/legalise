@@ -91,14 +91,14 @@ export function MatterPulse({
             {matter.title} is loaded for supervised AI work.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-prose">
-            The workspace has the documents, a chronology, and governed actions.
-            Every AI step is recorded in the Activity Trail.
+            The workspace has the documents, a chronology, and governed AI work.
+            Every AI step is recorded.
           </p>
         </div>
         <div className="grid min-w-[280px] grid-cols-1 gap-2 text-xs sm:grid-cols-3 lg:grid-cols-1">
           <StatusLine label="Documents" value={hasDocuments ? `${documentsCount} loaded` : "Add documents"} />
           <StatusLine label="Timeline" value={hasChronology ? `${chronologyCount} events` : "Not started"} />
-          <StatusLine label="Actions" value={hasActions ? actionLabel : "Setup needed"} />
+          <StatusLine label="Skills" value={hasActions ? actionLabel : "Setup needed"} />
         </div>
       </div>
       {showPosture ? (

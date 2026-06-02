@@ -90,12 +90,12 @@ export function TopBar({
                   Matters
                 </a>
                 <a
-                  href="/modules"
+                  href="/skills"
                   className={
                     "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
-                  Modules
+                  Skills
                 </a>
                 <a
                   href="/settings/profile"
@@ -131,13 +131,13 @@ export function TopBar({
                   Demo
                 </a>
                 <a
-                  href="/modules"
+                  href="/skills"
                   className={
                     "transition-colors " +
                     (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
                   }
                 >
-                  Modules
+                  Skills
                 </a>
                 <a
                   href="/manifesto"

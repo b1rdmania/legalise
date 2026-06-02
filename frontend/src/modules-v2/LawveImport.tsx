@@ -112,7 +112,7 @@ export function LawveImport() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Modules"
+        eyebrow="Skills"
         title="Lawve skill import"
         description="Import open legal-AI skills from lawve-ai/awesome-legal-skills into Legalise as governed module drafts. A Lawve skill is not a Legalise module until it is converted, validated, signed, and installed — and imported scripts are never executed."
       />
@@ -300,7 +300,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
   return (
     <div className="mt-5 border-t border-rule pt-4" data-testid="draft-review">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm uppercase tracking-widest text-muted">Module draft</h3>
+        <h3 className="text-sm uppercase tracking-widest text-muted">Skill draft</h3>
         <span
           className={
             "rounded-full border px-2 py-0.5 text-xs " +

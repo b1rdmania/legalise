@@ -13,15 +13,15 @@ const SURFACES: { title: string; body: string }[] = [
     body: "Every model call lives inside a matter. Documents, chronology, posture, audit.",
   },
   {
-    title: "Privilege posture",
-    body: "A_cleared, B_mixed, C_paused. The gateway reads the posture before every model call and refuses what isn't permitted.",
+    title: "Privilege control",
+    body: "A_cleared, B_mixed, C_paused. The gateway reads the privilege state before every model call and refuses what isn't permitted.",
   },
   {
-    title: "Capability gates",
-    body: "Modules declare what they need. The workspace grants. The runtime enforces, every call.",
+    title: "Permission gates",
+    body: "Skills declare what they need. The workspace grants. The runtime enforces, every call.",
   },
   {
-    title: "Modules",
+    title: "Skills",
     body: "Legal skills installed as plugins. Open catalogue. No vendor lock to ours.",
   },
   {
@@ -119,10 +119,10 @@ export function Landing() {
                 All matters
               </a>
               <a
-                href="/modules"
+                href="/skills"
                 className="text-sm text-muted hover:text-ink transition-colors"
               >
-                Modules
+                Skills
               </a>
             </div>
           ) : (
