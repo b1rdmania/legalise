@@ -1,0 +1,670 @@
+/**
+ * MatterSkillsTab — the §7 matter-side skill lifecycle surface.
+ *
+ * Two sections per blueprint §7:
+ *   1. Enabled in this matter — active in Chat; built-in workflows
+ *      (Pre-Motion / Letters / Contract Review / Tabular Review /
+ *      Case Law) PLUS modules with matter-scoped grants present.
+ *   2. Available to enable — workspace-installed modules that don't
+ *      yet have grants in this matter.
+ *
+ * Enable opens a matter-scoped grant ceremony (§4A.6 anatomy). The
+ * ceremony does NOT re-show the workspace trust ceremony — workspace
+ * signature / trust is surfaced as inherited read-only context. The
+ * action the user takes here is "enable in this matter", not
+ * "re-trust the skill."
+ *
+ * The detailed permissions table + add-grant form remain in
+ * GrantsPanel, rendered below this surface inside a collapsed
+ * "Permissions detail" disclosure. That preserves the 747 lines of
+ * tests against GrantsPanel and gives operators direct access to
+ * the substrate-level grant management without polluting the
+ * primary matter Skills view.
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import {
+  createGrant,
+  getMatterWorkflows,
+  getModulesV2,
+  listGrants,
+  listInstalledModules,
+  ModuleDisabledError,
+  ModuleNotInstalledError,
+  revokeGrant,
+  type GrantRow,
+  type InstalledModule,
+  type MatterWorkflowsResponse,
+  type V2ManifestEntry,
+  type WorkflowAvailability,
+  type WorkflowGrant,
+} from "../lib/api";
+
+interface Props {
+  slug: string;
+}
+
+const GRANT_TONE: Record<WorkflowGrant, string> = {
+  granted: "text-[#00A35C]",
+  partial: "text-[#E67E22]",
+  blocked: "text-[#D9304F]",
+};
+
+const AVAILABILITY_BLURB: Record<WorkflowAvailability, string> = {
+  ok: "Ready to run",
+  "blocked-by-posture": "Blocked by privilege state",
+  "blocked-by-grant": "Needs permission in this matter",
+};
+
+function formatLastRun(iso: string | null): string {
+  if (!iso) return "Not run yet on this matter";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `Last run ${d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  })}`;
+}
+
+function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
+  const v = (entry.manifest as Record<string, unknown>)[key];
+  return typeof v === "string" ? v : undefined;
+}
+
+function capabilityStrings(
+  entry: V2ManifestEntry,
+  key: "reads" | "writes",
+): string[] {
+  const caps = (entry.manifest as Record<string, unknown>).capabilities;
+  if (!Array.isArray(caps)) return [];
+  const out = new Set<string>();
+  for (const raw of caps) {
+    if (!raw || typeof raw !== "object") continue;
+    const values = (raw as Record<string, unknown>)[key];
+    if (!Array.isArray(values)) continue;
+    for (const value of values) if (typeof value === "string") out.add(value);
+  }
+  return [...out].sort();
+}
+
+function capabilityIds(entry: V2ManifestEntry): string[] {
+  const caps = (entry.manifest as Record<string, unknown>).capabilities;
+  if (!Array.isArray(caps)) return [];
+  const out: string[] = [];
+  for (const raw of caps) {
+    if (!raw || typeof raw !== "object") continue;
+    const id = (raw as Record<string, unknown>).id;
+    if (typeof id === "string") out.push(id);
+  }
+  return out;
+}
+
+function shortList(values: string[]): string {
+  if (values.length === 0) return "None declared";
+  if (values.length <= 2) return values.join(", ");
+  return `${values.slice(0, 2).join(", ")} +${values.length - 2} more`;
+}
+
+export function MatterSkillsTab({ slug }: Props) {
+  const [workflows, setWorkflows] = useState<MatterWorkflowsResponse | null>(
+    null,
+  );
+  const [modules, setModules] = useState<V2ManifestEntry[]>([]);
+  const [installed, setInstalled] = useState<Map<string, InstalledModule>>(
+    new Map(),
+  );
+  const [grants, setGrants] = useState<GrantRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [enableTarget, setEnableTarget] = useState<V2ManifestEntry | null>(null);
+
+  const refresh = () => {
+    void getMatterWorkflows(slug)
+      .then(setWorkflows)
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("401")) setError(msg);
+      });
+    void listGrants(slug)
+      .then((r) => setGrants(r.grants))
+      .catch(() => undefined);
+    void getModulesV2()
+      .then((r) => setModules(r.modules))
+      .catch(() => undefined);
+    void listInstalledModules()
+      .then((rows) => {
+        const idx = new Map<string, InstalledModule>();
+        for (const r of rows) idx.set(r.module_id, r);
+        setInstalled(idx);
+      })
+      .catch(() => undefined);
+  };
+
+  useEffect(() => {
+    refresh();
+    return () => undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
+  // A module is "enabled in this matter" if any grant row references
+  // it on this matter. (Substrate grants are per (module_id, capability)
+  // tuple, so any presence implies the skill has been enabled at least
+  // partially.)
+  const grantedModuleIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const g of grants ?? []) set.add(g.plugin);
+    return set;
+  }, [grants]);
+
+  const enabledModules = useMemo(
+    () =>
+      modules.filter((m) => {
+        const inst = installed.get(m.module_id);
+        return inst?.enabled === true && grantedModuleIds.has(m.module_id);
+      }),
+    [modules, installed, grantedModuleIds],
+  );
+
+  const availableModules = useMemo(
+    () =>
+      modules.filter((m) => {
+        const inst = installed.get(m.module_id);
+        return inst?.enabled === true && !grantedModuleIds.has(m.module_id);
+      }),
+    [modules, installed, grantedModuleIds],
+  );
+
+  return (
+    <section>
+      <header className="mb-6">
+        <p className="text-xs uppercase tracking-widest text-muted">
+          Matter skills
+        </p>
+        <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+          What you can run on this matter
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-prose">
+          Each skill below names what it reads, what it writes, and when
+          it last ran here. Enabling a skill on this matter is a
+          matter-scoped decision — workspace trust is inherited, not
+          re-asked.
+        </p>
+      </header>
+
+      {error && (
+        <p className="mb-4 text-sm text-seal" data-testid="matter-skills-error">
+          {error}
+        </p>
+      )}
+
+      {/* Section 1 — Enabled in this matter */}
+      <SectionHeader
+        title="Enabled in this matter"
+        hint="Available in Chat. Built-in skills are always here; modules need workspace install plus matter enablement."
+      />
+
+      {workflows === null ? (
+        <p className="mt-3 text-sm text-muted">Loading…</p>
+      ) : (
+        <div className="mt-3 grid grid-cols-1 gap-3">
+          {workflows.workflows.map((w) => (
+            <WorkflowRow key={w.key} slug={slug} workflow={w} />
+          ))}
+          {enabledModules.map((m) => (
+            <EnabledModuleRow
+              key={m.module_id}
+              slug={slug}
+              entry={m}
+              grants={
+                (grants ?? []).filter((g) => g.plugin === m.module_id) ?? []
+              }
+              onRevoked={refresh}
+            />
+          ))}
+          {workflows.workflows.length === 0 && enabledModules.length === 0 && (
+            <p className="text-sm text-muted">
+              No skills are enabled in this matter yet. Pick one from
+              Available to enable below.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Section 2 — Available to enable */}
+      <div className="mt-10">
+        <SectionHeader
+          title="Available to enable"
+          hint="Trusted in this workspace; not yet enabled here. Enable to make a skill runnable inside this matter."
+        />
+        {availableModules.length === 0 ? (
+          <p className="mt-3 text-sm text-muted" data-testid="available-empty">
+            Everything trusted in the workspace is already enabled here.{" "}
+            <Link
+              to="/skills"
+              className="underline underline-offset-4 hover:text-ink"
+            >
+              Manage workspace skills →
+            </Link>
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-1 gap-3">
+            {availableModules.map((m) => (
+              <AvailableModuleRow
+                key={m.module_id}
+                entry={m}
+                onEnable={() => setEnableTarget(m)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <p className="mt-8 text-xs text-muted">
+        Workspace install, signature, and trust details live on{" "}
+        <Link to="/skills" className="underline underline-offset-4 hover:text-ink">
+          Workspace skills
+        </Link>
+        . This page only covers what runs inside this matter.
+      </p>
+
+      {enableTarget && (
+        <EnableSkillModal
+          slug={slug}
+          entry={enableTarget}
+          installed={installed.get(enableTarget.module_id) ?? null}
+          onClose={() => setEnableTarget(null)}
+          onEnabled={() => {
+            setEnableTarget(null);
+            refresh();
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+function SectionHeader({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="border-b border-rule pb-2">
+      <h3 className="text-sm uppercase tracking-widest text-muted">{title}</h3>
+      <p className="mt-1 text-xs text-muted">{hint}</p>
+    </div>
+  );
+}
+
+function WorkflowRow({
+  slug,
+  workflow,
+}: {
+  slug: string;
+  workflow: MatterWorkflowsResponse["workflows"][number];
+}) {
+  return (
+    <article className="border border-rule bg-paper p-4" data-testid={`enabled-builtin-${workflow.key}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-ink">{workflow.title}</p>
+          <p className="mt-0.5 text-xs text-muted">{workflow.description}</p>
+        </div>
+        <Link
+          to="/matters/$slug/$tab"
+          params={{ slug, tab: workflow.key }}
+          className="shrink-0 rounded-md border border-line px-3 py-1 text-xs hover:border-ink"
+        >
+          Open
+        </Link>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
+        <Meta label="Reads" value={shortList(workflow.declared_capabilities)} />
+        <Meta
+          label="Permission"
+          value={workflow.grant}
+          tone={GRANT_TONE[workflow.grant]}
+        />
+        <Meta
+          label="Status"
+          value={AVAILABILITY_BLURB[workflow.availability]}
+        />
+        <Meta label="Last run" value={formatLastRun(workflow.last_run_at)} />
+      </dl>
+      {workflow.reason && workflow.availability !== "ok" && (
+        <p className="mt-2 text-xs text-muted">{workflow.reason}</p>
+      )}
+    </article>
+  );
+}
+
+function EnabledModuleRow({
+  slug,
+  entry,
+  grants,
+  onRevoked,
+}: {
+  slug: string;
+  entry: V2ManifestEntry;
+  grants: GrantRow[];
+  onRevoked: () => void;
+}) {
+  const [revoking, setRevoking] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const reads = capabilityStrings(entry, "reads");
+  const writes = capabilityStrings(entry, "writes");
+  const name = manifestStr(entry, "name") ?? entry.module_id;
+
+  const onRevoke = async () => {
+    if (grants.length === 0) return;
+    setRevoking(true);
+    setErr(null);
+    try {
+      // Revoke the parent grant first; the substrate cascades the
+      // expanded per-string rows.
+      await Promise.all(grants.map((g) => revokeGrant(slug, g.id)));
+      onRevoked();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRevoking(false);
+    }
+  };
+
+  return (
+    <article
+      className="border border-rule bg-paper p-4"
+      data-testid={`enabled-module-${entry.module_id}`}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-ink">{name}</p>
+          <p className="mt-0.5 font-mono text-[11px] text-muted">
+            {entry.module_id}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to="/matters/$slug/$tab"
+            params={{ slug, tab: "workflows" }}
+            className="rounded-md border border-line px-3 py-1 text-xs hover:border-ink"
+          >
+            Run
+          </Link>
+          <button
+            type="button"
+            onClick={onRevoke}
+            disabled={revoking}
+            className="rounded-md px-3 py-1 text-xs text-muted hover:text-seal disabled:opacity-50"
+          >
+            {revoking ? "Revoking…" : "Revoke"}
+          </button>
+        </div>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
+        <Meta label="Reads" value={shortList(reads)} />
+        <Meta label="Writes" value={shortList(writes)} />
+        <Meta label="Last run" value="Not tracked at module level" />
+      </dl>
+      {err && <p className="mt-2 text-xs text-seal">{err}</p>}
+    </article>
+  );
+}
+
+function AvailableModuleRow({
+  entry,
+  onEnable,
+}: {
+  entry: V2ManifestEntry;
+  onEnable: () => void;
+}) {
+  const reads = capabilityStrings(entry, "reads");
+  const writes = capabilityStrings(entry, "writes");
+  const name = manifestStr(entry, "name") ?? entry.module_id;
+  const publisher = manifestStr(entry, "publisher");
+
+  return (
+    <article
+      className="border border-rule bg-paper p-4"
+      data-testid={`available-module-${entry.module_id}`}
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-ink">{name}</p>
+          <p className="mt-0.5 font-mono text-[11px] text-muted">
+            {entry.module_id}
+            {publisher ? ` · ${publisher}` : ""}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onEnable}
+          disabled={!entry.is_valid}
+          className="shrink-0 rounded-md bg-ink px-3 py-1 text-xs text-paper hover:opacity-90 disabled:opacity-50"
+          data-testid={`enable-${entry.module_id}`}
+        >
+          Enable in matter
+        </button>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
+        <Meta label="Reads" value={shortList(reads)} />
+        <Meta label="Writes" value={shortList(writes)} />
+        <Meta label="Permission sets" value={String(capabilityIds(entry).length)} />
+      </dl>
+    </article>
+  );
+}
+
+function Meta({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <div>
+      <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+        {label}
+      </dt>
+      <dd className={"mt-1 " + (tone ?? "text-ink")}>{value}</dd>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// §4A.6 Enable-in-matter grant ceremony modal.
+//
+// Anatomy (matched to the blueprint, with honest deviations):
+//   1. Skill icon + name           ✓ name at top of modal
+//   2. Header "Enable [skill] in
+//      this matter"                 ✓ heading
+//   3. Document scope picker        Read-only "All documents in this
+//                                   matter"; substrate grants
+//                                   capability-wide, no per-document
+//                                   narrowing yet.
+//   4. Output scope                 Read-only "Writes" list from the
+//                                   manifest; same substrate caveat —
+//                                   we cannot narrow output types yet.
+//   5. Inherited workspace trust    Shown read-only (signature,
+//                                   publisher, installed-at).
+//   6. Cancel / Enable footer       ✓
+//
+// Enabling fires createGrant() for each declared capability_id on the
+// manifest. The substrate expands those into per-string grant rows.
+// ---------------------------------------------------------------------------
+
+function EnableSkillModal({
+  slug,
+  entry,
+  installed,
+  onClose,
+  onEnabled,
+}: {
+  slug: string;
+  entry: V2ManifestEntry;
+  installed: InstalledModule | null;
+  onClose: () => void;
+  onEnabled: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const name = manifestStr(entry, "name") ?? entry.module_id;
+  const reads = capabilityStrings(entry, "reads");
+  const writes = capabilityStrings(entry, "writes");
+  const capIds = capabilityIds(entry);
+
+  const onSubmit = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      // Fire createGrant for each declared capability_id. The substrate
+      // is idempotent — re-enable produces was_idempotent_noop = true,
+      // safe to spam.
+      for (const cap of capIds) {
+        try {
+          await createGrant(slug, {
+            module_id: entry.module_id,
+            capability_id: cap,
+          });
+        } catch (e) {
+          if (e instanceof ModuleNotInstalledError) throw e;
+          if (e instanceof ModuleDisabledError) throw e;
+          // Per-capability grant errors shouldn't block the rest —
+          // surface but continue.
+          // eslint-disable-next-line no-console
+          console.warn(`grant ${entry.module_id}:${cap} failed`, e);
+        }
+      }
+      onEnabled();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="enable-skill-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-[480px] border border-rule bg-paper p-5 shadow-xl">
+        <p className="text-[11px] uppercase tracking-widest text-muted">
+          Enable skill
+        </p>
+        <h2 id="enable-skill-title" className="mt-1 text-lg font-semibold text-ink">
+          Enable {name} in this matter
+        </h2>
+        <p className="mt-1 font-mono text-[11px] text-muted">{entry.module_id}</p>
+
+        {/* Step 3 — document scope */}
+        <Block label="Documents this skill will see">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="radio"
+              checked
+              readOnly
+              aria-label="All documents in this matter"
+              className="mt-1"
+            />
+            <span>
+              <span className="text-ink">All documents in this matter</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Per-document narrowing arrives once the substrate supports it.
+              </span>
+            </span>
+          </label>
+        </Block>
+
+        {/* Step 4 — output scope */}
+        <Block label="What this skill writes">
+          <p className="text-sm text-ink">{shortList(writes)}</p>
+          <p className="mt-1 text-xs text-muted">
+            Outputs land in the matter Record. Per-output narrowing arrives
+            once the substrate supports it.
+          </p>
+        </Block>
+
+        {/* Step 5 — inherited workspace trust */}
+        <Block label="Inherited from workspace trust">
+          <dl className="grid grid-cols-2 gap-2 text-xs">
+            <Pair label="Reads" value={shortList(reads)} />
+            <Pair label="Signature" value={installed?.signature_status ?? "—"} />
+            <Pair label="Publisher" value={manifestStr(entry, "publisher") ?? "—"} />
+            <Pair
+              label="Trusted on"
+              value={
+                installed?.installed_at
+                  ? new Date(installed.installed_at).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "—"
+              }
+            />
+          </dl>
+        </Block>
+
+        {err && (
+          <p className="mt-3 text-xs text-seal" data-testid="enable-modal-error">
+            {err}
+          </p>
+        )}
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-ink disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void onSubmit()}
+            disabled={busy || capIds.length === 0}
+            data-testid="enable-modal-submit"
+            className="rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? "Enabling…" : "Enable"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Block({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-4 border-t border-rule pt-3">
+      <p className="text-[11px] uppercase tracking-widest text-muted">
+        {label}
+      </p>
+      <div className="mt-2">{children}</div>
+    </section>
+  );
+}
+
+function Pair({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[10px] uppercase tracking-widest text-muted">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-xs text-ink">{value}</dd>
+    </div>
+  );
+}
