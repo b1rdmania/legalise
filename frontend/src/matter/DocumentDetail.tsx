@@ -1,15 +1,8 @@
-/**
- * Document Workspace v1 — /matters/{slug}/documents/{document_id}.
- *
- * First-class routed detail page for a matter document. Surfaces only
- * what the substrate actually supports: provenance metadata, extracted
- * text, version history, anonymisation, and model edits. There is
- * deliberately NO "download original" / "open source file" button — the
- * original uploaded bytes are not retrievable via any API today
- * (Document.storage_uri is never exposed; only generated docx stream).
- * That gap is logged in DOCUMENT_WORKSPACE_V1_PLAN.md (G1); we surface an
- * honest note rather than a disabled-fiction button.
- */
+// Matter document reader at /matters/{slug}/documents/{document_id}.
+// Content (extracted text) is the hero; metadata, versions,
+// anonymisation, and model edits live behind a Details disclosure.
+// Open / Download original stream through the documentOriginalUrl
+// proxy and are presented as secondary links beneath the content.
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";

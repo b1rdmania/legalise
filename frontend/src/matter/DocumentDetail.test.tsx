@@ -1,11 +1,7 @@
-/**
- * Document Workspace v1 — DocumentDetail focused tests.
- *
- * Asserts the honest-rendering contracts: metadata + extracted text +
- * versions render; the body-missing state is honest; and there is NO
- * "download original" / "open source file" button (the original-file
- * gap G1 is surfaced as a note, never a fake button).
- */
+// DocumentDetail focused tests: content is the hero, metadata sits
+// behind the Details disclosure, Open / Download original land on
+// the real proxy URLs, source-anchor honesty banner appears when
+// arrived from Chat, body-missing state is honest.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
