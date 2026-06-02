@@ -1,26 +1,9 @@
-/**
- * MatterSkillsTab — the §7 matter-side skill lifecycle surface.
- *
- * Two sections per blueprint §7:
- *   1. Enabled in this matter — active in Chat; built-in workflows
- *      (Pre-Motion / Letters / Contract Review / Tabular Review /
- *      Case Law) PLUS modules with matter-scoped grants present.
- *   2. Available to enable — workspace-installed modules that don't
- *      yet have grants in this matter.
- *
- * Enable opens a matter-scoped grant ceremony (§4A.6 anatomy). The
- * ceremony does NOT re-show the workspace trust ceremony — workspace
- * signature / trust is surfaced as inherited read-only context. The
- * action the user takes here is "enable in this matter", not
- * "re-trust the skill."
- *
- * The detailed permissions table + add-grant form remain in
- * GrantsPanel, rendered below this surface inside a collapsed
- * "Permissions detail" disclosure. That preserves the 747 lines of
- * tests against GrantsPanel and gives operators direct access to
- * the substrate-level grant management without polluting the
- * primary matter Skills view.
- */
+// Matter Skills tab — two sections: Enabled in this matter / Available
+// to enable. Enabling fires per-capability matter grants. Only
+// matter-scoped capabilities are grantable — workspace and provider
+// capabilities are inherited from workspace trust and not surfaced as
+// per-matter actions. GrantsPanel below provides the operator-level
+// permissions table for direct grant editing.
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -30,8 +13,6 @@ import {
   getModulesV2,
   listGrants,
   listInstalledModules,
-  ModuleDisabledError,
-  ModuleNotInstalledError,
   revokeGrant,
   type GrantRow,
   type InstalledModule,
@@ -76,26 +57,37 @@ function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
 function capabilityStrings(
   entry: V2ManifestEntry,
   key: "reads" | "writes",
+  opts: { matterOnly?: boolean } = {},
 ): string[] {
   const caps = (entry.manifest as Record<string, unknown>).capabilities;
   if (!Array.isArray(caps)) return [];
   const out = new Set<string>();
   for (const raw of caps) {
     if (!raw || typeof raw !== "object") continue;
-    const values = (raw as Record<string, unknown>)[key];
+    const obj = raw as Record<string, unknown>;
+    if (opts.matterOnly && obj.scope !== "matter") continue;
+    const values = obj[key];
     if (!Array.isArray(values)) continue;
     for (const value of values) if (typeof value === "string") out.add(value);
   }
   return [...out].sort();
 }
 
-function capabilityIds(entry: V2ManifestEntry): string[] {
+// The substrate only grants capabilities with scope === "matter" at
+// matter level; create_grants_for_capability rejects scope ≠ "matter"
+// with 422 (see GrantsPanel for the canonical filter at line 441).
+// Returning only those keeps the enable action honest: provider /
+// workspace / other-scope capabilities are inherited from workspace
+// trust and are not per-matter actions.
+function matterCapabilityIds(entry: V2ManifestEntry): string[] {
   const caps = (entry.manifest as Record<string, unknown>).capabilities;
   if (!Array.isArray(caps)) return [];
   const out: string[] = [];
   for (const raw of caps) {
     if (!raw || typeof raw !== "object") continue;
-    const id = (raw as Record<string, unknown>).id;
+    const obj = raw as Record<string, unknown>;
+    if (obj.scope !== "matter") continue;
+    const id = obj.id;
     if (typeof id === "string") out.push(id);
   }
   return out;
@@ -419,6 +411,14 @@ function AvailableModuleRow({
   const writes = capabilityStrings(entry, "writes");
   const name = manifestStr(entry, "name") ?? entry.module_id;
   const publisher = manifestStr(entry, "publisher");
+  const matterCaps = matterCapabilityIds(entry);
+  const hasMatterCaps = matterCaps.length > 0;
+  const enableDisabled = !entry.is_valid || !hasMatterCaps;
+  const disabledReason = !entry.is_valid
+    ? "Manifest invalid — fix at the workspace before enabling."
+    : !hasMatterCaps
+      ? "This skill has no matter-scoped capabilities to enable. It runs at workspace level."
+      : null;
 
   return (
     <article
@@ -436,7 +436,8 @@ function AvailableModuleRow({
         <button
           type="button"
           onClick={onEnable}
-          disabled={!entry.is_valid}
+          disabled={enableDisabled}
+          title={disabledReason ?? undefined}
           className="shrink-0 rounded-md bg-ink px-3 py-1 text-xs text-paper hover:opacity-90 disabled:opacity-50"
           data-testid={`enable-${entry.module_id}`}
         >
@@ -446,8 +447,16 @@ function AvailableModuleRow({
       <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
         <Meta label="Reads" value={shortList(reads)} />
         <Meta label="Writes" value={shortList(writes)} />
-        <Meta label="Permission sets" value={String(capabilityIds(entry).length)} />
+        <Meta label="Matter capabilities" value={String(matterCaps.length)} />
       </dl>
+      {disabledReason && (
+        <p
+          className="mt-2 text-xs text-muted"
+          data-testid={`available-disabled-reason-${entry.module_id}`}
+        >
+          {disabledReason}
+        </p>
+      )}
     </article>
   );
 }
@@ -471,27 +480,13 @@ function Meta({
   );
 }
 
-// ---------------------------------------------------------------------------
-// §4A.6 Enable-in-matter grant ceremony modal.
-//
-// Anatomy (matched to the blueprint, with honest deviations):
-//   1. Skill icon + name           ✓ name at top of modal
-//   2. Header "Enable [skill] in
-//      this matter"                 ✓ heading
-//   3. Document scope picker        Read-only "All documents in this
-//                                   matter"; substrate grants
-//                                   capability-wide, no per-document
-//                                   narrowing yet.
-//   4. Output scope                 Read-only "Writes" list from the
-//                                   manifest; same substrate caveat —
-//                                   we cannot narrow output types yet.
-//   5. Inherited workspace trust    Shown read-only (signature,
-//                                   publisher, installed-at).
-//   6. Cancel / Enable footer       ✓
-//
-// Enabling fires createGrant() for each declared capability_id on the
-// manifest. The substrate expands those into per-string grant rows.
-// ---------------------------------------------------------------------------
+// Enable modal — grants every matter-scoped capability. Non-matter
+// capabilities (workspace / provider / etc.) are NOT posted: the
+// substrate rejects them with 422 at matter scope. If a skill has
+// no matter-scoped capabilities the modal isn't reachable
+// (AvailableModuleRow disables the Enable button with an honest
+// reason). Any grant failure aborts the rest, keeps the modal open,
+// and surfaces the real error.
 
 function EnableSkillModal({
   slug,
@@ -509,31 +504,26 @@ function EnableSkillModal({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const name = manifestStr(entry, "name") ?? entry.module_id;
-  const reads = capabilityStrings(entry, "reads");
-  const writes = capabilityStrings(entry, "writes");
-  const capIds = capabilityIds(entry);
+  // Modal copy is matter-scoped: what enabling here actually does, not
+  // what the skill could do at other scopes.
+  const reads = capabilityStrings(entry, "reads", { matterOnly: true });
+  const writes = capabilityStrings(entry, "writes", { matterOnly: true });
+  const matterCaps = matterCapabilityIds(entry);
 
   const onSubmit = async () => {
+    if (matterCaps.length === 0) return;
     setBusy(true);
     setErr(null);
     try {
-      // Fire createGrant for each declared capability_id. The substrate
-      // is idempotent — re-enable produces was_idempotent_noop = true,
-      // safe to spam.
-      for (const cap of capIds) {
-        try {
-          await createGrant(slug, {
-            module_id: entry.module_id,
-            capability_id: cap,
-          });
-        } catch (e) {
-          if (e instanceof ModuleNotInstalledError) throw e;
-          if (e instanceof ModuleDisabledError) throw e;
-          // Per-capability grant errors shouldn't block the rest —
-          // surface but continue.
-          // eslint-disable-next-line no-console
-          console.warn(`grant ${entry.module_id}:${cap} failed`, e);
-        }
+      // The substrate's createGrant is idempotent (was_idempotent_noop
+      // on a no-op rerun), so re-enable on an already-granted skill is
+      // safe. Any real failure halts the run so the modal can show
+      // honest state instead of silently closing as "enabled."
+      for (const cap of matterCaps) {
+        await createGrant(slug, {
+          module_id: entry.module_id,
+          capability_id: cap,
+        });
       }
       onEnabled();
     } catch (e) {
@@ -629,7 +619,7 @@ function EnableSkillModal({
           <button
             type="button"
             onClick={() => void onSubmit()}
-            disabled={busy || capIds.length === 0}
+            disabled={busy || matterCaps.length === 0}
             data-testid="enable-modal-submit"
             className="rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
           >
