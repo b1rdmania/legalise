@@ -93,59 +93,8 @@ afterEach(() => {
 });
 
 describe("AssistantTab — in-chat skill picker", () => {
-  it("keeps legacy workflows out of the primary runnable skill count", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
-      workflows: [
-        // Granted + ok → primary list, counted.
-        {
-          key: "premotion",
-          title: "Pre-Motion",
-          description: "Analyse the dispute.",
-          declared_capabilities: [],
-          granted_capabilities: [],
-          grant: "granted",
-          last_run_at: null,
-          availability: "ok",
-          reason: null,
-        },
-        {
-          key: "letters",
-          title: "Letters",
-          description: "Draft pre-action letters.",
-          declared_capabilities: [],
-          granted_capabilities: [],
-          grant: "granted",
-          last_run_at: null,
-          availability: "ok",
-          reason: null,
-        },
-        // Granted but blocked by privilege state → "Needs attention",
-        // NOT counted in the Skills (N) total.
-        {
-          key: "contract-review",
-          title: "Contract Review",
-          description: "Review contracts.",
-          declared_capabilities: [],
-          granted_capabilities: [],
-          grant: "granted",
-          last_run_at: null,
-          availability: "blocked-by-posture",
-          reason: "Privilege state C_paused blocks cloud calls.",
-        },
-        // Not granted on this matter at all → must not appear anywhere.
-        {
-          key: "reviews",
-          title: "Tabular Review",
-          description: "Review tables.",
-          declared_capabilities: [],
-          granted_capabilities: [],
-          grant: "blocked",
-          last_run_at: null,
-          availability: "blocked-by-grant",
-          reason: null,
-        },
-      ],
-    } as never);
+  it("does not fetch or expose legacy built-in workflows in the chat picker", async () => {
+    const workflowsSpy = vi.spyOn(api, "getMatterWorkflows");
 
     mountChat();
 
@@ -154,50 +103,13 @@ describe("AssistantTab — in-chat skill picker", () => {
 
     fireEvent.click(toggle);
     expect(await screen.findByTestId("chat-skills-popover")).toBeInTheDocument();
-    expect(screen.getByText(/Legacy built-in actions \(2\)/i)).toBeInTheDocument();
-    expect(screen.getByTestId("chat-skill-premotion")).toBeInTheDocument();
-    expect(screen.getByTestId("chat-skill-letters")).toBeInTheDocument();
-    // Granted-but-blocked → in Needs attention, not in primary picker.
-    expect(screen.queryByTestId("chat-skill-contract-review")).toBeNull();
-    expect(
-      screen.getByTestId("chat-skill-blocked-contract-review"),
-    ).toBeInTheDocument();
-    // Ungranted → nowhere.
-    expect(screen.queryByTestId("chat-skill-reviews")).toBeNull();
-    expect(screen.queryByTestId("chat-skill-blocked-reviews")).toBeNull();
+    expect(workflowsSpy).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Legacy built-in actions/i)).toBeNull();
+    expect(screen.queryByTestId("chat-skill-premotion")).toBeNull();
+    expect(screen.queryByTestId("chat-skill-letters")).toBeNull();
   });
 
-  it("routes to the picked skill's tab via setTabAndHash", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
-      workflows: [
-        {
-          key: "premotion",
-          title: "Pre-Motion",
-          description: "Analyse.",
-          declared_capabilities: [],
-          granted_capabilities: [],
-          grant: "granted",
-          last_run_at: null,
-          availability: "ok",
-          reason: null,
-        },
-      ],
-    } as never);
-
-    const setTabAndHash = vi.fn();
-    mountChat({ setTabAndHash });
-
-    fireEvent.click(await screen.findByTestId("chat-skills-toggle"));
-    fireEvent.click(await screen.findByTestId("chat-skill-premotion"));
-
-    expect(setTabAndHash).toHaveBeenCalledWith("premotion");
-  });
-
-  it("shows the empty state and routes to the matter Skills tab when nothing is runnable", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
-      workflows: [],
-    } as never);
-
+  it("shows the empty state and routes to the matter Skills tab when no generic skill is runnable", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
@@ -211,25 +123,19 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(setTabAndHash).toHaveBeenCalledWith("workflows");
   });
 
-  it("exposes the ambient Record and Documents links in the header", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
-      workflows: [],
-    } as never);
-
+  it("exposes ambient Record and Documents links in the shell", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
-    fireEvent.click(await screen.findByTestId("open-record-link"));
-    expect(setTabAndHash).toHaveBeenCalledWith("audit");
+    expect(await screen.findByTestId("open-record-link")).toHaveTextContent(
+      /View Record/i,
+    );
 
     fireEvent.click(screen.getByTestId("open-documents-link"));
     expect(setTabAndHash).toHaveBeenCalledWith("documents");
   });
 
   it("mounts the generic runner for a runnable V2 skill instead of routing to a bespoke tab", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
-      workflows: [],
-    } as never);
     vi.spyOn(api, "getModulesV2").mockResolvedValue({
       modules: [
         {
@@ -309,10 +215,6 @@ describe("AssistantTab — in-chat skill picker", () => {
 
 describe("AssistantTab — docs loading state", () => {
   it("shows a loading line while docs are null, then resolves to the count", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
-      workflows: [],
-    } as never);
-
     // Mount with docs=null (still fetching). The header must not lie
     // and claim "No documents yet" — that's the empty state for a
     // resolved matter with zero documents, not the loading state.

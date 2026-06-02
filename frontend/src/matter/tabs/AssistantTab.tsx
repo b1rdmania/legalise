@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
-  getMatterWorkflows,
   getModulesV2,
   listGrants,
   listAssistantMessages,
@@ -18,7 +17,6 @@ import {
   type MatterDocument,
   type SuggestedAction,
   type V2ManifestEntry,
-  type WorkflowState,
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
 import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
@@ -101,10 +99,6 @@ export function AssistantTab({
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
-  // In-chat skill picker reads the same matter-workflows endpoint
-  // the matter Skills tab uses. Only workflows already granted on
-  // this matter appear — the chat surface never invents skill state.
-  const [enabledSkills, setEnabledSkills] = useState<WorkflowState[]>([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [moduleEntries, setModuleEntries] = useState<V2ManifestEntry[]>([]);
   const [installedModules, setInstalledModules] = useState<Map<string, InstalledModule>>(
@@ -143,30 +137,6 @@ export function AssistantTab({
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, thinking]);
 
-  // Fetch enabled-in-matter skills for the in-chat picker. The
-  // picker keeps two lists separately so the "Skills (N)" count and
-  // primary list reflect only what's actually runnable right now —
-  // grant === "granted" AND availability === "ok". Granted skills
-  // that are blocked by privilege state or a missing permission move
-  // to a quieter "Needs attention" section so the user can see why
-  // without inflating the runnable count.
-  const [needsAttention, setNeedsAttention] = useState<WorkflowState[]>([]);
-  useEffect(() => {
-    if (disabled) return;
-    let cancelled = false;
-    void getMatterWorkflows(matter.slug)
-      .then((r) => {
-        if (cancelled) return;
-        const granted = r.workflows.filter((w) => w.grant === "granted");
-        setEnabledSkills(granted.filter((w) => w.availability === "ok"));
-        setNeedsAttention(granted.filter((w) => w.availability !== "ok"));
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [matter.slug, disabled]);
-
   useEffect(() => {
     if (disabled) return;
     let cancelled = false;
@@ -199,7 +169,6 @@ export function AssistantTab({
     [moduleEntries, installedModules, grantRows],
   );
 
-  const legacyRunnableCount = enabledSkills.length;
   const runnableSkillCount = runnableModuleSkills.length;
 
   const docsById = useMemo(() => {
@@ -326,16 +295,6 @@ export function AssistantTab({
 
   const [attachOpen, setAttachOpen] = useState(false);
 
-  const onPickSkill = (w: WorkflowState) => {
-    setSkillsOpen(false);
-    setActiveRunnerSkill(null);
-    if (disabled) {
-      onDisabledAction?.();
-      return;
-    }
-    setTabAndHash(w.key as TabKey);
-  };
-
   const onPickRunnerSkill = (skill: RunnableMatterSkill) => {
     setSkillsOpen(false);
     if (disabled) {
@@ -352,6 +311,10 @@ export function AssistantTab({
 
   const openWorkingPack = () => {
     void navigate({ to: "/matters/$slug/lifecycle", params: { slug: matter.slug } });
+  };
+
+  const openRecord = () => {
+    void navigate({ to: "/matters/$slug/audit", params: { slug: matter.slug } });
   };
 
   return (
@@ -381,7 +344,7 @@ export function AssistantTab({
             <span aria-hidden="true">·</span>
             <button
               type="button"
-              onClick={() => setTabAndHash("audit")}
+              onClick={openRecord}
               className="underline underline-offset-4 hover:text-ink"
               data-testid="open-record-link"
             >
@@ -600,59 +563,6 @@ export function AssistantTab({
                       )}
                     </div>
                   )}
-                  {enabledSkills.length > 0 && (
-                    <details className="mt-3 border-t border-rule pt-3">
-                      <summary className="cursor-pointer text-[11px] text-muted hover:text-ink">
-                        Legacy built-in actions ({enabledSkills.length})
-                      </summary>
-                      <ul className="mt-2 space-y-2">
-                        {enabledSkills.map((w) => (
-                          <li key={w.key}>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => onPickSkill(w)}
-                              className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
-                              data-testid={`chat-skill-${w.key}`}
-                            >
-                              <span className="block text-ink font-medium">
-                                {w.title}
-                              </span>
-                              <span aria-hidden="true" className="text-muted">
-                                →
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                  {needsAttention.length > 0 && (
-                    <>
-                      <div className="mt-3 eyebrow text-muted">
-                        Needs attention
-                      </div>
-                      <ul
-                        className="mt-1 space-y-1"
-                        data-testid="chat-skills-needs-attention"
-                      >
-                        {needsAttention.map((w) => (
-                          <li
-                            key={w.key}
-                            className="text-[11px] text-muted"
-                            data-testid={`chat-skill-blocked-${w.key}`}
-                          >
-                            <span className="block text-ink">{w.title}</span>
-                            <span className="block">
-                              {w.availability === "blocked-by-posture"
-                                ? "Blocked by privilege state"
-                                : "Needs permission in this matter"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -719,12 +629,10 @@ export function AssistantTab({
         readySkillLabels={[
           ...runnableModuleSkills.map((skill) => skill.title),
         ]}
-        legacyRunnableCount={legacyRunnableCount}
-        needsAttentionCount={needsAttention.length}
         selectedCount={selectedDocIds.size}
         onOpenDocuments={() => setTabAndHash("documents")}
         onOpenSkills={() => setTabAndHash("workflows")}
-        onOpenRecord={() => setTabAndHash("audit")}
+        onOpenRecord={openRecord}
         onOpenOutputs={openOutputs}
         onOpenPack={openWorkingPack}
       />
@@ -737,8 +645,6 @@ function MatterContextRail({
   recentDocs,
   runnableSkillCount,
   readySkillLabels,
-  legacyRunnableCount,
-  needsAttentionCount,
   selectedCount,
   onOpenDocuments,
   onOpenSkills,
@@ -750,8 +656,6 @@ function MatterContextRail({
   recentDocs: MatterDocument[];
   runnableSkillCount: number;
   readySkillLabels: string[];
-  legacyRunnableCount: number;
-  needsAttentionCount: number;
   selectedCount: number;
   onOpenDocuments: () => void;
   onOpenSkills: () => void;
@@ -801,16 +705,6 @@ function MatterContextRail({
           </ul>
         ) : (
           <p className="mt-2 text-sm text-muted">Enable a skill to run it here.</p>
-        )}
-        {needsAttentionCount > 0 && (
-          <p className="mt-3 text-xs text-muted">
-            {needsAttentionCount} needs setup
-          </p>
-        )}
-        {legacyRunnableCount > 0 && (
-          <p className="mt-3 text-xs text-muted">
-            {legacyRunnableCount} legacy action{legacyRunnableCount === 1 ? "" : "s"} available from the picker
-          </p>
         )}
       </RailPanel>
 
