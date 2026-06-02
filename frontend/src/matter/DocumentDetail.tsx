@@ -28,6 +28,7 @@ import {
 } from "../ui/primitives";
 import { EditPanel } from "../modules/document_edit/EditPanel";
 import { AnonymiseButton } from "../modules/anonymisation/AnonymiseButton";
+import { VersionTimeline } from "../modules/document_edit/VersionTimeline";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -41,6 +42,26 @@ type DocQuery =
   | { status: "not_found" }
   | { status: "error"; message: string };
 
+type DocumentWorkspaceTab = "read" | "redline" | "history";
+
+const DOCUMENT_TABS: { key: DocumentWorkspaceTab; label: string; hint: string }[] = [
+  {
+    key: "read",
+    label: "Read",
+    hint: "Read the extracted text and open the original file.",
+  },
+  {
+    key: "redline",
+    label: "Redline",
+    hint: "Ask Legalise to propose edits, then accept or reject them.",
+  },
+  {
+    key: "history",
+    label: "History",
+    hint: "See versions, redactions, and document facts.",
+  },
+];
+
 export function DocumentDetail({
   slug,
   documentId,
@@ -53,8 +74,8 @@ export function DocumentDetail({
   const [bodyMissing, setBodyMissing] = useState(false);
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [anon, setAnon] = useState<AnonymisationResult | null>(null);
-  const [showEdit, setShowEdit] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [activeTab, setActiveTab] = useState<DocumentWorkspaceTab>("read");
 
   // Source-anchor honesty: when arrived from chat, surface a single
   // line noting that passage-level anchoring isn't yet wired through
@@ -142,9 +163,10 @@ export function DocumentDetail({
 
   const doc = q.doc;
   const recordHref = `/matters/${encodeURIComponent(slug)}/audit`;
+  const selectedTab = DOCUMENT_TABS.find((t) => t.key === activeTab) ?? DOCUMENT_TABS[0];
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
+    <div className="mx-auto max-w-5xl px-6 py-10 text-ink">
       {/* Smart back — returns to the matter surface the user came
           from. ?from=assistant lands here from a chat source chip;
           everything else falls back to the Documents tab. */}
@@ -158,7 +180,31 @@ export function DocumentDetail({
           {backLabel}
         </Link>
       </p>
-      <PageHeader eyebrow="Document" title={doc.filename} subId={doc.id} />
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <div className="max-w-3xl">
+          <PageHeader eyebrow="Document workspace" title={doc.filename} subId={doc.id} />
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+            Read the document, propose tracked edits, and keep the version record in one place.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <a
+            href={documentOriginalUrl(documentId)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:bg-wash"
+            data-testid="document-open-original"
+          >
+            Open original
+          </a>
+          <a
+            href={documentOriginalUrl(documentId, { download: true })}
+            className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:bg-wash"
+          >
+            Download
+          </a>
+        </div>
+      </div>
 
       {arrivedFromChat && (
         <p
@@ -170,48 +216,149 @@ export function DocumentDetail({
         </p>
       )}
 
-      {/* Content hero — extracted text is the primary surface. Full
-          height, generous container, ready to read. */}
-      <section className="mt-6" data-testid="document-content">
-        {bodyMissing ? (
-          <EmptyState
-            title="No extracted text"
-            body="No extracted body is available for this document (extraction may have failed or not run). The original file is still available below."
-          />
-        ) : !body ? (
-          <LoadingLine label="loading document text" />
-        ) : (
-          <article className="rounded-md border border-rule bg-paper px-5 py-4 text-sm leading-relaxed whitespace-pre-wrap font-sans text-ink">
-            {body.extracted_text || "(empty)"}
-          </article>
-        )}
-      </section>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <main>
+          <div className="border-b border-rule">
+            <div className="flex flex-wrap gap-1" role="tablist" aria-label="Document workspace">
+              {DOCUMENT_TABS.map((tab) => {
+                const active = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`border border-b-0 border-rule px-4 py-2 text-sm font-medium ${
+                      active
+                        ? "bg-paper text-ink"
+                        : "bg-wash text-muted hover:text-ink"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* Secondary actions — original file open/download. Always
-          available, never the hero. */}
-      <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
-        <a
-          href={documentOriginalUrl(documentId)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center text-muted underline underline-offset-4 hover:text-ink"
-          data-testid="document-open-original"
-        >
-          Open original
-        </a>
-        <a
-          href={documentOriginalUrl(documentId, { download: true })}
-          className="inline-flex items-center text-muted underline underline-offset-4 hover:text-ink"
-        >
-          Download original
-        </a>
-        <span className="text-muted">Original file access is audited.</span>
+          <p className="mt-3 text-xs text-muted">{selectedTab.hint}</p>
+
+          {activeTab === "read" && (
+            <section className="mt-5" data-testid="document-content">
+              {bodyMissing ? (
+                <EmptyState
+                  title="No extracted text"
+                  body="No extracted body is available for this document (extraction may have failed or not run). The original file is still available."
+                />
+              ) : !body ? (
+                <LoadingLine label="loading document text" />
+              ) : (
+                <article className="min-h-[520px] rounded-md border border-rule bg-paper px-6 py-5 text-[15px] leading-7 whitespace-pre-wrap font-sans text-ink">
+                  {body.extracted_text || "(empty)"}
+                </article>
+              )}
+            </section>
+          )}
+
+          {activeTab === "redline" && (
+            <section className="mt-5" data-testid="document-redline-workspace">
+              <div className="mb-4 border-l-2 border-ink pl-4">
+                <h2 className="text-lg font-bold tracking-tight2">
+                  Propose tracked edits
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">
+                  Legalise can suggest changes against the extracted text. You decide which edits become part of the document history.
+                </p>
+              </div>
+              <EditPanel
+                documentId={documentId}
+                filename={doc.filename}
+                onClose={() => {
+                  setActiveTab("read");
+                  loadBody();
+                  getDocumentVersions(documentId)
+                    .then(setVersions)
+                    .catch(() => undefined);
+                }}
+              />
+            </section>
+          )}
+
+          {activeTab === "history" && (
+            <section className="mt-5" data-testid="document-history-workspace">
+              <div className="rounded-md border border-rule bg-paper p-5">
+                <h2 className="text-lg font-bold tracking-tight2">
+                  Document history
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  Versions, accepted edits, rejected edits, and redaction state stay attached to this document.
+                </p>
+                <VersionTimeline documentId={documentId} />
+                {versions.length === 0 && (
+                  <p className="mt-4 text-sm text-muted">No versions recorded.</p>
+                )}
+              </div>
+
+              <div className="mt-6 rounded-md border border-rule bg-paper p-5">
+                <h3 className="text-xs uppercase tracking-widest text-muted">
+                  Redaction
+                </h3>
+                <p className="mt-2 text-sm text-muted">
+                  {anon
+                    ? `Redacted body available — ${anon.entity_count} entities via ${anon.engine}, ${anon.anonymised_at.replace("T", " ").slice(0, 16)}.`
+                    : "No redacted body yet."}
+                </p>
+                <div className="mt-3">
+                  <AnonymiseButton
+                    documentId={documentId}
+                    onResult={(r) => setAnon(r)}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+        </main>
+
+        <aside className="space-y-4">
+          <div className="rounded-md border border-rule bg-paper p-4">
+            <h2 className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+              Document
+            </h2>
+            <dl className="mt-3 space-y-3 text-sm">
+              <DescItem label="Type">
+                <span className="font-mono text-xs">{doc.mime_type}</span>
+              </DescItem>
+              <DescItem label="Size">{formatBytes(doc.size_bytes)}</DescItem>
+              <DescItem label="Tag">{doc.tag || "—"}</DescItem>
+              <DescItem label="Source">
+                {doc.from_disclosure ? "Disclosure · CPR 31" : "Upload"}
+              </DescItem>
+            </dl>
+            <p className="mt-4 text-xs text-muted">
+              Original file access is audited.
+            </p>
+          </div>
+
+          <div className="rounded-md border border-rule bg-paper p-4">
+            <h2 className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+              Record
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              Document opens, edits, redactions, and downloads are part of the matter record where supported.
+            </p>
+            <p className="mt-3 text-sm">
+              <a
+                href={recordHref}
+                className="text-muted underline underline-offset-4 hover:text-ink"
+              >
+                View matter Record →
+              </a>
+            </p>
+          </div>
+        </aside>
       </div>
 
-      {/* Details disclosure — metadata, versions, anonymisation, and
-          model edits are accessible but not the hero. The user opens
-          this when they want to drill into provenance; the default
-          surface stays the document content. */}
       <section className="mt-8 border-t border-rule pt-4">
         <button
           type="button"
@@ -254,94 +401,9 @@ export function DocumentDetail({
                 <span className="font-mono text-xs break-all">{doc.sha256}</span>
               </DescItem>
             </dl>
-
-            <div>
-              <h3 className="text-xs uppercase tracking-widest text-muted">
-                Versions
-              </h3>
-              {versions.length === 0 ? (
-                <p className="mt-2 text-sm text-muted">No versions recorded.</p>
-              ) : (
-                <ul className="mt-2 space-y-px bg-rule border border-rule">
-                  {versions.map((v) => (
-                    <li
-                      key={v.version.id}
-                      className="flex items-baseline justify-between gap-3 bg-paper p-3 text-sm"
-                    >
-                      <span>
-                        <span className="font-mono text-xs text-muted">
-                          v{v.version.version_number}
-                        </span>{" "}
-                        {v.version.kind}
-                      </span>
-                      <span className="text-xs text-muted">
-                        {v.pending_count > 0 && `${v.pending_count} pending · `}
-                        {v.version.created_at.replace("T", " ").slice(0, 16)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div>
-              <h3 className="text-xs uppercase tracking-widest text-muted">
-                Anonymisation
-              </h3>
-              <p className="mt-1 text-xs text-muted">
-                {anon
-                  ? `Redacted body available — ${anon.entity_count} entities via ${anon.engine}, ${anon.anonymised_at.replace("T", " ").slice(0, 16)}.`
-                  : "No redacted body yet."}
-              </p>
-              <div className="mt-2">
-                <AnonymiseButton
-                  documentId={documentId}
-                  onResult={(r) => setAnon(r)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs uppercase tracking-widest text-muted">
-                  Model edits
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowEdit((v) => !v)}
-                  className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-                >
-                  {showEdit ? "Hide" : "Open editor"}
-                </button>
-              </div>
-              {showEdit && (
-                <div className="mt-2">
-                  <EditPanel
-                    documentId={documentId}
-                    filename={doc.filename}
-                    onClose={() => {
-                      setShowEdit(false);
-                      loadBody();
-                      getDocumentVersions(documentId)
-                        .then(setVersions)
-                        .catch(() => undefined);
-                    }}
-                  />
-                </div>
-              )}
-            </div>
           </div>
         )}
       </section>
-
-      <p className="mt-10 text-sm">
-        <a
-          href={recordHref}
-          className="text-muted underline underline-offset-4 hover:text-ink"
-        >
-          View matter Record →
-        </a>
-      </p>
     </div>
   );
 }
