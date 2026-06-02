@@ -1,7 +1,8 @@
-// DocumentDetail focused tests: content is the hero, metadata sits
-// behind the Details disclosure, Open / Download original land on
-// the real proxy URLs, source-anchor honesty banner appears when
-// arrived from Chat, body-missing state is honest.
+// DocumentDetail focused tests: content is the hero, the document
+// workspace exposes Read / Redline / History, Open / Download original
+// land on the real proxy URLs, source-anchor honesty banner appears
+// when arrived from Chat, body-missing state is honest, and deep
+// metadata sits behind Details.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -90,11 +91,19 @@ describe("DocumentDetail", () => {
     // Content is the hero — extracted text visible without any
     // disclosure being opened first.
     expect(screen.getByText(/IN THE COUNTY COURT/)).toBeInTheDocument();
-    // Metadata starts collapsed behind a Details disclosure.
-    expect(screen.queryByText("application/pdf")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Read" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: "Redline" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "History" })).toBeInTheDocument();
+    // Basic document facts sit in the quiet side rail; deep facts
+    // such as the full SHA stay behind Details.
+    expect(screen.getByText("application/pdf")).toBeInTheDocument();
+    expect(screen.queryByText(/a{8}/)).toBeNull();
     // Original-file actions are still present (secondary).
     const open = screen.getByText("Open original");
-    const download = screen.getByText("Download original");
+    const download = screen.getByText("Download");
     expect(open.getAttribute("href")).toContain("/documents/doc-1/original");
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
@@ -122,8 +131,37 @@ describe("DocumentDetail", () => {
       expect(screen.getByText("claim-form.pdf")).toBeInTheDocument();
     });
     fireEvent.click(screen.getByTestId("document-details-toggle"));
-    expect(screen.getByText("application/pdf")).toBeInTheDocument();
+    expect(screen.getAllByText("application/pdf").length).toBeGreaterThan(1);
     expect(screen.getByText(/a{8}/)).toBeInTheDocument(); // sha prefix
+  });
+
+  it("promotes redline and history into first-class document workspace tabs", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue({
+      document_id: "doc-1",
+      kind: "extracted",
+      extracted_text: "BODY",
+      extraction_method: "pypdf",
+      extracted_at: "2026-05-28T09:01:00",
+      char_count: 4,
+      page_count: 1,
+      error_reason: null,
+    });
+
+    mount();
+    await waitFor(() => {
+      expect(screen.getByText("claim-form.pdf")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Redline" }));
+    expect(screen.getByTestId("document-redline-workspace")).toBeInTheDocument();
+    expect(screen.getByText("Propose tracked edits")).toBeInTheDocument();
+    expect(screen.getByText("Tighten this clause")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "History" }));
+    expect(screen.getByTestId("document-history-workspace")).toBeInTheDocument();
+    expect(screen.getByText("Document history")).toBeInTheDocument();
+    expect(screen.getByText("Redaction")).toBeInTheDocument();
   });
 
   it("shows an honest empty state when no extracted body exists", async () => {
