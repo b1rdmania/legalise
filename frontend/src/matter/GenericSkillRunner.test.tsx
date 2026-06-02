@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as api from "../lib/api";
-import { GenericSkillRunner } from "./GenericSkillRunner";
+import { artifactIdsFromResult, GenericSkillRunner } from "./GenericSkillRunner";
 import type { RunnableMatterSkill } from "./skillRunnerModel";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -48,6 +48,18 @@ afterEach(() => {
 });
 
 describe("GenericSkillRunner", () => {
+  it("extracts all artifact ids from a generic invocation result", () => {
+    expect(
+      artifactIdsFromResult({
+        artifact_id: "primary",
+        motion_artifact_id: "motion",
+        evidence_artifact_id: "evidence",
+        duplicate_artifact_id: "motion",
+        not_artifact_idish: "ignored",
+      }),
+    ).toEqual(["primary", "motion", "evidence"]);
+  });
+
   it("uses manifest default_request instead of inventing skill copy", () => {
     renderRunner();
 
@@ -130,5 +142,39 @@ describe("GenericSkillRunner", () => {
         },
       });
     });
+  });
+
+  it("renders every artifact id returned by a native-style result", async () => {
+    vi.spyOn(api, "invokeCapability").mockResolvedValue({
+      invocation_id: "inv-1",
+      result: {
+        motion_artifact_id: "motion-1",
+        evidence_artifact_id: "evidence-1",
+      },
+    } as never);
+    const read = vi.spyOn(api, "readArtifact");
+    read.mockResolvedValueOnce({
+      id: "motion-1",
+      kind: "motion_draft",
+      payload: { markdown: "# Draft motion" },
+      invocation_id: "inv-1",
+      created_at: "2026-01-01T00:00:00",
+    } as never);
+    read.mockResolvedValueOnce({
+      id: "evidence-1",
+      kind: "evidence_list",
+      payload: { evidence: [{ document_id: "doc-1", relevance: "high" }] },
+      invocation_id: "inv-1",
+      created_at: "2026-01-01T00:00:00",
+    } as never);
+
+    renderRunner();
+    fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
+
+    expect(await screen.findByText("2 outputs written")).toBeInTheDocument();
+    expect(screen.getByTestId("motion-draft-view")).toBeInTheDocument();
+    expect(screen.getByTestId("evidence-list-view")).toBeInTheDocument();
+    expect(read).toHaveBeenCalledWith("khan-v-acme", "motion-1");
+    expect(read).toHaveBeenCalledWith("khan-v-acme", "evidence-1");
   });
 });

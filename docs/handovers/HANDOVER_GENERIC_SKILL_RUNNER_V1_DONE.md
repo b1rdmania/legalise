@@ -34,7 +34,7 @@ The runner is deliberately narrow:
   - Reads `ui.default_request` from the manifest when present, so starter copy lives with the skill rather than in a runner-side skill opinion.
   - Renders manifest-declared input fields from `args_schema` and sends completed values as invocation args.
   - Calls `invokeCapability` only.
-  - Reads the produced artifact when `artifact_id` is returned.
+  - Reads produced artifacts when the result returns `artifact_id` or generic `*_artifact_id` keys, so native-style skills can return multiple artifacts without a runner-side adapter.
   - Renders `ArtifactPreview`, `Open output`, `Review & sign`, and `View Record for this run`.
   - Provides `Close run` after a successful inline run, so Chat can dismiss the runner without leaving the page.
 
@@ -73,6 +73,7 @@ The runner is deliberately narrow:
   - Pins manifest-owned starter request rendering.
   - Pins neutral fallback copy when a manifest does not provide `ui.default_request`.
   - Pins manifest string-enum field rendering and invocation args.
+  - Pins generic extraction/rendering of multiple `*_artifact_id` values from native-style invocation results.
   - Pins closing a completed inline run.
 
 - `backend/tests/test_phase2_schema.py`
@@ -106,7 +107,7 @@ That path is now represented in both:
 
 - `GSR-2`: mostly complete for the first V2 proof target.
 - `GSR-2.1`: complete for runner contract polish: manifest starter request, manifest input fields, neutral fallback copy, and close affordance.
-- `GSR-3`: partially satisfied via existing `ArtifactPreview` support, including `skill_response`. More output kinds can be added later through typed artifact viewers, not through bespoke skill pages.
+- `GSR-3`: partially satisfied via existing `ArtifactPreview` support, including `skill_response`, and by generic multi-artifact result handling. More output kinds can be added later through typed artifact viewers, not through bespoke skill pages.
 - `GSR-4`: complete for V2 skills in Chat. Chat mounts the same runner component.
 - `GSR-5`: not complete. Legacy routes remain. The next step is a deprecation/retirement plan once first-party workflows are either wrapped as V2 skills or intentionally left legacy.
 
@@ -139,7 +140,8 @@ Local frontend verification:
 - `npm run test -- AssistantTab MatterSkillsTab --run` — 10/10
 - `npm run test -- GenericSkillRunner AssistantTab MatterSkillsTab --run` — 13/13
 - `npm run test -- GenericSkillRunner AssistantTab MatterSkillsTab --run` — 14/14 after `args_schema`
-- `npm run test -- --run` — 209/209
+- `npm run test -- GenericSkillRunner --run` — 6/6 after multi-artifact result handling
+- `npm run test -- --run` — 211/211
 - `npm run build` — clean, with the existing Vite chunk-size warning
 
 Local backend verification:

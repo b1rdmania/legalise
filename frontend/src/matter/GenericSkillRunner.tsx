@@ -22,7 +22,7 @@ import {
 type RunnerState =
   | { kind: "idle" }
   | { kind: "running" }
-  | { kind: "success"; response: InvocationResponse; artifact: ArtifactRead | null }
+  | { kind: "success"; response: InvocationResponse; artifacts: ArtifactRead[] }
   | { kind: "blocked"; title: string; body: string; detail?: string }
   | { kind: "error"; title: string; body: string; detail?: string };
 
@@ -115,11 +115,11 @@ export function GenericSkillRunner({
         capability_id: skill.capabilityId,
         args,
       });
-      const artifactId = typeof response.result.artifact_id === "string"
-        ? response.result.artifact_id
-        : null;
-      const artifact = artifactId ? await readArtifact(slug, artifactId) : null;
-      setState({ kind: "success", response, artifact });
+      const artifactIds = artifactIdsFromResult(response.result);
+      const artifacts = await Promise.all(
+        artifactIds.map((artifactId) => readArtifact(slug, artifactId)),
+      );
+      setState({ kind: "success", response, artifacts });
     } catch (err) {
       setState(errorToState(err));
     }
@@ -312,52 +312,69 @@ function RunnerResult({
       </div>
     );
   }
-  const { response, artifact } = state;
+  const { response, artifacts } = state;
   return (
     <div className="mt-4 rounded-md border border-rule p-3" data-testid="generic-runner-result">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="text-xs uppercase tracking-widest text-muted">
-          Output written
+          {artifacts.length === 1
+            ? "Output written"
+            : artifacts.length > 1
+              ? `${artifacts.length} outputs written`
+              : "Run complete"}
         </p>
         <p className="font-mono text-[11px] text-muted">{response.invocation_id}</p>
       </div>
-      {artifact ? (
-        <>
-          <ArtifactPreview
-            payload={artifact.payload}
-            kindHint={artifact.kind}
-            matterSlug={slug}
-          />
-          <div className="mt-3 flex flex-wrap gap-3 text-xs">
-            <Link
-              to="/matters/$slug/artifacts/$artifactId"
-              params={{ slug, artifactId: artifact.id }}
-              className="underline underline-offset-4 hover:text-ink"
+      {artifacts.length > 0 ? (
+        <div className="mt-3 space-y-4">
+          {artifacts.map((artifact, index) => (
+            <section
+              key={artifact.id}
+              className={artifacts.length > 1 ? "border-t border-line pt-3 first:border-t-0 first:pt-0" : undefined}
+              data-testid={`generic-runner-output-${artifact.id}`}
             >
-              Open output →
-            </Link>
-            <Link
-              to="/matters/$slug/artifacts/$artifactId/sign"
-              params={{ slug, artifactId: artifact.id }}
-              className="underline underline-offset-4 hover:text-ink"
-            >
-              Review & sign →
-            </Link>
-            <a
-              href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
-              className="underline underline-offset-4 hover:text-ink"
-            >
-              View Record for this run →
-            </a>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-muted underline underline-offset-4 hover:text-ink"
-            >
-              Close run
-            </button>
-          </div>
-        </>
+              {artifacts.length > 1 && (
+                <p className="mb-2 text-[11px] uppercase tracking-widest text-muted">
+                  Output {index + 1}
+                </p>
+              )}
+              <ArtifactPreview
+                payload={artifact.payload}
+                kindHint={artifact.kind}
+                matterSlug={slug}
+              />
+              <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                <Link
+                  to="/matters/$slug/artifacts/$artifactId"
+                  params={{ slug, artifactId: artifact.id }}
+                  className="underline underline-offset-4 hover:text-ink"
+                >
+                  Open output →
+                </Link>
+                <Link
+                  to="/matters/$slug/artifacts/$artifactId/sign"
+                  params={{ slug, artifactId: artifact.id }}
+                  className="underline underline-offset-4 hover:text-ink"
+                >
+                  Review & sign →
+                </Link>
+                <a
+                  href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
+                  className="underline underline-offset-4 hover:text-ink"
+                >
+                  View Record for this run →
+                </a>
+              </div>
+            </section>
+          ))}
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Close run
+          </button>
+        </div>
       ) : (
         <div className="mt-3">
           <ArtifactPreview payload={response.result} kindHint={null} matterSlug={slug} />
@@ -368,6 +385,23 @@ function RunnerResult({
       )}
     </div>
   );
+}
+
+export function artifactIdsFromResult(result: InvocationResponse["result"]): string[] {
+  if (!result || typeof result !== "object") return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const [key, value] of Object.entries(result as Record<string, unknown>)) {
+    if (
+      typeof value === "string" &&
+      (key === "artifact_id" || key.endsWith("_artifact_id")) &&
+      !seen.has(value)
+    ) {
+      seen.add(value);
+      out.push(value);
+    }
+  }
+  return out;
 }
 
 function Pair({ label, value }: { label: string; value: string }) {
