@@ -1,8 +1,9 @@
 # Generic Skill Runner — Inventory + Routing Decision
 
 **Date:** 2026-06-02
-**Status:** decision paper. No code in this PR. The next PR (GSR-2)
-is the first build slice; this document is what it builds against.
+**Status:** decision paper, revised after PR #33 review comments.
+No code in this PR. The next PR (GSR-2) is the first build slice;
+this document is what it builds against.
 **Scope:** product model + workflow surface inventory + first-skill
 choice. Does NOT hide anything, does NOT delete anything, does NOT
 change UI.
@@ -74,7 +75,7 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 | Field | Value |
 | --- | --- |
-| File | `src/matter/tabs/PreMotionTab.tsx` |
+| File | `frontend/src/matter/tabs/PreMotionTab.tsx` |
 | Endpoint(s) | `POST /matters/{slug}/pre-motion/run-stream` (SSE) · `/pdf` · `/docx` |
 | Manifest capability | **none** — hardcoded route, no manifest entry |
 | Inputs | `{ depth?: "fast" \| "thorough" }` |
@@ -87,7 +88,7 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 | Field | Value |
 | --- | --- |
-| File | `src/matter/tabs/LettersTab.tsx` |
+| File | `frontend/src/matter/tabs/LettersTab.tsx` |
 | Endpoint(s) | `GET /matters/{slug}/letters/catalog` · `POST /matters/{slug}/letters/draft` · `/letters/draft/docx` |
 | Manifest capability | **none** — hardcoded route, no manifest entry |
 | Inputs | `{ letter_type: string; inputs: Record<string, string> }` (free-text fields per letter type) |
@@ -100,7 +101,7 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 | Field | Value |
 | --- | --- |
-| File | `src/modules/contract_review/ContractReviewTab.tsx` (+ `ResultPanel.tsx`) |
+| File | `frontend/src/modules/contract_review/ContractReviewTab.tsx` (+ `ResultPanel.tsx`) |
 | Endpoint(s) | `POST /matters/{slug}/contract-review/run-stream` (SSE) · `/docx` |
 | Manifest capability | **none** — hardcoded route, no manifest entry |
 | Inputs | `{ document_id, posture?, contract_type?, counterparty_name?, deal_value? }` (closed enums + free text) |
@@ -113,7 +114,7 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 | Field | Value |
 | --- | --- |
-| File | `src/modules/tabular_review/ReviewsTab.tsx` |
+| File | `frontend/src/modules/tabular_review/ReviewsTab.tsx` |
 | Endpoint(s) | 7 endpoints: list / create / get / patch / estimate / run / export.docx |
 | Manifest capability | **none** — hardcoded route, no manifest entry |
 | Inputs | per-review: `{ title; columns_config: ColumnSpec[] }`; per-run: `{ document_ids?, column_keys?, confirm_above_50? }` |
@@ -126,7 +127,7 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 | Field | Value |
 | --- | --- |
-| File | `src/modules/case_law/ResearchTab.tsx` |
+| File | `frontend/src/modules/case_law/ResearchTab.tsx` |
 | Endpoint(s) | `POST /matters/{slug}/case-law/search` · citations CRUD |
 | Manifest capability | **none** — hardcoded route, no manifest entry |
 | Inputs | `{ query, court?, year? }` |
@@ -139,7 +140,7 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 | Field | Value |
 | --- | --- |
-| File | `src/matter/InvocationRunner.tsx` (inside `GrantsPanel`) |
+| File | `frontend/src/matter/InvocationRunner.tsx` (inside `GrantsPanel`) |
 | Endpoint | `POST /matters/{slug}/invocations` |
 | Manifest capability | **yes** — accepts `{module_id, capability_id, args?}` |
 | Inputs | free-form JSON args field |
@@ -163,131 +164,229 @@ capabilities (`InvocationRunner` inside `GrantsPanel`).
 
 **Headline finding:** none of the five first-party workflows
 declare a manifest capability today. They are routed by hardcoded
-matter sub-tabs and hardcoded endpoints. None route their outputs
-through `requestReview()` → `SignOff`. **Skills own UI AND own
-approval flow, which means there is no governed loop.** That is the
+matter sub-tabs and hardcoded endpoints. Crucially, **legacy
+first-party workflows do not persist their outputs as matter
+artifacts**, so they cannot enter the substrate's existing
+`ArtifactDetail → Professional Sign-Off → Record / Working Pack
+export` path. **Skills own UI AND own output flow, which means
+there is no governed loop for these surfaces.** That is the
 exact pattern this reset closes.
+
+Note: this is distinct from the V2 prompt/runtime path, which
+already writes `skill_response` artifacts via `write_artifact` and
+already plugs into Professional Sign-Off and Record. The runner
+gap is on the legacy first-party side, not in the substrate.
 
 ---
 
 ## 5. What is actually missing for a generic runner
 
 Not opinion — what the existing V2 model + `InvocationRunner`
-cannot do that these workflows need:
+cannot do that these workflows need. **Important:** "artifact
+persistence" is NOT a universal gap. V2 prompt/runtime already
+writes `skill_response` artifacts via `write_artifact` and already
+plugs into the existing `ArtifactDetail → Professional Sign-Off →
+Record / Working Pack export` substrate. The gap is specifically
+on the legacy first-party workflows, which export inline and never
+write an artifact.
 
 | Gap | Needed for | Effort |
 | --- | --- | --- |
 | **Document selector in the runner shell** | Contract Review, Pre-Motion, Tabular Review | medium — UI work, no backend |
 | **Args schema in the manifest** (typed fields, enums, free-text) | Letters, Contract Review, Pre-Motion, Case Law | manifest schema field + form builder; **possibly backend** if validation moves server-side |
 | **Streaming/stage telemetry in the runner** | Pre-Motion, Contract Review | medium — SSE wrapper around `InvocationRunner` |
-| **Artifact persistence on completion** | all five — none persist artifacts today | requires backend: capability outputs need to land in the artifacts table |
-| **Sign-off eligibility flag on capability or output kind** | all five | manifest schema field + runner UX |
-| **Output renderer registry by kind** | all five | `ArtifactPreview` already supports 4 kinds; extend or unify with bespoke layouts |
+| **Artifact persistence for legacy first-party workflows** | Pre-Motion, Letters, Contract Review, Tabular Review, Case Law | requires manifest-capability wrappers that route through `POST /invocations` and write the right artifact kind. V2 prompt/runtime already does this; legacy endpoints don't. |
+| **Output renderer registry by kind** | all artifact kinds | `ArtifactPreview` already supports 4 kinds (`motion_draft`, `findings_pack`, `skill_response`, `evidence_list`); extend or unify with bespoke layouts. |
 
-**Of these, only "args schema in the manifest" and "artifact
-persistence" are likely to require backend.** The rest is frontend.
+**Sign-off vocabulary discipline (from PR #33 review):** this
+codebase has two distinct concepts — **Professional Sign-Off** and
+**supervisor review**. The governed loop GSR-2 must prove is
+Professional Sign-Off: an artifact exists, the user reads it, the
+user signs it. Supervisor review is a separate flow and is not the
+gate for GSR-2.
+
+**Of these, the substantive new work is the manifest-capability
+wrappers for legacy workflows.** Once Letters / Contract Review /
+Pre-Motion / Case Law each invoke through `POST /invocations` and
+write an artifact, the artifact substrate (already present) handles
+sign-off, Record, and Working Pack export with no further work.
 The brief says no backend unless blocked; GSR-2 should attempt to
-prove the runner against `InvocationRunner`'s existing shape first,
-and only escalate if blocked.
+prove the runner against the **V2 prompt/runtime path first** —
+which already meets the contract — and only attempt Letters once
+the runner shape is settled.
 
 ---
 
-## 6. First-skill choice (GSR-2)
+## 6. First-skill choice (GSR-2) — revised after PR #33 review
 
-GSR-2 must prove the architecture against **one first-party skill**
-and **one imported/prompt skill** through the same runner.
+GSR-2 must prove the **full governed loop**, not just a generic
+form. Acceptance is:
 
-### 6.1 First-party skill: **Letters**
+> `select skill → run → artifact exists → typed output renders →
+> Professional Sign-Off path reachable → Record deep-link shows the
+> trail`.
 
-Why:
+A transient Letters draft that never enters `matter_artifacts` is
+NOT this loop. It would prove only a form shell. The first GSR-2
+proof must be a skill that already produces a real artifact.
 
-- **Simplest state machine.** Single-shot call, no SSE, no
-  multi-stage progress. The runner doesn't have to know about
-  streaming yet.
-- **Output already maps to an artifact kind.** Markdown drafts
-  render as `motion_draft` via `ArtifactPreview` with no new code.
-- **No document selector required.** Letters draws from a per-matter
-  letter-type catalogue, not from documents. The runner can ship
-  without the doc-selector affordance and still cover this skill.
-- **Form builder is enumerable.** Letter types live in the catalogue;
-  per-type input fields are short free-text strings. A minimum
-  form-builder primitive (string fields + enum select) covers the
-  whole surface.
+### 6.1 Primary target: one existing V2 prompt/native module
 
-What GSR-2 must add to support Letters:
+The cleanest proof is a V2 prompt/native matter-scoped module that
+already invokes through `POST /api/matters/{slug}/invocations` and
+already writes a `skill_response` artifact via `write_artifact` in
+`prompt_runtime.py`. That path is already plumbed end-to-end:
 
-- The runner shell renders a skill picker + a small form built from
-  the manifest's args schema (initially: `letter_type` enum, then
-  one or more string fields per type).
-- The runner calls a capability invocation; on success, the typed
-  output viewer renders the markdown draft.
+> `/invocations` → artifact → `ArtifactPreview` → Professional
+> Sign-Off → Record / Working Pack export
 
-What GSR-2 deliberately does NOT touch yet (preserved as legacy):
-
-- The existing `/matters/{slug}/letters` route still works. It just
-  stops being the primary path. The hide-from-IA move comes in
-  GSR-3 once GSR-2 proves out.
-
-### 6.2 Imported/prompt skill: **one V2 module from the registry**
-
-The Workspace Skills surface (PR 3) already discovers V2 modules
-via `getModulesV2()`. PR 4 grants them per-matter via `createGrant`.
-The brief's "prompt/imported skill" is exactly this category.
-
-GSR-2 picks **one currently-installable V2 module** (sample:
-`examples.contract-review` if registered, or another
-matter-scoped V2 capability available in dev fixtures) and runs it
-through the same runner shell that Letters uses. The acceptance
-test is: **the runner does not know which skill it's running.** It
-reads the manifest, builds the form, runs the invocation, renders
-the output.
+GSR-2 builds the runner shell around this existing path. The
+runner reads the manifest, builds a small typed form from the args
+schema, invokes the capability, and lets the existing artifact
+substrate do the rest. **The runner does NOT special-case any
+skill identifier.**
 
 The specific V2 module to test against is a build-time choice for
-GSR-2 — whichever one the dev fixtures expose. The architectural
-contract is what matters: **two different skill sources, one
-runner shell.**
+GSR-2 — whichever matter-scoped V2 capability is currently
+installable in the dev fixtures + on the demo matter (Khan v Acme).
+If none is currently available, GSR-2's first task is to install
+and grant one before any runner code lands.
 
-### 6.3 Explicitly deferred to later GSR slices
+### 6.2 Secondary target: Letters (conditional)
+
+Letters is only acceptable as GSR-2's second target **if** Builder
+first wraps it into a manifest-backed capability that invokes
+through `POST /invocations` and writes a `motion_draft` artifact.
+Hard rules in that wrapper:
+
+- **No direct call to `/letters/draft`** from the generic runner.
+- **No `if (skill === 'letters')` branch** anywhere in the runner.
+- **No `draft_markdown` special-case render** path. Letters output
+  must enter `ArtifactPreview` as the same shape as any other
+  `motion_draft` artifact.
+- **No `letters/catalog` adapter** at the runner layer. If the
+  catalogue is needed for the form, it lives behind a generic
+  manifest mechanism (e.g. the args schema declares a string-enum
+  field populated from a backend lookup) — not a Letters-only
+  fetch wired into the runner.
+
+If wrapping Letters into manifest+invocation+artifact shape is too
+much for one PR, Letters **moves to GSR-3** and GSR-2 proves on
+the V2 module alone. The architectural rule is non-negotiable:
+**no bespoke adapter in the generic runner.**
+
+### 6.3 The architectural acceptance test
+
+The runner does not know which skill it's running. It reads the
+manifest, builds the form, calls `POST /invocations`, and renders
+the resulting artifact via `ArtifactPreview`. A code reviewer
+should be able to grep the runner files and find:
+
+- zero matches on `letters/draft` direct calls
+- zero matches on `if (skill === ...)` branches
+- zero matches on `draft_markdown` special-case render branches
+- zero hardcoded skill identifiers other than test fixtures
+
+If any of these appear, GSR-2 has not proven the architecture.
+
+### 6.4 Explicitly deferred to later GSR slices
 
 | Workflow | Defer to | Why |
 | --- | --- | --- |
-| Case Law | GSR-3 or later | Output isn't artifact-shaped (interactive citation picker). Runner must prove on single-shot artifacts first. |
-| Contract Review | GSR-3 or later | Streaming + document selector + closed-enum form builder. Adds three runner features at once. |
-| Pre-Motion | GSR-4 or later | Most bespoke result layout + SSE + PDF export. Worst risk-to-value ratio for an early GSR slice. |
+| Letters | GSR-3 (or in GSR-2 only with manifest wrapper) | Must shape-match `/invocations` + artifact write before it enters the runner. |
+| Case Law | GSR-4 or later | Output isn't artifact-shaped (interactive citation picker). Runner must prove on single-shot artifacts first. |
+| Contract Review | GSR-4 or later | Streaming + document selector + closed-enum form builder. Adds three runner features at once. |
+| Pre-Motion | GSR-5 or later | Most bespoke result layout + SSE + PDF export. Worst risk-to-value ratio for an early GSR slice. |
 | Tabular Review | GSR-6+ | Different archetype entirely — table-extraction state machine. Out of scope for the runner's artifact-shaped loop. |
 
 ---
 
-## 7. GSR-2 scope sketch (next PR)
+## 7. GSR-2 scope sketch (next PR) — revised
 
-The next PR builds against this inventory. Concrete deliverables:
+The next PR builds against this inventory and against the
+**full governed loop** acceptance from §6. Concrete deliverables:
 
 1. **Runner shell component** — Legalise UI that renders from
    manifest state: skill title, description, args form, provider
    readiness, Run button. Reachable from Chat picker and the
-   matter Skills tab.
+   matter Skills tab. The shell does NOT know which skill it's
+   running.
 2. **Minimum form builder** — supports string fields + enum
-   select (covers Letters end-to-end). More field types added as
-   later skills migrate.
-3. **Migrate Letters end-to-end through the runner.** The legacy
-   `/matters/{slug}/letters` route stays mounted; the matter
-   Skills tab + Chat picker route via the runner.
-4. **Migrate one V2 module skill through the same runner.** The
-   acceptance test is shape, not styling: the runner does not
-   branch on which skill it's running.
-5. **Tests** that pin both skills go through the same runner
-   component (no `if (skill === 'letters')` branches anywhere).
+   select. Field types added as later skills migrate.
+3. **Run one V2 prompt/native skill end-to-end through the
+   runner on the demo matter.** Output must enter
+   `matter_artifacts`. Reviewer can click the artifact, render
+   it in `ArtifactPreview`, reach the Professional Sign-Off
+   path, and follow a Record deep-link back to the run trail.
+4. **No-adapter discipline.** No `if (skill === ...)`, no direct
+   legacy endpoint call, no special-case render branch (see
+   §6.3 architectural acceptance test).
+5. **Tests** that pin: the runner invokes `POST /invocations`;
+   the output is rendered via `ArtifactPreview` not a bespoke
+   layout; no skill-id branch exists in the runner files.
+
+**The golden-path demo gate (mandatory):** after GSR-2 lands, a
+reviewer should be able to open the demo matter, pick the GSR-2
+skill, run it, and answer three questions without leaving the
+product surface:
+
+- What did this run use? (selected sources / args)
+- What did it produce? (typed output via `ArtifactPreview`)
+- Where is the record? (Record deep-link from the output)
+
+If any of those questions cannot be answered cleanly on the demo
+matter, GSR-2 has not landed — regardless of test or CI status.
 
 **Out of GSR-2 scope (explicit):**
 
-- Document selector
+- Document selector (deferred to the first skill that needs it)
 - Streaming / SSE
-- Artifact persistence and sign-off wiring (the brief says "draft
-  vs sign" — GSR-2 produces drafts; sign-off comes once eligibility
-  is in the manifest)
-- Hiding the legacy routes from primary IA (GSR-3)
+- Hiding the legacy routes from primary IA (GSR-3 territory once
+  GSR-2 proves the runner)
 - Pre-Motion / Contract Review / Tabular Review / Case Law
-  migration (GSR-3+)
+  migration (GSR-4+)
+- Letters migration unless it can ship as a manifest-backed
+  capability that already meets the no-adapter discipline in §6.2
+
+## 7.5 UI vocabulary discipline (extends §3 of the IA blueprint)
+
+The runner and the Skills surfaces must NOT lead with raw
+capability plumbing language. Forbidden in the primary surface
+(consistent with the IA blueprint §3 forbidden list):
+
+- `partial`, `blocked`, `missing capabilities`
+- raw capability identifiers like `chronology.read`, `matter.read`,
+  `model.invoke`
+- `manifest`, `invocation`, `grant`, `capability` as user-facing
+  primary nouns
+
+User-facing states stay close to the existing matter Skills tab
+vocabulary:
+
+- **Ready in this project**
+- **Available to enable**
+- **Needs setup**
+
+Raw capability details belong inside a "Details" disclosure, the
+install/grant ceremony, or the operator/debug view. The governance
+is still fully enforced; it just stops being the first thing a
+normal user sees.
+
+## 7.6 Demo matter must run green
+
+For the demo matter (Khan v Acme), the GSR-2 skill must be
+pre-granted, provider readiness must be clear, and the golden-path
+should run end-to-end without any permission-denial banner on the
+first run.
+
+The permission-denial story is an **insider proof demo** ("watch
+what happens when I revoke a permission, the runtime refuses the
+call and the row lands in Record"). It should not be the first
+experience a fresh observer has on the demo matter.
+
+GSR-2's first build task — before any runner code lands — is to
+verify or install + grant the chosen V2 module on the demo matter
+so the loop runs green out of the box.
 
 ---
 
@@ -307,24 +406,32 @@ runner, and the inventory + first-skill choice is already settled.
 
 ---
 
-## 9. Open questions for the human
+## 9. Open questions for the human — revised
 
-Two calls that GSR-2 needs before it cuts any code:
+The Letters sign-off question is resolved by the §6 redline:
+Letters is admissible to GSR-2 only when it can shape-match the
+existing artifact substrate (writes a `motion_draft` artifact via
+`POST /invocations`). If it can't be wrapped in this PR, it moves
+to GSR-3. Sign-off eligibility for it then follows the artifact's
+existing Professional Sign-Off path — no new opt-in needed.
 
-1. **Does Letters produce a sign-off-eligible output, or stays
-   draft-only for GSR-2?** Today letters export to DOCX with no
-   sign-off. The brief says sign-off attaches to every eligible
-   output. Eligibility could be:
-   - opt-in per skill (manifest declares it)
-   - opt-in per output kind (every `motion_draft` is eligible)
-   - never in GSR-2 (sign-off arrives in a later slice once the
-     runner shape is stable)
+The remaining open call:
 
-2. **Which V2 module is the "imported/prompt skill" GSR-2 tests
-   against?** Dev fixtures determine the choice. If no
-   matter-scoped V2 capability is currently available in dev,
-   GSR-2's first task is to install one (workspace trust ceremony,
-   matter grant) before the runner work begins.
+1. **Which specific V2 prompt/native module does GSR-2 prove
+   against?** Choice criteria:
+   - matter-scoped capability (not workspace-only)
+   - already installable through the workspace Skills surface (PR 3)
+   - already grantable on the demo matter (PR 4)
+   - writes a `skill_response` (or similar) artifact via the
+     existing `write_artifact` path
+   - keyless or operator-pre-configured provider on the demo matter
+     so the loop runs green for a fresh observer
+
+If no currently-installed V2 module meets all five criteria on the
+demo matter, GSR-2's first build task is to install + grant one
+(workspace trust ceremony → matter grant → optional fixture seed)
+before any runner code lands. That setup work is a precondition,
+not a separate PR.
 
 ---
 
