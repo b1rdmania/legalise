@@ -282,6 +282,17 @@ function PermissionCard({
 }) {
   const caps = Array.isArray(card.capabilities) ? card.capabilities : [];
   const events = Array.isArray(card.audit_events) ? card.audit_events : [];
+
+  // Blueprint §4A.5 step 5: signature/manifest disclosure is collapsed
+  // by default. The trust ceremony stays a multi-step page (the
+  // backend ceremony chain forces it), but the visible review now
+  // matches the Vercel install-pattern anatomy step-for-step:
+  //   1. skill icon + name        (Skill row, top of card)
+  //   2. install-to header        (page eyebrow + title above)
+  //   3. scope picker             (Workspace scope section below)
+  //   4. permissions checklist    (CapabilityChecklist below)
+  //   5. signature/manifest       (SignatureDisclosure, collapsed)
+  //   6. footer cancel/install    (advance buttons in the parent page)
   return (
     <section className="mt-10 rounded-md border border-line p-4">
       <h2 className="text-sm uppercase tracking-widest text-muted">
@@ -296,13 +307,148 @@ function PermissionCard({
           {card.publisher ?? "—"}
           {card.publisher_verified ? " (verified)" : ""}
         </DT>
-        <DT label="Signature">{card.signature_status ?? "—"}</DT>
         <DT label="Visibility">{card.visibility ?? "—"}</DT>
         <DT label="Advice tier max">{card.advice_tier_max ?? "—"}</DT>
-        <DT label="Permission sets">{caps.length}</DT>
         <DT label="Audit events">{events.length}</DT>
       </dl>
+
+      <WorkspaceScopePicker />
+      <CapabilityChecklist capabilities={caps} />
+      <SignatureDisclosure card={card} />
     </section>
+  );
+}
+
+// §4A.5 step 3 — scope picker. The current substrate trusts a skill
+// workspace-wide (no per-matter narrowing at install time; matter
+// enablement is the separate ceremony in PR 4). This input states the
+// honest semantics so the user isn't misled, and is wired as a
+// read-only acknowledgement until matter-scoped trust lands.
+function WorkspaceScopePicker() {
+  return (
+    <div className="mt-4 border-t border-rule pt-4">
+      <p className="text-xs uppercase tracking-widest text-muted">
+        Workspace scope
+      </p>
+      <label className="mt-2 flex items-start gap-2 text-sm">
+        <input
+          type="radio"
+          checked
+          readOnly
+          aria-label="All matters in this workspace"
+          className="mt-1"
+        />
+        <span>
+          <span className="text-ink">All matters in this workspace</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            Per-matter enablement is a separate step inside each matter.
+            Trusting a skill here does not run it anywhere on its own.
+          </span>
+        </span>
+      </label>
+    </div>
+  );
+}
+
+// §4A.5 step 4 — permissions list with checkmarks. Each capability is
+// rendered as a tickable row so the operator can read off what the
+// runtime will enforce, not just count them.
+function CapabilityChecklist({ capabilities }: { capabilities: unknown[] }) {
+  if (capabilities.length === 0) {
+    return (
+      <div className="mt-4 border-t border-rule pt-4">
+        <p className="text-xs uppercase tracking-widest text-muted">
+          Permissions requested
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          This skill declares no permissions.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 border-t border-rule pt-4">
+      <p className="text-xs uppercase tracking-widest text-muted">
+        Permissions requested
+      </p>
+      <ul className="mt-2 space-y-1.5 text-sm">
+        {capabilities.map((raw, i) => {
+          const c =
+            raw && typeof raw === "object"
+              ? (raw as Record<string, unknown>)
+              : {};
+          const id = typeof c.id === "string" ? c.id : `capability-${i + 1}`;
+          const kind = typeof c.kind === "string" ? c.kind : null;
+          const reads = Array.isArray(c.reads)
+            ? c.reads.filter((v): v is string => typeof v === "string")
+            : [];
+          const writes = Array.isArray(c.writes)
+            ? c.writes.filter((v): v is string => typeof v === "string")
+            : [];
+          return (
+            <li key={id} className="flex items-start gap-2">
+              <span aria-hidden="true" className="mt-0.5 text-ink">
+                ✓
+              </span>
+              <span>
+                <span className="font-mono text-xs text-ink">{id}</span>
+                {kind && (
+                  <span className="ml-2 text-xs text-muted">({kind})</span>
+                )}
+                {(reads.length > 0 || writes.length > 0) && (
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {reads.length > 0 && `reads ${reads.join(", ")}`}
+                    {reads.length > 0 && writes.length > 0 && " · "}
+                    {writes.length > 0 && `writes ${writes.join(", ")}`}
+                  </span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+// §4A.5 step 5 — signature & manifest disclosure, collapsed by default.
+// Surfaces signer/version/visibility/permission-count without making
+// the operator hunt for them in the audit trail.
+function SignatureDisclosure({
+  card,
+}: {
+  card: CeremonyResponse["permission_card"];
+}) {
+  const [open, setOpen] = useState(false);
+  const caps = Array.isArray(card.capabilities) ? card.capabilities : [];
+  return (
+    <div className="mt-4 border-t border-rule pt-4">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        data-testid="ceremony-signature-disclosure"
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="text-xs uppercase tracking-widest text-muted">
+          Signature &amp; manifest
+        </span>
+        <span aria-hidden="true" className="text-xs text-muted">
+          {open ? "Hide" : "Show"}
+        </span>
+      </button>
+      {open && (
+        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <DT label="Module id">{card.module_id}</DT>
+          <DT label="Signature">{card.signature_status ?? "—"}</DT>
+          <DT label="Publisher">
+            {card.publisher ?? "—"}
+            {card.publisher_verified ? " (verified)" : ""}
+          </DT>
+          <DT label="Permission sets">{caps.length}</DT>
+        </dl>
+      )}
+    </div>
   );
 }
 

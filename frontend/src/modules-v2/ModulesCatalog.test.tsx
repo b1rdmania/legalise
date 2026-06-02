@@ -152,17 +152,21 @@ describe("ModulesCatalog — integrations home", () => {
     ]);
 
     mountAt();
-    await waitFor(() => expect(screen.getByText("Contract Review")).toBeInTheDocument());
-    expect(screen.getByText("Pre-Motion")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Filter skill state"), {
-      target: { value: "installed" },
-    });
-    expect(screen.getByText("Contract Review")).toBeInTheDocument();
+    // PR 3 (blueprint §7) replaces the state dropdown with three tabs:
+    // Installed / Available / (Revoked, operator-only). Default lands
+    // on Installed; switching to Available exposes the not-yet-installed
+    // skills.
+    await waitFor(() =>
+      expect(screen.getByText("Contract Review")).toBeInTheDocument(),
+    );
     expect(screen.queryByText("Pre-Motion")).toBeNull();
 
+    fireEvent.click(screen.getByTestId("skills-tab-available"));
+    expect(screen.getByText("Pre-Motion")).toBeInTheDocument();
+    expect(screen.queryByText("Contract Review")).toBeNull();
+
     fireEvent.change(screen.getByLabelText("Search skills"), {
-      target: { value: "pre" },
+      target: { value: "zzzzz" },
     });
     expect(screen.getByText(/No skills match/)).toBeInTheDocument();
   });
