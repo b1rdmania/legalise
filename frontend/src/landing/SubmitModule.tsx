@@ -261,7 +261,7 @@ export function SubmitModule() {
       if (e.status === 503) {
         setErrorState({
           kind: "disabled",
-          message: detail?.message || "Module submissions are currently closed.",
+          message: detail?.message || "Skill submissions are currently closed.",
         });
       } else if (e.status === 403) {
         setErrorState({
@@ -320,7 +320,7 @@ export function SubmitModule() {
       <SubmitShell>
         <div className="bg-wash p-8 border-l-4 border-ink my-4">
           <p className="text-sm font-medium m-0">
-            Module submissions are currently closed.
+            Skill submissions are currently closed.
           </p>
           <p className="text-sm text-muted mt-2 mb-0">
             Visit the catalogue of installed skills, or fork{" "}
@@ -372,7 +372,7 @@ export function SubmitModule() {
       <p className="prose-p mb-8">
         Propose a new skill for the{" "}
         <code className="font-mono text-sm">claude-for-uk-legal</code>{" "}
-        catalogue. The form opens a draft pull request. Declared capabilities
+        catalogue. The form opens a draft pull request. Declared permission sets
         are surfaced for review; v0.1 does not enforce them at the call site.
       </p>
 
@@ -439,7 +439,7 @@ export function SubmitModule() {
             />
           </Field>
 
-          <Field label="Declared capabilities" hint="Closed set; for review, not enforced.">
+          <Field label="Declared permission sets" hint="Closed set; for review, not enforced.">
             <div className="grid grid-cols-2 gap-2">
               {SUBMISSION_CAPABILITIES.map((c) => (
                 <label key={c} className="flex items-center gap-2 text-sm font-mono">
@@ -455,7 +455,7 @@ export function SubmitModule() {
             </div>
           </Field>
 
-          <Field label="Trust posture" hint="Declarative only in v0.1.">
+          <Field label="Trust state" hint="Declarative only in v0.1.">
             <div className="flex flex-wrap gap-4">
               {SUBMISSION_TRUST_POSTURES.map((p) => (
                 <label key={p} className="flex items-center gap-2 text-sm font-mono">

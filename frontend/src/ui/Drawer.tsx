@@ -58,19 +58,19 @@ export function Drawer({
       active: activeKey === t.key,
     }));
     primary.push(
-      { href: `/matters/${matter.slug}/artifacts`, label: "Outputs" },
-      { href: `/matters/${matter.slug}/lifecycle`, label: "Export" },
+      { href: `/matters/${matter.slug}/artifacts`, label: "Signed outputs" },
+      { href: `/matters/${matter.slug}/lifecycle`, label: "Working pack" },
     );
     secondary = [
-      { href: "/modules", label: "Modules" },
+      { href: "/skills", label: "Skills" },
       { href: "/settings/profile", label: "Settings" },
       { label: "Sign out", onClick: onSignOut },
     ];
   } else if (isModules || isList || isSettings) {
-    // Workspace no matter: Matters · Modules · - · Settings · Sign out
+    // Workspace no matter: Matters · Skills · - · Settings · Sign out
     primary = [
       { href: "/matters", label: "Matters", active: isList },
-      { href: "/modules", label: "Modules", active: isModules },
+      { href: "/skills", label: "Skills", active: isModules },
     ];
     secondary = [
       { href: "/settings/profile", label: "Settings", active: isSettings },
@@ -81,7 +81,7 @@ export function Drawer({
     // user never sees marketing CTAs once signed in.
     primary = [
       { href: "/matters", label: "Matters" },
-      { href: "/modules", label: "Modules" },
+      { href: "/skills", label: "Skills" },
     ];
     secondary = [
       { href: "/settings/profile", label: "Settings" },
@@ -130,7 +130,7 @@ export function Drawer({
           <div className="px-4 py-3 border-b border-rule">
             <div className="eyebrow-sm mb-1">Matter</div>
             <div className="text-[16px] font-semibold text-ink truncate">{matter.slug}</div>
-            <div className="text-xs text-muted mt-1">posture {matter.privilege_posture}</div>
+            <div className="text-xs text-muted mt-1">privilege {matter.privilege_posture}</div>
           </div>
         )}
 

@@ -7,7 +7,7 @@
  *   - 409 invalid-transition surfaces a structured banner including
  *     the module.ceremony.rejected audit-row reference + deep-link
  *     (Phase 14 E target)
- *   - Reject path bounces to /modules
+ *   - Reject path bounces to /skills
  *   - Terminal-failure states block further advances
  *
  * Reviewer-narrow: no polling, no telemetry assertions, no audit
@@ -58,7 +58,7 @@ function mountAt(initialPath: string) {
   const root = createRootRoute({ component: () => <Outlet /> });
   const ceremonyRoute = createRoute({
     getParentRoute: () => root,
-    path: "/modules/install/$ceremonyId",
+    path: "/skills/install/$ceremonyId",
     component: () => {
       const { ceremonyId } = ceremonyRoute.useParams();
       return <InstallCeremony ceremonyId={ceremonyId} />;
@@ -66,7 +66,7 @@ function mountAt(initialPath: string) {
   });
   const modulesStub = createRoute({
     getParentRoute: () => root,
-    path: "/modules",
+    path: "/skills",
     component: () => <div data-testid="modules-stub" />,
   });
   const tree = root.addChildren([ceremonyRoute, modulesStub]);
@@ -89,7 +89,7 @@ describe("InstallCeremony — stepper", () => {
     vi.spyOn(api, "getCeremony").mockResolvedValue(
       makeCeremony({ state: "permissions_reviewed" }),
     );
-    mountAt("/modules/install/cer-1");
+    mountAt("/skills/install/cer-1");
     await waitFor(() => {
       expect(screen.getByText("Permissions reviewed")).toBeInTheDocument();
     });
@@ -108,12 +108,12 @@ describe("InstallCeremony — advance actions", () => {
       .spyOn(api, "advanceCeremony")
       .mockResolvedValue(makeCeremony({ state: "inspected" }));
 
-    mountAt("/modules/install/cer-1");
+    mountAt("/skills/install/cer-1");
     await waitFor(() => {
       expect(screen.getByText("Continue review")).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Enable module")).toBeNull();
+    expect(screen.queryByText("Enable skill")).toBeNull();
 
     fireEvent.click(screen.getByText("Continue review"));
     await waitFor(() => {
@@ -129,20 +129,20 @@ describe("InstallCeremony — advance actions", () => {
       .spyOn(api, "advanceCeremony")
       .mockResolvedValue(makeCeremony({ state: "enabled", is_terminal: true }));
 
-    mountAt("/modules/install/cer-1");
+    mountAt("/skills/install/cer-1");
     await waitFor(() => {
-      expect(screen.getByText("Enable module")).toBeInTheDocument();
+      expect(screen.getByText("Enable skill")).toBeInTheDocument();
     });
 
     expect(screen.queryByText("Continue review")).toBeNull();
 
-    fireEvent.click(screen.getByText("Enable module"));
+    fireEvent.click(screen.getByText("Enable skill"));
     await waitFor(() => {
       expect(advance).toHaveBeenCalledWith("cer-1", "grant");
     });
   });
 
-  it("reject bounces to /modules after the terminal state renders", async () => {
+  it("reject bounces to /skills after the terminal state renders", async () => {
     vi.spyOn(api, "getCeremony").mockResolvedValue(makeCeremony());
     vi.spyOn(api, "advanceCeremony").mockResolvedValue(
       makeCeremony({
@@ -151,7 +151,7 @@ describe("InstallCeremony — advance actions", () => {
       }),
     );
 
-    mountAt("/modules/install/cer-1");
+    mountAt("/skills/install/cer-1");
     await waitFor(() => {
       expect(screen.getByText("Reject")).toBeInTheDocument();
     });
@@ -179,11 +179,11 @@ describe("InstallCeremony — 409 invalid-transition", () => {
       ),
     );
 
-    mountAt("/modules/install/cer-1");
+    mountAt("/skills/install/cer-1");
     await waitFor(() => {
-      expect(screen.getByText("Enable module")).toBeInTheDocument();
+      expect(screen.getByText("Enable skill")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByText("Enable module"));
+    fireEvent.click(screen.getByText("Enable skill"));
 
     await waitFor(() => {
       expect(
@@ -194,7 +194,7 @@ describe("InstallCeremony — 409 invalid-transition", () => {
     expect(screen.getByText(/module\.ceremony\.rejected/)).toBeInTheDocument();
     // Phase 14.5 C — the deep-link is back. Action-filter only per
     // the Phase 14.5 plan P1 redline (no ?ceremony= param).
-    const link = screen.getByRole("link", { name: /workspace audit/i });
+    const link = screen.getByRole("link", { name: /audit log/i });
     expect(link.getAttribute("href")).toBe(
       "/admin/audit?action=module.ceremony.rejected",
     );
@@ -209,14 +209,14 @@ describe("InstallCeremony — terminal failures", () => {
     vi.spyOn(api, "getCeremony").mockResolvedValue(
       makeCeremony({ state: "publisher_blocked", is_terminal: true }),
     );
-    mountAt("/modules/install/cer-1");
+    mountAt("/skills/install/cer-1");
     await waitFor(() => {
       expect(
         screen.getByText(/ceremony terminated/i),
       ).toBeInTheDocument();
     });
     expect(screen.queryByText("Continue review")).toBeNull();
-    expect(screen.queryByText("Enable module")).toBeNull();
+    expect(screen.queryByText("Enable skill")).toBeNull();
     expect(screen.queryByText("Reject")).toBeNull();
   });
 });

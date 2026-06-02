@@ -106,7 +106,7 @@ export function SignOffConfirmation({
           className="text-muted underline underline-offset-4 hover:text-ink"
           data-testid="signoff-trail-link"
         >
-          See it in the Activity Trail →
+          See it in the Record →
         </Link>
       </div>
     </div>

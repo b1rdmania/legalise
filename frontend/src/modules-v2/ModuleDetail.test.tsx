@@ -26,19 +26,19 @@ function mountAt(moduleId: string) {
   const root = createRootRoute({ component: () => <Outlet /> });
   const detailRoute = createRoute({
     getParentRoute: () => root,
-    path: "/modules/$moduleId",
+    path: "/skills/$moduleId",
     component: () => <ModuleDetail moduleId={moduleId} />,
   });
   const ceremonyStub = createRoute({
     getParentRoute: () => root,
-    path: "/modules/install/$ceremonyId",
+    path: "/skills/install/$ceremonyId",
     component: () => <div data-testid="ceremony-stub" />,
   });
   const tree = root.addChildren([detailRoute, ceremonyStub]);
   const router = createRouter({
     routeTree: tree,
     history: createMemoryHistory({
-      initialEntries: [`/modules/${moduleId}`],
+      initialEntries: [`/skills/${moduleId}`],
     }),
   });
   return render(
@@ -118,7 +118,7 @@ describe("ModuleDetail", () => {
     expect(screen.getByText("tier_2")).toBeInTheDocument();
     // Human framing replaces the raw manifest table headers.
     expect(
-      screen.getByText(/what this module needs access to/i),
+      screen.getByText(/what this skill needs access to/i),
     ).toBeInTheDocument();
   });
 

@@ -73,7 +73,7 @@ export function PostureBanner({
     return (
       <BannerShell tone="paused" badge="C_paused" badgeLabel="Paused">
         <p className="font-medium text-ink">
-          This matter is paused. No modules can run regardless of role.
+          This matter is paused. No skills can run regardless of role.
         </p>
         <p className="mt-1 text-sm text-muted">
           Requires <code className="font-mono text-xs">matter_paused</code>{" "}
@@ -102,7 +102,7 @@ export function PostureBanner({
       <BannerShell tone="mixed" badge="B_mixed" badgeLabel="Mixed">
         <p className="font-medium text-ink">
           This matter is marked <code className="font-mono text-xs">B_mixed</code>.
-          Only qualified solicitors can run modules.
+          Only qualified solicitors can run skills.
         </p>
         <p className="mt-1 text-sm text-muted">
           Requires{" "}
@@ -130,8 +130,8 @@ export function PostureBanner({
   return (
     <BannerShell tone="mixed" badge={posture} badgeLabel="Unknown">
       <p className="font-medium text-ink">
-        Unknown posture <code className="font-mono text-xs">{posture}</code>.
-        Module invocation will fail until the matter posture is
+        Unknown privilege <code className="font-mono text-xs">{posture}</code>.
+        Skill runs will fail until the matter privilege state is
         recognised.
       </p>
     </BannerShell>
@@ -173,7 +173,7 @@ function ChangePostureControl({
   return (
     <div className="mt-3 flex flex-wrap items-end gap-2" data-testid="change-posture-control">
       <label className="flex flex-col text-xs text-muted">
-        <span className="mb-1">Change posture</span>
+        <span className="mb-1">Change privilege</span>
         <select
           data-testid="change-posture-select"
           value={next}

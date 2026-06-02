@@ -128,7 +128,7 @@ describe("ArtifactsList", () => {
     vi.spyOn(api, "listArtifacts").mockResolvedValue([]);
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText(/No outputs yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/No signed outputs yet/i)).toBeInTheDocument();
     });
   });
 
@@ -136,7 +136,7 @@ describe("ArtifactsList", () => {
     vi.spyOn(api, "listArtifacts").mockRejectedValue(new Error("boom"));
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText(/Could not load outputs/i)).toBeInTheDocument();
+      expect(screen.getByText(/Could not load signed outputs/i)).toBeInTheDocument();
     });
   });
 });

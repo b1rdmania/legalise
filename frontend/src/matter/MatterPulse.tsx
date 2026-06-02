@@ -73,8 +73,8 @@ export function MatterPulse({
   const hasActions = workflowsGranted !== 0;
   const actionLabel =
     workflowsGranted === null
-      ? "Actions checked on sign-in"
-      : `${workflowsGranted} governed action${workflowsGranted === 1 ? "" : "s"} ready`;
+      ? "Skills checked on sign-in"
+      : `${workflowsGranted} skill${workflowsGranted === 1 ? "" : "s"} ready`;
 
   return (
     <section
@@ -91,20 +91,20 @@ export function MatterPulse({
             {matter.title} is loaded for supervised AI work.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-prose">
-            The workspace has the documents, a chronology, and governed actions.
-            Every AI step is recorded in the Activity Trail.
+            The workspace has the documents, a chronology, and governed AI work.
+            Every AI step is recorded.
           </p>
         </div>
         <div className="grid min-w-[280px] grid-cols-1 gap-2 text-xs sm:grid-cols-3 lg:grid-cols-1">
           <StatusLine label="Documents" value={hasDocuments ? `${documentsCount} loaded` : "Add documents"} />
           <StatusLine label="Timeline" value={hasChronology ? `${chronologyCount} events` : "Not started"} />
-          <StatusLine label="Actions" value={hasActions ? actionLabel : "Setup needed"} />
+          <StatusLine label="Skills" value={hasActions ? actionLabel : "Setup needed"} />
         </div>
       </div>
       {showPosture ? (
         <p className="mt-4 border-t border-rule pt-3 text-xs text-muted">
-          {postureLabel} posture. This demo is safe to inspect; create an account
-          to run the same loop on your own matter.
+          {postureLabel} privilege control. This demo is safe to inspect;
+          create an account to run the same loop on your own matter.
         </p>
       ) : (
         <p className="mt-4 border-t border-rule pt-3 text-xs text-muted">

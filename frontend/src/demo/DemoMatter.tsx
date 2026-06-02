@@ -278,13 +278,13 @@ function DemoWorkflowsTab({
     <div className="max-w-5xl">
       <div className="mb-8 border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Governed actions
+          Governed skills
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
           Pick the work you want the AI to prepare.
         </h2>
         <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          Each action declares the material it reads, the output it writes, and
+          Each skill declares the material it reads, the output it writes, and
           the record it leaves behind. The demo previews the loop; your own
           workspace can run it.
         </p>
@@ -337,7 +337,7 @@ function DemoWorkflowsTab({
       </div>
 
       <p className="mt-8 border-t border-rule pt-4 text-xs text-muted">
-        Module installation and permission setup are hidden in this public
+        Skill installation and permission setup are hidden in this public
         snapshot. They appear when you work inside your own matter.
       </p>
     </div>
@@ -363,7 +363,7 @@ function DemoDocumentsTab({
           The demo matter is already loaded.
         </h2>
         <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          These are the documents the assistant and actions can cite. In your
+          These are the documents the assistant and skills can cite. In your
           own workspace, uploaded material is hashed, stored, and recorded.
         </p>
       </div>
@@ -375,7 +375,7 @@ function DemoDocumentsTab({
             <span>Type</span>
             <span>Size</span>
             <span>Source</span>
-            <span className="text-right">Action</span>
+            <span className="text-right">Status</span>
           </div>
           {docs.map((d) => (
             <div key={d.id} className="border-b border-rule">

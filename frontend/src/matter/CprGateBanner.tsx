@@ -3,7 +3,7 @@ export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: 
     <div className="bg-paper border border-rule border-l-[3px] border-l-seal p-4 text-ink text-sm mb-6">
       <div className="font-semibold mb-2">
         <span className="text-seal mr-2" aria-hidden="true">▌</span>
-        CPR 31.22 - implied undertaking · action required
+        CPR 31.22 - implied undertaking · step required
       </div>
       <p className="leading-relaxed mb-3">
         {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents obtained
@@ -13,7 +13,7 @@ export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: 
         as redacted.
       </p>
       <p className="text-prose leading-relaxed mb-4">
-        Acknowledgement is recorded in the audit trail (action:{" "}
+        Acknowledgement is recorded in the Record (audit action:{" "}
         <span className="font-mono text-xs text-ink">chronology.gate.confirmed</span>) and scoped
         to this matter and user.
       </p>

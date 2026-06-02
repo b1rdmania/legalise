@@ -112,9 +112,9 @@ export function LawveImport() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Modules"
+        eyebrow="Skills"
         title="Lawve skill import"
-        description="Import open legal-AI skills from lawve-ai/awesome-legal-skills into Legalise as governed module drafts. A Lawve skill is not a Legalise module until it is converted, validated, signed, and installed — and imported scripts are never executed."
+        description="Import open legal-AI skills from lawve-ai/awesome-legal-skills into Legalise as governed skill drafts. A Lawve skill is not installable until it is converted, validated, signed, and installed — and imported scripts are never executed."
       />
 
       {q.status === "error" && (
@@ -237,7 +237,7 @@ export function LawveImport() {
                   className="mt-4 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
                   data-testid="convert-draft"
                 >
-                  {drafting ? "Converting…" : "Convert to module draft"}
+                  {drafting ? "Converting…" : "Convert to skill draft"}
                 </button>
 
                 {draft && <DraftReview draft={draft} slug={selected.slug} />}
@@ -268,7 +268,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
         manifest: draft.manifest as Record<string, unknown>,
       });
       void nav({
-        to: "/modules/install/$ceremonyId",
+        to: "/skills/install/$ceremonyId",
         params: { ceremonyId: ceremony.ceremony_id },
       });
     } catch (err) {
@@ -300,7 +300,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
   return (
     <div className="mt-5 border-t border-rule pt-4" data-testid="draft-review">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm uppercase tracking-widest text-muted">Module draft</h3>
+        <h3 className="text-sm uppercase tracking-widest text-muted">Skill draft</h3>
         <span
           className={
             "rounded-full border px-2 py-0.5 text-xs " +
@@ -349,11 +349,11 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
 
       {/* Continuity: a valid draft installs through the trust ceremony
           directly — no copy-paste into another screen. Install is
-          admin-gated (the ceremony's grant step is require_admin), so
+          admin-gated (the ceremony's enable step is require_admin), so
           non-admins get a clear ask rather than a dead button. */}
       <div className="mt-4 border-t border-rule pt-3">
         <p className="text-xs uppercase tracking-widest text-muted">
-          Imported skill → module draft → trust ceremony → installed module → grant per matter
+          Imported skill → skill draft → trust ceremony → installed skill → enable per matter
         </p>
         {draft.valid ? (
           isAdmin ? (
@@ -368,15 +368,15 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
                 {installing ? "Starting ceremony…" : "Install this draft"}
               </button>
               <p className="mt-2 text-xs text-muted">
-                Opens the trust ceremony — you review permissions and grant before it
+                Opens the trust ceremony — you review permissions and enable before it
                 installs. The importer never installs without that confirmation.
               </p>
               {installErr && <ErrorCallout message={installErr} compact />}
             </div>
           ) : (
             <p className="mt-2 text-xs text-muted" data-testid="install-admin-note">
-              Installing a module is an administrator action. Ask an administrator to
-              install this module, or copy/download the manifest above to hand off.
+              Installing a skill is an administrator action. Ask an administrator to
+              install this skill, or copy/download the manifest above to hand off.
             </p>
           )
         ) : (

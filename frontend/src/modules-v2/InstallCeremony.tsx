@@ -44,14 +44,14 @@ const ORDERED_STATES: ReadonlyArray<{
   label: string;
   blurb: string;
 }> = [
-  { key: "discovered", label: "Discovered", blurb: "Module manifest located in the registry." },
+  { key: "discovered", label: "Discovered", blurb: "Skill manifest located in the registry." },
   { key: "inspected", label: "Inspected", blurb: "Manifest shape + structural validation passed." },
   { key: "signature_checked", label: "Signature checked", blurb: "Signature verified (or fast-path declared)." },
   { key: "publisher_checked", label: "Publisher checked", blurb: "Publisher identity confirmed against policy." },
-  { key: "permissions_reviewed", label: "Permissions reviewed", blurb: "Capabilities + data-movement summary acknowledged." },
-  { key: "gates_reviewed", label: "Gates reviewed", blurb: "Posture + advice-tier gates acknowledged." },
-  { key: "granted", label: "Granted", blurb: "All capabilities approved; ready to enable." },
-  { key: "enabled", label: "Enabled", blurb: "Module installed and available." },
+  { key: "permissions_reviewed", label: "Permissions reviewed", blurb: "Permission sets + data movement acknowledged." },
+  { key: "gates_reviewed", label: "Gates reviewed", blurb: "Privilege + advice-tier gates acknowledged." },
+  { key: "granted", label: "Granted", blurb: "All permissions approved; ready to enable." },
+  { key: "enabled", label: "Enabled", blurb: "Skill installed and available." },
 ];
 
 const TERMINAL_FAILURE_STATES: ReadonlySet<string> = new Set([
@@ -106,7 +106,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
         // user sees the terminal-state row before the route change.
         setQ({ status: "ready", ceremony: next });
         window.setTimeout(() => {
-          void nav({ to: "/modules" });
+          void nav({ to: "/skills" });
         }, 700);
         return;
       }
@@ -155,7 +155,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
         eyebrow="Install review"
         title={c.permission_card.module_name ?? c.module_id}
         subId={`ceremony ${c.ceremony_id}`}
-        description="Verify the publisher, review the permissions this module is asking for, then enable it. Each step is recorded in the audit trail."
+        description="Verify the publisher, review the permissions this skill is asking for, then enable it. Each step is recorded in the audit log."
       />
 
       <Stepper currentState={c.state} />
@@ -177,7 +177,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
             Ceremony terminated: {c.state}
           </p>
           <p className="mt-1 text-sm text-muted">
-            No further actions. Return to the catalog to start a new
+            No further steps. Return to the catalog to start a new
             ceremony if needed.
           </p>
         </div>
@@ -207,7 +207,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
             >
               {adv.kind === "running" && adv.action === "grant"
                 ? "Enabling…"
-                : "Enable module"}
+                : "Enable skill"}
             </button>
           )}
           <button
@@ -225,10 +225,10 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
 
       {c.state === "enabled" && (
         <div className="mt-8 rounded-md border border-line p-4">
-          <p className="text-sm font-medium">Module enabled</p>
+          <p className="text-sm font-medium">Skill enabled</p>
           <p className="mt-1 text-sm text-muted">
-            This module is now installed and can be granted on your
-            matters. The install was recorded in the audit trail.
+            This skill is now installed and can be enabled on your
+            matters. The install was recorded in the audit log.
           </p>
         </div>
       )}
@@ -288,7 +288,7 @@ function PermissionCard({
         Review permissions
       </h2>
       <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        <DT label="Module">
+        <DT label="Skill">
           {card.module_name ?? card.module_id}
         </DT>
         <DT label="Version">{card.version ?? "—"}</DT>
@@ -299,7 +299,7 @@ function PermissionCard({
         <DT label="Signature">{card.signature_status ?? "—"}</DT>
         <DT label="Visibility">{card.visibility ?? "—"}</DT>
         <DT label="Advice tier max">{card.advice_tier_max ?? "—"}</DT>
-        <DT label="Capabilities">{caps.length}</DT>
+        <DT label="Permission sets">{caps.length}</DT>
         <DT label="Audit events">{events.length}</DT>
       </dl>
     </section>
@@ -326,14 +326,14 @@ function InvalidTransitionBanner({
         not valid from the current state. {state.message}
       </p>
       <p className="mt-2 text-sm text-muted">
-        The substrate wrote a{" "}
+        The runtime wrote a{" "}
         <span className="font-mono">module.ceremony.rejected</span> audit
         row for this attempt.{" "}
         <a
           href={auditHref}
           className="underline underline-offset-4 hover:text-ink"
         >
-          View workspace audit trail
+          View audit log
         </a>
         .
       </p>

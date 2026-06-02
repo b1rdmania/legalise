@@ -59,9 +59,9 @@ export function MatterLifecycle({ slug }: { slug: string }) {
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Matter"
-        title="Export matter"
+        title="Working pack"
         subId={matter.slug}
-        description="Download the governed matter record, then close or delete only if needed. Export is the normal final step."
+        description="Download the governed matter record, then close or delete only if needed. Exporting the working pack is the normal final step."
       >
         <p className="mt-3 text-xs text-muted">
           Status: <span className="text-ink">{matter.status}</span>
@@ -142,14 +142,14 @@ function ExportPanel({ slug }: { slug: string }) {
 
   return (
     <section className="mt-8 border border-rule p-5">
-      <h2 className="text-sm uppercase tracking-widest text-muted">Export record</h2>
+      <h2 className="text-sm uppercase tracking-widest text-muted">Export working pack</h2>
       <div className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
         <div>
           <p className="uppercase tracking-widest text-muted">Includes</p>
           <ul className="mt-1 list-disc pl-4 text-muted">
             <li>matter metadata</li>
             <li>uploaded documents + original files</li>
-            <li>artefacts (outputs) + bytes</li>
+            <li>signed outputs + bytes</li>
             <li>review decisions</li>
             <li>audit reconstruction + raw audit</li>
             <li>README / manifest</li>
@@ -213,7 +213,7 @@ function ExportPanel({ slug }: { slug: string }) {
         href={`/matters/${encodeURIComponent(slug)}/audit?action=module.export.job.completed`}
         className="mt-3 inline-block text-xs text-muted underline underline-offset-4 hover:text-ink"
       >
-        View export activity in the Activity Trail
+        View export activity in the Record
       </a>
     </section>
   );

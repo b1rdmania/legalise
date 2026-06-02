@@ -28,17 +28,17 @@ function mountLawve() {
   const root = createRootRoute({ component: () => <Outlet /> });
   const lawveRoute = createRoute({
     getParentRoute: () => root,
-    path: "/modules/lawve",
+    path: "/skills/lawve",
     component: () => <LawveImport />,
   });
   const ceremonyStub = createRoute({
     getParentRoute: () => root,
-    path: "/modules/install/$ceremonyId",
+    path: "/skills/install/$ceremonyId",
     component: () => <div data-testid="ceremony-stub" />,
   });
   const router = createRouter({
     routeTree: root.addChildren([lawveRoute, ceremonyStub]),
-    history: createMemoryHistory({ initialEntries: ["/modules/lawve"] }),
+    history: createMemoryHistory({ initialEntries: ["/skills/lawve"] }),
   });
   return render(
     <AuthProvider>

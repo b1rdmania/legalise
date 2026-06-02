@@ -52,10 +52,10 @@ const CLASS_CHIPS: { key: RowClass; label: string }[] = [
   { key: "signed", label: "Sign-off" },
   { key: "review", label: "Review" },
   { key: "blocked_denied", label: "Blocked / denied" },
-  { key: "grant_role", label: "Grant / role" },
+  { key: "grant_role", label: "Permission / role" },
   { key: "advice", label: "Advice" },
   { key: "model", label: "Model" },
-  { key: "module", label: "Module" },
+  { key: "module", label: "Skill" },
   { key: "error", label: "Error" },
 ];
 
@@ -64,10 +64,10 @@ const CLASS_LABEL: Record<RowClass, string> = {
   signed: "Sign-off",
   review: "Review",
   blocked_denied: "Blocked / denied",
-  grant_role: "Grant / role",
+  grant_role: "Permission / role",
   advice: "Advice",
   model: "Model",
-  module: "Module",
+  module: "Skill",
   system: "System",
 };
 
@@ -79,7 +79,7 @@ const STORY_LABEL: Record<RowClass, string> = {
   grant_role: "Permission changed",
   advice: "Advice boundary checked",
   model: "Model used",
-  module: "Action ran",
+  module: "Skill ran",
   system: "System activity",
 };
 
@@ -249,12 +249,12 @@ export function ReconstructionView({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <p className="text-xs uppercase tracking-widest text-muted">Matter</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Activity Trail</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Record</h1>
       <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
       <p className="mt-3 text-sm text-muted">
         The main record of what happened on this matter: documents
-        referenced, actions run, models called, outputs written, human
-        reviews, and blocked attempts. Raw substrate rows stay
+        referenced, skills run, models called, outputs written, human
+        reviews, and blocked attempts. Raw audit rows stay
         expandable; the first view is the story.
       </p>
 
@@ -569,7 +569,7 @@ function InvocationChain({
       >
         <span className="flex items-baseline gap-2">
           <span className="text-xs uppercase tracking-widest text-muted">
-            Invocation
+            Run
           </span>
           <code className="font-mono text-sm">{invocationId.slice(0, 8)}…</code>
           <span className="text-xs text-muted">{ordered.length} events</span>

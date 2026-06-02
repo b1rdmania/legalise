@@ -135,20 +135,42 @@ const verifyRoute = createRoute({
   }),
 });
 
-// /modules is the v2 catalog (ModulesCatalog). The earlier Modules
+// /skills is the v2 catalog (ModulesCatalog). The earlier Modules
 // component (v1 skill enable/disable) is retained in the codebase
 // under src/modules-page/ for reference but no longer mounted on a
 // route. Importing it elsewhere still works.
+//
+// The legacy /modules path is preserved via `legacyModulesRedirect`
+// below as a router-level redirect shim (TanStack `beforeLoad`), so
+// deep links, bookmarks, and tests keep working.
 const modulesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/modules",
+  path: "/skills",
   component: ModulesCatalog,
+});
+
+const legacyModulesRedirect = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/modules",
+  beforeLoad: () => {
+    throw redirect({ to: "/skills" });
+  },
+  component: () => null,
 });
 
 const submitModuleRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/modules/submit",
+  path: "/skills/submit",
   component: SubmitModule,
+});
+
+const legacySubmitModuleRedirect = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/modules/submit",
+  beforeLoad: () => {
+    throw redirect({ to: "/skills/submit" });
+  },
+  component: () => null,
 });
 
 const demoIndexRoute = createRoute({
@@ -262,18 +284,36 @@ const appHomeRoute = createRoute({
   component: AppHome,
 });
 
-// Authed operator/developer create-module on-ramp. Registered before
-// /modules/$moduleId so the literal "create" segment wins.
+// Authed operator/developer create-skill on-ramp. Registered before
+// /skills/$moduleId so the literal "create" segment wins.
 const createModuleRoute = createRoute({
   getParentRoute: () => authedRoute,
-  path: "/modules/create",
+  path: "/skills/create",
   component: CreateModule,
+});
+
+const legacyCreateModuleRedirect = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/modules/create",
+  beforeLoad: () => {
+    throw redirect({ to: "/skills/create" });
+  },
+  component: () => null,
 });
 
 const lawveImportRoute = createRoute({
   getParentRoute: () => authedRoute,
-  path: "/modules/lawve",
+  path: "/skills/lawve",
   component: LawveImport,
+});
+
+const legacyLawveImportRedirect = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/modules/lawve",
+  beforeLoad: () => {
+    throw redirect({ to: "/skills/lawve" });
+  },
+  component: () => null,
 });
 
 const demoLoopRoute = createRoute({
@@ -284,20 +324,44 @@ const demoLoopRoute = createRoute({
 
 const moduleDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
-  path: "/modules/$moduleId",
+  path: "/skills/$moduleId",
   component: () => {
     const { moduleId } = moduleDetailRoute.useParams();
     return <ModuleDetail moduleId={moduleId} />;
   },
 });
 
+const legacyModuleDetailRedirect = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/modules/$moduleId",
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/skills/$moduleId",
+      params: { moduleId: (params as { moduleId: string }).moduleId },
+    });
+  },
+  component: () => null,
+});
+
 const moduleInstallRoute = createRoute({
   getParentRoute: () => authedRoute,
-  path: "/modules/install/$ceremonyId",
+  path: "/skills/install/$ceremonyId",
   component: () => {
     const { ceremonyId } = moduleInstallRoute.useParams();
     return <InstallCeremony ceremonyId={ceremonyId} />;
   },
+});
+
+const legacyModuleInstallRedirect = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/modules/install/$ceremonyId",
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/skills/install/$ceremonyId",
+      params: { ceremonyId: (params as { ceremonyId: string }).ceremonyId },
+    });
+  },
+  component: () => null,
 });
 
 // Reconstruction. Query-param contract: ?invocation_id=… (deep
@@ -418,7 +482,9 @@ const routeTree = rootRoute.addChildren([
   verifyPendingRoute,
   verifyRoute,
   modulesRoute,
+  legacyModulesRedirect,
   submitModuleRoute,
+  legacySubmitModuleRedirect,
   demoIndexRoute,
   demoTabRoute,
   appHomeRoute,
@@ -432,10 +498,14 @@ const routeTree = rootRoute.addChildren([
     settingsKeysRoute,
     settingsPreferencesRoute,
     createModuleRoute,
+    legacyCreateModuleRedirect,
     lawveImportRoute,
+    legacyLawveImportRedirect,
     demoLoopRoute,
     moduleDetailRoute,
+    legacyModuleDetailRedirect,
     moduleInstallRoute,
+    legacyModuleInstallRedirect,
     matterAuditRoute,
     matterArtifactsRoute,
     matterArtifactDetailRoute,

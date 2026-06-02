@@ -1,8 +1,8 @@
 // MatterNav - compact left rail for the matter workspace.
 // Pattern reference: Mike, Claude.ai, Sana AI, Mistral, Fibery.
-// Core V1 loop (Matter desk / Documents / Actions / Activity Trail);
-// secondary review/chronology surfaces stay routable without dominating
-// the first-run matter experience.
+// Core V1 loop (Chat / Documents / Skills / Record); secondary
+// review/chronology surfaces stay routable without dominating the
+// first-run matter experience.
 //
 // Mobile: at < md the static rail is hidden. When `mobileOpen` is true
 // the same content renders as a left-anchored 280px sheet with a
@@ -127,7 +127,7 @@ function NavBody({
         </div>
         {showPosture && (
           <div className="mt-3 flex items-center gap-2">
-            <span className="eyebrow">Posture</span>
+            <span className="eyebrow">Privilege</span>
             <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
               <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
             </span>
@@ -188,7 +188,7 @@ function PrivilegeControlInline({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      aria-label="Privilege posture"
+      aria-label="Privilege control"
       title={POSTURE_BLURB[value] ?? value}
       className="bg-transparent text-[10px] font-mono font-bold uppercase tracking-track2 text-ink border-none outline-none cursor-pointer p-0 focus-visible:underline focus-visible:underline-offset-4"
     >

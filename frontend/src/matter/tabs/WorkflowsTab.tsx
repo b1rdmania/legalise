@@ -25,8 +25,8 @@ const GRANT_LABEL: Record<WorkflowGrant, string> = {
 
 const AVAILABILITY_LABEL: Record<WorkflowAvailability, string> = {
   ok: "ok",
-  "blocked-by-posture": "blocked by posture",
-  "blocked-by-grant": "blocked by grant",
+  "blocked-by-posture": "blocked by privilege",
+  "blocked-by-grant": "blocked by permission",
 };
 
 function availabilityClasses(value: WorkflowAvailability): string {
@@ -74,9 +74,9 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : String(e);
           if (msg.includes("401")) {
-            setError("Sign in to see which workflows are runnable on this matter.");
+            setError("Sign in to see which skills are runnable on this matter.");
           } else {
-            setError("Workflows could not be loaded. Try again, or open the module catalogue.");
+            setError("Skills could not be loaded. Try again, or open the skill catalogue.");
           }
         }
       });
@@ -88,13 +88,13 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
   return (
     <div className="max-w-4xl">
       <p className="text-sm text-prose max-w-2xl leading-relaxed mb-8">
-        Run the installed legal actions for this matter. Each card says whether
+        Run the installed legal skills for this matter. Each card says whether
         it is ready before you open it.
       </p>
 
       {error && (
         <div className="border border-rule bg-paper p-5 text-sm">
-          <p className="font-semibold text-ink">Actions are available inside your workspace.</p>
+          <p className="font-semibold text-ink">Skills are available inside your workspace.</p>
           <p className="mt-2 text-muted">{error}</p>
           <a
             href="/auth/signup"
@@ -104,7 +104,7 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
           </a>
         </div>
       )}
-      {!data && !error && <LoadingLine label="loading workflows" />}
+      {!data && !error && <LoadingLine label="loading skills" />}
 
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -115,9 +115,9 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
       )}
 
       <p className="text-xs text-muted mt-8">
-        Browse all available modules in the{" "}
-        <a href="/modules" className="text-[#0066CC] hover:underline">
-          module catalogue
+        Browse all available skills in the{" "}
+        <a href="/skills" className="text-[#0066CC] hover:underline">
+          skill catalogue
         </a>
         .
       </p>
@@ -136,7 +136,7 @@ function WorkflowCard({ workflow, slug }: { workflow: WorkflowState; slug: strin
       <p className="text-xs text-prose leading-relaxed">{workflow.description}</p>
 
       <dl className="mt-4 grid grid-cols-[88px_1fr] gap-y-1 text-[11px] font-mono">
-        <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Grant</dt>
+        <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Permission</dt>
         <dd className={grantClasses(workflow.grant)}>{GRANT_LABEL[workflow.grant]}</dd>
         <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Last run</dt>
         <dd className="text-prose">{formatLastRun(workflow.last_run_at)}</dd>

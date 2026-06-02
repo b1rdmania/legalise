@@ -71,7 +71,7 @@ export function MatterList() {
               <span>Matter</span>
               <span>Type</span>
               <span>Status</span>
-              <span>Posture</span>
+              <span>Privilege</span>
               <span>Opened</span>
               <span>Retention</span>
             </div>

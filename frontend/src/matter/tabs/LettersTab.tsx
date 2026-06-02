@@ -84,7 +84,7 @@ export function LettersTab({
             </button>
             {blocked && (
               <span className="text-sm text-muted">
-                Privilege posture C_paused blocks LLM calls.
+                Privilege control C_paused blocks LLM calls.
               </span>
             )}
           </div>

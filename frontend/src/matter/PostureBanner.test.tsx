@@ -127,7 +127,7 @@ describe("PostureBanner — unknown posture (fail closed)", () => {
       />,
     );
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
-    expect(screen.getByText(/unknown posture/i)).toBeInTheDocument();
+    expect(screen.getByText(/unknown privilege/i)).toBeInTheDocument();
     expect(screen.getByText(/Z_experimental/)).toBeInTheDocument();
   });
 });

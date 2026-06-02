@@ -140,8 +140,7 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   const me = await whoami(request);
   expect(me.is_superuser).toBe(true);
   await page.goto("/app");
-  // Phase 17-IA-D renamed the authed home heading "Home" → "Dashboard".
-  await expect(page.getByRole("heading", { name: /^Dashboard$/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Matters$/ })).toBeVisible();
 
   // ---------------------------------------------------------------
   // 6. Keyless invocation path. PATCH the user default to

@@ -59,7 +59,7 @@ export function MatterBreadcrumb({
                   href={`/matters/${matter.slug}/workflows`}
                   className="text-muted hover:text-ink transition-colors shrink-0"
                 >
-                  Actions
+                  Skills
                 </a>
                 <span className="text-muted mx-2 shrink-0">/</span>
               </>

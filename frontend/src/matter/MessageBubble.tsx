@@ -89,7 +89,7 @@ function AssistantMessageView({
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
-          {" · recorded in Activity Trail"}
+          {" · recorded in Record"}
         </div>
         <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
           {text}

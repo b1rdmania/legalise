@@ -92,22 +92,22 @@ export function ArtifactsList({ slug }: { slug: string }) {
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Matter"
-        title="Outputs"
+        title="Signed outputs"
         subId={slug}
         description="Drafts and signed material produced on this matter. Open an output to review sources, sign it, or trace how it was made."
       />
 
       {q.status === "loading" && (
-        <p className="mt-8 text-sm text-muted">Loading outputs…</p>
+        <p className="mt-8 text-sm text-muted">Loading signed outputs…</p>
       )}
       {q.status === "error" && (
         <p className="mt-8 text-sm text-seal">
-          Could not load outputs: {q.message}
+          Could not load signed outputs: {q.message}
         </p>
       )}
       {q.status === "ready" && q.rows.length === 0 && (
         <p className="mt-8 text-sm text-muted">
-          No outputs yet on this matter. Run an action to produce one.
+          No signed outputs yet on this matter. Run a skill to produce one.
         </p>
       )}
       {q.status === "ready" && q.rows.length > 0 && (

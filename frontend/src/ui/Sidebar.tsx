@@ -188,7 +188,7 @@ export function Sidebar({
 
         <nav className="flex-1 overflow-y-auto py-2">
           <SectionLabel>Workspace</SectionLabel>
-          <NavLink href="/app" label="Dashboard" active={route.name === "appHome"} />
+          <NavLink href="/app" label="Matters" active={route.name === "appHome"} />
           <NavLink
             href="/matters"
             label="Matters"
@@ -219,21 +219,21 @@ export function Sidebar({
               ))}
               <NavLink
                 href={`/matters/${matterSlug}/artifacts`}
-                label="Outputs"
+                label="Signed outputs"
                 active={onMatterArtifacts}
                 indent
               />
               <NavLink
                 href={`/matters/${matterSlug}/lifecycle`}
-                label="Export"
+                label="Working pack"
                 active={onMatterLifecycle}
                 indent
               />
             </div>
           )}
           <NavLink
-            href="/modules"
-            label="Modules"
+            href="/skills"
+            label="Skills"
             active={
               route.name === "modules" ||
               route.name === "moduleDetail" ||
@@ -241,7 +241,7 @@ export function Sidebar({
               route.name === "createModule"
             }
           />
-          <NavLink href="/admin/audit" label="Workspace audit" active={onAudit} />
+          <NavLink href="/admin/audit" label="Audit" active={onAudit} />
 
           <SectionLabel>Account</SectionLabel>
           <NavLink

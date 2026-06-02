@@ -77,7 +77,7 @@ describe("GrantsPanel — list", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/no capabilities granted/i)).toBeInTheDocument();
+      expect(screen.getByText(/no permissions are enabled/i)).toBeInTheDocument();
     });
   });
 });
@@ -125,15 +125,15 @@ describe("GrantsPanel — create", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/Module/i), {
+    fireEvent.change(screen.getByLabelText(/Skill/i), {
       target: { value: "contract-review" },
     });
-    fireEvent.change(screen.getByLabelText(/Capability/i), {
+    fireEvent.change(screen.getByLabelText(/Permission/i), {
       target: { value: "review" },
     });
-    fireEvent.click(screen.getByText("Grant"));
+    fireEvent.click(screen.getByText("Enable"));
 
     await waitFor(() => {
       expect(create).toHaveBeenCalledWith("khan", {
@@ -146,7 +146,7 @@ describe("GrantsPanel — create", () => {
     expect(listGrants).toHaveBeenCalledTimes(2);
     await waitFor(() => {
       expect(
-        screen.getByText(/Granted\. This module may now use that permission/i),
+        screen.getByText(/Enabled\. This skill may now use that permission/i),
       ).toBeInTheDocument();
     });
   });
@@ -196,13 +196,13 @@ describe("GrantsPanel — create", () => {
       ).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText(/Module/i), {
+    fireEvent.change(screen.getByLabelText(/Skill/i), {
       target: { value: "contract-review-anthropic" },
     });
-    fireEvent.change(screen.getByLabelText(/Capability/i), {
+    fireEvent.change(screen.getByLabelText(/Permission/i), {
       target: { value: "default" },
     });
-    fireEvent.click(screen.getByText("Grant"));
+    fireEvent.click(screen.getByText("Enable"));
 
     await waitFor(() => {
       expect(create).toHaveBeenCalledWith("khan", {
@@ -227,21 +227,21 @@ describe("GrantsPanel — create", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/Module/i), {
+    fireEvent.change(screen.getByLabelText(/Skill/i), {
       target: { value: "contract-review" },
     });
-    fireEvent.change(screen.getByLabelText(/Capability/i), {
+    fireEvent.change(screen.getByLabelText(/Permission/i), {
       target: { value: "review" },
     });
-    fireEvent.click(screen.getByText("Grant"));
+    fireEvent.click(screen.getByText("Enable"));
 
     await waitFor(() => {
       expect(screen.getByText(/not installed/i)).toBeInTheDocument();
     });
-    // Substrate-truth: instruct the user to install via /modules.
-    expect(screen.getByText(/\/modules/)).toBeInTheDocument();
+    // User-facing route points to the canonical skills home.
+    expect(screen.getByText(/\/skills/)).toBeInTheDocument();
   });
 
   it("surfaces 409 module_disabled inline", async () => {
@@ -259,15 +259,15 @@ describe("GrantsPanel — create", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/Module/i), {
+    fireEvent.change(screen.getByLabelText(/Skill/i), {
       target: { value: "contract-review" },
     });
-    fireEvent.change(screen.getByLabelText(/Capability/i), {
+    fireEvent.change(screen.getByLabelText(/Permission/i), {
       target: { value: "review" },
     });
-    fireEvent.click(screen.getByText("Grant"));
+    fireEvent.click(screen.getByText("Enable"));
 
     await waitFor(() => {
       expect(
@@ -292,21 +292,21 @@ describe("GrantsPanel — create", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/Module/i), {
+    fireEvent.change(screen.getByLabelText(/Skill/i), {
       target: { value: "contract-review" },
     });
-    fireEvent.change(screen.getByLabelText(/Capability/i), {
+    fireEvent.change(screen.getByLabelText(/Permission/i), {
       target: { value: "review" },
     });
-    fireEvent.click(screen.getByText("Grant"));
+    fireEvent.click(screen.getByText("Enable"));
 
     await waitFor(() => {
-      expect(screen.getByText(/already granted/i)).toBeInTheDocument();
+      expect(screen.getByText(/already enabled/i)).toBeInTheDocument();
     });
-    // The user is reminded that idempotent grants do NOT emit audit
-    // rows — load-bearing per Phase 7 Decision #4.
+    // The user is reminded that idempotent permission changes do NOT emit audit
+    // rows.
     expect(screen.getByText(/do not emit audit rows/i)).toBeInTheDocument();
   });
 });
@@ -351,18 +351,18 @@ describe("GrantsPanel — capability filtering (matter-scope only)", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByLabelText(/Module/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Skill/i)).toBeInTheDocument();
     });
 
     // Module-B is filtered out entirely.
-    const moduleSelect = screen.getByLabelText(/Module/i) as HTMLSelectElement;
+    const moduleSelect = screen.getByLabelText(/Skill/i) as HTMLSelectElement;
     const moduleValues = Array.from(moduleSelect.options).map((o) => o.value);
     expect(moduleValues).toContain("module-a");
     expect(moduleValues).not.toContain("module-b");
 
     // Pick Module-A and inspect the capability select.
     fireEvent.change(moduleSelect, { target: { value: "module-a" } });
-    const capSelect = screen.getByLabelText(/Capability/i) as HTMLSelectElement;
+    const capSelect = screen.getByLabelText(/Permission/i) as HTMLSelectElement;
     const capValues = Array.from(capSelect.options).map((o) => o.value);
     expect(capValues).toContain("matter-cap");
     // The workspace cap is hidden — the matter endpoint would reject
@@ -473,7 +473,7 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
     // Wait for the panel to settle (the catalog + grants both
     // resolve, but no runnable-capabilities block should render).
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
     expect(
@@ -649,7 +649,7 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
     expect(
@@ -679,7 +679,7 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
   });
@@ -701,7 +701,7 @@ describe("GrantsPanel — runnable-pairs derivation (Phase 14 D)", () => {
 
     render(<GrantsPanel slug="khan" />);
     await waitFor(() => {
-      expect(screen.getByText(/Grant a capability/i)).toBeInTheDocument();
+      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
     });
     expect(screen.queryByTestId("runnable-capabilities")).toBeNull();
   });
@@ -740,7 +740,7 @@ describe("GrantsPanel — revoke", () => {
       expect(revoke).toHaveBeenCalledWith("khan", "g-1");
     });
     await waitFor(() => {
-      expect(screen.getByText(/no capabilities granted/i)).toBeInTheDocument();
+      expect(screen.getByText(/no permissions are enabled/i)).toBeInTheDocument();
     });
   });
 });
