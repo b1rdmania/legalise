@@ -194,7 +194,7 @@ describe("InstallCeremony — 409 invalid-transition", () => {
     expect(screen.getByText(/module\.ceremony\.rejected/)).toBeInTheDocument();
     // Phase 14.5 C — the deep-link is back. Action-filter only per
     // the Phase 14.5 plan P1 redline (no ?ceremony= param).
-    const link = screen.getByRole("link", { name: /workspace audit/i });
+    const link = screen.getByRole("link", { name: /audit log/i });
     expect(link.getAttribute("href")).toBe(
       "/admin/audit?action=module.ceremony.rejected",
     );

@@ -278,7 +278,7 @@ function DemoWorkflowsTab({
     <div className="max-w-5xl">
       <div className="mb-8 border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Governed actions
+          Governed skills
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
           Pick the work you want the AI to prepare.

@@ -49,7 +49,7 @@ const ORDERED_STATES: ReadonlyArray<{
   { key: "signature_checked", label: "Signature checked", blurb: "Signature verified (or fast-path declared)." },
   { key: "publisher_checked", label: "Publisher checked", blurb: "Publisher identity confirmed against policy." },
   { key: "permissions_reviewed", label: "Permissions reviewed", blurb: "Capabilities + data-movement summary acknowledged." },
-  { key: "gates_reviewed", label: "Gates reviewed", blurb: "Posture + advice-tier gates acknowledged." },
+  { key: "gates_reviewed", label: "Gates reviewed", blurb: "Privilege + advice-tier gates acknowledged." },
   { key: "granted", label: "Granted", blurb: "All capabilities approved; ready to enable." },
   { key: "enabled", label: "Enabled", blurb: "Module installed and available." },
 ];
@@ -333,7 +333,7 @@ function InvalidTransitionBanner({
           href={auditHref}
           className="underline underline-offset-4 hover:text-ink"
         >
-          View workspace audit trail
+          View audit log
         </a>
         .
       </p>

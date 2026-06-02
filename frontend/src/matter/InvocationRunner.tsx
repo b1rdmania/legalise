@@ -241,9 +241,9 @@ function ResultPanel({
 
   if (state.kind === "posture_blocked") {
     return (
-      <Banner tone="amber" title="Posture gate blocked invocation">
+      <Banner tone="amber" title="Privilege gate blocked invocation">
         <p>
-          This matter's posture (
+          This matter's privilege state (
           <code className="font-mono text-xs">{state.err.posture}</code>)
           requires role{" "}
           <code className="font-mono text-xs">{state.err.requiredRole}</code>.
@@ -251,7 +251,7 @@ function ResultPanel({
           <code className="font-mono text-xs">{state.err.actorRole}</code>.
         </p>
         <p className="mt-1 text-xs">
-          Substrate audit row:{" "}
+          Audit row:{" "}
           <code className="font-mono">posture_gate.check.blocked</code>.
         </p>
       </Banner>
@@ -270,7 +270,7 @@ function ResultPanel({
           dispatch time.
         </p>
         <p className="mt-1 text-xs">
-          Substrate audit row:{" "}
+          Audit row:{" "}
           <code className="font-mono">module.capability.denied</code>.
         </p>
       </Banner>
@@ -288,7 +288,7 @@ function ResultPanel({
           .
         </p>
         <p className="mt-1 text-xs">
-          Substrate audit row:{" "}
+          Audit row:{" "}
           <code className="font-mono">advice_boundary.check.blocked</code>.
         </p>
       </Banner>
@@ -337,7 +337,7 @@ function ResultPanel({
           ) : null}
         </p>
         <p className="mt-1 text-xs">
-          Substrate audit row:{" "}
+          Audit row:{" "}
           <code className="font-mono">model.call.error</code>.
         </p>
       </Banner>

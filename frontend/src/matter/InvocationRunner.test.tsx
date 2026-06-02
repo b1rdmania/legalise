@@ -108,7 +108,7 @@ describe("InvocationRunner — structured failure paths", () => {
     fireEvent.click(runBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Posture gate blocked/)).toBeInTheDocument();
+      expect(screen.getByText(/Privilege gate blocked/)).toBeInTheDocument();
     });
     expect(screen.getByText(/B_mixed/)).toBeInTheDocument();
     expect(screen.getByText(/qualified_solicitor/)).toBeInTheDocument();

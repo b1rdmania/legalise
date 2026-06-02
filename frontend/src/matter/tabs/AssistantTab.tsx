@@ -253,12 +253,12 @@ export function AssistantTab({
           <div className="space-y-6 border border-rule bg-paper-sunken p-5">
             <div className="text-sm text-prose space-y-2">
               <p>
-                Ask anything about this matter, or run a governed action when
-                you need an output to sign.
+                Ask anything about this matter, or run a skill when you need
+                an output to sign.
               </p>
               <p className="text-xs text-muted">
                 Sources appear as chips below each answer. Material outputs
-                move to Outputs for sign-off and export.
+                move to Signed outputs for sign-off and export.
               </p>
             </div>
             <div>
@@ -379,7 +379,7 @@ export function AssistantTab({
                 onClick={() => setTabAndHash("workflows")}
                 className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
               >
-                Actions
+                Skills
               </button>
               {attachOpen && recentDocs.length > 0 && (
                 <div className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[280px] z-10">
@@ -444,7 +444,7 @@ function formatError(err: unknown): string {
     // not JSON
   }
   if (status === "401") return "You need to sign in again to use the assistant.";
-  if (status === "409") return body || "This matter's posture blocks cloud model calls. Switch posture or use a local model.";
+  if (status === "409") return body || "This matter's privilege state blocks cloud model calls. Change privilege or use a local model.";
   if (status === "422") return body || "The request was rejected. Check your API key and try again.";
   return `HTTP ${status}: ${body}`;
 }

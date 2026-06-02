@@ -36,7 +36,7 @@ const SECTIONS: Section[] = [
           frame it as a workspace problem. The matter is the unit of work.
           Every model call, every document mutation, every chronology
           entry exists inside one matter, owned by one user, governed by
-          one privilege posture, written into one audit log.
+          one privilege control, written into one audit log.
         </p>
         <p className="prose-p">
           Outside that frame, the legal use case stops being legal. It is
@@ -62,7 +62,7 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           The unit is not a prompt. It is a matter. The control points are
-          not vibes. They are permissions, privilege posture, source
+          not vibes. They are permissions, privilege control, source
           evidence, review gates, and audit rows. Audit is not the
           product. Audit is the receipt.
         </p>
@@ -77,7 +77,7 @@ const SECTIONS: Section[] = [
         <p className="prose-p">
           The workspace organises around the matter. Documents, prompts,
           outputs, audit rows. All hang off a slug, a title, a parties
-          record, a privilege posture, a retention clock.
+          record, a privilege control, a retention clock.
         </p>
         <p className="prose-p">
           AI tooling that operates outside the matter frame is fine for
@@ -170,8 +170,8 @@ const SECTIONS: Section[] = [
           Three states. <code className="text-sm">A_cleared</code>,{" "}
           <code className="text-sm">B_mixed</code>,{" "}
           <code className="text-sm">C_paused</code>. Each matter carries
-          one. The gateway reads the posture before every model call and
-          decides which providers can serve it.
+          one. The gateway reads the privilege state before every model call
+          and decides which providers can serve it.
         </p>
         <p className="prose-p">
           Cloud providers are commodities behind the gateway, not direct
@@ -179,7 +179,7 @@ const SECTIONS: Section[] = [
           one for <code className="text-sm">C_paused</code> matters.
         </p>
         <p className="prose-p">
-          If the posture rules and the providers configured for a matter
+          If the privilege rules and the providers configured for a matter
           cannot serve a call, the gateway refuses it. The refusal is
           audited. Privilege is not a soft setting.
         </p>
@@ -253,7 +253,7 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           The current release proves the matter workspace, modules, privilege
-          posture, capability gates, BYO keys, and audit trail. Firm-specific
+          privilege control, permission gates, BYO keys, and audit trail. Firm-specific
           seniority gates are staged for real deployments, not required for the
           evaluator path.
         </p>
@@ -327,7 +327,7 @@ const SECTIONS: Section[] = [
             <span className="font-bold text-ink">-</span>
             <span>
               Ship a feature that breaks audit-row contract or
-              privilege-posture dispatch.
+              privilege-control dispatch.
             </span>
           </li>
         </ul>

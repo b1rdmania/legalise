@@ -455,7 +455,7 @@ export function SubmitModule() {
             </div>
           </Field>
 
-          <Field label="Trust posture" hint="Declarative only in v0.1.">
+          <Field label="Trust state" hint="Declarative only in v0.1.">
             <div className="flex flex-wrap gap-4">
               {SUBMISSION_TRUST_POSTURES.map((p) => (
                 <label key={p} className="flex items-center gap-2 text-sm font-mono">

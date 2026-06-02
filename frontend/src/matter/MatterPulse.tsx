@@ -73,8 +73,8 @@ export function MatterPulse({
   const hasActions = workflowsGranted !== 0;
   const actionLabel =
     workflowsGranted === null
-      ? "Actions checked on sign-in"
-      : `${workflowsGranted} governed action${workflowsGranted === 1 ? "" : "s"} ready`;
+      ? "Skills checked on sign-in"
+      : `${workflowsGranted} skill${workflowsGranted === 1 ? "" : "s"} ready`;
 
   return (
     <section
@@ -103,8 +103,8 @@ export function MatterPulse({
       </div>
       {showPosture ? (
         <p className="mt-4 border-t border-rule pt-3 text-xs text-muted">
-          {postureLabel} posture. This demo is safe to inspect; create an account
-          to run the same loop on your own matter.
+          {postureLabel} privilege control. This demo is safe to inspect;
+          create an account to run the same loop on your own matter.
         </p>
       ) : (
         <p className="mt-4 border-t border-rule pt-3 text-xs text-muted">

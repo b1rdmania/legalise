@@ -10,7 +10,7 @@ const DEMO_SLUG = "khan-v-acme-trading-2026";
 const SURFACES: { title: string; body: string }[] = [
   {
     title: "Matter workspace",
-    body: "Every model call lives inside a matter. Documents, chronology, posture, audit.",
+    body: "Every model call lives inside a matter. Documents, chronology, privilege control, audit.",
   },
   {
     title: "Privilege control",
@@ -197,7 +197,7 @@ export function Landing() {
             </p>
             <p>
               The unit is not a prompt. It is a matter. The control points are
-              permissions, privilege posture, source evidence, review gates, and
+              permissions, privilege control, source evidence, review gates, and
               audit rows. Audit is not the product. Audit is the receipt.
             </p>
           </div>

@@ -134,11 +134,11 @@ export function DemoLoop() {
           />
 
           {/* Step 1 — run */}
-          <Step n={1} title="Run a governed action" done={phase.step !== "ready"}>
+          <Step n={1} title="Run a skill" done={phase.step !== "ready"}>
             <p className="text-sm text-muted">
               The demo skill <span className="font-mono">{handles.module_id}</span> reads{" "}
               <span className="font-mono">{handles.document_filename}</span> and writes a
-              matter artifact — under the same posture, per-matter grants, and audit as any
+              matter artifact — under the same privilege control, per-matter permissions, and audit as any
               real run.
             </p>
             <button

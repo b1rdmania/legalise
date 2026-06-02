@@ -267,7 +267,7 @@ function SettingsProfile({
       </div>
 
       <div>
-        <label className="eyebrow mb-2 block">Default privilege posture</label>
+        <label className="eyebrow mb-2 block">Default privilege control</label>
         <div className="flex gap-3">
           <select
             value={defaultPosture}

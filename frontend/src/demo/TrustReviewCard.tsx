@@ -24,7 +24,7 @@ export function TrustReviewCard({ onViewProof }: TrustReviewCardProps) {
     <aside
       className="rounded-md border border-rule bg-wash p-4"
       data-testid="trust-review-card"
-      aria-label="Trust and review posture"
+      aria-label="Trust and review state"
     >
       <h2 className="text-[11px] uppercase tracking-widest text-muted">Trust &amp; review</h2>
       <ul className="mt-2 space-y-1.5 text-sm">
