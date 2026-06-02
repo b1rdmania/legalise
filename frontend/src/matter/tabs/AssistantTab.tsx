@@ -22,9 +22,9 @@ interface AssistantTabProps {
   docs: MatterDocument[] | null;
   chronology: ChronologyEvent[];
   setTabAndHash: (next: TabKey) => void;
-  // Retained for back-compat with callers (DemoMatter, MatterDetail).
-  // The Chat front door no longer renders MatterPulse — these are
-  // accepted but ignored.
+  // Accepted but unused. Callers (DemoMatter, MatterDetail) still
+  // pass these; the Chat front door no longer surfaces a readiness
+  // widget.
   auditCount?: number;
   workflowsGrantedCount?: number;
   showPostureInPulse?: boolean;
@@ -89,9 +89,9 @@ export function AssistantTab({
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
-  // In-chat skill picker reads PR 4's source-of-truth: getMatterWorkflows.
-  // Only workflows already granted on this matter appear — the chat
-  // surface never invents skill state.
+  // In-chat skill picker reads the same matter-workflows endpoint
+  // the matter Skills tab uses. Only workflows already granted on
+  // this matter appear — the chat surface never invents skill state.
   const [enabledSkills, setEnabledSkills] = useState<WorkflowState[]>([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
