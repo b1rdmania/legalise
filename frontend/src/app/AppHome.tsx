@@ -1,5 +1,5 @@
 /**
- * `/app` first-run + authed home.
+ * `/app` bootstrap-aware entry point.
  *
  * Three-state machine driven by GET /api/system/bootstrap-state
  * (no auth required) and the AuthProvider session:
@@ -7,38 +7,26 @@
  *   1. user_count === 0
  *      Empty state. "No accounts yet. Register the first account."
  *      Primary CTA → /auth/register (a.k.a. /auth/signup).
- *      Does NOT claim registration grants admin — bootstrap is a
- *      separate CLI step.
  *
  *   2. user_count > 0 && has_superuser === false
  *      "Bootstrap administrator required" — literal CLI command + the
- *      binary path. Deliberately no UI shortcut; bootstrap stays a
- *      host-side action.
+ *      binary path. Deliberately no UI shortcut.
  *
  *   3. has_superuser === true
  *      If unauth → bounce to /auth/signin (or /waitlist when
- *      HOSTED_ACCESS_WAITLIST). If authed → render the home (recent
- *      matters + "Open Khan v Acme" CTA).
+ *      HOSTED_ACCESS_WAITLIST). If authed → bounce to /matters, the
+ *      canonical workspace index.
  *
- * Reviewer-narrow scope: no module catalog, no grants, no
- * reconstruction, no admin. The home renders matter list + Khan
- * CTA and stops.
+ * The /app route exists ONLY to host bootstrap states 1 and 2. Once
+ * the workspace is operational, /matters owns the authed home.
  */
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  getBootstrapState,
-  listAudit,
-  listMatters,
-  type AuditEntry,
-  type BootstrapState,
-  type Matter,
-} from "../lib/api";
+import { getBootstrapState, type BootstrapState } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
 
-const DEMO_SLUG = "khan-v-acme-trading-2026";
 const BOOTSTRAP_CLI = "python -m app.tools.bootstrap_admin <email>";
 const BOOTSTRAP_PATH = "backend/app/tools/bootstrap_admin.py";
 
@@ -172,146 +160,19 @@ function SigninRedirect() {
 }
 
 // ---------------------------------------------------------------------------
-// State 3b — workspace is up, viewer is authenticated. Recent matters
-// + Khan CTA. Reviewer-narrow: no modules / grants / reconstruction here.
+// State 3b — workspace is up, viewer is authenticated. The dedicated
+// authed-home dashboard was retired with the IA reset: /matters is now
+// the canonical workspace index, and we bounce there instead of
+// re-rendering recent-matters + activity widgets on /app. AppHome stays
+// mounted only to handle bootstrap states 1 and 2.
 // ---------------------------------------------------------------------------
 
 function AuthedHome() {
-  const [matters, setMatters] = useState<Matter[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [activity, setActivity] = useState<AuditEntry[] | null>(null);
-
+  const nav = useNavigate();
   useEffect(() => {
-    let cancelled = false;
-    listMatters()
-      .then((rows) => {
-        if (cancelled) return;
-        setMatters(rows);
-        // Recent activity: the most-recently-opened matter's audit
-        // trail. Per-matter (no superuser needed) — a representative
-        // feed for the dashboard. Workspace-wide activity is the
-        // dedicated Audit surface.
-        const primary = rows[0];
-        if (primary) {
-          listAudit(primary.slug, 6)
-            .then((a) => !cancelled && setActivity(a))
-            .catch(() => !cancelled && setActivity([]));
-        } else {
-          setActivity([]);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const recent = (matters ?? []).slice(0, 4);
-  const khanInList = (matters ?? []).some((m) => m.slug === DEMO_SLUG);
-
-  return (
-    <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <p className="text-[11px] uppercase tracking-widest text-muted">Workspace</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Matters</h1>
-
-      {/* Guided demo: see the governed loop run end-to-end with no key. */}
-      <Link
-        to="/demo-loop"
-        className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ink bg-ink px-4 py-3 text-paper hover:opacity-90"
-        data-testid="try-governed-loop"
-      >
-        <span>
-          <span className="text-sm font-medium">Watch the governed loop</span>
-          <span className="mt-0.5 block text-xs opacity-80">
-            Run a skill → artifact → review → audit trail. No provider key needed.
-          </span>
-        </span>
-        <span aria-hidden="true" className="text-sm">→</span>
-      </Link>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* Recent matters */}
-        <section>
-          <h2 className="text-[11px] uppercase tracking-widest text-muted border-b border-rule pb-2">
-            Recent matters
-          </h2>
-          {error && (
-            <p className="mt-3 text-sm text-seal">Could not load matters: {error}</p>
-          )}
-          {matters === null && !error && (
-            <p className="mt-3 text-sm text-muted">Loading…</p>
-          )}
-          {matters !== null && matters.length === 0 && (
-            <p className="mt-3 text-sm text-muted">No matters yet.</p>
-          )}
-          {recent.length > 0 && (
-            <ul className="mt-3 border border-rule divide-y divide-rule">
-              {recent.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    to="/matters/$slug"
-                    params={{ slug: m.slug }}
-                    className="flex items-baseline justify-between gap-4 px-3 py-2.5 hover:bg-wash transition-colors"
-                  >
-                    <span className="text-sm font-medium text-ink truncate">{m.title}</span>
-                    <span className="text-[11px] text-muted font-mono shrink-0">{m.slug}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-3 flex items-center gap-4 text-sm">
-            <Link to="/matters" className="text-muted hover:text-ink underline underline-offset-4">
-              All matters
-            </Link>
-            <Link to="/matters/new" className="text-muted hover:text-ink underline underline-offset-4">
-              New matter
-            </Link>
-            {!khanInList && (
-              <Link
-                to="/matters/$slug"
-                params={{ slug: DEMO_SLUG }}
-                className="text-muted hover:text-ink underline underline-offset-4"
-              >
-                Open Khan v Acme
-              </Link>
-            )}
-          </div>
-        </section>
-
-        {/* Recent activity */}
-        <section>
-          <h2 className="text-[11px] uppercase tracking-widest text-muted border-b border-rule pb-2">
-            Recent activity
-          </h2>
-          {activity === null && (
-            <p className="mt-3 text-sm text-muted">Loading…</p>
-          )}
-          {activity !== null && activity.length === 0 && (
-            <p className="mt-3 text-sm text-muted">No activity yet.</p>
-          )}
-          {activity && activity.length > 0 && (
-            <ul className="mt-3 border border-rule divide-y divide-rule">
-              {activity.map((a) => (
-                <li key={a.id} className="px-3 py-2">
-                  <div className="font-mono text-[11px] text-ink truncate">{a.action}</div>
-                  <div className="text-[10px] text-muted">{a.timestamp.slice(0, 16).replace("T", " ")}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link
-            to="/admin/audit"
-            className="mt-3 inline-block text-sm text-muted hover:text-ink underline underline-offset-4"
-          >
-            Full audit
-          </Link>
-        </section>
-      </div>
-    </div>
-  );
+    void nav({ to: "/matters", replace: true });
+  }, [nav]);
+  return <CenteredLoader label="Opening workspace…" />;
 }
 
 // ---------------------------------------------------------------------------

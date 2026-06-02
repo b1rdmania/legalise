@@ -189,7 +189,7 @@ describe("AppHome — State 3: has_superuser, viewer unauthed", () => {
 });
 
 describe("AppHome — State 3: has_superuser, viewer authed", () => {
-  it("renders the home with recent matters", async () => {
+  it("bounces to the /matters workspace index", async () => {
     vi.spyOn(api, "getBootstrapState").mockResolvedValue({
       user_count: 3,
       has_superuser: true,
@@ -200,32 +200,14 @@ describe("AppHome — State 3: has_superuser, viewer authed", () => {
       role: "qualified_solicitor",
       is_superuser: false,
     } as never);
-    vi.spyOn(api, "listMatters").mockResolvedValue([
-      {
-        id: "m-1",
-        slug: "kramer-v-ai",
-        title: "Kramer v AI",
-        privilege_posture: "B_mixed",
-      } as never,
-    ]);
-    // AppHome pulls the primary matter's recent audit for the
-    // "Recent activity" panel.
-    vi.spyOn(api, "listAudit").mockResolvedValue([]);
 
     mountAt("/app");
 
+    // The authed-home dashboard was retired with the IA reset:
+    // /matters is the canonical workspace index. AppHome renders a
+    // brief loader and the router takes the user to the matters list.
     await waitFor(() => {
-      expect(screen.getByText("Matters")).toBeInTheDocument();
+      expect(screen.getByTestId("matters-stub")).toBeInTheDocument();
     });
-    // listMatters is a second fetch behind the bootstrap+auth gates;
-    // wait for the row before asserting on the content alongside.
-    await waitFor(() => {
-      expect(screen.getByText("Kramer v AI")).toBeInTheDocument();
-    });
-    // Khan CTA only when it's NOT already in the recent list — here
-    // it isn't, so the CTA should render.
-    expect(
-      screen.getByRole("link", { name: /open khan v acme/i }),
-    ).toBeInTheDocument();
   });
 });
