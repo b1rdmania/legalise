@@ -12,8 +12,8 @@
 
 import { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
-import { BACKEND_ROOT } from "../lib/api";
-import { isPublicRoute, navigate, useRoute } from "../lib/route";
+import { BACKEND_ROOT, getMatter } from "../lib/api";
+import { isPublicRoute, navigate, useRoute, type Route } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
 import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
 import { TopBar } from "../ui/TopBar";
@@ -97,10 +97,33 @@ function AppShellInner() {
     };
   }, [navOpen]);
 
-  // reset drawer matter scope when leaving a detail route
+  // Sync the drawer matter context to whatever matter-scoped route
+  // we're on. Without this, only MatterDetail populated drawerMatter —
+  // so Signed outputs (/matters/:slug/artifacts), Working pack
+  // (/matters/:slug/lifecycle), and the other non-"detail" matter
+  // routes rendered with matter=null and the Sidebar fell back to the
+  // slug. Centralising the fetch here keeps the folder-feel intact
+  // across the full /matters/:slug/* tree.
+  const matterSlug = matterSlugFromRoute(route);
   useEffect(() => {
-    if (route.name !== "detail") drawer.setDrawerMatter(null);
-  }, [route, drawer]);
+    if (!matterSlug) {
+      drawer.setDrawerMatter(null);
+      return;
+    }
+    if (drawer.drawerMatter?.slug === matterSlug) return;
+    let cancelled = false;
+    getMatter(matterSlug)
+      .then((m) => {
+        if (!cancelled) drawer.setDrawerMatter(m);
+      })
+      .catch(() => {
+        // Non-fatal — the page that owns the matter view will surface
+        // the real error. Sidebar gracefully falls back to the slug.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [matterSlug, drawer]);
 
   // IA shell: logged-in users on app routes get the
   // persistent Sidebar; marketing/auth routes (and logged-out users)
@@ -158,4 +181,23 @@ function AppShellInner() {
       </main>
     </div>
   );
+}
+
+// Extract the matter slug from any matter-scoped route. Mirrors the
+// discriminant set Sidebar uses to decide whether to render the matter
+// section.
+function matterSlugFromRoute(route: Route): string | null {
+  switch (route.name) {
+    case "detail":
+    case "matterAudit":
+    case "matterArtifacts":
+    case "matterArtifactDetail":
+    case "matterArtifactSign":
+    case "matterSignoff":
+    case "matterDocumentDetail":
+    case "matterLifecycle":
+      return route.slug;
+    default:
+      return null;
+  }
 }
