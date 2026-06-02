@@ -10,12 +10,11 @@
 //
 // Bare /matters/{slug} lands on Documents.
 //
-// PR 1 (IA reset, blueprint §3) — user-facing labels only:
-//   "Matter desk"    → "Chat"
-//   "Actions"        → "Skills"
-//   "Activity Trail" → "Record"
-// Tab URL keys (assistant/workflows/audit) are unchanged; rewiring
-// the route slugs is PR 2 scope.
+// User-facing tab labels (Chat / Documents / Skills / Record)
+// intentionally do not match the underlying URL keys
+// (assistant / documents / workflows / audit). The keys are kept
+// stable in this slice for route compatibility; they are rewired in
+// a later slice that restructures the matter shell.
 
 export type TabKey =
   | "assistant"

@@ -184,8 +184,7 @@ describe("AppHome — State 3: has_superuser, viewer unauthed", () => {
       expect(onSignin || onWaitlist).not.toBeNull();
     });
     // Critical invariant: the authed home content is NOT mounted.
-    // (PR 1 IA reset, blueprint §3: "Dashboard" → "Home" rename.)
-    expect(screen.queryByText("Home")).toBeNull();
+    expect(screen.queryByText("Matters")).toBeNull();
   });
 });
 
@@ -209,15 +208,14 @@ describe("AppHome — State 3: has_superuser, viewer authed", () => {
         privilege_posture: "B_mixed",
       } as never,
     ]);
-    // Home pulls the primary matter's recent audit for the
-    // "Recent activity" panel (Phase 17-IA-D).
+    // AppHome pulls the primary matter's recent audit for the
+    // "Recent activity" panel.
     vi.spyOn(api, "listAudit").mockResolvedValue([]);
 
     mountAt("/app");
 
     await waitFor(() => {
-      // PR 1 IA reset, blueprint §3: "Dashboard" → "Home".
-      expect(screen.getByText("Home")).toBeInTheDocument();
+      expect(screen.getByText("Matters")).toBeInTheDocument();
     });
     // listMatters is a second fetch behind the bootstrap+auth gates;
     // wait for the row before asserting on the content alongside.

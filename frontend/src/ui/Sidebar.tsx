@@ -188,7 +188,7 @@ export function Sidebar({
 
         <nav className="flex-1 overflow-y-auto py-2">
           <SectionLabel>Workspace</SectionLabel>
-          <NavLink href="/app" label="Home" active={route.name === "appHome"} />
+          <NavLink href="/app" label="Matters" active={route.name === "appHome"} />
           <NavLink
             href="/matters"
             label="Matters"

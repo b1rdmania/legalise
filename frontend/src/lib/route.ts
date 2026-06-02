@@ -71,14 +71,14 @@ export function routeFromPath(pathname: string, search: string): Route {
   if (path === "/auth/verify-pending") return { name: "verifyPending" };
   if (path === "/auth/verify") return { name: "verify", token: query.get("token") };
 
-  // PR 1 (IA reset, blueprint §8): canonical path is /skills; /modules
-  // is preserved as a 302 redirect in the router. Both paths resolve
-  // to the same route name so active-state logic continues to work
-  // for legacy deep links arriving via the redirect.
+  // Canonical paths are /skills/*. The legacy /modules/* paths
+  // resolve to the same route names via router-level redirect shims
+  // so active-state logic keeps working for old deep links and
+  // bookmarks.
   if (path === "/skills" || path === "/modules") return { name: "modules" };
-  if (path === "/modules/submit") return { name: "submitModule" };
-  if (path === "/modules/create") return { name: "createModule" };
-  if (path === "/modules/lawve") return { name: "lawveImport" };
+  if (path === "/skills/submit" || path === "/modules/submit") return { name: "submitModule" };
+  if (path === "/skills/create" || path === "/modules/create") return { name: "createModule" };
+  if (path === "/skills/lawve" || path === "/modules/lawve") return { name: "lawveImport" };
 
   if (path === "/demo-loop") return { name: "demoLoop" };
   if (path === "/demo") return { name: "demo" };

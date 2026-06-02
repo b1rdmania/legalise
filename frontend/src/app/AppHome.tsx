@@ -214,7 +214,7 @@ function AuthedHome() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <p className="text-[11px] uppercase tracking-widest text-muted">Workspace</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Home</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Matters</h1>
 
       {/* Guided demo: see the governed loop run end-to-end with no key. */}
       <Link

@@ -140,10 +140,7 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   const me = await whoami(request);
   expect(me.is_superuser).toBe(true);
   await page.goto("/app");
-  // PR 1 IA reset (blueprint §3) renamed the authed home heading
-  // "Dashboard" → "Home" — substrate-flavoured noun replaced with a
-  // user-facing one.
-  await expect(page.getByRole("heading", { name: /^Home$/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Matters$/ })).toBeVisible();
 
   // ---------------------------------------------------------------
   // 6. Keyless invocation path. PATCH the user default to
