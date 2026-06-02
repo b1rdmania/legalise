@@ -159,15 +159,15 @@ export async function signInViaUi(page: Page, user: RegisteredUser): Promise<voi
   await email.fill(user.email);
   await page.locator('input[name="password"]').fill(user.password);
   await page.getByRole("button", { name: /sign in/i }).click();
-  // SignIn navigates to /app on success. The chain is 3 async hops:
+  // SignIn navigates to /matters on success. The chain is 3 async hops:
   //   1. POST /auth/login (cookie set)
   //   2. AuthProvider.refresh() re-fetches /auth/users/me
-  //   3. useEffect on auth.user fires navigate("/app")
+  //   3. useEffect on auth.user fires navigate("/matters")
   // CI machines run slower than local; 5s was too tight (first
   // real e2e run at 8d704b7 timed out here on every signInViaUi
   // caller). 15s gives the chain comfortable headroom without
   // inflating happy-path runtime.
-  await page.waitForURL(/\/app(\b|$)/, { timeout: 15_000 });
+  await page.waitForURL(/\/matters(\b|$)/, { timeout: 15_000 });
 }
 
 /**
