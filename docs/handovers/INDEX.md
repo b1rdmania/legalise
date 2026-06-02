@@ -17,6 +17,9 @@ Start here before reading older phase notes.
   `../IMPLEMENTATION_PLAN_REWRITE.md`.
 - `KHAN_HEALTH_CHECK.md` — non-destructive pre-flight runbook (`legalise
   doctor`) for Khan demo. Required gate before any Kramer carry-over PR.
+- `LEGALISE_IA_RESET_WHITEPAPER_2026_06_02.md` — decision paper for the
+  proposed product-model reset: Open Project -> Install Skill -> Chat. Read
+  before any frontend IA/navigation rebuild.
 
 ## Current Working Rule
 
