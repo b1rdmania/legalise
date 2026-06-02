@@ -531,7 +531,7 @@ function SettingsPreferences() {
         <div className="eyebrow-sm mb-2">ROADMAP - v0.2</div>
         <p className="prose-p mb-0">
           Per-user defaults (timezone, locale, retention reminders) land in v0.2 alongside the
-          Module Lifecycle work. v0.1 ships with system defaults applied uniformly.
+          Skill lifecycle work. v0.1 ships with system defaults applied uniformly.
         </p>
       </div>
     </div>

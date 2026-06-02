@@ -145,7 +145,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
   if (q.status === "loading") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12 text-sm text-muted">
-        Loading module…
+        Loading skill…
       </div>
     );
   }
@@ -176,7 +176,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
         module_id: entry.module_id,
       });
       void nav({
-        to: "/modules/install/$ceremonyId",
+        to: "/skills/install/$ceremonyId",
         params: { ceremonyId: ceremony.ceremony_id },
       });
     } catch (err) {
@@ -197,7 +197,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
       const res = await updateModuleV2(entry.module_id, { new_manifest: parsed });
       if (res.expansion_detected && res.ceremony_id) {
         void nav({
-          to: "/modules/install/$ceremonyId",
+          to: "/skills/install/$ceremonyId",
           params: { ceremonyId: res.ceremony_id },
         });
         return;
@@ -282,11 +282,11 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           identifiers stay available in small mono so nothing is hidden. */}
       <section className="mt-10">
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          What this module needs access to
+          What this skill needs access to
         </h2>
         {caps.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No capabilities declared.
+            No permissions declared.
           </p>
         ) : (
           <ul className="mt-3 space-y-px bg-rule border border-rule">
@@ -332,7 +332,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           ) : (
             <p className="text-sm text-muted">
               Install, update, and revoke require superuser. Ask your
-              workspace administrator to install this module.
+              workspace administrator to install this skill.
             </p>
           )}
         </div>

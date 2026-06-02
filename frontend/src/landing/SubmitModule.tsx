@@ -372,7 +372,7 @@ export function SubmitModule() {
       <p className="prose-p mb-8">
         Propose a new skill for the{" "}
         <code className="font-mono text-sm">claude-for-uk-legal</code>{" "}
-        catalogue. The form opens a draft pull request. Declared capabilities
+        catalogue. The form opens a draft pull request. Declared permission sets
         are surfaced for review; v0.1 does not enforce them at the call site.
       </p>
 
@@ -439,7 +439,7 @@ export function SubmitModule() {
             />
           </Field>
 
-          <Field label="Declared capabilities" hint="Closed set; for review, not enforced.">
+          <Field label="Declared permission sets" hint="Closed set; for review, not enforced.">
             <div className="grid grid-cols-2 gap-2">
               {SUBMISSION_CAPABILITIES.map((c) => (
                 <label key={c} className="flex items-center gap-2 text-sm font-mono">

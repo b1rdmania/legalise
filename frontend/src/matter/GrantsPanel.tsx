@@ -545,7 +545,7 @@ export function GrantsPanel({
                   <p className="text-sm font-medium text-ink">{item.capabilityId}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-muted">
                     {item.moduleName === item.moduleId
-                      ? "Installed module"
+                      ? "Installed skill"
                       : item.moduleName}
                   </p>
                 </div>
@@ -556,11 +556,11 @@ export function GrantsPanel({
                       : "border-amber-500/40 bg-amber-50 text-amber-900"
                   }`}
                 >
-                  {item.status === "ready" ? "Runnable" : "Needs grant"}
+                  {item.status === "ready" ? "Runnable" : "Needs permission"}
                 </span>
               </div>
               <p className="mt-2 text-xs text-muted">
-                {item.granted}/{item.required} permissions granted on this matter.
+                {item.granted}/{item.required} permissions enabled on this matter.
               </p>
               {item.status === "needs_permissions" && (
                 <button
@@ -572,7 +572,7 @@ export function GrantsPanel({
                   }}
                   className="mt-3 text-xs underline underline-offset-4 hover:text-seal"
                 >
-                  Grant permissions
+                  Enable permissions
                 </button>
               )}
             </div>
@@ -587,10 +587,10 @@ export function GrantsPanel({
           data-testid="runnable-capabilities"
         >
           <h3 className="text-xs uppercase tracking-widest text-muted">
-            Available actions
+            Available skills
           </h3>
           <p className="mt-2 text-xs text-muted">
-            These actions are installed, enabled, and fully granted on this
+            These skills are installed, enabled, and fully permitted on this
             matter. Readiness shows the provider-key boundary before a run
             starts.
           </p>
@@ -640,9 +640,9 @@ export function GrantsPanel({
           Permissions and setup
         </summary>
         <p className="mt-2 text-sm text-muted">
-          Technical grants are hidden by default. Open this when an
-          action needs setup or you need to inspect/revoke exactly what
-          a module may touch.
+          Technical permissions are hidden by default. Open this when a
+          skill needs setup or you need to inspect/revoke exactly what
+          it may touch.
         </p>
 
         {/* Permissions on this matter */}
@@ -650,17 +650,17 @@ export function GrantsPanel({
           Permissions on this matter
         </h3>
         {grants.status === "loading" && (
-          <p className="mt-4 text-sm text-muted">Loading grants…</p>
+          <p className="mt-4 text-sm text-muted">Loading permissions…</p>
         )}
         {grants.status === "error" && (
           <p className="mt-4 text-sm text-seal">
-            Could not load grants: {grants.message}
+            Could not load permissions: {grants.message}
           </p>
         )}
         {grants.status === "ready" && grants.grants.length === 0 && (
           <p className="mt-4 text-sm text-muted">
-            No capabilities granted on this matter yet. Use the form below
-            to grant from an installed module.
+            No permissions are enabled on this matter yet. Use the form below
+            to enable one from an installed skill.
           </p>
         )}
         {grants.status === "ready" && grants.grants.length > 0 && (
@@ -668,10 +668,10 @@ export function GrantsPanel({
             <table className="min-w-full text-sm">
               <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
                 <tr>
-                  <th className="px-3 py-2 text-left">Module</th>
+                  <th className="px-3 py-2 text-left">Skill source</th>
                   <th className="px-3 py-2 text-left">Skill</th>
                   <th className="px-3 py-2 text-left">Permission</th>
-                  <th className="px-3 py-2 text-left">Granted</th>
+                  <th className="px-3 py-2 text-left">Enabled</th>
                   <th className="px-3 py-2 text-right"> </th>
                 </tr>
               </thead>
@@ -715,24 +715,24 @@ export function GrantsPanel({
         {/* Add-grant control */}
         <div className="mt-6 rounded-md border border-line bg-paper p-4">
           <h3 className="text-xs uppercase tracking-widest text-muted">
-            Grant a capability
+            Enable a permission
           </h3>
         {catalog.status === "loading" && (
-          <p className="mt-3 text-sm text-muted">Loading module catalog…</p>
+          <p className="mt-3 text-sm text-muted">Loading skill catalog…</p>
         )}
         {catalog.status === "error" && (
           <p className="mt-3 text-sm text-seal">{catalog.message}</p>
         )}
         {catalog.status === "ready" && moduleOptions.length === 0 && (
           <p className="mt-3 text-sm text-muted">
-            No modules with declared capabilities are discoverable. Ask
-            an administrator to install a module from the catalog first.
+            No skills with declared permissions are discoverable. Ask
+            an administrator to install a skill from the catalog first.
           </p>
         )}
         {catalog.status === "ready" && moduleOptions.length > 0 && (
           <div className="mt-3 flex flex-wrap items-end gap-3">
             <label className="flex flex-col text-xs text-muted">
-              <span className="mb-1">Module</span>
+              <span className="mb-1">Skill</span>
               <select
                 value={selectedModule}
                 onChange={(e) => {
@@ -751,7 +751,7 @@ export function GrantsPanel({
               </select>
             </label>
             <label className="flex flex-col text-xs text-muted">
-              <span className="mb-1">Capability</span>
+              <span className="mb-1">Permission</span>
               <select
                 value={selectedCap}
                 onChange={(e) => {
@@ -780,35 +780,35 @@ export function GrantsPanel({
               }
               className="inline-flex items-center rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
             >
-              {createState.kind === "submitting" ? "Granting…" : "Grant"}
+              {createState.kind === "submitting" ? "Enabling…" : "Enable"}
             </button>
           </div>
         )}
 
         {createState.kind === "ok" && (
           <p className="mt-3 text-sm text-muted">
-            Granted. This module may now use that permission on this
+            Enabled. This skill may now use that permission on this
             matter.
           </p>
         )}
         {createState.kind === "noop" && (
           <p className="mt-3 text-sm text-muted">
-            Already granted — no change. Idempotent grants do not emit
+            Already enabled — no change. Idempotent permission changes do not emit
             audit rows.
           </p>
         )}
         {createState.kind === "not_installed" && (
           <p className="mt-3 text-sm text-seal">
-            Module{" "}
+            Skill{" "}
             <span className="font-mono">{createState.moduleId}</span> is
             not installed on this workspace. Ask an administrator to
             install it from{" "}
-            <code className="font-mono text-xs">/modules</code> first.
+            <code className="font-mono text-xs">/skills</code> first.
           </p>
         )}
         {createState.kind === "disabled" && (
           <p className="mt-3 text-sm text-seal">
-            Module{" "}
+            Skill{" "}
             <span className="font-mono">{createState.moduleId}</span> is
             installed but currently disabled. {createState.message}
           </p>

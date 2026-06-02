@@ -50,7 +50,7 @@ function skill(over: Partial<PublicModuleSkill> = {}): PublicModuleSkill {
   };
 }
 
-function mountAt(path = "/modules") {
+function mountAt(path = "/skills") {
   const router = createRouter({
     routeTree: productionRouter.routeTree,
     history: createMemoryHistory({ initialEntries: [path] }),
@@ -93,7 +93,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("ModulesCatalog — integrations home", () => {
-  it("shows reference modules with workspace state + a Create module action", async () => {
+  it("shows reference skills with workspace state + a Create skill action", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({
       modules: [refModule()],
       ui_slots: [],
@@ -120,7 +120,7 @@ describe("ModulesCatalog — integrations home", () => {
     ).toHaveTextContent(/installed/i);
     expect(screen.getByText("document.body.read")).toBeInTheDocument();
     expect(screen.getByText("matter.artifact.write")).toBeInTheDocument();
-    expect(screen.getByText("Create module")).toBeInTheDocument();
+    expect(screen.getByText("Create skill")).toBeInTheDocument();
   });
 
   it("filters reference modules by search and workspace state", async () => {
@@ -155,16 +155,16 @@ describe("ModulesCatalog — integrations home", () => {
     await waitFor(() => expect(screen.getByText("Contract Review")).toBeInTheDocument());
     expect(screen.getByText("Pre-Motion")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Filter module state"), {
+    fireEvent.change(screen.getByLabelText("Filter skill state"), {
       target: { value: "installed" },
     });
     expect(screen.getByText("Contract Review")).toBeInTheDocument();
     expect(screen.queryByText("Pre-Motion")).toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Search modules"), {
+    fireEvent.change(screen.getByLabelText("Search skills"), {
       target: { value: "pre" },
     });
-    expect(screen.getByText(/No modules match/)).toBeInTheDocument();
+    expect(screen.getByText(/No skills match/)).toBeInTheDocument();
   });
 
   it("keeps the public skill library secondary + collapsed until expanded", async () => {

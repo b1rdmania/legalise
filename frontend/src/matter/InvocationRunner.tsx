@@ -204,7 +204,7 @@ function ResultPanel({
           className="mr-2 inline-block h-2 w-2 rounded-full border border-muted border-t-transparent animate-spin align-middle"
           aria-hidden="true"
         />
-        Invocation in flight…
+        Run in flight…
       </div>
     );
   }
@@ -215,7 +215,7 @@ function ResultPanel({
       <div className="mt-3 rounded-md border border-line p-3">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-xs uppercase tracking-widest text-muted">
-            Invocation complete
+            Run complete
           </p>
           <p className="text-xs font-mono text-muted">{r.invocation_id}</p>
         </div>
@@ -226,13 +226,13 @@ function ResultPanel({
             params={{ slug }}
             className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            See all artifacts on this matter
+            See all signed outputs on this matter
           </Link>
           <a
             href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(r.invocation_id)}`}
             className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            See audit trail for this invocation
+            See Record for this run
           </a>
         </div>
       </div>
@@ -260,13 +260,13 @@ function ResultPanel({
 
   if (state.kind === "capability_denied") {
     return (
-      <Banner tone="seal" title="Capability denied">
+      <Banner tone="seal" title="Permission denied">
         <p>
-          The substrate denied{" "}
+          The runtime denied{" "}
           <code className="font-mono text-xs">{state.err.plugin}</code>/
           <code className="font-mono text-xs">{state.err.skill}</code>/
           <code className="font-mono text-xs">{state.err.capability}</code>.
-          A grant exists in policy but `require_capability` rejected at
+          A permission exists in policy but `require_capability` rejected at
           dispatch time.
         </p>
         <p className="mt-1 text-xs">
@@ -355,9 +355,9 @@ function ResultPanel({
     );
   }
 
-  // Unknown substrate envelope.
+  // Unknown runtime envelope.
   return (
-    <Banner tone="seal" title="Invocation failed">
+    <Banner tone="seal" title="Run failed">
       <p>{state.message}</p>
     </Banner>
   );

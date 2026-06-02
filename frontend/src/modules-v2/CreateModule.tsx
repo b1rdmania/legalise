@@ -19,13 +19,13 @@ import { PageHeader } from "../ui/primitives";
 
 const REQUIRED_FIELDS: { field: string; what: string }[] = [
   { field: "schema_version", what: 'manifest schema, e.g. "2.0.0"' },
-  { field: "id", what: "stable module id" },
-  { field: "version", what: "module version" },
+  { field: "id", what: "stable skill id" },
+  { field: "version", what: "skill version" },
   { field: "publisher", what: "who publishes it" },
   { field: "visibility", what: "first_party / community / private" },
-  { field: "runtime", what: "how the module executes — native, mcp, or prompt" },
+  { field: "runtime", what: "how the skill executes — native, mcp, or prompt" },
   { field: "entrypoint", what: 'what the runtime invokes (prompt runtime: { "prompt_source": "manifest", "instructions": "..." })' },
-  { field: "capabilities", what: "what it may read/write, gates, advice tier, declared audit events" },
+  { field: "capabilities", what: "permission sets, advice tier, and declared audit events" },
 ];
 
 type Result =
@@ -61,18 +61,18 @@ export function CreateModule() {
       <PageHeader
         eyebrow="Skills"
         title="Create a skill"
-        description="Build your own Legalise module. This page explains the manifest and validates a candidate against the same rules the install path uses — it does not install or sign."
+        description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the install path uses — it does not install or sign."
       />
 
       <section>
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          What a module is
+          What a skill is
         </h2>
         <p className="mt-2 text-sm text-muted">
-          A module is a signed, governed unit of legal capability. Its manifest
+          A skill is a signed, governed unit of legal work. Its manifest
           declares what it may touch; the runtime enforces those declarations on
-          every call, and every run lands on the matter's audit trail. Modules
-          are installed at the workspace and granted/run per matter.
+          every call, and every run lands in the matter record. Skills are
+          installed at the workspace and enabled per matter.
         </p>
       </section>
 
@@ -89,7 +89,7 @@ export function CreateModule() {
           ))}
         </dl>
         <p className="mt-3 text-xs text-muted">
-          Each capability declares its <span className="font-mono">reads</span> /{" "}
+          Each permission set declares its <span className="font-mono">reads</span> /{" "}
           <span className="font-mono">writes</span>, <span className="font-mono">gates</span>,{" "}
           <span className="font-mono">advice_tier_max</span>, and the{" "}
           <span className="font-mono">audit_events</span> it emits — that
@@ -157,11 +157,11 @@ export function CreateModule() {
           Sign &amp; install locally
         </h2>
         <p className="mt-2 text-sm text-muted">
-          A module must be <span className="text-ink">signed</span> before it can
+          A skill must be <span className="text-ink">signed</span> before it can
           be installed — signing is a deploy-time / CLI step, not done in the
           browser. Once your manifest validates, sign it and install it with the
-          Legalise CLI, then it appears under Reference modules. See the
-          module-authoring docs in the repository for the exact commands.
+          Legalise CLI, then it appears under Reference skills. See the
+          skill-authoring docs in the repository for the exact commands.
         </p>
       </section>
     </div>

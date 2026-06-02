@@ -81,7 +81,7 @@ const SECTIONS: Section[] = [
         </p>
         <p className="prose-p">
           AI tooling that operates outside the matter frame is fine for
-          research. Not acceptable as the substrate for regulated
+          research. Not acceptable as the runtime for regulated
           practice.
         </p>
       </>
@@ -93,8 +93,8 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <p className="prose-p">
-          Open a matter. Ask the assistant. Install a legal module. Run it.
-          See what it touched. See the audit trail.
+          Open a matter. Ask the assistant. Install a legal skill. Run it.
+          See what it touched. See the record.
         </p>
         <p className="prose-p">
           The product mechanic is intentionally plain. A matter carries the
@@ -103,7 +103,7 @@ const SECTIONS: Section[] = [
           The AI does not float outside the file.
         </p>
         <p className="prose-p">
-          Skills declare what they need. The workspace grants it. Runtime
+          Skills declare what they need. The workspace enables it. Runtime
           checks it. Denials are structured and audited. That is the trust
           model in one line.
         </p>

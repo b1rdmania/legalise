@@ -73,7 +73,7 @@ export function PostureBanner({
     return (
       <BannerShell tone="paused" badge="C_paused" badgeLabel="Paused">
         <p className="font-medium text-ink">
-          This matter is paused. No modules can run regardless of role.
+          This matter is paused. No skills can run regardless of role.
         </p>
         <p className="mt-1 text-sm text-muted">
           Requires <code className="font-mono text-xs">matter_paused</code>{" "}
@@ -102,7 +102,7 @@ export function PostureBanner({
       <BannerShell tone="mixed" badge="B_mixed" badgeLabel="Mixed">
         <p className="font-medium text-ink">
           This matter is marked <code className="font-mono text-xs">B_mixed</code>.
-          Only qualified solicitors can run modules.
+          Only qualified solicitors can run skills.
         </p>
         <p className="mt-1 text-sm text-muted">
           Requires{" "}

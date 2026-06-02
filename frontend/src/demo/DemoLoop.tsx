@@ -200,7 +200,7 @@ export function DemoLoop() {
           {phase.step === "reviewed" && (
             <Step n={4} title="See the whole chain" done>
               <p className="text-sm text-muted">
-                The Record reconstructs everything that just happened: action invoked,
+                The Record reconstructs everything that just happened: skill run,
                 model called, artifact written, review requested.
               </p>
               <p className="mt-3">

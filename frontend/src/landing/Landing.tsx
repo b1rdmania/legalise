@@ -18,7 +18,7 @@ const SURFACES: { title: string; body: string }[] = [
   },
   {
     title: "Permission gates",
-    body: "Skills declare what they need. The workspace grants. The runtime enforces, every call.",
+    body: "Skills declare what they need. The workspace enables. The runtime enforces, every call.",
   },
   {
     title: "Skills",

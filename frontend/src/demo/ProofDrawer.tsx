@@ -102,8 +102,8 @@ export function ProofDrawer({
             value={`${handles.model_id} — keyless demo provider; no API key in scope.`}
           />
           <Fact
-            label="Grant"
-            value="Matter-scoped. Capability is granted only on this demo matter."
+            label="Permission"
+            value="Matter-scoped. The skill is enabled only on this demo matter."
           />
           <Fact
             label="Privilege control"

@@ -99,7 +99,7 @@ export function ArtifactDetail({
             params={{ slug }}
             className="underline underline-offset-4 hover:text-ink"
           >
-            ← All outputs
+            ← All signed outputs
           </Link>
         </p>
       </div>
@@ -230,13 +230,13 @@ export function ArtifactDetail({
           <DT label="Kind">
             <code className="font-mono text-xs">{a.kind}</code>
           </DT>
-          <DT label="Module">
+          <DT label="Skill source">
             <code className="font-mono text-xs">{a.module_id}</code>
           </DT>
-          <DT label="Capability">
+          <DT label="Permission">
             <code className="font-mono text-xs">{a.capability_id}</code>
           </DT>
-          <DT label="Invocation">
+          <DT label="Run id">
             <code className="font-mono text-xs">{a.invocation_id}</code>
           </DT>
           <DT label="Size">
@@ -254,7 +254,7 @@ export function ArtifactDetail({
           params={{ slug }}
           className="text-muted underline underline-offset-4 hover:text-ink"
         >
-          ← All outputs
+          ← All signed outputs
         </Link>
         <a
           href={auditHref}

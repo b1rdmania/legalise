@@ -77,13 +77,13 @@ describe("InvocationRunner — happy path", () => {
     fireEvent.click(runBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Invocation complete/i)).toBeInTheDocument();
+      expect(screen.getByText(/Run complete/i)).toBeInTheDocument();
     });
     expect(screen.getByText("inv-1")).toBeInTheDocument();
     expect(screen.getByTestId("motion-draft-view")).toBeInTheDocument();
-    // Deep-link to Phase 14 E target carries invocation_id.
+    // Deep-link to the Record carries invocation_id.
     const auditLink = screen.getByRole("link", {
-      name: /see audit trail/i,
+      name: /see record/i,
     });
     expect(auditLink.getAttribute("href")).toMatch(
       /\/matters\/khan\/audit\?invocation_id=inv-1/,
@@ -141,7 +141,7 @@ describe("InvocationRunner — structured failure paths", () => {
     expect(link.getAttribute("href")).toMatch(/\/settings\/keys/);
   });
 
-  it("renders capability-denied banner referencing module.capability.denied", async () => {
+  it("renders permission-denied banner referencing module.capability.denied", async () => {
     vi.spyOn(api, "invokeCapability").mockRejectedValue(
       new api.CapabilityDeniedError(
         "denied",
@@ -156,7 +156,7 @@ describe("InvocationRunner — structured failure paths", () => {
     fireEvent.click(runBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Capability denied/)).toBeInTheDocument();
+      expect(screen.getByText(/Permission denied/)).toBeInTheDocument();
     });
     expect(
       screen.getByText(/module\.capability\.denied/),

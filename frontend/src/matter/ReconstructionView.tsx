@@ -52,10 +52,10 @@ const CLASS_CHIPS: { key: RowClass; label: string }[] = [
   { key: "signed", label: "Sign-off" },
   { key: "review", label: "Review" },
   { key: "blocked_denied", label: "Blocked / denied" },
-  { key: "grant_role", label: "Grant / role" },
+  { key: "grant_role", label: "Permission / role" },
   { key: "advice", label: "Advice" },
   { key: "model", label: "Model" },
-  { key: "module", label: "Module" },
+  { key: "module", label: "Skill" },
   { key: "error", label: "Error" },
 ];
 
@@ -64,10 +64,10 @@ const CLASS_LABEL: Record<RowClass, string> = {
   signed: "Sign-off",
   review: "Review",
   blocked_denied: "Blocked / denied",
-  grant_role: "Grant / role",
+  grant_role: "Permission / role",
   advice: "Advice",
   model: "Model",
-  module: "Module",
+  module: "Skill",
   system: "System",
 };
 
@@ -79,7 +79,7 @@ const STORY_LABEL: Record<RowClass, string> = {
   grant_role: "Permission changed",
   advice: "Advice boundary checked",
   model: "Model used",
-  module: "Action ran",
+  module: "Skill ran",
   system: "System activity",
 };
 
@@ -569,7 +569,7 @@ function InvocationChain({
       >
         <span className="flex items-baseline gap-2">
           <span className="text-xs uppercase tracking-widest text-muted">
-            Invocation
+            Run
           </span>
           <code className="font-mono text-sm">{invocationId.slice(0, 8)}…</code>
           <span className="text-xs text-muted">{ordered.length} events</span>

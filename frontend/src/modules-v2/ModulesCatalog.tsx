@@ -163,31 +163,31 @@ export function ModulesCatalog() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              to="/modules/lawve"
+              to="/skills/lawve"
               className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
             >
               Import from Lawve
             </Link>
             <Link
-              to="/modules/create"
+              to="/skills/create"
               className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
             >
-              Create module
+              Create skill
             </Link>
           </div>
         }
       />
 
       {error && (
-        <p className="text-sm text-seal">Could not load modules: {error}</p>
+        <p className="text-sm text-seal">Could not load skills: {error}</p>
       )}
 
-      {/* Primary: reference modules (v2 registry) */}
+      {/* Primary: reference skills (v2 registry) */}
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xs uppercase tracking-widest text-muted">
-              Reference modules
+              Reference skills
             </h2>
             {modules && (
               <p className="mt-1 text-sm text-muted">
@@ -201,14 +201,14 @@ export function ModulesCatalog() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search modules"
-                aria-label="Search modules"
+                placeholder="Search skills"
+                aria-label="Search skills"
                 className="min-h-[38px] w-48 border border-rule bg-paper px-3 text-[16px] text-ink focus:border-ink focus:outline-none"
               />
               <select
                 value={stateFilter}
                 onChange={(e) => setStateFilter(e.target.value as StateFilter)}
-                aria-label="Filter module state"
+                aria-label="Filter skill state"
                 className="min-h-[38px] border border-rule bg-paper px-3 text-sm text-ink focus:border-ink focus:outline-none"
               >
                 <option value="all">All states</option>
@@ -221,18 +221,18 @@ export function ModulesCatalog() {
         </div>
         {!authed ? (
           <p className="mt-3 text-sm text-muted" data-testid="modules-signin-prompt">
-            Sign in to install and manage governed reference modules. The open
+            Sign in to install and manage governed reference skills. The open
             skill library below is browsable without an account.
           </p>
         ) : modules === null ? (
-          <p className="mt-3 text-sm text-muted">Loading modules…</p>
+          <p className="mt-3 text-sm text-muted">Loading skills…</p>
         ) : modules.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No reference modules in the registry yet.
+            No reference skills in the registry yet.
           </p>
         ) : filteredModules?.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No modules match that search and state filter.
+            No skills match that search and state filter.
           </p>
         ) : (
           <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
@@ -244,7 +244,7 @@ export function ModulesCatalog() {
               return (
                 <li key={m.module_id} className="bg-paper p-4 hover:bg-wash transition-colors">
                   <Link
-                    to="/modules/$moduleId"
+                    to="/skills/$moduleId"
                     params={{ moduleId: m.module_id }}
                     className="block"
                   >
@@ -271,7 +271,7 @@ export function ModulesCatalog() {
                       {manifestStr(m, "publisher") ? ` · ${manifestStr(m, "publisher")}` : ""}
                     </p>
                     <p className="mt-2 text-xs text-muted">
-                      {caps} capabilit{caps === 1 ? "y" : "ies"}
+                      {caps} permission set{caps === 1 ? "" : "s"}
                       {!m.is_valid ? " · manifest invalid" : ""}
                     </p>
                     <dl className="mt-3 grid grid-cols-1 gap-2 border-t border-rule pt-3 text-xs sm:grid-cols-2">
@@ -320,7 +320,7 @@ export function ModulesCatalog() {
           <div className="mt-3">
             <p className="text-xs text-muted">
               The open skill library — browse what's available. These are not
-              installed from here; reference modules above are the install path.
+              installed from here; reference skills above are the install path.
               {skillsRepo ? (
                 <>
                   {" "}
