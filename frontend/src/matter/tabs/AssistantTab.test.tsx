@@ -1,10 +1,6 @@
-/**
- * AssistantTab — chat skill picker (PR 5).
- *
- * Pins the source-of-truth contract: the in-chat picker reads
- * getMatterWorkflows and shows only workflows already granted on this
- * matter. No third skill-state model.
- */
+// Pins the source-of-truth contract: the in-chat picker reads
+// getMatterWorkflows and shows only workflows already granted on this
+// matter. No third skill-state model.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
