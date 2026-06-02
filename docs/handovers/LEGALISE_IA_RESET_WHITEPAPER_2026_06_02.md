@@ -440,6 +440,43 @@ Mitigation:
    - Recommendation: yes. The rewrite should inherit a clearer IA, not the
      current flattened model.
 
+## V1 Provider Decision
+
+Legalise V1 ships a Claude-native skill format and a Claude-first public
+evaluation path. This is a skill-format decision, not a vendor lock-in: the
+governance substrate (matter scope, grants, audit, sign-off) is provider-neutral
+and firms deploying Legalise internally can run the runtime against OpenAI,
+Anthropic, or local models such as Ollama, with skill-format adaptation as a
+known cost.
+
+Rationale:
+
+- The reference skills and manifests are authored against the Claude Code skill
+  format. That format is what makes the marketplace work — frontmatter, tools,
+  manifest, install ceremony. V1 ships the skill format that is tested.
+- Removing provider selection from the first-run experience eliminates a major
+  source of UX chaos (choose provider / keyless / OpenAI / Ollama / model
+  family) at the point the user is trying to understand the product.
+- Honest technical boundary: Legalise does not claim that every skill runs
+  equally well on every model. The substrate is provider-agnostic in principle;
+  the skill format is Claude-native in V1.
+
+Surface implications:
+
+- **Public demo:** Claude-first, keyless where needed. No provider picker.
+- **Marketplace:** each skill carries a "Tested with Claude Sonnet 4.6+"
+  compatibility badge. Versioned, not just "Claude," because skills break
+  across model versions and the trust ceremony must not absorb that blame.
+- **Settings:** provider configuration remains available for self-hosted
+  operators, de-emphasised in the default workspace.
+- **Docs:** "model-agnostic substrate, Claude-first V1." Adaptation to other
+  providers is a known piece of work for firms deploying internally, not a
+  shipped feature.
+
+Out of scope for V1 public copy: any claim about which model is "best for
+law." That is an eval claim and Legalise does not yet have the evals to defend
+it.
+
 ## Non-Negotiables
 
 - Do not start with CSS polish.
