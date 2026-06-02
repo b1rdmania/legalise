@@ -487,20 +487,83 @@ it.
 - Do not let global admin/operator surfaces pollute the project work loop.
 - Do not preserve current navigation just because tests know it.
 
+## Scope Of This Paper
+
+This paper is a **decision paper**, not a build spec. It is comprehensive
+enough to authorise **PR 0 / UX Master Spec**. It is **not** authorisation to
+start moving routes, renaming screens, or shipping visual changes. PR 0 must
+land and be reviewed before any slice of the reset is built.
+
+## Requirements Before PR 1 Can Build
+
+PR 0 must answer all of the following before any code lands.
+
+### 1. The 60-Second Success Test
+
+A new user, given no explanation, should be able to answer in under sixty
+seconds:
+
+- Where am I?
+- What document is here?
+- What skill can I run?
+- What happens next?
+- Where is the signed record?
+
+If PR 0's proposed IA cannot pass this test on paper, it is not ready to
+build.
+
+### 2. Skill Lifecycle Clarity
+
+The hardest unresolved IA ambiguity is the relationship between **global skill
+install/trust** and **project-level enable/grant**. PR 0 must resolve it
+explicitly:
+
+- where a skill is discovered;
+- where it is installed and trusted at the workspace level;
+- where it is enabled and granted scope inside a specific project;
+- which of these surfaces a normal user sees vs which are operator-only;
+- what the install ceremony looks like in each case.
+
+This cannot be deferred. It is the part of the IA most likely to leak
+substrate vocabulary back into the user experience if left undecided.
+
+### 3. Document Reader / Redliner Is Table Stakes
+
+The paper treats Documents as a project asset. PR 0 must state plainly that a
+strong **document reader and redliner** is core to the project experience,
+not a metadata page. Reading a document, anchoring sources to it, and seeing
+proposed redlines belongs inside the project, in the same surface as Chat.
+If Documents reduces to a list with metadata, the reset has failed.
+
+### 4. Route Compatibility Discipline
+
+User-facing labels can change first. Existing routes, API endpoints, and data
+models **must not be ripped out** to match the new language. The order is:
+
+1. introduce new labels in the UI;
+2. hide old surfaces from primary navigation;
+3. reroute where needed;
+4. only then consider deletion, and only with explicit approval.
+
+PR 0 must include a route-compatibility plan that respects this order.
+
 ## Recommended Next Action
 
-Ask another agent to produce **PR 0: UX Master Spec**.
+Ask another agent to produce **PR 0: UX Master Spec only**.
 
 Prompt:
 
-> Read this white paper, current routes, and current screenshots. Produce a UX
-> master spec for Legalise around Open Project -> Install Skill -> Chat. Do not
-> build. Inventory every current route and classify it as primary, secondary,
-> admin, hidden, or deprecated. Propose the exact navigation hierarchy, route
-> renames, and first build PR. Backend must remain untouched unless a missing
-> data field is proven.
+> Build PR 0 only: inventory the current routes and screens, map them to
+> Open Project / Install Skill / Chat / Record, decide what is primary vs
+> hidden, resolve the skill lifecycle ambiguity (global install/trust vs
+> project enable/grant), and propose the first build PR. The spec must pass
+> the 60-second success test on paper and must include a route-compatibility
+> plan (hide and reroute before deleting). Acknowledge that a strong document
+> reader/redliner is core to the project experience. Do not change backend.
+> Do not start visual polish. Do not start moving screens until PR 0 is
+> reviewed.
 
-Only after PR 0 is ratified should a build begin.
+Only after PR 0 is ratified should the reset be built in slices.
 
 ## Final Position
 
