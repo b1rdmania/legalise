@@ -30,6 +30,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useDrawer } from "../app/DrawerContext";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { GrantsPanel } from "./GrantsPanel";
+import { MatterSkillsTab } from "./MatterSkillsTab";
 import { PostureBanner } from "./PostureBanner";
 import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
 import { DocumentsTab } from "./tabs/DocumentsTab";
@@ -375,12 +376,27 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "workflows" && (
             <div className="space-y-8">
-              <WorkflowsTab slug={slug} />
-              <GrantsPanel
-                slug={matter.slug}
-                defaultModelId={matter.default_model_id}
-                requiredProvider={matter.required_provider}
-              />
+              <MatterSkillsTab slug={matter.slug} />
+              <details className="border-t border-rule pt-6">
+                <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted hover:text-ink">
+                  Permissions detail
+                </summary>
+                <p className="mt-2 text-xs text-muted">
+                  Direct grant management and the legacy built-in-skill
+                  launcher cards. The simplified view above is the
+                  primary surface for this matter; this section exists
+                  for operators who need to inspect or edit specific
+                  capability grants.
+                </p>
+                <div className="mt-6 space-y-8">
+                  <WorkflowsTab slug={slug} />
+                  <GrantsPanel
+                    slug={matter.slug}
+                    defaultModelId={matter.default_model_id}
+                    requiredProvider={matter.required_provider}
+                  />
+                </div>
+              </details>
             </div>
           )}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
