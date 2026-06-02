@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   getMatterWorkflows,
@@ -345,69 +345,54 @@ export function AssistantTab({
     setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
+  const openOutputs = () => {
+    void navigate({ to: "/matters/$slug/artifacts", params: { slug: matter.slug } });
+  };
+
+  const openWorkingPack = () => {
+    void navigate({ to: "/matters/$slug/lifecycle", params: { slug: matter.slug } });
+  };
+
   return (
-    <div className="mx-auto w-full max-w-[1040px] flex flex-col min-h-[520px]">
-      <div className="mb-4">
-        <h1 className="text-lg font-semibold tracking-tight2 text-ink">
-          {matter.title}
-        </h1>
-        {/* Quiet folder context — what's here + where the record lives.
-            Single muted line, the only header element on the Chat
-            front door. The old readiness card has been retired here
-            because the project-folder feeling depends on Chat being
-            the surface that loads, not a status dashboard. */}
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="mx-auto grid w-full max-w-[1220px] gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex min-h-[620px] min-w-0 flex-col">
+        <div className="mb-5">
+          <p className="text-[11px] uppercase tracking-widest text-muted">
+            Legal project
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
+            {matter.title}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+            Ask about the documents, or run a skill from this project. Outputs
+            can be signed and traced in the Record.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
             <span data-testid="docs-context-status">
               {docs === null
                 ? "Loading documents…"
                 : docs.length > 0
-                  ? `${docs.length} document${docs.length === 1 ? "" : "s"} in this matter`
+                  ? `${docs.length} document${docs.length === 1 ? "" : "s"}`
                   : "No documents yet"}
             </span>
-            {recentDocs.length > 0 && (
-              <span className="flex flex-wrap items-center gap-x-2">
-                <span aria-hidden="true">·</span>
-                {recentDocs.slice(0, 2).map((d, i) => (
-                  <span key={d.id} className="font-mono truncate max-w-[180px]">
-                    {i > 0 && <span aria-hidden="true" className="mr-2">·</span>}
-                    {d.filename}
-                  </span>
-                ))}
-                {docs && docs.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => setTabAndHash("documents")}
-                    className="underline underline-offset-4 hover:text-ink"
-                  >
-                    +{docs.length - 2} more
-                  </button>
-                )}
-              </span>
-            )}
+            <span aria-hidden="true">·</span>
+            <span>{runnableSkillCount} runnable skill{runnableSkillCount === 1 ? "" : "s"}</span>
+            <span aria-hidden="true">·</span>
             <button
               type="button"
-              onClick={() => setTabAndHash("documents")}
+              onClick={() => setTabAndHash("audit")}
               className="underline underline-offset-4 hover:text-ink"
-              data-testid="open-documents-link"
+              data-testid="open-record-link"
             >
-              Open documents →
+              View Record →
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setTabAndHash("audit")}
-            className="underline underline-offset-4 hover:text-ink"
-            data-testid="open-record-link"
-          >
-            View record →
-          </button>
         </div>
-      </div>
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto pt-2 pb-6 space-y-5 max-h-[64vh]"
-      >
+
+        <div
+          ref={scrollRef}
+          className="flex-1 space-y-5 overflow-y-auto border-y border-rule py-6 lg:max-h-[62vh]"
+        >
         {!loaded && (
           <p className="font-mono text-xs text-muted flex items-center gap-2">
             <InlineSpinner />
@@ -477,19 +462,19 @@ export function AssistantTab({
             />
           </div>
         )}
-      </div>
-
-      {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
-      {error && (
-        <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-sm p-3 mt-3">
-          <div className="font-semibold mb-1">Could not send message</div>
-          <p className="leading-relaxed whitespace-pre-wrap">{error}</p>
         </div>
-      )}
 
-      {disabled ? (
-        // Compact unauth state - sticky strip, attached to chat column.
-        <div className="mt-3 sticky bottom-0 bg-paper pt-3">
+        {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
+        {error && (
+          <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-sm p-3 mt-3">
+            <div className="font-semibold mb-1">Could not send message</div>
+            <p className="leading-relaxed whitespace-pre-wrap">{error}</p>
+          </div>
+        )}
+
+        {disabled ? (
+          // Compact unauth state - sticky strip, attached to chat column.
+          <div className="mt-3 sticky bottom-0 bg-paper pt-3">
           <div className="border-t border-rule py-3 flex flex-wrap items-center gap-3">
             <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
               {disabledPlaceholder ?? "Create an evaluation account to ask the assistant against this matter."}
@@ -509,9 +494,9 @@ export function AssistantTab({
               </a>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="mt-3 sticky bottom-0 bg-paper pt-3">
+          </div>
+        ) : (
+          <div className="mt-3 sticky bottom-0 bg-paper pt-3">
           {/* Context attachments as chips ABOVE the composer */}
           {attachedDocs.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -722,9 +707,159 @@ export function AssistantTab({
               </button>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+
+      <MatterContextRail
+        docs={docs}
+        recentDocs={recentDocs}
+        runnableSkillCount={runnableSkillCount}
+        readySkillLabels={[
+          ...runnableModuleSkills.map((skill) => skill.title),
+          ...enabledSkills.map((skill) => skill.title),
+        ]}
+        needsAttentionCount={needsAttention.length}
+        selectedCount={selectedDocIds.size}
+        onOpenDocuments={() => setTabAndHash("documents")}
+        onOpenSkills={() => setTabAndHash("workflows")}
+        onOpenRecord={() => setTabAndHash("audit")}
+        onOpenOutputs={openOutputs}
+        onOpenPack={openWorkingPack}
+      />
     </div>
+  );
+}
+
+function MatterContextRail({
+  docs,
+  recentDocs,
+  runnableSkillCount,
+  readySkillLabels,
+  needsAttentionCount,
+  selectedCount,
+  onOpenDocuments,
+  onOpenSkills,
+  onOpenRecord,
+  onOpenOutputs,
+  onOpenPack,
+}: {
+  docs: MatterDocument[] | null;
+  recentDocs: MatterDocument[];
+  runnableSkillCount: number;
+  readySkillLabels: string[];
+  needsAttentionCount: number;
+  selectedCount: number;
+  onOpenDocuments: () => void;
+  onOpenSkills: () => void;
+  onOpenRecord: () => void;
+  onOpenOutputs: () => void;
+  onOpenPack: () => void;
+}) {
+  return (
+    <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start" data-testid="matter-context-rail">
+      <RailPanel
+        eyebrow="Documents"
+        actionLabel="Open"
+        onAction={onOpenDocuments}
+        actionTestId="open-documents-link"
+      >
+        {docs === null ? (
+          <p className="text-sm text-muted">Loading project files…</p>
+        ) : docs.length === 0 ? (
+          <p className="text-sm text-muted">No documents loaded yet.</p>
+        ) : (
+          <>
+            <p className="text-sm font-medium text-ink">
+              {docs.length} loaded{selectedCount > 0 ? ` · ${selectedCount} attached` : ""}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {recentDocs.slice(0, 4).map((doc) => (
+                <li key={doc.id} className="truncate font-mono text-xs text-muted">
+                  {doc.filename}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </RailPanel>
+
+      <RailPanel eyebrow="Skills" actionLabel="Manage" onAction={onOpenSkills}>
+        <p className="text-sm font-medium text-ink">
+          {runnableSkillCount} runnable
+        </p>
+        {readySkillLabels.length > 0 ? (
+          <ul className="mt-3 space-y-2">
+            {readySkillLabels.slice(0, 4).map((label) => (
+              <li key={label} className="text-xs text-muted">
+                {label}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">Enable a skill to run it here.</p>
+        )}
+        {needsAttentionCount > 0 && (
+          <p className="mt-3 text-xs text-muted">
+            {needsAttentionCount} needs setup
+          </p>
+        )}
+      </RailPanel>
+
+      <RailPanel eyebrow="Proof" actionLabel="Record" onAction={onOpenRecord}>
+        <p className="text-sm text-muted">
+          Every skill run writes to the matter Record. Signed outputs and the
+          working pack sit behind it.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3 text-xs">
+          <button
+            type="button"
+            onClick={onOpenOutputs}
+            className="underline underline-offset-4 hover:text-ink"
+          >
+            Signed outputs
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPack}
+            className="underline underline-offset-4 hover:text-ink"
+          >
+            Working pack
+          </button>
+        </div>
+      </RailPanel>
+    </aside>
+  );
+}
+
+function RailPanel({
+  eyebrow,
+  actionLabel,
+  onAction,
+  actionTestId,
+  children,
+}: {
+  eyebrow: string;
+  actionLabel: string;
+  onAction: () => void;
+  actionTestId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border border-rule bg-paper p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
+        <button
+          type="button"
+          onClick={onAction}
+          data-testid={actionTestId}
+          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+        >
+          {actionLabel}
+        </button>
+      </div>
+      <div className="mt-3">{children}</div>
+    </section>
   );
 }
 
