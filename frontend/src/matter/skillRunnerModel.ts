@@ -7,6 +7,7 @@ import type {
 export interface ManifestCapability {
   id: string;
   label: string;
+  defaultRequest: string | null;
   kind: string;
   scope: string;
   reads: string[];
@@ -20,6 +21,7 @@ export interface RunnableMatterSkill {
   capabilityId: string;
   title: string;
   description: string;
+  defaultRequest: string | null;
   reads: string[];
   writes: string[];
   modelAccess: string;
@@ -60,6 +62,7 @@ export function manifestCapabilities(
     return [{
       id,
       label: str(ui.label) ?? id,
+      defaultRequest: str(ui.default_request),
       kind: str(obj.kind) ?? "skill",
       scope: str(obj.scope) ?? "workspace",
       reads: strArray(obj.reads),
@@ -120,6 +123,7 @@ export function runnableMatterSkills({
         capabilityId: cap.id,
         title: cap.label === cap.id ? moduleName : cap.label,
         description,
+        defaultRequest: cap.defaultRequest,
         reads: cap.reads,
         writes: cap.writes,
         modelAccess: cap.modelAccess,

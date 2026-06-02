@@ -214,7 +214,11 @@
           "required": ["slot"],
           "properties": {
             "slot": {"type": "string"},
-            "label": {"type": "string"}
+            "label": {"type": "string"},
+            "default_request": {
+              "type": "string",
+              "description": "Optional user-facing starter request for generic runners. May include {filename} for the selected document filename."
+            }
           },
           "additionalProperties": false
         },

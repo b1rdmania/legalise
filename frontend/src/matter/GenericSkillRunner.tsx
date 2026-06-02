@@ -32,6 +32,7 @@ export function GenericSkillRunner({
   documents,
   initialDocumentIds,
   initialInput,
+  onClose,
   compact = false,
 }: {
   slug: string;
@@ -39,6 +40,7 @@ export function GenericSkillRunner({
   documents?: MatterDocument[] | null;
   initialDocumentIds?: string[];
   initialInput?: string;
+  onClose?: () => void;
   compact?: boolean;
 }) {
   const availableDocs = documents ?? [];
@@ -222,12 +224,24 @@ export function GenericSkillRunner({
         </Link>
       </div>
 
-      <RunnerResult state={state} slug={slug} />
+      <RunnerResult
+        state={state}
+        slug={slug}
+        onClose={onClose ?? (() => setState({ kind: "idle" }))}
+      />
     </section>
   );
 }
 
-function RunnerResult({ state, slug }: { state: RunnerState; slug: string }) {
+function RunnerResult({
+  state,
+  slug,
+  onClose,
+}: {
+  state: RunnerState;
+  slug: string;
+  onClose: () => void;
+}) {
   if (state.kind === "idle") return null;
   if (state.kind === "running") {
     return <p className="mt-3 text-xs text-muted">Running skill…</p>;
@@ -278,6 +292,13 @@ function RunnerResult({ state, slug }: { state: RunnerState; slug: string }) {
             >
               View Record for this run →
             </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-muted underline underline-offset-4 hover:text-ink"
+            >
+              Close run
+            </button>
           </div>
         </>
       ) : (
@@ -306,9 +327,15 @@ function defaultPromptFor(
   docs: MatterDocument[],
   selectedDocIds: Set<string>,
 ): string {
+  const selected = docs.find((d) => selectedDocIds.has(d.id)) ?? docs[0];
+  if (skill.defaultRequest) {
+    return skill.defaultRequest.replaceAll(
+      "{filename}",
+      selected?.filename ?? "the selected document",
+    );
+  }
   if (skill.reads.includes("document.body.read")) {
-    const selected = docs.find((d) => selectedDocIds.has(d.id)) ?? docs[0];
-    return selected ? `Summarise ${selected.filename}.` : "Summarise the selected document.";
+    return "Run this skill on the selected document.";
   }
   return "Run this skill on the project.";
 }

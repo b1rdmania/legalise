@@ -1,7 +1,3 @@
-/**
- * Phase 14 D — ArtifactPreview kind-routing regressions.
- */
-
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ArtifactPreview } from "./ArtifactPreview";

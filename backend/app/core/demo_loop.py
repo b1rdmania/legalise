@@ -105,7 +105,11 @@ DEMO_MANIFEST: dict[str, Any] = {
             "external_network": False,
             "data_movement": {"external_destinations": [], "local_only": True},
             "gates": ["privilege_posture"],
-            "ui": {"slot": "matter.workflows", "label": "Plain-English Summary (demo)"},
+            "ui": {
+                "slot": "matter.workflows",
+                "label": "Plain-English Summary (demo)",
+                "default_request": "Summarise {filename}.",
+            },
             "streaming_mode": "sync",
             "advice_tier_max": "draft_advice",
             "audit_events": [

@@ -462,6 +462,7 @@ export function AssistantTab({
             documents={docs}
             initialDocumentIds={Array.from(selectedDocIds)}
             initialInput={input.trim() || undefined}
+            onClose={() => setActiveRunnerSkill(null)}
             compact
           />
         )}
