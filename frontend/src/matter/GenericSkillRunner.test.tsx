@@ -14,6 +14,7 @@ const baseSkill: RunnableMatterSkill = {
   title: "Plain-English Summary",
   description: "Summarises a document.",
   defaultRequest: "Summarise {filename}.",
+  inputFields: [],
   reads: ["document.body.read"],
   writes: ["matter.artifact.write"],
   modelAccess: "required",
@@ -82,6 +83,52 @@ describe("GenericSkillRunner", () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId("generic-runner-result")).toBeNull();
+    });
+  });
+
+  it("renders manifest string-enum fields and sends them as args", async () => {
+    const invoke = vi.spyOn(api, "invokeCapability").mockResolvedValue({
+      invocation_id: "inv-1",
+      result: { artifact_id: "artifact-1" },
+    } as never);
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "artifact-1",
+      kind: "skill_response",
+      payload: { output: "Issue list output." },
+      invocation_id: "inv-1",
+      created_at: "2026-01-01T00:00:00",
+    } as never);
+
+    renderRunner({
+      ...baseSkill,
+      inputFields: [
+        {
+          key: "style",
+          label: "Style",
+          description: null,
+          kind: "select",
+          options: ["Plain English", "Issue list"],
+          defaultValue: "Plain English",
+          required: true,
+        },
+      ],
+    });
+
+    fireEvent.change(screen.getByLabelText(/Style/i), {
+      target: { value: "Issue list" },
+    });
+    fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
+
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith("khan-v-acme", {
+        module_id: "demo.guided-skill",
+        capability_id: "summarise",
+        args: {
+          input: "Summarise witness.txt.",
+          document_id: "doc-1",
+          style: "Issue list",
+        },
+      });
     });
   });
 });

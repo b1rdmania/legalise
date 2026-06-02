@@ -110,6 +110,17 @@ DEMO_MANIFEST: dict[str, Any] = {
                 "label": "Plain-English Summary (demo)",
                 "default_request": "Summarise {filename}.",
             },
+            "args_schema": {
+                "type": "object",
+                "properties": {
+                    "style": {
+                        "type": "string",
+                        "title": "Style",
+                        "enum": ["Plain English", "Issue list"],
+                        "default": "Plain English",
+                    }
+                },
+            },
             "streaming_mode": "sync",
             "advice_tier_max": "draft_advice",
             "audit_events": [

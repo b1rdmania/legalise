@@ -55,12 +55,20 @@ export function GenericSkillRunner({
   const [input, setInput] = useState(
     initialInput ?? defaultPromptFor(skill, availableDocs, initialDocs),
   );
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      skill.inputFields.map((field) => [field.key, field.defaultValue]),
+    ),
+  );
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [advancedJson, setAdvancedJson] = useState("{}");
   const [state, setState] = useState<RunnerState>({ kind: "idle" });
 
   const needsDocument = skill.reads.includes("document.body.read");
-  const canRun = !needsDocument || selectedDocIds.size > 0;
+  const requiredFieldsFilled = skill.inputFields.every(
+    (field) => !field.required || fieldValues[field.key]?.trim(),
+  );
+  const canRun = (!needsDocument || selectedDocIds.size > 0) && requiredFieldsFilled;
 
   const toggleDoc = (id: string) => {
     setSelectedDocIds((prev) => {
@@ -89,6 +97,9 @@ export function GenericSkillRunner({
     const docIds = Array.from(selectedDocIds);
     const args: Record<string, unknown> = {
       ...extraArgs,
+      ...Object.fromEntries(
+        Object.entries(fieldValues).filter(([, value]) => value.trim()),
+      ),
       ...(input.trim() ? { input: input.trim() } : {}),
       ...(docIds.length === 1
         ? { document_id: docIds[0] }
@@ -174,6 +185,50 @@ export function GenericSkillRunner({
         </div>
       </div>
 
+      {skill.inputFields.length > 0 && (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {skill.inputFields.map((field) => (
+            <label key={field.key} className="block">
+              <span className="text-[11px] uppercase tracking-widest text-muted">
+                {field.label}{field.required ? " *" : ""}
+              </span>
+              {field.kind === "select" ? (
+                <select
+                  value={fieldValues[field.key] ?? ""}
+                  onChange={(e) =>
+                    setFieldValues((prev) => ({
+                      ...prev,
+                      [field.key]: e.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-none"
+                >
+                  {field.options.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={fieldValues[field.key] ?? ""}
+                  onChange={(e) =>
+                    setFieldValues((prev) => ({
+                      ...prev,
+                      [field.key]: e.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-none"
+                />
+              )}
+              {field.description && (
+                <span className="mt-1 block text-xs text-muted">
+                  {field.description}
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+      )}
+
       <details className="mt-3 text-xs text-muted">
         <summary className="cursor-pointer hover:text-ink">Details</summary>
         <dl className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -201,7 +256,9 @@ export function GenericSkillRunner({
 
       {!canRun && (
         <p className="mt-3 text-xs text-seal">
-          Select at least one document before running this skill.
+          {needsDocument && selectedDocIds.size === 0
+            ? "Select at least one document before running this skill."
+            : "Complete the required fields before running this skill."}
         </p>
       )}
 
