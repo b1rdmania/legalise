@@ -297,6 +297,12 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
         )}
       </section>
 
+      {/* Manifest & signature disclosure (blueprint §4A.5 step 5).
+          Collapsed by default; opens to show signer status, version,
+          install metadata, and validity. Nothing is hidden — these
+          fields are all already returned by the substrate. */}
+      <ManifestDisclosure entry={entry} installStatus={installStatus} />
+
       {/* Lifecycle controls */}
       <section className="mt-10">
         <h2 className="text-sm uppercase tracking-widest text-muted">
@@ -451,6 +457,116 @@ function Access({ label, items }: { label: string; items: string[] }) {
     <div>
       <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
       <dd className="mt-0.5 font-mono text-xs text-muted">{items.join(", ")}</dd>
+    </div>
+  );
+}
+
+function ManifestDisclosure({
+  entry,
+  installStatus,
+}: {
+  entry: V2ManifestEntry;
+  installStatus: InstallStatus;
+}) {
+  const [open, setOpen] = useState(false);
+  const manifest = entry.manifest as Record<string, unknown>;
+  const version = typeof manifest.version === "string" ? manifest.version : "—";
+  const publisher = typeof manifest.publisher === "string" ? manifest.publisher : "—";
+  const visibility = typeof manifest.visibility === "string" ? manifest.visibility : "—";
+  const sourceUrl = typeof manifest.source_url === "string" ? manifest.source_url : null;
+  const installed = installStatus.kind === "installed" ? installStatus.row : null;
+  const signature = installed?.signature_status ?? "not yet inspected";
+
+  return (
+    <section className="mt-10">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        data-testid="manifest-disclosure-toggle"
+        className="flex w-full items-center justify-between border-b border-rule pb-2 text-left"
+      >
+        <h2 className="text-sm uppercase tracking-widest text-muted">
+          Manifest &amp; signature
+        </h2>
+        <span aria-hidden="true" className="text-xs text-muted">
+          {open ? "Hide" : "Show"}
+        </span>
+      </button>
+      {open && (
+        <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <Field label="Module id" value={entry.module_id} mono />
+          <Field label="Version" value={version} mono />
+          <Field label="Publisher" value={publisher} />
+          <Field label="Visibility" value={visibility} />
+          <Field
+            label="Signature"
+            value={signature}
+            mono
+            hint={
+              installStatus.kind === "installed"
+                ? undefined
+                : "Signature is verified at install time."
+            }
+          />
+          <Field
+            label="Manifest"
+            value={entry.is_valid ? "valid" : "invalid"}
+          />
+          {installed && (
+            <>
+              <Field
+                label="Installed"
+                value={new Date(installed.installed_at).toLocaleString()}
+              />
+              <Field
+                label="Installed by"
+                value={installed.installed_by_user_id ?? "—"}
+                mono
+              />
+            </>
+          )}
+          {sourceUrl && (
+            <div className="sm:col-span-2">
+              <dt className="text-xs uppercase tracking-widest text-muted">
+                Source
+              </dt>
+              <dd className="mt-0.5">
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-sm underline underline-offset-4 hover:text-ink"
+                >
+                  {sourceUrl}
+                </a>
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+    </section>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono = false,
+  hint,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
+      <dd className={"mt-0.5 " + (mono ? "font-mono text-xs" : "text-sm")}>
+        {value}
+      </dd>
+      {hint && <p className="mt-0.5 text-[11px] text-muted">{hint}</p>}
     </div>
   );
 }

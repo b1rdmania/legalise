@@ -28,7 +28,14 @@ import { PageHeader } from "../ui/primitives";
 import { useAuth } from "../auth/AuthProvider";
 
 type ModuleState = "available" | "installed" | "disabled";
-type StateFilter = "all" | ModuleState;
+type SkillTab = "installed" | "available" | "revoked";
+
+// "disabled" in the substrate (InstalledModule.enabled === false) is the
+// user-facing "Revoked" state per blueprint §7: a skill that was
+// previously trusted in this workspace and is no longer active.
+function tabOf(state: ModuleState): SkillTab {
+  return state === "disabled" ? "revoked" : state;
+}
 
 function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
   const v = (entry.manifest as Record<string, unknown>)[key];
@@ -68,8 +75,29 @@ function suiteLabel(plugin: string): string {
 const STATE_LABEL: Record<ModuleState, string> = {
   available: "Available",
   installed: "Installed",
-  disabled: "Installed · disabled",
+  disabled: "Revoked",
 };
+
+const TAB_LABEL: Record<SkillTab, string> = {
+  installed: "Installed",
+  available: "Available",
+  revoked: "Revoked",
+};
+
+// Compatibility badge per blueprint §7 Marketplace Compatibility Badge.
+// V1 ships a Claude-native skill format; every skill in the V2 registry
+// is tested against Sonnet 4.6+, so the badge is unconditional here.
+// When the manifest grows a compatibility field it can move to per-skill.
+function CompatibilityBadge() {
+  return (
+    <span
+      title="Tested against Anthropic Claude Sonnet 4.6 or newer. The Legalise substrate is provider-agnostic; the skill format is Claude-native in V1."
+      className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted"
+    >
+      Tested with Claude Sonnet 4.6+
+    </span>
+  );
+}
 
 export function ModulesCatalog() {
   // /modules is a public route (anyone can browse). The v2 registry +
@@ -84,7 +112,8 @@ export function ModulesCatalog() {
   const [error, setError] = useState<string | null>(null);
   const [showSkills, setShowSkills] = useState(false);
   const [query, setQuery] = useState("");
-  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
+  const [tab, setTab] = useState<SkillTab>("installed");
+  const isOperator = !!auth.user?.is_superuser;
 
   useEffect(() => {
     let cancelled = false;
@@ -127,8 +156,7 @@ export function ModulesCatalog() {
     if (modules === null) return null;
     const q = query.trim().toLowerCase();
     return modules.filter((m) => {
-      const st = stateOf(m.module_id);
-      if (stateFilter !== "all" && st !== stateFilter) return false;
+      if (tabOf(stateOf(m.module_id)) !== tab) return false;
       if (!q) return true;
       const haystack = [
         m.module_id,
@@ -140,19 +168,28 @@ export function ModulesCatalog() {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [installed, modules, query, stateFilter]);
+  }, [installed, modules, query, tab]);
 
-  const stateCounts = useMemo(() => {
-    const counts: Record<ModuleState, number> = {
-      available: 0,
+  const tabCounts = useMemo(() => {
+    const counts: Record<SkillTab, number> = {
       installed: 0,
-      disabled: 0,
+      available: 0,
+      revoked: 0,
     };
     if (modules) {
-      for (const m of modules) counts[stateOf(m.module_id)] += 1;
+      for (const m of modules) counts[tabOf(stateOf(m.module_id))] += 1;
     }
     return counts;
   }, [installed, modules]);
+
+  // Default to Installed if anything is installed, otherwise show
+  // Available so a fresh workspace lands on the discovery view.
+  useEffect(() => {
+    if (modules === null) return;
+    if (tabCounts.installed === 0 && tabCounts.available > 0 && tab === "installed") {
+      setTab("available");
+    }
+  }, [modules, tab, tabCounts.installed, tabCounts.available]);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
@@ -182,43 +219,59 @@ export function ModulesCatalog() {
         <p className="text-sm text-seal">Could not load skills: {error}</p>
       )}
 
-      {/* Primary: reference skills (v2 registry) */}
+      {/* Primary: reference skills (v2 registry).
+          §7 tab structure: Installed / Available / Revoked
+          (Revoked is operator-only). */}
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xs uppercase tracking-widest text-muted">
-              Reference skills
-            </h2>
-            {modules && (
-              <p className="mt-1 text-sm text-muted">
-                {stateCounts.installed} installed · {stateCounts.disabled} disabled ·{" "}
-                {stateCounts.available} available
-              </p>
-            )}
-          </div>
+          <h2 className="text-xs uppercase tracking-widest text-muted">
+            Reference skills
+          </h2>
           {authed && modules && modules.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search skills"
-                aria-label="Search skills"
-                className="min-h-[38px] w-48 border border-rule bg-paper px-3 text-[16px] text-ink focus:border-ink focus:outline-none"
-              />
-              <select
-                value={stateFilter}
-                onChange={(e) => setStateFilter(e.target.value as StateFilter)}
-                aria-label="Filter skill state"
-                className="min-h-[38px] border border-rule bg-paper px-3 text-sm text-ink focus:border-ink focus:outline-none"
-              >
-                <option value="all">All states</option>
-                <option value="installed">Installed</option>
-                <option value="available">Available</option>
-                <option value="disabled">Disabled</option>
-              </select>
-            </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search skills"
+              aria-label="Search skills"
+              className="min-h-[38px] w-48 border border-rule bg-paper px-3 text-[16px] text-ink focus:border-ink focus:outline-none"
+            />
           )}
         </div>
+
+        {authed && modules && modules.length > 0 && (
+          <div
+            role="tablist"
+            aria-label="Skill state"
+            className="mt-3 flex border-b border-rule"
+          >
+            {(["installed", "available", ...(isOperator ? (["revoked"] as const) : [])] as SkillTab[]).map(
+              (t) => {
+                const active = tab === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setTab(t)}
+                    data-testid={`skills-tab-${t}`}
+                    className={
+                      "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors " +
+                      (active
+                        ? "border-ink text-ink"
+                        : "border-transparent text-muted hover:text-ink")
+                    }
+                  >
+                    {TAB_LABEL[t]}
+                    <span className="ml-1.5 font-mono text-xs text-muted">
+                      {tabCounts[t]}
+                    </span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+        )}
         {!authed ? (
           <p className="mt-3 text-sm text-muted" data-testid="modules-signin-prompt">
             Sign in to install and manage governed reference skills. The open
@@ -232,7 +285,13 @@ export function ModulesCatalog() {
           </p>
         ) : filteredModules?.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
-            No skills match that search and state filter.
+            {tab === "installed"
+              ? "No skills installed in this workspace yet. Switch to Available to browse the registry."
+              : tab === "revoked"
+                ? "No skills have been revoked in this workspace."
+                : query
+                  ? "No skills match that search."
+                  : "Nothing to install — all reference skills are already trusted in this workspace."}
           </p>
         ) : (
           <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
@@ -270,6 +329,9 @@ export function ModulesCatalog() {
                       {m.module_id}
                       {manifestStr(m, "publisher") ? ` · ${manifestStr(m, "publisher")}` : ""}
                     </p>
+                    <div className="mt-2">
+                      <CompatibilityBadge />
+                    </div>
                     <p className="mt-2 text-xs text-muted">
                       {caps} permission set{caps === 1 ? "" : "s"}
                       {!m.is_valid ? " · manifest invalid" : ""}
