@@ -2,9 +2,9 @@
  * MatterSkillsTab — enable-truth regression.
  *
  * Pins the contract that the matter Skills surface only posts grants
- * for capabilities the substrate will accept at matter scope. Any
+ * for capabilities the runtime will accept at matter scope. Any
  * workspace / provider / other-scope capability declared by the
- * manifest must not be sent; the substrate would reject those with
+ * manifest must not be sent; the runtime would reject those with
  * 422 and the modal would close as "enabled" while the skill is
  * still half-granted.
  */
@@ -52,6 +52,7 @@ function mountAt(slug: string) {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  vi.spyOn(api, "listDocuments").mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();
@@ -177,7 +178,7 @@ describe("MatterSkillsTab — enable truth", () => {
     expect(btn).toBeDisabled();
     expect(
       screen.getByTestId("available-disabled-reason-workspace-only"),
-    ).toHaveTextContent(/no matter-scoped capabilities/i);
+    ).toHaveTextContent(/cannot be enabled inside a project/i);
   });
 
   it("keeps the modal open and surfaces the error on grant failure", async () => {
@@ -200,5 +201,90 @@ describe("MatterSkillsTab — enable truth", () => {
     expect(
       screen.getByRole("dialog", { name: /Enable Contract Review/i }),
     ).toBeInTheDocument();
+  });
+
+  it("renders a generic runner for a V2 module whose project permissions are complete", async () => {
+    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({ workflows: [] });
+    vi.spyOn(api, "listDocuments").mockResolvedValue([
+      {
+        id: "doc-1",
+        filename: "witness.txt",
+        sha256: "sha",
+        bytes: 200,
+        content_type: "text/plain",
+        tag: "demo",
+        from_disclosure: false,
+        disclosure_label: null,
+        uploaded_at: "2026-01-01T00:00:00",
+      },
+    ] as never);
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        {
+          id: "g-read",
+          plugin: "demo.guided-skill",
+          skill: "summarise",
+          capability: "document.body.read",
+          scope_type: "matter",
+          scope_id: "m-1",
+          granted_at: "2026-01-01T00:00:00",
+        },
+        {
+          id: "g-write",
+          plugin: "demo.guided-skill",
+          skill: "summarise",
+          capability: "matter.artifact.write",
+          scope_type: "matter",
+          scope_id: "m-1",
+          granted_at: "2026-01-01T00:00:00",
+        },
+      ],
+    });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+      {
+        module_id: "demo.guided-skill",
+        version: "0.1.0",
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      },
+    ]);
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [
+        {
+          module_id: "demo.guided-skill",
+          source_kind: "v2",
+          manifest: {
+            name: "Guided demo skill",
+            description: "Summarises the selected document.",
+            capabilities: [
+              {
+                id: "summarise",
+                scope: "matter",
+                kind: "skill",
+                reads: ["document.body.read"],
+                writes: ["matter.artifact.write"],
+                ui: { label: "Summarise document" },
+              },
+            ],
+          },
+          is_valid: true,
+          validation_errors: [],
+        },
+      ],
+      ui_slots: [],
+    } as never);
+
+    mountAt("m-1");
+
+    expect(
+      await screen.findByTestId("generic-runner-demo.guided-skill-summarise"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Summarise document")).toBeInTheDocument();
+    expect(screen.queryByTestId("enabled-module-demo.guided-skill")).toBeNull();
   });
 });
