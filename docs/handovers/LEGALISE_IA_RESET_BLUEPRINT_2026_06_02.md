@@ -180,6 +180,271 @@ the variant lands in the design system first via a separate PR.
 
 ---
 
+## 4A. Surface Pattern Library (Mobbin-Anchored, Locked)
+
+Every primary surface inherits its layout from an existing best-in-class web
+product. Build agents reproduce the pattern, retoken it to Legalise visual
+tokens (§4), and **do not invent a new layout**. Each entry below names a
+canonical reference; PRs must cite it.
+
+### 4A.1 Matter Shell — Pattern: Claude Projects
+
+**Reference:** Claude — `mobbin.com/screens/1861f7d1-789d-44ad-aa42-2a17b7d03482`
+
+**Layout:**
+
+- **Left rail (fixed, ~240px):** global nav at top (Matters / Skills /
+  Settings, + Admin for operators); when inside a matter, the rail shows
+  the matter's chat history below the global nav.
+- **Center column:** matter title row + matter sub-nav strip (Chat /
+  Documents / Skills / Record) + the active surface.
+- **Right rail (~320px, collapsible):** persistent "Matter context" box
+  (matter type, parties, key dates — short editable metadata) above a
+  surface-specific panel.
+
+**Lift verbatim:** rail widths, the inline-input-with-model-selector
+pattern, persistent right-rail context, history at the bottom of the
+left rail.
+
+**Anti-pattern (do not copy):** Frame's metadata-heavy right rail
+(`mobbin.com/screens/b2a37859-64c7-43e7-abe5-711a5b853d3b`) with Created
+by / Created time / Status / Tags / "2 more properties." That is the
+control-panel pattern the reset exists to escape.
+
+### 4A.2 Chat Front Door — Pattern: ChatGPT Projects + Sana
+
+**References:**
+
+- ChatGPT — `mobbin.com/screens/73833b79-1dd5-4354-8fc4-a2e99c33a75e`
+  (Activity + N Sources right-rail tabs).
+- Sana AI — `mobbin.com/screens/67047d63-2ae6-44e0-a2a2-8d6989a14819`
+  (numbered sources cited inline with named files).
+
+**Layout:**
+
+- Center column = scrollable conversation.
+- Right rail = two tabs: **Activity** (live progress / event log during a
+  run; chronological event list at rest) and **Sources** (numbered chips
+  anchored to documents).
+- Input docked at bottom with a skill-picker chip ("Run skill" inline,
+  mirroring ChatGPT's "Research" / "Search" chips).
+- Each output uses the Trust + Review card (§4A.7).
+
+**Architectural consequence:** Record-as-ambient. The right rail of Chat
+**is** the matter's proof layer for the current conversation. Going to
+the Record route (§4A.4) shows the full timeline across all chats and
+skill runs; the Chat right rail shows proof for *this* run. Record is
+not hidden behind a tab — it sits next to the work.
+
+### 4A.3 Documents Reader / Redliner — Pattern: Craft + GitBook
+
+**References:**
+
+- Craft — `mobbin.com/screens/d2215d8a-48a5-4c3d-856f-10dd9d4bc7cb`,
+  `mobbin.com/screens/6f238076-9849-4716-92c3-cd956a715cee` (inline
+  comment thread anchored to text; right-rail panel).
+- GitBook — `mobbin.com/screens/3a71ae63-ca28-4ee0-b31d-ff9b8d0039ef`
+  (change-request flow with tabs Overview / Editor / Changes / Preview
+  / Merge).
+
+**Layout:**
+
+- Document body in center, full fidelity, generous line height (Body
+  step, §4 type scale).
+- Left rail collapses to a TOC.
+- Right rail = comment threads + redline cards (one card per proposed
+  change), each using the Trust + Review card pattern (§4A.7).
+- Top sub-tab strip: **Read / Redline / History**. Default Read.
+- Source-anchor behaviour: clicking a source chip in Chat opens the
+  document at the anchored position with the passage highlighted. Back
+  returns to the prior Chat scroll position.
+
+### 4A.4 Record (Proof Layer) — Pattern: GitHub Security Log + Front Audit Header
+
+**References:**
+
+- GitHub — `mobbin.com/screens/0a54f53c-2276-4628-92cc-a170af40fb43`
+  (vertical chronological feed, action verbs, click-to-expand).
+- Front — `mobbin.com/screens/0c2efddc-d2d9-4a17-b589-34523d08e1d8`
+  (filter chip row at top + Export button top-right).
+
+**Layout:**
+
+- **Timeline-first**, not table-first. Each row = icon + actor + action
+  verb + timestamp + click-to-expand for full event detail.
+- Header: filter chips (Date / Actor / Event type / Skill / Document) +
+  **Export** button (seal-accent) top-right.
+- Sub-view selector below header: **Timeline (default) / Signed outputs
+  / Sources / Grants / Audit (advanced)**.
+- "Audit (advanced)" is the spreadsheet view (PlanetScale pattern,
+  `mobbin.com/screens/d7448333-6400-49dd-b11f-e48e4e229200`) — for
+  operators, never the default.
+
+**Anti-pattern (do not copy):** Fibery audit log
+(`mobbin.com/screens/19c2da51-bfa6-4c1d-b423-90cf26b181ff`) — dense
+spreadsheet of every internal mutation. That is the substrate's view of
+itself, not the user's view of the matter.
+
+### 4A.5 Workspace Skills (Trust Ceremony) — Pattern: Vercel Integration Install
+
+**Reference:** Vercel — `mobbin.com/screens/cd661ca9-5acd-4cb1-91ae-d96877bcff97`
+
+**Layout (modal, ~520px wide):**
+
+1. Skill icon + name centered at top.
+2. Header: "Install [Skill] to [workspace name]."
+3. Scope picker: "All matters" / "Select matters" (radio).
+4. Permissions list with checkmarks: Read documents / Produce outputs /
+   Write to Record / Use provider (Claude Sonnet 4.6+).
+5. Signature/manifest disclosure: collapsed by default; expands to show
+   signer, hash, version.
+6. Footer: Cancel / **Install** (primary).
+
+**Variant for per-capability granularity:** Stripe install modal
+(`mobbin.com/screens/56199881-d2ff-470b-acba-f8505462c5a4`) — Read-only
+vs Modify badges per capability category.
+
+### 4A.6 Matter Skills (Grant Ceremony) — Pattern: Vercel Lite + Stripe Capability Detail
+
+**Layout (modal, ~480px wide):**
+
+1. Skill icon + name.
+2. Header: "Enable [Skill] in this matter."
+3. Document scope picker: "All documents in this matter" / "Select
+   documents" (checkbox list with document titles).
+4. Output scope: text outputs / redlines / exports — what the skill is
+   allowed to produce here.
+5. Capability summary inherited from workspace trust, shown read-only
+   with footer "Workspace-trusted by [actor] on [date]."
+6. Footer: Cancel / **Enable** (primary).
+
+The user does not re-litigate workspace-trusted capabilities. They
+choose document scope and confirm.
+
+### 4A.7 Trust + Review Card — Pattern: Kramer Carry-Over
+
+**References:**
+
+- Kramer demo learning (`kramer-to-legalise-handover.md`).
+- Claude response footer — `mobbin.com/screens/9737b8cf-a15e-4690-a5ed-65b014e5b92e`
+  (clean response, inline action icons).
+- Gorgias inline sources disclosure —
+  `mobbin.com/screens/e077aad0-3aaa-4244-8c91-452d0f9e7b5f`.
+
+**Card anatomy (top to bottom):**
+
+1. **Header strip:** skill icon + skill name + timestamp + status pill
+   (Pending review / Signed / Rejected).
+2. **Summary body:** the output content, Body type.
+3. **Sources chip row:** numbered chips (`1` `2` `3`), each a clickable
+   link to the anchored document position.
+4. **Proof drawer toggle:** "Show how this was prepared" — opens the
+   four-question Kramer pattern (What documents were read? What rules
+   were applied? What was uncertain? What was excluded?).
+5. **Action row:** **Sign off** (seal-accent, primary) /
+   **Reject** (muted) / **Talk this through** (secondary; opens inline
+   follow-up chat thread under the card).
+6. **Signed state** (after sign-off): action row replaces with caption
+   "Signed by [name] on [date] · hash [short]." Content remains visible;
+   edit locks.
+
+This card is the single most-used component in Legalise. Every Chat
+output, every redline, every skill result uses it. Build agents do not
+vary it. Variations require a design-system PR with explicit approval.
+
+### 4A.8 Sign-Off Moment — Pattern: Contractbook + PandaDoc Confirmation
+
+**References:**
+
+- Contractbook —
+  `mobbin.com/screens/d86c7d8a-e51b-4dd7-87a6-2a9f7c65c7f8`
+  ("Send and sign" dominant primary, signing-detail card with
+  attestation).
+- PandaDoc — `mobbin.com/screens/3b83a3c4-2f9a-40f4-bbdf-863fddeb3d3e`
+  (signature confirmation with attestation text + two-button footer).
+
+**Flow:**
+
+1. User clicks **Sign off** on a Trust + Review card (§4A.7).
+2. **Inline confirmation appears below the card** — not a modal. (Modals
+   break conversational flow; solicitors will sign many outputs and the
+   moment must be one click after confirmation, not five.)
+3. Confirmation contents: one-sentence attestation — "By signing off,
+   you confirm this output has been reviewed and is approved as
+   solicitor work product." — signer name + role pre-filled,
+   Cancel / **Sign off** (seal-accent primary).
+4. On confirm: card transitions to signed state with hash and timestamp.
+   Record entry is written automatically. No second modal.
+
+**Lifted:** the attestation pattern, the locked archival state with
+timestamp + hash.
+
+**Not lifted:** drawn signatures. Legalise sign-off is identity + hash,
+not a visual signature image. The seal accent on the button is the
+visual seal.
+
+### 4A.9 Guided Onboarding (Fresh Matter) — Pattern: Adaline Numbered Cards
+
+**Reference:** Adaline —
+`mobbin.com/screens/c617c1d0-6d58-46c3-81e5-a598bb5b188c`
+
+**Layout (inside the matter shell, not a modal):**
+
+- Header: matter title + "New matter — let's get set up."
+- Four numbered cards in a 2×2 grid:
+  1. **Add documents** — drop zone + "Browse files" button.
+  2. **Enable a skill** — one suggested skill based on matter type +
+     "Browse all skills" link.
+  3. **Ask or run** — input box that promotes to Chat when used.
+  4. **Sign off and export** — disabled preview until the first signed
+     output exists.
+- Each card: number badge, title (H3), one-line description (Body),
+  primary CTA, secondary "Walkthrough" link (Caption).
+- Progression: cards fade to a checked state as completed. Once card 3
+  fires the first run, the entire onboarding collapses to a thin
+  "Setup complete — open Chat" banner the user dismisses. Chat becomes
+  the matter's default surface from then on.
+
+**Why Adaline beats a full-screen wizard:** the onboarding lives inside
+the workspace the user will keep using. They see the same nav, the same
+shell. No parking screen, no context switch.
+
+### 4A.10 Matters Index (Landing) — Pattern: Notion Workspace + Claude Projects List
+
+**References:**
+
+- Notion — `mobbin.com/screens/6a5c9458-5fc3-49f3-8baa-f5463fa180ad`
+  (left rail teamspaces + center page list).
+- Claude — `mobbin.com/screens/1861f7d1-789d-44ad-aa42-2a17b7d03482`
+  (Recents list with last-activity timestamp).
+
+**Layout:**
+
+- Center: "Matters" H1 + primary CTA "Open matter" (top right).
+- Filter chips: All / Active / Signed / Archived.
+- Matters list rows: matter title, client/parties, status pill, last
+  activity timestamp, signed-outputs count. Row click → matter shell.
+- Empty state: one sentence + "Open your first matter" CTA + link to
+  "How matters work" docs.
+
+**Not on this page:** dashboard widgets, cross-matter metrics, "recent
+activity across all matters," firm-wide KPIs. The Matters index is a
+list of folders. If the user wants activity, they open a matter.
+
+### 4A.11 Pattern Citation Requirement
+
+Every PR description in §11 must cite the §4A pattern reference for each
+surface it touches, in the form:
+
+> Surface: Chat front door. Pattern: §4A.2 (ChatGPT Projects + Sana).
+> Deviations: none.
+
+If a PR deviates from a §4A pattern, the deviation must be listed
+explicitly with a one-sentence justification. Silent deviations are a
+merge blocker.
+
+---
+
 ## 5. Product Model (Locked)
 
 Three user-facing objects. Nothing else has first-class status.
@@ -652,8 +917,12 @@ Every PR ships with:
    If backend changes are present, they were pre-approved in a separate PR.
 6. **Reviewer sign-off against this blueprint** — reviewer cites the
    blueprint section each change implements.
+7. **Pattern citation** — PR cites the §4A pattern reference for each
+   surface it touches, lists any deviations explicitly with a one-
+   sentence justification. Silent deviation from a §4A pattern is a
+   merge blocker.
 
-A PR that does not provide all six is not eligible to merge.
+A PR that does not provide all seven is not eligible to merge.
 
 ---
 
@@ -740,6 +1009,9 @@ Decisions made in this blueprint that override or clarify the whitepaper:
 | **Document reader/redliner has its own PR** | Blueprint §11 PR 6 | Locked, addresses whitepaper §"Document reader acknowledgement" |
 | **Route compatibility = 302 redirect, no deletion during reset** | Blueprint §8, §10 | Locked, implements whitepaper §"Route compatibility discipline" |
 | **60-second comprehension test is the gate, not green CI** | Blueprint §13 | Locked, addresses whitepaper §"60-second success test" |
+| **Per-surface layouts lifted from Mobbin-anchored references** | Blueprint §4A | Locked. Ten surfaces (matter shell, chat, documents, record, workspace skills, matter skills, trust+review card, sign-off, onboarding, matters index) each name a canonical reference. PRs cite them; silent deviation is a merge blocker. |
+| **Record-as-ambient** — proof for current conversation lives in Chat's right rail; the Record route shows the full matter timeline | Blueprint §4A.2, §4A.4 | Locked. Resolves the whitepaper-review pushback that hiding audit behind a tab cut against the regulated-product wedge. |
+| **Sign-off uses inline confirmation, not a modal** | Blueprint §4A.8 | Locked. Solicitors sign many outputs; the moment must be one click after confirmation. |
 
 ---
 
