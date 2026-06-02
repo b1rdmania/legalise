@@ -22,7 +22,7 @@ export function SignIn() {
 
   // If already authed, bounce to matters.
   useEffect(() => {
-    if (auth.user) navigate("/app");
+    if (auth.user) navigate("/matters");
   }, [auth.user]);
 
   const submit = async (e: FormEvent) => {
@@ -33,7 +33,7 @@ export function SignIn() {
     setResend("idle");
     try {
       await auth.signIn(email, password);
-      navigate("/app");
+      navigate("/matters");
     } catch (err) {
       const msg = String(err);
       if (/NOT_VERIFIED/i.test(msg)) {

@@ -47,10 +47,10 @@ export function Landing() {
         <div className="relative z-20 flex justify-end gap-3 px-4 pt-4 sm:px-6 md:px-16 lg:px-24">
           {auth.user ? (
             <a
-              href="/app"
+              href="/matters"
               className="border border-rule px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-wash"
             >
-              Open app
+              Open workspace
             </a>
           ) : (
             <>

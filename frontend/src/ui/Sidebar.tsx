@@ -181,25 +181,43 @@ export function Sidebar({
         }
       >
         {/* brand */}
-        <a href="/app" className="flex items-center gap-2 px-3 h-[64px] border-b border-rule shrink-0">
+        <a href="/matters" className="flex items-center gap-2 px-3 h-[64px] border-b border-rule shrink-0">
           <BrandMark />
           <span className="font-semibold text-lg tracking-tight2 text-ink">legalise</span>
         </a>
 
         <nav className="flex-1 overflow-y-auto py-2">
           <SectionLabel>Workspace</SectionLabel>
-          <NavLink href="/app" label="Matters" active={route.name === "appHome"} />
           <NavLink
             href="/matters"
             label="Matters"
-            active={route.name === "list" || route.name === "detail" || route.name === "new"}
+            active={
+              !onMatterArea &&
+              (route.name === "list" ||
+                route.name === "new" ||
+                route.name === "appHome")
+            }
           />
-          {/* nested matter sub-sections (ratified decision #2) */}
+          <NavLink
+            href="/skills"
+            label="Skills"
+            active={
+              !onMatterArea &&
+              (route.name === "modules" ||
+                route.name === "moduleDetail" ||
+                route.name === "moduleInstall" ||
+                route.name === "createModule")
+            }
+          />
+
+          {/* Matter shell — promoted to its own section so the user
+              feels they've opened a folder, not drilled into a list
+              item. Sub-nav matches blueprint §8 (Chat / Documents /
+              Skills / Record) plus the matter-scoped Signed outputs
+              and Working pack surfaces. */}
           {onMatterArea && matterSlug && (
-            <div className="py-1">
-              <div className="px-3 pb-1 pl-7 text-[11px] uppercase tracking-widest text-muted truncate">
-                {matter?.title || matterSlug}
-              </div>
+            <>
+              <SectionLabel>{matter?.title || matterSlug}</SectionLabel>
               {SIDEBAR_NAV.map((t) => (
                 <NavLink
                   key={t.key}
@@ -214,34 +232,20 @@ export function Sidebar({
                           (route.name === "detail" && matterTab === "documents")
                         : route.name === "detail" && matterTab === t.key
                   }
-                  indent
                 />
               ))}
               <NavLink
                 href={`/matters/${matterSlug}/artifacts`}
                 label="Signed outputs"
                 active={onMatterArtifacts}
-                indent
               />
               <NavLink
                 href={`/matters/${matterSlug}/lifecycle`}
                 label="Working pack"
                 active={onMatterLifecycle}
-                indent
               />
-            </div>
+            </>
           )}
-          <NavLink
-            href="/skills"
-            label="Skills"
-            active={
-              route.name === "modules" ||
-              route.name === "moduleDetail" ||
-              route.name === "moduleInstall" ||
-              route.name === "createModule"
-            }
-          />
-          <NavLink href="/admin/audit" label="Audit" active={onAudit} />
 
           <SectionLabel>Account</SectionLabel>
           <NavLink
@@ -250,7 +254,10 @@ export function Sidebar({
             active={route.name === "settings"}
           />
           {auth.user?.is_superuser && (
-            <NavLink href="/admin/users" label="Admin" active={isAdmin} testid="admin-nav-anchor" />
+            <>
+              <NavLink href="/admin/users" label="Admin" active={isAdmin} testid="admin-nav-anchor" />
+              <NavLink href="/admin/audit" label="Audit" active={onAudit} indent />
+            </>
           )}
         </nav>
 
