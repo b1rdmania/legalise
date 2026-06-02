@@ -59,6 +59,7 @@ ARTIFACT_KIND = "skill_response"
 # How a caller asks the skill to read matter documents. Reading only
 # happens when these args are present AND the capability declares reads.
 _DOC_ARG_KEYS = ("document_ids", "document_id")
+_RESERVED_PROMPT_ARG_KEYS = {"input", "question", *_DOC_ARG_KEYS}
 _POSTURE_GATE = "privilege_posture"
 _JSON_FENCE_RE = re.compile(
     r"```(?:json)?\s*(\{.*?\})\s*```",
@@ -150,6 +151,17 @@ def _build_prompt(
     user_input = args.get("input") or args.get("question")
     if user_input:
         parts.append(f"\n--- request ---\n{user_input}")
+
+    extra_args = {
+        key: value
+        for key, value in args.items()
+        if key not in _RESERVED_PROMPT_ARG_KEYS and value not in (None, "")
+    }
+    if extra_args:
+        parts.append(
+            "\n--- request options ---\n"
+            f"{json.dumps(extra_args, ensure_ascii=False, sort_keys=True)}"
+        )
 
     if document_blocks:
         # Opt-in citation format. Lenient — the runtime always records

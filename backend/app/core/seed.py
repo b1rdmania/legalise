@@ -575,6 +575,8 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
     existing = await session.scalar(
         select(Matter).where(Matter.slug == KHAN_SLUG, Matter.created_by_id == user.id)
     )
+    from app.core.demo_loop import ensure_demo_skill_on_matter
+
     if existing is not None:
         # Backfill body rows on previously-seeded matters (idempotent).
         existing_docs_list = list(
@@ -641,6 +643,7 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
             )
             await _write_seed_audit_rows(session, existing, current_docs, current_events)
 
+        await ensure_demo_skill_on_matter(session, user=user, matter=existing)
         await session.commit()
         materialise_matter(existing)
         return existing
@@ -678,6 +681,7 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
     await _write_seed_audit_rows(
         session, matter, list(docs.values()), seeded_events
     )
+    await ensure_demo_skill_on_matter(session, user=user, matter=matter)
 
     materialise_matter(matter)
     append_history(matter.slug, user.id, "matter.seeded", "Khan v Acme demo matter inserted")

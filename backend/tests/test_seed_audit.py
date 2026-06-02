@@ -33,7 +33,14 @@ from app.core.seed import (
     _write_seed_audit_rows,
     seed_demo_matter_for_user,
 )
-from app.models import AuditEntry, Document, Event, Matter
+from app.models import (
+    AuditEntry,
+    Document,
+    Event,
+    InstalledModule,
+    Matter,
+    WorkspaceSkillCapabilityGrant,
+)
 
 
 def _fake_matter(user_id: uuid.UUID) -> Matter:
@@ -98,11 +105,15 @@ class _StubSession:
         documents: list[Document] | None = None,
         events: list[Event] | None = None,
         audit_entries: list[AuditEntry] | None = None,
+        installed_modules: list[InstalledModule] | None = None,
+        grants: list[WorkspaceSkillCapabilityGrant] | None = None,
     ) -> None:
         self.matters: list[Matter] = list(matters or [])
         self.documents: list[Document] = list(documents or [])
         self.events: list[Event] = list(events or [])
         self.audit_entries: list[AuditEntry] = list(audit_entries or [])
+        self.installed_modules: list[InstalledModule] = list(installed_modules or [])
+        self.grants: list[WorkspaceSkillCapabilityGrant] = list(grants or [])
         self.added: list = []
         self.commits = 0
 
@@ -115,6 +126,10 @@ class _StubSession:
             return self.events
         if isinstance(obj, Matter):
             return self.matters
+        if isinstance(obj, InstalledModule):
+            return self.installed_modules
+        if isinstance(obj, WorkspaceSkillCapabilityGrant):
+            return self.grants
         return None
 
     def add(self, obj) -> None:
@@ -154,6 +169,36 @@ class _StubSession:
                 ),
                 None,
             )
+        if target == "installed_modules":
+            module_id = self._param(stmt, "module_id")
+            return next(
+                (
+                    m
+                    for m in self.installed_modules
+                    if module_id is None or m.module_id == module_id
+                ),
+                None,
+            )
+        if target == "workspace_skill_capability_grants":
+            user_id = self._param(stmt, "user_id")
+            plugin = self._param(stmt, "plugin")
+            skill = self._param(stmt, "skill")
+            capability = self._param(stmt, "capability")
+            scope_type = self._param(stmt, "scope_type")
+            scope_id = self._param(stmt, "scope_id")
+            return next(
+                (
+                    g
+                    for g in self.grants
+                    if (user_id is None or g.user_id == user_id)
+                    and (plugin is None or g.plugin == plugin)
+                    and (skill is None or g.skill == skill)
+                    and (capability is None or g.capability == capability)
+                    and (scope_type is None or g.scope_type == scope_type)
+                    and (scope_id is None or g.scope_id == scope_id)
+                ),
+                None,
+            )
         return None
 
     async def scalars(self, stmt):
@@ -176,6 +221,17 @@ class _StubSession:
             return froms[0].name
         except Exception:
             return ""
+
+    @staticmethod
+    def _param(stmt, name: str):
+        try:
+            params = stmt.compile().params
+        except Exception:
+            return None
+        for key, value in params.items():
+            if key == name or key.startswith(f"{name}_"):
+                return value
+        return None
 
 
 @pytest.fixture(autouse=True)
@@ -230,19 +286,27 @@ class TestWriteSeedAuditRows:
 class TestSeedDemoMatterForUserIdempotency:
     @pytest.mark.asyncio
     async def test_second_call_does_not_duplicate_audit_rows(self) -> None:
-        """First call writes the bootstrap rows. Second call sees the
-        matter already exists and the seed.matter.created marker is
-        present, so it short-circuits and writes nothing."""
+        """First call writes bootstrap rows and demo grants. Second call
+        sees both already exist and writes no duplicate audit rows."""
         user = SimpleNamespace(id=uuid.uuid4())
         session = _StubSession()
 
         await seed_demo_matter_for_user(session, user)
         first_count = len(session.audit_entries)
-        # 1 matter + 3 docs + 7 events = 11 bootstrap rows.
-        assert first_count == 11
+        bootstrap_rows = [
+            a for a in session.audit_entries if a.module == SEED_AUDIT_MODULE
+        ]
+        grant_rows = [
+            a for a in session.audit_entries if a.action == "module.grant.created"
+        ]
+        # 1 matter + 3 docs + 7 events = 11 bootstrap rows. The demo
+        # V2 skill grants are legitimate non-bootstrap rows.
+        assert len(bootstrap_rows) == 11
+        assert len(grant_rows) == 2
 
         await seed_demo_matter_for_user(session, user)
         assert len(session.audit_entries) == first_count
+        assert len(session.grants) == 2
 
     @pytest.mark.asyncio
     async def test_upgrade_path_backfills_when_matter_exists_without_audit_rows(

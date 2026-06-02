@@ -2,20 +2,31 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "@tanstack/react-router";
 import {
   getMatterWorkflows,
+  getModulesV2,
+  listGrants,
   listAssistantMessages,
+  listInstalledModules,
   postAssistantMessage,
   ProviderKeyMissingError,
   ProviderUpstreamError,
   providerUpstreamMessage,
   type AssistantMessage,
   type ChronologyEvent,
+  type GrantRow,
+  type InstalledModule,
   type Matter,
   type MatterDocument,
   type SuggestedAction,
+  type V2ManifestEntry,
   type WorkflowState,
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
 import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
+import { GenericSkillRunner } from "../GenericSkillRunner";
+import {
+  runnableMatterSkills,
+  type RunnableMatterSkill,
+} from "../skillRunnerModel";
 import type { TabKey } from "./types";
 
 interface AssistantTabProps {
@@ -95,6 +106,13 @@ export function AssistantTab({
   // this matter appear — the chat surface never invents skill state.
   const [enabledSkills, setEnabledSkills] = useState<WorkflowState[]>([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [moduleEntries, setModuleEntries] = useState<V2ManifestEntry[]>([]);
+  const [installedModules, setInstalledModules] = useState<Map<string, InstalledModule>>(
+    new Map(),
+  );
+  const [grantRows, setGrantRows] = useState<GrantRow[] | null>(null);
+  const [activeRunnerSkill, setActiveRunnerSkill] =
+    useState<RunnableMatterSkill | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Initial fetch (skip in demo: initialMessages provided).
@@ -148,6 +166,40 @@ export function AssistantTab({
       cancelled = true;
     };
   }, [matter.slug, disabled]);
+
+  useEffect(() => {
+    if (disabled) return;
+    let cancelled = false;
+    void Promise.all([
+      getModulesV2(),
+      listInstalledModules(),
+      listGrants(matter.slug),
+    ])
+      .then(([moduleResponse, installedRows, grantsResponse]) => {
+        if (cancelled) return;
+        const installedIndex = new Map<string, InstalledModule>();
+        for (const row of installedRows) installedIndex.set(row.module_id, row);
+        setModuleEntries(moduleResponse.modules);
+        setInstalledModules(installedIndex);
+        setGrantRows(grantsResponse.grants);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [matter.slug, disabled]);
+
+  const runnableModuleSkills = useMemo(
+    () =>
+      runnableMatterSkills({
+        modules: moduleEntries,
+        installed: installedModules,
+        grants: grantRows,
+      }),
+    [moduleEntries, installedModules, grantRows],
+  );
+
+  const runnableSkillCount = enabledSkills.length + runnableModuleSkills.length;
 
   const docsById = useMemo(() => {
     const map = new Map<string, MatterDocument>();
@@ -250,7 +302,7 @@ export function AssistantTab({
       search: { from: "assistant" },
     });
   };
-  // The substrate doesn't yet carry per-event anchoring, so the
+  // The timeline doesn't yet carry per-event anchoring, so the
   // chronology chip still drops the user on the Chronology tab.
   // Accepting the eventId keeps the callback shape future-proof
   // for when per-event deep links land.
@@ -275,11 +327,22 @@ export function AssistantTab({
 
   const onPickSkill = (w: WorkflowState) => {
     setSkillsOpen(false);
+    setActiveRunnerSkill(null);
     if (disabled) {
       onDisabledAction?.();
       return;
     }
     setTabAndHash(w.key as TabKey);
+  };
+
+  const onPickRunnerSkill = (skill: RunnableMatterSkill) => {
+    setSkillsOpen(false);
+    if (disabled) {
+      onDisabledAction?.();
+      return;
+    }
+    setActiveRunnerSkill(skill);
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   return (
@@ -392,6 +455,17 @@ export function AssistantTab({
             onAction={dispatchAction}
           />
         ))}
+        {activeRunnerSkill && (
+          <GenericSkillRunner
+            slug={matter.slug}
+            skill={activeRunnerSkill}
+            documents={docs}
+            initialDocumentIds={Array.from(selectedDocIds)}
+            initialInput={input.trim() || undefined}
+            onClose={() => setActiveRunnerSkill(null)}
+            compact
+          />
+        )}
         {thinking && (
           <div className="flex justify-start">
             <InlineAgentStatus
@@ -485,7 +559,7 @@ export function AssistantTab({
                 data-testid="chat-skills-toggle"
                 className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
               >
-                Skills{enabledSkills.length > 0 ? ` (${enabledSkills.length})` : ""}
+                Skills{runnableSkillCount > 0 ? ` (${runnableSkillCount})` : ""}
               </button>
               {skillsOpen && (
                 <div
@@ -495,7 +569,7 @@ export function AssistantTab({
                   data-testid="chat-skills-popover"
                 >
                   <div className="eyebrow mb-2">Run a skill</div>
-                  {enabledSkills.length === 0 ? (
+                  {runnableSkillCount === 0 ? (
                     <p className="text-xs text-muted">
                       Nothing runnable here right now.{" "}
                       <button
@@ -506,30 +580,66 @@ export function AssistantTab({
                         }}
                         className="underline underline-offset-4 hover:text-ink"
                       >
-                        Open Skills →
+                      Open Skills →
                       </button>
                     </p>
                   ) : (
-                    <ul className="space-y-2">
-                      {enabledSkills.map((w) => (
-                        <li key={w.key}>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => onPickSkill(w)}
-                            className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
-                            data-testid={`chat-skill-${w.key}`}
-                          >
-                            <span className="block text-ink font-medium">
-                              {w.title}
-                            </span>
-                            <span aria-hidden="true" className="text-muted">
-                              →
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="space-y-3">
+                      {runnableModuleSkills.length > 0 && (
+                        <ul className="space-y-2">
+                          {runnableModuleSkills.map((skill) => (
+                            <li key={`${skill.moduleId}:${skill.capabilityId}`}>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => onPickRunnerSkill(skill)}
+                                className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
+                                data-testid={`chat-runner-skill-${skill.moduleId}-${skill.capabilityId}`}
+                              >
+                                <span className="block">
+                                  <span className="block text-ink font-medium">
+                                    {skill.title}
+                                  </span>
+                                  <span className="mt-0.5 block text-[11px] text-muted">
+                                    Ready in this project
+                                  </span>
+                                </span>
+                                <span aria-hidden="true" className="text-muted">
+                                  →
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {enabledSkills.length > 0 && (
+                        <div>
+                          {runnableModuleSkills.length > 0 && (
+                            <div className="mb-1 eyebrow text-muted">Built-in</div>
+                          )}
+                          <ul className="space-y-2">
+                            {enabledSkills.map((w) => (
+                              <li key={w.key}>
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => onPickSkill(w)}
+                                  className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
+                                  data-testid={`chat-skill-${w.key}`}
+                                >
+                                  <span className="block text-ink font-medium">
+                                    {w.title}
+                                  </span>
+                                  <span aria-hidden="true" className="text-muted">
+                                    →
+                                  </span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   )}
                   {needsAttention.length > 0 && (
                     <>

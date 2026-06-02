@@ -154,6 +154,31 @@ def test_unknown_ui_slot_rejected() -> None:
     assert any("ui/slot" in e["path"] for e in errors)
 
 
+def test_ui_default_request_accepted() -> None:
+    m = _base_manifest()
+    m["capabilities"][0]["ui"]["default_request"] = "Summarise {filename}."
+    is_valid, errors = validate_manifest_v2(m)
+    assert is_valid, errors
+
+
+def test_capability_args_schema_accepted() -> None:
+    m = _base_manifest()
+    m["capabilities"][0]["args_schema"] = {
+        "type": "object",
+        "properties": {
+            "style": {
+                "type": "string",
+                "title": "Style",
+                "enum": ["Plain English", "Issue list"],
+                "default": "Plain English",
+            }
+        },
+        "required": ["style"],
+    }
+    is_valid, errors = validate_manifest_v2(m)
+    assert is_valid, errors
+
+
 def test_gate_with_gates_rejected() -> None:
     """A capability kind=gate cannot itself declare gates."""
     m = _base_manifest()

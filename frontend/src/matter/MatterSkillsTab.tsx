@@ -3,40 +3,35 @@
 // matter-scoped capabilities are grantable — workspace and provider
 // capabilities are inherited from workspace trust and not surfaced as
 // per-matter actions. GrantsPanel below provides the operator-level
-// permissions table for direct grant editing.
+// permissions table for direct permission editing.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   createGrant,
   getMatterWorkflows,
   getModulesV2,
+  listDocuments,
   listGrants,
   listInstalledModules,
   revokeGrant,
   type GrantRow,
   type InstalledModule,
+  type MatterDocument,
   type MatterWorkflowsResponse,
   type V2ManifestEntry,
-  type WorkflowAvailability,
-  type WorkflowGrant,
 } from "../lib/api";
+import { GenericSkillRunner } from "./GenericSkillRunner";
+import {
+  manifestCapabilities,
+  manifestText,
+  runnableMatterSkills,
+  shortCapabilityList,
+} from "./skillRunnerModel";
 
 interface Props {
   slug: string;
 }
-
-const GRANT_TONE: Record<WorkflowGrant, string> = {
-  granted: "text-[#00A35C]",
-  partial: "text-[#E67E22]",
-  blocked: "text-[#D9304F]",
-};
-
-const AVAILABILITY_BLURB: Record<WorkflowAvailability, string> = {
-  ok: "Ready to run",
-  "blocked-by-posture": "Blocked by privilege state",
-  "blocked-by-grant": "Needs permission in this matter",
-};
 
 function formatLastRun(iso: string | null): string {
   if (!iso) return "Not run yet on this matter";
@@ -49,54 +44,52 @@ function formatLastRun(iso: string | null): string {
   })}`;
 }
 
-function manifestStr(entry: V2ManifestEntry, key: string): string | undefined {
-  const v = (entry.manifest as Record<string, unknown>)[key];
-  return typeof v === "string" ? v : undefined;
-}
-
 function capabilityStrings(
   entry: V2ManifestEntry,
   key: "reads" | "writes",
   opts: { matterOnly?: boolean } = {},
 ): string[] {
-  const caps = (entry.manifest as Record<string, unknown>).capabilities;
-  if (!Array.isArray(caps)) return [];
   const out = new Set<string>();
-  for (const raw of caps) {
-    if (!raw || typeof raw !== "object") continue;
-    const obj = raw as Record<string, unknown>;
-    if (opts.matterOnly && obj.scope !== "matter") continue;
-    const values = obj[key];
-    if (!Array.isArray(values)) continue;
-    for (const value of values) if (typeof value === "string") out.add(value);
+  for (const cap of manifestCapabilities(entry)) {
+    if (opts.matterOnly && cap.scope !== "matter") continue;
+    for (const value of cap[key]) out.add(value);
   }
   return [...out].sort();
 }
 
-// The substrate only grants capabilities with scope === "matter" at
+// The runtime only grants capabilities with scope === "matter" at
 // matter level; create_grants_for_capability rejects scope ≠ "matter"
 // with 422 (see GrantsPanel for the canonical filter at line 441).
 // Returning only those keeps the enable action honest: provider /
 // workspace / other-scope capabilities are inherited from workspace
 // trust and are not per-matter actions.
 function matterCapabilityIds(entry: V2ManifestEntry): string[] {
-  const caps = (entry.manifest as Record<string, unknown>).capabilities;
-  if (!Array.isArray(caps)) return [];
-  const out: string[] = [];
-  for (const raw of caps) {
-    if (!raw || typeof raw !== "object") continue;
-    const obj = raw as Record<string, unknown>;
-    if (obj.scope !== "matter") continue;
-    const id = obj.id;
-    if (typeof id === "string") out.push(id);
-  }
-  return out;
+  return manifestCapabilities(entry)
+    .filter((cap) => cap.scope === "matter")
+    .map((cap) => cap.id);
 }
 
-function shortList(values: string[]): string {
-  if (values.length === 0) return "None declared";
-  if (values.length <= 2) return values.join(", ");
-  return `${values.slice(0, 2).join(", ")} +${values.length - 2} more`;
+function friendlyCapabilitySummary(values: string[]): string {
+  if (values.length === 0) return "Project context";
+  const labels = new Set<string>();
+  for (const value of values) {
+    if (value.includes("document")) labels.add("Documents");
+    else if (value.includes("chronology")) labels.add("Chronology");
+    else if (value.includes("artifact") || value.includes("output")) labels.add("Outputs");
+    else if (value.includes("model")) labels.add("Model");
+    else if (value.includes("matter")) labels.add("Matter record");
+    else labels.add(value.replaceAll(".", " "));
+  }
+  const list = [...labels];
+  if (list.length <= 2) return list.join(", ");
+  return `${list.slice(0, 2).join(", ")} +${list.length - 2} more`;
+}
+
+function workflowStatus(workflow: MatterWorkflowsResponse["workflows"][number]) {
+  if (workflow.grant === "granted" && workflow.availability === "ok") {
+    return "Ready in this project";
+  }
+  return "Needs setup";
 }
 
 export function MatterSkillsTab({ slug }: Props) {
@@ -108,6 +101,7 @@ export function MatterSkillsTab({ slug }: Props) {
     new Map(),
   );
   const [grants, setGrants] = useState<GrantRow[] | null>(null);
+  const [documents, setDocuments] = useState<MatterDocument[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enableTarget, setEnableTarget] = useState<V2ManifestEntry | null>(null);
 
@@ -121,6 +115,9 @@ export function MatterSkillsTab({ slug }: Props) {
     void listGrants(slug)
       .then((r) => setGrants(r.grants))
       .catch(() => undefined);
+    void listDocuments(slug)
+      .then(setDocuments)
+      .catch(() => setDocuments([]));
     void getModulesV2()
       .then((r) => setModules(r.modules))
       .catch(() => undefined);
@@ -140,7 +137,7 @@ export function MatterSkillsTab({ slug }: Props) {
   }, [slug]);
 
   // A module is "enabled in this matter" if any grant row references
-  // it on this matter. (Substrate grants are per (module_id, capability)
+  // it on this matter. Grants are per (module_id, capability)
   // tuple, so any presence implies the skill has been enabled at least
   // partially.)
   const grantedModuleIds = useMemo(() => {
@@ -156,6 +153,21 @@ export function MatterSkillsTab({ slug }: Props) {
         return inst?.enabled === true && grantedModuleIds.has(m.module_id);
       }),
     [modules, installed, grantedModuleIds],
+  );
+
+  const runnableSkills = useMemo(
+    () => runnableMatterSkills({ modules, installed, grants }),
+    [modules, installed, grants],
+  );
+
+  const runnableModuleIds = useMemo(
+    () => new Set(runnableSkills.map((skill) => skill.moduleId)),
+    [runnableSkills],
+  );
+
+  const setupOnlyModules = useMemo(
+    () => enabledModules.filter((module) => !runnableModuleIds.has(module.module_id)),
+    [enabledModules, runnableModuleIds],
   );
 
   const availableModules = useMemo(
@@ -203,7 +215,15 @@ export function MatterSkillsTab({ slug }: Props) {
           {workflows.workflows.map((w) => (
             <WorkflowRow key={w.key} slug={slug} workflow={w} />
           ))}
-          {enabledModules.map((m) => (
+          {runnableSkills.map((skill) => (
+            <GenericSkillRunner
+              key={`${skill.moduleId}:${skill.capabilityId}`}
+              slug={slug}
+              skill={skill}
+              documents={documents}
+            />
+          ))}
+          {setupOnlyModules.map((m) => (
             <EnabledModuleRow
               key={m.module_id}
               slug={slug}
@@ -308,15 +328,10 @@ function WorkflowRow({
         </Link>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
-        <Meta label="Reads" value={shortList(workflow.declared_capabilities)} />
-        <Meta
-          label="Permission"
-          value={workflow.grant}
-          tone={GRANT_TONE[workflow.grant]}
-        />
+        <Meta label="Reads" value={friendlyCapabilitySummary(workflow.declared_capabilities)} />
         <Meta
           label="Status"
-          value={AVAILABILITY_BLURB[workflow.availability]}
+          value={workflowStatus(workflow)}
         />
         <Meta label="Last run" value={formatLastRun(workflow.last_run_at)} />
       </dl>
@@ -342,14 +357,14 @@ function EnabledModuleRow({
   const [err, setErr] = useState<string | null>(null);
   const reads = capabilityStrings(entry, "reads");
   const writes = capabilityStrings(entry, "writes");
-  const name = manifestStr(entry, "name") ?? entry.module_id;
+  const name = manifestText(entry, "name") ?? entry.module_id;
 
   const onRevoke = async () => {
     if (grants.length === 0) return;
     setRevoking(true);
     setErr(null);
     try {
-      // Revoke the parent grant first; the substrate cascades the
+      // Revoke the parent grant first; the runtime cascades the
       // expanded per-string rows.
       await Promise.all(grants.map((g) => revokeGrant(slug, g.id)));
       onRevoked();
@@ -373,13 +388,9 @@ function EnabledModuleRow({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            to="/matters/$slug/$tab"
-            params={{ slug, tab: "workflows" }}
-            className="rounded-md border border-line px-3 py-1 text-xs hover:border-ink"
-          >
-            Run
-          </Link>
+          <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
+            Needs setup
+          </span>
           <button
             type="button"
             onClick={onRevoke}
@@ -391,9 +402,9 @@ function EnabledModuleRow({
         </div>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
-        <Meta label="Reads" value={shortList(reads)} />
-        <Meta label="Writes" value={shortList(writes)} />
-        <Meta label="Last run" value="Not tracked at module level" />
+        <Meta label="Reads" value={friendlyCapabilitySummary(reads)} />
+        <Meta label="Writes" value={friendlyCapabilitySummary(writes)} />
+        <Meta label="Status" value="Needs setup" />
       </dl>
       {err && <p className="mt-2 text-xs text-seal">{err}</p>}
     </article>
@@ -409,15 +420,15 @@ function AvailableModuleRow({
 }) {
   const reads = capabilityStrings(entry, "reads");
   const writes = capabilityStrings(entry, "writes");
-  const name = manifestStr(entry, "name") ?? entry.module_id;
-  const publisher = manifestStr(entry, "publisher");
+  const name = manifestText(entry, "name") ?? entry.module_id;
+  const publisher = manifestText(entry, "publisher");
   const matterCaps = matterCapabilityIds(entry);
   const hasMatterCaps = matterCaps.length > 0;
   const enableDisabled = !entry.is_valid || !hasMatterCaps;
-  const disabledReason = !entry.is_valid
-    ? "Manifest invalid — fix at the workspace before enabling."
+      const disabledReason = !entry.is_valid
+    ? "This skill needs setup in the workspace before enabling."
     : !hasMatterCaps
-      ? "This skill has no matter-scoped capabilities to enable. It runs at workspace level."
+      ? "This skill cannot be enabled inside a project yet."
       : null;
 
   return (
@@ -445,9 +456,9 @@ function AvailableModuleRow({
         </button>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
-        <Meta label="Reads" value={shortList(reads)} />
-        <Meta label="Writes" value={shortList(writes)} />
-        <Meta label="Matter capabilities" value={String(matterCaps.length)} />
+        <Meta label="Reads" value={friendlyCapabilitySummary(reads)} />
+        <Meta label="Writes" value={friendlyCapabilitySummary(writes)} />
+        <Meta label="Project actions" value={String(matterCaps.length)} />
       </dl>
       {disabledReason && (
         <p
@@ -482,7 +493,7 @@ function Meta({
 
 // Enable modal — grants every matter-scoped capability. Non-matter
 // capabilities (workspace / provider / etc.) are NOT posted: the
-// substrate rejects them with 422 at matter scope. If a skill has
+// runtime rejects them with 422 at matter scope. If a skill has
 // no matter-scoped capabilities the modal isn't reachable
 // (AvailableModuleRow disables the Enable button with an honest
 // reason). Any grant failure aborts the rest, keeps the modal open,
@@ -503,7 +514,7 @@ function EnableSkillModal({
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const name = manifestStr(entry, "name") ?? entry.module_id;
+  const name = manifestText(entry, "name") ?? entry.module_id;
   // Modal copy is matter-scoped: what enabling here actually does, not
   // what the skill could do at other scopes.
   const reads = capabilityStrings(entry, "reads", { matterOnly: true });
@@ -515,7 +526,7 @@ function EnableSkillModal({
     setBusy(true);
     setErr(null);
     try {
-      // The substrate's createGrant is idempotent (was_idempotent_noop
+      // createGrant is idempotent (was_idempotent_noop
       // on a no-op rerun), so re-enable on an already-granted skill is
       // safe. Any real failure halts the run so the modal can show
       // honest state instead of silently closing as "enabled."
@@ -565,7 +576,7 @@ function EnableSkillModal({
             <span>
               <span className="text-ink">All documents in this matter</span>
               <span className="mt-0.5 block text-xs text-muted">
-                Per-document narrowing arrives once the substrate supports it.
+                Per-document narrowing can be added later without changing this permission.
               </span>
             </span>
           </label>
@@ -573,19 +584,19 @@ function EnableSkillModal({
 
         {/* Step 4 — output scope */}
         <Block label="What this skill writes">
-          <p className="text-sm text-ink">{shortList(writes)}</p>
+          <p className="text-sm text-ink">{shortCapabilityList(writes)}</p>
           <p className="mt-1 text-xs text-muted">
             Outputs land in the matter Record. Per-output narrowing arrives
-            once the substrate supports it.
+            once output-specific permissions are available.
           </p>
         </Block>
 
         {/* Step 5 — inherited workspace trust */}
         <Block label="Inherited from workspace trust">
           <dl className="grid grid-cols-2 gap-2 text-xs">
-            <Pair label="Reads" value={shortList(reads)} />
+            <Pair label="Reads" value={shortCapabilityList(reads)} />
             <Pair label="Signature" value={installed?.signature_status ?? "—"} />
-            <Pair label="Publisher" value={manifestStr(entry, "publisher") ?? "—"} />
+            <Pair label="Publisher" value={manifestText(entry, "publisher") ?? "—"} />
             <Pair
               label="Trusted on"
               value={
@@ -636,7 +647,7 @@ function Block({
   children,
 }: {
   label: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="mt-4 border-t border-rule pt-3">

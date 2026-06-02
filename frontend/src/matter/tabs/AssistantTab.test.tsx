@@ -1,6 +1,6 @@
-// Pins the source-of-truth contract: the in-chat picker reads
-// getMatterWorkflows and shows only workflows already granted on this
-// matter. No third skill-state model.
+// Pins the source-of-truth contract: the in-chat picker reads the
+// same matter skills sources as the Skills page and shows only skills
+// runnable right now. No third skill-state model.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -62,6 +62,15 @@ function mountChat(overrides?: { setTabAndHash?: (k: string) => void }) {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(api, "listAssistantMessages").mockResolvedValue([]);
+  vi.spyOn(api, "getModulesV2").mockResolvedValue({
+    modules: [],
+    ui_slots: [],
+  } as never);
+  vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+  vi.spyOn(api, "listGrants").mockResolvedValue({
+    matter_id: "m-1",
+    grants: [],
+  });
   vi.spyOn(api, "postAssistantMessage").mockResolvedValue({
     user: {
       id: "u-1",
@@ -214,6 +223,86 @@ describe("AssistantTab — in-chat skill picker", () => {
 
     fireEvent.click(screen.getByTestId("open-documents-link"));
     expect(setTabAndHash).toHaveBeenCalledWith("documents");
+  });
+
+  it("mounts the generic runner for a runnable V2 skill instead of routing to a bespoke tab", async () => {
+    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
+      workflows: [],
+    } as never);
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [
+        {
+          module_id: "demo.guided-skill",
+          source_kind: "v2",
+          manifest: {
+            name: "Guided demo skill",
+            description: "Summarises the selected document.",
+            capabilities: [
+              {
+                id: "summarise",
+                scope: "matter",
+                kind: "skill",
+                reads: ["document.body.read"],
+                writes: ["matter.artifact.write"],
+                ui: { label: "Summarise document" },
+              },
+            ],
+          },
+          is_valid: true,
+          validation_errors: [],
+        },
+      ],
+      ui_slots: [],
+    } as never);
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+      {
+        module_id: "demo.guided-skill",
+        version: "0.1.0",
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      },
+    ]);
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        {
+          id: "g-read",
+          plugin: "demo.guided-skill",
+          skill: "summarise",
+          capability: "document.body.read",
+          scope_type: "matter",
+          scope_id: "m-1",
+          granted_at: "2026-01-01T00:00:00",
+        },
+        {
+          id: "g-write",
+          plugin: "demo.guided-skill",
+          skill: "summarise",
+          capability: "matter.artifact.write",
+          scope_type: "matter",
+          scope_id: "m-1",
+          granted_at: "2026-01-01T00:00:00",
+        },
+      ],
+    });
+    const setTabAndHash = vi.fn();
+    mountChat({ setTabAndHash });
+
+    const toggle = await screen.findByTestId("chat-skills-toggle");
+    await waitFor(() => expect(toggle).toHaveTextContent("Skills (1)"));
+    fireEvent.click(toggle);
+    fireEvent.click(
+      await screen.findByTestId("chat-runner-skill-demo.guided-skill-summarise"),
+    );
+
+    expect(setTabAndHash).not.toHaveBeenCalled();
+    expect(
+      await screen.findByTestId("generic-runner-demo.guided-skill-summarise"),
+    ).toBeInTheDocument();
   });
 });
 
