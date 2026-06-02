@@ -418,9 +418,15 @@ const matterSignoffRoute = createRoute({
   },
 });
 
+// ?from=<tab> tells DocumentDetail which matter surface to send the
+// user back to. Optional; falls back to Documents when absent.
+type MatterDocumentDetailSearch = { from?: string };
 const matterDocumentDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/matters/$slug/documents/$documentId",
+  validateSearch: (s: Record<string, unknown>): MatterDocumentDetailSearch => ({
+    from: typeof s.from === "string" ? s.from : undefined,
+  }),
   component: () => {
     const { slug, documentId } = matterDocumentDetailRoute.useParams();
     return <DocumentDetail slug={slug} documentId={documentId} />;

@@ -19,8 +19,11 @@ interface Props {
   message: AssistantMessage;
   docs: MatterDocument[] | null;
   chronology: ChronologyEvent[];
-  onDocChip: () => void;
-  onChronChip: () => void;
+  // Source-anchor callbacks. The doc callback receives the
+  // document_id from the citation so the chat surface can route
+  // straight to that document, not just to the Documents tab.
+  onDocChip: (documentId: string) => void;
+  onChronChip: (eventId: string) => void;
   onAction?: (a: SuggestedAction) => void;
   compact?: boolean;
 }
@@ -100,7 +103,9 @@ function AssistantMessageView({
               <button
                 key={`${c.kind}-${c.id}-${i}`}
                 type="button"
-                onClick={c.kind === "doc" ? onDocChip : onChronChip}
+                onClick={() =>
+                  c.kind === "doc" ? onDocChip(c.id) : onChronChip(c.id)
+                }
                 title={c.full}
                 className={`inline-flex items-center border border-rule bg-paper text-ink px-2 py-0.5 font-mono ${
                   compact ? "text-[10px]" : "text-[11px]"

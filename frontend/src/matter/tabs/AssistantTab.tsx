@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   getMatterWorkflows,
   listAssistantMessages,
@@ -237,8 +238,23 @@ export function AssistantTab({
     if (target) setTabAndHash(target);
   };
 
-  const dispatchDocChip = () => setTabAndHash("documents");
-  const dispatchChronChip = () => setTabAndHash("chronology");
+  // Source-anchor click-through: a document chip in chat takes you
+  // straight to the document reader for that file, not just to the
+  // Documents tab. ?from=assistant tells the reader to surface the
+  // honest note that exact-passage anchoring isn't supported yet.
+  const navigate = useNavigate();
+  const dispatchDocChip = (documentId: string) => {
+    void navigate({
+      to: "/matters/$slug/documents/$documentId",
+      params: { slug: matter.slug, documentId },
+      search: { from: "assistant" },
+    });
+  };
+  // The substrate doesn't yet carry per-event anchoring, so the
+  // chronology chip still drops the user on the Chronology tab.
+  // Accepting the eventId keeps the callback shape future-proof
+  // for when per-event deep links land.
+  const dispatchChronChip = (_eventId: string) => setTabAndHash("chronology");
 
   const suggestions = useMemo(
     () => SUGGESTED_BY_TYPE[matter.matter_type] ?? SUGGESTED_DEFAULT,
