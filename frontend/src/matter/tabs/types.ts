@@ -8,7 +8,7 @@
 // the Skills page; they keep their routes for deep-linking but
 // do not surface as their own sidebar items.
 //
-// Bare /matters/{slug} lands on Documents.
+// Bare /matters/{slug} lands on Chat (the assistant key).
 //
 // User-facing tab labels (Chat / Documents / Skills / Record)
 // intentionally do not match the underlying URL keys
