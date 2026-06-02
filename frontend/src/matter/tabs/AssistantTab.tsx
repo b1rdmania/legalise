@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
+  getMatterWorkflows,
   listAssistantMessages,
   postAssistantMessage,
   ProviderKeyMissingError,
@@ -10,6 +11,7 @@ import {
   type Matter,
   type MatterDocument,
   type SuggestedAction,
+  type WorkflowState,
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
 import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
@@ -87,6 +89,11 @@ export function AssistantTab({
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  // In-chat skill picker reads PR 4's source-of-truth: getMatterWorkflows.
+  // Only workflows already granted on this matter appear — the chat
+  // surface never invents skill state.
+  const [enabledSkills, setEnabledSkills] = useState<WorkflowState[]>([]);
+  const [skillsOpen, setSkillsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Initial fetch (skip in demo: initialMessages provided).
@@ -116,6 +123,25 @@ export function AssistantTab({
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, thinking]);
+
+  // Fetch enabled-in-matter skills for the in-chat picker. Same call
+  // MatterSkillsTab uses, same filter: grant === "granted" + availability
+  // ok. Skipped in demo (disabled) mode to avoid 401s on the unauth path.
+  useEffect(() => {
+    if (disabled) return;
+    let cancelled = false;
+    void getMatterWorkflows(matter.slug)
+      .then((r) => {
+        if (cancelled) return;
+        setEnabledSkills(
+          r.workflows.filter((w) => w.grant === "granted"),
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [matter.slug, disabled]);
 
   const docsById = useMemo(() => {
     const map = new Map<string, MatterDocument>();
@@ -226,6 +252,15 @@ export function AssistantTab({
 
   const [attachOpen, setAttachOpen] = useState(false);
 
+  const onPickSkill = (w: WorkflowState) => {
+    setSkillsOpen(false);
+    if (disabled) {
+      onDisabledAction?.();
+      return;
+    }
+    setTabAndHash(w.key as TabKey);
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1040px] flex flex-col min-h-[520px]">
       <div className="mb-6">
@@ -238,6 +273,53 @@ export function AssistantTab({
           skipFetch={disabled}
           showPosture={showPostureInPulse}
         />
+        {/* Quiet folder context — what's here + where the record lives.
+            Visible at a glance, never dominating the chat surface. */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              {docs && docs.length > 0
+                ? `${docs.length} document${docs.length === 1 ? "" : "s"} in this matter`
+                : "No documents yet"}
+            </span>
+            {recentDocs.length > 0 && (
+              <span className="flex flex-wrap items-center gap-x-2">
+                <span aria-hidden="true">·</span>
+                {recentDocs.slice(0, 2).map((d, i) => (
+                  <span key={d.id} className="font-mono truncate max-w-[180px]">
+                    {i > 0 && <span aria-hidden="true" className="mr-2">·</span>}
+                    {d.filename}
+                  </span>
+                ))}
+                {docs && docs.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setTabAndHash("documents")}
+                    className="underline underline-offset-4 hover:text-ink"
+                  >
+                    +{docs.length - 2} more
+                  </button>
+                )}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setTabAndHash("documents")}
+              className="underline underline-offset-4 hover:text-ink"
+              data-testid="open-documents-link"
+            >
+              Open documents →
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTabAndHash("audit")}
+            className="underline underline-offset-4 hover:text-ink"
+            data-testid="open-record-link"
+          >
+            View record →
+          </button>
+        </div>
       </div>
       <div
         ref={scrollRef}
@@ -250,15 +332,16 @@ export function AssistantTab({
           </p>
         )}
         {loaded && messages.length === 0 && (
-          <div className="space-y-6 border border-rule bg-paper-sunken p-5">
+          <div className="space-y-6 border border-rule bg-paper-sunken p-5" data-testid="chat-empty-state">
             <div className="text-sm text-prose space-y-2">
               <p>
-                Ask anything about this matter, or run a skill when you need
-                an output to sign.
+                This is the folder for <strong>{matter.title}</strong>. Ask
+                anything about the documents in here, or run a skill enabled
+                on this matter.
               </p>
               <p className="text-xs text-muted">
-                Sources appear as chips below each answer. Material outputs
-                move to Signed outputs for sign-off and export.
+                Sources appear as chips below each answer. Outputs you sign
+                off land in the matter Record.
               </p>
             </div>
             <div>
@@ -376,11 +459,83 @@ export function AssistantTab({
               </button>
               <button
                 type="button"
-                onClick={() => setTabAndHash("workflows")}
+                onClick={() => setSkillsOpen((v) => !v)}
+                aria-expanded={skillsOpen}
+                aria-haspopup="menu"
+                data-testid="chat-skills-toggle"
                 className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
               >
-                Skills
+                Skills{enabledSkills.length > 0 ? ` (${enabledSkills.length})` : ""}
               </button>
+              {skillsOpen && (
+                <div
+                  role="menu"
+                  aria-label="Skills enabled in this matter"
+                  className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[300px] z-10"
+                  data-testid="chat-skills-popover"
+                >
+                  <div className="eyebrow mb-2">Enabled in this matter</div>
+                  {enabledSkills.length === 0 ? (
+                    <p className="text-xs text-muted">
+                      No skills enabled on this matter yet.{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSkillsOpen(false);
+                          setTabAndHash("workflows");
+                        }}
+                        className="underline underline-offset-4 hover:text-ink"
+                      >
+                        Enable a skill →
+                      </button>
+                    </p>
+                  ) : (
+                    <>
+                      <ul className="space-y-2">
+                        {enabledSkills.map((w) => (
+                          <li key={w.key}>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => onPickSkill(w)}
+                              disabled={w.availability !== "ok"}
+                              title={w.reason ?? undefined}
+                              className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink disabled:opacity-50"
+                              data-testid={`chat-skill-${w.key}`}
+                            >
+                              <span>
+                                <span className="block text-ink font-medium">
+                                  {w.title}
+                                </span>
+                                {w.availability !== "ok" && (
+                                  <span className="block text-[10px] text-muted">
+                                    {w.availability === "blocked-by-posture"
+                                      ? "Blocked by privilege state"
+                                      : "Needs permission in this matter"}
+                                  </span>
+                                )}
+                              </span>
+                              <span aria-hidden="true" className="text-muted">
+                                →
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSkillsOpen(false);
+                          setTabAndHash("workflows");
+                        }}
+                        className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                      >
+                        Manage skills →
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
               {attachOpen && recentDocs.length > 0 && (
                 <div className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[280px] z-10">
                   <div className="eyebrow mb-2">Attach documents</div>

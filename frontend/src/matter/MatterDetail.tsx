@@ -56,11 +56,12 @@ export function MatterDetail({ slug }: { slug: string }) {
   // posture banner reads the current user role.
   const auth = useAuth();
   const route = useRoute();
-  // a freshly-opened matter leads with the record
-  // (documents), not the assistant chat (MD-2). The assistant is the
-  // collapsible right rail / its own sidebar item, not the front door.
+  // Bare /matters/:slug lands on Chat — opening a matter feels like
+  // opening a project folder where work happens, with documents and
+  // the record one click away. The previous documents-first default
+  // surfaced the file cabinet before the work, contra blueprint §4A.2.
   const initialTab: TabKey =
-    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "documents";
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
 
   // sync tab → drawer label
@@ -69,12 +70,12 @@ export function MatterDetail({ slug }: { slug: string }) {
   }, [tab, onTabChange]);
 
   // Sync tab from path changes (back/forward). Bare /matters/:slug
-  // lands on Documents — the record-first workspace front door.
+  // lands on Chat.
   useEffect(() => {
     if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab);
     } else if (route.name === "detail" && !route.tab) {
-      setTab("documents");
+      setTab("assistant");
     }
   }, [route]);
 
