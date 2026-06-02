@@ -1,8 +1,8 @@
 // MatterNav - compact left rail for the matter workspace.
 // Pattern reference: Mike, Claude.ai, Sana AI, Mistral, Fibery.
-// Core V1 loop (Chat / Documents / Skills / Record); secondary
-// review/chronology surfaces stay routable without dominating the
-// first-run matter experience.
+// Core V1 loop: opening a matter lands in Chat. Documents, Skills,
+// Signed outputs, Working pack, and Record stay one click away from
+// the Chat context rail instead of competing as equal folder exits.
 //
 // Mobile: at < md the static rail is hidden. When `mobileOpen` is true
 // the same content renders as a left-anchored 280px sheet with a
@@ -21,7 +21,7 @@ export function MatterNav({
   onPostureChange,
   mobileOpen,
   onMobileClose,
-  showPosture = true,
+  showPosture = false,
 }: {
   matter: Matter;
   tab: TabKey;
@@ -126,12 +126,17 @@ function NavBody({
           {matter.slug}
         </div>
         {showPosture && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="eyebrow">Privilege</span>
-            <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
-              <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
-            </span>
-          </div>
+          <details className="mt-3">
+            <summary className="cursor-pointer text-[10px] uppercase tracking-widest text-muted hover:text-ink">
+              Project settings
+            </summary>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="eyebrow">Privilege</span>
+              <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
+                <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
+              </span>
+            </div>
+          </details>
         )}
       </div>
 

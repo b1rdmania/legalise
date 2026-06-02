@@ -205,16 +205,13 @@ export function MatterSkillsTab({ slug }: Props) {
       {/* Section 1 — Enabled in this matter */}
       <SectionHeader
         title="Enabled in this matter"
-        hint="Available in Chat. Built-in skills are always here; modules need workspace install plus matter enablement."
+        hint="Generic skills run in Chat. Legacy built-in actions stay available below, but are not the product model."
       />
 
       {workflows === null ? (
         <p className="mt-3 text-sm text-muted">Loading…</p>
       ) : (
         <div className="mt-3 grid grid-cols-1 gap-3">
-          {workflows.workflows.map((w) => (
-            <WorkflowRow key={w.key} slug={slug} workflow={w} />
-          ))}
           {runnableSkills.map((skill) => (
             <GenericSkillRunner
               key={`${skill.moduleId}:${skill.capabilityId}`}
@@ -234,11 +231,27 @@ export function MatterSkillsTab({ slug }: Props) {
               onRevoked={refresh}
             />
           ))}
-          {workflows.workflows.length === 0 && enabledModules.length === 0 && (
+          {runnableSkills.length === 0 && enabledModules.length === 0 && (
             <p className="text-sm text-muted">
               No skills are enabled in this matter yet. Pick one from
               Available to enable below.
             </p>
+          )}
+          {workflows.workflows.length > 0 && (
+            <details className="border border-rule bg-paper p-4">
+              <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">
+                Legacy built-in actions ({workflows.workflows.length})
+              </summary>
+              <p className="mt-2 text-xs text-muted">
+                These routes remain for compatibility while first-party work is
+                migrated into the generic runner. Use Chat for normal work.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-3">
+                {workflows.workflows.map((w) => (
+                  <WorkflowRow key={w.key} slug={slug} workflow={w} />
+                ))}
+              </div>
+            </details>
           )}
         </div>
       )}

@@ -93,7 +93,7 @@ afterEach(() => {
 });
 
 describe("AssistantTab — in-chat skill picker", () => {
-  it("counts and lists only workflows that are runnable right now", async () => {
+  it("keeps legacy workflows out of the primary runnable skill count", async () => {
     vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({
       workflows: [
         // Granted + ok → primary list, counted.
@@ -150,10 +150,11 @@ describe("AssistantTab — in-chat skill picker", () => {
     mountChat();
 
     const toggle = await screen.findByTestId("chat-skills-toggle");
-    await waitFor(() => expect(toggle).toHaveTextContent("Skills (2)"));
+    await waitFor(() => expect(toggle).toHaveTextContent("Skills"));
 
     fireEvent.click(toggle);
     expect(await screen.findByTestId("chat-skills-popover")).toBeInTheDocument();
+    expect(screen.getByText(/Legacy built-in actions \(2\)/i)).toBeInTheDocument();
     expect(screen.getByTestId("chat-skill-premotion")).toBeInTheDocument();
     expect(screen.getByTestId("chat-skill-letters")).toBeInTheDocument();
     // Granted-but-blocked → in Needs attention, not in primary picker.

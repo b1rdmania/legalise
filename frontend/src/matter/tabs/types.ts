@@ -33,9 +33,6 @@ export type TabKey =
 
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
-  { key: "documents", label: "Documents" },
-  { key: "workflows", label: "Skills" },
-  { key: "audit", label: "Record" },
 ];
 
 export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {

@@ -199,7 +199,8 @@ export function AssistantTab({
     [moduleEntries, installedModules, grantRows],
   );
 
-  const runnableSkillCount = enabledSkills.length + runnableModuleSkills.length;
+  const legacyRunnableCount = enabledSkills.length;
+  const runnableSkillCount = runnableModuleSkills.length;
 
   const docsById = useMemo(() => {
     const map = new Map<string, MatterDocument>();
@@ -597,34 +598,34 @@ export function AssistantTab({
                           ))}
                         </ul>
                       )}
-                      {enabledSkills.length > 0 && (
-                        <div>
-                          {runnableModuleSkills.length > 0 && (
-                            <div className="mb-1 eyebrow text-muted">Built-in</div>
-                          )}
-                          <ul className="space-y-2">
-                            {enabledSkills.map((w) => (
-                              <li key={w.key}>
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  onClick={() => onPickSkill(w)}
-                                  className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
-                                  data-testid={`chat-skill-${w.key}`}
-                                >
-                                  <span className="block text-ink font-medium">
-                                    {w.title}
-                                  </span>
-                                  <span aria-hidden="true" className="text-muted">
-                                    →
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                     </div>
+                  )}
+                  {enabledSkills.length > 0 && (
+                    <details className="mt-3 border-t border-rule pt-3">
+                      <summary className="cursor-pointer text-[11px] text-muted hover:text-ink">
+                        Legacy built-in actions ({enabledSkills.length})
+                      </summary>
+                      <ul className="mt-2 space-y-2">
+                        {enabledSkills.map((w) => (
+                          <li key={w.key}>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => onPickSkill(w)}
+                              className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
+                              data-testid={`chat-skill-${w.key}`}
+                            >
+                              <span className="block text-ink font-medium">
+                                {w.title}
+                              </span>
+                              <span aria-hidden="true" className="text-muted">
+                                →
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   )}
                   {needsAttention.length > 0 && (
                     <>
@@ -717,8 +718,8 @@ export function AssistantTab({
         runnableSkillCount={runnableSkillCount}
         readySkillLabels={[
           ...runnableModuleSkills.map((skill) => skill.title),
-          ...enabledSkills.map((skill) => skill.title),
         ]}
+        legacyRunnableCount={legacyRunnableCount}
         needsAttentionCount={needsAttention.length}
         selectedCount={selectedDocIds.size}
         onOpenDocuments={() => setTabAndHash("documents")}
@@ -736,6 +737,7 @@ function MatterContextRail({
   recentDocs,
   runnableSkillCount,
   readySkillLabels,
+  legacyRunnableCount,
   needsAttentionCount,
   selectedCount,
   onOpenDocuments,
@@ -748,6 +750,7 @@ function MatterContextRail({
   recentDocs: MatterDocument[];
   runnableSkillCount: number;
   readySkillLabels: string[];
+  legacyRunnableCount: number;
   needsAttentionCount: number;
   selectedCount: number;
   onOpenDocuments: () => void;
@@ -802,6 +805,11 @@ function MatterContextRail({
         {needsAttentionCount > 0 && (
           <p className="mt-3 text-xs text-muted">
             {needsAttentionCount} needs setup
+          </p>
+        )}
+        {legacyRunnableCount > 0 && (
+          <p className="mt-3 text-xs text-muted">
+            {legacyRunnableCount} legacy action{legacyRunnableCount === 1 ? "" : "s"} available from the picker
           </p>
         )}
       </RailPanel>

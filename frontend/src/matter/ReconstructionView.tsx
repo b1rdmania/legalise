@@ -1,7 +1,7 @@
 /**
- * Activity Trail page — `/matters/{slug}/audit`.
+ * Record page — `/matters/{slug}/audit`.
  *
- * Reconstruction timeline against
+ * Matter proof layer against
  * `GET /api/matters/{slug}/audit/reconstruction`. This page is the
  * deep-link target referenced from elsewhere in the product:
  *   - InstallCeremony's 409 banner names module.ceremony.rejected
@@ -248,15 +248,32 @@ export function ReconstructionView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Matter</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Record</h1>
-      <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
-      <p className="mt-3 text-sm text-muted">
-        The main record of what happened on this matter: documents
-        referenced, skills run, models called, outputs written, human
-        reviews, and blocked attempts. Raw audit rows stay
-        expandable; the first view is the story.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted">Matter record</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight2">What happened here</h1>
+          <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
+          <p className="mt-3 max-w-2xl text-sm text-muted">
+            Skills run, documents referenced, outputs written, sign-offs,
+            reviews, and blocked attempts. Raw audit sources are still here,
+            but they sit behind Advanced details.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={`/matters/${encodeURIComponent(slug)}/artifacts`}
+            className="inline-flex items-center border border-rule px-3 py-2 text-sm hover:border-ink"
+          >
+            Signed outputs
+          </a>
+          <a
+            href={`/matters/${encodeURIComponent(slug)}/lifecycle`}
+            className="inline-flex items-center bg-ink px-3 py-2 text-sm text-paper hover:opacity-90"
+          >
+            Working pack
+          </a>
+        </div>
+      </div>
 
       {/* Active query-param filters */}
       {(invocationFilter || actionFilter) && (
@@ -288,71 +305,6 @@ export function ReconstructionView({ slug }: { slug: string }) {
           )}
         </div>
       )}
-
-      <details className="mt-5 rounded-md border border-line bg-paper-sunken p-3">
-        <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted">
-          Filters and raw sources
-        </summary>
-        {/* Source chips */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-widest text-muted">
-            Sources
-          </span>
-          {ALL_RECONSTRUCTION_SOURCES.map((s) => {
-            const active = sources.includes(s);
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => toggleSource(s)}
-                className={
-                  "rounded-full border px-3 py-1 text-xs transition-colors " +
-                  (active
-                    ? "border-ink bg-ink text-paper"
-                    : "border-line text-muted hover:border-ink")
-                }
-                data-testid={`source-chip-${s}`}
-                aria-pressed={active}
-              >
-                {SOURCE_LABEL[s]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Class facet chips (AT-2) — loaded page only, hidden when a
-            precise deep-link filter is active. */}
-        {!deepLinked && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase tracking-widest text-muted">
-              Decision type
-            </span>
-            {CLASS_CHIPS.map((c) => {
-              const active = classFilter === c.key;
-              return (
-                <button
-                  key={c.key}
-                  type="button"
-                  onClick={() => setClassFilter(active ? null : c.key)}
-                  className={
-                    "rounded-full border px-3 py-1 text-xs transition-colors " +
-                    (active
-                      ? "border-ink bg-ink text-paper"
-                      : "border-line text-muted hover:border-ink")
-                  }
-                  data-testid={`class-chip-${c.key}`}
-                  aria-pressed={active}
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-            {classFilter && (
-              <span className="text-[11px] text-muted">filters the loaded page only</span>
-            )}
-          </div>
-        )}
-      </details>
 
       {/* Timeline */}
       {fetchState.status === "loading" && (
@@ -461,6 +413,13 @@ export function ReconstructionView({ slug }: { slug: string }) {
               )}
             </div>
           )}
+          <AdvancedDetails
+            sources={sources}
+            onToggleSource={toggleSource}
+            classFilter={classFilter}
+            onClassFilter={setClassFilter}
+            deepLinked={deepLinked}
+          />
           {fetchState.nextCursor && (
             <div className="mt-6">
               <button
@@ -599,6 +558,91 @@ function InvocationChain({
         </ol>
       )}
     </li>
+  );
+}
+
+function AdvancedDetails({
+  sources,
+  onToggleSource,
+  classFilter,
+  onClassFilter,
+  deepLinked,
+}: {
+  sources: ReconstructionSource[];
+  onToggleSource: (s: ReconstructionSource) => void;
+  classFilter: RowClass | null;
+  onClassFilter: (next: RowClass | null) => void;
+  deepLinked: boolean;
+}) {
+  return (
+    <details className="mt-8 rounded-md border border-line bg-paper-sunken p-3">
+      <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted">
+        Advanced details
+      </summary>
+      <p className="mt-3 text-xs text-muted">
+        Raw audit sources and technical filters. The story above is the normal
+        matter record; use this only when investigating a specific row.
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs uppercase tracking-widest text-muted">
+          Sources
+        </span>
+        {ALL_RECONSTRUCTION_SOURCES.map((s) => {
+          const active = sources.includes(s);
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onToggleSource(s)}
+              className={
+                "rounded-full border px-3 py-1 text-xs transition-colors " +
+                (active
+                  ? "border-ink bg-ink text-paper"
+                  : "border-line text-muted hover:border-ink")
+              }
+              data-testid={`source-chip-${s}`}
+              aria-pressed={active}
+            >
+              {SOURCE_LABEL[s]}
+            </button>
+          );
+        })}
+      </div>
+
+      {!deepLinked && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-widest text-muted">
+            Event type
+          </span>
+          {CLASS_CHIPS.map((c) => {
+            const active = classFilter === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => onClassFilter(active ? null : c.key)}
+                className={
+                  "rounded-full border px-3 py-1 text-xs transition-colors " +
+                  (active
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line text-muted hover:border-ink")
+                }
+                data-testid={`class-chip-${c.key}`}
+                aria-pressed={active}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+          {classFilter && (
+            <span className="text-[11px] text-muted">
+              filters the loaded page only
+            </span>
+          )}
+        </div>
+      )}
+    </details>
   );
 }
 
