@@ -279,17 +279,8 @@ async def _ensure_demo_matter(session: AsyncSession, user: User) -> tuple[Matter
 async def ensure_guided_demo(session: AsyncSession, user: User) -> dict[str, Any]:
     """Idempotently provision the guided demo for ``user`` and return its
     handles. Commits its own transaction."""
-    installed = await _ensure_demo_module(session, user)
     matter, document = await _ensure_demo_matter(session, user)
-    # Real grant creation — matter-scoped grants for the capability's
-    # declared reads + writes. No bypass; the invocation still enforces.
-    await create_grants_for_capability(
-        session,
-        user=user,
-        matter=matter,
-        installed_module=installed,
-        capability_id=DEMO_CAPABILITY_ID,
-    )
+    await ensure_demo_skill_on_matter(session, user=user, matter=matter)
     await session.commit()
     materialise_matter(matter)
     return {
@@ -303,9 +294,35 @@ async def ensure_guided_demo(session: AsyncSession, user: User) -> dict[str, Any
     }
 
 
+async def ensure_demo_skill_on_matter(
+    session: AsyncSession,
+    *,
+    user: User,
+    matter: Matter,
+) -> InstalledModule:
+    """Install the demo V2 skill and grant it on ``matter``.
+
+    This is the reusable seed primitive for both `/demo-loop` and the
+    Khan sample matter. It does not commit; callers keep the install +
+    grant write in their existing transaction.
+    """
+    installed = await _ensure_demo_module(session, user)
+    # Real grant creation — matter-scoped grants for the capability's
+    # declared reads + writes. No bypass; invocation still enforces.
+    await create_grants_for_capability(
+        session,
+        user=user,
+        matter=matter,
+        installed_module=installed,
+        capability_id=DEMO_CAPABILITY_ID,
+    )
+    return installed
+
+
 __all__ = [
     "DEMO_CAPABILITY_ID",
     "DEMO_MATTER_SLUG",
     "DEMO_MODULE_ID",
     "ensure_guided_demo",
+    "ensure_demo_skill_on_matter",
 ]

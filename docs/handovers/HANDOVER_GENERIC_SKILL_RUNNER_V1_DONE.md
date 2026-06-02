@@ -45,6 +45,16 @@ The runner is deliberately narrow:
   - Picking a V2 skill mounts `GenericSkillRunner` in Chat instead of routing to a bespoke tab.
   - Picking a legacy workflow still routes to its legacy tab.
 
+- `backend/app/core/demo_loop.py`
+  - Extracts `ensure_demo_skill_on_matter()` so the existing demo V2 skill can be installed and granted on any seeded matter.
+
+- `backend/app/core/seed.py`
+  - Khan v Acme seed now idempotently installs and grants `demo.guided-skill / summarise`.
+  - This satisfies the GSR demo precondition: the first V2 proof skill is enabled on the canonical Khan workspace matter.
+
+- `backend/tests/test_matters_routes.py`
+  - Adds a public-route regression that a fresh user's Khan matter includes the two required demo skill grants.
+
 ## What this proves
 
 The clean proof target is an existing V2 module such as `demo.guided-skill`:
@@ -55,6 +65,7 @@ That path is now represented in both:
 
 - Matter Skills
 - Chat
+- Khan v Acme seed grants
 
 ## What this deliberately does not do
 
@@ -65,6 +76,7 @@ That path is now represented in both:
 - Does not call `/letters/draft` or any other legacy workflow endpoint from the generic runner.
 - Does not change backend schema or API.
 - Does not change the manifest schema.
+- Does not change Khan's default model. Khan still uses its configured real-model path, so running the seeded skill may still require the relevant provider key. The keyless fully-green path remains `/demo-loop`.
 
 ## GSR status
 
@@ -103,4 +115,8 @@ Local frontend verification:
 - `npm run test -- --run` — 205/205
 - `npm run build` — clean, with the existing Vite chunk-size warning
 
-Backend was not run because this is a frontend-only slice over existing endpoints.
+Local backend verification:
+
+- `python3 -m py_compile backend/app/core/demo_loop.py backend/app/core/seed.py backend/tests/test_matters_routes.py` — clean
+
+Backend pytest could not be run locally because this shell has neither `pytest` nor `uv` on PATH. GitHub CI runs the backend test suite in the proper container and is the merge gate for the seed regression.

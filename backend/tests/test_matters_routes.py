@@ -65,6 +65,25 @@ async def test_get_matter_by_slug_returns_full_detail(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_seeded_khan_has_v2_demo_skill_grants(client) -> None:
+    await _signup_and_login(client)
+
+    resp = await client.get(f"/api/matters/{KHAN_SLUG}/grants")
+    assert resp.status_code == 200, resp.text
+
+    grants = resp.json()["grants"]
+    demo_grants = {
+        (g["plugin"], g["skill"], g["capability"])
+        for g in grants
+        if g["plugin"] == "demo.guided-skill"
+    }
+    assert demo_grants == {
+        ("demo.guided-skill", "summarise", "document.body.read"),
+        ("demo.guided-skill", "summarise", "matter.artifact.write"),
+    }
+
+
+@pytest.mark.asyncio
 async def test_get_matter_unknown_slug_returns_404(client) -> None:
     await _signup_and_login(client)
     resp = await client.get("/api/matters/this-slug-does-not-exist")
