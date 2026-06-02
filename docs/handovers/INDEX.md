@@ -17,6 +17,14 @@ Start here before reading older phase notes.
   `../IMPLEMENTATION_PLAN_REWRITE.md`.
 - `KHAN_HEALTH_CHECK.md` — non-destructive pre-flight runbook (`legalise
   doctor`) for Khan demo. Required gate before any Kramer carry-over PR.
+- `LEGALISE_IA_RESET_BLUEPRINT_2026_06_02.md` — **SOURCE OF TRUTH** for the
+  IA reset. Buildable spec with locked vocabulary, visual tokens, ten Mobbin-
+  anchored surface patterns (§4A), and a seven-PR sequence with merge gates.
+  Build agents cite this; deviations are merge blockers. Read this before
+  touching any frontend route, label, or layout.
+- `LEGALISE_IA_RESET_WHITEPAPER_2026_06_02.md` — predecessor decision paper.
+  Useful context for *why* the reset; superseded by the blueprint above for
+  *what* to build.
 
 ## Current Working Rule
 
