@@ -48,6 +48,8 @@ type DocQuery =
   | { status: "not_found" }
   | { status: "error"; message: string };
 
+const EXTRACTED_VERSION_ID = "__extracted";
+
 export function DocumentDetail({
   slug,
   documentId,
@@ -61,6 +63,7 @@ export function DocumentDetail({
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [anon, setAnon] = useState<AnonymisationResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
 
@@ -114,6 +117,7 @@ export function DocumentDetail({
 
   useEffect(() => {
     setActiveEditResult(null);
+    setSelectedVersionId(null);
     loadBody();
     getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
     getAnonymisation(documentId)
@@ -161,15 +165,25 @@ export function DocumentDetail({
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
     doc.filename.toLowerCase().endsWith(".docx");
   const latestVersion = versions.at(-1)?.version;
-  const latestResolvedVersion = [...versions]
+  const resolvedVersions = versions
+    .map((v) => v.version)
+    .filter((v) => Boolean(v.resolved_text));
+  const latestResolvedVersion = [...resolvedVersions]
     .reverse()
-    .find((v) => v.version.resolved_text)?.version;
-  const editorText = latestResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
+    .at(0);
+  const selectedResolvedVersion =
+    selectedVersionId === EXTRACTED_VERSION_ID
+      ? null
+      : (resolvedVersions.find((v) => v.id === selectedVersionId) ??
+        latestResolvedVersion ??
+        null);
+  const editorText =
+    selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
   const sourceQuoteFoundInReader = sourceContext.quote
     ? Boolean(findNormalizedRange(editorText, sourceContext.quote))
     : null;
-  const editorSourceLabel = latestResolvedVersion
-    ? `Editing saved version v${latestResolvedVersion.version_number}`
+  const editorSourceLabel = selectedResolvedVersion
+    ? `Viewing saved version v${selectedResolvedVersion.version_number}`
     : body
       ? `${body.extraction_method} · ${body.char_count.toLocaleString()} chars${
           body.page_count ? ` · ${body.page_count} pages` : ""
@@ -223,7 +237,7 @@ export function DocumentDetail({
                     v{latestVersion.version_number}
                   </span>
                 )}
-                {latestResolvedVersion && (
+                {selectedResolvedVersion && (
                   <span className="border border-rule bg-paper-sunken px-2 py-1">
                     editable
                   </span>
@@ -231,9 +245,9 @@ export function DocumentDetail({
               </div>
             </div>
             <div className="flex flex-wrap items-start gap-2 text-sm">
-              {latestResolvedVersion && (
+              {selectedResolvedVersion && (
                 <a
-                  href={documentVersionDocxUrl(documentId, latestResolvedVersion.id)}
+                  href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
                   className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
                   data-testid="document-download-edited-docx"
                 >
@@ -323,14 +337,14 @@ export function DocumentDetail({
             )}
 
             <div data-testid="document-content">
-              {bodyMissing && !latestResolvedVersion ? (
+              {bodyMissing && !selectedResolvedVersion ? (
                 <div className="p-6">
                   <EmptyState
                     title="No extracted text"
                     body="No extracted body is available for this document (extraction may have failed or not run). The original file is still available."
                   />
                 </div>
-              ) : !body && !latestResolvedVersion ? (
+              ) : !body && !selectedResolvedVersion ? (
                 <div className="border border-rule bg-paper p-6">
                   <LoadingLine label="loading document text" />
                 </div>
@@ -342,7 +356,8 @@ export function DocumentDetail({
                   latestVersionNumber={latestVersion?.version_number}
                   sourceLabel={editorSourceLabel}
                   sourceHighlight={sourceContext.quote}
-                  onSaved={() => {
+                  onSaved={(version) => {
+                    setSelectedVersionId(version.id);
                     getDocumentVersions(documentId)
                       .then(setVersions)
                       .catch(() => undefined);
@@ -389,9 +404,43 @@ export function DocumentDetail({
                 Version record
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                Accepted edits create new versions. Rejected edits stay in the document record.
+                Accepted edits and manual saves create new versions. Open a saved version to review or download it.
               </p>
-              <VersionTimeline documentId={documentId} />
+              {resolvedVersions.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVersionId(EXTRACTED_VERSION_ID)}
+                    className={`border px-3 py-2 text-sm ${
+                      selectedVersionId === EXTRACTED_VERSION_ID
+                        ? "border-ink bg-ink text-paper"
+                        : "border-rule text-ink hover:border-ink"
+                    }`}
+                  >
+                    Extracted text
+                  </button>
+                  {resolvedVersions.map((version) => (
+                    <button
+                      key={version.id}
+                      type="button"
+                      onClick={() => setSelectedVersionId(version.id)}
+                      className={`border px-3 py-2 text-sm ${
+                        selectedResolvedVersion?.id === version.id
+                          ? "border-ink bg-ink text-paper"
+                          : "border-rule text-ink hover:border-ink"
+                      }`}
+                    >
+                      v{version.version_number}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <VersionTimeline
+                documentId={documentId}
+                versions={versions}
+                selectedVersionId={selectedResolvedVersion?.id ?? null}
+                onSelectVersion={setSelectedVersionId}
+              />
               {versions.length === 0 && (
                 <p className="mt-4 text-sm text-muted">No versions recorded.</p>
               )}
