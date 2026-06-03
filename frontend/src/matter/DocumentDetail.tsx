@@ -79,6 +79,21 @@ type DocQuery =
 
 const EXTRACTED_VERSION_ID = "__extracted";
 type WorkbenchView = "editor" | "redlines" | "original" | "versions";
+type SelectedAnchor = {
+  quote: string;
+  start: number;
+  end: number;
+  bodySha256: string | null;
+};
+
+async function sha256Hex(text: string): Promise<string | null> {
+  if (!window.crypto?.subtle) return null;
+  const bytes = new TextEncoder().encode(text);
+  const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 function WorkbenchTab({
   active,
@@ -120,6 +135,7 @@ export function DocumentDetail({
   const [commentBody, setCommentBody] = useState("");
   const [commentQuote, setCommentQuote] = useState("");
   const [selectedQuote, setSelectedQuote] = useState("");
+  const [selectedAnchor, setSelectedAnchor] = useState<SelectedAnchor | null>(null);
   const [activeReaderQuote, setActiveReaderQuote] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentBusy, setCommentBusy] = useState(false);
@@ -356,14 +372,21 @@ export function DocumentDetail({
     }
     setCommentBusy(true);
     setCommentError(null);
+    const normalizedQuote = commentQuote.trim().replace(/\s+/g, " ");
+    const anchor =
+      selectedAnchor && normalizedQuote === selectedAnchor.quote ? selectedAnchor : null;
     try {
       await createDocumentComment(documentId, {
         body: trimmed,
         quote_text: commentQuote.trim() || null,
+        body_sha256: anchor?.bodySha256 ?? null,
+        anchor_start: anchor?.start ?? null,
+        anchor_end: anchor?.end ?? null,
       });
       setCommentBody("");
       setCommentQuote("");
       setSelectedQuote("");
+      setSelectedAnchor(null);
       loadComments();
     } catch (err) {
       setCommentError(err instanceof Error ? err.message : "Could not save note.");
@@ -380,7 +403,21 @@ export function DocumentDetail({
     const root = workbenchRef.current;
     if (!root || !anchorNode || !focusNode) return;
     if (!root.contains(anchorNode) || !root.contains(focusNode)) return;
-    setSelectedQuote(selected.slice(0, 1200));
+    const quote = selected.slice(0, 1200);
+    const range = findNormalizedRange(editorText, quote);
+    setSelectedQuote(quote);
+    if (!range) {
+      setSelectedAnchor(null);
+      return;
+    }
+    setSelectedAnchor({ quote, start: range.start, end: range.end, bodySha256: null });
+    void sha256Hex(editorText).then((bodySha256) => {
+      setSelectedAnchor((current) =>
+        current?.quote === quote && current.start === range.start && current.end === range.end
+          ? { ...current, bodySha256 }
+          : current,
+      );
+    });
   };
   const resolveComment = async (commentId: string) => {
     setCommentBusy(true);
@@ -911,7 +948,14 @@ export function DocumentDetail({
                   >
                     {comment.quote_text && (
                       <div className="mb-2 border-l-2 border-rule pl-3 text-muted">
-                        <blockquote>{comment.quote_text}</blockquote>
+                        <div className="flex items-start justify-between gap-3">
+                          <blockquote>{comment.quote_text}</blockquote>
+                          {comment.anchor_start !== null && comment.anchor_end !== null && (
+                            <span className="shrink-0 border border-rule bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                              Anchored
+                            </span>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
@@ -961,6 +1005,11 @@ export function DocumentDetail({
                     </p>
                     <p className="mt-2 max-h-24 overflow-hidden leading-6 text-muted">
                       {selectedQuote}
+                    </p>
+                    <p className="mt-2 text-xs text-muted">
+                      {selectedAnchor
+                        ? "This note will stay anchored to the current document text."
+                        : "This passage can be quoted, but its exact text position was not found."}
                     </p>
                     <button
                       type="button"

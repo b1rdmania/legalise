@@ -358,6 +358,9 @@ describe("DocumentDetail", () => {
           document_id: "doc-1",
           author_id: "u-1",
           quote_text: "single social-media post",
+          body_sha256: null,
+          anchor_start: null,
+          anchor_end: null,
           body: "Check the context before relying on this.",
           status: "open",
           created_at: "2026-06-03T10:00:00",
@@ -371,6 +374,9 @@ describe("DocumentDetail", () => {
       document_id: "doc-1",
       author_id: "u-1",
       quote_text: null,
+      body_sha256: null,
+      anchor_start: null,
+      anchor_end: null,
       body: "Ask client for policy copy.",
       status: "open",
       created_at: "2026-06-03T10:05:00",
@@ -394,10 +400,16 @@ describe("DocumentDetail", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     await waitFor(() => {
-      expect(create).toHaveBeenCalledWith("doc-1", {
-        body: "Ask client for policy copy.",
-        quote_text: "policy breach",
-      });
+      expect(create).toHaveBeenCalledWith(
+        "doc-1",
+        expect.objectContaining({
+          body: "Ask client for policy copy.",
+          quote_text: "policy breach",
+          body_sha256: null,
+          anchor_start: null,
+          anchor_end: null,
+        }),
+      );
     });
   });
 
@@ -415,6 +427,9 @@ describe("DocumentDetail", () => {
       document_id: "doc-1",
       author_id: "u-1",
       quote_text: "single social-media post",
+      body_sha256: "b".repeat(64),
+      anchor_start: 33,
+      anchor_end: 57,
       body: "Check this passage.",
       status: "open",
       created_at: "2026-06-03T10:05:00",
@@ -440,10 +455,15 @@ describe("DocumentDetail", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     await waitFor(() => {
-      expect(create).toHaveBeenCalledWith("doc-1", {
-        body: "Check this passage.",
-        quote_text: "single social-media post",
-      });
+      expect(create).toHaveBeenCalledWith(
+        "doc-1",
+        expect.objectContaining({
+          body: "Check this passage.",
+          quote_text: "single social-media post",
+          anchor_start: 33,
+          anchor_end: 57,
+        }),
+      );
     });
   });
 
@@ -456,6 +476,9 @@ describe("DocumentDetail", () => {
         document_id: "doc-1",
         author_id: "u-1",
         quote_text: null,
+        body_sha256: null,
+        anchor_start: null,
+        anchor_end: null,
         body: "Resolve after checking the source.",
         status: "open",
         created_at: "2026-06-03T10:00:00",
@@ -470,6 +493,9 @@ describe("DocumentDetail", () => {
         document_id: "doc-1",
         author_id: "u-1",
         quote_text: null,
+        body_sha256: null,
+        anchor_start: null,
+        anchor_end: null,
         body: "Resolve after checking the source.",
         status: "resolved",
         created_at: "2026-06-03T10:00:00",
