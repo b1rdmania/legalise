@@ -9,6 +9,7 @@ import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
 import {
   documentOriginalUrl,
+  documentVersionDocxUrl,
   getAnonymisation,
   getDocumentBody,
   getDocumentVersions,
@@ -181,7 +182,7 @@ export function DocumentDetail({
 
         <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="min-w-0">
+              <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
                 Document
               </p>
@@ -203,9 +204,23 @@ export function DocumentDetail({
                     v{latestVersion.version_number}
                   </span>
                 )}
+                {latestResolvedVersion && (
+                  <span className="border border-rule bg-paper-sunken px-2 py-1">
+                    editable
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap items-start gap-2 text-sm">
+              {latestResolvedVersion && (
+                <a
+                  href={documentVersionDocxUrl(documentId, latestResolvedVersion.id)}
+                  className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
+                  data-testid="document-download-edited-docx"
+                >
+                  Download edited DOCX
+                </a>
+              )}
               <a
                 href={originalHref}
                 target="_blank"

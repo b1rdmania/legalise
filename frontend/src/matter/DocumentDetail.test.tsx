@@ -89,9 +89,10 @@ describe("DocumentDetail", () => {
         screen.getByRole("heading", { name: "claim-form.pdf" }),
       ).toBeInTheDocument();
     });
-    // Content is the hero — extracted text visible without any
-    // disclosure being opened first.
-    expect(screen.getByText(/IN THE COUNTY COURT/)).toBeInTheDocument();
+    // The editor is the hero — source text opens directly in the
+    // editable document surface without metadata disclosure first.
+    expect(screen.getByTestId("document-editor")).toBeInTheDocument();
+    expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
     expect(screen.getByText("Document tools")).toBeInTheDocument();
     expect(screen.getByText("Version record")).toBeInTheDocument();
     // Admin-ish document facts sit behind Details; the primary scan
@@ -104,10 +105,66 @@ describe("DocumentDetail", () => {
     expect(open.getAttribute("href")).toContain("/documents/doc-1/original");
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
+    expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
+    expect(screen.getByTestId("document-original-preview")).toBeInTheDocument();
     // Old "not available" note is gone.
     expect(
       screen.queryByText(/original uploaded file isn't available/i),
     ).toBeNull();
+  });
+
+  it("offers edited DOCX download when a saved resolved version exists", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue({
+      document_id: "doc-1",
+      kind: "extracted",
+      extracted_text: "Original body",
+      extraction_method: "python-docx",
+      extracted_at: "2026-05-28T09:01:00",
+      char_count: 13,
+      page_count: 1,
+      error_reason: null,
+    });
+    vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
+      {
+        version: {
+          id: "v-1",
+          document_id: "doc-1",
+          version_number: 1,
+          kind: "upload",
+          created_by_id: "u-1",
+          created_at: "2026-05-28T09:00:00",
+          storage_uri: null,
+          notes: null,
+          resolved_text: null,
+        },
+        pending_count: 0,
+        accepted_count: 0,
+        rejected_count: 0,
+      },
+      {
+        version: {
+          id: "v-2",
+          document_id: "doc-1",
+          version_number: 2,
+          kind: "user_edit",
+          created_by_id: "u-1",
+          created_at: "2026-05-28T09:02:00",
+          storage_uri: null,
+          notes: "Edited",
+          resolved_text: "Edited body",
+        },
+        pending_count: 0,
+        accepted_count: 0,
+        rejected_count: 0,
+      },
+    ]);
+
+    mount();
+    const link = await screen.findByTestId("document-download-edited-docx");
+    expect(link).toHaveTextContent("Download edited DOCX");
+    expect(link.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
+    expect(screen.getByText(/Editing saved version v2/)).toBeInTheDocument();
   });
 
   it("surfaces full metadata once the Details disclosure is opened", async () => {
