@@ -555,9 +555,9 @@ export function DocumentDetail({
 
         <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <div className="min-w-0">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-                Document
+                Document workbench
               </p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
                 {doc.filename}
@@ -584,7 +584,7 @@ export function DocumentDetail({
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap items-start gap-2 text-sm">
+            <div className="flex flex-wrap items-start gap-2 text-sm" aria-label="Document commands">
               {selectedResolvedVersion && (
                 <a
                   href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
@@ -608,6 +608,19 @@ export function DocumentDetail({
                 className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
               >
                 Download
+              </a>
+              <button
+                type="button"
+                onClick={() => openWorkbenchView("versions")}
+                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
+              >
+                Compare versions
+              </button>
+              <a
+                href={recordHref}
+                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
+              >
+                View Record
               </a>
             </div>
           </div>
@@ -638,10 +651,13 @@ export function DocumentDetail({
         )}
 
         <nav
-          className="mt-4 flex flex-wrap gap-2"
+          className="mt-4 flex flex-wrap items-center gap-2 border border-rule bg-paper px-3 py-3"
           aria-label="Document workspace views"
           data-testid="document-workbench-tabs"
         >
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+            View
+          </span>
           <WorkbenchTab
             active={workbenchView === "editor"}
             onClick={() => openWorkbenchView("editor")}
@@ -922,11 +938,23 @@ export function DocumentDetail({
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
             <section className="border border-rule bg-paper p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                Document intelligence
+              </p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+                Review, edit, and preserve the file.
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Proposed edits, human notes, active sessions, and version status stay with this document.
+              </p>
+            </section>
+
+            <section className="border border-rule bg-paper p-4">
               <h2 className="text-sm font-semibold text-ink">
-                Document tools
+                Suggested edits
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted">
-                Propose edits against the extracted text. Suggested changes appear in the document review area.
+                Ask the model to propose changes. Review each redline before it becomes a saved version.
               </p>
               <div className="mt-4" data-testid="document-redline-workspace">
                 <EditPanel
@@ -950,7 +978,7 @@ export function DocumentDetail({
 
             <section className="border border-rule bg-paper p-4">
               <h2 className="text-sm font-semibold text-ink">
-                Review state
+                Version state
               </h2>
               <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="border border-rule bg-paper-sunken p-2">
