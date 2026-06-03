@@ -51,7 +51,7 @@ const MATTER: Matter = {
   pivot_fact:
     "The social-media post the respondent treats as gross misconduct was a private comment on a personal Instagram account, set to a closed audience of 47 followers, none of whom were customers, suppliers, or named in the post.",
   privilege_posture: "B_mixed",
-  default_model_id: "claude-opus-4-7",
+  default_model_id: "claude-sonnet-4-6",
   required_provider: "anthropic",
   facts: {
     side: "claimant",

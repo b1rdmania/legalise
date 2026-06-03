@@ -42,6 +42,8 @@ interface AssistantTabProps {
   initialMessages?: AssistantMessage[];
   disabled?: boolean;
   disabledPlaceholder?: string;
+  showDisabledFooter?: boolean;
+  showContextRail?: boolean;
   // Called when a Suggested Action chip is clicked in disabled (demo) mode.
   onDisabledAction?: () => void;
 }
@@ -84,6 +86,8 @@ export function AssistantTab({
   initialMessages,
   disabled = false,
   disabledPlaceholder,
+  showDisabledFooter = true,
+  showContextRail = true,
   onDisabledAction,
   // back-compat — see AssistantTabProps; deliberately unused.
   auditCount: _auditCount,
@@ -339,8 +343,12 @@ export function AssistantTab({
                   ? `${docs.length} document${docs.length === 1 ? "" : "s"}`
                   : "No documents yet"}
             </span>
-            <span aria-hidden="true">·</span>
-            <span>{runnableSkillCount} runnable skill{runnableSkillCount === 1 ? "" : "s"}</span>
+            {showContextRail && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{runnableSkillCount} runnable skill{runnableSkillCount === 1 ? "" : "s"}</span>
+              </>
+            )}
             <span aria-hidden="true">·</span>
             <button
               type="button"
@@ -438,6 +446,7 @@ export function AssistantTab({
 
         {disabled ? (
           // Compact unauth state - sticky strip, attached to chat column.
+          showDisabledFooter ? (
           <div className="mt-3 sticky bottom-0 bg-paper pt-3">
           <div className="border-t border-rule py-3 flex flex-wrap items-center gap-3">
             <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
@@ -459,6 +468,7 @@ export function AssistantTab({
             </div>
           </div>
           </div>
+          ) : null
         ) : (
           <div className="mt-3 sticky bottom-0 bg-paper pt-3">
           {/* Context attachments as chips ABOVE the composer */}
@@ -622,20 +632,22 @@ export function AssistantTab({
         )}
       </div>
 
-      <MatterContextRail
-        docs={docs}
-        recentDocs={recentDocs}
-        runnableSkillCount={runnableSkillCount}
-        readySkillLabels={[
-          ...runnableModuleSkills.map((skill) => skill.title),
-        ]}
-        selectedCount={selectedDocIds.size}
-        onOpenDocuments={() => setTabAndHash("documents")}
-        onOpenSkills={() => setTabAndHash("workflows")}
-        onOpenRecord={openRecord}
-        onOpenOutputs={openOutputs}
-        onOpenPack={openWorkingPack}
-      />
+      {showContextRail && (
+        <MatterContextRail
+          docs={docs}
+          recentDocs={recentDocs}
+          runnableSkillCount={runnableSkillCount}
+          readySkillLabels={[
+            ...runnableModuleSkills.map((skill) => skill.title),
+          ]}
+          selectedCount={selectedDocIds.size}
+          onOpenDocuments={() => setTabAndHash("documents")}
+          onOpenSkills={() => setTabAndHash("workflows")}
+          onOpenRecord={openRecord}
+          onOpenOutputs={openOutputs}
+          onOpenPack={openWorkingPack}
+        />
+      )}
     </div>
   );
 }
