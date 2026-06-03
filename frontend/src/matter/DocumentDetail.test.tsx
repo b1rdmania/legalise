@@ -191,7 +191,7 @@ describe("DocumentDetail", () => {
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
     expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Original" }));
-    expect(screen.getByTestId("pdf-document-viewer")).toBeInTheDocument();
+    expect(await screen.findByTestId("pdf-document-viewer")).toBeInTheDocument();
     // Old "not available" note is gone.
     expect(
       screen.queryByText(/original uploaded file isn't available/i),
