@@ -34,6 +34,7 @@ import { EditPanel } from "../modules/document_edit/EditPanel";
 import { TrackedChangesView } from "../modules/document_edit/TrackedChangesView";
 import { AnonymiseButton } from "../modules/anonymisation/AnonymiseButton";
 import { VersionTimeline } from "../modules/document_edit/VersionTimeline";
+import { VersionDiff } from "../modules/document_edit/VersionDiff";
 import {
   DocumentRichEditor,
   findNormalizedRange,
@@ -223,6 +224,12 @@ export function DocumentDetail({
       : (resolvedVersions.find((v) => v.id === selectedVersionId) ??
         latestResolvedVersion ??
         null);
+  const selectedResolvedIndex = selectedResolvedVersion
+    ? resolvedVersions.findIndex((v) => v.id === selectedResolvedVersion.id)
+    : -1;
+  const compareBeforeVersion =
+    selectedResolvedIndex > 0 ? resolvedVersions[selectedResolvedIndex - 1] : null;
+  const compareBeforeText = compareBeforeVersion?.resolved_text ?? body?.extracted_text ?? "";
   const editorText =
     selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
   const editorJson = selectedResolvedVersion?.resolved_json as TiptapNode | null | undefined;
@@ -586,6 +593,18 @@ export function DocumentDetail({
                 selectedVersionId={selectedResolvedVersion?.id ?? null}
                 onSelectVersion={(versionId) => openEditorVersion(versionId)}
               />
+              {selectedResolvedVersion?.resolved_text && compareBeforeText && (
+                <VersionDiff
+                  before={{
+                    version: compareBeforeVersion,
+                    text: compareBeforeText,
+                  }}
+                  after={{
+                    version: selectedResolvedVersion,
+                    text: selectedResolvedVersion.resolved_text,
+                  }}
+                />
+              )}
               {versions.length === 0 && (
                 <p className="mt-4 text-sm text-muted">No versions recorded.</p>
               )}
