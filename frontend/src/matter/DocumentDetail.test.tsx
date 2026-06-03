@@ -20,8 +20,24 @@ import * as anonApi from "../modules/anonymisation/api";
 import type { MatterDocument } from "../lib/api";
 
 vi.mock("../modules/document_preview/PdfDocumentViewer", () => ({
-  PdfDocumentViewer: ({ filename }: { filename: string }) => (
-    <div data-testid="pdf-document-viewer">PDF reader for {filename}</div>
+  PdfDocumentViewer: ({
+    filename,
+    onQuoteSelected,
+  }: {
+    filename: string;
+    onQuoteSelected?: (quote: string) => void;
+  }) => (
+    <div data-testid="pdf-document-viewer">
+      PDF reader for {filename}
+      {onQuoteSelected && (
+        <button
+          type="button"
+          onClick={() => onQuoteSelected("PDF quoted passage")}
+        >
+          Mock PDF quote
+        </button>
+      )}
+    </div>
   ),
 }));
 
@@ -120,6 +136,12 @@ async function expectEditorText(container: HTMLElement, text: string) {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  vi.spyOn(api, "getModulesV2").mockResolvedValue({
+    modules: [],
+    ui_slots: [],
+  });
+  vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+  vi.spyOn(api, "listGrants").mockResolvedValue({ matter_id: "m-1", grants: [] });
   vi.spyOn(api, "getDocumentVersions").mockResolvedValue([]);
   vi.spyOn(api, "getDocumentComments").mockResolvedValue([]);
   vi.spyOn(api, "getDocumentEditSessions").mockResolvedValue([]);
@@ -358,6 +380,176 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-history-workspace")).toBeInTheDocument();
     expect(screen.getByText("Version record")).toBeInTheDocument();
     expect(screen.getByText("Redaction")).toBeInTheDocument();
+  });
+
+  it("shows a review queue and honest live presence on the workbench", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
+      {
+        ...versionSummary("v-1", 1, "Original body"),
+        pending_count: 2,
+      },
+    ]);
+    vi.spyOn(api, "getDocumentComments").mockResolvedValue([
+      {
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: null,
+        body_sha256: null,
+        anchor_start: null,
+        anchor_end: null,
+        body: "Check this before signing.",
+        status: "open",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: null,
+        resolved_by_id: null,
+      },
+    ]);
+    vi.spyOn(api, "startDocumentEditSession").mockResolvedValue({
+      current: {
+        id: "edit-session-1",
+        document_id: "doc-1",
+        user_id: "u-1",
+        client_id: "client-1",
+        user_label: "Andy",
+        started_at: "2026-06-03T18:00:00",
+        last_seen_at: "2026-06-03T18:00:00",
+        ended_at: null,
+      },
+      active: [
+        {
+          id: "edit-session-1",
+          document_id: "doc-1",
+          user_id: "u-1",
+          client_id: "client-1",
+          user_label: "Andy",
+          started_at: "2026-06-03T18:00:00",
+          last_seen_at: "2026-06-03T18:00:00",
+          ended_at: null,
+        },
+        {
+          id: "edit-session-2",
+          document_id: "doc-1",
+          user_id: "u-2",
+          client_id: "client-2",
+          user_label: "Reviewer",
+          started_at: "2026-06-03T18:01:00",
+          last_seen_at: "2026-06-03T18:01:00",
+          ended_at: null,
+        },
+      ],
+    });
+
+    mount();
+
+    expect(await screen.findByTestId("document-review-queue")).toHaveTextContent(
+      "4 items need attention.",
+    );
+    expect(screen.getByTestId("document-review-queue")).toHaveTextContent(
+      "Proposed redlines",
+    );
+    expect(screen.getByTestId("document-presence-strip")).toHaveTextContent(
+      "2 people have this file open",
+    );
+    expect(screen.getByText(/Another session is active/i)).toBeInTheDocument();
+  });
+
+  it("turns a PDF search result into a quoted review note", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+
+    mount();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Original" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mock PDF quote" }));
+
+    expect(screen.getByPlaceholderText("Optional quoted passage")).toHaveValue(
+      "PDF quoted passage",
+    );
+    expect(screen.getByTestId("document-selected-quote")).toHaveTextContent(
+      "PDF quoted passage",
+    );
+  });
+
+  it("runs ready document skills from the document workbench", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+      {
+        module_id: "demo.guided-skill",
+        version: "0.1.0",
+        publisher: "legalise",
+        visibility: "first_party",
+        signature_status: "verified",
+        enabled: true,
+        installed_at: "2026-01-01T00:00:00",
+        installed_by_user_id: null,
+      },
+    ]);
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({
+      modules: [
+        {
+          module_id: "demo.guided-skill",
+          source_kind: "v2",
+          manifest: {
+            name: "Demo skill",
+            description: "Summarises the selected file.",
+            capabilities: [
+              {
+                id: "summarise",
+                kind: "skill",
+                scope: "matter",
+                reads: ["document.body.read"],
+                writes: ["matter.artifact.write"],
+                model_access: "required",
+                ui: {
+                  label: "Plain-English Summary",
+                  default_request: "Summarise {filename}.",
+                },
+              },
+            ],
+          },
+          is_valid: true,
+          validation_errors: [],
+        },
+      ],
+      ui_slots: [],
+    });
+    vi.spyOn(api, "listGrants").mockResolvedValue({
+      matter_id: "m-1",
+      grants: [
+        {
+          id: "g-1",
+          plugin: "demo.guided-skill",
+          skill: "summarise",
+          capability: "document.body.read",
+          scope_type: "matter",
+          scope_id: "m-1",
+          granted_at: "2026-01-01T00:00:00",
+        },
+        {
+          id: "g-2",
+          plugin: "demo.guided-skill",
+          skill: "summarise",
+          capability: "matter.artifact.write",
+          scope_type: "matter",
+          scope_id: "m-1",
+          granted_at: "2026-01-01T00:00:00",
+        },
+      ],
+    });
+
+    mount();
+
+    expect(await screen.findByTestId("document-skill-runner")).toHaveTextContent(
+      "1 ready",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Plain-English Summary/i }));
+
+    expect(screen.getByTestId("generic-runner-demo.guided-skill-summarise")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Summarise claim-form.pdf.")).toBeInTheDocument();
   });
 
   it("shows document review notes and lets the user add one", async () => {
