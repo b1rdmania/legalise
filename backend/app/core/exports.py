@@ -8,6 +8,7 @@ claim). The bundle includes only:
   - documents/             — one subdir per document
       {doc_id}/metadata.json
       {doc_id}/{sha256}    — uploaded bytes (if storage_uri exists)
+  - document_comments.json — human review notes on documents
   - artefacts.json         — generated artefact metadata (storage_uri list,
                              no bytes)
   - audit.json             — all audit rows for the matter
@@ -66,6 +67,7 @@ from app.models import (
     SIGNOFF_REJECTED,
     SIGNOFF_SIGNED,
     SIGNOFF_SIGNED_WITH_OBSERVATIONS,
+    DocumentComment,
 )
 
 
@@ -85,6 +87,7 @@ def _build_readme(
     *,
     matter: Matter,
     doc_count: int,
+    document_comment_count: int,
     artifact_count: int,
     review_count: int,
     recon_count: int,
@@ -115,6 +118,7 @@ def _build_readme(
         "- `WORKING_PACK.md` — one-page summary; read first.",
         "- `matter_metadata.json` — the matter record.",
         f"- `documents/` — {doc_count} document(s): per-document `metadata.json` + the original uploaded bytes (where retrievable).",
+        f"- `document_comments.json` — {document_comment_count} human review note(s) on documents.",
         f"- `artefacts/` — {artifact_count} artefact(s): per-artefact `metadata.json` (incl. `signoff_status`) + the artefact JSON (where retrievable).",
         "- `artefacts.json` — artefact metadata index (each labelled by sign-off status).",
         "- `signoffs.json` — Professional Sign-Off records.",
@@ -169,6 +173,7 @@ def _build_working_pack(
     *,
     matter: Matter,
     doc_count: int,
+    document_comment_count: int,
     artifact_count: int,
     review_count: int,
     signed_count: int,
@@ -197,6 +202,7 @@ def _build_working_pack(
         "",
         "## At a glance",
         f"- Documents in scope: {doc_count}",
+        f"- Document review notes: {document_comment_count}",
         f"- Outputs produced: {artifact_count}",
         f"  - Signed (final material): {signed_final_count}",
         f"    (of which signed with observations: {signed_with_observations_count})",
@@ -214,6 +220,7 @@ def _build_working_pack(
         "  final material.",
         "- Source citations → `source_anchors` in each artefact JSON. These",
         "  are pointers for review, not proof of correctness.",
+        "- Document review notes → `document_comments.json`.",
         "- The decision timeline → `reconstruction.json`.",
         "- The raw audit chain → `audit.json`.",
         "- Supervisor review state → `reviews.json`.",
@@ -289,9 +296,9 @@ async def build_matter_export(
                 "from_disclosure": doc.from_disclosure,
                 "uploaded_at": doc.uploaded_at,
                 "uploaded_by_id": str(doc.uploaded_by_id),
+                "comment_count": 0,
             }
             doc_meta_list.append(doc_entry)
-            zf.writestr(f"documents/{doc.id}/metadata.json", _dumps(doc_entry))
 
             # Attempt to include uploaded bytes
             if doc.storage_uri:
@@ -301,6 +308,39 @@ async def build_matter_export(
                 except KeyError:
                     # Object missing from storage — metadata still exported
                     pass
+
+        # --- document_comments.json -----------------------------------------
+        comment_rows = list(
+            (
+                await session.scalars(
+                    select(DocumentComment)
+                    .where(DocumentComment.document_id.in_([doc.id for doc in doc_rows]))
+                    .order_by(DocumentComment.created_at)
+                )
+            ).all()
+        )
+        comment_counts: dict[uuid.UUID, int] = {}
+        comments_list: list[dict[str, Any]] = []
+        for comment in comment_rows:
+            comment_counts[comment.document_id] = comment_counts.get(comment.document_id, 0) + 1
+            comments_list.append(
+                {
+                    "id": str(comment.id),
+                    "document_id": str(comment.document_id),
+                    "author_id": str(comment.author_id),
+                    "quote_text": comment.quote_text,
+                    "body": comment.body,
+                    "status": comment.status,
+                    "created_at": comment.created_at,
+                    "resolved_at": comment.resolved_at,
+                    "resolved_by_id": str(comment.resolved_by_id) if comment.resolved_by_id else None,
+                }
+            )
+        for doc_entry in doc_meta_list:
+            doc_id = uuid.UUID(str(doc_entry["id"]))
+            doc_entry["comment_count"] = comment_counts.get(doc_id, 0)
+            zf.writestr(f"documents/{doc_entry['id']}/metadata.json", _dumps(doc_entry))
+        zf.writestr("document_comments.json", _dumps(comments_list))
 
         # --- audit.json ------------------------------------------------------
         audit_rows = list(
@@ -504,6 +544,7 @@ async def build_matter_export(
         working_pack = _build_working_pack(
             matter=matter,
             doc_count=len(doc_rows),
+            document_comment_count=len(comment_rows),
             artifact_count=len(artifact_rows),
             review_count=len(review_rows),
             signed_count=signed_count,
@@ -517,6 +558,7 @@ async def build_matter_export(
         readme = _build_readme(
             matter=matter,
             doc_count=len(doc_rows),
+            document_comment_count=len(comment_rows),
             artifact_count=len(artifact_rows),
             review_count=len(review_rows),
             recon_count=len(recon_entries),
