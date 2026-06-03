@@ -72,7 +72,16 @@ export function DocxOriginalPreview({
             Word preview rendered from the audited original file proxy.
           </p>
         </div>
-        <span className="text-xs text-muted">{filename}</span>
+        <div className="text-right">
+          <span className="block text-xs font-medium text-ink">{filename}</span>
+          <span className="mt-1 block text-[11px] uppercase tracking-track2 text-muted">
+            {state.status === "ready"
+              ? "Rendered"
+              : state.status === "loading"
+                ? "Rendering"
+                : "Preview failed"}
+          </span>
+        </div>
       </div>
       {state.status === "loading" && (
         <div className="border-b border-rule px-5 py-3">
@@ -80,9 +89,10 @@ export function DocxOriginalPreview({
         </div>
       )}
       {state.status === "error" && (
-        <p className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
-          {state.message}
-        </p>
+        <div className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
+          <p>Could not render the Word preview.</p>
+          <p className="mt-1 text-xs">{state.message}</p>
+        </div>
       )}
       <div className="max-h-[780px] overflow-auto bg-paper-sunken px-4 py-5">
         <div

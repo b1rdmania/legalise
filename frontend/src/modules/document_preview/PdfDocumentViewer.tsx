@@ -127,6 +127,22 @@ export function PdfDocumentViewer({
           <span className="min-w-24 text-center text-xs text-muted">
             Page {pageNumber} / {numPages || "?"}
           </span>
+          <label className="sr-only" htmlFor={`pdf-page-${filename}`}>
+            Jump to page
+          </label>
+          <input
+            id={`pdf-page-${filename}`}
+            type="number"
+            min={1}
+            max={numPages || undefined}
+            value={pageNumber}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              if (!Number.isFinite(next)) return;
+              setPageNumber(Math.min(Math.max(1, next), numPages || next));
+            }}
+            className="h-10 w-20 border border-rule bg-paper px-2 text-center text-sm outline-none focus:border-ink"
+          />
           <button
             type="button"
             onClick={() => setPageNumber((v) => Math.min(numPages || v, v + 1))}
@@ -141,6 +157,13 @@ export function PdfDocumentViewer({
             className="border border-rule px-3 py-2"
           >
             -
+          </button>
+          <button
+            type="button"
+            onClick={() => setScale(1.15)}
+            className="min-w-16 border border-rule px-3 py-2 text-xs text-muted hover:border-ink hover:text-ink"
+          >
+            {Math.round(scale * 100)}%
           </button>
           <button
             type="button"
@@ -172,7 +195,7 @@ export function PdfDocumentViewer({
           </span>
         </div>
         {searchHits.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {searchHits.slice(0, 8).map((hit) => (
               <button
                 key={`${hit.page}-${hit.preview}`}
@@ -181,10 +204,16 @@ export function PdfDocumentViewer({
                 className="border border-rule bg-paper px-3 py-2 text-left text-xs hover:border-ink"
                 title={hit.preview}
               >
-                Page {hit.page}
+                <span className="block font-semibold text-ink">Page {hit.page}</span>
+                <span className="mt-1 block max-h-10 overflow-hidden leading-5 text-muted">
+                  {hit.preview}
+                </span>
               </button>
             ))}
           </div>
+        )}
+        {searchTerm.length >= 3 && !loadingText && searchHits.length === 0 && (
+          <p className="mt-3 text-xs text-muted">No matches in the indexed PDF text.</p>
         )}
       </div>
 
