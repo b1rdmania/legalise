@@ -20,7 +20,7 @@ from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File, Form, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters import plugin_bridge as plugin_bridge_module
@@ -47,6 +47,7 @@ from app.core.api import audit
 from app.models import (
     AuditEntry,
     Document,
+    DocumentComment,
     Job,
     Matter,
     User,
@@ -192,6 +193,7 @@ class DocumentRead(BaseModel):
     from_disclosure: bool
     uploaded_at: datetime
     uploaded_by_id: uuid.UUID
+    comment_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -533,16 +535,25 @@ async def list_documents(
     slug: str,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),  # noqa: ARG001
-) -> list[Document]:
+) -> list[DocumentRead]:
     matter = await session.scalar(
         select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
     )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
-    rows = await session.scalars(
-        select(Document).where(Document.matter_id == matter.id).order_by(Document.uploaded_at.desc())
+    rows = await session.execute(
+        select(Document, func.count(DocumentComment.id).label("comment_count"))
+        .outerjoin(DocumentComment, DocumentComment.document_id == Document.id)
+        .where(Document.matter_id == matter.id)
+        .group_by(Document.id)
+        .order_by(Document.uploaded_at.desc())
     )
-    return list(rows.all())
+    return [
+        DocumentRead.model_validate(doc).model_copy(
+            update={"comment_count": int(comment_count or 0)}
+        )
+        for doc, comment_count in rows.all()
+    ]
 
 
 @router.patch("/{slug}/privilege", response_model=MatterRead)

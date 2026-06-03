@@ -34,6 +34,7 @@ export interface MatterDocument {
   from_disclosure: boolean;
   uploaded_at: string;
   uploaded_by_id: string;
+  comment_count?: number;
 }
 
 export interface MatterCreate {

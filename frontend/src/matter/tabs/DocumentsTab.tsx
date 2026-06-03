@@ -117,7 +117,7 @@ export function DocumentsTab({
   // expand drawer (short hash still shown as muted secondary line under
   // the filename) so the primary scan path is workflow-shaped.
   const gridCols =
-    "grid grid-cols-[1.5fr_110px_90px_110px_130px_72px] gap-4 px-4 py-3";
+    "grid grid-cols-[1.5fr_110px_90px_110px_90px_130px_72px] gap-4 px-4 py-3";
 
   return (
     <div className="max-w-4xl">
@@ -218,6 +218,7 @@ export function DocumentsTab({
               <span>Type</span>
               <span>Size</span>
               <span>Disclosure</span>
+              <span>Notes</span>
               <span>Updated</span>
               <span className="text-right">Action</span>
             </div>
@@ -251,6 +252,9 @@ export function DocumentsTab({
                     ) : (
                       <span className="text-xs text-muted">Upload</span>
                     )}
+                  </span>
+                  <span className="text-xs text-ink">
+                    {d.comment_count ? `${d.comment_count} note${d.comment_count === 1 ? "" : "s"}` : "None"}
                   </span>
                   <span className="text-xs text-ink">
                     {formatDate(d.uploaded_at)}

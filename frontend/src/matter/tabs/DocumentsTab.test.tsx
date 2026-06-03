@@ -3,9 +3,53 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 import { DocumentsTab } from "./DocumentsTab";
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to, params, ...props }: any) => (
+    <a
+      href={
+        typeof to === "string"
+          ? to
+              .replace("$slug", params?.slug ?? "")
+              .replace("$documentId", params?.documentId ?? "")
+          : "#"
+      }
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+}));
+
 afterEach(() => cleanup());
 
 describe("DocumentsTab — document ingress", () => {
+  it("surfaces review-note counts in the document list", () => {
+    render(
+      <DocumentsTab
+        slug="khan"
+        docs={[
+          {
+            id: "doc-1",
+            matter_id: "matter-1",
+            filename: "witness.docx",
+            mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            size_bytes: 1200,
+            sha256: "a".repeat(64),
+            tag: "draft",
+            from_disclosure: false,
+            uploaded_at: "2026-06-03T10:00:00",
+            uploaded_by_id: "u-1",
+            comment_count: 2,
+          },
+        ]}
+        onUpload={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Notes")).toBeInTheDocument();
+    expect(screen.getByText("2 notes")).toBeInTheDocument();
+  });
+
   it("uploads multiple selected files through the existing per-document audit path", async () => {
     const onUpload = vi.fn().mockResolvedValue(undefined);
     render(<DocumentsTab slug="khan" docs={[]} onUpload={onUpload} />);
