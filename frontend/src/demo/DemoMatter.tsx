@@ -1,7 +1,7 @@
 // Read-only demo workspace for `/demo`. Mirrors the matter shell but
 // feeds every surface from the hard-coded snapshot. Zero backend calls.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
@@ -27,6 +27,33 @@ const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
 
 const DEMO_READ_ONLY =
   "This public demo is read-only. Use the previews to inspect the project loop.";
+
+export type SearchSegment = { text: string; match: boolean };
+
+export function splitSearchMatches(text: string, query: string): SearchSegment[] {
+  const needle = query.trim();
+  if (!needle) return [{ text, match: false }];
+  const lowerText = text.toLowerCase();
+  const lowerNeedle = needle.toLowerCase();
+  const segments: SearchSegment[] = [];
+  let cursor = 0;
+  while (cursor < text.length) {
+    const index = lowerText.indexOf(lowerNeedle, cursor);
+    if (index === -1) {
+      segments.push({ text: text.slice(cursor), match: false });
+      break;
+    }
+    if (index > cursor) {
+      segments.push({ text: text.slice(cursor, index), match: false });
+    }
+    segments.push({
+      text: text.slice(index, index + needle.length),
+      match: true,
+    });
+    cursor = index + needle.length;
+  }
+  return segments.length ? segments : [{ text, match: false }];
+}
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -550,6 +577,15 @@ function DemoDocumentReader({
   docs: MatterDocument[];
 }) {
   const doc = docs.find((d) => d.id === documentId);
+  const [query, setQuery] = useState("");
+  const extractedText = doc ? demoDocumentExtract(doc) : "";
+  const searchSegments = useMemo(
+    () => splitSearchMatches(extractedText, query),
+    [extractedText, query],
+  );
+  const matchCount = query.trim()
+    ? searchSegments.filter((segment) => segment.match).length
+    : 0;
 
   if (!doc) {
     return (
@@ -615,16 +651,49 @@ function DemoDocumentReader({
       <main className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section className="min-h-[680px] border border-rule bg-paper">
           <div className="border-b border-rule px-5 py-3">
-            <h2 className="text-sm font-semibold text-ink">Extracted text</h2>
-            <p className="mt-0.5 text-xs text-muted">
-              Read-only public sample. The working product opens the same kind of document surface for source checks and edits.
-            </p>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-ink">Extracted text</h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  Read-only public sample. Search it like a project file.
+                </p>
+              </div>
+              <label className="min-w-[220px] text-xs text-muted">
+                <span className="sr-only">Search document</span>
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search document"
+                  className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                  data-testid="demo-document-search"
+                />
+              </label>
+            </div>
+            {query.trim() && (
+              <p className="mt-2 text-xs text-muted" data-testid="demo-document-search-count">
+                {matchCount
+                  ? `${matchCount} match${matchCount === 1 ? "" : "es"}`
+                  : "No matches"}
+              </p>
+            )}
           </div>
           <div
             className="px-7 py-7 text-[16px] leading-8 text-ink whitespace-pre-wrap sm:px-10"
             data-testid="demo-document-reader"
           >
-            {demoDocumentExtract(doc)}
+            {searchSegments.map((segment, index) =>
+              segment.match ? (
+                <mark
+                  key={`${segment.text}-${index}`}
+                  className="bg-[#FFF4B8] px-0.5"
+                  data-testid="demo-document-search-match"
+                >
+                  {segment.text}
+                </mark>
+              ) : (
+                <span key={`${index}-${segment.text.slice(0, 8)}`}>{segment.text}</span>
+              ),
+            )}
           </div>
         </section>
 
