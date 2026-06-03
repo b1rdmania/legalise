@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -136,6 +136,11 @@ export function editorJsonToPlainText(json: TiptapNode): string {
   return plainTextFromNode(json).replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function firstTextFromNode(node: TiptapNode): string {
+  if (node.type === "text") return node.text ?? "";
+  return node.content?.map(firstTextFromNode).join("") ?? "";
+}
+
 function documentOutlineFromText(text: string): OutlineItem[] {
   const blocks = text
     .split(/\n{2,}/)
@@ -149,6 +154,24 @@ function documentOutlineFromText(text: string): OutlineItem[] {
       query: block.slice(0, 96),
     };
   });
+}
+
+export function documentOutlineFromJson(
+  json: TiptapNode | null | undefined,
+  fallbackText: string,
+): OutlineItem[] {
+  const headingItems =
+    json?.content?.flatMap((node, index): OutlineItem[] => {
+      if (node.type !== "heading") return [];
+      const text = firstTextFromNode(node).replace(/\s+/g, " ").trim();
+      if (!text) return [];
+      return [{
+        id: `heading-${index}-${text}`,
+        label: text.length > 76 ? `${text.slice(0, 73).trimEnd()}...` : text,
+        query: text,
+      }];
+    }) ?? [];
+  return headingItems.length > 0 ? headingItems.slice(0, 12) : documentOutlineFromText(fallbackText);
 }
 
 export function documentStatsFromText(text: string): DocumentStats {
@@ -271,8 +294,11 @@ export function DocumentRichEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
   const [findQuery, setFindQuery] = useState("");
+  const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
+  const findInputRef = useRef<HTMLInputElement | null>(null);
   const content = useMemo<Content>(
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
     [initialJson, initialText, sourceHighlight],
@@ -335,25 +361,26 @@ export function DocumentRichEditor({
   }, [content, documentId, editor, onDirtyChange]);
 
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
+  const currentEditorJson = editor ? editor.getJSON() as TiptapNode : null;
   const canSave = Boolean(editor && dirty && plainText.trim() && !saving);
   const findMatches = useMemo(
     () => findNormalizedRanges(plainText, findQuery),
     [plainText, findQuery],
   );
-  const firstFindMatch = findMatches[0] ?? null;
+  const activeFindMatch = findMatches[activeFindIndex] ?? findMatches[0] ?? null;
   const findPreview =
-    firstFindMatch && plainText
+    activeFindMatch && plainText
       ? plainText
           .slice(
-            Math.max(0, firstFindMatch.start - 70),
-            Math.min(plainText.length, firstFindMatch.end + 90),
+            Math.max(0, activeFindMatch.start - 70),
+            Math.min(plainText.length, activeFindMatch.end + 90),
           )
           .replace(/\s+/g, " ")
           .trim()
       : null;
   const outlineItems = useMemo(
-    () => documentOutlineFromText(plainText),
-    [plainText],
+    () => documentOutlineFromJson(currentEditorJson, plainText),
+    [currentEditorJson, plainText],
   );
   const sourceRange = useMemo(
     () => findNormalizedRange(plainText, sourceHighlight),
@@ -367,6 +394,14 @@ export function DocumentRichEditor({
       : latestVersionNumber
         ? `Saved v${latestVersionNumber}`
         : "Extracted text";
+
+  useEffect(() => {
+    setActiveFindIndex(0);
+  }, [findQuery]);
+
+  useEffect(() => {
+    if (activeFindIndex >= findMatches.length) setActiveFindIndex(0);
+  }, [activeFindIndex, findMatches.length]);
 
   async function save() {
     if (!editor || !canSave) return;
@@ -417,6 +452,50 @@ export function DocumentRichEditor({
     setLocalDraft(null);
   }
 
+  async function copyWorkingText() {
+    if (!plainText.trim()) return;
+    await window.navigator.clipboard.writeText(plainText);
+    setCopiedMessage("Copied working text");
+    window.setTimeout(() => setCopiedMessage(null), 2000);
+  }
+
+  function downloadWorkingText() {
+    const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = window.document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${filename.replace(/\.[^.]+$/, "") || "document"}-working-copy.txt`;
+    window.document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  const moveFind = (direction: 1 | -1) => {
+    if (findMatches.length === 0) return;
+    setActiveFindIndex((current) =>
+      (current + direction + findMatches.length) % findMatches.length,
+    );
+  };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.metaKey && !event.ctrlKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "f") {
+        event.preventDefault();
+        findInputRef.current?.focus();
+        findInputRef.current?.select();
+      }
+      if (key === "s") {
+        event.preventDefault();
+        if (canSave) void save();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   return (
     <section className="min-h-[760px] border border-rule bg-paper" data-testid="document-editor">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
@@ -425,6 +504,7 @@ export function DocumentRichEditor({
           <p className="mt-0.5 text-xs text-muted">
             {sourceLabel}
             {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
+            {" · Cmd/Ctrl+S saves · Cmd/Ctrl+F finds"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -562,6 +642,22 @@ export function DocumentRichEditor({
           </button>
           <button
             type="button"
+            onClick={() => void copyWorkingText()}
+            disabled={!plainText.trim()}
+            className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+          >
+            Copy text
+          </button>
+          <button
+            type="button"
+            onClick={downloadWorkingText}
+            disabled={!plainText.trim()}
+            className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+          >
+            Download text
+          </button>
+          <button
+            type="button"
             onClick={save}
             disabled={!canSave}
             className="inline-flex h-8 items-center border border-ink bg-ink px-3 text-xs font-semibold text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
@@ -571,6 +667,14 @@ export function DocumentRichEditor({
         </div>
       </div>
 
+      {copiedMessage && (
+        <p
+          className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted"
+          data-testid="document-editor-copy-status"
+        >
+          {copiedMessage}
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
         <span className="inline-flex items-center gap-2">
           <span
@@ -619,6 +723,7 @@ export function DocumentRichEditor({
           Find
         </label>
         <input
+          ref={findInputRef}
           id={`find-${documentId}`}
           type="search"
           value={findQuery}
@@ -631,6 +736,27 @@ export function DocumentRichEditor({
             ? `${findMatches.length} match${findMatches.length === 1 ? "" : "es"}`
             : "Type 3+ characters"}
         </span>
+        <button
+          type="button"
+          onClick={() => moveFind(-1)}
+          disabled={findMatches.length === 0}
+          className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          onClick={() => moveFind(1)}
+          disabled={findMatches.length === 0}
+          className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+        >
+          Next
+        </button>
+        {findMatches.length > 0 && (
+          <span className="text-xs text-muted" data-testid="document-editor-find-position">
+            {activeFindIndex + 1} / {findMatches.length}
+          </span>
+        )}
         {findQuery && (
           <button
             type="button"
