@@ -3,7 +3,7 @@
 // version, redaction, and record tools sit beside it so the page reads
 // like a working file rather than an admin metadata screen.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
@@ -41,6 +41,7 @@ import {
   type TiptapNode,
 } from "../modules/document_edit/DocumentRichEditor";
 import { DocxOriginalPreview } from "../modules/document_preview/DocxOriginalPreview";
+import { PdfDocumentViewer } from "../modules/document_preview/PdfDocumentViewer";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -96,6 +97,7 @@ export function DocumentDetail({
   const [comments, setComments] = useState<DocumentCommentRead[]>([]);
   const [commentBody, setCommentBody] = useState("");
   const [commentQuote, setCommentQuote] = useState("");
+  const [selectedQuote, setSelectedQuote] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentBusy, setCommentBusy] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -104,6 +106,7 @@ export function DocumentDetail({
   const [editorDirty, setEditorDirty] = useState(false);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
+  const workbenchRef = useRef<HTMLDivElement | null>(null);
 
   const sourceContext = useRouterState({
     select: (s) => {
@@ -275,12 +278,24 @@ export function DocumentDetail({
       });
       setCommentBody("");
       setCommentQuote("");
+      setSelectedQuote("");
       loadComments();
     } catch (err) {
       setCommentError(err instanceof Error ? err.message : "Could not save note.");
     } finally {
       setCommentBusy(false);
     }
+  };
+  const captureWorkbenchSelection = () => {
+    const selection = window.getSelection();
+    const selected = selection?.toString().trim().replace(/\s+/g, " ") ?? "";
+    if (!selected || selected.length < 3) return;
+    const anchorNode = selection?.anchorNode;
+    const focusNode = selection?.focusNode;
+    const root = workbenchRef.current;
+    if (!root || !anchorNode || !focusNode) return;
+    if (!root.contains(anchorNode) || !root.contains(focusNode)) return;
+    setSelectedQuote(selected.slice(0, 1200));
   };
   const resolveComment = async (commentId: string) => {
     setCommentBusy(true);
@@ -433,7 +448,12 @@ export function DocumentDetail({
         </nav>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
-          <main className="min-w-0">
+          <main
+            ref={workbenchRef}
+            className="min-w-0"
+            onMouseUp={captureWorkbenchSelection}
+            onKeyUp={captureWorkbenchSelection}
+          >
             {workbenchView === "redlines" && activeEditResult && (
               <section
                 className="border border-rule bg-paper p-5"
@@ -511,29 +531,11 @@ export function DocumentDetail({
             {workbenchView === "original" && (
               <>
               {canPreviewOriginal ? (
-              <section className="border border-rule bg-paper" data-testid="document-original-preview">
-                <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
-                  <div>
-                    <h2 className="text-sm font-semibold text-ink">Original preview</h2>
-                    <p className="mt-0.5 text-xs text-muted">
-                      Opens through the audited document proxy.
-                    </p>
-                  </div>
-                  <a
-                    href={originalHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-                  >
-                    Open full size →
-                  </a>
-                </div>
-                <iframe
-                  title={`Original preview for ${doc.filename}`}
-                  src={originalHref}
-                  className="h-[620px] w-full bg-paper-sunken"
-                />
-              </section>
+              <PdfDocumentViewer
+                fileUrl={originalHref}
+                filename={doc.filename}
+                sourceHighlight={sourceContext.quote}
+              />
               ) : canPreviewDocx ? (
               <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
               ) : (
@@ -716,10 +718,30 @@ export function DocumentDetail({
                 )}
               </div>
               <div className="mt-4 space-y-2">
+                {selectedQuote && (
+                  <div
+                    className="border border-rule bg-paper-sunken p-3 text-sm"
+                    data-testid="document-selected-quote"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                      Selected passage
+                    </p>
+                    <p className="mt-2 max-h-24 overflow-hidden leading-6 text-muted">
+                      {selectedQuote}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCommentQuote(selectedQuote)}
+                      className="mt-3 border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
+                    >
+                      Quote this passage
+                    </button>
+                  </div>
+                )}
                 <textarea
                   value={commentQuote}
                   onChange={(event) => setCommentQuote(event.target.value)}
-                  placeholder="Quoted passage (optional)"
+                  placeholder="Quoted passage; select text in the document or type one"
                   rows={2}
                   className="w-full resize-y border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
                 />

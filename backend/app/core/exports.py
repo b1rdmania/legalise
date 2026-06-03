@@ -1,24 +1,22 @@
-"""Export logic for Unit 5 — basic matter export bundle.
+"""Export logic for the matter working-pack bundle.
 
-This is a BASIC export bundle, not complete data portability. v0.4
-scope per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P2 (Path A — narrowed
-claim). The bundle includes only:
+This is an application-level working pack, not a certified legal record.
+The bundle includes:
 
   - matter_metadata.json   — matter row fields
   - documents/             — one subdir per document
       {doc_id}/metadata.json
       {doc_id}/{sha256}    — uploaded bytes (if storage_uri exists)
   - document_comments.json — human review notes on documents
+  - document_versions.json — saved document snapshots and editor state
+  - document_edits.json    — proposed/accepted/rejected edit rows
   - artefacts.json         — generated artefact metadata (storage_uri list,
                              no bytes)
   - audit.json             — all audit rows for the matter
   - jobs.json              — all job rows for the matter
 
-Out of scope for v0.4 (deferred to v0.5):
+Out of scope:
   - chronology events
-  - document bodies (DocumentBody)
-  - document versions / edits (DocumentVersion, DocumentEdit)
-  - generated artefact BYTES (only metadata is included today)
   - matter citations
   - tabular reviews + rows
   - assistant messages
@@ -68,6 +66,8 @@ from app.models import (
     SIGNOFF_SIGNED,
     SIGNOFF_SIGNED_WITH_OBSERVATIONS,
     DocumentComment,
+    DocumentEdit,
+    DocumentVersion,
 )
 
 
@@ -88,6 +88,8 @@ def _build_readme(
     matter: Matter,
     doc_count: int,
     document_comment_count: int,
+    document_version_count: int,
+    document_edit_count: int,
     artifact_count: int,
     review_count: int,
     recon_count: int,
@@ -119,6 +121,8 @@ def _build_readme(
         "- `matter_metadata.json` — the matter record.",
         f"- `documents/` — {doc_count} document(s): per-document `metadata.json` + the original uploaded bytes (where retrievable).",
         f"- `document_comments.json` — {document_comment_count} human review note(s) on documents.",
+        f"- `document_versions.json` — {document_version_count} saved document version(s), including editor JSON where available.",
+        f"- `document_edits.json` — {document_edit_count} proposed, accepted, or rejected document edit row(s).",
         f"- `artefacts/` — {artifact_count} artefact(s): per-artefact `metadata.json` (incl. `signoff_status`) + the artefact JSON (where retrievable).",
         "- `artefacts.json` — artefact metadata index (each labelled by sign-off status).",
         "- `signoffs.json` — Professional Sign-Off records.",
@@ -174,6 +178,8 @@ def _build_working_pack(
     matter: Matter,
     doc_count: int,
     document_comment_count: int,
+    document_version_count: int,
+    document_edit_count: int,
     artifact_count: int,
     review_count: int,
     signed_count: int,
@@ -203,6 +209,8 @@ def _build_working_pack(
         "## At a glance",
         f"- Documents in scope: {doc_count}",
         f"- Document review notes: {document_comment_count}",
+        f"- Saved document versions: {document_version_count}",
+        f"- Document edit decisions: {document_edit_count}",
         f"- Outputs produced: {artifact_count}",
         f"  - Signed (final material): {signed_final_count}",
         f"    (of which signed with observations: {signed_with_observations_count})",
@@ -221,6 +229,8 @@ def _build_working_pack(
         "- Source citations → `source_anchors` in each artefact JSON. These",
         "  are pointers for review, not proof of correctness.",
         "- Document review notes → `document_comments.json`.",
+        "- Document versions and edit decisions → `document_versions.json`",
+        "  and `document_edits.json`.",
         "- The decision timeline → `reconstruction.json`.",
         "- The raw audit chain → `audit.json`.",
         "- Supervisor review state → `reviews.json`.",
@@ -297,6 +307,8 @@ async def build_matter_export(
                 "uploaded_at": doc.uploaded_at,
                 "uploaded_by_id": str(doc.uploaded_by_id),
                 "comment_count": 0,
+                "version_count": 0,
+                "edit_count": 0,
             }
             doc_meta_list.append(doc_entry)
 
@@ -339,8 +351,91 @@ async def build_matter_export(
         for doc_entry in doc_meta_list:
             doc_id = uuid.UUID(str(doc_entry["id"]))
             doc_entry["comment_count"] = comment_counts.get(doc_id, 0)
-            zf.writestr(f"documents/{doc_entry['id']}/metadata.json", _dumps(doc_entry))
         zf.writestr("document_comments.json", _dumps(comments_list))
+
+        # --- document_versions.json + document_edits.json -------------------
+        version_rows: list[DocumentVersion] = []
+        edit_rows: list[DocumentEdit] = []
+        version_counts: dict[uuid.UUID, int] = {}
+        edit_counts_by_document: dict[uuid.UUID, int] = {}
+        version_document_ids: dict[uuid.UUID, uuid.UUID] = {}
+        if doc_rows:
+            version_rows = list(
+                (
+                    await session.scalars(
+                        select(DocumentVersion)
+                        .where(DocumentVersion.document_id.in_([doc.id for doc in doc_rows]))
+                        .order_by(
+                            DocumentVersion.document_id,
+                            DocumentVersion.version_number,
+                        )
+                    )
+                ).all()
+            )
+            version_document_ids = {version.id: version.document_id for version in version_rows}
+            for version in version_rows:
+                version_counts[version.document_id] = version_counts.get(version.document_id, 0) + 1
+
+            if version_rows:
+                edit_rows = list(
+                    (
+                        await session.scalars(
+                            select(DocumentEdit)
+                            .where(DocumentEdit.document_version_id.in_([v.id for v in version_rows]))
+                            .order_by(DocumentEdit.created_at)
+                        )
+                    ).all()
+                )
+                for edit in edit_rows:
+                    doc_id = version_document_ids.get(edit.document_version_id)
+                    if doc_id:
+                        edit_counts_by_document[doc_id] = edit_counts_by_document.get(doc_id, 0) + 1
+
+        versions_list = [
+            {
+                "id": str(version.id),
+                "document_id": str(version.document_id),
+                "version_number": version.version_number,
+                "kind": version.kind,
+                "created_by_id": str(version.created_by_id),
+                "created_at": version.created_at,
+                "storage_uri": version.storage_uri,
+                "notes": version.notes,
+                "resolved_text": version.resolved_text,
+                "resolved_json": version.resolved_json,
+            }
+            for version in version_rows
+        ]
+        edits_list = [
+            {
+                "id": str(edit.id),
+                "document_id": (
+                    str(version_document_ids[edit.document_version_id])
+                    if edit.document_version_id in version_document_ids
+                    else None
+                ),
+                "document_version_id": str(edit.document_version_id),
+                "change_id": edit.change_id,
+                "correlation_id": edit.correlation_id,
+                "deleted_text": edit.deleted_text,
+                "inserted_text": edit.inserted_text,
+                "context_before": edit.context_before,
+                "context_after": edit.context_after,
+                "status": edit.status,
+                "rationale": edit.rationale,
+                "created_at": edit.created_at,
+                "resolved_at": edit.resolved_at,
+                "resolved_by_id": str(edit.resolved_by_id) if edit.resolved_by_id else None,
+            }
+            for edit in edit_rows
+        ]
+        for doc_entry in doc_meta_list:
+            doc_id = uuid.UUID(str(doc_entry["id"]))
+            doc_entry["version_count"] = version_counts.get(doc_id, 0)
+            doc_entry["edit_count"] = edit_counts_by_document.get(doc_id, 0)
+            zf.writestr(f"documents/{doc_entry['id']}/metadata.json", _dumps(doc_entry))
+        zf.writestr("document_versions.json", _dumps(versions_list))
+        zf.writestr("document_edits.json", _dumps(edits_list))
 
         # --- audit.json ------------------------------------------------------
         audit_rows = list(
@@ -545,6 +640,8 @@ async def build_matter_export(
             matter=matter,
             doc_count=len(doc_rows),
             document_comment_count=len(comment_rows),
+            document_version_count=len(version_rows),
+            document_edit_count=len(edit_rows),
             artifact_count=len(artifact_rows),
             review_count=len(review_rows),
             signed_count=signed_count,
@@ -559,6 +656,8 @@ async def build_matter_export(
             matter=matter,
             doc_count=len(doc_rows),
             document_comment_count=len(comment_rows),
+            document_version_count=len(version_rows),
+            document_edit_count=len(edit_rows),
             artifact_count=len(artifact_rows),
             review_count=len(review_rows),
             recon_count=len(recon_entries),
