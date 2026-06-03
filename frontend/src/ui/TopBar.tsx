@@ -140,12 +140,6 @@ export function TopBar({
                   Skills
                 </a>
                 <a
-                  href="/manifesto"
-                  className="text-ink hover:text-seal transition-colors"
-                >
-                  Manifesto
-                </a>
-                <a
                   href="https://github.com/b1rdmania/legalise"
                   target="_blank"
                   rel="noreferrer"
