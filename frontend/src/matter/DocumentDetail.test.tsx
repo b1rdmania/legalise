@@ -223,6 +223,72 @@ describe("DocumentDetail", () => {
     expect(screen.getByText("Redaction")).toBeInTheDocument();
   });
 
+  it("moves proposed redlines into the main document review area", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue({
+      document_id: "doc-1",
+      kind: "extracted",
+      extracted_text: "The agreement may terminate immediately.",
+      extraction_method: "pypdf",
+      extracted_at: "2026-05-28T09:01:00",
+      char_count: 40,
+      page_count: 1,
+      error_reason: null,
+    });
+    vi.spyOn(api, "postEditInstruction").mockResolvedValue({
+      version: {
+        id: "v-2",
+        document_id: "doc-1",
+        version_number: 2,
+        kind: "model_edit",
+        created_by_id: "u-1",
+        created_at: "2026-05-28T09:05:00",
+        storage_uri: null,
+        notes: null,
+        resolved_text: null,
+      },
+      pending_edits: [
+        {
+          id: "edit-1",
+          document_version_id: "v-2",
+          change_id: "c1",
+          correlation_id: null,
+          deleted_text: "may terminate immediately",
+          inserted_text: "may terminate on written notice",
+          context_before: "The agreement ",
+          context_after: ".",
+          rationale: "Avoids abrupt termination language.",
+          status: "pending",
+          created_at: "2026-05-28T09:05:00",
+        },
+      ],
+      model_used: "stub-echo",
+      model_notes: "One edit proposed.",
+      instruction_hash: "hash",
+      parse_ok: true,
+    });
+
+    mount();
+    await waitFor(() => {
+      expect(screen.getByTestId("document-editor")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText(/type an edit instruction/i),
+      {
+        target: { value: "Tighten termination wording." },
+      },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Propose edits" }));
+
+    const redlines = await screen.findByTestId("document-inline-redlines");
+    expect(redlines).toBeInTheDocument();
+    expect(screen.getByText(/Review suggested changes/i)).toBeInTheDocument();
+    expect(redlines).toHaveTextContent(/on written notice/i);
+    expect(
+      screen.getByText(/Proposed edits are ready in the document review area/i),
+    ).toBeInTheDocument();
+  });
+
   it("shows an honest empty state when no extracted body exists", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockRejectedValue(new Error("404"));
