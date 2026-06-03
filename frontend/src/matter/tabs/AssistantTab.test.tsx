@@ -20,7 +20,7 @@ import {
 } from "@tanstack/react-router";
 import { AssistantTab } from "./AssistantTab";
 import * as api from "../../lib/api";
-import type { Matter } from "../../lib/api";
+import type { AssistantMessage, Matter, MatterDocument } from "../../lib/api";
 
 const matter: Matter = {
   id: "m-1",
@@ -32,8 +32,14 @@ const matter: Matter = {
   default_model_id: null,
 } as never;
 
-function mountChat(overrides?: { setTabAndHash?: (k: string) => void }) {
+function mountChat(overrides?: {
+  setTabAndHash?: (k: string) => void;
+  docs?: MatterDocument[] | null;
+  initialMessages?: AssistantMessage[];
+  onDocumentChip?: (documentId: string) => void;
+}) {
   const setTabAndHash = overrides?.setTabAndHash ?? vi.fn();
+  const docs = overrides?.docs ?? [];
   const root = createRootRoute({ component: () => <Outlet /> });
   const tab = createRoute({
     getParentRoute: () => root,
@@ -41,11 +47,13 @@ function mountChat(overrides?: { setTabAndHash?: (k: string) => void }) {
     component: () => (
       <AssistantTab
         matter={matter}
-        docs={[]}
+        docs={docs}
         chronology={[]}
         setTabAndHash={setTabAndHash as never}
         auditCount={0}
         showPostureInPulse={false}
+        initialMessages={overrides?.initialMessages}
+        onDocumentChip={overrides?.onDocumentChip}
       />
     ),
   });
@@ -210,6 +218,40 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(
       await screen.findByTestId("generic-runner-demo.guided-skill-summarise"),
     ).toBeInTheDocument();
+  });
+});
+
+describe("AssistantTab — source chips", () => {
+  it("lets public shells override document chip routing", async () => {
+    const onDocumentChip = vi.fn();
+    mountChat({
+      docs: [
+        {
+          id: "doc-public",
+          filename: "demo-note.txt",
+          sha256: "sha",
+          size_bytes: 99,
+          tag: "demo",
+          from_disclosure: false,
+          uploaded_at: "2026-01-01T00:00:00Z",
+          mime_type: "text/plain",
+        } as never,
+      ],
+      initialMessages: [
+        {
+          id: "a-1",
+          role: "assistant",
+          content: "The dismissal date is in [doc:doc-public].",
+          suggested_actions: [],
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      onDocumentChip,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: /Document.*demo-note\.txt/i }));
+
+    expect(onDocumentChip).toHaveBeenCalledWith("doc-public");
   });
 });
 
