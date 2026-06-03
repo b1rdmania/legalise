@@ -251,4 +251,20 @@ describe("DocumentRichEditor surface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
   });
+
+  it("focuses document find with Cmd/Ctrl+F", async () => {
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="Clause one.\n\nClause two."
+        sourceLabel="extracted · 24 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    const find = await screen.findByLabelText("Find");
+    fireEvent.keyDown(window, { key: "f", metaKey: true });
+    expect(find).toHaveFocus();
+  });
 });

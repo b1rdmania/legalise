@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -298,6 +298,7 @@ export function DocumentRichEditor({
   const [findQuery, setFindQuery] = useState("");
   const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
+  const findInputRef = useRef<HTMLInputElement | null>(null);
   const content = useMemo<Content>(
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
     [initialJson, initialText, sourceHighlight],
@@ -477,6 +478,24 @@ export function DocumentRichEditor({
     );
   };
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.metaKey && !event.ctrlKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "f") {
+        event.preventDefault();
+        findInputRef.current?.focus();
+        findInputRef.current?.select();
+      }
+      if (key === "s") {
+        event.preventDefault();
+        if (canSave) void save();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   return (
     <section className="min-h-[760px] border border-rule bg-paper" data-testid="document-editor">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
@@ -485,6 +504,7 @@ export function DocumentRichEditor({
           <p className="mt-0.5 text-xs text-muted">
             {sourceLabel}
             {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
+            {" · Cmd/Ctrl+S saves · Cmd/Ctrl+F finds"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -703,6 +723,7 @@ export function DocumentRichEditor({
           Find
         </label>
         <input
+          ref={findInputRef}
           id={`find-${documentId}`}
           type="search"
           value={findQuery}
