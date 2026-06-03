@@ -22,14 +22,15 @@ import { ErrorCallout } from "../../ui/primitives";
 type Props = {
   result: EditInstructionResponse;
   onResolved?: () => void;
+  onSavedVersion?: (version: DocumentVersionRead) => void;
 };
 
 type ResolvedBanner = {
-  versionNumber: number;
+  version: DocumentVersionRead;
   textLength: number;
 };
 
-export function TrackedChangesView({ result, onResolved }: Props) {
+export function TrackedChangesView({ result, onResolved, onSavedVersion }: Props) {
   const [edits, setEdits] = useState<DocumentEditRead[]>(result.pending_edits);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState<null | "accept" | "reject">(null);
@@ -53,7 +54,7 @@ export function TrackedChangesView({ result, onResolved }: Props) {
     );
 
   const flashBanner = (v: DocumentVersionRead, len: number) =>
-    setBanner({ versionNumber: v.version_number, textLength: len });
+    setBanner({ version: v, textLength: len });
 
   const handleResolve = async (
     edit: DocumentEditRead,
@@ -144,8 +145,19 @@ export function TrackedChangesView({ result, onResolved }: Props) {
       )}
 
       {banner && (
-        <div className="mb-3 border border-ink bg-wash p-2 text-[11px] text-ink font-mono">
-          Version v{banner.versionNumber} saved · {banner.textLength} chars
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-ink bg-wash p-3 text-[11px] text-ink">
+          <span className="font-mono">
+            Version v{banner.version.version_number} saved · {banner.textLength} chars
+          </span>
+          {onSavedVersion && (
+            <button
+              type="button"
+              onClick={() => onSavedVersion(banner.version)}
+              className="border border-ink bg-paper px-3 py-1.5 font-sans text-xs font-semibold text-ink hover:bg-ink hover:text-paper"
+            >
+              Review saved version
+            </button>
+          )}
         </div>
       )}
 

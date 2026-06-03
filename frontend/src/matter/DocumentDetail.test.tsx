@@ -275,6 +275,16 @@ describe("DocumentDetail", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Versions" }));
+    expect(screen.getByLabelText("Compare against")).toHaveValue("__extracted");
+    expect(screen.getByText("Added")).toBeInTheDocument();
+    expect(screen.getByText("Removed")).toBeInTheDocument();
+    expect(screen.getByText(/Before · Extracted text/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Compare against"), {
+      target: { value: "v-2" },
+    });
+    expect(screen.getByText(/Before · v2/)).toBeInTheDocument();
+    expect(screen.getByText("First saved body")).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "v2" }));
     await waitFor(() => {
       expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
@@ -367,6 +377,20 @@ describe("DocumentDetail", () => {
           resolved_at: null,
           resolved_by_id: null,
         },
+        {
+          id: "comment-resolved",
+          document_id: "doc-1",
+          author_id: "u-1",
+          quote_text: "Original body",
+          body_sha256: "a".repeat(64),
+          anchor_start: 0,
+          anchor_end: 13,
+          body: "Resolved note kept for the file record.",
+          status: "resolved",
+          created_at: "2026-06-03T09:00:00",
+          resolved_at: "2026-06-03T09:30:00",
+          resolved_by_id: "u-1",
+        },
       ])
       .mockResolvedValue([]);
     const create = vi.spyOn(api, "createDocumentComment").mockResolvedValue({
@@ -388,6 +412,12 @@ describe("DocumentDetail", () => {
     expect(await screen.findByTestId("document-comments")).toHaveTextContent(
       "Check the context before relying on this.",
     );
+    expect(screen.getByTestId("document-comments")).toHaveTextContent("Open");
+    expect(screen.getByTestId("document-comments")).toHaveTextContent("Anchored");
+    expect(screen.getByTestId("document-comments")).toHaveTextContent("Resolved");
+    fireEvent.click(screen.getByText("1 resolved"));
+    expect(screen.getByText("Resolved note kept for the file record.")).toBeInTheDocument();
+    expect(screen.getByText(/resolved 2026-06-03 09:30/)).toBeInTheDocument();
     expect(await screen.findByTestId("document-editor-note-rail")).toHaveTextContent(
       "Original body",
     );
@@ -676,6 +706,25 @@ describe("DocumentDetail", () => {
       instruction_hash: "hash",
       parse_ok: true,
     });
+    vi.spyOn(api, "acceptAll").mockResolvedValue({
+      affected_count: 1,
+      new_version: {
+        id: "v-3",
+        document_id: "doc-1",
+        version_number: 3,
+        kind: "user_accept",
+        created_by_id: "u-1",
+        created_at: "2026-05-28T09:06:00",
+        storage_uri: null,
+        filename: "claim-form.pdf",
+        mime_type: "application/pdf",
+        size_bytes: 45,
+        sha256: "b".repeat(64),
+        notes: "Accepted model edits",
+        resolved_text: "The agreement may terminate on written notice.",
+      },
+      resolved_text: "The agreement may terminate on written notice.",
+    });
 
     mount();
     await waitFor(() => {
@@ -696,6 +745,16 @@ describe("DocumentDetail", () => {
     expect(
       screen.getByText(/Proposed edits are ready in the document review area/i),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Accept all" }));
+    const reviewSaved = await screen.findByRole("button", {
+      name: "Review saved version",
+    });
+    fireEvent.click(reviewSaved);
+
+    expect(screen.getByRole("heading", { name: "Version record" })).toBeInTheDocument();
+    expect(screen.getByText(/Before · Extracted text/)).toBeInTheDocument();
+    expect(screen.getByText(/After · v3/)).toBeInTheDocument();
   });
 
   it("shows an honest empty state when no extracted body exists", async () => {

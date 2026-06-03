@@ -148,6 +148,7 @@ export function DocumentDetail({
   const [showDetails, setShowDetails] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [compareVersionId, setCompareVersionId] = useState<string>(EXTRACTED_VERSION_ID);
   const [editorDirty, setEditorDirty] = useState(false);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
@@ -224,6 +225,7 @@ export function DocumentDetail({
     setActiveEditResult(null);
     setWorkbenchView("editor");
     setSelectedVersionId(null);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
     setEditorDirty(false);
     loadBody();
     loadComments();
@@ -331,9 +333,19 @@ export function DocumentDetail({
   const selectedResolvedIndex = selectedResolvedVersion
     ? resolvedVersions.findIndex((v) => v.id === selectedResolvedVersion.id)
     : -1;
+  const effectiveCompareVersionId =
+    compareVersionId === selectedResolvedVersion?.id ? EXTRACTED_VERSION_ID : compareVersionId;
   const compareBeforeVersion =
-    selectedResolvedIndex > 0 ? resolvedVersions[selectedResolvedIndex - 1] : null;
-  const compareBeforeText = compareBeforeVersion?.resolved_text ?? body?.extracted_text ?? "";
+    effectiveCompareVersionId === EXTRACTED_VERSION_ID
+      ? null
+      : (resolvedVersions.find(
+          (v) => v.id === effectiveCompareVersionId && v.id !== selectedResolvedVersion?.id,
+        ) ??
+        (selectedResolvedIndex > 0 ? resolvedVersions[selectedResolvedIndex - 1] : null));
+  const compareBeforeText =
+    effectiveCompareVersionId === EXTRACTED_VERSION_ID
+      ? (body?.extracted_text ?? "")
+      : (compareBeforeVersion?.resolved_text ?? body?.extracted_text ?? "");
   const editorText =
     selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
   const editorJson = selectedResolvedVersion?.resolved_json as TiptapNode | null | undefined;
@@ -353,6 +365,9 @@ export function DocumentDetail({
   const rejectedEdits = versions.reduce((total, v) => total + v.rejected_count, 0);
   const openComments = comments.filter((comment) => comment.status === "open");
   const resolvedComments = comments.filter((comment) => comment.status === "resolved");
+  const anchoredComments = comments.filter(
+    (comment) => comment.anchor_start !== null && comment.anchor_end !== null,
+  );
   const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
     .filter(
       (comment) =>
@@ -375,6 +390,23 @@ export function DocumentDetail({
     if (!confirmDiscardEditorChanges()) return;
     setSelectedVersionId(versionId);
     setWorkbenchView("editor");
+  };
+  const reviewSavedVersion = (version: DocumentVersionSummary["version"]) => {
+    setVersions((current) => {
+      if (current.some((summary) => summary.version.id === version.id)) return current;
+      return [
+        ...current,
+        {
+          version,
+          pending_count: 0,
+          accepted_count: 0,
+          rejected_count: 0,
+        },
+      ];
+    });
+    setSelectedVersionId(version.id);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
+    setWorkbenchView("versions");
   };
   const submitComment = async () => {
     const trimmed = commentBody.trim();
@@ -447,6 +479,7 @@ export function DocumentDetail({
     if (!confirmDiscardEditorChanges()) return;
     setActiveReaderQuote(quote);
     setSelectedVersionId(null);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
     setWorkbenchView("editor");
     requestAnimationFrame(() => {
       workbenchRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -469,6 +502,7 @@ export function DocumentDetail({
       setVersionUploadFile(null);
       setVersionUploadNotes("");
       setSelectedVersionId(uploaded.resolved_text ? uploaded.id : null);
+      setCompareVersionId(EXTRACTED_VERSION_ID);
       setActiveReaderQuote(null);
       setEditorDirty(false);
       await Promise.all([
@@ -488,6 +522,7 @@ export function DocumentDetail({
 
   const refreshAfterVersionRestore = async () => {
     setSelectedVersionId(null);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
     setActiveReaderQuote(null);
     setEditorDirty(false);
     await Promise.all([
@@ -678,6 +713,7 @@ export function DocumentDetail({
                       .then(setVersions)
                       .catch(() => undefined);
                   }}
+                  onSavedVersion={reviewSavedVersion}
                 />
               </section>
             )}
@@ -841,16 +877,41 @@ export function DocumentDetail({
                 onVersionRestored={refreshAfterVersionRestore}
               />
               {selectedResolvedVersion?.resolved_text && compareBeforeText && (
-                <VersionDiff
-                  before={{
-                    version: compareBeforeVersion,
-                    text: compareBeforeText,
-                  }}
-                  after={{
-                    version: selectedResolvedVersion,
-                    text: selectedResolvedVersion.resolved_text,
-                  }}
-                />
+                <>
+                  <div className="mt-5 flex flex-wrap items-end gap-3 border border-rule bg-paper-sunken p-4">
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      Compare against
+                      <select
+                        value={effectiveCompareVersionId}
+                        onChange={(event) => setCompareVersionId(event.target.value)}
+                        className="min-w-52 border border-rule bg-paper px-3 py-2 text-sm font-normal text-ink"
+                      >
+                        <option value={EXTRACTED_VERSION_ID}>Extracted text</option>
+                        {resolvedVersions
+                          .filter((version) => version.id !== selectedResolvedVersion.id)
+                          .map((version) => (
+                            <option key={version.id} value={version.id}>
+                              v{version.version_number}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <p className="max-w-xl text-xs leading-5 text-muted">
+                      Use this to check how an uploaded or edited copy differs from the source
+                      text or another saved version before restoring, downloading, or relying on it.
+                    </p>
+                  </div>
+                  <VersionDiff
+                    before={{
+                      version: compareBeforeVersion,
+                      text: compareBeforeText,
+                    }}
+                    after={{
+                      version: selectedResolvedVersion,
+                      text: selectedResolvedVersion.resolved_text,
+                    }}
+                  />
+                </>
               )}
               {versions.length === 0 && (
                 <p className="mt-4 text-sm text-muted">No versions recorded.</p>
@@ -950,9 +1011,34 @@ export function DocumentDetail({
                   {openComments.length} open
                 </span>
               </div>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Open</dt>
+                  <dd className="mt-1 text-base font-semibold text-ink">
+                    {openComments.length}
+                  </dd>
+                </div>
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Anchored</dt>
+                  <dd className="mt-1 text-base font-semibold text-ink">
+                    {anchoredComments.length}
+                  </dd>
+                </div>
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Resolved</dt>
+                  <dd className="mt-1 text-base font-semibold text-ink">
+                    {resolvedComments.length}
+                  </dd>
+                </div>
+              </dl>
               <div className="mt-4 space-y-3">
                 {openComments.length === 0 && resolvedComments.length === 0 && (
                   <p className="text-sm text-muted">No review notes yet.</p>
+                )}
+                {openComments.length > 0 && (
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Open notes
+                  </p>
                 )}
                 {openComments.map((comment) => (
                   <article
@@ -999,9 +1085,34 @@ export function DocumentDetail({
                     </summary>
                     <div className="mt-3 space-y-2">
                       {resolvedComments.map((comment) => (
-                        <p key={comment.id} className="text-sm leading-6 text-muted">
-                          {comment.body}
-                        </p>
+                        <article
+                          key={comment.id}
+                          className="border border-rule bg-paper p-3 text-sm"
+                        >
+                          {comment.quote_text && (
+                            <blockquote className="mb-2 border-l-2 border-rule pl-3 text-muted">
+                              {comment.quote_text}
+                            </blockquote>
+                          )}
+                          <p className="leading-6 text-muted">{comment.body}</p>
+                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                            <span>
+                              resolved{" "}
+                              {comment.resolved_at
+                                ? comment.resolved_at.replace("T", " ").slice(0, 16)
+                                : "without timestamp"}
+                            </span>
+                            {comment.quote_text && (
+                              <button
+                                type="button"
+                                onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
+                                className="font-medium text-ink underline underline-offset-4 hover:text-muted"
+                              >
+                                Find in document
+                              </button>
+                            )}
+                          </div>
+                        </article>
                       ))}
                     </div>
                   </details>

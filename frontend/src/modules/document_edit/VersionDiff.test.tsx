@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildVersionDiff } from "./VersionDiff";
+import { buildVersionDiff, buildVersionDiffSummary } from "./VersionDiff";
 
 describe("VersionDiff", () => {
   it("marks inserted and deleted text", () => {
@@ -12,5 +12,15 @@ describe("VersionDiff", () => {
     expect(
       parts.some((part) => part.type === "insert" && part.text.includes("acceptable")),
     ).toBe(true);
+  });
+
+  it("summarises changed and unchanged characters", () => {
+    const parts = buildVersionDiff("Alpha beta.", "Alpha beta and gamma.");
+    const summary = buildVersionDiffSummary(parts);
+
+    expect(summary.changed).toBe(true);
+    expect(summary.insertedChars).toBeGreaterThan(0);
+    expect(summary.deletedChars).toBe(0);
+    expect(summary.unchangedChars).toBeGreaterThan(0);
   });
 });
