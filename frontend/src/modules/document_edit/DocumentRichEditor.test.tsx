@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import {
   clearDocumentLocalDraft,
   DocumentRichEditor,
+  documentOutlineFromJson,
   editorJsonToPlainText,
   documentStatsFromText,
   findNormalizedRange,
@@ -150,6 +151,33 @@ describe("DocumentRichEditor text conversion", () => {
     });
   });
 
+  it("builds the editor outline from real headings before paragraph fallback", () => {
+    expect(
+      documentOutlineFromJson(
+        {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "This paragraph is not the heading." }],
+            },
+            {
+              type: "heading",
+              attrs: { level: 2 },
+              content: [{ type: "text", text: "Key issues" }],
+            },
+            {
+              type: "heading",
+              attrs: { level: 3 },
+              content: [{ type: "text", text: "Limitation" }],
+            },
+          ],
+        },
+        "Fallback text should not win.",
+      ).map((item) => item.label),
+    ).toEqual(["Key issues", "Limitation"]);
+  });
+
   it("round-trips a local document draft", () => {
     writeDocumentLocalDraft({
       documentId: "doc-1",
@@ -170,6 +198,9 @@ describe("DocumentRichEditor text conversion", () => {
 
 describe("DocumentRichEditor surface", () => {
   it("renders grouped document editing controls on a page canvas", async () => {
+    Object.assign(window.navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
     render(
       <DocumentRichEditor
         documentId="doc-1"
@@ -186,5 +217,38 @@ describe("DocumentRichEditor surface", () => {
     expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
     expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
+    expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download text" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Copy text" }));
+    await waitFor(() => {
+      expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining("The employee was dismissed."),
+      );
+    });
+    expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
+      "Copied working text",
+    );
+  });
+
+  it("lets the reader move through find results", async () => {
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="Clause one.\n\nClause two.\n\nClause three."
+        sourceLabel="extracted · 39 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Find"), {
+      target: { value: "Clause" },
+    });
+    expect(screen.getByTestId("document-editor-find-count")).toHaveTextContent("3 matches");
+    expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("2 / 3");
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
   });
 });
