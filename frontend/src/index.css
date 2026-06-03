@@ -73,6 +73,34 @@
     margin-bottom: 0;
   }
 
+  .legalise-document-editor h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 0.9rem;
+  }
+
+  .legalise-document-editor h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.45;
+    margin: 0 0 0.75rem;
+  }
+
+  .legalise-document-editor p + h2,
+  .legalise-document-editor ul + h2,
+  .legalise-document-editor ol + h2,
+  .legalise-document-editor table + h2 {
+    margin-top: 1.6rem;
+  }
+
+  .legalise-document-editor p + h3,
+  .legalise-document-editor ul + h3,
+  .legalise-document-editor ol + h3,
+  .legalise-document-editor table + h3 {
+    margin-top: 1.25rem;
+  }
+
   .legalise-document-editor ul,
   .legalise-document-editor ol {
     margin: 0 0 1.1rem 1.25rem;

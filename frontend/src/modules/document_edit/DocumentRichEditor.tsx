@@ -166,7 +166,9 @@ export function DocumentRichEditor({
     {
       extensions: [
         StarterKit.configure({
-          heading: false,
+          heading: {
+            levels: [2, 3],
+          },
           codeBlock: false,
           horizontalRule: false,
         }),
@@ -250,6 +252,20 @@ export function DocumentRichEditor({
           {editor && (
             <>
               <ToolbarButton
+                label="Heading 2"
+                active={editor.isActive("heading", { level: 2 })}
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              >
+                H2
+              </ToolbarButton>
+              <ToolbarButton
+                label="Heading 3"
+                active={editor.isActive("heading", { level: 3 })}
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              >
+                H3
+              </ToolbarButton>
+              <ToolbarButton
                 label="Bold"
                 active={editor.isActive("bold")}
                 onClick={() => editor.chain().focus().toggleBold().run()}
@@ -283,6 +299,13 @@ export function DocumentRichEditor({
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
               >
                 *
+              </ToolbarButton>
+              <ToolbarButton
+                label="Numbered list"
+                active={editor.isActive("orderedList")}
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              >
+                1.
               </ToolbarButton>
               <ToolbarButton
                 label="Insert table"
