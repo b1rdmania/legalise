@@ -1546,6 +1546,7 @@ export interface DocumentVersionRead {
   created_at: string;
   storage_uri: string | null;
   notes: string | null;
+  resolved_text: string | null;
 }
 
 export interface DocumentEditRead {
@@ -1746,6 +1747,17 @@ export const getDocumentVersions = (documentId: string) =>
   apiFetch(`${API}/documents/${documentId}/versions`).then((r) =>
     resolutionJsonOrThrow<DocumentVersionSummary[]>(r),
   );
+
+export const saveDocumentVersion = (
+  documentId: string,
+  resolvedText: string,
+  notes?: string,
+) =>
+  apiFetch(`${API}/documents/${documentId}/versions/manual`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resolved_text: resolvedText, notes }),
+  }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
 
 // ----- Auth + user --------------------------------------------------------
 // Auth endpoints live in `./api/auth` (sit at backend origin, NOT under

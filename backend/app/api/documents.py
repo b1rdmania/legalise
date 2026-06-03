@@ -32,6 +32,7 @@ from app.models.document_edit import (
     EDIT_STATUS_PENDING,
     EDIT_STATUS_REJECTED,
 )
+from app.models.document_version import VERSION_KIND_USER_EDIT
 from app.modules.document_edit import EDIT_MODES, propose_edits
 from app.modules.document_edit.resolver import (
     EditAlreadyResolved,
@@ -139,6 +140,7 @@ class DocumentVersionRead(BaseModel):
     created_at: datetime
     storage_uri: str | None
     notes: str | None
+    resolved_text: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -447,6 +449,11 @@ class DocumentVersionSummary(BaseModel):
     rejected_count: int
 
 
+class ManualDocumentVersionRequest(BaseModel):
+    resolved_text: str = Field(min_length=1, max_length=500_000)
+    notes: str | None = Field(default=None, max_length=500)
+
+
 async def _resolve_one(
     document_id_unused: None,
     edit_id: uuid.UUID,
@@ -541,6 +548,51 @@ async def post_reject_all(
 ) -> BulkResolutionResponse:
     """Reject every pending edit on this version in a single transaction."""
     return await _resolve_all(version_id, "reject_all", session, user)
+
+
+@router.post("/{document_id}/versions/manual", response_model=DocumentVersionRead)
+async def post_manual_document_version(
+    document_id: uuid.UUID,
+    body: ManualDocumentVersionRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentVersionRead:
+    """Save user-edited text as a new immutable document version."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    next_version = (
+        await session.scalar(
+            select(func.coalesce(func.max(DocumentVersion.version_number), 0) + 1)
+            .where(DocumentVersion.document_id == doc.id)
+        )
+        or 1
+    )
+    version = DocumentVersion(
+        document_id=doc.id,
+        version_number=int(next_version),
+        kind=VERSION_KIND_USER_EDIT,
+        created_by_id=user.id,
+        resolved_text=body.resolved_text,
+        notes=body.notes or "Edited in Legalise document editor",
+    )
+    session.add(version)
+    await session.flush()
+    await audit.log(
+        session,
+        "document.version.saved",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "document_id": str(doc.id),
+            "version_number": version.version_number,
+            "kind": version.kind,
+            "char_count": len(body.resolved_text),
+        },
+    )
+    await session.commit()
+    return DocumentVersionRead.model_validate(version)
 
 
 @router.get("/{document_id}/versions", response_model=list[DocumentVersionSummary])

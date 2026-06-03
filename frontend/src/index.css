@@ -64,4 +64,31 @@
   .prose-p:last-child {
     margin-bottom: 0;
   }
+
+  .legalise-document-editor p {
+    margin: 0 0 1.1rem;
+  }
+
+  .legalise-document-editor p:last-child {
+    margin-bottom: 0;
+  }
+
+  .legalise-document-editor ul,
+  .legalise-document-editor ol {
+    margin: 0 0 1.1rem 1.25rem;
+    padding: 0;
+  }
+
+  .legalise-document-editor ul {
+    list-style: disc;
+  }
+
+  .legalise-document-editor ol {
+    list-style: decimal;
+  }
+
+  .legalise-document-editor mark {
+    background: #FFF4B8;
+    padding: 0 0.1em;
+  }
 }
