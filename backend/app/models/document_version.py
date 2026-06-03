@@ -26,6 +26,7 @@ VERSION_KIND_USER_REJECT = "user_reject"
 VERSION_KIND_USER_EDIT = "user_edit"
 VERSION_KIND_GENERATED = "generated"
 VERSION_KIND_REPLICATED = "replicated"
+VERSION_KIND_RESTORED = "restored"
 VERSION_KIND_VALUES = {
     VERSION_KIND_UPLOAD,
     VERSION_KIND_ASSISTANT_EDIT,
@@ -34,6 +35,7 @@ VERSION_KIND_VALUES = {
     VERSION_KIND_USER_EDIT,
     VERSION_KIND_GENERATED,
     VERSION_KIND_REPLICATED,
+    VERSION_KIND_RESTORED,
 }
 
 
@@ -59,6 +61,10 @@ class DocumentVersion(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
     storage_uri: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    mime_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     resolved_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     resolved_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

@@ -404,7 +404,11 @@ async def upload_document(
             version_number=1,
             kind=VERSION_KIND_UPLOAD,
             created_by_id=user.id,
-            storage_uri=None,
+            storage_uri=obj_key,
+            filename=doc.filename,
+            mime_type=doc.mime_type,
+            size_bytes=doc.size_bytes,
+            sha256=doc.sha256,
             notes=None,
         )
     )

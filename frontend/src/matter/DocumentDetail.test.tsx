@@ -99,6 +99,10 @@ function versionSummary(
       created_by_id: "u-1",
       created_at: `2026-05-28T09:0${versionNumber}:00`,
       storage_uri: storageUri,
+      filename: storageUri ? `draft-v${versionNumber}.txt` : "claim-form.pdf",
+      mime_type: storageUri ? "text/plain" : "application/pdf",
+      size_bytes: resolvedText?.length ?? 2048,
+      sha256: storageUri ? "b".repeat(64) : "a".repeat(64),
       notes: null,
       resolved_text: resolvedText,
     },
@@ -519,6 +523,10 @@ describe("DocumentDetail", () => {
       created_by_id: "u-1",
       created_at: "2026-05-28T09:06:00",
       storage_uri: "users/u/matters/m/documents/doc-1/b",
+      filename: "draft-v2.txt",
+      mime_type: "text/plain",
+      size_bytes: 12,
+      sha256: "b".repeat(64),
       notes: "Clean copy",
       resolved_text: "Updated body",
     });
@@ -543,6 +551,54 @@ describe("DocumentDetail", () => {
     expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
   });
 
+  it("restores a prior saved version and refreshes active document content", async () => {
+    vi.spyOn(api, "listDocuments")
+      .mockResolvedValueOnce([doc({ filename: "draft-v2.txt", mime_type: "text/plain", sha256: "b".repeat(64) })])
+      .mockResolvedValueOnce([doc({ filename: "draft-v1.txt", mime_type: "text/plain", sha256: "a".repeat(64) })]);
+    vi.spyOn(api, "getDocumentBody")
+      .mockResolvedValueOnce(body({ extracted_text: "Current body" }))
+      .mockResolvedValueOnce(body({ extracted_text: "Restored body" }));
+    vi.spyOn(api, "getDocumentVersions")
+      .mockResolvedValueOnce([
+        versionSummary("v-1", 1, "Restored body", "upload", "users/u/m/doc/a"),
+        versionSummary("v-2", 2, "Current body", "upload", "users/u/m/doc/b"),
+      ])
+      .mockResolvedValueOnce([
+        versionSummary("v-1", 1, "Restored body", "upload", "users/u/m/doc/a"),
+        versionSummary("v-2", 2, "Current body", "upload", "users/u/m/doc/b"),
+        versionSummary("v-3", 3, "Restored body", "restored", "users/u/m/doc/a"),
+      ]);
+    const restore = vi.spyOn(api, "restoreDocumentVersion").mockResolvedValue({
+      id: "v-3",
+      document_id: "doc-1",
+      version_number: 3,
+      kind: "restored",
+      created_by_id: "u-1",
+      created_at: "2026-05-28T09:06:00",
+      storage_uri: "users/u/m/doc/a",
+      filename: "draft-v1.txt",
+      mime_type: "text/plain",
+      size_bytes: 13,
+      sha256: "a".repeat(64),
+      notes: "Restored from v1",
+      resolved_text: "Restored body",
+    });
+
+    mount();
+    await screen.findByRole("heading", { name: "draft-v2.txt" });
+    fireEvent.click(screen.getByRole("button", { name: "Versions" }));
+    const restoreButtons = await screen.findAllByRole("button", { name: "Restore" });
+    fireEvent.click(restoreButtons[0]);
+
+    await waitFor(() => {
+      expect(restore).toHaveBeenCalledWith("doc-1", "v-1");
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "draft-v1.txt" })).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("document-editor")).toHaveTextContent("Restored body");
+  });
+
   it("moves proposed redlines into the main document review area", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue({
@@ -564,6 +620,10 @@ describe("DocumentDetail", () => {
         created_by_id: "u-1",
         created_at: "2026-05-28T09:05:00",
         storage_uri: null,
+        filename: "claim-form.pdf",
+        mime_type: "application/pdf",
+        size_bytes: 2048,
+        sha256: "a".repeat(64),
         notes: null,
         resolved_text: null,
       },

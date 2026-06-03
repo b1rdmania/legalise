@@ -1546,6 +1546,10 @@ export interface DocumentVersionRead {
   created_by_id: string;
   created_at: string;
   storage_uri: string | null;
+  filename: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  sha256: string | null;
   notes: string | null;
   resolved_text: string | null;
   resolved_json?: Record<string, unknown> | null;
@@ -1868,6 +1872,17 @@ export const uploadDocumentVersion = async (
   }
   return resolutionJsonOrThrow<DocumentVersionRead>(res);
 };
+
+export const restoreDocumentVersion = (
+  documentId: string,
+  versionId: string,
+  notes?: string,
+) =>
+  apiFetch(`${API}/documents/${documentId}/versions/${versionId}/restore`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes: notes?.trim() || null }),
+  }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
 
 export const getDocumentComments = (documentId: string) =>
   apiFetch(`${API}/documents/${documentId}/comments`).then((r) =>
