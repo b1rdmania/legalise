@@ -32,6 +32,9 @@ one of them (Workflows).
   Workflows / Audit. Installed legal modules (Pre-Motion / Letters /
   Contract review / Tabular Review / Case law) nest behind the
   Workflows page instead of each owning a top-level slot.
+  *(Superseded 2026-06-03: the IA reset further compressed this to the
+  `Chat / Documents / Skills / Record` loop — Chronology left the rail. See
+  the P19 reconciliation.)*
 - **Slim breadcrumb replaces MatterHeader.** Matter title + tab label
   render as a single-line path at the top of the content column. The
   5-item metadata strip (slug / opened / retention / status / posture)
@@ -132,7 +135,7 @@ any of them, reject the PR or add it to this list with a reason.
   refs.
 - **Sidebar TOCs on workspace surfaces.** The whitepaper sidebar TOC
   pattern (Landing P2) is for documents that scroll as one. Matter
-  detail uses the P19 compact left rail (5 nav primitives + matter
+  detail uses the P19 compact left rail (the compressed nav loop + matter
   card), not a scroll-spy TOC. Sidebar TOC stays on the Landing
   whitepaper because the Landing genuinely IS a single scrolling
   document.
@@ -1019,6 +1022,35 @@ The em-dash row is a literal `<div className="my-2 border-t border-rule" />` bet
 
 ## P19 - Compact left rail (matter workspace)
 
+> **Reconciliation — 2026-06-03 (post IA reset).** This pattern was specced
+> 2026-05-15, before the IA reset (2026-06-02) deliberately compressed the
+> matter shell. The structural reference below (220px rail, matter card,
+> active-state, mobile sheet) still holds and the build honours it exactly.
+> What changed by decision — now recorded here so spec and code agree:
+>
+> - **Nav vocabulary is `Chat / Documents / Skills / Record`**, not the
+>   original `Assistant / Documents / Chronology / Workflows / Audit`. Labels
+>   live in `MATTER_TAB_LABELS` (`frontend/src/matter/tabs/types.ts`); URL keys
+>   stay `assistant / documents / workflows / audit` for route stability.
+>   "Workflows" → **Skills**, "Audit" → **Record**.
+> - **Chronology and Approvals left the rail** — now secondary/legacy surfaces,
+>   routable for deep links but off the main *documents → skills → record* loop.
+> - **The rail is mid-migration.** `SIDEBAR_NAV` currently renders only `Chat`;
+>   the full four-item loop is rewired "in a later slice" per the code comment.
+>   Treat four items (Chat / Documents / Skills / Record) as the target, not a
+>   shipped fact.
+>
+> **Two divergences still need a decision (drift vs deliberate — Andy's call):**
+> 1. **Posture chip.** Spec: always-visible "Posture" eyebrow + chip in the
+>    matter card. Code (`MatterNav.tsx:134`): gated behind `showPosture` (only
+>    caller passes `false`) *and* collapsed inside a `<details>` "Project
+>    settings", relabelled "Privilege". Deliberate de-emphasis, or lost?
+> 2. **Status footer.** Spec: `mt-auto` bottom strip showing matter status
+>    ("open"). Code: `NavBody` has no footer. Dropped on purpose, or missing?
+>
+> Until these two are decided, the reference JSX below keeps the original
+> (always-visible posture + footer) so the intended pattern isn't forgotten.
+
 Source: Mobbin pass on legal-AI and adjacent LLM workspaces (Mike,
 Claude.ai, Sana AI, Mistral, Fibery, ClickUp, Cycle, OpenAI Platform).
 The shared pattern is a 220px single-level rail with 4-6 primitives,
@@ -1066,8 +1098,10 @@ active surface against the rest of the rail at `text-prose`.
 
 **Workflow nesting.** When the user is on a workflow surface (Pre-Motion,
 Letters, Contract review, Tabular Review, Case law), the sidebar
-highlights "Workflows" via `sidebarActiveFor(tab)`. The deep route
-keeps working (`#/matters/{slug}/premotion`) so links stay stable.
+highlights the **Skills** item (URL key `workflows`) via
+`sidebarActiveFor(tab)` — see the 2026-06-03 reconciliation above for the
+Workflows → Skills rename. The deep route keeps working
+(`#/matters/{slug}/premotion`) so links stay stable.
 
 **Item count rule.** 4-6 items. If a sixth nav slot is needed, ask
 first whether it should nest under an existing one (Workflows is the
@@ -1106,8 +1140,10 @@ an optional intermediate hop for workflow surfaces.
 </div>
 ```
 
-For workflow surfaces, render the Workflows hop:
-`Matters / {title} / Workflows / Pre-Motion`. Posture, slug, opened,
+For workflow surfaces, render the Skills hop:
+`Matters / {title} / Skills / Pre-Motion` (post 2026-06-03 reconciliation —
+was "Workflows"; `MatterBreadcrumb.tsx` renders the **Skills** label).
+Posture, slug, opened,
 retention, and status do not appear here. Posture lives in the P19
 matter card, the rest live in the breadcrumb only if the surface
 genuinely needs them, in which case the surface renders an inline
@@ -1130,7 +1166,7 @@ Which patterns compose which surface.
 | **Modules catalogue** (`#/modules`) | P1 TopBar · sidebar **skill picker** (master-detail list grouped by plugin — not a P2 scroll-spy TOC) · P4 Prose body (selected skill SKILL.md rendered) · P17 Footer. Unauth visitors see a designed banner (Sign in CTA + Open the demo CTA), no raw 401. |
 | **Matters list** (`#/matters`) | P1 TopBar · P3 Hero (small variant: just title + meta strip) · P16 Data table |
 | **New matter** (`#/matters/new`) | P1 TopBar · centered narrow form (max-w-2xl) · P13 Inputs · P12 Primary button |
-| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · **P19 MatterNav** (compact left rail, 220px — matter card with posture chip + 5 nav items: Assistant / Documents / Chronology / Workflows / Audit) · **P20 MatterBreadcrumb** (slim path strip) · main content full-width per tab. Bare `/matters/:slug` lands on Assistant. |
+| **Matter detail** (`#/matters/{slug}`) | P1 TopBar · **P19 MatterNav** (compact left rail, 220px — matter card + the *documents → skills → record* loop: **Chat / Documents / Skills / Record**; rail mid-migration, see P19 reconciliation 2026-06-03) · **P20 MatterBreadcrumb** (slim path strip) · main content full-width per tab. Bare `/matters/:slug` lands on Chat. |
 | **Matter · Assistant tab** | Default landing for the matter. Chat surface with matter context · inline citation chips (P15-shape, mono, uppercase) · suggested-actions footer below each assistant reply |
 | **Matter · Documents tab** | P16 Data table (Document / Type / Source / Extracted / Last action / Action) · upload P13 form at top · per-row expand drawer surfaces SHA + Size + Uploaded-at before EditPanel + AnonymiseButton |
 | **Matter · Chronology tab** | P10 Dense data row with overlay bar (variable weight = significance) · P14 Yellow warning callout when CPR 31.22 gate pending · P13 Input for acknowledgement |
