@@ -40,6 +40,12 @@ from app.models.audit import AuditEntry
 from app.models.document_body import DocumentBody, BODY_KIND_VALUES, EXTRACTION_METHOD_VALUES
 from app.models.document_version import DocumentVersion, VERSION_KIND_VALUES
 from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
+from app.models.document_comment import (
+    COMMENT_STATUS_OPEN,
+    COMMENT_STATUS_RESOLVED,
+    COMMENT_STATUS_VALUES,
+    DocumentComment,
+)
 from app.models.tabular_review import TabularReview, TabularReviewRow
 from app.models.workspace_skill import WorkspaceDisabledSkill
 from app.models.workspace_skill_capability_grant import (
@@ -145,6 +151,7 @@ __all__ = [
     "DocumentBody",
     "DocumentVersion",
     "DocumentEdit",
+    "DocumentComment",
     "TabularReview",
     "TabularReviewRow",
     "WorkspaceDisabledSkill",
@@ -179,6 +186,9 @@ __all__ = [
     "EXTRACTION_METHOD_VALUES",
     "VERSION_KIND_VALUES",
     "EDIT_STATUS_VALUES",
+    "COMMENT_STATUS_OPEN",
+    "COMMENT_STATUS_RESOLVED",
+    "COMMENT_STATUS_VALUES",
     # Matter context primitive.
     "MatterContextSchema",
     "MatterContextItem",

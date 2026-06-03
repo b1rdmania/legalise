@@ -110,6 +110,7 @@ async function expectEditorText(container: HTMLElement, text: string) {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(api, "getDocumentVersions").mockResolvedValue([]);
+  vi.spyOn(api, "getDocumentComments").mockResolvedValue([]);
   vi.spyOn(api, "getAnonymisation").mockRejectedValue(new Error("404"));
   // AnonymiseButton (child) fetches its own module's getAnonymisation on
   // mount — stub it so the test doesn't hit the network.
@@ -266,6 +267,96 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-history-workspace")).toBeInTheDocument();
     expect(screen.getByText("Version record")).toBeInTheDocument();
     expect(screen.getByText("Redaction")).toBeInTheDocument();
+  });
+
+  it("shows document review notes and lets the user add one", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    const getComments = vi.spyOn(api, "getDocumentComments");
+    getComments
+      .mockResolvedValueOnce([
+        {
+          id: "comment-1",
+          document_id: "doc-1",
+          author_id: "u-1",
+          quote_text: "single social-media post",
+          body: "Check the context before relying on this.",
+          status: "open",
+          created_at: "2026-06-03T10:00:00",
+          resolved_at: null,
+          resolved_by_id: null,
+        },
+      ])
+      .mockResolvedValue([]);
+    const create = vi.spyOn(api, "createDocumentComment").mockResolvedValue({
+      id: "comment-2",
+      document_id: "doc-1",
+      author_id: "u-1",
+      quote_text: null,
+      body: "Ask client for policy copy.",
+      status: "open",
+      created_at: "2026-06-03T10:05:00",
+      resolved_at: null,
+      resolved_by_id: null,
+    });
+
+    mount();
+    expect(await screen.findByTestId("document-comments")).toHaveTextContent(
+      "Check the context before relying on this.",
+    );
+    fireEvent.change(screen.getByPlaceholderText("Quoted passage (optional)"), {
+      target: { value: "policy breach" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Add a review note"), {
+      target: { value: "Ask client for policy copy." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+
+    await waitFor(() => {
+      expect(create).toHaveBeenCalledWith("doc-1", {
+        body: "Ask client for policy copy.",
+        quote_text: "policy breach",
+      });
+    });
+  });
+
+  it("resolves open document review notes", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentComments").mockResolvedValue([
+      {
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: null,
+        body: "Resolve after checking the source.",
+        status: "open",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: null,
+        resolved_by_id: null,
+      },
+    ]);
+    const resolve = vi
+      .spyOn(api, "resolveDocumentComment")
+      .mockResolvedValue({
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: null,
+        body: "Resolve after checking the source.",
+        status: "resolved",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: "2026-06-03T10:10:00",
+        resolved_by_id: "u-1",
+      });
+
+    mount();
+    await screen.findByText("Resolve after checking the source.");
+    fireEvent.click(screen.getByRole("button", { name: "Resolve" }));
+
+    await waitFor(() => {
+      expect(resolve).toHaveBeenCalledWith("doc-1", "comment-1");
+    });
   });
 
   it("makes saved versions openable and downloadable from the version workspace", async () => {
