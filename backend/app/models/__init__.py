@@ -40,6 +40,7 @@ from app.models.audit import AuditEntry
 from app.models.document_body import DocumentBody, BODY_KIND_VALUES, EXTRACTION_METHOD_VALUES
 from app.models.document_version import DocumentVersion, VERSION_KIND_VALUES
 from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
+from app.models.document_edit_session import DocumentEditSession
 from app.models.document_comment import (
     COMMENT_STATUS_OPEN,
     COMMENT_STATUS_RESOLVED,
@@ -151,6 +152,7 @@ __all__ = [
     "DocumentBody",
     "DocumentVersion",
     "DocumentEdit",
+    "DocumentEditSession",
     "DocumentComment",
     "TabularReview",
     "TabularReviewRow",
