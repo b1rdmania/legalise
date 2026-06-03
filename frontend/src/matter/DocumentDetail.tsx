@@ -28,7 +28,10 @@ import {
 import { EditPanel } from "../modules/document_edit/EditPanel";
 import { AnonymiseButton } from "../modules/anonymisation/AnonymiseButton";
 import { VersionTimeline } from "../modules/document_edit/VersionTimeline";
-import { DocumentRichEditor } from "../modules/document_edit/DocumentRichEditor";
+import {
+  DocumentRichEditor,
+  findNormalizedRange,
+} from "../modules/document_edit/DocumentRichEditor";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -56,17 +59,20 @@ export function DocumentDetail({
   const [anon, setAnon] = useState<AnonymisationResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Source-anchor honesty: when arrived from chat, surface a single
-  // line noting that passage-level anchoring isn't yet wired through
-  // the substrate. Without this the user might think a chip click
-  // failed to scroll them anywhere.
-  const fromTab = useRouterState({
+  const sourceContext = useRouterState({
     select: (s) => {
       const search = s.location.search as Record<string, unknown> | undefined;
       const raw = search?.from;
-      return typeof raw === "string" && isTabKey(raw) ? (raw as TabKey) : null;
+      const quoteFound = search?.quote_found ?? search?.quoteFound;
+      return {
+        fromTab: typeof raw === "string" && isTabKey(raw) ? (raw as TabKey) : null,
+        quote: typeof search?.quote === "string" ? search.quote : null,
+        quoteFound:
+          quoteFound === "true" ? true : quoteFound === "false" ? false : null,
+      };
     },
   });
+  const fromTab = sourceContext.fromTab;
   const backTab: TabKey = fromTab ?? "documents";
   const backLabel =
     fromTab && fromTab !== "documents"
@@ -149,6 +155,9 @@ export function DocumentDetail({
     .reverse()
     .find((v) => v.version.resolved_text)?.version;
   const editorText = latestResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
+  const sourceQuoteFoundInReader = sourceContext.quote
+    ? Boolean(findNormalizedRange(editorText, sourceContext.quote))
+    : null;
   const editorSourceLabel = latestResolvedVersion
     ? `Editing saved version v${latestResolvedVersion.version_number}`
     : body
@@ -245,8 +254,22 @@ export function DocumentDetail({
             className="mt-4 border-l-2 border-rule bg-paper px-4 py-3 text-sm text-muted"
             data-testid="from-chat-note"
           >
-            Opened from Chat. Pinpointing the exact passage isn't supported
-            yet — the document text is shown in full below.
+            {sourceContext.quote ? (
+              <>
+                Opened from a cited source.{" "}
+                {sourceContext.quoteFound === false
+                  ? "The model supplied a quote, but Legalise could not locate it in the extracted source body. "
+                  : sourceQuoteFoundInReader
+                    ? "The cited passage is highlighted below. "
+                    : "Legalise could not locate it in the current reader text. "}
+                Source links are for review, not proof.
+              </>
+            ) : (
+              <>
+                Opened from Chat. This document was cited or used by the output;
+                source links are for review, not proof.
+              </>
+            )}
           </p>
         )}
 
@@ -271,6 +294,7 @@ export function DocumentDetail({
                   initialText={editorText}
                   latestVersionNumber={latestVersion?.version_number}
                   sourceLabel={editorSourceLabel}
+                  sourceHighlight={sourceContext.quote}
                   onSaved={() => {
                     getDocumentVersions(documentId)
                       .then(setVersions)

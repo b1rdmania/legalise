@@ -42,6 +42,10 @@ function mount(documentId = "doc-1", search = "") {
     path: "/matters/$slug/documents/$documentId",
     validateSearch: (s: Record<string, unknown>) => ({
       from: typeof s.from === "string" ? s.from : undefined,
+      source: typeof s.source === "string" ? s.source : undefined,
+      quote: typeof s.quote === "string" ? s.quote : undefined,
+      quote_found: typeof s.quote_found === "string" ? s.quote_found : undefined,
+      quoteFound: typeof s.quoteFound === "string" ? s.quoteFound : undefined,
     }),
     component: () => <DocumentDetail slug="khan" documentId={documentId} />,
   });
@@ -248,6 +252,56 @@ describe("DocumentDetail", () => {
     });
     // Smart back reflects the arrived-from tab.
     expect(screen.getByTestId("document-back-link")).toHaveTextContent(/Back to Chat/i);
+  });
+
+  it("highlights a cited quote when opened from an output source link", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue({
+      document_id: "doc-1",
+      kind: "extracted",
+      extracted_text:
+        "The employee was dismissed for a single social-media post made outside working hours.",
+      extraction_method: "pypdf",
+      extracted_at: "2026-05-28T09:01:00",
+      char_count: 85,
+      page_count: 1,
+      error_reason: null,
+    });
+
+    const { container } = mount(
+      "doc-1",
+      "?from=assistant&source=src_q1&quote=dismissed+for+a+single+social-media+post&quote_found=true",
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("from-chat-note")).toHaveTextContent(
+        /cited passage is highlighted/i,
+      );
+    });
+    expect(container.querySelector("mark")).not.toBeNull();
+  });
+
+  it("warns when a source quote was not located in the extracted source body", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue({
+      document_id: "doc-1",
+      kind: "extracted",
+      extracted_text: "The employee was dismissed.",
+      extraction_method: "pypdf",
+      extracted_at: "2026-05-28T09:01:00",
+      char_count: 27,
+      page_count: 1,
+      error_reason: null,
+    });
+
+    mount(
+      "doc-1",
+      "?from=assistant&source=src_q2&quote=governed+by+New+York+law&quoteFound=false",
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("from-chat-note")).toHaveTextContent(
+        /could not locate it/i,
+      );
+    });
   });
 
   it("shows not-found when the document is not in the matter", async () => {

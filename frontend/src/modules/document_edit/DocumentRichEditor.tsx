@@ -24,19 +24,68 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-export function textToEditorHtml(text: string): string {
+type TextRange = { start: number; end: number };
+
+export function findNormalizedRange(
+  text: string,
+  needle: string | null | undefined,
+): TextRange | null {
+  const target = needle?.trim().replace(/\s+/g, " ").toLowerCase();
+  if (!target || target.length < 3) return null;
+
+  let normalised = "";
+  const starts: number[] = [];
+  const ends: number[] = [];
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (/\s/.test(ch)) {
+      if (normalised.length === 0) continue;
+      if (normalised.endsWith(" ")) {
+        ends[ends.length - 1] = i + 1;
+      } else {
+        normalised += " ";
+        starts.push(i);
+        ends.push(i + 1);
+      }
+      continue;
+    }
+    normalised += ch.toLowerCase();
+    starts.push(i);
+    ends.push(i + 1);
+  }
+
+  const searchable = normalised.trimEnd();
+  const index = searchable.indexOf(target);
+  if (index === -1) return null;
+  const endIndex = index + target.length - 1;
+  return { start: starts[index], end: ends[endIndex] };
+}
+
+function escapeWithOptionalMark(text: string, range: TextRange | null): string {
+  if (!range || range.end <= range.start) return escapeHtml(text);
+  const matched = text.slice(range.start, range.end);
+  if (/\n{2,}/.test(matched)) return escapeHtml(text);
+  return [
+    escapeHtml(text.slice(0, range.start)),
+    '<mark data-source-anchor="true">',
+    escapeHtml(matched),
+    "</mark>",
+    escapeHtml(text.slice(range.end)),
+  ].join("");
+}
+
+export function textToEditorHtml(
+  text: string,
+  sourceHighlight?: string | null,
+): string {
   const trimmed = text.trim();
   if (!trimmed) return "<p></p>";
-  return trimmed
-    .split(/\n{2,}/)
-    .map((paragraph) => {
-      const lines = paragraph
-        .split(/\n/)
-        .map((line) => escapeHtml(line))
-        .join("<br />");
-      return `<p>${lines}</p>`;
-    })
-    .join("");
+  const range = findNormalizedRange(trimmed, sourceHighlight);
+  const html = escapeWithOptionalMark(trimmed, range)
+    .replace(/\n{2,}/g, "</p><p>")
+    .replace(/\n/g, "<br />");
+  return `<p>${html}</p>`;
 }
 
 function plainTextFromNode(node: TiptapNode): string {
@@ -86,6 +135,7 @@ export function DocumentRichEditor({
   initialText,
   latestVersionNumber,
   sourceLabel,
+  sourceHighlight,
   onSaved,
 }: {
   documentId: string;
@@ -93,13 +143,17 @@ export function DocumentRichEditor({
   initialText: string;
   latestVersionNumber?: number;
   sourceLabel: string;
+  sourceHighlight?: string | null;
   onSaved: (version: DocumentVersionRead) => void;
 }) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const content = useMemo(() => textToEditorHtml(initialText), [initialText]);
+  const content = useMemo(
+    () => textToEditorHtml(initialText, sourceHighlight),
+    [initialText, sourceHighlight],
+  );
   const editor = useEditor(
     {
       extensions: [
