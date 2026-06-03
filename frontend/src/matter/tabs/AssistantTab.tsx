@@ -46,6 +46,9 @@ interface AssistantTabProps {
   showContextRail?: boolean;
   // Called when a Suggested Action chip is clicked in disabled (demo) mode.
   onDisabledAction?: () => void;
+  // Optional route override for read-only/public shells. Normal matters
+  // route source chips into the authenticated matter document reader.
+  onDocumentChip?: (documentId: string) => void;
 }
 
 // Three concrete first-actions per matter type. Per JOY.md "Suggested
@@ -89,6 +92,7 @@ export function AssistantTab({
   showDisabledFooter = true,
   showContextRail = true,
   onDisabledAction,
+  onDocumentChip,
   // back-compat — see AssistantTabProps; deliberately unused.
   auditCount: _auditCount,
   workflowsGrantedCount: _workflowsGrantedCount,
@@ -270,6 +274,10 @@ export function AssistantTab({
   // honest note that exact-passage anchoring isn't supported yet.
   const navigate = useNavigate();
   const dispatchDocChip = (documentId: string) => {
+    if (onDocumentChip) {
+      onDocumentChip(documentId);
+      return;
+    }
     void navigate({
       to: "/matters/$slug/documents/$documentId",
       params: { slug: matter.slug, documentId },

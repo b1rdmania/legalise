@@ -138,6 +138,9 @@ export function DemoMatter() {
                   showDisabledFooter={false}
                   showContextRail={false}
                   onDisabledAction={() => setTabAndHash("workflows")}
+                  onDocumentChip={(documentId) =>
+                    navigate(`/demo/documents/${encodeURIComponent(documentId)}`)
+                  }
                 />
               </div>
             )}
