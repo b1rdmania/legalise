@@ -48,6 +48,8 @@ type EditPanelProps = {
   filename: string;
   onClose?: () => void;
   onResolved?: () => void;
+  onResult?: (result: EditInstructionResponse) => void;
+  showResult?: boolean;
   showTimeline?: boolean;
 };
 
@@ -56,6 +58,8 @@ export function EditPanel({
   filename,
   onClose,
   onResolved,
+  onResult,
+  showResult = true,
   showTimeline = true,
 }: EditPanelProps) {
   const [instruction, setInstruction] = useState("");
@@ -76,6 +80,7 @@ export function EditPanel({
     try {
       const res = await postEditInstruction(documentId, instruction.trim(), mode);
       setResult(res);
+      onResult?.(res);
       setTimelineKey((k) => k + 1);
     } catch (e: unknown) {
       if (e instanceof ProviderUpstreamError) {
@@ -160,7 +165,13 @@ export function EditPanel({
         </div>
       )}
 
-      {result && (
+      {result && !showResult && (
+        <p className="border border-rule bg-paper-sunken px-3 py-2 text-[12px] text-muted">
+          Proposed edits are ready in the document review area.
+        </p>
+      )}
+
+      {result && showResult && (
         <TrackedChangesView
           result={result}
           onResolved={() => {

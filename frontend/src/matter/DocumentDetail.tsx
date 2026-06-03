@@ -10,6 +10,7 @@ import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
 import {
   documentOriginalUrl,
   documentVersionDocxUrl,
+  type EditInstructionResponse,
   getAnonymisation,
   getDocumentBody,
   getDocumentVersions,
@@ -26,6 +27,7 @@ import {
   LoadingLine,
 } from "../ui/primitives";
 import { EditPanel } from "../modules/document_edit/EditPanel";
+import { TrackedChangesView } from "../modules/document_edit/TrackedChangesView";
 import { AnonymiseButton } from "../modules/anonymisation/AnonymiseButton";
 import { VersionTimeline } from "../modules/document_edit/VersionTimeline";
 import {
@@ -59,6 +61,8 @@ export function DocumentDetail({
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [anon, setAnon] = useState<AnonymisationResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [activeEditResult, setActiveEditResult] =
+    useState<EditInstructionResponse | null>(null);
 
   const sourceContext = useRouterState({
     select: (s) => {
@@ -109,6 +113,7 @@ export function DocumentDetail({
   }, [documentId]);
 
   useEffect(() => {
+    setActiveEditResult(null);
     loadBody();
     getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
     getAnonymisation(documentId)
@@ -280,6 +285,43 @@ export function DocumentDetail({
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
           <main className="min-w-0">
+            {activeEditResult && (
+              <section
+                className="mb-6 border border-rule bg-paper p-5"
+                data-testid="document-inline-redlines"
+              >
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                      Proposed redlines
+                    </p>
+                    <h2 className="mt-1 text-xl font-semibold tracking-tight2 text-ink">
+                      Review suggested changes in this document.
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-muted">
+                      Accepting edits creates a new version; rejected edits stay in the record.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveEditResult(null)}
+                    className="border border-rule px-3 py-2 text-sm text-muted hover:border-ink hover:text-ink"
+                  >
+                    Hide redlines
+                  </button>
+                </div>
+                <TrackedChangesView
+                  result={activeEditResult}
+                  onResolved={() => {
+                    loadBody();
+                    getDocumentVersions(documentId)
+                      .then(setVersions)
+                      .catch(() => undefined);
+                  }}
+                />
+              </section>
+            )}
+
             <div data-testid="document-content">
               {bodyMissing && !latestResolvedVersion ? (
                 <div className="p-6">
@@ -362,13 +404,15 @@ export function DocumentDetail({
                 Document tools
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted">
-                Propose edits against the extracted text. You choose which suggestions become a new version.
+                Propose edits against the extracted text. Suggested changes appear in the document review area.
               </p>
               <div className="mt-4" data-testid="document-redline-workspace">
                 <EditPanel
                   documentId={documentId}
                   filename={doc.filename}
+                  showResult={false}
                   showTimeline={false}
+                  onResult={setActiveEditResult}
                   onResolved={() => {
                     loadBody();
                     getDocumentVersions(documentId)
