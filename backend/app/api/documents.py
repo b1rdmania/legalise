@@ -334,6 +334,70 @@ def _add_tiptap_list(document: DocxDocument, node: dict[str, Any], style: str) -
             _add_tiptap_list_item(document, child, style)
 
 
+def _tiptap_cell_text(cell: dict[str, Any]) -> str:
+    text = _plain_text_from_tiptap_node(cell).strip()
+    return re.sub(r"\n{2,}", "\n", text)
+
+
+def _plain_text_from_tiptap_node(node: dict[str, Any]) -> str:
+    node_type = node.get("type")
+    if node_type == "text":
+        return str(node.get("text") or "")
+    if node_type == "hardBreak":
+        return "\n"
+    children = "".join(
+        _plain_text_from_tiptap_node(child)
+        for child in node.get("content") or []
+        if isinstance(child, dict)
+    )
+    if node_type in {"paragraph", "heading", "listItem"}:
+        return f"{children}\n"
+    if node_type == "tableRow":
+        return "\t".join(
+            _plain_text_from_tiptap_node(child).strip()
+            for child in node.get("content") or []
+            if isinstance(child, dict)
+        )
+    return children
+
+
+def _add_tiptap_table(document: DocxDocument, node: dict[str, Any]) -> None:
+    rows = [
+        row
+        for row in node.get("content") or []
+        if isinstance(row, dict) and row.get("type") == "tableRow"
+    ]
+    if not rows:
+        return
+    col_count = max(
+        len(
+            [
+                cell
+                for cell in row.get("content") or []
+                if isinstance(cell, dict) and cell.get("type") in {"tableCell", "tableHeader"}
+            ]
+        )
+        for row in rows
+    )
+    if col_count == 0:
+        return
+    table = document.add_table(rows=len(rows), cols=col_count)
+    table.style = "Table Grid"
+    for row_idx, row in enumerate(rows):
+        cells = [
+            cell
+            for cell in row.get("content") or []
+            if isinstance(cell, dict) and cell.get("type") in {"tableCell", "tableHeader"}
+        ]
+        for col_idx, cell in enumerate(cells[:col_count]):
+            table_cell = table.rows[row_idx].cells[col_idx]
+            table_cell.text = _tiptap_cell_text(cell)
+            if cell.get("type") == "tableHeader":
+                for para in table_cell.paragraphs:
+                    for run in para.runs:
+                        run.bold = True
+
+
 def _render_tiptap_docx(title: str, body_json: dict[str, Any], fallback_text: str) -> bytes:
     if body_json.get("type") != "doc" or not isinstance(body_json.get("content"), list):
         return _render_resolved_text_docx(title, fallback_text)
@@ -350,6 +414,8 @@ def _render_tiptap_docx(title: str, body_json: dict[str, Any], fallback_text: st
             _add_tiptap_list(document, node, "List Bullet")
         elif node_type == "orderedList":
             _add_tiptap_list(document, node, "List Number")
+        elif node_type == "table":
+            _add_tiptap_table(document, node)
     buf = io.BytesIO()
     document.save(buf)
     return buf.getvalue()

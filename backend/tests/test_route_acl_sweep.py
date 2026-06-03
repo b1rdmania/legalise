@@ -193,6 +193,57 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
                             }
                         ],
                     },
+                    {
+                        "type": "table",
+                        "content": [
+                            {
+                                "type": "tableRow",
+                                "content": [
+                                    {
+                                        "type": "tableHeader",
+                                        "content": [
+                                            {
+                                                "type": "paragraph",
+                                                "content": [{"type": "text", "text": "Issue"}],
+                                            }
+                                        ],
+                                    },
+                                    {
+                                        "type": "tableHeader",
+                                        "content": [
+                                            {
+                                                "type": "paragraph",
+                                                "content": [{"type": "text", "text": "Risk"}],
+                                            }
+                                        ],
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "tableRow",
+                                "content": [
+                                    {
+                                        "type": "tableCell",
+                                        "content": [
+                                            {
+                                                "type": "paragraph",
+                                                "content": [{"type": "text", "text": "Indemnity"}],
+                                            }
+                                        ],
+                                    },
+                                    {
+                                        "type": "tableCell",
+                                        "content": [
+                                            {
+                                                "type": "paragraph",
+                                                "content": [{"type": "text", "text": "High"}],
+                                            }
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
                 ],
             },
         },
@@ -214,6 +265,10 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
     bullet = next(p for p in docx.paragraphs if p.text == "Listed point")
     assert bullet.style.name.startswith("List Bullet")
     assert bullet.runs[0].font.highlight_color is not None
+    assert docx.tables[0].cell(0, 0).text == "Issue"
+    assert docx.tables[0].cell(0, 1).text == "Risk"
+    assert docx.tables[0].cell(1, 0).text == "Indemnity"
+    assert docx.tables[0].cell(1, 1).text == "High"
 
 
 @pytest.mark.asyncio
