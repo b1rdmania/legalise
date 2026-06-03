@@ -7,11 +7,12 @@ import re
 import uuid
 from datetime import datetime
 
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from docx import Document as DocxDocument
+from docx.enum.text import WD_COLOR_INDEX
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -138,6 +139,7 @@ class DocumentVersionRead(BaseModel):
     storage_uri: str | None
     notes: str | None
     resolved_text: str | None = None
+    resolved_json: dict[str, Any] | None = None
 
     model_config = {"from_attributes": True}
 
@@ -265,6 +267,89 @@ def _render_resolved_text_docx(title: str, body: str) -> bytes:
         for line in lines[1:]:
             para.add_run().add_break()
             para.add_run(line)
+    buf = io.BytesIO()
+    document.save(buf)
+    return buf.getvalue()
+
+
+def _add_tiptap_inline_content(paragraph, nodes: list[dict[str, Any]] | None) -> None:
+    for node in nodes or []:
+        node_type = node.get("type")
+        if node_type == "text":
+            run = paragraph.add_run(str(node.get("text") or ""))
+            mark_types = {
+                str(mark.get("type"))
+                for mark in node.get("marks") or []
+                if isinstance(mark, dict)
+            }
+            run.bold = "bold" in mark_types
+            run.italic = "italic" in mark_types
+            run.underline = "underline" in mark_types
+            if "highlight" in mark_types:
+                run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+        elif node_type == "hardBreak":
+            paragraph.add_run().add_break()
+        elif isinstance(node.get("content"), list):
+            _add_tiptap_inline_content(paragraph, node.get("content"))
+
+
+def _add_tiptap_paragraph(
+    document: DocxDocument,
+    node: dict[str, Any],
+    style: str | None = None,
+) -> None:
+    if node.get("type") == "heading":
+        level = int((node.get("attrs") or {}).get("level") or 1)
+        paragraph = document.add_heading(level=max(1, min(level, 4)))
+    else:
+        paragraph = document.add_paragraph(style=style)
+    _add_tiptap_inline_content(paragraph, node.get("content"))
+
+
+def _add_tiptap_list_item(document: DocxDocument, item: dict[str, Any], style: str) -> None:
+    children = item.get("content") or []
+    wrote_paragraph = False
+    for child in children:
+        if not isinstance(child, dict):
+            continue
+        child_type = child.get("type")
+        if child_type in {"paragraph", "heading"}:
+            _add_tiptap_paragraph(
+                document,
+                child,
+                style=style if not wrote_paragraph else None,
+            )
+            wrote_paragraph = True
+        elif child_type == "bulletList":
+            _add_tiptap_list(document, child, "List Bullet")
+        elif child_type == "orderedList":
+            _add_tiptap_list(document, child, "List Number")
+    if not wrote_paragraph:
+        document.add_paragraph(style=style)
+
+
+def _add_tiptap_list(document: DocxDocument, node: dict[str, Any], style: str) -> None:
+    for child in node.get("content") or []:
+        if isinstance(child, dict) and child.get("type") == "listItem":
+            _add_tiptap_list_item(document, child, style)
+
+
+def _render_tiptap_docx(title: str, body_json: dict[str, Any], fallback_text: str) -> bytes:
+    if body_json.get("type") != "doc" or not isinstance(body_json.get("content"), list):
+        return _render_resolved_text_docx(title, fallback_text)
+
+    document = DocxDocument()
+    document.add_heading(title, level=0)
+    for node in body_json.get("content") or []:
+        if not isinstance(node, dict):
+            continue
+        node_type = node.get("type")
+        if node_type in {"paragraph", "heading"}:
+            _add_tiptap_paragraph(document, node)
+        elif node_type == "bulletList":
+            _add_tiptap_list(document, node, "List Bullet")
+        elif node_type == "orderedList":
+            _add_tiptap_list(document, node, "List Number")
     buf = io.BytesIO()
     document.save(buf)
     return buf.getvalue()
@@ -473,6 +558,7 @@ class DocumentVersionSummary(BaseModel):
 
 class ManualDocumentVersionRequest(BaseModel):
     resolved_text: str = Field(min_length=1, max_length=500_000)
+    resolved_json: dict[str, Any] | None = None
     notes: str | None = Field(default=None, max_length=500)
 
 
@@ -594,6 +680,7 @@ async def post_manual_document_version(
         kind=VERSION_KIND_USER_EDIT,
         created_by_id=user.id,
         resolved_text=body.resolved_text,
+        resolved_json=body.resolved_json,
         notes=body.notes or "Edited in Legalise document editor",
     )
     session.add(version)
@@ -611,6 +698,7 @@ async def post_manual_document_version(
             "version_number": version.version_number,
             "kind": version.kind,
             "char_count": len(body.resolved_text),
+            "rich_json": body.resolved_json is not None,
         },
     )
     await session.commit()
@@ -637,7 +725,11 @@ async def get_document_version_docx(
     if not version.resolved_text:
         raise HTTPException(422, "document version has no resolved text")
 
-    data = _render_resolved_text_docx(doc.filename, version.resolved_text)
+    data = (
+        _render_tiptap_docx(doc.filename, version.resolved_json, version.resolved_text)
+        if version.resolved_json
+        else _render_resolved_text_docx(doc.filename, version.resolved_text)
+    )
     filename = _docx_export_filename(doc.filename, version.version_number)
     await audit.log(
         session,
@@ -653,6 +745,7 @@ async def get_document_version_docx(
             "char_count": len(version.resolved_text),
             "byte_count": len(data),
             "format": "docx",
+            "rich_json": version.resolved_json is not None,
         },
     )
     await session.commit()

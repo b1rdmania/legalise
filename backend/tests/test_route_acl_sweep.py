@@ -15,6 +15,7 @@ import uuid
 import zipfile
 
 import pytest
+from docx import Document as DocxDocument
 
 
 EMAIL_A = "acl-sweep-a@example.com"
@@ -94,6 +95,19 @@ async def test_post_manual_document_version_creates_user_edit_version(client) ->
         f"/api/documents/{doc_id}/versions/manual",
         json={
             "resolved_text": "Edited witness statement.\n\nSecond paragraph.",
+            "resolved_json": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "Edited witness statement."}],
+                    },
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "Second paragraph."}],
+                    },
+                ],
+            },
             "notes": "Manual edit from document editor",
         },
     )
@@ -102,6 +116,7 @@ async def test_post_manual_document_version_creates_user_edit_version(client) ->
     assert payload["kind"] == "user_edit"
     assert payload["version_number"] == 2
     assert payload["resolved_text"] == "Edited witness statement.\n\nSecond paragraph."
+    assert payload["resolved_json"]["type"] == "doc"
     assert payload["notes"] == "Manual edit from document editor"
 
     versions = await client.get(f"/api/documents/{doc_id}/versions")
@@ -109,6 +124,7 @@ async def test_post_manual_document_version_creates_user_edit_version(client) ->
     rows = versions.json()
     assert rows[-1]["version"]["kind"] == "user_edit"
     assert rows[-1]["version"]["resolved_text"] == "Edited witness statement.\n\nSecond paragraph."
+    assert rows[-1]["version"]["resolved_json"]["type"] == "doc"
 
 
 @pytest.mark.asyncio
@@ -131,6 +147,73 @@ async def test_get_manual_document_version_docx_returns_word_file(client) -> Non
     )
     assert resp.headers.get("content-disposition", "").endswith('.docx"')
     assert zipfile.is_zipfile(io.BytesIO(resp.content))
+
+
+@pytest.mark.asyncio
+async def test_get_manual_document_version_docx_preserves_rich_editor_marks(client) -> None:
+    """Rich editor saves keep basic formatting when exported as .docx."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+
+    save = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={
+            "resolved_text": "Important term\n\nListed point",
+            "resolved_json": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Important",
+                                "marks": [{"type": "bold"}, {"type": "underline"}],
+                            },
+                            {"type": "text", "text": " term", "marks": [{"type": "italic"}]},
+                        ],
+                    },
+                    {
+                        "type": "bulletList",
+                        "content": [
+                            {
+                                "type": "listItem",
+                                "content": [
+                                    {
+                                        "type": "paragraph",
+                                        "content": [
+                                            {
+                                                "type": "text",
+                                                "text": "Listed point",
+                                                "marks": [{"type": "highlight"}],
+                                            }
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            },
+        },
+    )
+    assert save.status_code == 200, save.text
+    version_id = save.json()["id"]
+
+    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/docx")
+    assert resp.status_code == 200, resp.text
+    docx = DocxDocument(io.BytesIO(resp.content))
+
+    first = docx.paragraphs[1]
+    assert first.runs[0].text == "Important"
+    assert first.runs[0].bold is True
+    assert first.runs[0].underline is True
+    assert first.runs[1].text == " term"
+    assert first.runs[1].italic is True
+
+    bullet = next(p for p in docx.paragraphs if p.text == "Listed point")
+    assert bullet.style.name.startswith("List Bullet")
+    assert bullet.runs[0].font.highlight_color is not None
 
 
 @pytest.mark.asyncio

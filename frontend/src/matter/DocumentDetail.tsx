@@ -33,6 +33,7 @@ import { VersionTimeline } from "../modules/document_edit/VersionTimeline";
 import {
   DocumentRichEditor,
   findNormalizedRange,
+  type TiptapNode,
 } from "../modules/document_edit/DocumentRichEditor";
 import { DocxOriginalPreview } from "../modules/document_preview/DocxOriginalPreview";
 
@@ -206,6 +207,7 @@ export function DocumentDetail({
         null);
   const editorText =
     selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
+  const editorJson = selectedResolvedVersion?.resolved_json as TiptapNode | null | undefined;
   const sourceQuoteFoundInReader = sourceContext.quote
     ? Boolean(findNormalizedRange(editorText, sourceContext.quote))
     : null;
@@ -417,6 +419,7 @@ export function DocumentDetail({
                   documentId={documentId}
                   filename={doc.filename}
                   initialText={editorText}
+                  initialJson={editorJson}
                   latestVersionNumber={latestVersion?.version_number}
                   sourceLabel={editorSourceLabel}
                   sourceHighlight={sourceContext.quote}

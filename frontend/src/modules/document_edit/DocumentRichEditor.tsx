@@ -4,17 +4,14 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
+import type { Content, JSONContent } from "@tiptap/core";
 
 import {
   saveDocumentVersion,
   type DocumentVersionRead,
 } from "../../lib/api";
 
-type TiptapNode = {
-  type?: string;
-  text?: string;
-  content?: TiptapNode[];
-};
+export type TiptapNode = JSONContent;
 
 function escapeHtml(value: string): string {
   return value
@@ -133,6 +130,7 @@ export function DocumentRichEditor({
   documentId,
   filename,
   initialText,
+  initialJson,
   latestVersionNumber,
   sourceLabel,
   sourceHighlight,
@@ -141,6 +139,7 @@ export function DocumentRichEditor({
   documentId: string;
   filename: string;
   initialText: string;
+  initialJson?: TiptapNode | null;
   latestVersionNumber?: number;
   sourceLabel: string;
   sourceHighlight?: string | null;
@@ -150,9 +149,9 @@ export function DocumentRichEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const content = useMemo(
-    () => textToEditorHtml(initialText, sourceHighlight),
-    [initialText, sourceHighlight],
+  const content = useMemo<Content>(
+    () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
+    [initialJson, initialText, sourceHighlight],
   );
   const editor = useEditor(
     {
@@ -200,10 +199,12 @@ export function DocumentRichEditor({
     setSaving(true);
     setError(null);
     try {
+      const editorJson = editor.getJSON() as TiptapNode;
       const version = await saveDocumentVersion(
         documentId,
         plainText,
         `Edited ${filename} in Legalise document editor`,
+        editorJson,
       );
       setDirty(false);
       setSavedMessage(`Saved v${version.version_number}`);
