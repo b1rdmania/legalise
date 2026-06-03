@@ -49,6 +49,31 @@ type DocQuery =
   | { status: "error"; message: string };
 
 const EXTRACTED_VERSION_ID = "__extracted";
+type WorkbenchView = "editor" | "redlines" | "original" | "versions";
+
+function WorkbenchTab({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-[40px] border px-4 text-sm font-medium transition-colors ${
+        active
+          ? "border-ink bg-ink text-paper"
+          : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function DocumentDetail({
   slug,
@@ -63,6 +88,7 @@ export function DocumentDetail({
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [anon, setAnon] = useState<AnonymisationResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
@@ -117,6 +143,7 @@ export function DocumentDetail({
 
   useEffect(() => {
     setActiveEditResult(null);
+    setWorkbenchView("editor");
     setSelectedVersionId(null);
     loadBody();
     getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
@@ -297,11 +324,44 @@ export function DocumentDetail({
           </p>
         )}
 
+        <nav
+          className="mt-4 flex flex-wrap gap-2"
+          aria-label="Document workspace views"
+          data-testid="document-workbench-tabs"
+        >
+          <WorkbenchTab
+            active={workbenchView === "editor"}
+            onClick={() => setWorkbenchView("editor")}
+          >
+            Editor
+          </WorkbenchTab>
+          <WorkbenchTab
+            active={workbenchView === "original"}
+            onClick={() => setWorkbenchView("original")}
+          >
+            Original
+          </WorkbenchTab>
+          <WorkbenchTab
+            active={workbenchView === "versions"}
+            onClick={() => setWorkbenchView("versions")}
+          >
+            Versions
+          </WorkbenchTab>
+          {activeEditResult && (
+            <WorkbenchTab
+              active={workbenchView === "redlines"}
+              onClick={() => setWorkbenchView("redlines")}
+            >
+              Redlines
+            </WorkbenchTab>
+          )}
+        </nav>
+
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
           <main className="min-w-0">
-            {activeEditResult && (
+            {workbenchView === "redlines" && activeEditResult && (
               <section
-                className="mb-6 border border-rule bg-paper p-5"
+                className="border border-rule bg-paper p-5"
                 data-testid="document-inline-redlines"
               >
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -318,7 +378,10 @@ export function DocumentDetail({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setActiveEditResult(null)}
+                    onClick={() => {
+                      setActiveEditResult(null);
+                      setWorkbenchView("editor");
+                    }}
                     className="border border-rule px-3 py-2 text-sm text-muted hover:border-ink hover:text-ink"
                   >
                     Hide redlines
@@ -336,6 +399,7 @@ export function DocumentDetail({
               </section>
             )}
 
+            {workbenchView === "editor" && (
             <div data-testid="document-content">
               {bodyMissing && !selectedResolvedVersion ? (
                 <div className="p-6">
@@ -365,9 +429,12 @@ export function DocumentDetail({
                 />
               )}
             </div>
+            )}
 
-            {canPreviewOriginal && (
-              <section className="mt-6 border border-rule bg-paper" data-testid="document-original-preview">
+            {workbenchView === "original" && (
+              <>
+              {canPreviewOriginal ? (
+              <section className="border border-rule bg-paper" data-testid="document-original-preview">
                 <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
                   <div>
                     <h2 className="text-sm font-semibold text-ink">Original preview</h2>
@@ -390,14 +457,22 @@ export function DocumentDetail({
                   className="h-[620px] w-full bg-paper-sunken"
                 />
               </section>
-            )}
-
-            {!canPreviewOriginal && canPreviewDocx && (
+              ) : canPreviewDocx ? (
               <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
+              ) : (
+                <section className="border border-rule bg-paper p-6">
+                  <EmptyState
+                    title="Original preview unavailable"
+                    body="This file type does not have an embedded preview yet. Open or download the original file instead."
+                  />
+                </section>
+              )}
+              </>
             )}
 
+            {workbenchView === "versions" && (
             <section
-              className="mt-6 border border-rule bg-paper p-5"
+              className="border border-rule bg-paper p-5"
               data-testid="document-history-workspace"
             >
               <h2 className="text-lg font-semibold tracking-tight2 text-ink">
@@ -410,7 +485,10 @@ export function DocumentDetail({
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedVersionId(EXTRACTED_VERSION_ID)}
+                    onClick={() => {
+                      setSelectedVersionId(EXTRACTED_VERSION_ID);
+                      setWorkbenchView("editor");
+                    }}
                     className={`border px-3 py-2 text-sm ${
                       selectedVersionId === EXTRACTED_VERSION_ID
                         ? "border-ink bg-ink text-paper"
@@ -423,7 +501,10 @@ export function DocumentDetail({
                     <button
                       key={version.id}
                       type="button"
-                      onClick={() => setSelectedVersionId(version.id)}
+                      onClick={() => {
+                        setSelectedVersionId(version.id);
+                        setWorkbenchView("editor");
+                      }}
                       className={`border px-3 py-2 text-sm ${
                         selectedResolvedVersion?.id === version.id
                           ? "border-ink bg-ink text-paper"
@@ -439,12 +520,16 @@ export function DocumentDetail({
                 documentId={documentId}
                 versions={versions}
                 selectedVersionId={selectedResolvedVersion?.id ?? null}
-                onSelectVersion={setSelectedVersionId}
+                onSelectVersion={(versionId) => {
+                  setSelectedVersionId(versionId);
+                  setWorkbenchView("editor");
+                }}
               />
               {versions.length === 0 && (
                 <p className="mt-4 text-sm text-muted">No versions recorded.</p>
               )}
             </section>
+            )}
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
@@ -461,7 +546,10 @@ export function DocumentDetail({
                   filename={doc.filename}
                   showResult={false}
                   showTimeline={false}
-                  onResult={setActiveEditResult}
+                  onResult={(result) => {
+                    setActiveEditResult(result);
+                    setWorkbenchView("redlines");
+                  }}
                   onResolved={() => {
                     loadBody();
                     getDocumentVersions(documentId)

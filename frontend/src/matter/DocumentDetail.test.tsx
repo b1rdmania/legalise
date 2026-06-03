@@ -136,7 +136,8 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-editor")).toBeInTheDocument();
     expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
     expect(screen.getByText("Document tools")).toBeInTheDocument();
-    expect(screen.getByText("Version record")).toBeInTheDocument();
+    expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
+    expect(screen.queryByText("Version record")).toBeNull();
     // Admin-ish document facts sit behind Details; the primary scan
     // path is filename, text, original actions, and document tools.
     expect(screen.queryByText("application/pdf")).toBeNull();
@@ -148,6 +149,8 @@ describe("DocumentDetail", () => {
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
+    expect(screen.queryByTestId("document-original-preview")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Original" }));
     expect(screen.getByTestId("document-original-preview")).toBeInTheDocument();
     // Old "not available" note is gone.
     expect(
@@ -188,6 +191,7 @@ describe("DocumentDetail", () => {
       "/documents/doc-1/versions/v-3/docx",
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Versions" }));
     fireEvent.click(screen.getByRole("button", { name: "v2" }));
     await waitFor(() => {
       expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
@@ -199,6 +203,7 @@ describe("DocumentDetail", () => {
       "/documents/doc-1/versions/v-2/docx",
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Versions" }));
     fireEvent.click(screen.getByRole("button", { name: "Extracted text" }));
     await waitFor(() => {
       expect(screen.getByText(/python-docx · 13 chars · 1 pages/)).toBeInTheDocument();
@@ -256,6 +261,8 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-redline-workspace")).toBeInTheDocument();
     expect(screen.getByText("Tighten this clause")).toBeInTheDocument();
 
+    expect(screen.queryByTestId("document-history-workspace")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Versions" }));
     expect(screen.getByTestId("document-history-workspace")).toBeInTheDocument();
     expect(screen.getByText("Version record")).toBeInTheDocument();
     expect(screen.getByText("Redaction")).toBeInTheDocument();
