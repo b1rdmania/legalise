@@ -377,6 +377,20 @@ describe("DocumentDetail", () => {
           resolved_at: null,
           resolved_by_id: null,
         },
+        {
+          id: "comment-resolved",
+          document_id: "doc-1",
+          author_id: "u-1",
+          quote_text: "Original body",
+          body_sha256: "a".repeat(64),
+          anchor_start: 0,
+          anchor_end: 13,
+          body: "Resolved note kept for the file record.",
+          status: "resolved",
+          created_at: "2026-06-03T09:00:00",
+          resolved_at: "2026-06-03T09:30:00",
+          resolved_by_id: "u-1",
+        },
       ])
       .mockResolvedValue([]);
     const create = vi.spyOn(api, "createDocumentComment").mockResolvedValue({
@@ -398,6 +412,12 @@ describe("DocumentDetail", () => {
     expect(await screen.findByTestId("document-comments")).toHaveTextContent(
       "Check the context before relying on this.",
     );
+    expect(screen.getByTestId("document-comments")).toHaveTextContent("Open");
+    expect(screen.getByTestId("document-comments")).toHaveTextContent("Anchored");
+    expect(screen.getByTestId("document-comments")).toHaveTextContent("Resolved");
+    fireEvent.click(screen.getByText("1 resolved"));
+    expect(screen.getByText("Resolved note kept for the file record.")).toBeInTheDocument();
+    expect(screen.getByText(/resolved 2026-06-03 09:30/)).toBeInTheDocument();
     expect(await screen.findByTestId("document-editor-note-rail")).toHaveTextContent(
       "Original body",
     );

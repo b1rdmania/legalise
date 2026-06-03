@@ -365,6 +365,9 @@ export function DocumentDetail({
   const rejectedEdits = versions.reduce((total, v) => total + v.rejected_count, 0);
   const openComments = comments.filter((comment) => comment.status === "open");
   const resolvedComments = comments.filter((comment) => comment.status === "resolved");
+  const anchoredComments = comments.filter(
+    (comment) => comment.anchor_start !== null && comment.anchor_end !== null,
+  );
   const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
     .filter(
       (comment) =>
@@ -1008,9 +1011,34 @@ export function DocumentDetail({
                   {openComments.length} open
                 </span>
               </div>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Open</dt>
+                  <dd className="mt-1 text-base font-semibold text-ink">
+                    {openComments.length}
+                  </dd>
+                </div>
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Anchored</dt>
+                  <dd className="mt-1 text-base font-semibold text-ink">
+                    {anchoredComments.length}
+                  </dd>
+                </div>
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Resolved</dt>
+                  <dd className="mt-1 text-base font-semibold text-ink">
+                    {resolvedComments.length}
+                  </dd>
+                </div>
+              </dl>
               <div className="mt-4 space-y-3">
                 {openComments.length === 0 && resolvedComments.length === 0 && (
                   <p className="text-sm text-muted">No review notes yet.</p>
+                )}
+                {openComments.length > 0 && (
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Open notes
+                  </p>
                 )}
                 {openComments.map((comment) => (
                   <article
@@ -1057,9 +1085,34 @@ export function DocumentDetail({
                     </summary>
                     <div className="mt-3 space-y-2">
                       {resolvedComments.map((comment) => (
-                        <p key={comment.id} className="text-sm leading-6 text-muted">
-                          {comment.body}
-                        </p>
+                        <article
+                          key={comment.id}
+                          className="border border-rule bg-paper p-3 text-sm"
+                        >
+                          {comment.quote_text && (
+                            <blockquote className="mb-2 border-l-2 border-rule pl-3 text-muted">
+                              {comment.quote_text}
+                            </blockquote>
+                          )}
+                          <p className="leading-6 text-muted">{comment.body}</p>
+                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
+                            <span>
+                              resolved{" "}
+                              {comment.resolved_at
+                                ? comment.resolved_at.replace("T", " ").slice(0, 16)
+                                : "without timestamp"}
+                            </span>
+                            {comment.quote_text && (
+                              <button
+                                type="button"
+                                onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
+                                className="font-medium text-ink underline underline-offset-4 hover:text-muted"
+                              >
+                                Find in document
+                              </button>
+                            )}
+                          </div>
+                        </article>
                       ))}
                     </div>
                   </details>
