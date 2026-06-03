@@ -46,8 +46,12 @@ describe("DocumentsTab — document ingress", () => {
       />,
     );
 
-    expect(screen.getByText("Notes")).toBeInTheDocument();
+    expect(screen.getAllByText("Notes").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("2 notes")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Documents in this project" })).toBeInTheDocument();
+    expect(screen.getByText("Open workbench")).toBeInTheDocument();
+    expect(screen.getAllByText("Files")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("1K")[0]).toBeInTheDocument();
   });
 
   it("uploads multiple selected files through the existing per-document audit path", async () => {

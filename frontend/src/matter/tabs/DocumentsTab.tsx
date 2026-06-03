@@ -111,6 +111,9 @@ export function DocumentsTab({
 
   const inputCls =
     "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
+  const totalBytes = docs?.reduce((total, d) => total + d.size_bytes, 0) ?? 0;
+  const disclosureCount = docs?.filter((d) => d.from_disclosure).length ?? 0;
+  const noteCount = docs?.reduce((total, d) => total + (d.comment_count ?? 0), 0) ?? 0;
 
   // Column template shared by the header row and each data row so columns
   // stay aligned. Document gets the largest fr; full SHA moves into the
@@ -209,7 +212,39 @@ export function DocumentsTab({
         />
       )}
       {docs && docs.length > 0 && (
-        <div className="border-t border-rule overflow-x-auto">
+        <div>
+          <div className="mb-4 grid gap-3 border border-rule bg-paper p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight2 text-ink">
+                Documents in this project
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                Open a file to read, edit, compare versions, and keep review notes
+                with the matter record.
+              </p>
+            </div>
+            <dl className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Files</dt>
+                <dd className="mt-1 text-sm font-semibold text-ink">{docs.length}</dd>
+              </div>
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Size</dt>
+                <dd className="mt-1 text-sm font-semibold text-ink">{formatBytes(totalBytes)}</dd>
+              </div>
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Notes</dt>
+                <dd className="mt-1 text-sm font-semibold text-ink">{noteCount}</dd>
+              </div>
+            </dl>
+          </div>
+          {disclosureCount > 0 && (
+            <p className="mb-3 border-l-2 border-rule bg-paper px-3 py-2 text-sm text-muted">
+              {disclosureCount} disclosure document{disclosureCount === 1 ? "" : "s"} marked
+              as CPR 31 material.
+            </p>
+          )}
+          <div className="overflow-x-auto border-t border-rule">
           <div className="min-w-[720px]">
             <div
               className={`${gridCols} text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]`}
@@ -260,12 +295,13 @@ export function DocumentsTab({
                     {formatDate(d.uploaded_at)}
                   </span>
                   <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                    Open
+                    Open workbench
                   </span>
                 </Link>
               );
             })}
           </div>
+        </div>
         </div>
       )}
     </div>
