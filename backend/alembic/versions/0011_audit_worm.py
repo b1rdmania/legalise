@@ -51,8 +51,16 @@ Step 3: Update connection strings:
 Step 4: Re-run this migration so the GRANT/REVOKE block below fires:
     alembic upgrade 0011 (will be a no-op on schema, but runs the grant step)
 
-Step 5: Validate with test_audit_worm.py connect-as-app-role path:
-    TEST_DATABASE_URL=<legalise_app DSN> pytest backend/tests/test_audit_worm.py -x
+Step 5: Validate the role split. The canonical grant/revoke SQL now lives in
+    `infra/postgres-roles.sql`, and the property is verified two ways:
+      - Self-contained harness (no app schema needed):
+            infra/verify-worm-role-split.sh
+        Proves app-role UPDATE/DELETE -> SQLSTATE 42501 *and* the trigger still
+        catches a privileged role. Runs against a disposable DB, drops it after.
+      - CI/integration test against a real role-split DB:
+            TEST_APP_ROLE_DATABASE_URL=<legalise_app DSN> \
+                pytest backend/tests/test_audit_worm_role_split.py -x
+        (Skips cleanly when the var is unset, so single-role CI stays green.)
 
 DOWNGRADE
 ---------
