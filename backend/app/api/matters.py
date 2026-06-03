@@ -1,15 +1,4 @@
-"""Matters API — create, list, fetch, attach documents.
-
-v0.1 endpoints:
-    POST   /api/matters                     create a matter
-    GET    /api/matters                     list all matters for the user
-    GET    /api/matters/{slug}              fetch a matter by slug
-    POST   /api/matters/{slug}/documents    register a document on the matter
-    GET    /api/matters/{slug}/documents    list documents on the matter
-
-Document upload is metadata-only for v0.1; binary upload to MinIO/R2 lands
-later in the build window (Week 1 Day 5+).
-"""
+"""Matters API — create, list, fetch, attach documents."""
 
 from __future__ import annotations
 
@@ -28,6 +17,12 @@ from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.limits import check_matter_create, check_document_upload
+from app.core.document_uploads import (
+    ALLOWED_UPLOAD_MIMES,
+    MAX_UPLOAD_BYTES,
+    MIME_TO_FORMAT,
+    sniff_format,
+)
 from app.core.matter_fs import (
     append_history,
     materialise_matter,
@@ -66,59 +61,6 @@ from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
 
 router = APIRouter()
-
-
-# Upload validation. Pre-launch hardening: cap binary size, restrict
-# accepted MIME types, and require the body's magic bytes to match the
-# declared MIME so a fake `application/pdf` cannot reach the pdf
-# parser. Extraction downstream (`extract_text`) only knows pdf / docx
-# / doc / txt / md / rtf; the allowlist mirrors what we actually
-# process.
-MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
-
-# Declared MIME → canonical format key. The format key is what we
-# compare against the inferred-from-bytes format below. Single source
-# of truth for the allowlist; `ALLOWED_UPLOAD_MIMES` is derived.
-_MIME_TO_FORMAT: dict[str, str] = {
-    "application/pdf": "pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-    "application/msword": "doc",
-    "text/plain": "text",
-    "text/markdown": "text",
-    "application/rtf": "rtf",
-    "text/rtf": "rtf",
-}
-ALLOWED_UPLOAD_MIMES = frozenset(_MIME_TO_FORMAT.keys())
-
-
-def _sniff_format(head: bytes) -> str | None:
-    """Infer canonical format key from the first ~1KB of a file body.
-
-    Returns one of the format keys used in `_MIME_TO_FORMAT.values()`
-    or None when no signature matches and the bytes are not valid UTF-8
-    (in which case calling the file `text/plain` would also be a lie).
-
-    Empty bytes is treated as text — the size cap is the emptiness
-    guard, not this function. The magic check is a "lying about file
-    type" defence, not a content quality check.
-    """
-    if head.startswith(b"%PDF-"):
-        return "pdf"
-    if head.startswith(b"PK\x03\x04"):
-        # Zip-based — could be any Office Open XML or generic zip, but
-        # the MIME allowlist only permits docx, so we report docx and
-        # let the parser reject malformed packages downstream.
-        return "docx"
-    if head.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
-        # OLE2 compound binary format used by legacy .doc / .xls / .ppt.
-        return "doc"
-    if head.startswith(b"{\\rtf"):
-        return "rtf"
-    try:
-        head.decode("utf-8")
-        return "text"
-    except UnicodeDecodeError:
-        return None
 
 
 # ---------- schemas ---------------------------------------------------------
@@ -369,8 +311,8 @@ async def upload_document(
     # data; the document is not yet inserted at this point.
     await check_document_upload(user.id, matter.id, len(contents), session)
 
-    declared_format = _MIME_TO_FORMAT[file.content_type or ""]
-    inferred_format = _sniff_format(contents[:1024])
+    declared_format = MIME_TO_FORMAT[file.content_type or ""]
+    inferred_format = sniff_format(contents[:1024])
     if inferred_format is None or declared_format != inferred_format:
         raise HTTPException(
             415,

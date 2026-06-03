@@ -186,6 +186,50 @@ async def test_post_manual_document_version_creates_user_edit_version(client) ->
 
 
 @pytest.mark.asyncio
+async def test_post_upload_document_version_updates_active_document_and_body(client) -> None:
+    """Owner can upload a replacement binary as the next active document version."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload(client)
+
+    resp = await client.post(
+        f"/api/documents/{doc_id}/versions/upload",
+        files={
+            "file": (
+                "replacement.txt",
+                io.BytesIO(b"Replacement document text."),
+                "text/plain",
+            )
+        },
+        data={"notes": "Clean text replacement"},
+    )
+    assert resp.status_code == 200, resp.text
+    version = resp.json()
+    assert version["kind"] == "upload"
+    assert version["version_number"] == 2
+    assert version["storage_uri"]
+    assert version["resolved_text"] == "Replacement document text."
+    assert version["notes"] == "Clean text replacement"
+
+    body = await client.get(f"/api/documents/{doc_id}/body")
+    assert body.status_code == 200, body.text
+    assert body.json()["extracted_text"] == "Replacement document text."
+
+    docs = await client.get(f"/api/matters/{slug}/documents")
+    assert docs.status_code == 200, docs.text
+    active = next(row for row in docs.json() if row["id"] == doc_id)
+    assert active["filename"] == "replacement.txt"
+    assert active["mime_type"] == "text/plain"
+    assert active["size_bytes"] == len(b"Replacement document text.")
+
+    versions = await client.get(f"/api/documents/{doc_id}/versions")
+    assert versions.status_code == 200, versions.text
+    rows = versions.json()
+    assert [row["version"]["version_number"] for row in rows] == [1, 2]
+    assert rows[-1]["version"]["kind"] == "upload"
+    assert rows[-1]["version"]["resolved_text"] == "Replacement document text."
+
+
+@pytest.mark.asyncio
 async def test_get_manual_document_version_docx_returns_word_file(client) -> None:
     """Owner can download a saved editor version as a valid .docx."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)

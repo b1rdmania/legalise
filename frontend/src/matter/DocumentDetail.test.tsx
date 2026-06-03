@@ -432,6 +432,49 @@ describe("DocumentDetail", () => {
     expect(download.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
   });
 
+  it("uploads a replacement file as the next active document version", async () => {
+    vi.spyOn(api, "listDocuments")
+      .mockResolvedValueOnce([doc({ filename: "draft-v1.txt", mime_type: "text/plain" })])
+      .mockResolvedValueOnce([doc({ filename: "draft-v2.txt", mime_type: "text/plain", sha256: "b".repeat(64) })]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body({ extracted_text: "Updated body" }));
+    vi.spyOn(api, "getDocumentVersions")
+      .mockResolvedValueOnce([versionSummary("v-1", 1, null, "upload")])
+      .mockResolvedValueOnce([
+        versionSummary("v-1", 1, null, "upload"),
+        versionSummary("v-2", 2, "Updated body", "upload"),
+      ]);
+    const upload = vi.spyOn(api, "uploadDocumentVersion").mockResolvedValue({
+      id: "v-2",
+      document_id: "doc-1",
+      version_number: 2,
+      kind: "upload",
+      created_by_id: "u-1",
+      created_at: "2026-05-28T09:06:00",
+      storage_uri: "users/u/matters/m/documents/doc-1/b",
+      notes: "Clean copy",
+      resolved_text: "Updated body",
+    });
+
+    mount();
+    await screen.findByRole("heading", { name: "draft-v1.txt" });
+    fireEvent.click(screen.getByRole("button", { name: "Versions" }));
+    const input = screen.getByTestId("document-version-file-input");
+    const file = new File(["Updated body"], "draft-v2.txt", { type: "text/plain" });
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.change(screen.getByPlaceholderText("Optional version note"), {
+      target: { value: "Clean copy" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Upload version" }));
+
+    await waitFor(() => {
+      expect(upload).toHaveBeenCalledWith("doc-1", file, "Clean copy");
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "draft-v2.txt" })).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+  });
+
   it("moves proposed redlines into the main document review area", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue({

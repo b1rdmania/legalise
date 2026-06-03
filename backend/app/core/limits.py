@@ -58,9 +58,9 @@ class Limits:
     documents_per_matter: int = field(
         default_factory=lambda: int(os.environ.get("LEGALISE_LIMIT_DOCUMENTS_PER_MATTER", "50"))
     )
-    # max_file_bytes re-uses the constant from matters.py via env-override.
+    # max_file_bytes re-uses the canonical upload helper via env-override.
     # Do not duplicate the 25 MB literal here — import MAX_UPLOAD_BYTES from
-    # app.api.matters at call sites that need the raw value.
+    # app.core.document_uploads at call sites that need the raw value.
     total_storage_bytes_per_user: int = field(
         default_factory=lambda: int(
             os.environ.get("LEGALISE_LIMIT_TOTAL_STORAGE_BYTES_PER_USER", str(500 * 1024 * 1024))
