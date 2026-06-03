@@ -101,6 +101,12 @@ function versionSummary(
   };
 }
 
+async function expectEditorText(container: HTMLElement, text: string) {
+  await waitFor(() => {
+    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(text);
+  });
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(api, "getDocumentVersions").mockResolvedValue([]);
@@ -184,9 +190,7 @@ describe("DocumentDetail", () => {
 
     const { container } = mount();
     await screen.findByText(/Viewing saved version v3/);
-    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(
-      "Second saved body",
-    );
+    await expectEditorText(container, "Second saved body");
     expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
       "/documents/doc-1/versions/v-3/docx",
     );
@@ -196,9 +200,7 @@ describe("DocumentDetail", () => {
     await waitFor(() => {
       expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
     });
-    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(
-      "First saved body",
-    );
+    await expectEditorText(container, "First saved body");
     expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
       "/documents/doc-1/versions/v-2/docx",
     );
@@ -208,9 +210,7 @@ describe("DocumentDetail", () => {
     await waitFor(() => {
       expect(screen.getByText(/python-docx · 13 chars · 1 pages/)).toBeInTheDocument();
     });
-    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(
-      "Original body",
-    );
+    await expectEditorText(container, "Original body");
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
   });
 

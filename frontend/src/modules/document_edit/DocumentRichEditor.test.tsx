@@ -62,6 +62,38 @@ describe("DocumentRichEditor text conversion", () => {
     ).toBe("Line one\nline two\n\nNext");
   });
 
+  it("keeps headings and ordered lists readable in the plain-text fallback", () => {
+    expect(
+      editorJsonToPlainText({
+        type: "doc",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 2 },
+            content: [{ type: "text", text: "Issues" }],
+          },
+          {
+            type: "orderedList",
+            content: [
+              {
+                type: "listItem",
+                content: [
+                  { type: "paragraph", content: [{ type: "text", text: "Limitation" }] },
+                ],
+              },
+              {
+                type: "listItem",
+                content: [
+                  { type: "paragraph", content: [{ type: "text", text: "Disclosure" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe("Issues\n\nLimitation\nDisclosure");
+  });
+
   it("keeps table cells legible in the plain-text fallback", () => {
     expect(
       editorJsonToPlainText({
