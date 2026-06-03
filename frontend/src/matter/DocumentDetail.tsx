@@ -894,7 +894,12 @@ export function DocumentDetail({
                     onQuoteSelected={startQuotedNote}
                   />
                 ) : canPreviewDocx ? (
-                  <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
+                  <DocxOriginalPreview
+                    documentId={documentId}
+                    filename={doc.filename}
+                    sourceHighlight={currentReaderQuote}
+                    onQuoteSelected={startQuotedNote}
+                  />
                 ) : (
                   <section className="border border-rule bg-paper p-6">
                     <EmptyState
