@@ -3,7 +3,14 @@
 // version, redaction, and record tools sit beside it so the page reads
 // like a working file rather than an admin metadata screen.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
@@ -45,8 +52,18 @@ import {
   findNormalizedRange,
   type TiptapNode,
 } from "../modules/document_edit/DocumentRichEditor";
-import { DocxOriginalPreview } from "../modules/document_preview/DocxOriginalPreview";
-import { PdfDocumentViewer } from "../modules/document_preview/PdfDocumentViewer";
+
+const DocxOriginalPreview = lazy(() =>
+  import("../modules/document_preview/DocxOriginalPreview").then((mod) => ({
+    default: mod.DocxOriginalPreview,
+  })),
+);
+
+const PdfDocumentViewer = lazy(() =>
+  import("../modules/document_preview/PdfDocumentViewer").then((mod) => ({
+    default: mod.PdfDocumentViewer,
+  })),
+);
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -639,24 +656,30 @@ export function DocumentDetail({
             )}
 
             {workbenchView === "original" && (
-              <>
-              {canPreviewOriginal ? (
-              <PdfDocumentViewer
-                fileUrl={originalHref}
-                filename={doc.filename}
-                sourceHighlight={currentReaderQuote}
-              />
-              ) : canPreviewDocx ? (
-              <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
-              ) : (
-                <section className="border border-rule bg-paper p-6">
-                  <EmptyState
-                    title="Original preview unavailable"
-                    body="This file type does not have an embedded preview yet. Open or download the original file instead."
+              <Suspense
+                fallback={
+                  <div className="border border-rule bg-paper p-5">
+                    <LoadingLine label="loading document preview" />
+                  </div>
+                }
+              >
+                {canPreviewOriginal ? (
+                  <PdfDocumentViewer
+                    fileUrl={originalHref}
+                    filename={doc.filename}
+                    sourceHighlight={currentReaderQuote}
                   />
-                </section>
-              )}
-              </>
+                ) : canPreviewDocx ? (
+                  <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
+                ) : (
+                  <section className="border border-rule bg-paper p-6">
+                    <EmptyState
+                      title="Original preview unavailable"
+                      body="This file type does not have an embedded preview yet. Open or download the original file instead."
+                    />
+                  </section>
+                )}
+              </Suspense>
             )}
 
             {workbenchView === "versions" && (
