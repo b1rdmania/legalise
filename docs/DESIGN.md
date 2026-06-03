@@ -1040,16 +1040,27 @@ The em-dash row is a literal `<div className="my-2 border-t border-rule" />` bet
 >   Treat four items (Chat / Documents / Skills / Record) as the target, not a
 >   shipped fact.
 >
-> **Two divergences still need a decision (drift vs deliberate — Andy's call):**
+> **Two divergences need a decision — now with live-Mobbin evidence** (full
+> research: `docs/design-research/LEFT_RAIL_MOBBIN_AUDIT_2026-06-03.md`, a pass
+> over 14 real rail references):
 > 1. **Posture chip.** Spec: always-visible "Posture" eyebrow + chip in the
 >    matter card. Code (`MatterNav.tsx:134`): gated behind `showPosture` (only
 >    caller passes `false`) *and* collapsed inside a `<details>` "Project
->    settings", relabelled "Privilege". Deliberate de-emphasis, or lost?
+>    settings", relabelled "Privilege". **Evidence → surface it, don't hide it.**
+>    No reference buries a key record attribute behind an in-rail disclosure;
+>    posture gates every legal action. Leans **drift**, not deliberate.
 > 2. **Status footer.** Spec: `mt-auto` bottom strip showing matter status
->    ("open"). Code: `NavBody` has no footer. Dropped on purpose, or missing?
+>    ("open"). Code: `NavBody` has no footer. **Evidence → restore a bottom
+>    utility zone.** A bottom zone (status / settings / help) is the single most
+>    consistent element across all 14 references; dropping it reads as a
+>    regression. Repurpose the content if "open" is wrong, but keep the zone.
 >
-> Until these two are decided, the reference JSX below keeps the original
-> (always-visible posture + footer) so the intended pattern isn't forgotten.
+> Both still need Andy's ratification, but the evidence points one way on each.
+> A **third, higher-leverage** finding is in the research doc: the rail models
+> Chat as one nav item (the CRM archetype), whereas every AI-assistant product
+> uses chat-as-canvas or chat-as-docked-assistant — a product-direction call,
+> not a fidelity fix. Until these are decided, the reference JSX below keeps the
+> original (always-visible posture + footer) so the intended pattern isn't lost.
 
 Source: Mobbin pass on legal-AI and adjacent LLM workspaces (Mike,
 Claude.ai, Sana AI, Mistral, Fibery, ClickUp, Cycle, OpenAI Platform).
