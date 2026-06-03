@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   editorJsonToPlainText,
+  documentStatsFromText,
   findNormalizedRange,
   findNormalizedRanges,
   type TiptapNode,
@@ -130,5 +131,13 @@ describe("DocumentRichEditor text conversion", () => {
         ],
       }),
     ).toBe("Issue\tRisk\nIndemnity\tHigh");
+  });
+
+  it("counts words, characters, and blocks for the editor status line", () => {
+    expect(documentStatsFromText("One two\n\nThree")).toEqual({
+      words: 3,
+      chars: 14,
+      blocks: 2,
+    });
   });
 });
