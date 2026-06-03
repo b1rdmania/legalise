@@ -79,6 +79,23 @@ This is **not** a recommendation to rebuild — it's a direction question worth 
 
 ---
 
+## 4b. Structural learnings beyond the rail
+
+The rail findings are tactical. The same evidence carries four *structural* learnings, all flowing from one root: **Legalise is shaped like a CRM/admin tool (records + tabs you navigate between) where its actual job is a workbench (substance in front of you, the assistant working on it).** Ranked by payoff-vs-disruption, for whoever takes the shell pass.
+
+| # | Learning | Evidence | Implication for Legalise | Size |
+|---|----------|----------|--------------------------|------|
+| 1 | **Outputs deserve a persistent pane, not a destination.** | NotebookLM (`Studio/Note`), WRITER (`Deliverables`), Perplexity (preview beside the answer) — what the assistant *produces* sits visible next to the conversation. | Generated artifacts (letters, redlines, tabular reviews, signed docs, working pack) are things you *navigate to* today. Give them a standing home in the matter. The single move that most changes the feel from admin-tool to workbench. | Medium |
+| 2 | **Record-as-proof, surfaced inline — not a cold audit destination.** | The posture finding generalises: Pipedrive/NotebookLM surface record context; nobody makes you go find it. | Proof markers (citations, provenance, sign-offs) should appear *where work happens* — inline on outputs and replies — with the full Record as the deep view. Lift the demo-loop Trust/Proof cards (`TrustReviewCard`, `ProofDrawer`) into the matter shell. | Medium |
+| 3 | **The matter is a workbench (docked-assistant shape).** | NotebookLM `Sources · Chat · Output` ≈ a matter; ElevenLabs/Sana keep the assistant present beside the substance. | The eventual shell is documents/record · chat-as-working-layer · outputs — not four tabs where chat is one. The north star; let #1 and #2 walk toward it so it's evolution, not rewrite. | Large |
+| 4 | **Cheap guardrails.** | "New"/primary action universal; chat history/sessions (ChatGPT, WRITER, Claude); muted section headers (Linear, Fibery, Sana). | (a) Multiple working *threads* per matter, not one monolithic chat. (b) Group nav with muted section headers as it grows — and **resist re-adding flat top-level tabs** (the v0.3.1 ten-tab problem; the anti-CRM guardrail). (c) One clear persistent primary action. | Small |
+
+**Recommended sequence:** lean into **#1 and #2** for the shell pass — medium-size, high-payoff, each moves toward the workbench without committing to the full docked-assistant rebuild. Treat **#3** as the north star they converge on; bank **#4** as guardrails whenever the shell is touched. Every step stays shippable and reversible — no "rewrite the matter" PR.
+
+**Build note (2026-06-03):** #1's natural home is the artifacts/documents surface, which is the document-engine track's *active* surface (`ArtifactPreview.tsx`, `DocumentDetail.tsx` are in open PR #38). Build #1 component-first (a self-contained outputs panel consuming the existing `listArtifacts` API, like `MatterNav` was) **after** the document engine settles and **after** the visual-identity refresh — so it isn't built twice. Data already exists: `GET /matters/{slug}/artifacts` → `ArtifactSummary[]`.
+
+---
+
 ## 5. Reference index (re-findable on Mobbin)
 
 **Pass A — record/workspace rails (web):**
