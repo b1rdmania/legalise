@@ -27,6 +27,7 @@
     "@tiptap/starter-kit": "^3.25.0",
     "clsx": "^2.1.1",
     "diff-match-patch": "^1.0.5",
+    "docx-preview": "^0.3.7",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
