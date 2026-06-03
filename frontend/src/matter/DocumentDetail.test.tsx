@@ -19,6 +19,12 @@ import * as api from "../lib/api";
 import * as anonApi from "../modules/anonymisation/api";
 import type { MatterDocument } from "../lib/api";
 
+vi.mock("../modules/document_preview/PdfDocumentViewer", () => ({
+  PdfDocumentViewer: ({ filename }: { filename: string }) => (
+    <div data-testid="pdf-document-viewer">PDF reader for {filename}</div>
+  ),
+}));
+
 function doc(over: Partial<MatterDocument> = {}): MatterDocument {
   return {
     id: "doc-1",
@@ -156,9 +162,9 @@ describe("DocumentDetail", () => {
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
-    expect(screen.queryByTestId("document-original-preview")).toBeNull();
+    expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Original" }));
-    expect(screen.getByTestId("document-original-preview")).toBeInTheDocument();
+    expect(screen.getByTestId("pdf-document-viewer")).toBeInTheDocument();
     // Old "not available" note is gone.
     expect(
       screen.queryByText(/original uploaded file isn't available/i),
@@ -304,9 +310,12 @@ describe("DocumentDetail", () => {
     expect(await screen.findByTestId("document-comments")).toHaveTextContent(
       "Check the context before relying on this.",
     );
-    fireEvent.change(screen.getByPlaceholderText("Quoted passage (optional)"), {
+    fireEvent.change(
+      screen.getByPlaceholderText("Quoted passage; select text in the document or type one"),
+      {
       target: { value: "policy breach" },
-    });
+      },
+    );
     fireEvent.change(screen.getByPlaceholderText("Add a review note"), {
       target: { value: "Ask client for policy copy." },
     });
@@ -316,6 +325,52 @@ describe("DocumentDetail", () => {
       expect(create).toHaveBeenCalledWith("doc-1", {
         body: "Ask client for policy copy.",
         quote_text: "policy breach",
+      });
+    });
+  });
+
+  it("turns selected document text into a quoted review note", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(
+      body({
+        extracted_text: "The dismissal letter mentioned a single social-media post.",
+        char_count: 60,
+      }),
+    );
+    vi.spyOn(api, "getDocumentComments").mockResolvedValue([]);
+    const create = vi.spyOn(api, "createDocumentComment").mockResolvedValue({
+      id: "comment-2",
+      document_id: "doc-1",
+      author_id: "u-1",
+      quote_text: "single social-media post",
+      body: "Check this passage.",
+      status: "open",
+      created_at: "2026-06-03T10:05:00",
+      resolved_at: null,
+      resolved_by_id: null,
+    });
+
+    mount();
+    const content = await screen.findByTestId("document-content");
+    const textNode = content.querySelector(".legalise-document-editor")?.firstChild;
+    expect(textNode).toBeTruthy();
+    vi.spyOn(window, "getSelection").mockReturnValue({
+      toString: () => "single social-media post",
+      anchorNode: textNode,
+      focusNode: textNode,
+    } as unknown as Selection);
+
+    fireEvent.mouseUp(content);
+    fireEvent.click(await screen.findByRole("button", { name: "Quote this passage" }));
+    fireEvent.change(screen.getByPlaceholderText("Add a review note"), {
+      target: { value: "Check this passage." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+
+    await waitFor(() => {
+      expect(create).toHaveBeenCalledWith("doc-1", {
+        body: "Check this passage.",
+        quote_text: "single social-media post",
       });
     });
   });

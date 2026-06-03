@@ -20,6 +20,9 @@ from app.core.matter_artifacts import write_artifact
 from app.core.reviews import request_review
 from app.core.storage import get_storage_backend
 from app.models import (
+    Document,
+    DocumentEdit,
+    DocumentVersion,
     Matter,
     MatterArtifact,
     PRIVILEGE_CLEARED,
@@ -52,6 +55,55 @@ async def _seed(db_session):
     )
     db_session.add(matter)
     await db_session.flush()
+    document = Document(
+        id=uuid.uuid4(),
+        matter_id=matter.id,
+        filename="dismissal-note.txt",
+        mime_type="text/plain",
+        size_bytes=124,
+        sha256="d" * 64,
+        storage_uri=None,
+        tag="draft",
+        from_disclosure=False,
+        uploaded_by_id=user.id,
+    )
+    db_session.add(document)
+    await db_session.flush()
+    upload_version = DocumentVersion(
+        id=uuid.uuid4(),
+        document_id=document.id,
+        version_number=1,
+        kind="upload",
+        created_by_id=user.id,
+        notes="Initial upload.",
+        resolved_text="Original dismissal note.",
+    )
+    edited_version = DocumentVersion(
+        id=uuid.uuid4(),
+        document_id=document.id,
+        version_number=2,
+        kind="user_edit",
+        created_by_id=user.id,
+        notes="Clarified date.",
+        resolved_text="Edited dismissal note.",
+        resolved_json={"type": "doc", "content": []},
+    )
+    db_session.add_all([upload_version, edited_version])
+    await db_session.flush()
+    db_session.add(
+        DocumentEdit(
+            id=uuid.uuid4(),
+            document_version_id=edited_version.id,
+            change_id="change-1",
+            deleted_text="Original",
+            inserted_text="Edited",
+            context_before="",
+            context_after=" dismissal note.",
+            status="accepted",
+            rationale="Clarifies source wording.",
+            resolved_by_id=user.id,
+        )
+    )
     artifact = await write_artifact(
         db_session,
         matter=matter,
@@ -66,14 +118,14 @@ async def _seed(db_session):
         db_session, matter=matter, artifact=artifact, user=user
     )
     await db_session.commit()
-    return user, matter, artifact, review
+    return user, matter, artifact, review, document, edited_version
 
 
 @pytest.mark.asyncio
 async def test_export_bundle_includes_artifacts_reviews_reconstruction_readme(
     db_session,
 ) -> None:
-    _user, matter, artifact, review = await _seed(db_session)
+    _user, matter, artifact, review, document, edited_version = await _seed(db_session)
     job_id = uuid.uuid4()
 
     export_key = await build_matter_export(db_session, matter, job_id)
@@ -86,6 +138,8 @@ async def test_export_bundle_includes_artifacts_reviews_reconstruction_readme(
         assert "reviews.json" in names
         assert "reconstruction.json" in names
         assert "README.md" in names
+        assert "document_versions.json" in names
+        assert "document_edits.json" in names
         # Artifact bytes are included (not just metadata).
         assert f"artefacts/{artifact.id}/findings_pack.json" in names
         artifact_bytes = json.loads(
@@ -95,6 +149,25 @@ async def test_export_bundle_includes_artifacts_reviews_reconstruction_readme(
         # Review decision is captured.
         reviews = json.loads(zf.read("reviews.json"))
         assert any(r["id"] == str(review.id) and r["state"] == "pending" for r in reviews)
+        versions = json.loads(zf.read("document_versions.json"))
+        assert any(
+            v["document_id"] == str(document.id)
+            and v["version_number"] == 2
+            and v["resolved_text"] == "Edited dismissal note."
+            and v["resolved_json"] == {"type": "doc", "content": []}
+            for v in versions
+        )
+        edits = json.loads(zf.read("document_edits.json"))
+        assert any(
+            e["document_id"] == str(document.id)
+            and e["document_version_id"] == str(edited_version.id)
+            and e["status"] == "accepted"
+            and e["inserted_text"] == "Edited"
+            for e in edits
+        )
+        doc_meta = json.loads(zf.read(f"documents/{document.id}/metadata.json"))
+        assert doc_meta["version_count"] == 2
+        assert doc_meta["edit_count"] == 1
         # Reconstruction has the review.requested row.
         recon = json.loads(zf.read("reconstruction.json"))
         assert any(e["action"] == "review.requested" for e in recon)
