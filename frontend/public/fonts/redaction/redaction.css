@@ -1,0 +1,109 @@
+/* Redaction — Titus Kaphar & Reginald Dwayne Betts; type: Jeremy Mickel (MCKL), CD: Forest Young.
+   SIL Open Font License 1.1 (see OFL.txt). Commercial use permitted; do not sell the fonts.
+   3 styles x 7 degradation grades. Use clean base for UI; grit sparingly + large. */
+
+@font-face{
+  font-family:"Redaction";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction-Italic.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 10";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction_10-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 10";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction_10-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 10";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction_10-Italic.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 20";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction_20-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 20";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction_20-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 20";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction_20-Italic.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 35";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction_35-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 35";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction_35-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 35";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction_35-Italic.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 50";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction_50-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 50";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction_50-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 50";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction_50-Italic.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 70";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction_70-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 70";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction_70-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 70";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction_70-Italic.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 100";
+  font-weight:400; font-style:normal; font-display:swap;
+  src:url("./Redaction_100-Regular.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 100";
+  font-weight:700; font-style:normal; font-display:swap;
+  src:url("./Redaction_100-Bold.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Redaction 100";
+  font-weight:400; font-style:italic; font-display:swap;
+  src:url("./Redaction_100-Italic.woff2") format("woff2");
+}

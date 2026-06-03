@@ -6,10 +6,14 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        // One font. JetBrains Mono retired 2026-05-19 - mono alias kept so
-        // existing `font-mono` classes silently render in the body stack.
-        mono: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        // Redaction (clean base) is the site typeface. Bold + italic come from
+        // the @font-face kit (public/fonts/redaction). Georgia is the serif
+        // fallback so a font-swap flash doesn't jump to a sans.
+        sans: ['"Redaction"', 'Georgia', '"Times New Roman"', 'serif'],
+        // `mono`/`sans` both map to Redaction during the restyle; `ui` kept on
+        // the grotesk stack for dense-data carve-outs if legibility needs it.
+        mono: ['"Redaction"', 'Georgia', '"Times New Roman"', 'serif'],
+        ui: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         ink: '#181818',
