@@ -1547,6 +1547,7 @@ export interface DocumentVersionRead {
   storage_uri: string | null;
   notes: string | null;
   resolved_text: string | null;
+  resolved_json?: Record<string, unknown> | null;
 }
 
 export interface DocumentEditRead {
@@ -1769,11 +1770,16 @@ export const saveDocumentVersion = (
   documentId: string,
   resolvedText: string,
   notes?: string,
+  resolvedJson?: Record<string, unknown> | null,
 ) =>
   apiFetch(`${API}/documents/${documentId}/versions/manual`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ resolved_text: resolvedText, notes }),
+    body: JSON.stringify({
+      resolved_text: resolvedText,
+      resolved_json: resolvedJson ?? null,
+      notes,
+    }),
   }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
 
 // ----- Auth + user --------------------------------------------------------

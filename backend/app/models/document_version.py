@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, UTC
 
 from sqlalchemy import String, DateTime, ForeignKey, Integer, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -61,6 +61,7 @@ class DocumentVersion(Base):
     storage_uri: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     resolved_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     def __repr__(self) -> str:
         return f"<DocumentVersion {self.document_id} v{self.version_number} kind={self.kind}>"
