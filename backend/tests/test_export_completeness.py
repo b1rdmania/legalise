@@ -21,6 +21,7 @@ from app.core.reviews import request_review
 from app.core.storage import get_storage_backend
 from app.models import (
     Document,
+    DocumentComment,
     DocumentEdit,
     DocumentVersion,
     Matter,
@@ -90,6 +91,19 @@ async def _seed(db_session):
     )
     db_session.add_all([upload_version, edited_version])
     await db_session.flush()
+    db_session.add(
+        DocumentComment(
+            id=uuid.uuid4(),
+            document_id=document.id,
+            author_id=user.id,
+            quote_text="dismissal note",
+            body_sha256="a" * 64,
+            anchor_start=9,
+            anchor_end=23,
+            body="Check this against the source.",
+            status="open",
+        )
+    )
     db_session.add(
         DocumentEdit(
             id=uuid.uuid4(),
@@ -165,9 +179,19 @@ async def test_export_bundle_includes_artifacts_reviews_reconstruction_readme(
             and e["inserted_text"] == "Edited"
             for e in edits
         )
+        comments = json.loads(zf.read("document_comments.json"))
+        assert any(
+            c["document_id"] == str(document.id)
+            and c["quote_text"] == "dismissal note"
+            and c["body_sha256"] == "a" * 64
+            and c["anchor_start"] == 9
+            and c["anchor_end"] == 23
+            for c in comments
+        )
         doc_meta = json.loads(zf.read(f"documents/{document.id}/metadata.json"))
         assert doc_meta["version_count"] == 2
         assert doc_meta["edit_count"] == 1
+        assert doc_meta["comment_count"] == 1
         # Reconstruction has the review.requested row.
         recon = json.loads(zf.read("reconstruction.json"))
         assert any(e["action"] == "review.requested" for e in recon)
