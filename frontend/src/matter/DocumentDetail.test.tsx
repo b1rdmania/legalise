@@ -418,21 +418,24 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-comments")).toHaveTextContent("Open");
     expect(screen.getByTestId("document-comments")).toHaveTextContent("Anchored");
     expect(screen.getByTestId("document-comments")).toHaveTextContent("Resolved");
-    fireEvent.click(screen.getByText("1 resolved"));
+    fireEvent.click(screen.getByText("Resolved notes (1)"));
     expect(screen.getByText("Resolved note kept for the file record.")).toBeInTheDocument();
     expect(screen.getByText(/resolved 2026-06-03 09:30/)).toBeInTheDocument();
     expect(await screen.findByTestId("document-editor-note-rail")).toHaveTextContent(
       "Original body",
     );
     fireEvent.change(
-      screen.getByPlaceholderText("Quoted passage; select text in the document or type one"),
+      screen.getByPlaceholderText("Optional quoted passage"),
       {
       target: { value: "policy breach" },
       },
     );
-    fireEvent.change(screen.getByPlaceholderText("Add a review note"), {
+    fireEvent.change(
+      screen.getByPlaceholderText("What should be checked before relying on this document?"),
+      {
       target: { value: "Ask client for policy copy." },
-    });
+      },
+    );
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     await waitFor(() => {
@@ -485,9 +488,12 @@ describe("DocumentDetail", () => {
 
     fireEvent.mouseUp(content);
     fireEvent.click(await screen.findByRole("button", { name: "Quote this passage" }));
-    fireEvent.change(screen.getByPlaceholderText("Add a review note"), {
-      target: { value: "Check this passage." },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText("What should be checked before relying on this document?"),
+      {
+        target: { value: "Check this passage." },
+      },
+    );
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     await waitFor(() => {
