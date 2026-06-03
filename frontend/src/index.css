@@ -55,6 +55,45 @@
     font-weight: 700;
   }
 
+  /* ── Editorial typography — deploys Redaction's range (Andy, 2026-06-03).
+     Each rule is independent; tune or delete any line freely.
+     Built blind to screenshots, so treat as a first pass to react to. ── */
+
+  /* Pull-quotes + citations in the real italic cut. */
+  blockquote,
+  cite {
+    font-style: italic;
+  }
+
+  /* Subheaders (h2/h3 title-style) in italic — the editorial touch. Label-style
+     headings (uppercase + tracked) stay upright so they keep reading as labels.
+     h1 page titles stay upright too. */
+  h2,
+  h3 {
+    font-style: italic;
+  }
+  h2.uppercase,
+  h3.uppercase {
+    font-style: normal;
+  }
+
+  /* Primary actions read as a pressed legal "stamp": graded + tracked + caps.
+     Grade 20 at ~14px is intentionally textured. If it's too gritty, swap the
+     family to "Redaction" (clean) or drop the text-transform — one line each. */
+  button.bg-ink,
+  a.bg-ink {
+    font-family: "Redaction 20", Georgia, serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  /* Section eyebrows/labels stay clean (grit muddies at 10px). */
+  .eyebrow,
+  .eyebrow-sm {
+    font-family: "Redaction", Georgia, serif;
+  }
+
   .prose-p {
     color: #4B5563;
     margin-bottom: 1.5rem;

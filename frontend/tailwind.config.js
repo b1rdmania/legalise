@@ -14,6 +14,11 @@ export default {
         // the grotesk stack for dense-data carve-outs if legibility needs it.
         mono: ['"Redaction"', 'Georgia', '"Times New Roman"', 'serif'],
         ui: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        // Degraded grades for deliberate, large, rare moments (font-redaction20,
+        // -35). Grit muddies small — keep these for hero titles / stamps, not body.
+        redaction10: ['"Redaction 10"', 'Georgia', 'serif'],
+        redaction20: ['"Redaction 20"', 'Georgia', 'serif'],
+        redaction35: ['"Redaction 35"', 'Georgia', 'serif'],
       },
       colors: {
         ink: '#181818',
