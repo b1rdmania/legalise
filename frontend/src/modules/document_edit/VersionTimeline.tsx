@@ -18,6 +18,17 @@ const KIND_LABEL: Record<string, string> = {
   restored: "Restored",
 };
 
+const KIND_TONE: Record<string, string> = {
+  upload: "Original file",
+  assistant_edit: "Suggested edit",
+  user_accept: "Accepted redlines",
+  user_reject: "Rejected redlines",
+  user_edit: "Manual edit",
+  generated: "Generated",
+  replicated: "Replicated",
+  restored: "Restored copy",
+};
+
 function fmt(ts: string): string {
   try {
     return new Date(ts).toLocaleString();
@@ -67,6 +78,17 @@ export function VersionTimeline({
   }, [documentId, providedVersions, refreshKey]);
 
   const versions = providedVersions ?? fetchedVersions;
+  const versionStats = versions.reduce(
+    (summary, item) => {
+      summary.pending += item.pending_count;
+      summary.accepted += item.accepted_count;
+      summary.rejected += item.rejected_count;
+      if (item.version.resolved_text) summary.editable += 1;
+      if (item.version.storage_uri) summary.files += 1;
+      return summary;
+    },
+    { pending: 0, accepted: 0, rejected: 0, editable: 0, files: 0 },
+  );
 
   const restore = async (versionId: string) => {
     setRestoreError(null);
@@ -99,12 +121,40 @@ export function VersionTimeline({
 
   return (
     <div className="mt-5 border-t border-rule pt-4">
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold text-ink">Saved versions</h3>
-        <p className="mt-1 text-xs leading-5 text-muted">
-          Open prior uploads, review saved edits, restore an older copy, or download an audited file.
-        </p>
+      <div className="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <div>
+          <h3 className="text-sm font-semibold text-ink">Saved versions</h3>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            Each row is a preserved copy of the document. Open a copy, compare it,
+            restore it, or download the file that was actually saved.
+          </p>
+        </div>
+        <dl className="grid grid-cols-3 gap-2 text-center text-xs">
+          <div className="border border-rule bg-paper p-2">
+            <dt className="font-mono uppercase tracking-track2 text-muted">Versions</dt>
+            <dd className="mt-1 text-sm font-semibold text-ink">{versions.length}</dd>
+          </div>
+          <div className="border border-rule bg-paper p-2">
+            <dt className="font-mono uppercase tracking-track2 text-muted">Editable</dt>
+            <dd className="mt-1 text-sm font-semibold text-ink">{versionStats.editable}</dd>
+          </div>
+          <div className="border border-rule bg-paper p-2">
+            <dt className="font-mono uppercase tracking-track2 text-muted">Files</dt>
+            <dd className="mt-1 text-sm font-semibold text-ink">{versionStats.files}</dd>
+          </div>
+        </dl>
       </div>
+      {(versionStats.pending > 0 ||
+        versionStats.accepted > 0 ||
+        versionStats.rejected > 0) && (
+        <p
+          className="mb-3 border border-rule bg-paper-sunken px-3 py-2 text-xs leading-5 text-muted"
+          data-testid="version-redline-summary"
+        >
+          Redlines: {versionStats.pending} pending · {versionStats.accepted} accepted ·{" "}
+          {versionStats.rejected} rejected.
+        </p>
+      )}
       {restoreError && (
         <div className="mb-3 border border-danger/40 bg-danger/5 p-3 text-xs text-danger">
           {restoreError}
@@ -119,20 +169,30 @@ export function VersionTimeline({
           return (
             <li
               key={s.version.id}
-              className={`border bg-paper p-3 text-sm ${
+              className={`border bg-paper p-4 text-sm ${
                 selectedVersionId === s.version.id
                   ? "border-ink"
                   : "border-rule"
               }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-ink">
-                    v{s.version.version_number}{" "}
-                    <span className="font-normal text-muted">
-                      {KIND_LABEL[s.version.kind] || s.version.kind}
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-ink">
+                      v{s.version.version_number}{" "}
+                      <span className="font-normal text-muted">
+                        {KIND_LABEL[s.version.kind] || s.version.kind}
+                      </span>
+                    </p>
+                    {isLatest && (
+                      <span className="border border-ink bg-ink px-2 py-0.5 text-[10px] font-semibold uppercase tracking-track2 text-paper">
+                        Current
+                      </span>
+                    )}
+                    <span className="border border-rule bg-paper-sunken px-2 py-0.5 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                      {KIND_TONE[s.version.kind] || "Document copy"}
                     </span>
-                  </p>
+                  </div>
                   <p className="mt-1 text-xs text-muted">{fmt(s.version.created_at)}</p>
                   {(s.version.filename || s.version.mime_type || s.version.sha256) && (
                     <p className="mt-2 max-w-xl text-xs leading-5 text-muted">
@@ -147,8 +207,8 @@ export function VersionTimeline({
                     </p>
                   )}
                   <p className="mt-2 text-xs text-muted">
-                    {s.pending_count} pending · {s.accepted_count} accepted ·{" "}
-                    {s.rejected_count} rejected
+                    Redlines: {s.pending_count} pending · {s.accepted_count} accepted ·{" "}
+                    {s.rejected_count} rejected.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -202,7 +262,7 @@ export function VersionTimeline({
                       className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink disabled:cursor-not-allowed disabled:text-muted"
                     >
                       {isLatest
-                        ? "Active"
+                        ? "Current"
                         : restoringId === s.version.id
                           ? "Restoring..."
                           : "Restore"}
