@@ -88,10 +88,10 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing nav: Demo · Manifesto · GitHub.
+    // Unauth marketing nav: Demo · GitHub. The homepage now carries
+    // the manifesto thesis; /manifesto remains available as a deep page.
     primary = [
       { href: DEMO_HREF_UNAUTHED, label: "Demo" },
-      { href: "/manifesto", label: "Manifesto" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [

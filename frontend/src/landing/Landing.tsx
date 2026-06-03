@@ -5,32 +5,30 @@ import { Footer } from "../ui/Footer";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 
-// "What is already here" — six surfaces laid out as a 3×2 grid below
-// the hero. Numbered eyebrows ("01 / 06") give a quiet specimen feel.
 const SURFACES: { title: string; body: string }[] = [
   {
-    title: "Matter workspace",
-    body: "Every model call lives inside a matter. Documents, chronology, privilege control, audit.",
+    title: "Open project",
+    body: "A matter workspace holds the documents, skills, outputs, signatures, and record in one place.",
   },
   {
-    title: "Privilege control",
-    body: "A_cleared, B_mixed, C_paused. The gateway reads the privilege state before every model call and refuses what isn't permitted.",
+    title: "Install skill",
+    body: "Skills are governed legal work units. They declare what they read, what they write, and how they run.",
   },
   {
-    title: "Permission gates",
-    body: "Skills declare what they need. The workspace enables. The runtime enforces, every call.",
+    title: "Run against documents",
+    body: "The AI works inside the matter file, not in a loose prompt window. Sources stay attached.",
   },
   {
-    title: "Skills",
-    body: "Legal skills installed as plugins. Open catalogue. No vendor lock to ours.",
+    title: "Review output",
+    body: "Outputs are drafts until a human reads them, changes them where needed, and decides what to stand behind.",
   },
   {
-    title: "Bring your own model keys",
-    body: "Anthropic, OpenAI, or local Ollama. No shared keys, no resale, no provider liability we shouldn't carry.",
+    title: "Sign",
+    body: "Professional sign-off pins the output and records who took responsibility for it.",
   },
   {
-    title: "Audit trail",
-    body: "Who saw what, when, under what permission. Every call. Every denial. Append-only.",
+    title: "Export record",
+    body: "The working pack carries the outputs, source context, signatures, and audit record.",
   },
 ];
 
@@ -40,9 +38,6 @@ export function Landing() {
 
   return (
     <div className="max-w-page mx-auto">
-      {/* Hero: two-column above the fold, with a one-shot signature
-          flourish ambient behind the text (animation by Olga Zamaraeva
-          on LottieFiles, recoloured toward seal via CSS filter). */}
       <section className="relative overflow-hidden border-b border-rule">
         <div className="relative z-20 flex justify-end gap-3 px-4 pt-4 sm:px-6 md:px-16 lg:px-24">
           {auth.user ? (
@@ -86,21 +81,19 @@ export function Landing() {
           />
         </div>
         <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-24 max-w-3xl">
-          <div className="eyebrow text-muted mb-5">Open evaluation workspace</div>
+          <div className="eyebrow text-muted mb-5">Legal AI infrastructure</div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
-            An open-source workspace for AI-augmented legal work.
+            Backend rails for regulated AI legal work.
           </h1>
-          {/* Combo C accent — short seal tick pressed under the headline. */}
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            Built so legal teams can show what the AI did, what it touched,
-            and what evidence the work relied on.
+            Legalise is for firms that want AI to prepare work without losing
+            control of the matter, the documents, or the professional record.
           </p>
           <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
-            Open evaluation. Create an account and run the Khan v Acme
-            sample matter on the keyless demo model, or bring your own
-            Anthropic / OpenAI key. Evaluation only — not for live client
-            matters.
+            Open a project, add documents, run a legal skill, review the
+            output, sign what you accept, and export the record. The hosted
+            demo is not a law firm and does not give legal advice.
           </p>
 
           {/* CTAs */}
@@ -110,13 +103,13 @@ export function Landing() {
                 onClick={onOpenDemo}
                 className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
               >
-                Open demo matter
+                Open demo project
               </button>
               <a
                 href="/matters"
                 className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
-                All matters
+                Matters
               </a>
               <a
                 href="/skills"
@@ -147,13 +140,11 @@ export function Landing() {
         </div>
       </section>
 
-      {/* "What is already here" — Warp-style 6-card specimen grid.
-          Thin grid lines via gap-px on a rule-coloured wrapper. */}
       <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
         <div className="max-w-page mx-auto">
-          <div className="eyebrow text-muted mb-3">What is already here</div>
+          <div className="eyebrow text-muted mb-3">How it works</div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
-            Six surfaces. One workspace.
+            The product loop is simple. The record is what makes it serious.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
             {SURFACES.map((s, i) => (
@@ -174,39 +165,76 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Manifesto excerpt: the homepage carries the thesis, /manifesto carries the essay */}
       <section
         id="manifesto"
         className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-20"
       >
-        <div className="max-w-3xl">
-          <div className="eyebrow text-muted mb-6">Manifesto</div>
+        <div className="max-w-4xl">
+          <div className="eyebrow text-muted mb-6">What we are building</div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-8 leading-tight">
-            Supervised autonomy, not unsupervised automation.
+            Infrastructure a regulated firm could inspect, insure, and explain.
           </h2>
-          <div className="space-y-5 text-lg leading-relaxed text-ink">
+          <div className="grid gap-8 md:grid-cols-2 text-base leading-relaxed text-prose">
             <p>
-              The interesting question is no longer only what AI can automate.
-              It is what a firm would choose not to automate, where human
-              judgement must remain named, and how the system proves that
-              boundary held.
+              A law firm cannot just “use AI” and hope the supervision story
+              works out later. It needs a matter file, source visibility,
+              permission checks, professional sign-off, and an audit record.
             </p>
             <p>
-              Legalise is not trying to make legal work unsupervised. It is
-              trying to make supervision explicit, inspectable, and auditable.
-            </p>
-            <p>
-              The unit is not a prompt. It is a matter. The control points are
-              permissions, privilege control, source evidence, review gates, and
-              audit rows. Audit is not the product. Audit is the receipt.
+              Claude is the MVP target because the skills format works well
+              there. The architecture is built so a firm can later run other
+              approved model providers or local models inside its own controls.
             </p>
           </div>
-          <div className="mt-8">
+          <div className="mt-10 grid gap-px border border-rule bg-rule md:grid-cols-3">
+            <div className="bg-paper p-5">
+              <h3 className="font-semibold text-ink">Solicitor accountable</h3>
+              <p className="mt-2 text-sm leading-relaxed text-prose">
+                AI prepares. The human reviews, changes, and signs.
+              </p>
+            </div>
+            <div className="bg-paper p-5">
+              <h3 className="font-semibold text-ink">Sources visible</h3>
+              <p className="mt-2 text-sm leading-relaxed text-prose">
+                Outputs point back to the documents the reviewer should check.
+              </p>
+            </div>
+            <div className="bg-paper p-5">
+              <h3 className="font-semibold text-ink">Record exportable</h3>
+              <p className="mt-2 text-sm leading-relaxed text-prose">
+                The working pack carries outputs, signatures, and audit trail.
+              </p>
+            </div>
+          </div>
+          <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted">
+            The hosted site is a product demonstration. The ambition is
+            infrastructure for real regulated deployment.
+          </p>
+        </div>
+      </section>
+
+      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16">
+        <div className="max-w-3xl">
+          <div className="eyebrow text-muted mb-5">Try it</div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink leading-tight">
+            See a Khan v Acme demo matter with documents, skills, and a record.
+          </h2>
+          <p className="mt-5 text-base leading-relaxed text-prose">
+            No sign-in required. Click through the public matter, inspect the
+            documents, open a skill preview, and see where the record sits.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-4">
             <a
-              href="/manifesto"
+              href="/demo"
+              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            >
+              Open the demo
+            </a>
+            <a
+              href="/skills"
               className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
-              Read the full manifesto
+              Browse skills
             </a>
           </div>
         </div>
