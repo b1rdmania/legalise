@@ -36,10 +36,12 @@ export function PdfDocumentViewer({
   fileUrl,
   filename,
   sourceHighlight,
+  onQuoteSelected,
 }: {
   fileUrl: string;
   filename: string;
   sourceHighlight?: string | null;
+  onQuoteSelected?: (quote: string) => void;
 }) {
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
@@ -197,18 +199,31 @@ export function PdfDocumentViewer({
         {searchHits.length > 0 && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {searchHits.slice(0, 8).map((hit) => (
-              <button
+              <div
                 key={`${hit.page}-${hit.preview}`}
-                type="button"
-                onClick={() => setPageNumber(hit.page)}
-                className="border border-rule bg-paper px-3 py-2 text-left text-xs hover:border-ink"
-                title={hit.preview}
+                className="border border-rule bg-paper px-3 py-2 text-xs"
               >
-                <span className="block font-semibold text-ink">Page {hit.page}</span>
-                <span className="mt-1 block max-h-10 overflow-hidden leading-5 text-muted">
-                  {hit.preview}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPageNumber(hit.page)}
+                  className="block w-full text-left hover:text-ink"
+                  title={hit.preview}
+                >
+                  <span className="block font-semibold text-ink">Page {hit.page}</span>
+                  <span className="mt-1 block max-h-10 overflow-hidden leading-5 text-muted">
+                    {hit.preview}
+                  </span>
+                </button>
+                {onQuoteSelected && (
+                  <button
+                    type="button"
+                    onClick={() => onQuoteSelected(hit.preview)}
+                    className="mt-2 font-medium text-ink underline underline-offset-4 hover:text-muted"
+                  >
+                    Quote in note
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}

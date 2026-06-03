@@ -21,11 +21,14 @@ import {
   endDocumentEditSession,
   type EditInstructionResponse,
   getAnonymisation,
+  getModulesV2,
   getDocumentComments,
   getDocumentBody,
   getDocumentEditSessions,
   getDocumentVersions,
+  listGrants,
   listDocuments,
+  listInstalledModules,
   resolveDocumentComment,
   startDocumentEditSession,
   uploadDocumentVersion,
@@ -34,7 +37,10 @@ import {
   type DocumentBody,
   type DocumentEditSessionRead,
   type DocumentVersionSummary,
+  type GrantRow,
+  type InstalledModule,
   type MatterDocument,
+  type V2ManifestEntry,
 } from "../lib/api";
 import {
   DescItem,
@@ -53,6 +59,12 @@ import {
   type DocumentNoteHighlight,
   type TiptapNode,
 } from "../modules/document_edit/DocumentRichEditor";
+import { GenericSkillRunner } from "./GenericSkillRunner";
+import {
+  runnableMatterSkills,
+  shortCapabilityList,
+  type RunnableMatterSkill,
+} from "./skillRunnerModel";
 
 const DocxOriginalPreview = lazy(() =>
   import("../modules/document_preview/DocxOriginalPreview").then((mod) => ({
@@ -152,7 +164,18 @@ export function DocumentDetail({
   const [editorDirty, setEditorDirty] = useState(false);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
+  const [moduleEntries, setModuleEntries] = useState<V2ManifestEntry[]>([]);
+  const [installedModules, setInstalledModules] = useState<Map<string, InstalledModule>>(
+    new Map(),
+  );
+  const [grantRows, setGrantRows] = useState<GrantRow[] | null>(null);
+  const [skillLoadState, setSkillLoadState] =
+    useState<"loading" | "ready" | "error">("loading");
+  const [activeRunnerSkill, setActiveRunnerSkill] =
+    useState<RunnableMatterSkill | null>(null);
   const workbenchRef = useRef<HTMLDivElement | null>(null);
+  const notesRef = useRef<HTMLElement | null>(null);
+  const skillsRef = useRef<HTMLElement | null>(null);
   const editClientIdRef = useRef<string | null>(null);
 
   const sourceContext = useRouterState({
@@ -278,6 +301,31 @@ export function DocumentDetail({
     };
   }, [documentId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setSkillLoadState("loading");
+    void Promise.all([
+      getModulesV2(),
+      listInstalledModules(),
+      listGrants(slug),
+    ])
+      .then(([moduleResponse, installedRows, grantsResponse]) => {
+        if (cancelled) return;
+        const installedIndex = new Map<string, InstalledModule>();
+        for (const row of installedRows) installedIndex.set(row.module_id, row);
+        setModuleEntries(moduleResponse.modules);
+        setInstalledModules(installedIndex);
+        setGrantRows(grantsResponse.grants);
+        setSkillLoadState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setSkillLoadState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
   if (q.status === "loading") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
@@ -368,6 +416,17 @@ export function DocumentDetail({
   const anchoredComments = comments.filter(
     (comment) => comment.anchor_start !== null && comment.anchor_end !== null,
   );
+  const runnableSkills = runnableMatterSkills({
+    modules: moduleEntries,
+    installed: installedModules,
+    grants: grantRows,
+  });
+  const documentSkills = runnableSkills.filter((skill) =>
+    skill.reads.includes("document.body.read"),
+  );
+  const reviewQueueTotal =
+    pendingEdits + openComments.length + (activeEditSessions.length > 1 ? 1 : 0);
+  const hasConcurrentSession = activeEditSessions.length > 1;
   const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
     .filter(
       (comment) =>
@@ -483,6 +542,28 @@ export function DocumentDetail({
     setWorkbenchView("editor");
     requestAnimationFrame(() => {
       workbenchRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  };
+  const startQuotedNote = (quote: string) => {
+    const trimmed = quote.trim().replace(/\s+/g, " ");
+    if (!trimmed) return;
+    setSelectedQuote(trimmed);
+    setCommentQuote(trimmed);
+    const range = findNormalizedRange(editorText, trimmed);
+    if (range) {
+      setSelectedAnchor({ quote: trimmed, start: range.start, end: range.end, bodySha256: null });
+      void sha256Hex(editorText).then((bodySha256) => {
+        setSelectedAnchor((current) =>
+          current?.quote === trimmed && current.start === range.start && current.end === range.end
+            ? { ...current, bodySha256 }
+            : current,
+        );
+      });
+    } else {
+      setSelectedAnchor(null);
+    }
+    requestAnimationFrame(() => {
+      notesRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     });
   };
   const submitVersionUpload = async () => {
@@ -686,6 +767,34 @@ export function DocumentDetail({
           )}
         </nav>
 
+        <div
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-rule bg-paper px-4 py-3 text-sm"
+          data-testid="document-presence-strip"
+        >
+          <div>
+            <span className="font-semibold text-ink">
+              {activeEditSessions.length > 1
+                ? `${activeEditSessions.length} people have this file open`
+                : "You are working in this file"}
+            </span>
+            <span className="ml-2 text-muted">
+              Live presence is recorded; edits save as document versions.
+            </span>
+          </div>
+          {activeEditSessions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {activeEditSessions.slice(0, 4).map((session) => (
+                <span
+                  key={session.id}
+                  className="border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted"
+                >
+                  {session.user_label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
           <main
             ref={workbenchRef}
@@ -782,6 +891,7 @@ export function DocumentDetail({
                     fileUrl={originalHref}
                     filename={doc.filename}
                     sourceHighlight={currentReaderQuote}
+                    onQuoteSelected={startQuotedNote}
                   />
                 ) : canPreviewDocx ? (
                   <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
@@ -937,6 +1047,55 @@ export function DocumentDetail({
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+            <section className="border border-ink bg-paper p-4" data-testid="document-review-queue">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Review queue
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+                    {reviewQueueTotal === 0
+                      ? "Nothing waiting."
+                      : `${reviewQueueTotal} item${reviewQueueTotal === 1 ? "" : "s"} need attention.`}
+                  </h2>
+                </div>
+                <span className="border border-ink bg-ink px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-paper">
+                  Workbench
+                </span>
+              </div>
+              <div className="mt-4 grid gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => openWorkbenchView(activeEditResult ? "redlines" : "versions")}
+                  className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
+                >
+                  <span>Proposed redlines</span>
+                  <span className="font-semibold text-ink">{pendingEdits}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => notesRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })}
+                  className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
+                >
+                  <span>Open review notes</span>
+                  <span className="font-semibold text-ink">{openComments.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openWorkbenchView("versions")}
+                  className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
+                >
+                  <span>Saved versions</span>
+                  <span className="font-semibold text-ink">{versions.length}</span>
+                </button>
+                {activeEditSessions.length > 1 && (
+                  <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                    Another session is open. Coordinate before saving a new version.
+                  </p>
+                )}
+              </div>
+            </section>
+
             <section className="border border-rule bg-paper p-4">
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
                 Document intelligence
@@ -947,6 +1106,83 @@ export function DocumentDetail({
               <p className="mt-2 text-sm leading-6 text-muted">
                 Proposed edits, human notes, active sessions, and version status stay with this document.
               </p>
+            </section>
+
+            <section
+              ref={skillsRef}
+              className="border border-rule bg-paper p-4"
+              data-testid="document-skill-runner"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-ink">Run a skill on this file</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    Use the same project skills from Chat, preloaded with this document.
+                  </p>
+                </div>
+                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  {documentSkills.length} ready
+                </span>
+              </div>
+              {activeRunnerSkill ? (
+                <div className="mt-4">
+                  <GenericSkillRunner
+                    slug={slug}
+                    skill={activeRunnerSkill}
+                    documents={[doc]}
+                    initialDocumentIds={[documentId]}
+                    onClose={() => setActiveRunnerSkill(null)}
+                    compact
+                  />
+                </div>
+              ) : skillLoadState === "loading" ? (
+                <p className="mt-3 text-sm text-muted">Loading project skills...</p>
+              ) : skillLoadState === "error" ? (
+                <p className="mt-3 text-sm text-muted">
+                  Skills could not be loaded here. Open the project Skills page to check setup.
+                </p>
+              ) : documentSkills.length === 0 ? (
+                <div className="mt-3 text-sm text-muted">
+                  <p>No document-reading skills are ready for this file yet.</p>
+                  <Link
+                    to="/matters/$slug/$tab"
+                    params={{ slug, tab: "workflows" }}
+                    className="mt-2 inline-block underline underline-offset-4 hover:text-ink"
+                  >
+                    Open project Skills →
+                  </Link>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {documentSkills.slice(0, 4).map((skill) => (
+                    <button
+                      key={`${skill.moduleId}:${skill.capabilityId}`}
+                      type="button"
+                      onClick={() => {
+                        setActiveRunnerSkill(skill);
+                        requestAnimationFrame(() => {
+                          skillsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+                        });
+                      }}
+                      className="w-full border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
+                    >
+                      <span className="block text-sm font-semibold text-ink">{skill.title}</span>
+                      <span className="mt-1 block text-xs text-muted">
+                        Reads {shortCapabilityList(skill.reads)} · writes {shortCapabilityList(skill.writes)}
+                      </span>
+                    </button>
+                  ))}
+                  {documentSkills.length > 4 && (
+                    <Link
+                      to="/matters/$slug/$tab"
+                      params={{ slug, tab: "workflows" }}
+                      className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                    >
+                      See all skills →
+                    </Link>
+                  )}
+                </div>
+              )}
             </section>
 
             <section className="border border-rule bg-paper p-4">
@@ -1001,7 +1237,7 @@ export function DocumentDetail({
                 <div>
                   <h2 className="text-sm font-semibold text-ink">Editing now</h2>
                   <p className="mt-1 text-sm leading-6 text-muted">
-                    Active document sessions are visible here. Real-time co-editing will use this same document session record.
+                    Active document sessions are visible here. Edits are preserved as versions so another person's save does not disappear into the file.
                   </p>
                 </div>
                 <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
@@ -1024,10 +1260,19 @@ export function DocumentDetail({
                 ) : (
                   <p className="text-sm text-muted">You are editing this document.</p>
                 )}
+                {hasConcurrentSession && (
+                  <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                    Another session is active. Agree who saves the next version before applying edits.
+                  </p>
+                )}
               </div>
             </section>
 
-            <section className="border border-rule bg-paper p-4" data-testid="document-comments">
+            <section
+              ref={notesRef}
+              className="border border-rule bg-paper p-4"
+              data-testid="document-comments"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold text-ink">Review notes</h2>
