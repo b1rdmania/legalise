@@ -8,14 +8,18 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
 import {
+  createDocumentComment,
   documentOriginalUrl,
   documentVersionDocxUrl,
   type EditInstructionResponse,
   getAnonymisation,
+  getDocumentComments,
   getDocumentBody,
   getDocumentVersions,
   listDocuments,
+  resolveDocumentComment,
   type AnonymisationResult,
+  type DocumentCommentRead,
   type DocumentBody,
   type DocumentVersionSummary,
   type MatterDocument,
@@ -88,6 +92,11 @@ export function DocumentDetail({
   const [bodyMissing, setBodyMissing] = useState(false);
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [anon, setAnon] = useState<AnonymisationResult | null>(null);
+  const [comments, setComments] = useState<DocumentCommentRead[]>([]);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentQuote, setCommentQuote] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [commentBusy, setCommentBusy] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -143,17 +152,24 @@ export function DocumentDetail({
       .catch(() => setBodyMissing(true));
   }, [documentId]);
 
+  const loadComments = useCallback(() => {
+    getDocumentComments(documentId)
+      .then(setComments)
+      .catch(() => setComments([]));
+  }, [documentId]);
+
   useEffect(() => {
     setActiveEditResult(null);
     setWorkbenchView("editor");
     setSelectedVersionId(null);
     setEditorDirty(false);
     loadBody();
+    loadComments();
     getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
     getAnonymisation(documentId)
       .then(setAnon)
       .catch(() => setAnon(null));
-  }, [documentId, loadBody]);
+  }, [documentId, loadBody, loadComments]);
 
   if (q.status === "loading") {
     return (
@@ -223,6 +239,8 @@ export function DocumentDetail({
   const pendingEdits = versions.reduce((total, v) => total + v.pending_count, 0);
   const acceptedEdits = versions.reduce((total, v) => total + v.accepted_count, 0);
   const rejectedEdits = versions.reduce((total, v) => total + v.rejected_count, 0);
+  const openComments = comments.filter((comment) => comment.status === "open");
+  const resolvedComments = comments.filter((comment) => comment.status === "resolved");
   const confirmDiscardEditorChanges = () =>
     !editorDirty || window.confirm("Discard unsaved document edits?");
   const openWorkbenchView = (next: WorkbenchView) => {
@@ -234,6 +252,40 @@ export function DocumentDetail({
     if (!confirmDiscardEditorChanges()) return;
     setSelectedVersionId(versionId);
     setWorkbenchView("editor");
+  };
+  const submitComment = async () => {
+    const trimmed = commentBody.trim();
+    if (trimmed.length < 2) {
+      setCommentError("Add a note before saving.");
+      return;
+    }
+    setCommentBusy(true);
+    setCommentError(null);
+    try {
+      await createDocumentComment(documentId, {
+        body: trimmed,
+        quote_text: commentQuote.trim() || null,
+      });
+      setCommentBody("");
+      setCommentQuote("");
+      loadComments();
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Could not save note.");
+    } finally {
+      setCommentBusy(false);
+    }
+  };
+  const resolveComment = async (commentId: string) => {
+    setCommentBusy(true);
+    setCommentError(null);
+    try {
+      await resolveDocumentComment(documentId, commentId);
+      loadComments();
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Could not resolve note.");
+    } finally {
+      setCommentBusy(false);
+    }
   };
 
   return (
@@ -587,6 +639,88 @@ export function DocumentDetail({
                   <dd className="mt-1 text-lg font-semibold text-ink">{rejectedEdits}</dd>
                 </div>
               </dl>
+            </section>
+
+            <section className="border border-rule bg-paper p-4" data-testid="document-comments">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-ink">Review notes</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    Leave human notes on the file. Notes are recorded against this document.
+                  </p>
+                </div>
+                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  {openComments.length} open
+                </span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {openComments.length === 0 && resolvedComments.length === 0 && (
+                  <p className="text-sm text-muted">No review notes yet.</p>
+                )}
+                {openComments.map((comment) => (
+                  <article
+                    key={comment.id}
+                    className="border border-rule bg-paper-sunken p-3 text-sm"
+                  >
+                    {comment.quote_text && (
+                      <blockquote className="mb-2 border-l-2 border-rule pl-3 text-muted">
+                        {comment.quote_text}
+                      </blockquote>
+                    )}
+                    <p className="leading-6 text-ink">{comment.body}</p>
+                    <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+                      <span>{comment.created_at.replace("T", " ").slice(0, 16)}</span>
+                      <button
+                        type="button"
+                        disabled={commentBusy}
+                        onClick={() => resolveComment(comment.id)}
+                        className="underline underline-offset-4 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  </article>
+                ))}
+                {resolvedComments.length > 0 && (
+                  <details className="border border-rule bg-paper-sunken p-3">
+                    <summary className="cursor-pointer text-sm font-medium text-muted">
+                      {resolvedComments.length} resolved
+                    </summary>
+                    <div className="mt-3 space-y-2">
+                      {resolvedComments.map((comment) => (
+                        <p key={comment.id} className="text-sm leading-6 text-muted">
+                          {comment.body}
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+              <div className="mt-4 space-y-2">
+                <textarea
+                  value={commentQuote}
+                  onChange={(event) => setCommentQuote(event.target.value)}
+                  placeholder="Quoted passage (optional)"
+                  rows={2}
+                  className="w-full resize-y border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
+                />
+                <textarea
+                  value={commentBody}
+                  onChange={(event) => setCommentBody(event.target.value)}
+                  placeholder="Add a review note"
+                  rows={3}
+                  className="w-full resize-y border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
+                />
+                {commentError && <p className="text-xs text-red-700">{commentError}</p>}
+                <button
+                  type="button"
+                  disabled={commentBusy}
+                  onClick={submitComment}
+                  className="w-full border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Save note
+                </button>
+              </div>
             </section>
 
             <section className="border border-rule bg-paper p-4">

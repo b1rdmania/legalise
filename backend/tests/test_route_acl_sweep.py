@@ -86,6 +86,64 @@ async def test_get_document_versions_cross_user_returns_404(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_document_comments_owner_can_create_list_and_resolve(client) -> None:
+    """Owner can leave and resolve review notes on a document."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+
+    created = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={
+            "quote_text": "single social-media post",
+            "body": "Check the source before relying on this.",
+        },
+    )
+    assert created.status_code == 200, created.text
+    comment = created.json()
+    assert comment["status"] == "open"
+    assert comment["quote_text"] == "single social-media post"
+    assert comment["body"] == "Check the source before relying on this."
+
+    listed = await client.get(f"/api/documents/{doc_id}/comments")
+    assert listed.status_code == 200, listed.text
+    assert [row["id"] for row in listed.json()] == [comment["id"]]
+
+    resolved = await client.post(
+        f"/api/documents/{doc_id}/comments/{comment['id']}/resolve",
+    )
+    assert resolved.status_code == 200, resolved.text
+    assert resolved.json()["status"] == "resolved"
+    assert resolved.json()["resolved_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_document_comments_cross_user_returns_404(client) -> None:
+    """User B cannot list, create, or resolve User A's document comments by UUID."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+    created = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={"body": "Owner note."},
+    )
+    assert created.status_code == 200, created.text
+    comment_id = created.json()["id"]
+    await client.post("/auth/logout")
+
+    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    listed = await client.get(f"/api/documents/{doc_id}/comments")
+    assert listed.status_code == 404, listed.text
+    posted = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={"body": "Cross-user note."},
+    )
+    assert posted.status_code == 404, posted.text
+    resolved = await client.post(
+        f"/api/documents/{doc_id}/comments/{comment_id}/resolve",
+    )
+    assert resolved.status_code == 404, resolved.text
+
+
+@pytest.mark.asyncio
 async def test_post_manual_document_version_creates_user_edit_version(client) -> None:
     """Owner can save editor text as a new immutable document version."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
@@ -351,6 +409,34 @@ async def test_get_document_versions_archived_matter_returns_404(client) -> None
 
     resp = await client.get(f"/api/documents/{doc_id}/versions")
     assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_document_comments_archived_matter_returns_404(client) -> None:
+    """After the owning matter is archived, document comment endpoints 404."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload(client)
+    created = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={"body": "Review note before archive."},
+    )
+    assert created.status_code == 200, created.text
+    comment_id = created.json()["id"]
+
+    del_resp = await client.delete(f"/api/matters/{slug}")
+    assert del_resp.status_code in (200, 204), del_resp.text
+
+    listed = await client.get(f"/api/documents/{doc_id}/comments")
+    assert listed.status_code == 404, listed.text
+    posted = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={"body": "Review note after archive."},
+    )
+    assert posted.status_code == 404, posted.text
+    resolved = await client.post(
+        f"/api/documents/{doc_id}/comments/{comment_id}/resolve",
+    )
+    assert resolved.status_code == 404, resolved.text
 
 
 @pytest.mark.asyncio

@@ -1725,6 +1725,18 @@ export interface DocumentVersionSummary {
   rejected_count: number;
 }
 
+export interface DocumentCommentRead {
+  id: string;
+  document_id: string;
+  author_id: string;
+  quote_text: string | null;
+  body: string;
+  status: "open" | "resolved";
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by_id: string | null;
+}
+
 export class ConflictError extends Error {
   status = 409;
 }
@@ -1781,6 +1793,29 @@ export const saveDocumentVersion = (
       notes,
     }),
   }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
+
+export const getDocumentComments = (documentId: string) =>
+  apiFetch(`${API}/documents/${documentId}/comments`).then((r) =>
+    resolutionJsonOrThrow<DocumentCommentRead[]>(r),
+  );
+
+export const createDocumentComment = (
+  documentId: string,
+  payload: { body: string; quote_text?: string | null },
+) =>
+  apiFetch(`${API}/documents/${documentId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }).then((r) => resolutionJsonOrThrow<DocumentCommentRead>(r));
+
+export const resolveDocumentComment = (documentId: string, commentId: string) =>
+  apiFetch(
+    `${API}/documents/${encodeURIComponent(documentId)}/comments/${encodeURIComponent(
+      commentId,
+    )}/resolve`,
+    { method: "POST" },
+  ).then((r) => resolutionJsonOrThrow<DocumentCommentRead>(r));
 
 // ----- Auth + user --------------------------------------------------------
 // Auth endpoints live in `./api/auth` (sit at backend origin, NOT under
