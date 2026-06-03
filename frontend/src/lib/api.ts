@@ -1589,6 +1589,15 @@ export const documentOriginalUrl = (
     opts?.download ? "?download=1" : ""
   }`;
 
+export async function fetchDocumentOriginalBlob(documentId: string): Promise<Blob> {
+  const resp = await apiFetch(documentOriginalUrl(documentId));
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(text || `Could not load original document (${resp.status})`);
+  }
+  return resp.blob();
+}
+
 export const documentVersionDocxUrl = (
   documentId: string,
   versionId: string,

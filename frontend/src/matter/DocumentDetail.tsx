@@ -32,6 +32,7 @@ import {
   DocumentRichEditor,
   findNormalizedRange,
 } from "../modules/document_edit/DocumentRichEditor";
+import { DocxOriginalPreview } from "../modules/document_preview/DocxOriginalPreview";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -150,6 +151,10 @@ export function DocumentDetail({
   const recordHref = `/matters/${encodeURIComponent(slug)}/audit`;
   const originalHref = documentOriginalUrl(documentId);
   const canPreviewOriginal = doc.mime_type === "application/pdf";
+  const canPreviewDocx =
+    doc.mime_type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    doc.filename.toLowerCase().endsWith(".docx");
   const latestVersion = versions.at(-1)?.version;
   const latestResolvedVersion = [...versions]
     .reverse()
@@ -328,6 +333,10 @@ export function DocumentDetail({
                   className="h-[620px] w-full bg-paper-sunken"
                 />
               </section>
+            )}
+
+            {!canPreviewOriginal && canPreviewDocx && (
+              <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
             )}
 
             <section
