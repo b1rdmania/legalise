@@ -171,7 +171,21 @@ describe("ModulesCatalog — integrations home", () => {
     expect(screen.getByText(/No skills match/)).toBeInTheDocument();
   });
 
-  it("keeps the public skill library secondary + collapsed until expanded", async () => {
+  it("shows the public skill library immediately without a sign-in wall", async () => {
+    vi.spyOn(api, "getCurrentUser").mockRejectedValue(new Error("401"));
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("modules-signin-prompt")).toBeNull();
+    expect(screen.getByText(/Browse legal skills/)).toBeInTheDocument();
+    expect(screen.getByText("Open demo")).toBeInTheDocument();
+  });
+
+  it("keeps the public skill library secondary + collapsed for signed-in users", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 
@@ -179,11 +193,8 @@ describe("ModulesCatalog — integrations home", () => {
     await waitFor(() => {
       expect(screen.getByTestId("toggle-skills")).toBeInTheDocument();
     });
-    // Skill is not visible until the secondary section is expanded.
     expect(screen.queryByText("Unfair Dismissal Screener")).toBeNull();
     fireEvent.click(screen.getByTestId("toggle-skills"));
-    await waitFor(() => {
-      expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
   });
 });

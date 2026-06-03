@@ -91,7 +91,7 @@ const TAB_LABEL: Record<SkillTab, string> = {
 function CompatibilityBadge() {
   return (
     <span
-      title="Tested against Anthropic Claude Sonnet 4.6 or newer. The Legalise substrate is provider-agnostic; the skill format is Claude-native in V1."
+      title="Tested against Anthropic Claude Sonnet 4.6 or newer. Legalise can support other approved model providers; the skill format is Claude-native in V1."
       className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted"
     >
       Tested with Claude Sonnet 4.6+
@@ -192,28 +192,60 @@ export function ModulesCatalog() {
   }, [modules, tab, tabCounts.installed, tabCounts.available]);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
+    <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Workspace"
+        eyebrow={authed ? "Workspace" : "Skill library"}
         title="Skills"
-        description="Governed legal skills. Install a reference skill at the workspace, then enable and run it per matter — installing here does not make it ready everywhere."
+        description={
+          authed
+            ? "Install legal skills at the workspace, then enable them inside the matter where they should run."
+            : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to="/skills/lawve"
-              className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
-            >
-              Import from Lawve
-            </Link>
-            <Link
-              to="/skills/create"
-              className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
-            >
-              Create skill
-            </Link>
+            {authed ? (
+              <>
+                <Link
+                  to="/skills/lawve"
+                  className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+                >
+                  Import from Lawve
+                </Link>
+                <Link
+                  to="/skills/create"
+                  className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+                >
+                  Create skill
+                </Link>
+              </>
+            ) : (
+              <a
+                href="/demo"
+                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black"
+              >
+                Open demo
+              </a>
+            )}
           </div>
         }
       />
+
+      {!authed && (
+        <section className="mb-10 grid gap-px border border-rule bg-rule sm:grid-cols-3">
+          <DemoStep
+            title="1. Pick a skill"
+            body="A skill is a governed action with declared inputs and outputs."
+          />
+          <DemoStep
+            title="2. Run it in a matter"
+            body="The skill works against the project documents, not a loose prompt."
+          />
+          <DemoStep
+            title="3. Check the record"
+            body="The output, sources, and sign-off become part of the matter record."
+          />
+        </section>
+      )}
 
       {error && (
         <p className="text-sm text-seal">Could not load skills: {error}</p>
@@ -222,10 +254,11 @@ export function ModulesCatalog() {
       {/* Primary: reference skills (v2 registry).
           §7 tab structure: Installed / Available / Revoked
           (Revoked is operator-only). */}
+      {authed && (
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-xs uppercase tracking-widest text-muted">
-            Reference skills
+            Workspace skills
           </h2>
           {authed && modules && modules.length > 0 && (
             <input
@@ -272,12 +305,7 @@ export function ModulesCatalog() {
             )}
           </div>
         )}
-        {!authed ? (
-          <p className="mt-3 text-sm text-muted" data-testid="modules-signin-prompt">
-            Sign in to install and manage governed reference skills. The open
-            skill library below is browsable without an account.
-          </p>
-        ) : modules === null ? (
+        {modules === null ? (
           <p className="mt-3 text-sm text-muted">Loading skills…</p>
         ) : modules.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
@@ -365,21 +393,46 @@ export function ModulesCatalog() {
           </ul>
         )}
       </section>
+      )}
 
       {/* Secondary: open skill library (browse only, not an install path) */}
-      <section className="mt-10">
-        <button
-          type="button"
-          onClick={() => setShowSkills((v) => !v)}
-          className="text-xs uppercase tracking-widest text-muted hover:text-ink"
-          data-testid="toggle-skills"
-          aria-expanded={showSkills}
-        >
-          {showSkills ? "Hide" : "Browse"} UK legal skills
-          {skills ? ` (${skills.length})` : ""}
-        </button>
-        {showSkills && (
+      <section className={authed ? "mt-10" : "mt-4"}>
+        {authed ? (
+          <button
+            type="button"
+            onClick={() => setShowSkills((v) => !v)}
+            className="text-xs uppercase tracking-widest text-muted hover:text-ink"
+            data-testid="toggle-skills"
+            aria-expanded={showSkills}
+          >
+            {showSkills ? "Hide" : "Browse"} open skill library
+            {skills ? ` (${skills.length})` : ""}
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xs uppercase tracking-widest text-muted">
+                Browse legal skills{skills ? ` (${skills.length})` : ""}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-prose">
+                These examples come from the open legal skills library. Legalise
+                turns this kind of skill into something a firm can install, run
+                inside a matter, review, sign, and audit.
+              </p>
+            </div>
+            <a
+              href="https://github.com/lawve-ai/awesome-legal-skills"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+            >
+              View source
+            </a>
+          </div>
+        )}
+        {(showSkills || !authed) && (
           <div className="mt-3">
+            {authed && (
             <p className="text-xs text-muted">
               The open skill library — browse what's available. These are not
               installed from here; reference skills above are the install path.
@@ -401,6 +454,7 @@ export function ModulesCatalog() {
                 </>
               ) : null}
             </p>
+            )}
             {skills === null ? (
               <p className="mt-3 text-sm text-muted">Loading skills…</p>
             ) : skills.length === 0 ? (
@@ -411,6 +465,15 @@ export function ModulesCatalog() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function DemoStep({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="bg-paper p-4">
+      <h2 className="text-sm font-semibold text-ink">{title}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-prose">{body}</p>
     </div>
   );
 }
