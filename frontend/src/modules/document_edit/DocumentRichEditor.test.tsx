@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   editorJsonToPlainText,
   findNormalizedRange,
+  findNormalizedRanges,
   type TiptapNode,
   textToEditorHtml,
 } from "./DocumentRichEditor";
@@ -41,6 +42,14 @@ describe("DocumentRichEditor text conversion", () => {
       start: 5,
       end: 13,
     });
+  });
+
+  it("finds every match across normalised whitespace", () => {
+    expect(findNormalizedRanges("Clause one.\nClause two. No clause three.", "clause")).toEqual([
+      { start: 0, end: 6 },
+      { start: 12, end: 18 },
+      { start: 27, end: 33 },
+    ]);
   });
 
   it("preserves paragraphs and hard breaks when saving text", () => {
