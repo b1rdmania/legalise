@@ -3,8 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   editorJsonToPlainText,
   findNormalizedRange,
+  type TiptapNode,
   textToEditorHtml,
 } from "./DocumentRichEditor";
+
+const tableCell = (type: "tableCell" | "tableHeader", text: string): TiptapNode => ({
+  type,
+  content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+});
 
 describe("DocumentRichEditor text conversion", () => {
   it("turns plain paragraphs into editor-safe HTML", () => {
@@ -54,5 +60,34 @@ describe("DocumentRichEditor text conversion", () => {
         ],
       }),
     ).toBe("Line one\nline two\n\nNext");
+  });
+
+  it("keeps table cells legible in the plain-text fallback", () => {
+    expect(
+      editorJsonToPlainText({
+        type: "doc",
+        content: [
+          {
+            type: "table",
+            content: [
+              {
+                type: "tableRow",
+                content: [
+                  tableCell("tableHeader", "Issue"),
+                  tableCell("tableHeader", "Risk"),
+                ],
+              },
+              {
+                type: "tableRow",
+                content: [
+                  tableCell("tableCell", "Indemnity"),
+                  tableCell("tableCell", "High"),
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe("Issue\tRisk\nIndemnity\tHigh");
   });
 });

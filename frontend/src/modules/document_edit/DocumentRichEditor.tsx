@@ -4,6 +4,10 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
+import { Table } from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
 import type { Content, JSONContent } from "@tiptap/core";
 
 import {
@@ -91,6 +95,11 @@ function plainTextFromNode(node: TiptapNode): string {
   const children = node.content?.map(plainTextFromNode).join("") ?? "";
   if (node.type === "paragraph" || node.type === "heading") return `${children}\n\n`;
   if (node.type === "listItem") return `${children.trimEnd()}\n`;
+  if (node.type === "tableCell" || node.type === "tableHeader") return children.trim();
+  if (node.type === "tableRow") {
+    return `${node.content?.map(plainTextFromNode).join("\t") ?? ""}\n`;
+  }
+  if (node.type === "table") return `${children}\n`;
   return children;
 }
 
@@ -166,6 +175,10 @@ export function DocumentRichEditor({
         }),
         Typography,
         Highlight.configure({ multicolor: false }),
+        Table.configure({ resizable: true }),
+        TableRow,
+        TableHeader,
+        TableCell,
       ],
       content,
       editorProps: {
@@ -271,6 +284,53 @@ export function DocumentRichEditor({
               >
                 *
               </ToolbarButton>
+              <ToolbarButton
+                label="Insert table"
+                active={editor.isActive("table")}
+                onClick={() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                    .run()
+                }
+              >
+                Tbl
+              </ToolbarButton>
+              {editor.isActive("table") && (
+                <>
+                  <ToolbarButton
+                    label="Add row"
+                    onClick={() => editor.chain().focus().addRowAfter().run()}
+                  >
+                    +R
+                  </ToolbarButton>
+                  <ToolbarButton
+                    label="Add column"
+                    onClick={() => editor.chain().focus().addColumnAfter().run()}
+                  >
+                    +C
+                  </ToolbarButton>
+                  <ToolbarButton
+                    label="Delete row"
+                    onClick={() => editor.chain().focus().deleteRow().run()}
+                  >
+                    -R
+                  </ToolbarButton>
+                  <ToolbarButton
+                    label="Delete column"
+                    onClick={() => editor.chain().focus().deleteColumn().run()}
+                  >
+                    -C
+                  </ToolbarButton>
+                  <ToolbarButton
+                    label="Delete table"
+                    onClick={() => editor.chain().focus().deleteTable().run()}
+                  >
+                    X
+                  </ToolbarButton>
+                </>
+              )}
             </>
           )}
           <button
