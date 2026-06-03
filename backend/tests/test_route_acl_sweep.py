@@ -144,6 +144,39 @@ async def test_document_comments_cross_user_returns_404(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_document_edit_sessions_are_owner_scoped(client) -> None:
+    """Owner can heartbeat an edit session; another user cannot see it."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+
+    started = await client.post(
+        f"/api/documents/{doc_id}/edit-sessions",
+        json={"client_id": "browser-client-a"},
+    )
+    assert started.status_code == 200, started.text
+    payload = started.json()
+    assert payload["current"]["client_id"] == "browser-client-a"
+    assert payload["active"][0]["user_label"] == EMAIL_A
+
+    listed = await client.get(f"/api/documents/{doc_id}/edit-sessions")
+    assert listed.status_code == 200, listed.text
+    assert [row["client_id"] for row in listed.json()] == ["browser-client-a"]
+
+    ended = await client.delete(
+        f"/api/documents/{doc_id}/edit-sessions/{payload['current']['id']}",
+    )
+    assert ended.status_code == 204, ended.text
+    listed_after = await client.get(f"/api/documents/{doc_id}/edit-sessions")
+    assert listed_after.status_code == 200, listed_after.text
+    assert listed_after.json() == []
+
+    await client.post("/auth/logout")
+    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    cross_user = await client.get(f"/api/documents/{doc_id}/edit-sessions")
+    assert cross_user.status_code == 404, cross_user.text
+
+
+@pytest.mark.asyncio
 async def test_post_manual_document_version_creates_user_edit_version(client) -> None:
     """Owner can save editor text as a new immutable document version."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)

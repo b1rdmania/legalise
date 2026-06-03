@@ -11,17 +11,21 @@ import {
   createDocumentComment,
   documentOriginalUrl,
   documentVersionDocxUrl,
+  endDocumentEditSession,
   type EditInstructionResponse,
   getAnonymisation,
   getDocumentComments,
   getDocumentBody,
+  getDocumentEditSessions,
   getDocumentVersions,
   listDocuments,
   resolveDocumentComment,
+  startDocumentEditSession,
   uploadDocumentVersion,
   type AnonymisationResult,
   type DocumentCommentRead,
   type DocumentBody,
+  type DocumentEditSessionRead,
   type DocumentVersionSummary,
   type MatterDocument,
 } from "../lib/api";
@@ -106,6 +110,7 @@ export function DocumentDetail({
   const [versionUploadNotes, setVersionUploadNotes] = useState("");
   const [versionUploadBusy, setVersionUploadBusy] = useState(false);
   const [versionUploadError, setVersionUploadError] = useState<string | null>(null);
+  const [activeEditSessions, setActiveEditSessions] = useState<DocumentEditSessionRead[]>([]);
   const [showDetails, setShowDetails] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -113,6 +118,7 @@ export function DocumentDetail({
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
   const workbenchRef = useRef<HTMLDivElement | null>(null);
+  const editClientIdRef = useRef<string | null>(null);
 
   const sourceContext = useRouterState({
     select: (s) => {
@@ -192,6 +198,49 @@ export function DocumentDetail({
       .then(setAnon)
       .catch(() => setAnon(null));
   }, [documentId, loadBody, loadComments, loadVersions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let currentSessionId: string | null = null;
+    const storageKey = "legalise.document_edit_client_id";
+    const ensureClientId = () => {
+      if (editClientIdRef.current) return editClientIdRef.current;
+      const existing = window.localStorage.getItem(storageKey);
+      if (existing) {
+        editClientIdRef.current = existing;
+        return existing;
+      }
+      const generated = window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+      window.localStorage.setItem(storageKey, generated);
+      editClientIdRef.current = generated;
+      return generated;
+    };
+    const heartbeat = async () => {
+      try {
+        const response = await startDocumentEditSession(documentId, ensureClientId());
+        if (cancelled) return;
+        currentSessionId = response.current.id;
+        setActiveEditSessions(response.active);
+      } catch {
+        if (!cancelled) {
+          getDocumentEditSessions(documentId)
+            .then((rows) => {
+              if (!cancelled) setActiveEditSessions(rows);
+            })
+            .catch(() => undefined);
+        }
+      }
+    };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      if (currentSessionId) {
+        endDocumentEditSession(documentId, currentSessionId).catch(() => undefined);
+      }
+    };
+  }, [documentId]);
 
   if (q.status === "loading") {
     return (
@@ -770,6 +819,37 @@ export function DocumentDetail({
                   <dd className="mt-1 text-lg font-semibold text-ink">{rejectedEdits}</dd>
                 </div>
               </dl>
+            </section>
+
+            <section className="border border-rule bg-paper p-4" data-testid="document-edit-sessions">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-ink">Editing now</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted">
+                    Active document sessions are visible here. Real-time co-editing will use this same document session record.
+                  </p>
+                </div>
+                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  {activeEditSessions.length || 1} active
+                </span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {activeEditSessions.length > 0 ? (
+                  activeEditSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between gap-3 border border-rule bg-paper-sunken px-3 py-2 text-sm"
+                    >
+                      <span className="font-medium text-ink">{session.user_label}</span>
+                      <span className="text-xs text-muted">
+                        {session.last_seen_at.replace("T", " ").slice(0, 16)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted">You are editing this document.</p>
+                )}
+              </div>
             </section>
 
             <section className="border border-rule bg-paper p-4" data-testid="document-comments">

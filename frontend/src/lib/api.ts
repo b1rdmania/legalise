@@ -1738,6 +1738,22 @@ export interface DocumentCommentRead {
   resolved_by_id: string | null;
 }
 
+export interface DocumentEditSessionRead {
+  id: string;
+  document_id: string;
+  user_id: string;
+  client_id: string;
+  user_label: string;
+  started_at: string;
+  last_seen_at: string;
+  ended_at: string | null;
+}
+
+export interface DocumentEditSessionResponse {
+  current: DocumentEditSessionRead;
+  active: DocumentEditSessionRead[];
+}
+
 export class ConflictError extends Error {
   status = 409;
 }
@@ -1848,6 +1864,35 @@ export const getDocumentComments = (documentId: string) =>
   apiFetch(`${API}/documents/${documentId}/comments`).then((r) =>
     resolutionJsonOrThrow<DocumentCommentRead[]>(r),
   );
+
+export const getDocumentEditSessions = (documentId: string) =>
+  apiFetch(`${API}/documents/${documentId}/edit-sessions`).then((r) =>
+    resolutionJsonOrThrow<DocumentEditSessionRead[]>(r),
+  );
+
+export const startDocumentEditSession = (
+  documentId: string,
+  clientId: string,
+) =>
+  apiFetch(`${API}/documents/${documentId}/edit-sessions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: clientId }),
+  }).then((r) => resolutionJsonOrThrow<DocumentEditSessionResponse>(r));
+
+export const endDocumentEditSession = async (
+  documentId: string,
+  sessionId: string,
+): Promise<void> => {
+  const res = await apiFetch(
+    `${API}/documents/${documentId}/edit-sessions/${sessionId}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+};
 
 export const createDocumentComment = (
   documentId: string,

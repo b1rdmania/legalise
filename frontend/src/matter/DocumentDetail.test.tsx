@@ -117,6 +117,32 @@ beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(api, "getDocumentVersions").mockResolvedValue([]);
   vi.spyOn(api, "getDocumentComments").mockResolvedValue([]);
+  vi.spyOn(api, "getDocumentEditSessions").mockResolvedValue([]);
+  vi.spyOn(api, "startDocumentEditSession").mockResolvedValue({
+    current: {
+      id: "edit-session-1",
+      document_id: "doc-1",
+      user_id: "u-1",
+      client_id: "client-1",
+      user_label: "Andy",
+      started_at: "2026-06-03T18:00:00",
+      last_seen_at: "2026-06-03T18:00:00",
+      ended_at: null,
+    },
+    active: [
+      {
+        id: "edit-session-1",
+        document_id: "doc-1",
+        user_id: "u-1",
+        client_id: "client-1",
+        user_label: "Andy",
+        started_at: "2026-06-03T18:00:00",
+        last_seen_at: "2026-06-03T18:00:00",
+        ended_at: null,
+      },
+    ],
+  });
+  vi.spyOn(api, "endDocumentEditSession").mockResolvedValue(undefined);
   vi.spyOn(api, "getAnonymisation").mockRejectedValue(new Error("404"));
   // AnonymiseButton (child) fetches its own module's getAnonymisation on
   // mount — stub it so the test doesn't hit the network.
