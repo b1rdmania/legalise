@@ -275,6 +275,16 @@ describe("DocumentDetail", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Versions" }));
+    expect(screen.getByLabelText("Compare against")).toHaveValue("__extracted");
+    expect(screen.getByText("Added")).toBeInTheDocument();
+    expect(screen.getByText("Removed")).toBeInTheDocument();
+    expect(screen.getByText(/Before · Extracted text/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Compare against"), {
+      target: { value: "v-2" },
+    });
+    expect(screen.getByText(/Before · v2/)).toBeInTheDocument();
+    expect(screen.getByText("First saved body")).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "v2" }));
     await waitFor(() => {
       expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();

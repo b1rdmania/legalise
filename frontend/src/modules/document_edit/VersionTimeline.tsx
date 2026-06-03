@@ -12,8 +12,10 @@ const KIND_LABEL: Record<string, string> = {
   assistant_edit: "Assistant edit",
   user_accept: "User accept",
   user_reject: "User reject",
+  user_edit: "User edit",
   generated: "Generated",
   replicated: "Replicated",
+  restored: "Restored",
 };
 
 function fmt(ts: string): string {
@@ -65,7 +67,6 @@ export function VersionTimeline({
   }, [documentId, providedVersions, refreshKey]);
 
   const versions = providedVersions ?? fetchedVersions;
-  const latestVersionNumber = Math.max(...versions.map((s) => s.version.version_number));
 
   const restore = async (versionId: string) => {
     setRestoreError(null);
@@ -94,6 +95,7 @@ export function VersionTimeline({
     );
   }
   if (versions.length === 0) return null;
+  const latestVersionNumber = Math.max(...versions.map((s) => s.version.version_number));
 
   return (
     <div className="mt-5 border-t border-rule pt-4">

@@ -148,6 +148,7 @@ export function DocumentDetail({
   const [showDetails, setShowDetails] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [compareVersionId, setCompareVersionId] = useState<string>(EXTRACTED_VERSION_ID);
   const [editorDirty, setEditorDirty] = useState(false);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
@@ -224,6 +225,7 @@ export function DocumentDetail({
     setActiveEditResult(null);
     setWorkbenchView("editor");
     setSelectedVersionId(null);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
     setEditorDirty(false);
     loadBody();
     loadComments();
@@ -331,9 +333,19 @@ export function DocumentDetail({
   const selectedResolvedIndex = selectedResolvedVersion
     ? resolvedVersions.findIndex((v) => v.id === selectedResolvedVersion.id)
     : -1;
+  const effectiveCompareVersionId =
+    compareVersionId === selectedResolvedVersion?.id ? EXTRACTED_VERSION_ID : compareVersionId;
   const compareBeforeVersion =
-    selectedResolvedIndex > 0 ? resolvedVersions[selectedResolvedIndex - 1] : null;
-  const compareBeforeText = compareBeforeVersion?.resolved_text ?? body?.extracted_text ?? "";
+    effectiveCompareVersionId === EXTRACTED_VERSION_ID
+      ? null
+      : (resolvedVersions.find(
+          (v) => v.id === effectiveCompareVersionId && v.id !== selectedResolvedVersion?.id,
+        ) ??
+        (selectedResolvedIndex > 0 ? resolvedVersions[selectedResolvedIndex - 1] : null));
+  const compareBeforeText =
+    effectiveCompareVersionId === EXTRACTED_VERSION_ID
+      ? (body?.extracted_text ?? "")
+      : (compareBeforeVersion?.resolved_text ?? body?.extracted_text ?? "");
   const editorText =
     selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
   const editorJson = selectedResolvedVersion?.resolved_json as TiptapNode | null | undefined;
@@ -447,6 +459,7 @@ export function DocumentDetail({
     if (!confirmDiscardEditorChanges()) return;
     setActiveReaderQuote(quote);
     setSelectedVersionId(null);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
     setWorkbenchView("editor");
     requestAnimationFrame(() => {
       workbenchRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -469,6 +482,7 @@ export function DocumentDetail({
       setVersionUploadFile(null);
       setVersionUploadNotes("");
       setSelectedVersionId(uploaded.resolved_text ? uploaded.id : null);
+      setCompareVersionId(EXTRACTED_VERSION_ID);
       setActiveReaderQuote(null);
       setEditorDirty(false);
       await Promise.all([
@@ -488,6 +502,7 @@ export function DocumentDetail({
 
   const refreshAfterVersionRestore = async () => {
     setSelectedVersionId(null);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
     setActiveReaderQuote(null);
     setEditorDirty(false);
     await Promise.all([
@@ -841,16 +856,41 @@ export function DocumentDetail({
                 onVersionRestored={refreshAfterVersionRestore}
               />
               {selectedResolvedVersion?.resolved_text && compareBeforeText && (
-                <VersionDiff
-                  before={{
-                    version: compareBeforeVersion,
-                    text: compareBeforeText,
-                  }}
-                  after={{
-                    version: selectedResolvedVersion,
-                    text: selectedResolvedVersion.resolved_text,
-                  }}
-                />
+                <>
+                  <div className="mt-5 flex flex-wrap items-end gap-3 border border-rule bg-paper-sunken p-4">
+                    <label className="grid gap-1 text-xs font-semibold text-muted">
+                      Compare against
+                      <select
+                        value={effectiveCompareVersionId}
+                        onChange={(event) => setCompareVersionId(event.target.value)}
+                        className="min-w-52 border border-rule bg-paper px-3 py-2 text-sm font-normal text-ink"
+                      >
+                        <option value={EXTRACTED_VERSION_ID}>Extracted text</option>
+                        {resolvedVersions
+                          .filter((version) => version.id !== selectedResolvedVersion.id)
+                          .map((version) => (
+                            <option key={version.id} value={version.id}>
+                              v{version.version_number}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <p className="max-w-xl text-xs leading-5 text-muted">
+                      Use this to check how an uploaded or edited copy differs from the source
+                      text or another saved version before restoring, downloading, or relying on it.
+                    </p>
+                  </div>
+                  <VersionDiff
+                    before={{
+                      version: compareBeforeVersion,
+                      text: compareBeforeText,
+                    }}
+                    after={{
+                      version: selectedResolvedVersion,
+                      text: selectedResolvedVersion.resolved_text,
+                    }}
+                  />
+                </>
               )}
               {versions.length === 0 && (
                 <p className="mt-4 text-sm text-muted">No versions recorded.</p>
