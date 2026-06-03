@@ -63,6 +63,44 @@ function mount(documentId = "doc-1", search = "") {
   return render(<RouterProvider router={router} />);
 }
 
+function body(over: Partial<api.DocumentBody> = {}): api.DocumentBody {
+  return {
+    document_id: "doc-1",
+    kind: "extracted",
+    extracted_text: "Original body",
+    extraction_method: "python-docx",
+    extracted_at: "2026-05-28T09:01:00",
+    char_count: 13,
+    page_count: 1,
+    error_reason: null,
+    ...over,
+  };
+}
+
+function versionSummary(
+  id: string,
+  versionNumber: number,
+  resolvedText: string | null,
+  kind = "user_edit",
+): api.DocumentVersionSummary {
+  return {
+    version: {
+      id,
+      document_id: "doc-1",
+      version_number: versionNumber,
+      kind,
+      created_by_id: "u-1",
+      created_at: `2026-05-28T09:0${versionNumber}:00`,
+      storage_uri: null,
+      notes: null,
+      resolved_text: resolvedText,
+    },
+    pending_count: 0,
+    accepted_count: 0,
+    rejected_count: 0,
+  };
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(api, "getDocumentVersions").mockResolvedValue([]);
@@ -119,56 +157,56 @@ describe("DocumentDetail", () => {
 
   it("offers edited DOCX download when a saved resolved version exists", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
-    vi.spyOn(api, "getDocumentBody").mockResolvedValue({
-      document_id: "doc-1",
-      kind: "extracted",
-      extracted_text: "Original body",
-      extraction_method: "python-docx",
-      extracted_at: "2026-05-28T09:01:00",
-      char_count: 13,
-      page_count: 1,
-      error_reason: null,
-    });
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
     vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
-      {
-        version: {
-          id: "v-1",
-          document_id: "doc-1",
-          version_number: 1,
-          kind: "upload",
-          created_by_id: "u-1",
-          created_at: "2026-05-28T09:00:00",
-          storage_uri: null,
-          notes: null,
-          resolved_text: null,
-        },
-        pending_count: 0,
-        accepted_count: 0,
-        rejected_count: 0,
-      },
-      {
-        version: {
-          id: "v-2",
-          document_id: "doc-1",
-          version_number: 2,
-          kind: "user_edit",
-          created_by_id: "u-1",
-          created_at: "2026-05-28T09:02:00",
-          storage_uri: null,
-          notes: "Edited",
-          resolved_text: "Edited body",
-        },
-        pending_count: 0,
-        accepted_count: 0,
-        rejected_count: 0,
-      },
+      versionSummary("v-1", 1, null, "upload"),
+      versionSummary("v-2", 2, "Edited body"),
     ]);
 
     mount();
     const link = await screen.findByTestId("document-download-edited-docx");
     expect(link).toHaveTextContent("Download edited DOCX");
     expect(link.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
-    expect(screen.getByText(/Editing saved version v2/)).toBeInTheDocument();
+    expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+  });
+
+  it("lets the reader switch between saved versions and extracted text", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
+      versionSummary("v-1", 1, null, "upload"),
+      versionSummary("v-2", 2, "First saved body"),
+      versionSummary("v-3", 3, "Second saved body"),
+    ]);
+
+    const { container } = mount();
+    await screen.findByText(/Viewing saved version v3/);
+    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(
+      "Second saved body",
+    );
+    expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-3/docx",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "v2" }));
+    await waitFor(() => {
+      expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+    });
+    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(
+      "First saved body",
+    );
+    expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-2/docx",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Extracted text" }));
+    await waitFor(() => {
+      expect(screen.getByText(/python-docx · 13 chars · 1 pages/)).toBeInTheDocument();
+    });
+    expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(
+      "Original body",
+    );
+    expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
   });
 
   it("surfaces full metadata once the Details disclosure is opened", async () => {

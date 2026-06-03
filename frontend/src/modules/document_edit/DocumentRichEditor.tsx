@@ -229,7 +229,7 @@ export function DocumentRichEditor({
           <h2 className="text-sm font-semibold text-ink">Document editor</h2>
           <p className="mt-0.5 text-xs text-muted">
             {sourceLabel}
-            {latestVersionNumber ? ` · current v${latestVersionNumber}` : ""}
+            {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

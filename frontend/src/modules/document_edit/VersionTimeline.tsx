@@ -27,17 +27,27 @@ function fmt(ts: string): string {
 type Props = {
   documentId: string;
   refreshKey?: number;
+  versions?: DocumentVersionSummary[];
+  selectedVersionId?: string | null;
+  onSelectVersion?: (versionId: string) => void;
 };
 
-export function VersionTimeline({ documentId, refreshKey = 0 }: Props) {
-  const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
+export function VersionTimeline({
+  documentId,
+  refreshKey = 0,
+  versions: providedVersions,
+  selectedVersionId,
+  onSelectVersion,
+}: Props) {
+  const [fetchedVersions, setFetchedVersions] = useState<DocumentVersionSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (providedVersions) return undefined;
     let cancelled = false;
     getDocumentVersions(documentId)
       .then((vs) => {
-        if (!cancelled) setVersions(vs);
+        if (!cancelled) setFetchedVersions(vs);
       })
       .catch((e: unknown) => {
         if (!cancelled) {
@@ -48,7 +58,9 @@ export function VersionTimeline({ documentId, refreshKey = 0 }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [documentId, refreshKey]);
+  }, [documentId, providedVersions, refreshKey]);
+
+  const versions = providedVersions ?? fetchedVersions;
 
   if (error) {
     return (
@@ -68,7 +80,9 @@ export function VersionTimeline({ documentId, refreshKey = 0 }: Props) {
         {versions.map((s) => (
           <li
             key={s.version.id}
-            className="flex items-baseline gap-3 text-[12px] border-l-2 border-rule pl-3"
+            className={`flex items-baseline gap-3 border-l-2 pl-3 text-[12px] ${
+              selectedVersionId === s.version.id ? "border-ink" : "border-rule"
+            }`}
           >
             <span className="font-mono text-[11px] text-ink">
               v{s.version.version_number}
@@ -80,6 +94,15 @@ export function VersionTimeline({ documentId, refreshKey = 0 }: Props) {
             <span className="ml-auto font-mono text-[10px] text-muted">
               {s.pending_count} pending · {s.accepted_count} accepted · {s.rejected_count} rejected
             </span>
+            {s.version.resolved_text && onSelectVersion && (
+              <button
+                type="button"
+                onClick={() => onSelectVersion(s.version.id)}
+                className="font-mono text-[10px] uppercase tracking-track2 text-muted underline underline-offset-4 hover:text-ink"
+              >
+                {selectedVersionId === s.version.id ? "Open" : "Open version"}
+              </button>
+            )}
           </li>
         ))}
       </ol>
