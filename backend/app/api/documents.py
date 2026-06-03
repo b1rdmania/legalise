@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import re
 import uuid
 from datetime import UTC, datetime
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from docx import Document as DocxDocument
 from docx.enum.text import WD_COLOR_INDEX
@@ -19,7 +20,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
-from app.core.storage import get_storage_backend, StorageReadError
+from app.core.document_uploads import (
+    ALLOWED_UPLOAD_MIMES,
+    MAX_UPLOAD_BYTES,
+    MIME_TO_FORMAT,
+    sniff_format,
+)
+from app.core.storage import (
+    get_storage_backend,
+    StorageReadError,
+    StorageWriteError,
+    uploaded_key,
+)
+from app.core.text_extraction import extract as extract_text
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit, audit_failure
@@ -41,7 +54,7 @@ from app.models.document_edit import (
     EDIT_STATUS_PENDING,
     EDIT_STATUS_REJECTED,
 )
-from app.models.document_version import VERSION_KIND_USER_EDIT
+from app.models.document_version import VERSION_KIND_UPLOAD, VERSION_KIND_USER_EDIT
 from app.modules.document_edit import EDIT_MODES, propose_edits
 from app.modules.document_edit.resolver import (
     EditAlreadyResolved,
@@ -795,6 +808,207 @@ async def post_manual_document_version(
             "kind": version.kind,
             "char_count": len(body.resolved_text),
             "rich_json": body.resolved_json is not None,
+        },
+    )
+    await session.commit()
+    return DocumentVersionRead.model_validate(version)
+
+
+@router.post("/{document_id}/versions/upload", response_model=DocumentVersionRead)
+async def post_upload_document_version(
+    document_id: uuid.UUID,
+    file: UploadFile = File(...),
+    notes: str | None = Form(default=None),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentVersionRead:
+    """Upload a replacement binary and make it the active document version.
+
+    This is the binary counterpart to manual editor saves: the document keeps
+    its identity, but the active original file, hash, extracted body, and
+    version history move forward together.
+    """
+    doc, matter = await _load_owned_document(document_id, session, user)
+
+    if file.content_type not in ALLOWED_UPLOAD_MIMES:
+        raise HTTPException(
+            415,
+            detail={
+                "error": "unsupported_mime",
+                "got": file.content_type,
+                "allowed": sorted(ALLOWED_UPLOAD_MIMES),
+            },
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413,
+            detail={
+                "error": "upload_too_large",
+                "max_bytes": MAX_UPLOAD_BYTES,
+                "got_bytes": len(contents),
+            },
+        )
+
+    declared_format = MIME_TO_FORMAT[file.content_type or ""]
+    inferred_format = sniff_format(contents[:1024])
+    if inferred_format is None or declared_format != inferred_format:
+        raise HTTPException(
+            415,
+            detail={
+                "error": "magic_byte_mismatch",
+                "declared_mime": file.content_type,
+                "declared_format": declared_format,
+                "inferred_format": inferred_format,
+            },
+        )
+
+    sha = hashlib.sha256(contents).hexdigest()
+    filename = file.filename or doc.filename or "untitled"
+    obj_key = uploaded_key(
+        user_id=user.id,
+        matter_id=matter.id,
+        document_id=doc.id,
+        sha256=sha,
+    )
+    storage = get_storage_backend()
+    try:
+        storage.put_bytes(
+            obj_key,
+            contents,
+            content_type=file.content_type or "application/octet-stream",
+            metadata={
+                "filename": filename[:200],
+                "sha256": sha,
+                "document_id": str(doc.id),
+            },
+        )
+    except StorageWriteError as exc:
+        await audit_failure(
+            session,
+            "storage.put_bytes.failed",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="storage",
+            resource_type="document",
+            resource_id=str(doc.id),
+            payload={
+                "storage_key": obj_key,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+                "version_upload": True,
+            },
+        )
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_write_failed",
+                "message": "Failed to write document version to object storage.",
+                "storage_key": obj_key,
+                "backend": exc.backend,
+            },
+        ) from exc
+
+    next_version = (
+        await session.scalar(
+            select(func.coalesce(func.max(DocumentVersion.version_number), 0) + 1)
+            .where(DocumentVersion.document_id == doc.id)
+        )
+        or 1
+    )
+    extract_result = extract_text(
+        contents,
+        file.content_type or "application/octet-stream",
+        filename,
+    )
+    version = DocumentVersion(
+        document_id=doc.id,
+        version_number=int(next_version),
+        kind=VERSION_KIND_UPLOAD,
+        created_by_id=user.id,
+        storage_uri=obj_key,
+        notes=notes or f"Uploaded replacement file: {filename}",
+        resolved_text=(
+            extract_result.extracted_text
+            if extract_result.extraction_method != "failed"
+            else None
+        ),
+    )
+    session.add(version)
+
+    doc.filename = filename
+    doc.mime_type = file.content_type or "application/octet-stream"
+    doc.size_bytes = len(contents)
+    doc.sha256 = sha
+    doc.storage_uri = obj_key
+    doc.uploaded_at = datetime.now(UTC)
+    doc.uploaded_by_id = user.id
+
+    body = await session.scalar(
+        select(DocumentBody).where(
+            DocumentBody.document_id == doc.id,
+            DocumentBody.kind == BODY_KIND_EXTRACTED,
+        )
+    )
+    body_payload = {
+        "extracted_text": extract_result.extracted_text,
+        "extraction_method": extract_result.extraction_method,
+        "char_count": extract_result.char_count,
+        "page_count": extract_result.page_count,
+        "error_reason": extract_result.error_reason,
+        "extracted_at": datetime.now(UTC),
+    }
+    if body is None:
+        session.add(
+            DocumentBody(
+                document_id=doc.id,
+                kind=BODY_KIND_EXTRACTED,
+                **body_payload,
+            )
+        )
+    else:
+        for key, value in body_payload.items():
+            setattr(body, key, value)
+
+    await session.flush()
+    await audit.log(
+        session,
+        "document.version.uploaded",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "document_id": str(doc.id),
+            "version_number": version.version_number,
+            "filename": filename,
+            "sha256": sha,
+            "mime_type": doc.mime_type,
+            "size_bytes": doc.size_bytes,
+        },
+    )
+    await audit.log(
+        session,
+        (
+            "document.text_extraction_failed"
+            if extract_result.extraction_method == "failed"
+            else "document.text_extracted"
+        ),
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_ingestion",
+        resource_type="document",
+        resource_id=str(doc.id),
+        payload={
+            "version_id": str(version.id),
+            "version_number": version.version_number,
+            "method": extract_result.extraction_method,
+            "char_count": extract_result.char_count,
+            "page_count": extract_result.page_count,
+            "mime_type": doc.mime_type,
+            "reason": extract_result.error_reason,
         },
     )
     await session.commit()

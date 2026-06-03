@@ -18,6 +18,7 @@ import {
   getDocumentVersions,
   listDocuments,
   resolveDocumentComment,
+  uploadDocumentVersion,
   type AnonymisationResult,
   type DocumentCommentRead,
   type DocumentBody,
@@ -98,8 +99,13 @@ export function DocumentDetail({
   const [commentBody, setCommentBody] = useState("");
   const [commentQuote, setCommentQuote] = useState("");
   const [selectedQuote, setSelectedQuote] = useState("");
+  const [activeReaderQuote, setActiveReaderQuote] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentBusy, setCommentBusy] = useState(false);
+  const [versionUploadFile, setVersionUploadFile] = useState<File | null>(null);
+  const [versionUploadNotes, setVersionUploadNotes] = useState("");
+  const [versionUploadBusy, setVersionUploadBusy] = useState(false);
+  const [versionUploadError, setVersionUploadError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -129,23 +135,31 @@ export function DocumentDetail({
       : "← Documents";
   const arrivedFromChat = fromTab === "assistant";
 
+  const refreshDocumentMetadata = useCallback(
+    (cancelledRef?: { cancelled: boolean }) =>
+      listDocuments(slug)
+      .then((docs) => {
+        if (cancelledRef?.cancelled) return null;
+        const doc = docs.find((d) => d.id === documentId);
+        setQ(doc ? { status: "ready", doc } : { status: "not_found" });
+        return doc ?? null;
+      })
+      .catch((err: unknown) => {
+        if (!cancelledRef?.cancelled) setQ({ status: "error", message: String(err) });
+        return null;
+      }),
+    [slug, documentId],
+  );
+
   // Metadata: there's no single-document GET; the matter document list
   // is the authoritative source. Find the row by id.
   useEffect(() => {
-    let cancelled = false;
-    listDocuments(slug)
-      .then((docs) => {
-        if (cancelled) return;
-        const doc = docs.find((d) => d.id === documentId);
-        setQ(doc ? { status: "ready", doc } : { status: "not_found" });
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setQ({ status: "error", message: String(err) });
-      });
+    const cancelledRef = { cancelled: false };
+    refreshDocumentMetadata(cancelledRef);
     return () => {
-      cancelled = true;
+      cancelledRef.cancelled = true;
     };
-  }, [slug, documentId]);
+  }, [refreshDocumentMetadata]);
 
   const loadBody = useCallback(() => {
     getDocumentBody(documentId)
@@ -162,6 +176,10 @@ export function DocumentDetail({
       .catch(() => setComments([]));
   }, [documentId]);
 
+  const loadVersions = useCallback(() => {
+    getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
+  }, [documentId]);
+
   useEffect(() => {
     setActiveEditResult(null);
     setWorkbenchView("editor");
@@ -169,11 +187,11 @@ export function DocumentDetail({
     setEditorDirty(false);
     loadBody();
     loadComments();
-    getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
+    loadVersions();
     getAnonymisation(documentId)
       .then(setAnon)
       .catch(() => setAnon(null));
-  }, [documentId, loadBody, loadComments]);
+  }, [documentId, loadBody, loadComments, loadVersions]);
 
   if (q.status === "loading") {
     return (
@@ -236,8 +254,9 @@ export function DocumentDetail({
   const editorText =
     selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
   const editorJson = selectedResolvedVersion?.resolved_json as TiptapNode | null | undefined;
-  const sourceQuoteFoundInReader = sourceContext.quote
-    ? Boolean(findNormalizedRange(editorText, sourceContext.quote))
+  const currentReaderQuote = activeReaderQuote ?? sourceContext.quote;
+  const sourceQuoteFoundInReader = currentReaderQuote
+    ? Boolean(findNormalizedRange(editorText, currentReaderQuote))
     : null;
   const editorSourceLabel = selectedResolvedVersion
     ? `Viewing saved version v${selectedResolvedVersion.version_number}`
@@ -307,6 +326,48 @@ export function DocumentDetail({
       setCommentError(err instanceof Error ? err.message : "Could not resolve note.");
     } finally {
       setCommentBusy(false);
+    }
+  };
+  const jumpToCommentQuote = (quote: string) => {
+    if (!confirmDiscardEditorChanges()) return;
+    setActiveReaderQuote(quote);
+    setSelectedVersionId(null);
+    setWorkbenchView("editor");
+    requestAnimationFrame(() => {
+      workbenchRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  };
+  const submitVersionUpload = async () => {
+    if (!versionUploadFile) {
+      setVersionUploadError("Choose a file to upload as the next version.");
+      return;
+    }
+    if (!confirmDiscardEditorChanges()) return;
+    setVersionUploadBusy(true);
+    setVersionUploadError(null);
+    try {
+      const uploaded = await uploadDocumentVersion(
+        documentId,
+        versionUploadFile,
+        versionUploadNotes,
+      );
+      setVersionUploadFile(null);
+      setVersionUploadNotes("");
+      setSelectedVersionId(uploaded.resolved_text ? uploaded.id : null);
+      setActiveReaderQuote(null);
+      setEditorDirty(false);
+      await Promise.all([
+        refreshDocumentMetadata(),
+        Promise.resolve(loadBody()),
+        Promise.resolve(loadVersions()),
+      ]);
+      setWorkbenchView("editor");
+    } catch (err) {
+      setVersionUploadError(
+        err instanceof Error ? err.message : "Could not upload this document version.",
+      );
+    } finally {
+      setVersionUploadBusy(false);
     }
   };
 
@@ -515,7 +576,7 @@ export function DocumentDetail({
                   initialJson={editorJson}
                   latestVersionNumber={latestVersion?.version_number}
                   sourceLabel={editorSourceLabel}
-                  sourceHighlight={sourceContext.quote}
+                  sourceHighlight={currentReaderQuote}
                   onSaved={(version) => {
                     setSelectedVersionId(version.id);
                     getDocumentVersions(documentId)
@@ -534,7 +595,7 @@ export function DocumentDetail({
               <PdfDocumentViewer
                 fileUrl={originalHref}
                 filename={doc.filename}
-                sourceHighlight={sourceContext.quote}
+                sourceHighlight={currentReaderQuote}
               />
               ) : canPreviewDocx ? (
               <DocxOriginalPreview documentId={documentId} filename={doc.filename} />
@@ -560,6 +621,55 @@ export function DocumentDetail({
               <p className="mt-1 text-sm leading-relaxed text-muted">
                 Accepted edits and manual saves create new versions. Open a saved version to review or download it.
               </p>
+              <div
+                className="mt-5 border border-rule bg-paper-sunken p-4"
+                data-testid="document-version-upload"
+              >
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">
+                      Upload next version
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-muted">
+                      Replace the active original file while keeping this document's version history and review notes together.
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt,.md,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,application/rtf,text/rtf"
+                        onChange={(event) =>
+                          setVersionUploadFile(event.currentTarget.files?.[0] ?? null)
+                        }
+                        className="w-full border border-rule bg-paper px-3 py-2 text-sm"
+                        data-testid="document-version-file-input"
+                      />
+                      <input
+                        type="text"
+                        value={versionUploadNotes}
+                        onChange={(event) => setVersionUploadNotes(event.target.value)}
+                        placeholder="Optional version note"
+                        className="w-full border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
+                      />
+                    </div>
+                    {versionUploadFile && (
+                      <p className="mt-2 text-xs text-muted">
+                        Next version: {versionUploadFile.name} · {formatBytes(versionUploadFile.size)}
+                      </p>
+                    )}
+                    {versionUploadError && (
+                      <p className="mt-2 text-xs text-red-700">{versionUploadError}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={versionUploadBusy}
+                    onClick={submitVersionUpload}
+                    className="border border-ink bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {versionUploadBusy ? "Uploading..." : "Upload version"}
+                  </button>
+                </div>
+              </div>
               {resolvedVersions.length > 0 && (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
@@ -684,9 +794,16 @@ export function DocumentDetail({
                     className="border border-rule bg-paper-sunken p-3 text-sm"
                   >
                     {comment.quote_text && (
-                      <blockquote className="mb-2 border-l-2 border-rule pl-3 text-muted">
-                        {comment.quote_text}
-                      </blockquote>
+                      <div className="mb-2 border-l-2 border-rule pl-3 text-muted">
+                        <blockquote>{comment.quote_text}</blockquote>
+                        <button
+                          type="button"
+                          onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
+                          className="mt-2 text-xs font-medium text-ink underline underline-offset-4 hover:text-muted"
+                        >
+                          Find in document
+                        </button>
+                      </div>
                     )}
                     <p className="leading-6 text-ink">{comment.body}</p>
                     <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">

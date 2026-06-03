@@ -1795,6 +1795,55 @@ export const saveDocumentVersion = (
     }),
   }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
 
+export const uploadDocumentVersion = async (
+  documentId: string,
+  file: File,
+  notes?: string,
+): Promise<DocumentVersionRead> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (notes?.trim()) fd.append("notes", notes.trim());
+  const res = await apiFetch(`${API}/documents/${documentId}/versions/upload`, {
+    method: "POST",
+    body: fd,
+  });
+  if (res.status === 413 || res.status === 415) {
+    let detail: Record<string, unknown> | null = null;
+    try {
+      const body = (await res.json()) as { detail?: Record<string, unknown> };
+      detail = body?.detail ?? null;
+    } catch {
+      detail = null;
+    }
+    if (res.status === 415) {
+      const errKind = (detail?.error as string | undefined) ?? "unsupported_mime";
+      if (errKind === "magic_byte_mismatch") {
+        const declared = (detail?.declared_mime as string | null) || file.type || "the declared type";
+        const inferred = (detail?.inferred_format as string | null) ?? "something else";
+        throw new UploadError(
+          "magic_byte_mismatch",
+          415,
+          `File contents do not match its declared type. Declared as ${declared}; the bytes look like ${inferred}. Re-export from the source app and try again.`,
+        );
+      }
+      const got = (detail?.got as string | null) || file.type || "unknown";
+      throw new UploadError(
+        "unsupported_mime",
+        415,
+        `That file type is not supported (${got}). Upload a PDF, DOCX, DOC, TXT, MD, or RTF.`,
+      );
+    }
+    const maxBytes = Number(detail?.max_bytes ?? 25 * 1024 * 1024);
+    const gotBytes = Number(detail?.got_bytes ?? file.size);
+    throw new UploadError(
+      "upload_too_large",
+      413,
+      `File is too large (${formatMb(gotBytes)}). The limit is ${formatMb(maxBytes)} per document.`,
+    );
+  }
+  return resolutionJsonOrThrow<DocumentVersionRead>(res);
+};
+
 export const getDocumentComments = (documentId: string) =>
   apiFetch(`${API}/documents/${documentId}/comments`).then((r) =>
     resolutionJsonOrThrow<DocumentCommentRead[]>(r),
