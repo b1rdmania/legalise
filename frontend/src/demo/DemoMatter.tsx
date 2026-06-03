@@ -471,6 +471,11 @@ function DemoDocumentsTab({
   onInspect: (id: string) => void;
 }) {
   const inspectedDoc = docs.find((doc) => doc.id === inspectedDocId) ?? docs[0];
+  const [previewQuery, setPreviewQuery] = useState("");
+
+  useEffect(() => {
+    setPreviewQuery("");
+  }, [inspectedDoc?.id]);
 
   if (!inspectedDoc) {
     return (
@@ -479,6 +484,12 @@ function DemoDocumentsTab({
       </div>
     );
   }
+
+  const extractedText = demoDocumentExtract(inspectedDoc);
+  const previewSegments = splitSearchMatches(extractedText, previewQuery);
+  const previewMatchCount = previewQuery.trim()
+    ? previewSegments.filter((segment) => segment.match).length
+    : 0;
 
   return (
     <div className="max-w-6xl">
@@ -553,12 +564,60 @@ function DemoDocumentsTab({
                 Extracted text preview. In the live workspace, source chips open this reader.
               </p>
             </div>
-            <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
-              Source-ready
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={`/demo/documents/${encodeURIComponent(inspectedDoc.id)}`}
+                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+              >
+                Open full reader
+              </a>
+              <button
+                type="button"
+                onClick={() => navigate("/demo/workflows")}
+                className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
+              >
+                View skills
+              </button>
+            </div>
           </div>
-          <div className="px-6 py-6 text-[15px] leading-8 text-ink whitespace-pre-wrap">
-            {demoDocumentExtract(inspectedDoc)}
+          <div className="border-b border-rule bg-paper-sunken px-5 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="min-w-[220px] text-xs text-muted">
+                <span className="sr-only">Search selected demo document</span>
+                <input
+                  value={previewQuery}
+                  onChange={(event) => setPreviewQuery(event.target.value)}
+                  placeholder="Search this document"
+                  className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                  data-testid="demo-document-preview-search"
+                />
+              </label>
+              {previewQuery.trim() && (
+                <p className="text-xs text-muted" data-testid="demo-document-preview-search-count">
+                  {previewMatchCount
+                    ? `${previewMatchCount} match${previewMatchCount === 1 ? "" : "es"}`
+                    : "No matches"}
+                </p>
+              )}
+            </div>
+          </div>
+          <div
+            className="px-6 py-6 text-[15px] leading-8 text-ink whitespace-pre-wrap"
+            data-testid="demo-document-preview-text"
+          >
+            {previewSegments.map((segment, index) =>
+              segment.match ? (
+                <mark
+                  key={`${segment.text}-${index}`}
+                  className="bg-[#FFF4B8] px-0.5"
+                  data-testid="demo-document-preview-search-match"
+                >
+                  {segment.text}
+                </mark>
+              ) : (
+                <span key={`${index}-${segment.text.slice(0, 8)}`}>{segment.text}</span>
+              ),
+            )}
           </div>
           <div className="border-t border-rule px-5 py-4 text-xs leading-5 text-muted">
             Original files, extracted text, edit versions, redactions, and record links live on this document surface in the working product.
