@@ -357,10 +357,10 @@ describe("DocumentDetail", () => {
           id: "comment-1",
           document_id: "doc-1",
           author_id: "u-1",
-          quote_text: "single social-media post",
-          body_sha256: null,
-          anchor_start: null,
-          anchor_end: null,
+          quote_text: "Original body",
+          body_sha256: "a".repeat(64),
+          anchor_start: 0,
+          anchor_end: 13,
           body: "Check the context before relying on this.",
           status: "open",
           created_at: "2026-06-03T10:00:00",
@@ -387,6 +387,9 @@ describe("DocumentDetail", () => {
     mount();
     expect(await screen.findByTestId("document-comments")).toHaveTextContent(
       "Check the context before relying on this.",
+    );
+    expect(await screen.findByTestId("document-editor-note-rail")).toHaveTextContent(
+      "Original body",
     );
     fireEvent.change(
       screen.getByPlaceholderText("Quoted passage; select text in the document or type one"),

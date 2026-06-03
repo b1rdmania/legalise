@@ -50,6 +50,7 @@ import { VersionDiff } from "../modules/document_edit/VersionDiff";
 import {
   DocumentRichEditor,
   findNormalizedRange,
+  type DocumentNoteHighlight,
   type TiptapNode,
 } from "../modules/document_edit/DocumentRichEditor";
 
@@ -352,6 +353,17 @@ export function DocumentDetail({
   const rejectedEdits = versions.reduce((total, v) => total + v.rejected_count, 0);
   const openComments = comments.filter((comment) => comment.status === "open");
   const resolvedComments = comments.filter((comment) => comment.status === "resolved");
+  const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
+    .filter(
+      (comment) =>
+        comment.quote_text && comment.anchor_start !== null && comment.anchor_end !== null,
+    )
+    .map((comment, index) => ({
+      id: comment.id,
+      label: `Note ${index + 1}`,
+      quote: comment.quote_text ?? "",
+      status: comment.status,
+    }));
   const confirmDiscardEditorChanges = () =>
     !editorDirty || window.confirm("Discard unsaved document edits?");
   const openWorkbenchView = (next: WorkbenchView) => {
@@ -692,6 +704,7 @@ export function DocumentDetail({
                   latestVersionNumber={latestVersion?.version_number}
                   sourceLabel={editorSourceLabel}
                   sourceHighlight={currentReaderQuote}
+                  noteHighlights={anchoredOpenNotes}
                   onSaved={(version) => {
                     setSelectedVersionId(version.id);
                     getDocumentVersions(documentId)
