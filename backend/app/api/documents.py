@@ -1,12 +1,8 @@
-"""Documents API — per-document endpoints (body, edit-instructions).
-
-Workstream 1 ships the body endpoint. The edit-instructions endpoint is
-added by Workstream 2; the router is exported so additional endpoints
-can mount onto it without disturbing the wiring in `main.py`.
-"""
+"""Documents API — per-document endpoints."""
 
 from __future__ import annotations
 
+import io
 import re
 import uuid
 from datetime import datetime
@@ -15,6 +11,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
+from docx import Document as DocxDocument
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -246,6 +243,31 @@ def _safe_filename(title: str | None, file_uuid: str) -> str:
         if cleaned:
             return f"{cleaned}.docx"
     return f"generated-{file_uuid[:8]}.docx"
+
+
+def _docx_export_filename(filename: str, version_number: int) -> str:
+    stem = filename.rsplit(".", 1)[0] if "." in filename else filename
+    cleaned = _FILENAME_SAFE_RE.sub("-", stem).strip("-._")[:80].rstrip("-._")
+    if not cleaned:
+        cleaned = "document"
+    return f"{cleaned}-v{version_number}.docx"
+
+
+def _render_resolved_text_docx(title: str, body: str) -> bytes:
+    document = DocxDocument()
+    document.add_heading(title, level=0)
+    for block in body.split("\n\n"):
+        block = block.rstrip()
+        if not block:
+            continue
+        lines = block.split("\n")
+        para = document.add_paragraph(lines[0])
+        for line in lines[1:]:
+            para.add_run().add_break()
+            para.add_run(line)
+    buf = io.BytesIO()
+    document.save(buf)
+    return buf.getvalue()
 
 
 @router.get("/generated/{file_uuid}")
@@ -593,6 +615,55 @@ async def post_manual_document_version(
     )
     await session.commit()
     return DocumentVersionRead.model_validate(version)
+
+
+@router.get("/{document_id}/versions/{version_id}/docx")
+async def get_document_version_docx(
+    document_id: uuid.UUID,
+    version_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> StreamingResponse:
+    """Download a saved document version as a Word document."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    version = await session.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.id == version_id,
+            DocumentVersion.document_id == doc.id,
+        )
+    )
+    if version is None:
+        raise HTTPException(404, "document version not found")
+    if not version.resolved_text:
+        raise HTTPException(422, "document version has no resolved text")
+
+    data = _render_resolved_text_docx(doc.filename, version.resolved_text)
+    filename = _docx_export_filename(doc.filename, version.version_number)
+    await audit.log(
+        session,
+        "document.version.docx.exported",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "document_id": str(doc.id),
+            "version_number": version.version_number,
+            "char_count": len(version.resolved_text),
+            "byte_count": len(data),
+            "format": "docx",
+        },
+    )
+    await session.commit()
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(data)),
+        },
+    )
 
 
 @router.get("/{document_id}/versions", response_model=list[DocumentVersionSummary])

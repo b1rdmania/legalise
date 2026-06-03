@@ -1589,6 +1589,14 @@ export const documentOriginalUrl = (
     opts?.download ? "?download=1" : ""
   }`;
 
+export const documentVersionDocxUrl = (
+  documentId: string,
+  versionId: string,
+): string =>
+  `${API}/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(
+    versionId,
+  )}/docx`;
+
 // ---------------------------------------------------------------------------
 // Matter lifecycle + export (LMF UX v1) — over the stable LMF endpoints
 // ---------------------------------------------------------------------------

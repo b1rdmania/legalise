@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import uuid
+import zipfile
 
 import pytest
 
@@ -111,6 +112,41 @@ async def test_post_manual_document_version_creates_user_edit_version(client) ->
 
 
 @pytest.mark.asyncio
+async def test_get_manual_document_version_docx_returns_word_file(client) -> None:
+    """Owner can download a saved editor version as a valid .docx."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+
+    save = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={"resolved_text": "Edited witness statement.\n\nSecond paragraph."},
+    )
+    assert save.status_code == 200, save.text
+    version_id = save.json()["id"]
+
+    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/docx")
+    assert resp.status_code == 200, resp.text
+    assert resp.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert resp.headers.get("content-disposition", "").endswith('.docx"')
+    assert zipfile.is_zipfile(io.BytesIO(resp.content))
+
+
+@pytest.mark.asyncio
+async def test_get_upload_document_version_docx_without_resolved_text_returns_422(client) -> None:
+    """Upload versions without resolved_text are not exportable through the editor path."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+    versions = await client.get(f"/api/documents/{doc_id}/versions")
+    assert versions.status_code == 200, versions.text
+    upload_version_id = versions.json()[0]["version"]["id"]
+
+    resp = await client.get(f"/api/documents/{doc_id}/versions/{upload_version_id}/docx")
+    assert resp.status_code == 422, resp.text
+
+
+@pytest.mark.asyncio
 async def test_post_manual_document_version_cross_user_returns_404(client) -> None:
     """User B cannot save a version on User A's document by UUID."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
@@ -122,6 +158,24 @@ async def test_post_manual_document_version_cross_user_returns_404(client) -> No
         f"/api/documents/{doc_id}/versions/manual",
         json={"resolved_text": "Cross-user edit should not land."},
     )
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_get_document_version_docx_cross_user_returns_404(client) -> None:
+    """User B cannot download User A's saved editor version."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+    save = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={"resolved_text": "Owned user edit."},
+    )
+    assert save.status_code == 200, save.text
+    version_id = save.json()["id"]
+    await client.post("/auth/logout")
+
+    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/docx")
     assert resp.status_code == 404, resp.text
 
 
@@ -174,6 +228,25 @@ async def test_post_manual_document_version_archived_matter_returns_404(client) 
         f"/api/documents/{doc_id}/versions/manual",
         json={"resolved_text": "Archived matter edit should not land."},
     )
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_get_document_version_docx_archived_matter_returns_404(client) -> None:
+    """After the owning matter is archived, version .docx download 404s."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload(client)
+    save = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={"resolved_text": "Owned user edit."},
+    )
+    assert save.status_code == 200, save.text
+    version_id = save.json()["id"]
+
+    del_resp = await client.delete(f"/api/matters/{slug}")
+    assert del_resp.status_code == 204, del_resp.text
+
+    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/docx")
     assert resp.status_code == 404, resp.text
 
 
