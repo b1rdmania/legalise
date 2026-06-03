@@ -91,6 +91,7 @@ export function DocumentDetail({
   const [showDetails, setShowDetails] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
   const [activeEditResult, setActiveEditResult] =
     useState<EditInstructionResponse | null>(null);
 
@@ -146,6 +147,7 @@ export function DocumentDetail({
     setActiveEditResult(null);
     setWorkbenchView("editor");
     setSelectedVersionId(null);
+    setEditorDirty(false);
     loadBody();
     getDocumentVersions(documentId).then(setVersions).catch(() => undefined);
     getAnonymisation(documentId)
@@ -221,6 +223,18 @@ export function DocumentDetail({
   const pendingEdits = versions.reduce((total, v) => total + v.pending_count, 0);
   const acceptedEdits = versions.reduce((total, v) => total + v.accepted_count, 0);
   const rejectedEdits = versions.reduce((total, v) => total + v.rejected_count, 0);
+  const confirmDiscardEditorChanges = () =>
+    !editorDirty || window.confirm("Discard unsaved document edits?");
+  const openWorkbenchView = (next: WorkbenchView) => {
+    if (next === workbenchView) return;
+    if (!confirmDiscardEditorChanges()) return;
+    setWorkbenchView(next);
+  };
+  const openEditorVersion = (versionId: string | null) => {
+    if (!confirmDiscardEditorChanges()) return;
+    setSelectedVersionId(versionId);
+    setWorkbenchView("editor");
+  };
 
   return (
     <div className="bg-wash px-4 py-6 text-ink sm:px-6 lg:px-8">
@@ -333,26 +347,26 @@ export function DocumentDetail({
         >
           <WorkbenchTab
             active={workbenchView === "editor"}
-            onClick={() => setWorkbenchView("editor")}
+            onClick={() => openWorkbenchView("editor")}
           >
             Editor
           </WorkbenchTab>
           <WorkbenchTab
             active={workbenchView === "original"}
-            onClick={() => setWorkbenchView("original")}
+            onClick={() => openWorkbenchView("original")}
           >
             Original
           </WorkbenchTab>
           <WorkbenchTab
             active={workbenchView === "versions"}
-            onClick={() => setWorkbenchView("versions")}
+            onClick={() => openWorkbenchView("versions")}
           >
             Versions
           </WorkbenchTab>
           {activeEditResult && (
             <WorkbenchTab
               active={workbenchView === "redlines"}
-              onClick={() => setWorkbenchView("redlines")}
+              onClick={() => openWorkbenchView("redlines")}
             >
               Redlines
             </WorkbenchTab>
@@ -429,6 +443,7 @@ export function DocumentDetail({
                       .then(setVersions)
                       .catch(() => undefined);
                   }}
+                  onDirtyChange={setEditorDirty}
                 />
               )}
             </div>
@@ -488,10 +503,7 @@ export function DocumentDetail({
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedVersionId(EXTRACTED_VERSION_ID);
-                      setWorkbenchView("editor");
-                    }}
+                    onClick={() => openEditorVersion(EXTRACTED_VERSION_ID)}
                     className={`border px-3 py-2 text-sm ${
                       selectedVersionId === EXTRACTED_VERSION_ID
                         ? "border-ink bg-ink text-paper"
@@ -504,10 +516,7 @@ export function DocumentDetail({
                     <button
                       key={version.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedVersionId(version.id);
-                        setWorkbenchView("editor");
-                      }}
+                      onClick={() => openEditorVersion(version.id)}
                       className={`border px-3 py-2 text-sm ${
                         selectedResolvedVersion?.id === version.id
                           ? "border-ink bg-ink text-paper"
@@ -523,10 +532,7 @@ export function DocumentDetail({
                 documentId={documentId}
                 versions={versions}
                 selectedVersionId={selectedResolvedVersion?.id ?? null}
-                onSelectVersion={(versionId) => {
-                  setSelectedVersionId(versionId);
-                  setWorkbenchView("editor");
-                }}
+                onSelectVersion={(versionId) => openEditorVersion(versionId)}
               />
               {versions.length === 0 && (
                 <p className="mt-4 text-sm text-muted">No versions recorded.</p>

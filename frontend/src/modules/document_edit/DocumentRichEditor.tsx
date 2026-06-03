@@ -144,6 +144,7 @@ export function DocumentRichEditor({
   sourceLabel,
   sourceHighlight,
   onSaved,
+  onDirtyChange,
 }: {
   documentId: string;
   filename: string;
@@ -153,6 +154,7 @@ export function DocumentRichEditor({
   sourceLabel: string;
   sourceHighlight?: string | null;
   onSaved: (version: DocumentVersionRead) => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -191,6 +193,7 @@ export function DocumentRichEditor({
       },
       onUpdate: () => {
         setDirty(true);
+        onDirtyChange?.(true);
         setSavedMessage(null);
       },
       immediatelyRender: false,
@@ -202,9 +205,10 @@ export function DocumentRichEditor({
     if (!editor) return;
     editor.commands.setContent(content, { emitUpdate: false });
     setDirty(false);
+    onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
-  }, [content, editor]);
+  }, [content, editor, onDirtyChange]);
 
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
   const canSave = Boolean(editor && dirty && plainText.trim() && !saving);
@@ -222,6 +226,7 @@ export function DocumentRichEditor({
         editorJson,
       );
       setDirty(false);
+      onDirtyChange?.(false);
       setSavedMessage(`Saved v${version.version_number}`);
       onSaved(version);
     } catch (err) {
@@ -234,6 +239,7 @@ export function DocumentRichEditor({
   function reset() {
     editor?.commands.setContent(content, { emitUpdate: false });
     setDirty(false);
+    onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
   }
