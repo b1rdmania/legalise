@@ -268,6 +268,24 @@ describe("DocumentDetail", () => {
     expect(screen.getByText("Redaction")).toBeInTheDocument();
   });
 
+  it("makes saved versions openable and downloadable from the version workspace", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
+      versionSummary("v-1", 1, null, "upload"),
+      versionSummary("v-2", 2, "Edited body"),
+    ]);
+
+    mount();
+    await screen.findByText(/Viewing saved version v2/);
+    fireEvent.click(screen.getByRole("button", { name: "Versions" }));
+
+    expect(screen.getByRole("heading", { name: "Saved versions" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in editor" })).toBeInTheDocument();
+    const download = screen.getByRole("link", { name: "Download DOCX" });
+    expect(download.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
+  });
+
   it("moves proposed redlines into the main document review area", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue({

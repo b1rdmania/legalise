@@ -5,7 +5,11 @@
 // document has at least a v1 upload).
 
 import { useEffect, useState } from "react";
-import { DocumentVersionSummary, getDocumentVersions } from "../../lib/api";
+import {
+  DocumentVersionSummary,
+  documentVersionDocxUrl,
+  getDocumentVersions,
+} from "../../lib/api";
 
 const KIND_LABEL: Record<string, string> = {
   upload: "Upload",
@@ -73,36 +77,56 @@ export function VersionTimeline({
 
   return (
     <div className="mt-5 border-t border-rule pt-4">
-      <div className="font-mono uppercase tracking-track2 text-[10px] text-muted mb-2">
-        Versions
+      <div className="mb-3">
+        <h3 className="text-sm font-semibold text-ink">Saved versions</h3>
+        <p className="mt-1 text-xs leading-5 text-muted">
+          Open a saved version in the editor, or download it as an audited DOCX.
+        </p>
       </div>
-      <ol className="space-y-1.5">
+      <ol className="space-y-2">
         {versions.map((s) => (
           <li
             key={s.version.id}
-            className={`flex items-baseline gap-3 border-l-2 pl-3 text-[12px] ${
-              selectedVersionId === s.version.id ? "border-ink" : "border-rule"
+            className={`border bg-paper p-3 text-sm ${
+              selectedVersionId === s.version.id
+                ? "border-ink"
+                : "border-rule"
             }`}
           >
-            <span className="font-mono text-[11px] text-ink">
-              v{s.version.version_number}
-            </span>
-            <span className="font-mono uppercase tracking-track2 text-[9px] text-muted">
-              {KIND_LABEL[s.version.kind] || s.version.kind}
-            </span>
-            <span className="text-muted text-[11px]">{fmt(s.version.created_at)}</span>
-            <span className="ml-auto font-mono text-[10px] text-muted">
-              {s.pending_count} pending · {s.accepted_count} accepted · {s.rejected_count} rejected
-            </span>
-            {s.version.resolved_text && onSelectVersion && (
-              <button
-                type="button"
-                onClick={() => onSelectVersion(s.version.id)}
-                className="font-mono text-[10px] uppercase tracking-track2 text-muted underline underline-offset-4 hover:text-ink"
-              >
-                {selectedVersionId === s.version.id ? "Open" : "Open version"}
-              </button>
-            )}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-ink">
+                  v{s.version.version_number}{" "}
+                  <span className="font-normal text-muted">
+                    {KIND_LABEL[s.version.kind] || s.version.kind}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-muted">{fmt(s.version.created_at)}</p>
+                <p className="mt-2 text-xs text-muted">
+                  {s.pending_count} pending · {s.accepted_count} accepted ·{" "}
+                  {s.rejected_count} rejected
+                </p>
+              </div>
+              {s.version.resolved_text && (
+                <div className="flex flex-wrap gap-2">
+                  {onSelectVersion && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectVersion(s.version.id)}
+                      className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
+                    >
+                      {selectedVersionId === s.version.id ? "Open in editor" : "Open version"}
+                    </button>
+                  )}
+                  <a
+                    href={documentVersionDocxUrl(documentId, s.version.id)}
+                    className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                  >
+                    Download DOCX
+                  </a>
+                </div>
+              )}
+            </div>
           </li>
         ))}
       </ol>
