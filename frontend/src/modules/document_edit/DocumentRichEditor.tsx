@@ -27,6 +27,7 @@ function escapeHtml(value: string): string {
 
 type TextRange = { start: number; end: number };
 type OutlineItem = { id: string; label: string; query: string };
+type DocumentStats = { words: number; chars: number; blocks: number };
 export type DocumentNoteHighlight = {
   id: string;
   label: string;
@@ -140,6 +141,15 @@ function documentOutlineFromText(text: string): OutlineItem[] {
       query: block.slice(0, 96),
     };
   });
+}
+
+export function documentStatsFromText(text: string): DocumentStats {
+  const trimmed = text.trim();
+  return {
+    words: trimmed ? trimmed.split(/\s+/).length : 0,
+    chars: text.length,
+    blocks: trimmed ? trimmed.split(/\n{2,}/).filter(Boolean).length : 0,
+  };
 }
 
 function ToolbarButton({
@@ -273,6 +283,7 @@ export function DocumentRichEditor({
     () => findNormalizedRange(plainText, sourceHighlight),
     [plainText, sourceHighlight],
   );
+  const stats = useMemo(() => documentStatsFromText(plainText), [plainText]);
 
   async function save() {
     if (!editor || !canSave) return;
@@ -442,8 +453,14 @@ export function DocumentRichEditor({
         </div>
       </div>
 
-      <div className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
-        {dirty ? "Unsaved changes" : savedMessage ?? "Every save creates a new document version."}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
+        <span>
+          {dirty ? "Unsaved changes" : savedMessage ?? "Every save creates a new document version."}
+        </span>
+        <span className="font-mono uppercase tracking-track2" data-testid="document-editor-stats">
+          {stats.words.toLocaleString()} words · {stats.chars.toLocaleString()} chars ·{" "}
+          {stats.blocks.toLocaleString()} blocks
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-5 py-3">
         <label
