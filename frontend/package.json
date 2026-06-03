@@ -20,6 +20,11 @@
   "dependencies": {
     "@tanstack/react-query": "^5.62.0",
     "@tanstack/react-router": "^1.85.0",
+    "@tiptap/extension-highlight": "^3.25.0",
+    "@tiptap/extension-placeholder": "^3.25.0",
+    "@tiptap/extension-typography": "^3.25.0",
+    "@tiptap/react": "^3.25.0",
+    "@tiptap/starter-kit": "^3.25.0",
     "clsx": "^2.1.1",
     "diff-match-patch": "^1.0.5",
     "lucide-react": "^0.460.0",

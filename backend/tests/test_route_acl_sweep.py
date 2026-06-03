@@ -84,6 +84,48 @@ async def test_get_document_versions_cross_user_returns_404(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_post_manual_document_version_creates_user_edit_version(client) -> None:
+    """Owner can save editor text as a new immutable document version."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+
+    resp = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={
+            "resolved_text": "Edited witness statement.\n\nSecond paragraph.",
+            "notes": "Manual edit from document editor",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    payload = resp.json()
+    assert payload["kind"] == "user_edit"
+    assert payload["version_number"] == 2
+    assert payload["resolved_text"] == "Edited witness statement.\n\nSecond paragraph."
+    assert payload["notes"] == "Manual edit from document editor"
+
+    versions = await client.get(f"/api/documents/{doc_id}/versions")
+    assert versions.status_code == 200, versions.text
+    rows = versions.json()
+    assert rows[-1]["version"]["kind"] == "user_edit"
+    assert rows[-1]["version"]["resolved_text"] == "Edited witness statement.\n\nSecond paragraph."
+
+
+@pytest.mark.asyncio
+async def test_post_manual_document_version_cross_user_returns_404(client) -> None:
+    """User B cannot save a version on User A's document by UUID."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload(client)
+    await client.post("/auth/logout")
+
+    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    resp = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={"resolved_text": "Cross-user edit should not land."},
+    )
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
 async def test_get_document_body_archived_matter_returns_404(client) -> None:
     """After the owning matter is archived, GET document body 404s."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
@@ -116,6 +158,22 @@ async def test_get_document_versions_archived_matter_returns_404(client) -> None
     assert del_resp.status_code == 204, del_resp.text
 
     resp = await client.get(f"/api/documents/{doc_id}/versions")
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_post_manual_document_version_archived_matter_returns_404(client) -> None:
+    """After the owning matter is archived, manual editor saves 404."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload(client)
+
+    del_resp = await client.delete(f"/api/matters/{slug}")
+    assert del_resp.status_code == 204, del_resp.text
+
+    resp = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={"resolved_text": "Archived matter edit should not land."},
+    )
     assert resp.status_code == 404, resp.text
 
 

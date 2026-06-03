@@ -27,6 +27,7 @@ import {
 import { EditPanel } from "../modules/document_edit/EditPanel";
 import { AnonymiseButton } from "../modules/anonymisation/AnonymiseButton";
 import { VersionTimeline } from "../modules/document_edit/VersionTimeline";
+import { DocumentRichEditor } from "../modules/document_edit/DocumentRichEditor";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -140,7 +141,20 @@ export function DocumentDetail({
 
   const doc = q.doc;
   const recordHref = `/matters/${encodeURIComponent(slug)}/audit`;
-  const latestVersion = versions[0]?.version;
+  const originalHref = documentOriginalUrl(documentId);
+  const canPreviewOriginal = doc.mime_type === "application/pdf";
+  const latestVersion = versions.at(-1)?.version;
+  const latestResolvedVersion = [...versions]
+    .reverse()
+    .find((v) => v.version.resolved_text)?.version;
+  const editorText = latestResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
+  const editorSourceLabel = latestResolvedVersion
+    ? `Editing saved version v${latestResolvedVersion.version_number}`
+    : body
+      ? `${body.extraction_method} · ${body.char_count.toLocaleString()} chars${
+          body.page_count ? ` · ${body.page_count} pages` : ""
+        }`
+      : "Loading document text";
   const pendingEdits = versions.reduce((total, v) => total + v.pending_count, 0);
   const acceptedEdits = versions.reduce((total, v) => total + v.accepted_count, 0);
   const rejectedEdits = versions.reduce((total, v) => total + v.rejected_count, 0);
@@ -193,7 +207,7 @@ export function DocumentDetail({
             </div>
             <div className="flex flex-wrap items-start gap-2 text-sm">
               <a
-                href={documentOriginalUrl(documentId)}
+                href={originalHref}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
@@ -223,41 +237,59 @@ export function DocumentDetail({
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
           <main className="min-w-0">
-            <section
-              className="min-h-[760px] border border-rule bg-paper"
-              data-testid="document-content"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-ink">Extracted text</h2>
-                  {body && !bodyMissing && (
-                    <p className="mt-0.5 text-xs text-muted">
-                      {body.extraction_method} · {body.char_count.toLocaleString()} chars
-                      {body.page_count ? ` · ${body.page_count} pages` : ""}
-                    </p>
-                  )}
-                </div>
-                <p className="text-xs text-muted">
-                  Source chips and skills read from this text.
-                </p>
-              </div>
-              {bodyMissing ? (
+            <div data-testid="document-content">
+              {bodyMissing && !latestResolvedVersion ? (
                 <div className="p-6">
                   <EmptyState
                     title="No extracted text"
                     body="No extracted body is available for this document (extraction may have failed or not run). The original file is still available."
                   />
                 </div>
-              ) : !body ? (
-                <div className="p-6">
+              ) : !body && !latestResolvedVersion ? (
+                <div className="border border-rule bg-paper p-6">
                   <LoadingLine label="loading document text" />
                 </div>
               ) : (
-                <article className="px-7 py-7 text-[16px] leading-8 whitespace-pre-wrap font-sans text-ink sm:px-10">
-                  {body.extracted_text || "(empty)"}
-                </article>
+                <DocumentRichEditor
+                  documentId={documentId}
+                  filename={doc.filename}
+                  initialText={editorText}
+                  latestVersionNumber={latestVersion?.version_number}
+                  sourceLabel={editorSourceLabel}
+                  onSaved={() => {
+                    getDocumentVersions(documentId)
+                      .then(setVersions)
+                      .catch(() => undefined);
+                  }}
+                />
               )}
-            </section>
+            </div>
+
+            {canPreviewOriginal && (
+              <section className="mt-6 border border-rule bg-paper" data-testid="document-original-preview">
+                <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-ink">Original preview</h2>
+                    <p className="mt-0.5 text-xs text-muted">
+                      Opens through the audited document proxy.
+                    </p>
+                  </div>
+                  <a
+                    href={originalHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                  >
+                    Open full size →
+                  </a>
+                </div>
+                <iframe
+                  title={`Original preview for ${doc.filename}`}
+                  src={originalHref}
+                  className="h-[620px] w-full bg-paper-sunken"
+                />
+              </section>
+            )}
 
             <section
               className="mt-6 border border-rule bg-paper p-5"

@@ -3,7 +3,8 @@
 Each document starts with a `version_number=1, kind='upload'` row. Subsequent
 versions are produced by edit instructions (`assistant_edit`), user
 accept/reject flows (`user_accept`/`user_reject`), pure generation
-(`generated`), or replication (`replicated`).
+(`generated`), replication (`replicated`), or direct editor saves
+(`user_edit`).
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ VERSION_KIND_UPLOAD = "upload"
 VERSION_KIND_ASSISTANT_EDIT = "assistant_edit"
 VERSION_KIND_USER_ACCEPT = "user_accept"
 VERSION_KIND_USER_REJECT = "user_reject"
+VERSION_KIND_USER_EDIT = "user_edit"
 VERSION_KIND_GENERATED = "generated"
 VERSION_KIND_REPLICATED = "replicated"
 VERSION_KIND_VALUES = {
@@ -29,6 +31,7 @@ VERSION_KIND_VALUES = {
     VERSION_KIND_ASSISTANT_EDIT,
     VERSION_KIND_USER_ACCEPT,
     VERSION_KIND_USER_REJECT,
+    VERSION_KIND_USER_EDIT,
     VERSION_KIND_GENERATED,
     VERSION_KIND_REPLICATED,
 }
