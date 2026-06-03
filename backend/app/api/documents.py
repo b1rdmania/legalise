@@ -49,7 +49,7 @@ from app.models import (
     STATUS_ARCHIVED,
     User,
 )
-from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
+from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED, extracted_body_for
 from app.models.document_edit import (
     EDIT_STATUS_ACCEPTED,
     EDIT_STATUS_PENDING,
@@ -725,6 +725,9 @@ class DocumentCommentRead(BaseModel):
     document_id: uuid.UUID
     author_id: uuid.UUID
     quote_text: str | None
+    body_sha256: str | None
+    anchor_start: int | None
+    anchor_end: int | None
     body: str
     status: str
     created_at: datetime
@@ -737,6 +740,9 @@ class DocumentCommentRead(BaseModel):
 class DocumentCommentCreate(BaseModel):
     body: str = Field(min_length=2, max_length=4000)
     quote_text: str | None = Field(default=None, max_length=2000)
+    body_sha256: str | None = Field(default=None, max_length=64)
+    anchor_start: int | None = Field(default=None, ge=0)
+    anchor_end: int | None = Field(default=None, ge=0)
 
 
 async def _resolve_one(
@@ -1668,10 +1674,56 @@ async def post_document_comment(
     if len(comment_body) < 2:
         raise HTTPException(422, "comment body is required")
     quote_text = body.quote_text.strip() if body.quote_text else None
+    anchor_start = body.anchor_start
+    anchor_end = body.anchor_end
+    body_sha256: str | None = None
+    has_anchor = anchor_start is not None or anchor_end is not None
+    if has_anchor:
+        if anchor_start is None or anchor_end is None or anchor_end <= anchor_start:
+            raise HTTPException(
+                422,
+                {
+                    "error": "invalid_comment_anchor",
+                    "message": "Comment anchors require start and end positions.",
+                },
+            )
+        extracted = await extracted_body_for(session, doc.id)
+        if extracted is None:
+            raise HTTPException(
+                422,
+                {
+                    "error": "document_body_unavailable",
+                    "message": "The document text is not available for anchoring.",
+                },
+            )
+        source_text = extracted.extracted_text
+        body_sha256 = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+        if body.body_sha256 and body.body_sha256 != body_sha256:
+            raise HTTPException(
+                409,
+                {
+                    "error": "document_body_changed",
+                    "message": "The document text changed before the note was saved.",
+                },
+            )
+        if anchor_end > len(source_text):
+            raise HTTPException(
+                422,
+                {
+                    "error": "invalid_comment_anchor",
+                    "message": "The selected range is outside the document text.",
+                },
+            )
+        anchored_quote = source_text[anchor_start:anchor_end].strip()
+        if not quote_text and anchored_quote:
+            quote_text = anchored_quote[:2000]
     comment = DocumentComment(
         document_id=doc.id,
         author_id=user.id,
         quote_text=quote_text or None,
+        body_sha256=body_sha256,
+        anchor_start=anchor_start if has_anchor else None,
+        anchor_end=anchor_end if has_anchor else None,
         body=comment_body,
         status=COMMENT_STATUS_OPEN,
     )
@@ -1688,6 +1740,10 @@ async def post_document_comment(
         payload={
             "document_id": str(doc.id),
             "has_quote": bool(comment.quote_text),
+            "has_anchor": has_anchor,
+            "body_sha256": comment.body_sha256,
+            "anchor_start": comment.anchor_start,
+            "anchor_end": comment.anchor_end,
         },
     )
     await session.commit()

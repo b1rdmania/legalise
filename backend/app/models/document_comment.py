@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,6 +31,9 @@ class DocumentComment(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     quote_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    body_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    anchor_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    anchor_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(24), default=COMMENT_STATUS_OPEN, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

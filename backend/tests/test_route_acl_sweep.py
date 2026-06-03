@@ -10,6 +10,7 @@ DB-backed; skips when Postgres is unreachable (see conftest.py).
 
 from __future__ import annotations
 
+import hashlib
 import io
 import uuid
 import zipfile
@@ -49,6 +50,25 @@ async def _create_matter_and_upload(client) -> tuple[str, str]:
     resp = await client.post(
         f"/api/matters/{slug}/documents",
         files={"file": ("test.pdf", io.BytesIO(_PDF_MAGIC), "application/pdf")},
+        data={"tag": "draft"},
+    )
+    assert resp.status_code == 201, resp.text
+    doc_id = resp.json()["id"]
+    return slug, doc_id
+
+
+async def _create_matter_and_upload_text(client, text: str) -> tuple[str, str]:
+    """Returns (matter_slug, document_id) for an extracted text/plain document."""
+    create = await client.post(
+        "/api/matters",
+        json={"title": "ACL Sweep Text Matter"},
+    )
+    assert create.status_code == 201, create.text
+    slug = create.json()["slug"]
+
+    resp = await client.post(
+        f"/api/matters/{slug}/documents",
+        files={"file": ("note.txt", io.BytesIO(text.encode("utf-8")), "text/plain")},
         data={"tag": "draft"},
     )
     assert resp.status_code == 201, resp.text
@@ -114,6 +134,43 @@ async def test_document_comments_owner_can_create_list_and_resolve(client) -> No
     assert resolved.status_code == 200, resolved.text
     assert resolved.json()["status"] == "resolved"
     assert resolved.json()["resolved_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_document_comments_owner_can_anchor_note_to_extracted_text(client) -> None:
+    """Owner-created notes can pin a selected passage to the extracted body hash."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    source_text = "Alpha beta gamma"
+    _, doc_id = await _create_matter_and_upload_text(client, source_text)
+    current_hash = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+
+    created = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={
+            "body": "Check this anchored passage.",
+            "quote_text": "beta",
+            "body_sha256": current_hash,
+            "anchor_start": 6,
+            "anchor_end": 10,
+        },
+    )
+    assert created.status_code == 200, created.text
+    comment = created.json()
+    assert comment["quote_text"] == "beta"
+    assert comment["body_sha256"] == current_hash
+    assert comment["anchor_start"] == 6
+    assert comment["anchor_end"] == 10
+
+    stale = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={
+            "body": "This should not attach to stale text.",
+            "body_sha256": "0" * 64,
+            "anchor_start": 0,
+            "anchor_end": 5,
+        },
+    )
+    assert stale.status_code == 409, stale.text
 
 
 @pytest.mark.asyncio

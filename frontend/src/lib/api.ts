@@ -1744,6 +1744,9 @@ export interface DocumentCommentRead {
   document_id: string;
   author_id: string;
   quote_text: string | null;
+  body_sha256: string | null;
+  anchor_start: number | null;
+  anchor_end: number | null;
   body: string;
   status: "open" | "resolved";
   created_at: string;
@@ -1920,7 +1923,13 @@ export const endDocumentEditSession = async (
 
 export const createDocumentComment = (
   documentId: string,
-  payload: { body: string; quote_text?: string | null },
+  payload: {
+    body: string;
+    quote_text?: string | null;
+    body_sha256?: string | null;
+    anchor_start?: number | null;
+    anchor_end?: number | null;
+  },
 ) =>
   apiFetch(`${API}/documents/${documentId}/comments`, {
     method: "POST",
