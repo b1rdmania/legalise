@@ -47,9 +47,17 @@ type EditPanelProps = {
   documentId: string;
   filename: string;
   onClose?: () => void;
+  onResolved?: () => void;
+  showTimeline?: boolean;
 };
 
-export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
+export function EditPanel({
+  documentId,
+  filename,
+  onClose,
+  onResolved,
+  showTimeline = true,
+}: EditPanelProps) {
   const [instruction, setInstruction] = useState("");
   const [mode, setMode] = useState<EditMode>("free-text");
   const [busy, setBusy] = useState(false);
@@ -84,10 +92,10 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
   const disabled = busy || instruction.trim().length < 4;
 
   return (
-    <div className="border-t border-rule bg-paper p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
-          Edit · {filename}
+    <div className="space-y-4 bg-paper">
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted">
+          Editing <span className="font-medium text-ink">{filename}</span>
         </div>
         {onClose && (
           <button
@@ -99,13 +107,13 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-3">
+      <div className="grid grid-cols-2 gap-2">
         {PRESETS.map((p) => (
           <button
             key={p.label}
             onClick={() => applyPreset(p)}
             disabled={busy}
-            className="border border-rule px-3 py-1.5 text-[12px] hover:bg-wash transition-colors text-ink disabled:opacity-40"
+            className="min-h-[44px] border border-rule px-3 py-2 text-left text-[12px] leading-4 text-ink transition-colors hover:border-ink disabled:opacity-40"
           >
             {p.label}
           </button>
@@ -118,10 +126,10 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
         rows={4}
         placeholder="Type an edit instruction, or pick a preset above."
         disabled={busy}
-        className="w-full bg-paper border border-rule px-3 py-2 text-[14px] focus:border-ink focus:outline-none transition-colors font-sans text-ink resize-vertical"
+        className="w-full resize-vertical border border-rule bg-paper px-3 py-2 font-sans text-[14px] text-ink transition-colors focus:border-ink focus:outline-none"
       />
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <label className="font-mono uppercase tracking-track2 text-[10px] text-muted">
           Mode
         </label>
@@ -155,11 +163,16 @@ export function EditPanel({ documentId, filename, onClose }: EditPanelProps) {
       {result && (
         <TrackedChangesView
           result={result}
-          onResolved={() => setTimelineKey((k) => k + 1)}
+          onResolved={() => {
+            setTimelineKey((k) => k + 1);
+            onResolved?.();
+          }}
         />
       )}
 
-      <VersionTimeline documentId={documentId} refreshKey={timelineKey} />
+      {showTimeline && (
+        <VersionTimeline documentId={documentId} refreshKey={timelineKey} />
+      )}
     </div>
   );
 }

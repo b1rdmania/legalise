@@ -436,9 +436,17 @@ function DemoDocumentsTab({
 }) {
   const inspectedDoc = docs.find((doc) => doc.id === inspectedDocId) ?? docs[0];
 
+  if (!inspectedDoc) {
+    return (
+      <div className="max-w-5xl border border-rule bg-paper p-5 text-sm text-muted">
+        No demo documents are available.
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-5xl">
-      <div className="mb-8 border border-rule bg-paper-sunken p-5">
+    <div className="max-w-6xl">
+      <div className="mb-6 border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
           Documents in this project
         </p>
@@ -452,64 +460,65 @@ function DemoDocumentsTab({
         </p>
       </div>
 
-      <div className="overflow-hidden border border-rule bg-paper">
-        <div className="min-w-[680px]">
-          <div className="grid grid-cols-[1.5fr_110px_90px_120px_120px] gap-4 px-5 py-3 text-muted bg-paper-sunken border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
-            <span>Document</span>
-            <span>Type</span>
-            <span>Size</span>
-            <span>Source</span>
-            <span className="text-right">Workspace</span>
+      <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="border border-rule bg-paper">
+          <div className="border-b border-rule bg-paper-sunken px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
+              Matter files
+            </p>
           </div>
-          {docs.map((d) => (
-            <div key={d.id} className="border-b border-rule">
-              <div className="grid grid-cols-[1.5fr_110px_90px_120px_120px] gap-4 px-5 py-4 items-center hover:bg-wash transition-colors">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-ink truncate">{d.filename}</div>
-                  <div className="mt-0.5 text-[11px] text-muted truncate">
-                    hashed · source-ready · {d.sha256.slice(0, 8)}
-                  </div>
-                </div>
-                <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
-                <span className="text-xs text-ink">{formatBytes(d.size_bytes)}</span>
-                <span>{d.from_disclosure ? <Badge>CPR 31</Badge> : <span className="text-xs text-muted">Upload</span>}</span>
+          <div>
+            {docs.map((d) => {
+              const active = d.id === inspectedDoc.id;
+              return (
                 <button
+                  key={d.id}
                   type="button"
                   onClick={() => onInspect(d.id)}
-                  className="text-right text-[10px] font-semibold uppercase tracking-track2 text-muted hover:text-ink"
+                  className={`block w-full border-b border-rule px-4 py-4 text-left transition-colors ${
+                    active ? "bg-wash" : "bg-paper hover:bg-wash"
+                  }`}
                 >
-                  Open reader
+                  <div className="text-sm font-semibold text-ink">{d.filename}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                    {d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}
+                    <span>{formatBytes(d.size_bytes)}</span>
+                    <span>{d.from_disclosure ? "CPR 31" : "Upload"}</span>
+                  </div>
+                  <div className="mt-2 text-[10px] uppercase tracking-track2 text-muted">
+                    Source-ready · {d.sha256.slice(0, 8)}
+                  </div>
                 </button>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {inspectedDoc && (
-        <section className="mt-6 border border-rule bg-paper p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+        <section className="min-h-[620px] border border-rule bg-paper">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-rule px-5 py-4">
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-                Reader preview
+                Document reader
               </p>
-              <h3 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+              <h3 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
                 {inspectedDoc.filename}
               </h3>
+              <p className="mt-1 text-xs text-muted">
+                Extracted text preview. In the live workspace, source chips open this reader.
+              </p>
             </div>
             <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
               Source-ready
             </span>
           </div>
-          <div className="mt-4 max-w-3xl whitespace-pre-wrap border border-rule bg-paper-sunken p-4 text-sm leading-relaxed text-prose">
+          <div className="px-6 py-6 text-[15px] leading-8 text-ink whitespace-pre-wrap">
             {demoDocumentExtract(inspectedDoc)}
           </div>
-          <p className="mt-3 text-xs leading-5 text-muted">
-            In the live workspace, source chips on AI outputs open back to this
-            reader so you can check what the skill relied on.
-          </p>
+          <div className="border-t border-rule px-5 py-4 text-xs leading-5 text-muted">
+            Original files, extracted text, edit versions, redactions, and record links live on this document surface in the working product.
+          </div>
         </section>
-      )}
+      </div>
     </div>
   );
 }
