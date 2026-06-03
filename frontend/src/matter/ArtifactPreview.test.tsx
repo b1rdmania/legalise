@@ -141,14 +141,46 @@ describe("ArtifactPreview", () => {
     const chip = screen.getByTestId("source-chip-src_d1");
     expect(chip).toHaveTextContent(/khan-dismissal-letter\.pdf/);
     expect(chip.querySelector("a")?.getAttribute("href")).toBe(
-      "/matters/khan/documents/doc-9",
+      "/matters/khan/documents/doc-9?from=assistant&source=src_d1",
     );
+  });
+
+  it("links quote anchors into the document reader with source context", () => {
+    render(
+      <ArtifactPreview
+        kindHint="skill_response"
+        matterSlug="khan"
+        payload={{
+          output: "Summary.",
+          source_anchors: [
+            {
+              id: "src_q1",
+              source_type: "document",
+              document_id: "doc-9",
+              filename: "f.pdf",
+              label: "Document · f.pdf",
+              quote: "dismissed for a single social-media post",
+              quote_found_in_source: true,
+            },
+          ],
+        }}
+      />,
+    );
+    const quote = screen.getByTestId("source-quote-src_q1");
+    const href = quote.querySelector("a")?.getAttribute("href") ?? "";
+    expect(href).toContain("/matters/khan/documents/doc-9?");
+    expect(href).toContain("from=assistant");
+    expect(href).toContain("source=src_q1");
+    expect(href).toContain("quote=dismissed+for+a+single+social-media+post");
+    expect(href).toContain("quote_found=true");
+    expect(href).toContain("quoteFound=true");
   });
 
   it("flags a quote not found in source as a caution, not a verification", () => {
     render(
       <ArtifactPreview
         kindHint="skill_response"
+        matterSlug="khan"
         payload={{
           output: "Summary.",
           source_anchors: [
@@ -166,6 +198,7 @@ describe("ArtifactPreview", () => {
       />,
     );
     expect(screen.getByText(/quote not found in source/i)).toBeInTheDocument();
+    expect(screen.getByText("Open passage")).toBeInTheDocument();
   });
 
   it("shows 'No sources cited' for an empty anchors array", () => {

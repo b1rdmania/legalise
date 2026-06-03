@@ -99,6 +99,24 @@ function looksLikeSkillResponse(p: unknown): p is SkillResponsePayload {
   return typeof v === "string";
 }
 
+function documentSourceHref(
+  matterSlug: string,
+  anchor: SourceAnchor,
+): string | null {
+  if (!anchor.document_id) return null;
+  const params = new URLSearchParams();
+  params.set("from", "assistant");
+  params.set("source", anchor.id);
+  if (anchor.quote) params.set("quote", anchor.quote);
+  if (anchor.quote_found_in_source !== undefined) {
+    params.set("quote_found", anchor.quote_found_in_source ? "true" : "false");
+    params.set("quoteFound", anchor.quote_found_in_source ? "true" : "false");
+  }
+  return `/matters/${encodeURIComponent(matterSlug)}/documents/${encodeURIComponent(
+    anchor.document_id,
+  )}?${params.toString()}`;
+}
+
 export function ArtifactPreview({
   payload,
   kindHint,
@@ -292,6 +310,7 @@ export function SourceAnchorsBlock({
       <ul className="mt-2 flex flex-wrap gap-2">
         {docAnchors.map((a) => {
           const label = a.label ?? a.filename ?? a.id;
+          const href = matterSlug ? documentSourceHref(matterSlug, a) : null;
           const chip = (
             <span className="inline-flex items-center rounded-full border border-line bg-paper px-2 py-0.5 text-[11px]">
               {label}
@@ -299,9 +318,9 @@ export function SourceAnchorsBlock({
           );
           return (
             <li key={a.id} data-testid={`source-chip-${a.id}`}>
-              {matterSlug && a.document_id ? (
+              {href ? (
                 <a
-                  href={`/matters/${encodeURIComponent(matterSlug)}/documents/${encodeURIComponent(a.document_id)}`}
+                  href={href}
                   className="hover:text-ink"
                 >
                   {chip}
@@ -315,17 +334,31 @@ export function SourceAnchorsBlock({
       </ul>
       {quoteAnchors.length > 0 && (
         <ul className="mt-2 space-y-1">
-          {quoteAnchors.map((a) => (
-            <li key={a.id} className="text-xs" data-testid={`source-quote-${a.id}`}>
-              <span className="text-muted">{a.label ?? a.filename}: </span>
-              <span className="italic">“{a.quote}”</span>{" "}
-              {a.quote_found_in_source === false ? (
-                <span className="text-seal">— quote not found in source</span>
-              ) : a.quote_found_in_source === true ? (
-                <span className="text-muted">— quote located in source</span>
-              ) : null}
-            </li>
-          ))}
+          {quoteAnchors.map((a) => {
+            const href = matterSlug ? documentSourceHref(matterSlug, a) : null;
+            return (
+              <li key={a.id} className="text-xs" data-testid={`source-quote-${a.id}`}>
+                <span className="text-muted">{a.label ?? a.filename}: </span>
+                <span className="italic">“{a.quote}”</span>{" "}
+                {a.quote_found_in_source === false ? (
+                  <span className="text-seal">— quote not found in source</span>
+                ) : a.quote_found_in_source === true ? (
+                  <span className="text-muted">— quote located in source</span>
+                ) : null}
+                {href && (
+                  <>
+                    {" "}
+                    <a
+                      href={href}
+                      className="underline underline-offset-4 hover:text-ink"
+                    >
+                      Open passage
+                    </a>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

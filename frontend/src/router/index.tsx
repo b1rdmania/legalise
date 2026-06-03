@@ -419,13 +419,24 @@ const matterSignoffRoute = createRoute({
 });
 
 // ?from=<tab> tells DocumentDetail which matter surface to send the
-// user back to. Optional; falls back to Documents when absent.
-type MatterDocumentDetailSearch = { from?: string };
+// user back to. Source fields let output source chips land in the
+// reader with the cited passage, when the artifact payload carries one.
+type MatterDocumentDetailSearch = {
+  from?: string;
+  source?: string;
+  quote?: string;
+  quote_found?: string;
+  quoteFound?: string;
+};
 const matterDocumentDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/matters/$slug/documents/$documentId",
   validateSearch: (s: Record<string, unknown>): MatterDocumentDetailSearch => ({
     from: typeof s.from === "string" ? s.from : undefined,
+    source: typeof s.source === "string" ? s.source : undefined,
+    quote: typeof s.quote === "string" ? s.quote : undefined,
+    quote_found: typeof s.quote_found === "string" ? s.quote_found : undefined,
+    quoteFound: typeof s.quoteFound === "string" ? s.quoteFound : undefined,
   }),
   component: () => {
     const { slug, documentId } = matterDocumentDetailRoute.useParams();
