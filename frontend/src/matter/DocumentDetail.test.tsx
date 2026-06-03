@@ -179,7 +179,8 @@ describe("DocumentDetail", () => {
     // editable document surface without metadata disclosure first.
     expect(screen.getByTestId("document-editor")).toBeInTheDocument();
     expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
-    expect(screen.getByText("Document tools")).toBeInTheDocument();
+    expect(screen.getByText("Document intelligence")).toBeInTheDocument();
+    expect(screen.getByText("Suggested edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
     expect(screen.queryByText("Version record")).toBeNull();
     // Admin-ish document facts sit behind Details; the primary scan
@@ -192,6 +193,8 @@ describe("DocumentDetail", () => {
     expect(open.getAttribute("href")).toContain("/documents/doc-1/original");
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
+    expect(screen.getByRole("button", { name: "Compare versions" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Record" })).toBeInTheDocument();
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
     expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Original" }));
