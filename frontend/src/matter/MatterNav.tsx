@@ -22,6 +22,7 @@ export function MatterNav({
   mobileOpen,
   onMobileClose,
   showPosture = false,
+  navItems = SIDEBAR_NAV,
 }: {
   matter: Matter;
   tab: TabKey;
@@ -30,6 +31,7 @@ export function MatterNav({
   mobileOpen?: boolean;
   onMobileClose?: () => void;
   showPosture?: boolean;
+  navItems?: ReadonlyArray<{ key: TabKey; label: string }>;
 }) {
   const activeKey = sidebarActiveFor(tab);
 
@@ -40,6 +42,7 @@ export function MatterNav({
       onChange={onChange}
       onPostureChange={onPostureChange}
       showPosture={showPosture}
+      navItems={navItems}
     />
   );
 
@@ -76,6 +79,7 @@ export function MatterNav({
               }}
               onPostureChange={onPostureChange}
               showPosture={showPosture}
+              navItems={navItems}
               closeButton={
                 <button
                   type="button"
@@ -102,6 +106,7 @@ function NavBody({
   onChange,
   onPostureChange,
   showPosture,
+  navItems,
   closeButton,
 }: {
   matter: Matter;
@@ -109,6 +114,7 @@ function NavBody({
   onChange: (next: TabKey) => void;
   onPostureChange: (next: string) => void;
   showPosture: boolean;
+  navItems: ReadonlyArray<{ key: TabKey; label: string }>;
   closeButton?: ReactNode;
 }) {
   return (
@@ -142,7 +148,7 @@ function NavBody({
 
       {/* Nav list */}
       <nav className="px-2 py-3 flex flex-col gap-0.5" aria-label="Matter sections">
-        {SIDEBAR_NAV.map((item) => {
+        {navItems.map((item) => {
           const active = activeKey === item.key;
           return (
             <button

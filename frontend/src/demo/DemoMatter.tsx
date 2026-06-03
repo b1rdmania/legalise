@@ -1,7 +1,5 @@
-// Read-only demo workspace for `#/demo`. Mirrors MatterDetail's shell
-// (MatterHeader + MatterTabBar + main column) but feeds every tab from
-// the hard-coded snapshot. Mutation handlers flash a workspace-framed
-// sign-up CTA. Zero backend calls.
+// Read-only demo workspace for `/demo`. Mirrors the matter shell but
+// feeds every surface from the hard-coded snapshot. Zero backend calls.
 
 import { useEffect, useState } from "react";
 import type { MatterDocument } from "../lib/api";
@@ -20,14 +18,15 @@ import { ResearchTab } from "../modules/case_law/ResearchTab";
 import { ContractReviewTab } from "../modules/contract_review/ContractReviewTab";
 import { DEMO_SNAPSHOT } from "./snapshot";
 
-// Open evaluation: one consistent prompt across all disabled demo
-// actions, not six different waitlist nags. Signup is open, so the
-// action is "create an account", not "join a waitlist".
-const CTA_CREATE_ACCOUNT = "Create a free account to run this on your own matter";
-const CTA_RUN_PREMOTION = CTA_CREATE_ACCOUNT;
-const CTA_DRAFT_LETTER = CTA_CREATE_ACCOUNT;
-const CTA_EXPORT = CTA_CREATE_ACCOUNT;
-const CTA_CONTRACT_REVIEW = CTA_CREATE_ACCOUNT;
+const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
+  { key: "assistant", label: "Chat" },
+  { key: "documents", label: "Documents" },
+  { key: "workflows", label: "Skills" },
+  { key: "audit", label: "Record" },
+];
+
+const DEMO_READ_ONLY =
+  "This public demo is read-only. Use the previews to inspect the project loop.";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -44,6 +43,7 @@ export function DemoMatter() {
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [flash, setFlash] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [inspectedDocId, setInspectedDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (route.name === "demo" && route.tab && isTabKey(route.tab)) {
@@ -87,7 +87,7 @@ export function DemoMatter() {
   );
 
   const [showSoF, setShowSoF] = useState(false);
-  const flashPosture = () => flashCta(CTA_CREATE_ACCOUNT);
+  const flashPosture = () => flashCta(DEMO_READ_ONLY);
 
   return (
     <>
@@ -103,6 +103,7 @@ export function DemoMatter() {
           mobileOpen={mobileNavOpen}
           onMobileClose={() => setMobileNavOpen(false)}
           showPosture={false}
+          navItems={DEMO_NAV}
         />
         <div className="flex-1 min-w-0">
           <MatterBreadcrumb
@@ -113,23 +114,34 @@ export function DemoMatter() {
           <div className="flex bg-wash">
           <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-8 lg:py-12 min-h-[calc(100vh-80px)]">
             {tab === "assistant" && (
-              <AssistantTab
-                matter={matter}
-                docs={documents}
-                chronology={DEMO_SNAPSHOT.chronology.events}
-                auditCount={DEMO_SNAPSHOT.audit.length}
-                workflowsGrantedCount={4}
-                setTabAndHash={setTabAndHash}
-                initialMessages={DEMO_SNAPSHOT.assistantMessages}
-                disabled
-                showPostureInPulse={false}
-                disabledPlaceholder="Create a free account to chat with the assistant on your own matter"
-                onDisabledAction={() => flashCta(CTA_CREATE_ACCOUNT)}
-              />
+              <div className="space-y-8">
+                <DemoStartPanel
+                  docs={documents}
+                  auditCount={DEMO_SNAPSHOT.audit.length}
+                  onOpen={setTabAndHash}
+                  onRun={() => setTabAndHash("contract-review")}
+                />
+                <AssistantTab
+                  matter={matter}
+                  docs={documents}
+                  chronology={DEMO_SNAPSHOT.chronology.events}
+                  auditCount={DEMO_SNAPSHOT.audit.length}
+                  workflowsGrantedCount={4}
+                  setTabAndHash={setTabAndHash}
+                  initialMessages={DEMO_SNAPSHOT.assistantMessages}
+                  disabled
+                  showPostureInPulse={false}
+                  showDisabledFooter={false}
+                  showContextRail={false}
+                  onDisabledAction={() => setTabAndHash("workflows")}
+                />
+              </div>
             )}
             {tab === "documents" && (
               <DemoDocumentsTab
                 docs={documents}
+                inspectedDocId={inspectedDocId}
+                onInspect={setInspectedDocId}
               />
             )}
             {tab === "chronology" && (
@@ -141,7 +153,7 @@ export function DemoMatter() {
               />
             )}
             {tab === "workflows" && (
-              <DemoWorkflowsTab onOpen={setTabAndHash} onRun={() => flashCta(CTA_CREATE_ACCOUNT)} />
+              <DemoWorkflowsTab onOpen={setTabAndHash} />
             )}
             {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} matter={matter} />}
             {tab === "premotion" && (
@@ -151,13 +163,13 @@ export function DemoMatter() {
                 error={null}
                 stages={[]}
                 result={DEMO_SNAPSHOT.preMotion}
-                onRun={() => flashCta(CTA_RUN_PREMOTION)}
+                onRun={() => flashCta(DEMO_READ_ONLY)}
                 pdfBusy={false}
                 pdfError={null}
-                onExportPdf={() => flashCta(CTA_EXPORT)}
+                onExportPdf={() => flashCta(DEMO_READ_ONLY)}
                 docxBusy={false}
                 docxError={null}
-                onExportDocx={() => flashCta(CTA_EXPORT)}
+                onExportDocx={() => flashCta(DEMO_READ_ONLY)}
               />
             )}
             {tab === "letters" && (
@@ -173,10 +185,10 @@ export function DemoMatter() {
                     ? DEMO_SNAPSHOT.letterDraft
                     : null
                 }
-                onDraft={() => flashCta(CTA_DRAFT_LETTER)}
+                onDraft={() => flashCta(DEMO_READ_ONLY)}
                 docxBusy={false}
                 docxError={null}
-                onDownloadDocx={() => flashCta(CTA_EXPORT)}
+                onDownloadDocx={() => flashCta(DEMO_READ_ONLY)}
               />
             )}
             {tab === "contract-review" && (
@@ -184,7 +196,7 @@ export function DemoMatter() {
                 matter={matter}
                 docs={documents}
                 previewResult={DEMO_SNAPSHOT.contractReview}
-                onRunOverride={() => flashCta(CTA_CONTRACT_REVIEW)}
+                onRunOverride={() => flashCta(DEMO_READ_ONLY)}
               />
             )}
             {tab === "reviews" && (
@@ -201,19 +213,93 @@ export function DemoMatter() {
   );
 }
 
+function DemoStartPanel({
+  docs,
+  auditCount,
+  onOpen,
+  onRun,
+}: {
+  docs: MatterDocument[];
+  auditCount: number;
+  onOpen: (tab: TabKey) => void;
+  onRun: () => void;
+}) {
+  return (
+    <section className="mx-auto w-full max-w-[1220px] border border-rule bg-paper p-5 sm:p-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+            Public demo
+          </p>
+          <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-tight2 text-ink sm:text-3xl">
+            A legal project with documents, skills, and a record of what the AI did.
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-prose">
+            This read-only Khan v Acme matter shows the current Legalise loop:
+            open a project, inspect the documents, run a skill, review the
+            output, then trace it in the matter Record.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => onOpen("documents")}
+              className="border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+            >
+              View documents
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpen("workflows")}
+              className="border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+            >
+              View skills
+            </button>
+            <button
+              type="button"
+              onClick={onRun}
+              className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black"
+            >
+              Open skill preview
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-3 text-sm">
+          <DemoFact label="Documents" value={`${docs.length} loaded`} body="Matter evidence and drafts are in one folder." />
+          <DemoFact label="Skills" value="4 ready" body="Skills say what they read and what they produce." />
+          <DemoFact label="Record" value={`${auditCount} entries`} body="AI work, source use, and sign-off stay traceable." />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DemoFact({
+  label,
+  value,
+  body,
+}: {
+  label: string;
+  value: string;
+  body: string;
+}) {
+  return (
+    <div className="border border-rule bg-paper-sunken p-3">
+      <div className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+        {label}
+      </div>
+      <div className="mt-1 font-semibold text-ink">{value}</div>
+      <p className="mt-1 text-xs leading-5 text-muted">{body}</p>
+    </div>
+  );
+}
+
 function FlashCta({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="border-b border-rule bg-paper px-4 sm:px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
       <span className="font-mono uppercase tracking-track2 text-[10px] font-bold text-ink">
-        Sandbox
+        Demo
       </span>
       <span className="text-sm text-ink">{message}.</span>
-      <a
-        href="/auth/signup"
-        className="bg-ink text-paper px-3 py-1.5 hover:bg-black transition-colors text-xs font-medium min-h-[32px] inline-flex items-center"
-      >
-        Create account
-      </a>
       <button
         onClick={onClose}
         className="ml-auto text-xs text-muted hover:text-ink min-h-[32px] px-2"
@@ -227,10 +313,8 @@ function FlashCta({ message, onClose }: { message: string; onClose: () => void }
 
 function DemoWorkflowsTab({
   onOpen,
-  onRun,
 }: {
   onOpen: (tab: TabKey) => void;
-  onRun: () => void;
 }) {
   const workflows: Array<{
     key: TabKey;
@@ -278,15 +362,15 @@ function DemoWorkflowsTab({
     <div className="max-w-5xl">
       <div className="mb-8 border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Governed skills
+          Skills in this project
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
-          Pick the work you want the AI to prepare.
+          Run a legal skill against the matter file.
         </h2>
         <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          Each skill declares the material it reads, the output it writes, and
-          the record it leaves behind. The demo previews the loop; your own
-          workspace can run it.
+          Skills are installed at workspace level, then enabled inside a
+          project. This public snapshot shows the ready state: what each skill
+          reads, what it produces, and where the result is recorded.
         </p>
       </div>
 
@@ -320,16 +404,9 @@ function DemoWorkflowsTab({
               <button
                 type="button"
                 onClick={() => onOpen(w.key)}
-                className="border border-rule px-3 py-2 text-sm text-ink hover:border-ink hover:bg-wash transition-colors"
-              >
-                Open preview
-              </button>
-              <button
-                type="button"
-                onClick={onRun}
                 className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black transition-colors"
               >
-                Run on my matter
+                Open preview
               </button>
             </div>
           </section>
@@ -337,8 +414,8 @@ function DemoWorkflowsTab({
       </div>
 
       <p className="mt-8 border-t border-rule pt-4 text-xs text-muted">
-        Skill installation and permission setup are hidden in this public
-        snapshot. They appear when you work inside your own matter.
+        Installation and setup stay behind the scenes in this public demo. The
+        previews show the outputs and record trail without asking you to sign in.
       </p>
     </div>
   );
@@ -350,53 +427,101 @@ function DemoWorkflowsTab({
 
 function DemoDocumentsTab({
   docs,
+  inspectedDocId,
+  onInspect,
 }: {
   docs: MatterDocument[];
+  inspectedDocId: string | null;
+  onInspect: (id: string) => void;
 }) {
+  const inspectedDoc = docs.find((doc) => doc.id === inspectedDocId) ?? docs[0];
+
   return (
     <div className="max-w-5xl">
       <div className="mb-8 border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Matter file
+          Documents in this project
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
-          The demo matter is already loaded.
+          The matter file is already loaded.
         </h2>
         <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          These are the documents the assistant and skills can cite. In your
-          own workspace, uploaded material is hashed, stored, and recorded.
+          These are the sources the chat and skills can use. In your own
+          workspace, documents open in the reader, edits create versions, and
+          source citations link back here.
         </p>
       </div>
 
       <div className="overflow-hidden border border-rule bg-paper">
         <div className="min-w-[680px]">
-          <div className="grid grid-cols-[1.5fr_110px_90px_120px_100px] gap-4 px-5 py-3 text-muted bg-paper-sunken border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+          <div className="grid grid-cols-[1.5fr_110px_90px_120px_120px] gap-4 px-5 py-3 text-muted bg-paper-sunken border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
             <span>Document</span>
             <span>Type</span>
             <span>Size</span>
             <span>Source</span>
-            <span className="text-right">Status</span>
+            <span className="text-right">Workspace</span>
           </div>
           {docs.map((d) => (
             <div key={d.id} className="border-b border-rule">
-              <div className="grid grid-cols-[1.5fr_110px_90px_120px_100px] gap-4 px-5 py-4 items-center hover:bg-wash transition-colors">
+              <div className="grid grid-cols-[1.5fr_110px_90px_120px_120px] gap-4 px-5 py-4 items-center hover:bg-wash transition-colors">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-ink truncate">{d.filename}</div>
-                  <div className="mt-0.5 text-[11px] text-muted truncate">{d.sha256.slice(0, 8)}</div>
+                  <div className="mt-0.5 text-[11px] text-muted truncate">
+                    hashed · source-ready · {d.sha256.slice(0, 8)}
+                  </div>
                 </div>
                 <span>{d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}</span>
                 <span className="text-xs text-ink">{formatBytes(d.size_bytes)}</span>
                 <span>{d.from_disclosure ? <Badge>CPR 31</Badge> : <span className="text-xs text-muted">Upload</span>}</span>
-                <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                  Ready
-                </span>
+                <button
+                  type="button"
+                  onClick={() => onInspect(d.id)}
+                  className="text-right text-[10px] font-semibold uppercase tracking-track2 text-muted hover:text-ink"
+                >
+                  Open reader
+                </button>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {inspectedDoc && (
+        <section className="mt-6 border border-rule bg-paper p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                Reader preview
+              </p>
+              <h3 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+                {inspectedDoc.filename}
+              </h3>
+            </div>
+            <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+              Source-ready
+            </span>
+          </div>
+          <div className="mt-4 max-w-3xl whitespace-pre-wrap border border-rule bg-paper-sunken p-4 text-sm leading-relaxed text-prose">
+            {demoDocumentExtract(inspectedDoc)}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted">
+            In the live workspace, source chips on AI outputs open back to this
+            reader so you can check what the skill relied on.
+          </p>
+        </section>
+      )}
     </div>
   );
+}
+
+function demoDocumentExtract(doc: MatterDocument): string {
+  if (doc.filename.includes("dismissal")) {
+    return "Acme Trading Ltd confirms dismissal with effect from 12 March 2026. The reason given is alleged breach of the company social-media policy. The letter refers to a disciplinary meeting chaired by the same manager named in Ms Khan's earlier grievance.";
+  }
+  if (doc.filename.includes("witness")) {
+    return "Ms Khan says the social-media post was made from a private account, outside working hours, to a closed audience. She had raised a grievance six weeks earlier about her line manager's conduct toward female warehouse staff.";
+  }
+  return "The synthetic mutual NDA contains indefinite confidentiality obligations, broad mutual indemnity language, a data-protection clause, and no governing law or jurisdiction clause.";
 }
 
 // Public demo shares the MatterNav + MatterBreadcrumb shell with the
