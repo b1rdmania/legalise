@@ -1,17 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  clearDocumentLocalDraft,
   editorJsonToPlainText,
   documentStatsFromText,
   findNormalizedRange,
   findNormalizedRanges,
+  readDocumentLocalDraft,
   type TiptapNode,
   textToEditorHtml,
+  writeDocumentLocalDraft,
 } from "./DocumentRichEditor";
 
 const tableCell = (type: "tableCell" | "tableHeader", text: string): TiptapNode => ({
   type,
   content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+});
+
+afterEach(() => {
+  window.localStorage.clear();
 });
 
 describe("DocumentRichEditor text conversion", () => {
@@ -139,5 +146,22 @@ describe("DocumentRichEditor text conversion", () => {
       chars: 14,
       blocks: 2,
     });
+  });
+
+  it("round-trips a local document draft", () => {
+    writeDocumentLocalDraft({
+      documentId: "doc-1",
+      filename: "draft.docx",
+      savedAt: "2026-06-03T21:30:00Z",
+      plainText: "Unsaved wording",
+      json: {
+        type: "doc",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "Unsaved wording" }] }],
+      },
+    });
+
+    expect(readDocumentLocalDraft("doc-1")?.plainText).toBe("Unsaved wording");
+    clearDocumentLocalDraft("doc-1");
+    expect(readDocumentLocalDraft("doc-1")).toBeNull();
   });
 });

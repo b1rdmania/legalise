@@ -28,6 +28,13 @@ function escapeHtml(value: string): string {
 type TextRange = { start: number; end: number };
 type OutlineItem = { id: string; label: string; query: string };
 type DocumentStats = { words: number; chars: number; blocks: number };
+type DocumentLocalDraft = {
+  documentId: string;
+  filename: string;
+  savedAt: string;
+  plainText: string;
+  json: TiptapNode;
+};
 export type DocumentNoteHighlight = {
   id: string;
   label: string;
@@ -152,6 +159,42 @@ export function documentStatsFromText(text: string): DocumentStats {
   };
 }
 
+function draftStorageKey(documentId: string): string {
+  return `legalise.documentDraft.${documentId}`;
+}
+
+export function readDocumentLocalDraft(documentId: string): DocumentLocalDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(draftStorageKey(documentId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<DocumentLocalDraft>;
+    if (
+      parsed.documentId !== documentId ||
+      !parsed.json ||
+      typeof parsed.plainText !== "string" ||
+      typeof parsed.savedAt !== "string"
+    ) {
+      window.localStorage.removeItem(draftStorageKey(documentId));
+      return null;
+    }
+    return parsed as DocumentLocalDraft;
+  } catch {
+    window.localStorage.removeItem(draftStorageKey(documentId));
+    return null;
+  }
+}
+
+export function writeDocumentLocalDraft(draft: DocumentLocalDraft): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(draftStorageKey(draft.documentId), JSON.stringify(draft));
+}
+
+export function clearDocumentLocalDraft(documentId: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(draftStorageKey(documentId));
+}
+
 function ToolbarButton({
   active,
   children,
@@ -208,6 +251,7 @@ export function DocumentRichEditor({
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [findQuery, setFindQuery] = useState("");
+  const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
   const content = useMemo<Content>(
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
     [initialJson, initialText, sourceHighlight],
@@ -239,7 +283,16 @@ export function DocumentRichEditor({
             "legalise-document-editor min-h-[620px] px-7 py-7 text-[16px] leading-8 outline-none sm:px-10",
         },
       },
-      onUpdate: () => {
+      onUpdate: ({ editor: activeEditor }) => {
+        const json = activeEditor.getJSON() as TiptapNode;
+        const plainText = editorJsonToPlainText(json);
+        writeDocumentLocalDraft({
+          documentId,
+          filename,
+          savedAt: new Date().toISOString(),
+          plainText,
+          json,
+        });
         setDirty(true);
         onDirtyChange?.(true);
         setSavedMessage(null);
@@ -256,7 +309,8 @@ export function DocumentRichEditor({
     onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
-  }, [content, editor, onDirtyChange]);
+    setLocalDraft(readDocumentLocalDraft(documentId));
+  }, [content, documentId, editor, onDirtyChange]);
 
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
   const canSave = Boolean(editor && dirty && plainText.trim() && !saving);
@@ -300,6 +354,8 @@ export function DocumentRichEditor({
       setDirty(false);
       onDirtyChange?.(false);
       setSavedMessage(`Saved v${version.version_number}`);
+      clearDocumentLocalDraft(documentId);
+      setLocalDraft(null);
       onSaved(version);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -314,6 +370,22 @@ export function DocumentRichEditor({
     onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
+    clearDocumentLocalDraft(documentId);
+    setLocalDraft(null);
+  }
+
+  function restoreLocalDraft() {
+    if (!editor || !localDraft) return;
+    editor.commands.setContent(localDraft.json, { emitUpdate: false });
+    setDirty(true);
+    onDirtyChange?.(true);
+    setSavedMessage("Local draft restored. Save it to create a document version.");
+    setLocalDraft(null);
+  }
+
+  function discardLocalDraft() {
+    clearDocumentLocalDraft(documentId);
+    setLocalDraft(null);
   }
 
   return (
@@ -462,6 +534,33 @@ export function DocumentRichEditor({
           {stats.blocks.toLocaleString()} blocks
         </span>
       </div>
+      {localDraft && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-amber-50 px-5 py-3 text-sm text-ink"
+          data-testid="document-local-draft-banner"
+        >
+          <span>
+            Unsaved local draft from{" "}
+            {new Date(localDraft.savedAt).toLocaleString()}. Restore it or discard it.
+          </span>
+          <span className="flex gap-2">
+            <button
+              type="button"
+              onClick={restoreLocalDraft}
+              className="border border-ink bg-paper px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink hover:text-paper"
+            >
+              Restore draft
+            </button>
+            <button
+              type="button"
+              onClick={discardLocalDraft}
+              className="border border-rule bg-paper px-3 py-1.5 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
+            >
+              Discard
+            </button>
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-5 py-3">
         <label
           htmlFor={`find-${documentId}`}
