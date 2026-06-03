@@ -388,6 +388,23 @@ export function DocumentDetail({
     setSelectedVersionId(versionId);
     setWorkbenchView("editor");
   };
+  const reviewSavedVersion = (version: DocumentVersionSummary["version"]) => {
+    setVersions((current) => {
+      if (current.some((summary) => summary.version.id === version.id)) return current;
+      return [
+        ...current,
+        {
+          version,
+          pending_count: 0,
+          accepted_count: 0,
+          rejected_count: 0,
+        },
+      ];
+    });
+    setSelectedVersionId(version.id);
+    setCompareVersionId(EXTRACTED_VERSION_ID);
+    setWorkbenchView("versions");
+  };
   const submitComment = async () => {
     const trimmed = commentBody.trim();
     if (trimmed.length < 2) {
@@ -693,6 +710,7 @@ export function DocumentDetail({
                       .then(setVersions)
                       .catch(() => undefined);
                   }}
+                  onSavedVersion={reviewSavedVersion}
                 />
               </section>
             )}
