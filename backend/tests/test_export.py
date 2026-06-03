@@ -130,6 +130,7 @@ class TestBuildMatterExportUnit:
             assert "matter_metadata.json" in names
             assert "audit.json" in names
             assert "jobs.json" in names
+            assert "document_comments.json" in names
 
             # Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P2 (Path A):
             # narrowed claim — explicitly assert the scope is BASIC.
