@@ -1032,7 +1032,8 @@ export function DocumentDetail({
                 <div>
                   <h2 className="text-sm font-semibold text-ink">Review notes</h2>
                   <p className="mt-1 text-sm leading-6 text-muted">
-                    Leave human notes on the file. Notes are recorded against this document.
+                    Mark points for human review. Select text in the editor to anchor a note
+                    to the current document body.
                   </p>
                 </div>
                 <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
@@ -1059,6 +1060,79 @@ export function DocumentDetail({
                   </dd>
                 </div>
               </dl>
+              <div className="mt-4 border border-rule bg-paper-sunken p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">Add note</h3>
+                    <p className="mt-1 text-xs leading-5 text-muted">
+                      {selectedQuote
+                        ? "Use the selected passage below, or edit the quote before saving."
+                        : "Select text in the document to anchor a note, or save an unanchored note."}
+                    </p>
+                  </div>
+                  {selectedAnchor && (
+                    <span className="border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                      Anchored
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 space-y-2">
+                  {selectedQuote && (
+                    <div
+                      className="border border-rule bg-paper p-3 text-sm"
+                      data-testid="document-selected-quote"
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                        Selected passage
+                      </p>
+                      <p className="mt-2 max-h-24 overflow-hidden leading-6 text-muted">
+                        {selectedQuote}
+                      </p>
+                      <p className="mt-2 text-xs text-muted">
+                        {selectedAnchor
+                          ? "This note will stay anchored to the current document text."
+                          : "This passage can be quoted, but its exact text position was not found."}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setCommentQuote(selectedQuote)}
+                        className="mt-3 border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
+                      >
+                        Quote this passage
+                      </button>
+                    </div>
+                  )}
+                  <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
+                    Quote
+                    <textarea
+                      value={commentQuote}
+                      onChange={(event) => setCommentQuote(event.target.value)}
+                      placeholder="Optional quoted passage"
+                      rows={2}
+                      className="w-full resize-y border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
+                    Note
+                    <textarea
+                      value={commentBody}
+                      onChange={(event) => setCommentBody(event.target.value)}
+                      placeholder="What should be checked before relying on this document?"
+                      rows={3}
+                      className="w-full resize-y border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                    />
+                  </label>
+                  {commentError && <p className="text-xs text-red-700">{commentError}</p>}
+                  <button
+                    type="button"
+                    disabled={commentBusy}
+                    onClick={submitComment}
+                    className="w-full border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Save note
+                  </button>
+                </div>
+              </div>
               <div className="mt-4 space-y-3">
                 {openComments.length === 0 && resolvedComments.length === 0 && (
                   <p className="text-sm text-muted">No review notes yet.</p>
@@ -1071,18 +1145,21 @@ export function DocumentDetail({
                 {openComments.map((comment) => (
                   <article
                     key={comment.id}
-                    className="border border-rule bg-paper-sunken p-3 text-sm"
+                    className="border border-rule bg-paper p-3 text-sm"
                   >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                        Open note
+                      </span>
+                      {comment.anchor_start !== null && comment.anchor_end !== null && (
+                        <span className="border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                          Anchored
+                        </span>
+                      )}
+                    </div>
                     {comment.quote_text && (
                       <div className="mb-2 border-l-2 border-rule pl-3 text-muted">
-                        <div className="flex items-start justify-between gap-3">
-                          <blockquote>{comment.quote_text}</blockquote>
-                          {comment.anchor_start !== null && comment.anchor_end !== null && (
-                            <span className="shrink-0 border border-rule bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
-                              Anchored
-                            </span>
-                          )}
-                        </div>
+                        <blockquote>{comment.quote_text}</blockquote>
                         <button
                           type="button"
                           onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
@@ -1109,7 +1186,7 @@ export function DocumentDetail({
                 {resolvedComments.length > 0 && (
                   <details className="border border-rule bg-paper-sunken p-3">
                     <summary className="cursor-pointer text-sm font-medium text-muted">
-                      {resolvedComments.length} resolved
+                      Resolved notes ({resolvedComments.length})
                     </summary>
                     <div className="mt-3 space-y-2">
                       {resolvedComments.map((comment) => (
@@ -1145,56 +1222,6 @@ export function DocumentDetail({
                     </div>
                   </details>
                 )}
-              </div>
-              <div className="mt-4 space-y-2">
-                {selectedQuote && (
-                  <div
-                    className="border border-rule bg-paper-sunken p-3 text-sm"
-                    data-testid="document-selected-quote"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                      Selected passage
-                    </p>
-                    <p className="mt-2 max-h-24 overflow-hidden leading-6 text-muted">
-                      {selectedQuote}
-                    </p>
-                    <p className="mt-2 text-xs text-muted">
-                      {selectedAnchor
-                        ? "This note will stay anchored to the current document text."
-                        : "This passage can be quoted, but its exact text position was not found."}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setCommentQuote(selectedQuote)}
-                      className="mt-3 border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
-                    >
-                      Quote this passage
-                    </button>
-                  </div>
-                )}
-                <textarea
-                  value={commentQuote}
-                  onChange={(event) => setCommentQuote(event.target.value)}
-                  placeholder="Quoted passage; select text in the document or type one"
-                  rows={2}
-                  className="w-full resize-y border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
-                />
-                <textarea
-                  value={commentBody}
-                  onChange={(event) => setCommentBody(event.target.value)}
-                  placeholder="Add a review note"
-                  rows={3}
-                  className="w-full resize-y border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
-                />
-                {commentError && <p className="text-xs text-red-700">{commentError}</p>}
-                <button
-                  type="button"
-                  disabled={commentBusy}
-                  onClick={submitComment}
-                  className="w-full border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Save note
-                </button>
               </div>
             </section>
 
