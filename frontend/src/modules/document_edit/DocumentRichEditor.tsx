@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
+import Underline from "@tiptap/extension-underline";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -200,11 +201,13 @@ function ToolbarButton({
   children,
   onClick,
   label,
+  disabled,
 }: {
   active?: boolean;
   children: string;
   onClick: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -212,7 +215,8 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`inline-flex h-8 min-w-8 items-center justify-center border px-2 text-sm font-semibold ${
+      disabled={disabled}
+      className={`inline-flex h-8 min-w-8 items-center justify-center border px-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-35 ${
         active
           ? "border-ink bg-ink text-paper"
           : "border-rule bg-paper text-ink hover:border-ink"
@@ -220,6 +224,23 @@ function ToolbarButton({
     >
       {children}
     </button>
+  );
+}
+
+function ToolbarGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1 border-r border-rule pr-2 last:border-r-0 last:pr-0">
+      <span className="mr-1 hidden text-[10px] font-semibold uppercase tracking-track2 text-muted xl:inline">
+        {label}
+      </span>
+      {children}
+    </div>
   );
 }
 
@@ -271,6 +292,7 @@ export function DocumentRichEditor({
         }),
         Typography,
         Highlight.configure({ multicolor: false }),
+        Underline,
         Table.configure({ resizable: true }),
         TableRow,
         TableHeader,
@@ -280,7 +302,7 @@ export function DocumentRichEditor({
       editorProps: {
         attributes: {
           class:
-            "legalise-document-editor min-h-[620px] px-7 py-7 text-[16px] leading-8 outline-none sm:px-10",
+            "legalise-document-editor min-h-[720px] bg-paper px-8 py-10 text-[16px] leading-8 outline-none shadow-sm sm:px-12",
         },
       },
       onUpdate: ({ editor: activeEditor }) => {
@@ -338,6 +360,13 @@ export function DocumentRichEditor({
     [plainText, sourceHighlight],
   );
   const stats = useMemo(() => documentStatsFromText(plainText), [plainText]);
+  const editorStatusLabel = dirty
+    ? "Unsaved local draft"
+    : savedMessage
+      ? savedMessage
+      : latestVersionNumber
+        ? `Saved v${latestVersionNumber}`
+        : "Extracted text";
 
   async function save() {
     if (!editor || !canSave) return;
@@ -401,109 +430,126 @@ export function DocumentRichEditor({
         <div className="flex flex-wrap items-center gap-2">
           {editor && (
             <>
-              <ToolbarButton
-                label="Heading 2"
-                active={editor.isActive("heading", { level: 2 })}
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              >
-                H2
-              </ToolbarButton>
-              <ToolbarButton
-                label="Heading 3"
-                active={editor.isActive("heading", { level: 3 })}
-                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-              >
-                H3
-              </ToolbarButton>
-              <ToolbarButton
-                label="Bold"
-                active={editor.isActive("bold")}
-                onClick={() => editor.chain().focus().toggleBold().run()}
-              >
-                B
-              </ToolbarButton>
-              <ToolbarButton
-                label="Italic"
-                active={editor.isActive("italic")}
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-              >
-                I
-              </ToolbarButton>
-              <ToolbarButton
-                label="Underline"
-                active={editor.isActive("underline")}
-                onClick={() => editor.chain().focus().toggleUnderline().run()}
-              >
-                U
-              </ToolbarButton>
-              <ToolbarButton
-                label="Highlight"
-                active={editor.isActive("highlight")}
-                onClick={() => editor.chain().focus().toggleHighlight().run()}
-              >
-                H
-              </ToolbarButton>
-              <ToolbarButton
-                label="Bullet list"
-                active={editor.isActive("bulletList")}
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-              >
-                *
-              </ToolbarButton>
-              <ToolbarButton
-                label="Numbered list"
-                active={editor.isActive("orderedList")}
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              >
-                1.
-              </ToolbarButton>
-              <ToolbarButton
-                label="Insert table"
-                active={editor.isActive("table")}
-                onClick={() =>
-                  editor
-                    .chain()
-                    .focus()
-                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                    .run()
-                }
-              >
-                Tbl
-              </ToolbarButton>
-              {editor.isActive("table") && (
-                <>
+              <ToolbarGroup label="Style">
+                <ToolbarButton
+                  label="Heading 2"
+                  active={editor.isActive("heading", { level: 2 })}
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                >
+                  H2
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Heading 3"
+                  active={editor.isActive("heading", { level: 3 })}
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                >
+                  H3
+                </ToolbarButton>
+              </ToolbarGroup>
+              <ToolbarGroup label="Text">
+                <ToolbarButton
+                  label="Bold"
+                  active={editor.isActive("bold")}
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                >
+                  B
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Italic"
+                  active={editor.isActive("italic")}
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                >
+                  I
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Underline"
+                  active={editor.isActive("underline")}
+                  onClick={() => editor.chain().focus().toggleUnderline().run()}
+                >
+                  U
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Highlight"
+                  active={editor.isActive("highlight")}
+                  onClick={() => editor.chain().focus().toggleHighlight().run()}
+                >
+                  H
+                </ToolbarButton>
+              </ToolbarGroup>
+              <ToolbarGroup label="Lists">
+                <ToolbarButton
+                  label="Bullet list"
+                  active={editor.isActive("bulletList")}
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                >
+                  •
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Numbered list"
+                  active={editor.isActive("orderedList")}
+                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                >
+                  1.
+                </ToolbarButton>
+              </ToolbarGroup>
+              <ToolbarGroup label="Table">
+                <ToolbarButton
+                  label="Insert table"
+                  active={editor.isActive("table")}
+                  onClick={() =>
+                    editor
+                      .chain()
+                      .focus()
+                      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                      .run()
+                  }
+                >
+                  Tbl
+                </ToolbarButton>
+                {editor.isActive("table") && (
+                  <>
+                    <ToolbarButton
+                      label="Add row"
+                      onClick={() => editor.chain().focus().addRowAfter().run()}
+                    >
+                      +R
+                    </ToolbarButton>
+                    <ToolbarButton
+                      label="Add column"
+                      onClick={() => editor.chain().focus().addColumnAfter().run()}
+                    >
+                      +C
+                    </ToolbarButton>
+                    <ToolbarButton
+                      label="Delete row"
+                      onClick={() => editor.chain().focus().deleteRow().run()}
+                    >
+                      -R
+                    </ToolbarButton>
+                    <ToolbarButton
+                      label="Delete column"
+                      onClick={() => editor.chain().focus().deleteColumn().run()}
+                    >
+                      -C
+                    </ToolbarButton>
+                    <ToolbarButton
+                      label="Delete table"
+                      onClick={() => editor.chain().focus().deleteTable().run()}
+                    >
+                      X
+                    </ToolbarButton>
+                  </>
+                )}
+                {!editor.isActive("table") && (
                   <ToolbarButton
                     label="Add row"
+                    disabled
                     onClick={() => editor.chain().focus().addRowAfter().run()}
                   >
                     +R
                   </ToolbarButton>
-                  <ToolbarButton
-                    label="Add column"
-                    onClick={() => editor.chain().focus().addColumnAfter().run()}
-                  >
-                    +C
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Delete row"
-                    onClick={() => editor.chain().focus().deleteRow().run()}
-                  >
-                    -R
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Delete column"
-                    onClick={() => editor.chain().focus().deleteColumn().run()}
-                  >
-                    -C
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label="Delete table"
-                    onClick={() => editor.chain().focus().deleteTable().run()}
-                  >
-                    X
-                  </ToolbarButton>
-                </>
-              )}
+                )}
+              </ToolbarGroup>
             </>
           )}
           <button
@@ -526,8 +572,12 @@ export function DocumentRichEditor({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
-        <span>
-          {dirty ? "Unsaved changes" : savedMessage ?? "Every save creates a new document version."}
+        <span className="inline-flex items-center gap-2">
+          <span
+            className={`h-2 w-2 rounded-full ${dirty ? "bg-amber-500" : "bg-emerald-700"}`}
+            aria-hidden="true"
+          />
+          {editorStatusLabel}. Every save creates a new version.
         </span>
         <span className="font-mono uppercase tracking-track2" data-testid="document-editor-stats">
           {stats.words.toLocaleString()} words · {stats.chars.toLocaleString()} chars ·{" "}
@@ -673,7 +723,14 @@ export function DocumentRichEditor({
             </div>
           </div>
         </aside>
-        <EditorContent editor={editor} />
+        <div
+          className="bg-[#f5f5f2] px-4 py-6 sm:px-8"
+          data-testid="document-editor-canvas"
+        >
+          <div className="mx-auto max-w-[840px]">
+            <EditorContent editor={editor} />
+          </div>
+        </div>
       </div>
     </section>
   );

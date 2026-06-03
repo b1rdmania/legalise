@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
 
 import {
   clearDocumentLocalDraft,
+  DocumentRichEditor,
   editorJsonToPlainText,
   documentStatsFromText,
   findNormalizedRange,
@@ -163,5 +165,26 @@ describe("DocumentRichEditor text conversion", () => {
     expect(readDocumentLocalDraft("doc-1")?.plainText).toBe("Unsaved wording");
     clearDocumentLocalDraft("doc-1");
     expect(readDocumentLocalDraft("doc-1")).toBeNull();
+  });
+});
+
+describe("DocumentRichEditor surface", () => {
+  it("renders grouped document editing controls on a page canvas", async () => {
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="The employee was dismissed.\n\nThe grievance came later."
+        latestVersionNumber={2}
+        sourceLabel="extracted · 64 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    expect(screen.getByTestId("document-editor")).toHaveTextContent("Document editor");
+    expect(screen.getByTestId("document-editor-canvas")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
+    expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
   });
 });
