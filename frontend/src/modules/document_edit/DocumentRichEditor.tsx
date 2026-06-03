@@ -26,6 +26,7 @@ function escapeHtml(value: string): string {
 }
 
 type TextRange = { start: number; end: number };
+type OutlineItem = { id: string; label: string; query: string };
 
 export function findNormalizedRanges(
   text: string,
@@ -118,6 +119,21 @@ function plainTextFromNode(node: TiptapNode): string {
 
 export function editorJsonToPlainText(json: TiptapNode): string {
   return plainTextFromNode(json).replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function documentOutlineFromText(text: string): OutlineItem[] {
+  const blocks = text
+    .split(/\n{2,}/)
+    .map((block) => block.replace(/\s+/g, " ").trim())
+    .filter((block) => block.length >= 12);
+  return blocks.slice(0, 12).map((block, index) => {
+    const compact = block.length > 76 ? `${block.slice(0, 73).trimEnd()}...` : block;
+    return {
+      id: `${index}-${compact}`,
+      label: compact,
+      query: block.slice(0, 96),
+    };
+  });
 }
 
 function ToolbarButton({
@@ -241,6 +257,14 @@ export function DocumentRichEditor({
           .replace(/\s+/g, " ")
           .trim()
       : null;
+  const outlineItems = useMemo(
+    () => documentOutlineFromText(plainText),
+    [plainText],
+  );
+  const sourceRange = useMemo(
+    () => findNormalizedRange(plainText, sourceHighlight),
+    [plainText, sourceHighlight],
+  );
 
   async function save() {
     if (!editor || !canSave) return;
@@ -456,7 +480,55 @@ export function DocumentRichEditor({
           {error}
         </p>
       )}
-      <EditorContent editor={editor} />
+      <div className="grid min-h-[620px] lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="border-b border-rule bg-paper-sunken px-5 py-5 lg:border-b-0 lg:border-r">
+          <div className="space-y-5">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                Source passage
+              </p>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {sourceHighlight
+                  ? sourceRange
+                    ? "Located in this version."
+                    : "Not located in this version."
+                  : "No cited passage selected."}
+              </p>
+              {sourceHighlight && (
+                <button
+                  type="button"
+                  onClick={() => setFindQuery(sourceHighlight)}
+                  className="mt-2 text-xs font-medium text-ink underline underline-offset-4 hover:text-muted"
+                >
+                  Search cited text
+                </button>
+              )}
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                Outline
+              </p>
+              {outlineItems.length > 0 ? (
+                <nav className="mt-2 space-y-1" aria-label="Document outline">
+                  {outlineItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setFindQuery(item.query)}
+                      className="block w-full border-l border-transparent py-1 pl-2 text-left text-xs leading-5 text-muted hover:border-ink hover:text-ink"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </nav>
+              ) : (
+                <p className="mt-2 text-sm text-muted">No outline yet.</p>
+              )}
+            </div>
+          </div>
+        </aside>
+        <EditorContent editor={editor} />
+      </div>
     </section>
   );
 }
