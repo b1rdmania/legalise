@@ -88,6 +88,7 @@ function versionSummary(
   versionNumber: number,
   resolvedText: string | null,
   kind = "user_edit",
+  storageUri: string | null = null,
 ): api.DocumentVersionSummary {
   return {
     version: {
@@ -97,7 +98,7 @@ function versionSummary(
       kind,
       created_by_id: "u-1",
       created_at: `2026-05-28T09:0${versionNumber}:00`,
-      storage_uri: null,
+      storage_uri: storageUri,
       notes: null,
       resolved_text: resolvedText,
     },
@@ -210,6 +211,47 @@ describe("DocumentDetail", () => {
     expect(link).toHaveTextContent("Download edited DOCX");
     expect(link.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
     expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+  });
+
+  it("shows original file actions for uploaded versions in the version record", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
+      versionSummary("v-1", 1, null, "upload"),
+      versionSummary(
+        "v-2",
+        2,
+        "Replacement body",
+        "upload",
+        "users/u/matters/m/documents/doc-1/v2/replacement.docx",
+      ),
+      versionSummary("v-3", 3, "Edited body", "user_edit"),
+    ]);
+
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Versions" }));
+
+    const openOriginal = screen
+      .getAllByRole("link", { name: "Open original" })
+      .find((link) =>
+        link.getAttribute("href")?.includes("/documents/doc-1/versions/v-2/original"),
+      );
+    const downloadOriginal = screen.getByRole("link", { name: "Download original" });
+    if (!openOriginal) throw new Error("version original link not found");
+    expect(openOriginal.getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-2/original",
+    );
+    expect(openOriginal.getAttribute("href")).not.toContain("download=1");
+    expect(downloadOriginal.getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-2/original?download=1",
+    );
+    const editedDocx = screen
+      .getAllByRole("link", { name: "Download DOCX" })
+      .find((link) => link.getAttribute("href")?.includes("/versions/v-3/docx"));
+    if (!editedDocx) throw new Error("edited version DOCX link not found");
+    expect(editedDocx.getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-3/docx",
+    );
   });
 
   it("lets the reader switch between saved versions and extracted text", async () => {

@@ -261,6 +261,18 @@ async def test_post_upload_document_version_updates_active_document_and_body(cli
     assert rows[-1]["version"]["kind"] == "upload"
     assert rows[-1]["version"]["resolved_text"] == "Replacement document text."
 
+    version_original = await client.get(
+        f"/api/documents/{doc_id}/versions/{version['id']}/original"
+    )
+    assert version_original.status_code == 200, version_original.text
+    assert version_original.content == b"Replacement document text."
+    assert version_original.headers["content-type"].startswith("text/plain")
+
+    legacy_original = await client.get(
+        f"/api/documents/{doc_id}/versions/{rows[0]['version']['id']}/original"
+    )
+    assert legacy_original.status_code == 404, legacy_original.text
+
 
 @pytest.mark.asyncio
 async def test_get_manual_document_version_docx_returns_word_file(client) -> None:

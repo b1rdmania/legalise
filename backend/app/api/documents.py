@@ -1125,6 +1125,88 @@ async def get_document_version_docx(
     )
 
 
+@router.get("/{document_id}/versions/{version_id}/original")
+async def get_document_version_original(
+    document_id: uuid.UUID,
+    version_id: uuid.UUID,
+    download: int = Query(0),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> StreamingResponse:
+    """Stream the original uploaded bytes for a saved upload version."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    version = await session.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.id == version_id,
+            DocumentVersion.document_id == doc.id,
+        )
+    )
+    if version is None:
+        raise HTTPException(404, "document version not found")
+    if not version.storage_uri:
+        raise HTTPException(404, "version original file not available")
+
+    storage = get_storage_backend()
+    try:
+        data = storage.get_bytes(version.storage_uri)
+    except KeyError:
+        raise HTTPException(404, "version original file not available")
+    except StorageReadError as exc:
+        await audit_failure(
+            session,
+            "storage.get_bytes.failed",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="storage",
+            resource_type="document_version",
+            resource_id=str(version.id),
+            payload={
+                "document_id": str(doc.id),
+                "storage_key": version.storage_uri,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_read_failed",
+                "message": "Failed to read the version original from object storage.",
+                "storage_key": version.storage_uri,
+                "backend": exc.backend,
+            },
+        ) from exc
+
+    is_download = bool(download)
+    await audit.log(
+        session,
+        "document.version.original.accessed",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "document_id": str(doc.id),
+            "version_number": version.version_number,
+            "storage_key": version.storage_uri,
+            "download": is_download,
+        },
+    )
+    await session.commit()
+
+    filename = _safe_filename(doc.filename, str(version.id))
+    disposition = "attachment" if is_download else "inline"
+    return StreamingResponse(
+        iter([data]),
+        media_type=doc.mime_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f'{disposition}; filename="{filename}"',
+            "Content-Length": str(len(data)),
+        },
+    )
+
+
 @router.get("/{document_id}/versions", response_model=list[DocumentVersionSummary])
 async def get_document_versions(
     document_id: uuid.UUID,
