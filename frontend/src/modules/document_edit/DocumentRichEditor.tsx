@@ -27,6 +27,12 @@ function escapeHtml(value: string): string {
 
 type TextRange = { start: number; end: number };
 type OutlineItem = { id: string; label: string; query: string };
+export type DocumentNoteHighlight = {
+  id: string;
+  label: string;
+  quote: string;
+  status: "open" | "resolved";
+};
 
 export function findNormalizedRanges(
   text: string,
@@ -172,6 +178,7 @@ export function DocumentRichEditor({
   latestVersionNumber,
   sourceLabel,
   sourceHighlight,
+  noteHighlights = [],
   onSaved,
   onDirtyChange,
 }: {
@@ -182,6 +189,7 @@ export function DocumentRichEditor({
   latestVersionNumber?: number;
   sourceLabel: string;
   sourceHighlight?: string | null;
+  noteHighlights?: DocumentNoteHighlight[];
   onSaved: (version: DocumentVersionRead) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -502,6 +510,28 @@ export function DocumentRichEditor({
                 >
                   Search cited text
                 </button>
+              )}
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                Review notes
+              </p>
+              {noteHighlights.length > 0 ? (
+                <div className="mt-2 space-y-2" data-testid="document-editor-note-rail">
+                  {noteHighlights.map((note) => (
+                    <button
+                      key={note.id}
+                      type="button"
+                      onClick={() => setFindQuery(note.quote)}
+                      className="block w-full border border-rule bg-paper px-3 py-2 text-left text-xs leading-5 text-muted hover:border-ink hover:text-ink"
+                    >
+                      <span className="block font-medium text-ink">{note.label}</span>
+                      <span className="mt-1 block max-h-10 overflow-hidden">{note.quote}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted">No anchored notes yet.</p>
               )}
             </div>
             <div>
