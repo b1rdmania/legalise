@@ -27,12 +27,12 @@ function escapeHtml(value: string): string {
 
 type TextRange = { start: number; end: number };
 
-export function findNormalizedRange(
+export function findNormalizedRanges(
   text: string,
   needle: string | null | undefined,
-): TextRange | null {
+): TextRange[] {
   const target = needle?.trim().replace(/\s+/g, " ").toLowerCase();
-  if (!target || target.length < 3) return null;
+  if (!target || target.length < 3) return [];
 
   let normalised = "";
   const starts: number[] = [];
@@ -57,10 +57,23 @@ export function findNormalizedRange(
   }
 
   const searchable = normalised.trimEnd();
-  const index = searchable.indexOf(target);
-  if (index === -1) return null;
-  const endIndex = index + target.length - 1;
-  return { start: starts[index], end: ends[endIndex] };
+  const ranges: TextRange[] = [];
+  let from = 0;
+  while (from < searchable.length) {
+    const index = searchable.indexOf(target, from);
+    if (index === -1) break;
+    const endIndex = index + target.length - 1;
+    ranges.push({ start: starts[index], end: ends[endIndex] });
+    from = index + Math.max(target.length, 1);
+  }
+  return ranges;
+}
+
+export function findNormalizedRange(
+  text: string,
+  needle: string | null | undefined,
+): TextRange | null {
+  return findNormalizedRanges(text, needle)[0] ?? null;
 }
 
 function escapeWithOptionalMark(text: string, range: TextRange | null): string {
@@ -160,6 +173,7 @@ export function DocumentRichEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [findQuery, setFindQuery] = useState("");
   const content = useMemo<Content>(
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
     [initialJson, initialText, sourceHighlight],
@@ -212,6 +226,21 @@ export function DocumentRichEditor({
 
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
   const canSave = Boolean(editor && dirty && plainText.trim() && !saving);
+  const findMatches = useMemo(
+    () => findNormalizedRanges(plainText, findQuery),
+    [plainText, findQuery],
+  );
+  const firstFindMatch = findMatches[0] ?? null;
+  const findPreview =
+    firstFindMatch && plainText
+      ? plainText
+          .slice(
+            Math.max(0, firstFindMatch.start - 70),
+            Math.min(plainText.length, firstFindMatch.end + 90),
+          )
+          .replace(/\s+/g, " ")
+          .trim()
+      : null;
 
   async function save() {
     if (!editor || !canSave) return;
@@ -383,6 +412,44 @@ export function DocumentRichEditor({
 
       <div className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
         {dirty ? "Unsaved changes" : savedMessage ?? "Every save creates a new document version."}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-5 py-3">
+        <label
+          htmlFor={`find-${documentId}`}
+          className="text-xs font-semibold uppercase tracking-track2 text-muted"
+        >
+          Find
+        </label>
+        <input
+          id={`find-${documentId}`}
+          type="search"
+          value={findQuery}
+          onChange={(event) => setFindQuery(event.target.value)}
+          placeholder="Search this document"
+          className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
+        />
+        <span className="text-xs text-muted" data-testid="document-editor-find-count">
+          {findQuery.trim().length >= 3
+            ? `${findMatches.length} match${findMatches.length === 1 ? "" : "es"}`
+            : "Type 3+ characters"}
+        </span>
+        {findQuery && (
+          <button
+            type="button"
+            onClick={() => setFindQuery("")}
+            className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Clear
+          </button>
+        )}
+        {findPreview && (
+          <p
+            className="basis-full text-xs leading-5 text-muted"
+            data-testid="document-editor-find-preview"
+          >
+            First match: {findPreview}
+          </p>
+        )}
       </div>
       {error && (
         <p className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
