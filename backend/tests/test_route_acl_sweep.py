@@ -240,6 +240,10 @@ async def test_post_upload_document_version_updates_active_document_and_body(cli
     assert version["kind"] == "upload"
     assert version["version_number"] == 2
     assert version["storage_uri"]
+    assert version["filename"] == "replacement.txt"
+    assert version["mime_type"] == "text/plain"
+    assert version["size_bytes"] == len(b"Replacement document text.")
+    assert version["sha256"]
     assert version["resolved_text"] == "Replacement document text."
     assert version["notes"] == "Clean text replacement"
 
@@ -268,10 +272,90 @@ async def test_post_upload_document_version_updates_active_document_and_body(cli
     assert version_original.content == b"Replacement document text."
     assert version_original.headers["content-type"].startswith("text/plain")
 
-    legacy_original = await client.get(
+    initial_original = await client.get(
         f"/api/documents/{doc_id}/versions/{rows[0]['version']['id']}/original"
     )
-    assert legacy_original.status_code == 404, legacy_original.text
+    assert initial_original.status_code == 200, initial_original.text
+    assert initial_original.headers["content-type"].startswith("application/pdf")
+
+
+@pytest.mark.asyncio
+async def test_restore_document_version_reactivates_prior_upload(client) -> None:
+    """Owner can restore a prior upload as a new active immutable version."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload(client)
+
+    replacement = await client.post(
+        f"/api/documents/{doc_id}/versions/upload",
+        files={
+            "file": (
+                "replacement.txt",
+                io.BytesIO(b"Replacement document text."),
+                "text/plain",
+            )
+        },
+    )
+    assert replacement.status_code == 200, replacement.text
+
+    versions = await client.get(f"/api/documents/{doc_id}/versions")
+    assert versions.status_code == 200, versions.text
+    source = versions.json()[0]["version"]
+
+    restore = await client.post(
+        f"/api/documents/{doc_id}/versions/{source['id']}/restore",
+        json={"notes": "Back to original upload"},
+    )
+    assert restore.status_code == 200, restore.text
+    restored = restore.json()
+    assert restored["kind"] == "restored"
+    assert restored["version_number"] == 3
+    assert restored["filename"] == "test.pdf"
+    assert restored["mime_type"] == "application/pdf"
+    assert restored["storage_uri"] == source["storage_uri"]
+    assert restored["notes"] == "Back to original upload"
+
+    docs = await client.get(f"/api/matters/{slug}/documents")
+    assert docs.status_code == 200, docs.text
+    active = next(row for row in docs.json() if row["id"] == doc_id)
+    assert active["filename"] == "test.pdf"
+    assert active["mime_type"] == "application/pdf"
+
+
+@pytest.mark.asyncio
+async def test_restore_manual_document_version_creates_text_original(client) -> None:
+    """Text editor versions can be restored and reopened as active text files."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload(client)
+    save = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={"resolved_text": "Edited witness statement."},
+    )
+    assert save.status_code == 200, save.text
+    version_id = save.json()["id"]
+
+    restore = await client.post(
+        f"/api/documents/{doc_id}/versions/{version_id}/restore",
+        json={},
+    )
+    assert restore.status_code == 200, restore.text
+    restored = restore.json()
+    assert restored["kind"] == "restored"
+    assert restored["mime_type"] == "text/plain"
+    assert restored["storage_uri"]
+    assert restored["resolved_text"] == "Edited witness statement."
+
+    body = await client.get(f"/api/documents/{doc_id}/body")
+    assert body.status_code == 200, body.text
+    assert body.json()["extracted_text"] == "Edited witness statement."
+
+    original = await client.get(f"/api/documents/{doc_id}/original")
+    assert original.status_code == 200, original.text
+    assert original.content == b"Edited witness statement."
+
+    docs = await client.get(f"/api/matters/{slug}/documents")
+    assert docs.status_code == 200, docs.text
+    active = next(row for row in docs.json() if row["id"] == doc_id)
+    assert active["mime_type"] == "text/plain"
 
 
 @pytest.mark.asyncio

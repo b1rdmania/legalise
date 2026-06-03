@@ -268,7 +268,11 @@ async def _ensure_initial_version(
             version_number=1,
             kind=VERSION_KIND_UPLOAD,
             created_by_id=owner_id,
-            storage_uri=None,
+            storage_uri=document.storage_uri,
+            filename=document.filename,
+            mime_type=document.mime_type,
+            size_bytes=document.size_bytes,
+            sha256=document.sha256,
             notes=None,
         )
     )

@@ -55,7 +55,11 @@ from app.models.document_edit import (
     EDIT_STATUS_PENDING,
     EDIT_STATUS_REJECTED,
 )
-from app.models.document_version import VERSION_KIND_UPLOAD, VERSION_KIND_USER_EDIT
+from app.models.document_version import (
+    VERSION_KIND_RESTORED,
+    VERSION_KIND_UPLOAD,
+    VERSION_KIND_USER_EDIT,
+)
 from app.modules.document_edit import EDIT_MODES, propose_edits
 from app.modules.document_edit.resolver import (
     EditAlreadyResolved,
@@ -162,6 +166,10 @@ class DocumentVersionRead(BaseModel):
     created_by_id: uuid.UUID
     created_at: datetime
     storage_uri: str | None
+    filename: str | None = None
+    mime_type: str | None = None
+    size_bytes: int | None = None
+    sha256: str | None = None
     notes: str | None
     resolved_text: str | None = None
     resolved_json: dict[str, Any] | None = None
@@ -708,6 +716,10 @@ class ManualDocumentVersionRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
 
 
+class RestoreDocumentVersionRequest(BaseModel):
+    notes: str | None = Field(default=None, max_length=500)
+
+
 class DocumentCommentRead(BaseModel):
     id: uuid.UUID
     document_id: uuid.UUID
@@ -844,6 +856,10 @@ async def post_manual_document_version(
         version_number=int(next_version),
         kind=VERSION_KIND_USER_EDIT,
         created_by_id=user.id,
+        filename=doc.filename,
+        mime_type="text/plain",
+        size_bytes=len(body.resolved_text.encode("utf-8")),
+        sha256=hashlib.sha256(body.resolved_text.encode("utf-8")).hexdigest(),
         resolved_text=body.resolved_text,
         resolved_json=body.resolved_json,
         notes=body.notes or "Edited in Legalise document editor",
@@ -984,6 +1000,10 @@ async def post_upload_document_version(
         kind=VERSION_KIND_UPLOAD,
         created_by_id=user.id,
         storage_uri=obj_key,
+        filename=filename,
+        mime_type=file.content_type or "application/octet-stream",
+        size_bytes=len(contents),
+        sha256=sha,
         notes=notes or f"Uploaded replacement file: {filename}",
         resolved_text=(
             extract_result.extracted_text
@@ -1069,6 +1089,215 @@ async def post_upload_document_version(
     )
     await session.commit()
     return DocumentVersionRead.model_validate(version)
+
+
+@router.post("/{document_id}/versions/{version_id}/restore", response_model=DocumentVersionRead)
+async def post_restore_document_version(
+    document_id: uuid.UUID,
+    version_id: uuid.UUID,
+    body: RestoreDocumentVersionRequest,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentVersionRead:
+    """Restore a prior saved version as the active document.
+
+    The original history remains immutable: restore creates a new
+    `restored` version row and updates the active document pointer/body
+    to match the selected version.
+    """
+    doc, matter = await _load_owned_document(document_id, session, user)
+    source = await session.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.id == version_id,
+            DocumentVersion.document_id == doc.id,
+        )
+    )
+    if source is None:
+        raise HTTPException(404, "document version not found")
+    if not source.storage_uri and not source.resolved_text:
+        raise HTTPException(422, "document version has no restorable content")
+
+    filename = source.filename or doc.filename
+    mime_type = source.mime_type or doc.mime_type or "application/octet-stream"
+    storage_uri = source.storage_uri
+    size_bytes = source.size_bytes
+    sha = source.sha256
+    resolved_text = source.resolved_text
+    resolved_json = source.resolved_json
+    extraction_method = "passthrough"
+    page_count: int | None = None
+    error_reason: str | None = None
+
+    if storage_uri:
+        storage = get_storage_backend()
+        try:
+            contents = storage.get_bytes(storage_uri)
+        except KeyError:
+            raise HTTPException(
+                410,
+                detail={
+                    "error": "document_version_original_unavailable",
+                    "message": "This saved version points to a file that is no longer available.",
+                },
+            )
+        except StorageReadError as exc:
+            await audit_failure(
+                session,
+                "storage.get_bytes.failed",
+                actor_id=user.id,
+                matter_id=matter.id,
+                module="storage",
+                resource_type="document_version",
+                resource_id=str(source.id),
+                payload={
+                    "storage_key": storage_uri,
+                    "backend": exc.backend,
+                    "error_code": exc.error_code,
+                    "restore": True,
+                },
+            )
+            raise HTTPException(
+                410,
+                detail={
+                    "error": "document_version_original_unavailable",
+                    "message": "This saved version points to a file that is no longer available.",
+                },
+            ) from exc
+        size_bytes = len(contents)
+        sha = hashlib.sha256(contents).hexdigest()
+        extracted = extract_text(contents, mime_type, filename)
+        resolved_text = (
+            extracted.extracted_text
+            if extracted.extraction_method != "failed"
+            else resolved_text
+        )
+        extraction_method = extracted.extraction_method
+        page_count = extracted.page_count
+        error_reason = extracted.error_reason
+    else:
+        contents = (resolved_text or "").encode("utf-8")
+        sha = hashlib.sha256(contents).hexdigest()
+        size_bytes = len(contents)
+        mime_type = "text/plain"
+        if not filename.lower().endswith(".txt"):
+            filename = f"{filename.rsplit('.', 1)[0]}-v{source.version_number}.txt"
+        storage_uri = uploaded_key(
+            user_id=user.id,
+            matter_id=matter.id,
+            document_id=doc.id,
+            sha256=sha,
+        )
+        try:
+            get_storage_backend().put_bytes(
+                storage_uri,
+                contents,
+                content_type=mime_type,
+                metadata={
+                    "filename": filename[:200],
+                    "sha256": sha,
+                    "document_id": str(doc.id),
+                    "restored_from_version_id": str(source.id),
+                },
+            )
+        except StorageWriteError as exc:
+            await audit_failure(
+                session,
+                "storage.put_bytes.failed",
+                actor_id=user.id,
+                matter_id=matter.id,
+                module="storage",
+                resource_type="document_version",
+                resource_id=str(source.id),
+                payload={
+                    "storage_key": storage_uri,
+                    "backend": exc.backend,
+                    "error_code": exc.error_code,
+                    "restore": True,
+                },
+            )
+            raise HTTPException(
+                502,
+                detail={
+                    "error": "storage_write_failed",
+                    "message": "Failed to store restored document version.",
+                    "storage_key": storage_uri,
+                    "backend": exc.backend,
+                },
+            ) from exc
+
+    next_version = (
+        await session.scalar(
+            select(func.coalesce(func.max(DocumentVersion.version_number), 0) + 1)
+            .where(DocumentVersion.document_id == doc.id)
+        )
+        or 1
+    )
+    restored = DocumentVersion(
+        document_id=doc.id,
+        version_number=int(next_version),
+        kind=VERSION_KIND_RESTORED,
+        created_by_id=user.id,
+        storage_uri=storage_uri,
+        filename=filename,
+        mime_type=mime_type,
+        size_bytes=size_bytes,
+        sha256=sha,
+        notes=body.notes or f"Restored from v{source.version_number}",
+        resolved_text=resolved_text,
+        resolved_json=resolved_json,
+    )
+    session.add(restored)
+
+    doc.filename = filename
+    doc.mime_type = mime_type
+    doc.size_bytes = int(size_bytes or 0)
+    doc.sha256 = sha or doc.sha256
+    doc.storage_uri = storage_uri
+    doc.uploaded_at = datetime.now(UTC)
+    doc.uploaded_by_id = user.id
+
+    active_body = await session.scalar(
+        select(DocumentBody).where(
+            DocumentBody.document_id == doc.id,
+            DocumentBody.kind == BODY_KIND_EXTRACTED,
+        )
+    )
+    body_payload = {
+        "extracted_text": resolved_text or "",
+        "extraction_method": extraction_method,
+        "char_count": len(resolved_text or ""),
+        "page_count": page_count,
+        "error_reason": error_reason,
+        "extracted_at": datetime.now(UTC),
+    }
+    if active_body is None:
+        session.add(DocumentBody(document_id=doc.id, kind=BODY_KIND_EXTRACTED, **body_payload))
+    else:
+        for key, value in body_payload.items():
+            setattr(active_body, key, value)
+
+    await session.flush()
+    await audit.log(
+        session,
+        "document.version.restored",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(restored.id),
+        payload={
+            "document_id": str(doc.id),
+            "restored_version_number": restored.version_number,
+            "source_version_id": str(source.id),
+            "source_version_number": source.version_number,
+            "filename": filename,
+            "sha256": sha,
+            "mime_type": mime_type,
+            "size_bytes": size_bytes,
+        },
+    )
+    await session.commit()
+    return DocumentVersionRead.model_validate(restored)
 
 
 @router.get("/{document_id}/versions/{version_id}/docx")
@@ -1190,16 +1419,20 @@ async def get_document_version_original(
             "document_id": str(doc.id),
             "version_number": version.version_number,
             "storage_key": version.storage_uri,
+            "filename": version.filename or doc.filename,
+            "sha256": version.sha256,
+            "mime_type": version.mime_type or doc.mime_type,
+            "size_bytes": version.size_bytes,
             "download": is_download,
         },
     )
     await session.commit()
 
-    filename = _safe_filename(doc.filename, str(version.id))
+    filename = _safe_filename(version.filename or doc.filename, str(version.id))
     disposition = "attachment" if is_download else "inline"
     return StreamingResponse(
         iter([data]),
-        media_type=doc.mime_type or "application/octet-stream",
+        media_type=version.mime_type or doc.mime_type or "application/octet-stream",
         headers={
             "Content-Disposition": f'{disposition}; filename="{filename}"',
             "Content-Length": str(len(data)),
