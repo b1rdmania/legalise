@@ -37,7 +37,9 @@ function formatBytes(n: number): string {
 export function DemoMatter() {
   const route = useRoute();
   const initialTab: TabKey =
-    route.name === "demo" && route.tab && isTabKey(route.tab)
+    route.name === "demoDocument"
+      ? "documents"
+      : route.name === "demo" && route.tab && isTabKey(route.tab)
       ? (route.tab as TabKey)
       : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
@@ -46,7 +48,9 @@ export function DemoMatter() {
   const [inspectedDocId, setInspectedDocId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (route.name === "demo" && route.tab && isTabKey(route.tab)) {
+    if (route.name === "demoDocument") {
+      setTab("documents");
+    } else if (route.name === "demo" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab as TabKey);
     } else if (route.name === "demo" && !route.tab) {
       setTab("assistant");
@@ -55,7 +59,7 @@ export function DemoMatter() {
 
   // Demo route is public - make sure no protected-route redirect interferes.
   useEffect(() => {
-    if (route.name === "demo" && !isPublicRoute(route)) {
+    if ((route.name === "demo" || route.name === "demoDocument") && !isPublicRoute(route)) {
       // Defensive - should never hit; the route allowlist already covers it.
     }
   }, [route]);
@@ -137,7 +141,9 @@ export function DemoMatter() {
                 />
               </div>
             )}
-            {tab === "documents" && (
+            {route.name === "demoDocument" ? (
+              <DemoDocumentReader documentId={route.documentId} docs={documents} />
+            ) : tab === "documents" && (
               <DemoDocumentsTab
                 docs={documents}
                 inspectedDocId={inspectedDocId}
@@ -471,24 +477,34 @@ function DemoDocumentsTab({
             {docs.map((d) => {
               const active = d.id === inspectedDoc.id;
               return (
-                <button
+                <div
                   key={d.id}
-                  type="button"
-                  onClick={() => onInspect(d.id)}
-                  className={`block w-full border-b border-rule px-4 py-4 text-left transition-colors ${
+                  className={`border-b border-rule px-4 py-4 transition-colors ${
                     active ? "bg-wash" : "bg-paper hover:bg-wash"
                   }`}
                 >
-                  <div className="text-sm font-semibold text-ink">{d.filename}</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                    {d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}
-                    <span>{formatBytes(d.size_bytes)}</span>
-                    <span>{d.from_disclosure ? "CPR 31" : "Upload"}</span>
-                  </div>
-                  <div className="mt-2 text-[10px] uppercase tracking-track2 text-muted">
-                    Source-ready · {d.sha256.slice(0, 8)}
-                  </div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => onInspect(d.id)}
+                    className="block w-full text-left"
+                  >
+                    <div className="text-sm font-semibold text-ink">{d.filename}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                      {d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}
+                      <span>{formatBytes(d.size_bytes)}</span>
+                      <span>{d.from_disclosure ? "CPR 31" : "Upload"}</span>
+                    </div>
+                    <div className="mt-2 text-[10px] uppercase tracking-track2 text-muted">
+                      Source-ready · {d.sha256.slice(0, 8)}
+                    </div>
+                  </button>
+                  <a
+                    href={`/demo/documents/${encodeURIComponent(d.id)}`}
+                    className="mt-3 inline-flex text-xs text-muted underline underline-offset-4 hover:text-ink"
+                  >
+                    Open reader →
+                  </a>
+                </div>
               );
             })}
           </div>
@@ -519,6 +535,139 @@ function DemoDocumentsTab({
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function DemoDocumentReader({
+  documentId,
+  docs,
+}: {
+  documentId: string;
+  docs: MatterDocument[];
+}) {
+  const doc = docs.find((d) => d.id === documentId);
+
+  if (!doc) {
+    return (
+      <div className="max-w-4xl border border-rule bg-paper p-6">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+          Document
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight2 text-ink">
+          Demo document not found
+        </h1>
+        <a
+          href="/demo/documents"
+          className="mt-4 inline-flex text-sm text-muted underline underline-offset-4 hover:text-ink"
+        >
+          ← Back to demo documents
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-[1160px]">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <a
+          href="/demo/documents"
+          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+        >
+          ← Back to demo documents
+        </a>
+        <a
+          href="/demo/audit"
+          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+        >
+          View demo Record →
+        </a>
+      </div>
+
+      <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+          Demo document
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
+          {doc.filename}
+        </h1>
+        <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+          {doc.tag && (
+            <span className="border border-rule bg-paper-sunken px-2 py-1">
+              {doc.tag}
+            </span>
+          )}
+          <span className="border border-rule bg-paper-sunken px-2 py-1">
+            {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
+          </span>
+          <span className="border border-rule bg-paper-sunken px-2 py-1">
+            {formatBytes(doc.size_bytes)}
+          </span>
+          <span className="border border-rule bg-paper-sunken px-2 py-1">
+            source-ready
+          </span>
+        </div>
+      </header>
+
+      <main className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="min-h-[680px] border border-rule bg-paper">
+          <div className="border-b border-rule px-5 py-3">
+            <h2 className="text-sm font-semibold text-ink">Extracted text</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Read-only public sample. The working product opens the same kind of document surface for source checks and edits.
+            </p>
+          </div>
+          <div
+            className="px-7 py-7 text-[16px] leading-8 text-ink whitespace-pre-wrap sm:px-10"
+            data-testid="demo-document-reader"
+          >
+            {demoDocumentExtract(doc)}
+          </div>
+        </section>
+
+        <aside className="space-y-4">
+          <section className="border border-rule bg-paper p-4">
+            <h2 className="text-sm font-semibold text-ink">How this is used</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Skills and chat answers cite project documents. In the live workspace,
+              source chips open the reader, proposed edits create versions, and
+              document access is recorded.
+            </p>
+          </section>
+          <section className="border border-rule bg-paper p-4">
+            <h2 className="text-sm font-semibold text-ink">Document facts</h2>
+            <dl className="mt-3 space-y-3 text-sm">
+              <DemoReaderFact label="Type" value={doc.mime_type} />
+              <DemoReaderFact
+                label="Uploaded"
+                value={doc.uploaded_at.replace("T", " ").slice(0, 16)}
+              />
+              <DemoReaderFact label="SHA-256" value={doc.sha256} mono />
+            </dl>
+          </section>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function DemoReaderFact({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
+        {label}
+      </dt>
+      <dd className={`mt-1 break-words text-ink ${mono ? "font-mono text-xs" : ""}`}>
+        {value}
+      </dd>
     </div>
   );
 }

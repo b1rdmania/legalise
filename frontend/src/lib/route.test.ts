@@ -79,6 +79,13 @@ describe("routeFromPath", () => {
     expect(routeFromPath("/app", "")).toEqual({ name: "appHome" });
   });
 
+  it("/demo/documents/{id} → public demo document", () => {
+    expect(routeFromPath("/demo/documents/doc-1", "")).toEqual({
+      name: "demoDocument",
+      documentId: "doc-1",
+    });
+  });
+
   it("/modules/some-id → moduleDetail", () => {
     expect(routeFromPath("/modules/contract-review", "")).toEqual({
       name: "moduleDetail",

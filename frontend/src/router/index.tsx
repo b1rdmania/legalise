@@ -185,6 +185,12 @@ const demoTabRoute = createRoute({
   component: DemoMatter,
 });
 
+const demoDocumentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/demo/documents/$documentId",
+  component: DemoMatter,
+});
+
 // ---------------------------------------------------------------------------
 // Authed group — every route under this layout requires a session.
 // `beforeLoad` reads the auth snapshot (populated by AuthProvider on mount)
@@ -503,6 +509,7 @@ const routeTree = rootRoute.addChildren([
   submitModuleRoute,
   legacySubmitModuleRedirect,
   demoIndexRoute,
+  demoDocumentRoute,
   demoTabRoute,
   appHomeRoute,
   authedRoute.addChildren([
