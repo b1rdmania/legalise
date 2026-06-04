@@ -33,6 +33,7 @@ export function GenericSkillRunner({
   initialDocumentIds,
   initialInput,
   onClose,
+  onRunComplete,
   compact = false,
 }: {
   slug: string;
@@ -41,6 +42,7 @@ export function GenericSkillRunner({
   initialDocumentIds?: string[];
   initialInput?: string;
   onClose?: () => void;
+  onRunComplete?: (response: InvocationResponse, artifacts: ArtifactRead[]) => void;
   compact?: boolean;
 }) {
   const availableDocs = documents ?? [];
@@ -120,6 +122,7 @@ export function GenericSkillRunner({
         artifactIds.map((artifactId) => readArtifact(slug, artifactId)),
       );
       setState({ kind: "success", response, artifacts });
+      onRunComplete?.(response, artifacts);
     } catch (err) {
       setState(errorToState(err));
     }

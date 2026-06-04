@@ -1395,6 +1395,19 @@ export function DocumentDetail({
                     skill={activeRunnerSkill}
                     documents={[doc]}
                     initialDocumentIds={[documentId]}
+                    onRunComplete={(_response, artifacts) => {
+                      const related = artifacts.filter((artifact) =>
+                        artifactReferencesDocument(artifact, documentId),
+                      );
+                      if (related.length === 0) return;
+                      setDocumentArtifacts((current) => {
+                        const existing = new Set((current ?? []).map((artifact) => artifact.id));
+                        return [
+                          ...related.filter((artifact) => !existing.has(artifact.id)),
+                          ...(current ?? []),
+                        ];
+                      });
+                    }}
                     onClose={() => setActiveRunnerSkill(null)}
                     compact
                   />
