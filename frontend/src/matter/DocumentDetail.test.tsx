@@ -546,6 +546,12 @@ describe("DocumentDetail", () => {
     expect(await screen.findByTestId("document-skill-runner")).toHaveTextContent(
       "1 ready",
     );
+    expect(screen.getByTestId("document-skill-runner")).toHaveTextContent(
+      "Run a skill with this file selected.",
+    );
+    expect(screen.getByTestId("document-skill-runner")).toHaveTextContent(
+      "Run with this file",
+    );
     fireEvent.click(screen.getByRole("button", { name: /Plain-English Summary/i }));
 
     expect(screen.getByTestId("generic-runner-demo.guided-skill-summarise")).toBeInTheDocument();
