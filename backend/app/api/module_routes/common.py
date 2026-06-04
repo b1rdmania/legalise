@@ -162,6 +162,7 @@ def _module_json_for(skill_md_path: Path) -> Path:
     return skill_md_path.parent.parent.parent / "module.json"
 
 
+@dataclass
 class _DiscoveredSkill:
     """One SKILL.md + module.json resolved into the shape both endpoints
     share. Per-user fields (`granted_capabilities`, `enabled`) are layered
