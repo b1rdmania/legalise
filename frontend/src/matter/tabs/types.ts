@@ -31,8 +31,14 @@ export type TabKey =
   | "reviews"
   | "research";
 
+// The matter loop. Order is load-bearing (DESIGN.md P19 v0.5):
+// Chat → Documents → Skills → Record. URL keys stay stable
+// (assistant/documents/workflows/audit) for route compatibility.
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
+  { key: "documents", label: "Documents" },
+  { key: "workflows", label: "Skills" },
+  { key: "audit", label: "Record" },
 ];
 
 export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
