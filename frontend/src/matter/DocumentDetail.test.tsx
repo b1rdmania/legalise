@@ -376,10 +376,14 @@ describe("DocumentDetail", () => {
 
     const links = await screen.findByTestId("document-output-links");
     expect(links).toHaveTextContent("1 signed output cites this file");
-    expect(screen.getByRole("link", { name: /skill response/i })).toHaveAttribute(
+    const attached = await screen.findByTestId("document-attached-outputs");
+    expect(attached).toHaveTextContent("Work from this file");
+    expect(attached).toHaveTextContent("1 signed output cites this document.");
+    expect(within(attached).getByRole("link", { name: /skill response/i })).toHaveAttribute(
       "href",
       "/matters/khan/artifacts/art-1",
     );
+    expect(screen.getAllByRole("link", { name: /skill response/i })).toHaveLength(2);
   });
 
   it("shows original file actions for uploaded versions in the version record", async () => {
