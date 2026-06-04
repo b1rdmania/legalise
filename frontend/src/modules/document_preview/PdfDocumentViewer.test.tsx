@@ -68,13 +68,15 @@ describe("PdfDocumentViewer", () => {
     expect(screen.getByTestId("mock-pdf-page")).toHaveTextContent("Page 1");
 
     await waitFor(() => {
-      expect(screen.getByText("1 page")).toBeInTheDocument();
+      expect(screen.getByText("1 page · 1 / 1")).toBeInTheDocument();
     });
 
     await userEvent.clear(screen.getByPlaceholderText("Search text in this PDF"));
     await userEvent.type(screen.getByPlaceholderText("Search text in this PDF"), "dismissal");
     await waitFor(() => {
-      expect(screen.getByText("1 page")).toBeInTheDocument();
+      expect(screen.getByText("1 page · 1 / 1")).toBeInTheDocument();
     });
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByText("1 page · 1 / 1")).toBeInTheDocument();
   });
 });
