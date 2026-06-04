@@ -545,6 +545,14 @@ async def test_get_manual_document_version_docx_returns_word_file(client) -> Non
     """Owner can download a saved editor version as a valid .docx."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
     _, doc_id = await _create_matter_and_upload(client)
+    note = await client.post(
+        f"/api/documents/{doc_id}/comments",
+        json={
+            "body": "Check limitation before relying on this draft.",
+            "quote_text": "Edited witness statement.",
+        },
+    )
+    assert note.status_code == 200, note.text
 
     save = await client.post(
         f"/api/documents/{doc_id}/versions/manual",
@@ -560,6 +568,11 @@ async def test_get_manual_document_version_docx_returns_word_file(client) -> Non
     )
     assert resp.headers.get("content-disposition", "").endswith('.docx"')
     assert zipfile.is_zipfile(io.BytesIO(resp.content))
+    docx = DocxDocument(io.BytesIO(resp.content))
+    all_text = "\n".join(paragraph.text for paragraph in docx.paragraphs)
+    assert "Document review notes" in all_text
+    assert "Check limitation before relying on this draft." in all_text
+    assert "Edited witness statement." in all_text
 
 
 @pytest.mark.asyncio

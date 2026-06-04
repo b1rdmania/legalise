@@ -469,7 +469,11 @@ def _docx_export_filename(filename: str, version_number: int) -> str:
     return f"{cleaned}-v{version_number}.docx"
 
 
-def _render_resolved_text_docx(title: str, body: str) -> bytes:
+def _render_resolved_text_docx(
+    title: str,
+    body: str,
+    comments: list[DocumentComment] | None = None,
+) -> bytes:
     document = DocxDocument()
     document.add_heading(title, level=0)
     for block in body.split("\n\n"):
@@ -482,8 +486,32 @@ def _render_resolved_text_docx(title: str, body: str) -> bytes:
             para.add_run().add_break()
             para.add_run(line)
     buf = io.BytesIO()
+    _append_document_comments_docx(document, comments or [])
     document.save(buf)
     return buf.getvalue()
+
+
+def _append_document_comments_docx(
+    document: DocxDocument,
+    comments: list[DocumentComment],
+) -> None:
+    if not comments:
+        return
+    document.add_page_break()
+    document.add_heading("Document review notes", level=1)
+    for index, comment in enumerate(comments, start=1):
+        status = "resolved" if comment.status == COMMENT_STATUS_RESOLVED else "open"
+        document.add_heading(f"Note {index} ({status})", level=2)
+        if comment.quote_text:
+            quote = document.add_paragraph(style="Intense Quote")
+            quote.add_run(comment.quote_text)
+        document.add_paragraph(comment.body)
+        meta = document.add_paragraph()
+        meta.add_run("Created: ").bold = True
+        meta.add_run(comment.created_at.isoformat())
+        if comment.resolved_at:
+            meta.add_run(" · Resolved: ").bold = True
+            meta.add_run(comment.resolved_at.isoformat())
 
 
 def _add_tiptap_inline_content(paragraph, nodes: list[dict[str, Any]] | None) -> None:
@@ -612,9 +640,14 @@ def _add_tiptap_table(document: DocxDocument, node: dict[str, Any]) -> None:
                         run.bold = True
 
 
-def _render_tiptap_docx(title: str, body_json: dict[str, Any], fallback_text: str) -> bytes:
+def _render_tiptap_docx(
+    title: str,
+    body_json: dict[str, Any],
+    fallback_text: str,
+    comments: list[DocumentComment] | None = None,
+) -> bytes:
     if body_json.get("type") != "doc" or not isinstance(body_json.get("content"), list):
-        return _render_resolved_text_docx(title, fallback_text)
+        return _render_resolved_text_docx(title, fallback_text, comments or [])
 
     document = DocxDocument()
     document.add_heading(title, level=0)
@@ -630,6 +663,7 @@ def _render_tiptap_docx(title: str, body_json: dict[str, Any], fallback_text: st
             _add_tiptap_list(document, node, "List Number")
         elif node_type == "table":
             _add_tiptap_table(document, node)
+    _append_document_comments_docx(document, comments or [])
     buf = io.BytesIO()
     document.save(buf)
     return buf.getvalue()
@@ -1576,10 +1610,22 @@ async def get_document_version_docx(
     if not version.resolved_text:
         raise HTTPException(422, "document version has no resolved text")
 
+    comments = (
+        await session.execute(
+            select(DocumentComment)
+            .where(DocumentComment.document_id == doc.id)
+            .order_by(DocumentComment.created_at.asc(), DocumentComment.id.asc())
+        )
+    ).scalars().all()
     data = (
-        _render_tiptap_docx(doc.filename, version.resolved_json, version.resolved_text)
+        _render_tiptap_docx(
+            doc.filename,
+            version.resolved_json,
+            version.resolved_text,
+            comments,
+        )
         if version.resolved_json
-        else _render_resolved_text_docx(doc.filename, version.resolved_text)
+        else _render_resolved_text_docx(doc.filename, version.resolved_text, comments)
     )
     filename = _docx_export_filename(doc.filename, version.version_number)
     await audit.log(
@@ -1597,6 +1643,7 @@ async def get_document_version_docx(
             "byte_count": len(data),
             "format": "docx",
             "rich_json": version.resolved_json is not None,
+            "review_note_count": len(comments),
         },
     )
     await session.commit()
