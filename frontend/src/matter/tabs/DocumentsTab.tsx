@@ -71,6 +71,9 @@ export function DocumentsTab({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [ingress, setIngress] = useState<IngressStatus>({ kind: "idle" });
   const [dragging, setDragging] = useState(false);
+  const [documentQuery, setDocumentQuery] = useState("");
+  const [documentFilter, setDocumentFilter] =
+    useState<"all" | "disclosure" | "notes">("all");
 
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) return;
@@ -114,6 +117,27 @@ export function DocumentsTab({
   const totalBytes = docs?.reduce((total, d) => total + d.size_bytes, 0) ?? 0;
   const disclosureCount = docs?.filter((d) => d.from_disclosure).length ?? 0;
   const noteCount = docs?.reduce((total, d) => total + (d.comment_count ?? 0), 0) ?? 0;
+  const filteredDocs =
+    docs?.filter((d) => {
+      const query = documentQuery.trim().toLowerCase();
+      const matchesQuery =
+        !query ||
+        [
+          d.filename,
+          d.tag ?? "",
+          d.sha256,
+          d.from_disclosure ? "disclosure cpr 31" : "upload",
+          deriveType(d),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      const matchesFilter =
+        documentFilter === "all" ||
+        (documentFilter === "disclosure" && d.from_disclosure) ||
+        (documentFilter === "notes" && (d.comment_count ?? 0) > 0);
+      return matchesQuery && matchesFilter;
+    }) ?? null;
 
   // Column template shared by the header row and each data row so columns
   // stay aligned. Document gets the largest fr; full SHA moves into the
@@ -244,6 +268,45 @@ export function DocumentsTab({
               as CPR 31 material.
             </p>
           )}
+          <div
+            className="mb-4 grid gap-3 border border-rule bg-paper px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            data-testid="document-library-controls"
+          >
+            <label className="text-xs font-semibold uppercase tracking-track2 text-muted">
+              Search documents
+              <input
+                value={documentQuery}
+                onChange={(event) => setDocumentQuery(event.target.value)}
+                placeholder="Filename, tag, hash, source"
+                className="mt-1 min-h-[40px] w-full border border-rule bg-paper-sunken px-3 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+              />
+            </label>
+            <div className="flex flex-wrap items-end gap-2">
+              {[
+                ["all", "All"],
+                ["disclosure", "Disclosure"],
+                ["notes", "With notes"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setDocumentFilter(value as "all" | "disclosure" | "notes")
+                  }
+                  className={`min-h-[40px] border px-3 text-sm font-medium ${
+                    documentFilter === value
+                      ? "border-ink bg-ink text-paper"
+                      : "border-rule bg-paper text-ink hover:border-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted md:col-span-2">
+              Showing {filteredDocs?.length ?? 0} of {docs.length} document{docs.length === 1 ? "" : "s"}.
+            </p>
+          </div>
           <div className="overflow-x-auto border-t border-rule">
           <div className="min-w-[720px]">
             <div
@@ -257,7 +320,7 @@ export function DocumentsTab({
               <span>Updated</span>
               <span className="text-right">Action</span>
             </div>
-            {docs.map((d) => {
+            {filteredDocs?.map((d) => {
               const typeLabel = deriveType(d);
               return (
                 <Link
@@ -300,6 +363,11 @@ export function DocumentsTab({
                 </Link>
               );
             })}
+            {filteredDocs?.length === 0 && (
+              <div className="border-b border-rule bg-paper px-4 py-6 text-sm text-muted">
+                No documents match this search. Clear the query or switch filters.
+              </div>
+            )}
           </div>
         </div>
         </div>
