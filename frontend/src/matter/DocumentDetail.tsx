@@ -1203,79 +1203,103 @@ export function DocumentDetail({
               >
                 {nextStep.action}
               </button>
-              <div
-                className="mt-4 divide-y divide-rule border border-rule"
+              <dl
+                className="mt-4 grid grid-cols-3 gap-2 text-center text-xs"
+                data-testid="document-review-board"
+              >
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Notes</dt>
+                  <dd className="mt-1 text-lg font-semibold text-ink">{openComments.length}</dd>
+                </div>
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Skills</dt>
+                  <dd className="mt-1 text-lg font-semibold text-ink">{documentSkills.length}</dd>
+                </div>
+                <div className="border border-rule bg-paper-sunken p-2">
+                  <dt className="uppercase tracking-track2 text-muted">Outputs</dt>
+                  <dd className="mt-1 text-lg font-semibold text-ink">
+                    {documentArtifacts === null ? "..." : citedOutputCount}
+                  </dd>
+                </div>
+              </dl>
+              <details
+                className="mt-4 border border-rule bg-paper-sunken p-3"
                 data-testid="document-work-plan"
               >
-                <button
-                  type="button"
-                  onClick={() => openWorkbenchView("editor")}
-                  className="flex w-full items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-left text-sm hover:bg-paper"
-                >
-                  <span>
-                    <span className="block font-semibold text-ink">Read and mark up</span>
-                    <span className="mt-1 block text-xs text-muted">
-                      Select text to anchor a review note.
+                <summary className="cursor-pointer text-sm font-semibold text-ink">
+                  More file actions
+                </summary>
+                <div className="mt-3 divide-y divide-rule border border-rule bg-paper">
+                  <button
+                    type="button"
+                    onClick={() => openWorkbenchView("editor")}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
+                  >
+                    <span>
+                      <span className="block font-semibold text-ink">Read and mark up</span>
+                      <span className="mt-1 block text-xs text-muted">
+                        Select text to anchor a review note.
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
-                    Editor
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
-                  }
-                  className="flex w-full items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-left text-sm hover:bg-paper"
-                >
-                  <span>
-                    <span className="block font-semibold text-ink">Review notes</span>
-                    <span className="mt-1 block text-xs text-muted">
-                      {openComments.length === 0
-                        ? "No open notes yet."
-                        : `${openComments.length} open note${
-                            openComments.length === 1 ? "" : "s"
-                          } waiting.`}
+                    <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
+                      Editor
                     </span>
-                  </span>
-                  <span className="text-sm font-semibold text-ink">{openComments.length}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (primaryDocumentSkill) setActiveRunnerSkill(primaryDocumentSkill);
-                    requestAnimationFrame(() => {
-                      skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-                    });
-                  }}
-                  className="flex w-full items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-left text-sm hover:bg-paper"
-                >
-                  <span>
-                    <span className="block font-semibold text-ink">Run document skill</span>
-                    <span className="mt-1 block text-xs text-muted">
-                      {documentSkills.length === 0
-                        ? "No document skills are ready."
-                        : `${documentSkills.length} ready for this file.`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
+                    }
+                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
+                  >
+                    <span>
+                      <span className="block font-semibold text-ink">Review notes</span>
+                      <span className="mt-1 block text-xs text-muted">
+                        {openComments.length === 0
+                          ? "No open notes yet."
+                          : `${openComments.length} open note${
+                              openComments.length === 1 ? "" : "s"
+                            } waiting.`}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-sm font-semibold text-ink">{documentSkills.length}</span>
-                </button>
-                <a
-                  href={recordHref}
-                  className="flex items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-sm hover:bg-paper"
-                >
-                  <span>
-                    <span className="block font-semibold text-ink">View matter Record</span>
-                    <span className="mt-1 block text-xs text-muted">
-                      Notes, skill runs, sign-off, and file access.
+                    <span className="text-sm font-semibold text-ink">{openComments.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (primaryDocumentSkill) setActiveRunnerSkill(primaryDocumentSkill);
+                      requestAnimationFrame(() => {
+                        skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+                      });
+                    }}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
+                  >
+                    <span>
+                      <span className="block font-semibold text-ink">Run document skill</span>
+                      <span className="mt-1 block text-xs text-muted">
+                        {documentSkills.length === 0
+                          ? "No document skills are ready."
+                          : `${documentSkills.length} ready for this file.`}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
-                    Open
-                  </span>
-                </a>
-              </div>
+                    <span className="text-sm font-semibold text-ink">{documentSkills.length}</span>
+                  </button>
+                  <a
+                    href={recordHref}
+                    className="flex items-center justify-between gap-3 px-3 py-3 text-sm hover:bg-paper-sunken"
+                  >
+                    <span>
+                      <span className="block font-semibold text-ink">View matter Record</span>
+                      <span className="mt-1 block text-xs text-muted">
+                        Notes, skill runs, sign-off, and file access.
+                      </span>
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
+                      Open
+                    </span>
+                  </a>
+                </div>
+              </details>
               <details
                 className="mt-4 border border-rule bg-paper-sunken p-3"
                 data-testid="document-output-links"

@@ -207,6 +207,9 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-next-step")).toHaveTextContent(
       "Start by reading or selecting text.",
     );
+    expect(screen.getByTestId("document-review-board")).toHaveTextContent("Notes");
+    expect(screen.getByTestId("document-review-board")).toHaveTextContent("Skills");
+    expect(screen.getByTestId("document-review-board")).toHaveTextContent("Outputs");
     expect(await screen.findByTestId("document-output-links")).toHaveTextContent(
       "No signed outputs cite this file yet",
     );
