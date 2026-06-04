@@ -66,7 +66,7 @@ describe("DocxOriginalPreview", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("1 match")).toBeInTheDocument();
+      expect(screen.getByText("1 match · 1 / 1")).toBeInTheDocument();
     });
     expect(screen.getAllByText(/dismissal facts/).length).toBeGreaterThan(0);
 
@@ -78,8 +78,10 @@ describe("DocxOriginalPreview", () => {
     await userEvent.clear(screen.getByPlaceholderText("Search text in this Word file"));
     await userEvent.type(screen.getByPlaceholderText("Search text in this Word file"), "limitation");
     await waitFor(() => {
-      expect(screen.getByText("1 match")).toBeInTheDocument();
+      expect(screen.getByText("1 match · 1 / 1")).toBeInTheDocument();
     });
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByText("1 match · 1 / 1")).toBeInTheDocument();
   });
 
   it("shows a useful error if the original cannot be loaded", async () => {

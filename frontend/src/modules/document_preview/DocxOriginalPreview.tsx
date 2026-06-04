@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { fetchDocumentOriginalBlob } from "../../lib/api";
 import { LoadingLine } from "../../ui/primitives";
@@ -38,6 +38,7 @@ export function DocxOriginalPreview({
   const [renderedText, setRenderedText] = useState("");
   const [query, setQuery] = useState(sourceHighlight?.trim() ?? "");
   const [viewMode, setViewMode] = useState<"paper" | "wide">("paper");
+  const [activeHitIndex, setActiveHitIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const searchTerm = query.trim();
@@ -62,6 +63,27 @@ export function DocxOriginalPreview({
   useEffect(() => {
     setQuery(sourceHighlight?.trim() ?? "");
   }, [sourceHighlight]);
+
+  useEffect(() => {
+    setActiveHitIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    if (activeHitIndex >= searchHits.length) setActiveHitIndex(0);
+  }, [activeHitIndex, searchHits.length]);
+
+  const moveSearchHit = (direction: 1 | -1) => {
+    if (searchHits.length === 0) return;
+    setActiveHitIndex((current) =>
+      (current + direction + searchHits.length) % searchHits.length,
+    );
+  };
+
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    moveSearchHit(event.shiftKey ? -1 : 1);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -175,6 +197,7 @@ export function DocxOriginalPreview({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={onSearchKeyDown}
             placeholder="Search text in this Word file"
             className="min-h-[40px] min-w-[260px] flex-1 border border-rule bg-paper px-3 text-sm outline-none focus:border-ink"
           />
@@ -182,7 +205,9 @@ export function DocxOriginalPreview({
             {state.status === "loading"
               ? "Indexing text..."
               : searchTerm.length >= 3
-                ? `${searchHits.length} match${searchHits.length === 1 ? "" : "es"}`
+                ? `${searchHits.length} match${searchHits.length === 1 ? "" : "es"}${
+                    searchHits.length > 0 ? ` · ${activeHitIndex + 1} / ${searchHits.length}` : ""
+                  }`
                 : "Type 3+ characters"}
           </span>
         </div>
@@ -191,7 +216,9 @@ export function DocxOriginalPreview({
             {searchHits.map((hit, index) => (
               <div
                 key={`${hit.index}-${hit.preview}`}
-                className="border border-rule bg-paper px-3 py-2 text-xs"
+                className={`border bg-paper px-3 py-2 text-xs ${
+                  index === activeHitIndex ? "border-ink" : "border-rule"
+                }`}
               >
                 <span className="block font-semibold text-ink">Match {index + 1}</span>
                 <span className="mt-1 block max-h-12 overflow-hidden leading-5 text-muted">
@@ -200,7 +227,10 @@ export function DocxOriginalPreview({
                 {onQuoteSelected && (
                   <button
                     type="button"
-                    onClick={() => onQuoteSelected(hit.preview)}
+                    onClick={() => {
+                      setActiveHitIndex(index);
+                      onQuoteSelected(hit.preview);
+                    }}
                     className="mt-2 font-medium text-ink underline underline-offset-4 hover:text-muted"
                   >
                     Quote in note

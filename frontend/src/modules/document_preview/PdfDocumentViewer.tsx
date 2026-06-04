@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -50,6 +50,7 @@ export function PdfDocumentViewer({
   const [pageTexts, setPageTexts] = useState<string[]>([]);
   const [query, setQuery] = useState(sourceHighlight?.trim() ?? "");
   const [loadingText, setLoadingText] = useState(false);
+  const [activeHitIndex, setActiveHitIndex] = useState(0);
 
   const file = useMemo(
     () => ({ url: fileUrl, withCredentials: true }),
@@ -75,6 +76,29 @@ export function PdfDocumentViewer({
   useEffect(() => {
     setQuery(sourceHighlight?.trim() ?? "");
   }, [sourceHighlight]);
+
+  useEffect(() => {
+    setActiveHitIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    if (activeHitIndex >= searchHits.length) setActiveHitIndex(0);
+  }, [activeHitIndex, searchHits.length]);
+
+  const moveSearchHit = (direction: 1 | -1) => {
+    if (searchHits.length === 0) return;
+    setActiveHitIndex((current) => {
+      const next = (current + direction + searchHits.length) % searchHits.length;
+      setPageNumber(searchHits[next].page);
+      return next;
+    });
+  };
+
+  const onSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    moveSearchHit(event.shiftKey ? -1 : 1);
+  };
 
   async function extractText(pdf: LoadedPdf) {
     setLoadingText(true);
@@ -185,6 +209,7 @@ export function PdfDocumentViewer({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={onSearchKeyDown}
             placeholder="Search text in this PDF"
             className="min-h-[40px] min-w-[260px] flex-1 border border-rule bg-paper px-3 text-sm outline-none focus:border-ink"
           />
@@ -192,20 +217,27 @@ export function PdfDocumentViewer({
             {loadingText
               ? "Indexing text..."
               : searchTerm.length >= 3
-                ? `${searchHits.length} page${searchHits.length === 1 ? "" : "s"}`
+                ? `${searchHits.length} page${searchHits.length === 1 ? "" : "s"}${
+                    searchHits.length > 0 ? ` · ${activeHitIndex + 1} / ${searchHits.length}` : ""
+                  }`
                 : "Type 3+ characters"}
           </span>
         </div>
         {searchHits.length > 0 && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {searchHits.slice(0, 8).map((hit) => (
+            {searchHits.slice(0, 8).map((hit, index) => (
               <div
                 key={`${hit.page}-${hit.preview}`}
-                className="border border-rule bg-paper px-3 py-2 text-xs"
+                className={`border bg-paper px-3 py-2 text-xs ${
+                  index === activeHitIndex ? "border-ink" : "border-rule"
+                }`}
               >
                 <button
                   type="button"
-                  onClick={() => setPageNumber(hit.page)}
+                  onClick={() => {
+                    setActiveHitIndex(index);
+                    setPageNumber(hit.page);
+                  }}
                   className="block w-full text-left hover:text-ink"
                   title={hit.preview}
                 >
@@ -217,7 +249,11 @@ export function PdfDocumentViewer({
                 {onQuoteSelected && (
                   <button
                     type="button"
-                    onClick={() => onQuoteSelected(hit.preview)}
+                    onClick={() => {
+                      setActiveHitIndex(index);
+                      setPageNumber(hit.page);
+                      onQuoteSelected(hit.preview);
+                    }}
                     className="mt-2 font-medium text-ink underline underline-offset-4 hover:text-muted"
                   >
                     Quote in note
