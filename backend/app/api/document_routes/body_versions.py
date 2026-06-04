@@ -544,7 +544,9 @@ async def get_document_version_pdf(
         DocumentAssetContext(user.id, matter.id, doc.id),
     )
     try:
-        data = await _html_to_pdf(html_doc)
+        from app.api import documents as documents_api
+
+        data = await documents_api._html_to_pdf(html_doc)
     except RuntimeError as exc:
         raise HTTPException(
             502,

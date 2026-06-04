@@ -15,7 +15,11 @@ from app.api.document_routes import (
     original_download,
     working_draft,
 )
-from app.api.document_routes.common import audit_failure, get_storage_backend
+from app.api.document_routes.common import (
+    _html_to_pdf,
+    audit_failure,
+    get_storage_backend,
+)
 
 
 router = APIRouter()
