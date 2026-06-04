@@ -1785,6 +1785,15 @@ export interface DocumentWorkingDraftRead {
   client_id: string | null;
 }
 
+export interface DocumentAssetUploadRead {
+  id: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  sha256: string;
+  url: string;
+}
+
 export class ConflictError extends Error {
   status = 409;
   detail: unknown;
@@ -1946,6 +1955,39 @@ export const uploadDocumentVersion = async (
     );
   }
   return resolutionJsonOrThrow<DocumentVersionRead>(res);
+};
+
+export const uploadDocumentAsset = async (
+  documentId: string,
+  file: File,
+): Promise<DocumentAssetUploadRead> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await apiFetch(`${API}/documents/${documentId}/assets`, {
+    method: "POST",
+    body: fd,
+  });
+  if (res.status === 413 || res.status === 415) {
+    if (res.status === 415) {
+      throw new UploadError(
+        "unsupported_mime",
+        415,
+        "That image type is not supported. Upload PNG, JPEG, WebP, or GIF.",
+      );
+    }
+    throw new UploadError(
+      "upload_too_large",
+      413,
+      `Image is too large (${formatMb(file.size)}). The limit is ${formatMb(
+        5 * 1024 * 1024,
+      )} per image.`,
+    );
+  }
+  const uploaded = await resolutionJsonOrThrow<DocumentAssetUploadRead>(res);
+  return {
+    ...uploaded,
+    url: uploaded.url.startsWith("/api/") ? `${BACKEND_ROOT}${uploaded.url}` : uploaded.url,
+  };
 };
 
 export const restoreDocumentVersion = (

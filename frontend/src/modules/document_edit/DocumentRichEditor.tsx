@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
@@ -33,6 +34,7 @@ import {
   fetchDocumentOriginalBlob,
   getDocumentWorkingDraft,
   saveDocumentWorkingDraft,
+  uploadDocumentAsset,
   type DocumentVersionRead,
   type DocumentWorkingDraftRead,
 } from "../../lib/api";
@@ -523,6 +525,7 @@ export function DocumentRichEditor({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
@@ -538,6 +541,7 @@ export function DocumentRichEditor({
   const [draftBaselineText, setDraftBaselineText] = useState(initialText);
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
   const dirtyRef = useRef(false);
   const draftBaseVersionIdRef = useRef<string | null>(latestVersionId ?? null);
@@ -1086,7 +1090,7 @@ export function DocumentRichEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: trimmed }).run();
   }
 
-  function insertEditorImage() {
+  function insertEditorImageUrl() {
     if (!editor) return;
     const src = window.prompt("Paste image URL");
     if (src === null) return;
@@ -1094,6 +1098,27 @@ export function DocumentRichEditor({
     if (!trimmed) return;
     const alt = window.prompt("Image description", "")?.trim() ?? "";
     editor.chain().focus().setImage({ src: trimmed, alt }).run();
+  }
+
+  async function handleEditorImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    if (!editor) return;
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const uploaded = await uploadDocumentAsset(documentId, file);
+      editor.chain().focus().setImage({
+        src: uploaded.url,
+        alt: uploaded.filename,
+      }).run();
+      setSavedMessage("Image inserted into the working copy.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not upload image.");
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   function downloadWorkingText() {
@@ -1359,9 +1384,24 @@ export function DocumentRichEditor({
                 </ToolbarButton>
               </ToolbarGroup>
               <ToolbarGroup label="Media">
+                <input
+                  ref={imageInputRef}
+                  data-testid="document-image-upload-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(event) => void handleEditorImageUpload(event)}
+                />
                 <ToolbarButton
-                  label="Insert image"
-                  onClick={insertEditorImage}
+                  label={uploadingImage ? "Uploading image" : "Upload image"}
+                  disabled={uploadingImage}
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  Up
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Insert image URL"
+                  onClick={insertEditorImageUrl}
                 >
                   Img
                 </ToolbarButton>

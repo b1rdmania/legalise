@@ -114,6 +114,27 @@ def generated_key(
     return f"users/{user_id}/matters/{matter_id}/generated/{document_id}/{safe}"
 
 
+def document_asset_key(
+    user_id: uuid.UUID,
+    matter_id: uuid.UUID,
+    document_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    filename: str,
+) -> str:
+    """Canonical object-storage key for document editor embedded assets.
+
+    Key: ``users/{user_id}/matters/{matter_id}/documents/{document_id}/assets/{asset_id}/{safe_filename}``
+
+    It deliberately lives under the matter prefix so destructive matter
+    deletion sweeps assets with the rest of the matter storage.
+    """
+    safe = _sanitise_filename(filename)
+    return (
+        f"users/{user_id}/matters/{matter_id}/documents/"
+        f"{document_id}/assets/{asset_id}/{safe}"
+    )
+
+
 def artifact_key(
     user_id: uuid.UUID,
     matter_id: uuid.UUID,
@@ -536,5 +557,6 @@ __all__ = [
     "_reset_backend",
     "uploaded_key",
     "generated_key",
+    "document_asset_key",
     "matter_prefix",
 ]
