@@ -710,7 +710,13 @@ export function DocumentRichEditor({
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
   const currentEditorJson = editor ? editor.getJSON() as TiptapNode : null;
   const canSave = Boolean(editor && dirty && plainText.trim() && !saving && !downloadingDocx);
-  const canDownloadDocx = Boolean(editor && plainText.trim() && !saving && !downloadingDocx);
+  const canDownloadDocx = Boolean(
+    editor &&
+      plainText.trim() &&
+      !saving &&
+      !downloadingDocx &&
+      (dirty || latestVersionId),
+  );
   const findMatches = useMemo(
     () => findNormalizedRanges(plainText, findQuery),
     [plainText, findQuery],
