@@ -71,6 +71,14 @@ type DocumentLocalDraft = {
   plainText: string;
   json: TiptapNode;
 };
+
+function firstImageFile(files: FileList | File[] | null | undefined): File | null {
+  for (const file of Array.from(files ?? [])) {
+    if (file.type.startsWith("image/")) return file;
+  }
+  return null;
+}
+
 type FindDecorationState = {
   activeIndex: number;
   query: string;
@@ -686,6 +694,19 @@ export function DocumentRichEditor({
           class:
             "legalise-document-editor min-h-[720px] bg-paper px-8 py-10 text-[16px] leading-8 outline-none shadow-sm sm:px-12",
         },
+        handlePaste: (_view, event) => {
+          const file = firstImageFile(event.clipboardData?.files);
+          if (!file) return false;
+          void uploadAndInsertEditorImage(file);
+          return true;
+        },
+        handleDrop: (_view, event) => {
+          const file = firstImageFile(event.dataTransfer?.files);
+          if (!file) return false;
+          event.preventDefault();
+          void uploadAndInsertEditorImage(file);
+          return true;
+        },
       },
       onUpdate: ({ editor: activeEditor }) => {
         const json = activeEditor.getJSON() as TiptapNode;
@@ -1100,11 +1121,8 @@ export function DocumentRichEditor({
     editor.chain().focus().setImage({ src: trimmed, alt }).run();
   }
 
-  async function handleEditorImageUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function uploadAndInsertEditorImage(file: File) {
     if (!editor) return;
-    const file = event.target.files?.[0] ?? null;
-    event.target.value = "";
-    if (!file) return;
     setUploadingImage(true);
     setError(null);
     try {
@@ -1119,6 +1137,13 @@ export function DocumentRichEditor({
     } finally {
       setUploadingImage(false);
     }
+  }
+
+  async function handleEditorImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+    await uploadAndInsertEditorImage(file);
   }
 
   function downloadWorkingText() {
