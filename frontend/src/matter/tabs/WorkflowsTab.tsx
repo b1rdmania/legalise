@@ -1,7 +1,7 @@
-// WorkflowsTab - historical filename for the matter Actions page.
+// WorkflowsTab - historical filename for the matter Skills page.
 // Built-in legal actions (Pre-Motion / Letters / Contract Review /
 // Tabular Review / Case Law) render as cards linking to their surfaces;
-// the sidebar highlights Actions when one is open.
+// the sidebar highlights Skills when one is open.
 //
 // State (grant + availability + last_run_at) is fetched from the
 // backend per matter; no static placeholders.

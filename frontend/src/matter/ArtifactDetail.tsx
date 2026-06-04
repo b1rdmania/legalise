@@ -4,7 +4,7 @@
  * Hits `GET /api/matters/{slug}/artifacts/{id}` (returns ArtifactSummary
  * fields + parsed `payload`). Kind-aware rendering via ArtifactPreview.
  *
- * Deep-link to the Activity Trail: this page links to
+ * Deep-link to the Record: this page links to
  * `/matters/{slug}/audit?invocation_id=<id>`. The query-param contract
  * is preserved for signed/exported output chains.
  *

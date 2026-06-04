@@ -71,26 +71,25 @@ traffic, not the loop. Retire only after the confidence window (tracked follow-u
 ## Bumper 2 — Collapse first-party modules (THE headline cut, now small)
 
 ### 2.1 `contract_review` — the only real violation (HIGH risk, staged)
-`ContractReviewTab` calls `runContractReviewStream` (`lib/api.ts:2623` →
-`POST /…/contract-review/run-stream`) and `exportContractReviewDocx`
-(`lib/api.ts:2698` → `/contract-review/docx`) directly, bypassing
-manifest→invocation→artifact. **The generic jobs path already exists and is
-proven** (`api/jobs.py:227` `POST /…/contract-review/jobs`; `worker.py:165`
-`_run_contract_review`; `router.py:290` carries the matching TODO).
+`ContractReviewTab` formerly called a bespoke SSE route. Stage 1 shipped in
+PR #165: the frontend now creates a durable contract-review job, polls
+`GET /api/matters/{slug}/jobs/{job_id}`, and renders from `result_payload`.
+The empty frontend API shim was deleted.
 
-- Migrate `frontend/src/modules/contract_review/ContractReviewTab.tsx` from the
-  streamer to the **jobs API**; move export to the artifact/generic handler.
-- Then delete `/run`, `/run-stream`, `/docx` from
-  `backend/app/modules/contract_review/router.py`, and remove
-  `main.py:58 include_router(contract_review_router)`.
-- Delete `frontend/src/modules/contract_review/api.ts` (empty shim).
+Stage 2 is backend cleanup:
+
+- Delete `/run` and `/run-stream` from
+  `backend/app/modules/contract_review/router.py`.
+- Keep `/docx` until a generic artifact/export path explicitly replaces it.
+  DOCX export still round-trips the job result envelope and must keep working.
+- Keep `main.py`'s `contract_review_router` include while `/docx` lives there.
 - **KEEP** `{schemas,pipeline,prompts,agents,export}.py` (shared by the worker)
   and `{ResultPanel,StageStrip}.tsx` (presentation-only).
 - Gate: `pytest backend/tests -k "contract_review or jobs or worker"` +
   `vitest run frontend/src/modules/contract_review` + a manual golden-loop walk
   on Khan v Acme (open → select contract-review skill → run via job → typed
-  output → sign-off → record → export); confirm an audit row + artifact land and
-  no `/run-stream` request fires.
+  output → sign-off → record → export); confirm DOCX export still works and no
+  `/run-stream` request fires.
 
 ### 2.2–2.5 `pre_motion` / `letters` / `case_law` / `tabular_review` — KEEP
 All legitimate, no edges to sever, low risk. Do **not** lump `pre_motion` in
@@ -105,8 +104,8 @@ separate, deliberate initiative — not this cleanup.
 - **Split `frontend/src/lib/api.ts` (2,785 lines)** per-domain — *after* 2.1
   removes `runContractReviewStream`/`exportContractReviewDocx`, so the split
   lands on the post-cut surface.
-- **Provider/SSE dedupe** — `pre-motion/run-stream` and `contract-review/run-stream`
-  share near-duplicate SSE plumbing; fold the remaining helper after 2.1.
+- **Provider/SSE dedupe** — only the remaining Pre-Motion stream should be
+  considered after 2.1; contract-review no longer owns SSE.
 - Gate: full `vitest run` + `tsc --noEmit` + `pytest backend/tests` + prod build.
 
 ---

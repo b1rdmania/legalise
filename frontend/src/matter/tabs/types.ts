@@ -23,8 +23,8 @@ export type TabKey =
   | "workflows"
   | "audit"
   | "approvals"
-  // Built-in action surfaces (reached via Actions; sidebar highlights
-  // Actions when one is open)
+  // Built-in skill surfaces (reached via Skills; sidebar highlights
+  // Skills when one is open)
   | "premotion"
   | "letters"
   | "contract-review"
@@ -104,7 +104,7 @@ export function isTabKey(v: string): v is TabKey {
 }
 
 // Which sidebar item should highlight as active given the current tab.
-// Workflow surfaces (premotion / letters / etc.) highlight Workflows.
+// Workflow surfaces (premotion / letters / etc.) highlight Skills.
 export function sidebarActiveFor(tab: TabKey): TabKey {
   if (tab === "premotion" || tab === "letters" || tab === "contract-review" || tab === "reviews" || tab === "research") {
     return "workflows";

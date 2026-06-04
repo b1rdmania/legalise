@@ -3,7 +3,7 @@
 Open-source infrastructure for solicitor-owned AI preparation in
 England & Wales.
 
-Open a matter. Add documents. Run governed actions. Review outputs with
+Open a matter. Add documents. Run skills. Review outputs with
 cited sources visible. **Sign the output as a record of professional
 judgement.** Export the matter record.
 
@@ -39,20 +39,24 @@ The full thesis lives in [`docs/MANIFESTO.md`](./docs/MANIFESTO.md). The claim b
 ## What is in the repo
 
 Legalise currently ships a worked evaluation workspace around the
-Khan v Acme sample matter. The matter surface compresses to four tabs:
+Khan v Acme sample matter. The matter surface now follows the golden
+loop directly:
 
-- **Matter desk:** parties, posture, retention clock, readiness.
+- **Chat:** the project front door. Ask about the matter or run a
+  ready skill against the selected documents.
 - **Documents:** drag/drop ingress, extracted bodies, version history,
   CPR 31.22 disclosure flag, original-file retrieval through an
   owner-only backend proxy.
-- **Actions:** governed actions an installed module can run on this
-  matter — readiness shown up-front (`Ready` / `Keyless demo model` /
+- **Skills:** governed legal skills enabled for this matter — readiness
+  shown up-front (`Ready` / `Keyless demo model` /
   `Requires Anthropic key` / `Requires OpenAI key`).
-- **Activity Trail:** the matter's record of what happened — module
+- **Record:** the matter's proof layer — module
   invoked, model called, output written, sign-off recorded, supervisor
   decision (when used), gate denials.
+- **Signed outputs** and **Working pack:** the signed material and
+  exportable matter record.
 
-Available actions produce **outputs** (artifacts) the user reviews,
+Skills produce **outputs** (artifacts) the user reviews,
 signs, and exports:
 
 - **Professional Sign-Off:** the author reads an AI-prepared output and
@@ -72,13 +76,13 @@ signs, and exports:
 
 Supporting substrate:
 
-- **Capability gates:** manifests declare what a module needs; the
+- **Permission gates:** manifests declare what a skill needs; the
   workspace grants it on a matter; runtime checks it.
-- **Privilege posture + advice-boundary gate** before every model call.
+- **Privilege control + advice-boundary gate** before every model call.
 - **Matter-scoped model gateway** across Anthropic, OpenAI, and Ollama.
 - **BYO keys:** users store their own provider keys encrypted at rest;
   Legalise itself does not provide model access.
-- **Audit trail:** model calls, module actions, denials, mutations,
+- **Record / audit trail:** model calls, skill actions, denials, mutations,
   provider failures, and storage failures leave rows.
 
 A second module path imports prompt-only skills from the
@@ -196,13 +200,13 @@ Evaluation release. Honest about what's in and what isn't.
 
 **Shipped:**
 
-- Compressed four-tab matter surface (Matter desk / Documents / Actions
-  / Activity Trail) with the Activity Trail as the explanatory spine.
+- Matter surface ordered around the golden loop: Chat / Documents /
+  Skills / Record / Signed outputs / Working pack.
 - Documents are first-class: routed detail page, body/versions/
   anonymisation/edit surfaces, original-file retrieval through an
   owner-only backend proxy with an `document.original.accessed` audit
   row on successful access.
-- Governed actions on a matter, with readiness shown up-front from a
+- Governed skills on a matter, with readiness shown up-front from a
   single backend `Matter.required_provider` field — no model-family
   guessing in the UI.
 - Two module runtimes:
@@ -213,7 +217,7 @@ Evaluation release. Honest about what's in and what isn't.
     instructions, server-built document anchors, optional model claim
     enrichment with `quote_found_in_source`.
 - **Professional Sign-Off:** author sign-off as the matter's main
-  decision point. Append-only history. Hash pinning. Activity Trail
+  decision point. Append-only history. Hash pinning. Record
   promotes sign-off as a foreground event.
 - **Source anchors v1** across the prompt runtime and Contract Review.
 - **Export Gating v1.1:** sign-off status + integrity flag + source

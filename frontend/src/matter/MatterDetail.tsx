@@ -407,7 +407,7 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
           {tab === "approvals" && <ApprovalsTab slug={matter.slug} />}
-          {/* Action surfaces reached from Actions; sidebar highlights Actions. */}
+          {/* Skill surfaces reached from Skills; sidebar highlights Skills. */}
           {tab === "premotion" && (
             <PreMotionTab
               matter={matter}
