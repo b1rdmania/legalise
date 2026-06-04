@@ -692,7 +692,7 @@ export function DocumentRichEditor({
       editorProps: {
         attributes: {
           class:
-            "legalise-document-editor min-h-[720px] bg-paper px-8 py-10 text-[16px] leading-8 outline-none shadow-sm sm:px-12",
+            "legalise-document-editor min-h-[760px] border border-rule bg-paper px-9 py-12 text-[16px] leading-8 outline-none shadow-[0_18px_50px_rgba(0,0,0,0.08)] sm:px-14",
         },
         handlePaste: (_view, event) => {
           const file = firstImageFile(event.clipboardData?.files);
@@ -1799,7 +1799,7 @@ export function DocumentRichEditor({
         </div>
       )}
       <div className="grid min-h-[620px] lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="border-b border-rule bg-paper-sunken px-5 py-5 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-rule bg-paper px-5 py-5 lg:border-b-0 lg:border-r">
           <div className="space-y-5">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
@@ -1901,7 +1901,10 @@ export function DocumentRichEditor({
             </div>
           </div>
         </aside>
-        <div className="bg-[#f5f5f2] px-4 py-6 sm:px-8" data-testid="document-editor-canvas">
+        <div
+          className="bg-[linear-gradient(180deg,#f7f7f4_0%,#efefea_100%)] px-4 py-8 sm:px-8 sm:py-10"
+          data-testid="document-editor-canvas"
+        >
           <div className={`mx-auto ${canvasMaxWidth}`}>
             {editor && (
               <BubbleMenu
