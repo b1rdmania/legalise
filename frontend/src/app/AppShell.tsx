@@ -163,6 +163,13 @@ function AppShellInner() {
     );
   }
 
+  // The demo workspace (DemoMatter) brings its own full v0.5 panel shell —
+  // render it bare, without the marketing TopBar/Drawer, which otherwise
+  // stacked a second wordmark above the rail (the v0.5 double-header).
+  if (route.name === "demo" || route.name === "demoDocument") {
+    return <Outlet />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink pt-[64px] sm:pt-[80px]">
       <TopBar
