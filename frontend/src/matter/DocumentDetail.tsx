@@ -795,13 +795,21 @@ export function DocumentDetail({
             </div>
             <div className="flex flex-wrap items-start gap-2 text-sm" aria-label="Document commands">
               {selectedResolvedVersion && (
-                <a
-                  href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
-                  className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
-                  data-testid="document-download-edited-docx"
-                >
-                  Download edited DOCX
-                </a>
+                <div className="grid gap-1">
+                  <a
+                    href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
+                    className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
+                    data-testid="document-download-edited-docx"
+                  >
+                    Download edited DOCX
+                  </a>
+                  {comments.length > 0 && (
+                    <p className="text-[11px] leading-4 text-muted">
+                      Includes {comments.length} review{" "}
+                      {comments.length === 1 ? "note" : "notes"}.
+                    </p>
+                  )}
+                </div>
               )}
               <a
                 href={originalHref}
@@ -1137,6 +1145,7 @@ export function DocumentDetail({
                 documentId={documentId}
                 versions={versions}
                 selectedVersionId={selectedResolvedVersion?.id ?? null}
+                reviewNoteCount={comments.length}
                 onSelectVersion={(versionId) => openEditorVersion(versionId)}
                 onVersionRestored={refreshAfterVersionRestore}
               />

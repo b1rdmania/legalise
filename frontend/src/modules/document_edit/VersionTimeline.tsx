@@ -42,6 +42,7 @@ type Props = {
   refreshKey?: number;
   versions?: DocumentVersionSummary[];
   selectedVersionId?: string | null;
+  reviewNoteCount?: number;
   onSelectVersion?: (versionId: string) => void;
   onVersionRestored?: () => void | Promise<void>;
 };
@@ -51,6 +52,7 @@ export function VersionTimeline({
   refreshKey = 0,
   versions: providedVersions,
   selectedVersionId,
+  reviewNoteCount = 0,
   onSelectVersion,
   onVersionRestored,
 }: Props) {
@@ -222,12 +224,20 @@ export function VersionTimeline({
                     </button>
                   )}
                   {hasEditableText && (
-                    <a
-                      href={documentVersionDocxUrl(documentId, s.version.id)}
-                      className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
-                    >
-                      Download DOCX
-                    </a>
+                    <div className="grid gap-1">
+                      <a
+                        href={documentVersionDocxUrl(documentId, s.version.id)}
+                        className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                      >
+                        Download DOCX
+                      </a>
+                      {reviewNoteCount > 0 && (
+                        <p className="text-[11px] leading-4 text-muted">
+                          Includes {reviewNoteCount} review{" "}
+                          {reviewNoteCount === 1 ? "note" : "notes"}.
+                        </p>
+                      )}
+                    </div>
                   )}
                   {hasOriginal && (
                     <>

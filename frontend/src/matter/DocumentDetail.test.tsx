@@ -857,6 +857,22 @@ describe("DocumentDetail", () => {
   it("makes saved versions openable and downloadable from the version workspace", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentComments").mockResolvedValue([
+      {
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: "Edited",
+        body_sha256: "a".repeat(64),
+        anchor_start: null,
+        anchor_end: null,
+        body: "Check the edit before relying on it.",
+        status: "open",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: null,
+        resolved_by_id: null,
+      },
+    ]);
     vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
       versionSummary("v-1", 1, null, "upload"),
       versionSummary("v-2", 2, "Edited body"),
@@ -870,6 +886,7 @@ describe("DocumentDetail", () => {
     expect(screen.getByRole("button", { name: "Open in editor" })).toBeInTheDocument();
     const download = screen.getByRole("link", { name: "Download DOCX" });
     expect(download.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
+    expect(screen.getAllByText("Includes 1 review note.").length).toBeGreaterThan(0);
   });
 
   it("uploads a replacement file as the next active document version", async () => {
