@@ -11,7 +11,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
-import Underline from "@tiptap/extension-underline";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -540,7 +539,6 @@ export function DocumentRichEditor({
         Typography,
         Highlight.configure({ multicolor: false }),
         reviewNoteExtension,
-        Underline,
         Table.configure({ resizable: true }),
         TableRow,
         TableHeader,
