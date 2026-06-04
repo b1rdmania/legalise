@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { DocumentsTab } from "./DocumentsTab";
 
@@ -23,25 +24,40 @@ vi.mock("@tanstack/react-router", () => ({
 afterEach(() => cleanup());
 
 describe("DocumentsTab — document ingress", () => {
+  const sampleDocs = [
+    {
+      id: "doc-1",
+      matter_id: "matter-1",
+      filename: "witness.docx",
+      mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      size_bytes: 1200,
+      sha256: "a".repeat(64),
+      tag: "draft",
+      from_disclosure: false,
+      uploaded_at: "2026-06-03T10:00:00",
+      uploaded_by_id: "u-1",
+      comment_count: 2,
+    },
+    {
+      id: "doc-2",
+      matter_id: "matter-1",
+      filename: "dismissal-letter.pdf",
+      mime_type: "application/pdf",
+      size_bytes: 2400,
+      sha256: "b".repeat(64),
+      tag: "disclosure",
+      from_disclosure: true,
+      uploaded_at: "2026-06-03T11:00:00",
+      uploaded_by_id: "u-1",
+      comment_count: 0,
+    },
+  ];
+
   it("surfaces review-note counts in the document list", () => {
     render(
       <DocumentsTab
         slug="khan"
-        docs={[
-          {
-            id: "doc-1",
-            matter_id: "matter-1",
-            filename: "witness.docx",
-            mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            size_bytes: 1200,
-            sha256: "a".repeat(64),
-            tag: "draft",
-            from_disclosure: false,
-            uploaded_at: "2026-06-03T10:00:00",
-            uploaded_by_id: "u-1",
-            comment_count: 2,
-          },
-        ]}
+        docs={[sampleDocs[0]]}
         onUpload={vi.fn()}
       />,
     );
@@ -52,6 +68,26 @@ describe("DocumentsTab — document ingress", () => {
     expect(screen.getByText("Open workbench")).toBeInTheDocument();
     expect(screen.getAllByText("Files")[0]).toBeInTheDocument();
     expect(screen.getAllByText("1K")[0]).toBeInTheDocument();
+  });
+
+  it("searches and filters the document library without opening files", async () => {
+    render(<DocumentsTab slug="khan" docs={sampleDocs} onUpload={vi.fn()} />);
+
+    expect(screen.getByText("Showing 2 of 2 documents.")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByPlaceholderText("Filename, tag, hash, source"), "dismissal");
+    expect(screen.queryByText("witness.docx")).not.toBeInTheDocument();
+    expect(screen.getByText("dismissal-letter.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1 of 2 documents.")).toBeInTheDocument();
+
+    await userEvent.clear(screen.getByPlaceholderText("Filename, tag, hash, source"));
+    await userEvent.click(screen.getByRole("button", { name: "With notes" }));
+    expect(screen.getByText("witness.docx")).toBeInTheDocument();
+    expect(screen.queryByText("dismissal-letter.pdf")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Disclosure" }));
+    expect(screen.queryByText("witness.docx")).not.toBeInTheDocument();
+    expect(screen.getByText("dismissal-letter.pdf")).toBeInTheDocument();
   });
 
   it("uploads multiple selected files through the existing per-document audit path", async () => {
