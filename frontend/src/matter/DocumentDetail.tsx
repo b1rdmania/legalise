@@ -89,6 +89,12 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function compactText(value: string | null | undefined, max = 96): string {
+  const compact = (value ?? "").trim().replace(/\s+/g, " ");
+  if (compact.length <= max) return compact;
+  return `${compact.slice(0, max - 3).trimEnd()}...`;
+}
+
 type DocQuery =
   | { status: "loading" }
   | { status: "ready"; doc: MatterDocument }
@@ -666,7 +672,7 @@ export function DocumentDetail({
     setCompareVersionId(EXTRACTED_VERSION_ID);
     setWorkbenchView("editor");
     requestAnimationFrame(() => {
-      workbenchRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      workbenchRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
     });
   };
   const startQuotedNote = (quote: string) => {
@@ -1040,43 +1046,111 @@ export function DocumentDetail({
             )}
 
             {workbenchView === "editor" && (
-            <div data-testid="document-content">
-              {bodyMissing && !selectedResolvedVersion ? (
-                <div className="p-6">
-                  <EmptyState
-                    title="No extracted text"
-                    body="No extracted body is available for this document (extraction may have failed or not run). The original file is still available."
-                  />
+              <div className="space-y-3">
+                {openComments.length > 0 && (
+                  <section
+                    className="border border-rule bg-paper p-3"
+                    data-testid="document-note-navigator"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                          Review notes
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-ink">
+                          {openComments.length} open note
+                          {openComments.length === 1 ? "" : "s"} on this file.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          notesRef.current?.scrollIntoView?.({
+                            block: "start",
+                            behavior: "smooth",
+                          })
+                        }
+                        className="border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
+                      >
+                        Manage notes
+                      </button>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {openComments.slice(0, 4).map((comment, index) => (
+                        <button
+                          key={comment.id}
+                          type="button"
+                          onClick={() => {
+                            if (comment.quote_text) jumpToCommentQuote(comment.quote_text);
+                            else {
+                              notesRef.current?.scrollIntoView?.({
+                                block: "start",
+                                behavior: "smooth",
+                              });
+                            }
+                          }}
+                          className="border border-rule bg-paper-sunken px-3 py-2 text-left text-sm hover:border-ink"
+                        >
+                          <span className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                            Note {index + 1}
+                          </span>
+                          <span className="mt-1 block font-medium text-ink">
+                            {compactText(comment.body, 72)}
+                          </span>
+                          {comment.quote_text && (
+                            <span className="mt-1 block text-xs text-muted">
+                              Quote: {compactText(comment.quote_text, 72)}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {openComments.length > 4 && (
+                      <p className="mt-2 text-xs text-muted">
+                        {openComments.length - 4} more open note
+                        {openComments.length - 4 === 1 ? "" : "s"} in the review rail.
+                      </p>
+                    )}
+                  </section>
+                )}
+                <div data-testid="document-content">
+                  {bodyMissing && !selectedResolvedVersion ? (
+                    <div className="p-6">
+                      <EmptyState
+                        title="No extracted text"
+                        body="No extracted body is available for this document (extraction may have failed or not run). The original file is still available."
+                      />
+                    </div>
+                  ) : !body && !selectedResolvedVersion ? (
+                    <div className="border border-rule bg-paper p-6">
+                      <LoadingLine label="loading document text" />
+                    </div>
+                  ) : (
+                    <DocumentRichEditor
+                      documentId={documentId}
+                      filename={doc.filename}
+                      initialText={editorText}
+                      initialJson={editorJson}
+                      latestVersionNumber={latestVersion?.version_number}
+                      latestVersionId={latestVersion?.id ?? null}
+                      originalMimeType={doc.mime_type}
+                      sourceLabel={editorSourceLabel}
+                      sourceHighlight={currentReaderQuote}
+                      noteHighlights={anchoredOpenNotes}
+                      selectedQuote={selectedQuote || undefined}
+                      selectedQuoteAnchored={Boolean(selectedAnchor)}
+                      onCreateNoteFromSelection={startNoteFromCurrentSelection}
+                      onSaved={(version) => {
+                        setSelectedVersionId(version.id);
+                        getDocumentVersions(documentId)
+                          .then(setVersions)
+                          .catch(() => undefined);
+                      }}
+                      onDirtyChange={setEditorDirty}
+                    />
+                  )}
                 </div>
-              ) : !body && !selectedResolvedVersion ? (
-                <div className="border border-rule bg-paper p-6">
-                  <LoadingLine label="loading document text" />
-                </div>
-              ) : (
-                <DocumentRichEditor
-                  documentId={documentId}
-                  filename={doc.filename}
-                  initialText={editorText}
-                  initialJson={editorJson}
-                  latestVersionNumber={latestVersion?.version_number}
-                  latestVersionId={latestVersion?.id ?? null}
-                  originalMimeType={doc.mime_type}
-                  sourceLabel={editorSourceLabel}
-                  sourceHighlight={currentReaderQuote}
-                  noteHighlights={anchoredOpenNotes}
-                  selectedQuote={selectedQuote || undefined}
-                  selectedQuoteAnchored={Boolean(selectedAnchor)}
-                  onCreateNoteFromSelection={startNoteFromCurrentSelection}
-                  onSaved={(version) => {
-                    setSelectedVersionId(version.id);
-                    getDocumentVersions(documentId)
-                      .then(setVersions)
-                      .catch(() => undefined);
-                  }}
-                  onDirtyChange={setEditorDirty}
-                />
-              )}
-            </div>
+              </div>
             )}
 
             {workbenchView === "original" && (
