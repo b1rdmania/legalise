@@ -1,29 +1,28 @@
 // ContractReviewTab - host component for the four-stage redliner UI.
 //
-// Takes `matter` and `docs` from the parent (App.tsx) - module cannot
-// modify lib/api.ts (owned by other workstreams). Filter to documents
-// that are plausibly contracts (filename hint + tag) but show all docs
-// with a "pick a doc with extracted body" note so a user with weird
-// filenames isn't locked out.
+// Runs on the durable jobs path (createContractReviewJob -> poll getJob);
+// the bespoke /run-stream SSE path is retired (2026-06-04). Takes `matter`
+// and `docs` from the parent. Filter to documents that are plausibly
+// contracts (filename hint + tag) but show all docs with a "pick a doc with
+// extracted body" note so a user with weird filenames isn't locked out.
 
-import { useMemo, useState } from "react";
-
-import type { Matter, MatterDocument } from "../../lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  createContractReviewJob,
   exportContractReviewDocx,
+  getJob,
   ProviderKeyMissingError,
-  runContractReviewStream,
-  StreamPreflightError,
   ProviderUpstreamError,
   providerUpstreamMessage,
-  tryParseProviderUpstream,
   type ContractKind,
   type ContractReviewResult,
+  type JobRead,
+  type Matter,
+  type MatterDocument,
   type Posture,
-  type StageState,
   type StageStatus,
-} from "./api";
+} from "../../lib/api";
 import { ResultPanel } from "./ResultPanel";
 import { StageStrip } from "./StageStrip";
 import { ErrorCallout, ProviderKeyMissingBanner } from "../../ui/primitives";
@@ -62,6 +61,24 @@ const INITIAL_STAGES: StageStatus[] = [
   { name: "redliner", status: "pending", sub_agent_count: 1, duration_ms: 0, token_count: 0, errors: [] },
   { name: "summariser", status: "pending", sub_agent_count: 1, duration_ms: 0, token_count: 0, errors: [] },
 ];
+
+// The job reports one current stage name as it runs; mark earlier stages done
+// and the current one running so the StageStrip still animates under polling.
+const STAGE_ORDER = ["parser", "analyst", "redliner", "summariser"];
+const TERMINAL_JOB = new Set(["succeeded", "failed", "cancelled"]);
+const POLL_INTERVAL_MS = 1500;
+
+function stagesUpTo(current: string | null): Record<string, Partial<StageStatus>> {
+  if (!current) return {};
+  const idx = STAGE_ORDER.indexOf(current);
+  if (idx < 0) return {};
+  const out: Record<string, Partial<StageStatus>> = {};
+  STAGE_ORDER.forEach((name, i) => {
+    if (i < idx) out[name] = { status: "done" };
+    else if (i === idx) out[name] = { status: "running" };
+  });
+  return out;
+}
 
 function guessContractKind(filename: string): ContractKind {
   const f = filename.toLowerCase();
@@ -117,6 +134,14 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportLink, setExportLink] = useState<string | null>(null);
 
+  // Stop polling state-updates if the tab unmounts mid-run.
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+
   const onPickDoc = (id: string) => {
     setDocumentId(id);
     const doc = orderedDocs.find((d) => d.id === id);
@@ -140,68 +165,41 @@ export function ContractReviewTab({ matter, docs, previewResult, onRunOverride }
     setExportLink(null);
     setExportError(null);
     try {
-      const iter = runContractReviewStream(matter.slug, {
+      const job = await createContractReviewJob(matter.slug, {
         document_id: documentId,
         posture,
         contract_type: contractType,
         counterparty_name: counterparty || null,
         deal_value: dealValue || null,
       });
-      for await (const evt of iter) {
-        if (evt.event === "stage.start") {
-          const name = evt.data.stage;
-          setLiveStages((prev) => ({
-            ...prev,
-            [name]: { ...(prev[name] || {}), status: "running" },
-          }));
-        } else if (evt.event === "stage.end") {
-          const { stage, status, duration_ms, token_count, error: stageErr } =
-            evt.data;
-          const mapped: StageState =
-            status === "ok"
-              ? "done"
-              : status === "skipped"
-              ? "skipped"
-              : "error";
-          setLiveStages((prev) => ({
-            ...prev,
-            [stage]: {
-              status: mapped,
-              duration_ms,
-              token_count,
-              errors: stageErr ? [stageErr] : [],
-            },
-          }));
-          if (status === "error" && stageErr) {
-            setError(`${stage}: ${stageErr}`);
-          }
-        } else if (evt.event === "result") {
-          setResult(evt.data);
-          // Clear live overrides - the canonical stages array now drives UI.
-          setLiveStages({});
-        } else if (evt.event === "error") {
-          const upstream = tryParseProviderUpstream(evt.data);
-          if (upstream) {
-            setError(providerUpstreamMessage(upstream));
-          } else {
-            setError(evt.data.message || "Contract review failed.");
-          }
-        }
+      // Poll the durable job to completion, animating the StageStrip from the
+      // job's current stage as it advances.
+      let current: JobRead = job;
+      while (!TERMINAL_JOB.has(current.status)) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        if (!aliveRef.current) return;
+        current = await getJob(matter.slug, job.id);
+        setLiveStages(stagesUpTo(current.stage));
+      }
+      if (!aliveRef.current) return;
+      if (current.status === "succeeded" && current.result_payload) {
+        setResult(current.result_payload as unknown as ContractReviewResult);
+        // The canonical stages array on the result now drives the StageStrip.
+        setLiveStages({});
+      } else {
+        setError(current.error_message || "Contract review failed.");
       }
     } catch (e: unknown) {
       if (e instanceof ProviderKeyMissingError) {
         setKeyMissingProvider(e.provider);
       } else if (e instanceof ProviderUpstreamError) {
         setError(providerUpstreamMessage(e));
-      } else if (e instanceof StreamPreflightError) {
-        // 422 (provider_key_missing) and 409 (privilege-paused) land here.
-        setError(e.message);
       } else {
         const msg = e instanceof Error ? e.message : String(e);
         setError(`Contract review failed. ${msg}`);
       }
     } finally {
-      setRunning(false);
+      if (aliveRef.current) setRunning(false);
     }
   };
 
