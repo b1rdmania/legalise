@@ -1,133 +1,111 @@
 # Demo runbook — Khan v Acme walkthrough
 
 This is the evaluator-facing walkthrough. It assumes you have followed
-[`README.md` → Try it](../README.md#try-it) and are signed in as a
-superuser. If `legalise doctor` is green and `khan.demo_present` is
-`ok`, you are in the right place.
+[`README.md` → Try it](../README.md#try-it), signed in, and run
+`legalise doctor` successfully. If `khan.demo_present` is `ok`, the Khan
+v Acme matter is ready.
 
-The walkthrough drives the same end-to-end path that the Phase 15
-Playwright `first-run` spec drives in CI. The audit-row coverage split
-is recorded in [`docs/spec/AUDIT_COVERAGE_MATRIX.md`](./spec/AUDIT_COVERAGE_MATRIX.md):
-rows marked **e2e-covered** are asserted by name by the Phase 15 spec;
-rows marked **pytest-covered** are substrate-tested but not asserted
-by name in the e2e run — they still land on the matter timeline
-because the same substrate emits them. Nothing here is invented.
+The goal is to prove the Legalise loop without explaining every internal
+row name:
+
+> open a project → inspect documents → enable/run a skill → review output
+> → sign → read the Record → export the working pack.
 
 ## What this proves
 
 By the end of the walkthrough you will have:
 
-- Installed a real module through the trust ceremony state machine.
-- Granted that module a capability on a real matter.
-- Run the module deterministically (via the keyless `stub-echo`
-  model — no provider key required).
-- Read back the matter Audit tab and seen the substrate rows the run
-  emitted.
+- opened a real matter folder;
+- inspected the documents the skill can use;
+- installed and enabled a governed skill;
+- run the skill through the durable job path;
+- reviewed and signed the output;
+- read the matter Record; and
+- exported the working pack.
 
 That sequence is the smallest end-to-end demonstration of
-[supervised autonomy](./SUPERVISED_AUTONOMY.md): a capability declared
-in a manifest, granted on install, enforced at runtime, and recorded
-in an audit trail you can reconstruct.
+[supervised autonomy](./SUPERVISED_AUTONOMY.md): a skill declares what it
+needs, the matter grants it, runtime checks enforce it, output is signed,
+and the record preserves what happened.
 
-## 1 — Install Contract Review via the trust ceremony
+## 1 — Open the Khan matter
 
-1. Navigate to <http://localhost:3000/modules>.
-2. Find **Contract Review** (`examples.contract-review`) in the
-   catalog and click **Install**.
-3. Walk through each step of the trust ceremony until the module shows
-   as **Enabled**. Each advance is a real state-machine transition;
-   nothing here is a UI fast-path.
+1. Navigate to <http://localhost:3000/matters>.
+2. Open **Khan v Acme Trading Ltd**.
+3. Confirm the left rail shows the matter section and the main surface
+   lands on **Chat**.
 
-Audit rows the install emits (workspace scope — visible to a superuser
-in the admin reconstruction view at <http://localhost:3000/admin/audit>):
+## 2 — Inspect documents
 
-| Action | Coverage | Where it comes from |
-| --- | --- | --- |
-| `module.enabled` | e2e-covered | Ceremony completion, terminal state |
+1. Open **Documents**.
+2. Open a seeded document.
+3. Confirm the extracted text is readable and the metadata is secondary.
+4. Use the back link to return to the matter.
 
-## 2 — Grant Contract Review on the Khan v Acme matter
+## 3 — Install a skill at the workspace
 
-1. Navigate to <http://localhost:3000/matters/khan-v-acme-trading-2026>.
-2. In the Grants panel, grant the Contract Review **`review`**
-   capability on the matter.
+1. Navigate to <http://localhost:3000/skills>.
+2. Pick a reference skill such as **Contract Review** or **Pre-Motion**.
+3. Walk the install ceremony.
 
-Audit row this emits (matter scope — visible on the matter's own
-Audit tab):
+Installation is workspace-level trust. It does **not** make the skill
+runnable in every matter.
 
-| Action | Coverage | Where it comes from |
-| --- | --- | --- |
-| `module.grant.created` | e2e-covered | The grant write |
+## 4 — Enable the skill on Khan
 
-The grant is matter-scoped per the doctrine in
-[`README.md`](../README.md#trust-mechanics):
-*manifest requests capabilities, workspace grants capabilities,
-runtime enforces capabilities.*
+1. Return to the Khan matter.
+2. Open **Skills**.
+3. Enable the installed skill for this matter.
+4. Confirm the card reads as ready in this project.
 
-## 3 — Run Contract Review
+Matter-level enablement is where the skill receives permission to read
+documents and write outputs for this matter.
 
-1. From the Khan v Acme matter page, click the **Run** button for the
-   review capability.
-2. Watch the result panel render. The default model is `stub-echo` for
-   the demo so the output is deterministic — no provider key needed.
-3. The result panel renders the invocation id alongside a **See audit
-   trail for this invocation** link that jumps straight to the
-   filtered timeline. (If you want to inspect the URL manually,
-   the displayed id is selectable.)
+## 5 — Run the skill
 
-Audit rows this emits (matter scope):
+1. Open **Chat**.
+2. Use the Skills picker, or open **Skills** and run from the skill card.
+3. For Contract Review, the frontend creates a durable job and polls the
+   job result. It no longer uses the retired contract-review stream route.
+4. Wait for the typed output to render.
 
-| Action | Coverage | Where it comes from |
-| --- | --- | --- |
-| `module.capability.invoked` | e2e-covered | Run is dispatched |
-| `model.call` | e2e-covered | Gateway dispatched the call to `stub-echo` |
-| `model.invoked` | pytest-covered | `audit_cost` helper emits per model call; reconstruction source |
-| `advice_boundary.decision.completed` | pytest-covered | Substrate gate decision for matters at posture `B_mixed` / `C_paused`; reconstruction source |
-| `module.capability.completed` | e2e-covered | Result returned to the UI |
+The demo may use the keyless `stub-echo` provider where configured. Real
+provider-backed runs require the user to add their own model key.
 
-`model.invoked` and `advice_boundary.decision.completed` are not
-asserted by name in the Phase 15 e2e run — pytest covers them
-directly — but they land on the matter timeline because the same
-substrate emits them. Khan v Acme defaults to `B_mixed` so the
-advice-boundary row is the expected shape.
+## 6 — Review and sign
 
-## 4 — Read the Audit tab
+1. Open the produced output.
+2. Review its source references and any quote-location cautions.
+3. Use **Review & sign**.
+4. Choose `signed`, `signed_with_observations`, or `rejected`.
 
-1. Use the **See audit trail for this invocation** link from step 3,
-   or navigate to
-   <http://localhost:3000/matters/khan-v-acme-trading-2026/audit>
-   and paste the invocation id into the `invocation_id` filter.
-2. You should see the matter-scope rows from step 3, plus an
-   `audit.reconstruction.viewed` row that the substrate emits when
-   the timeline is read.
+The signature records professional ownership of the output and pins the
+signed payload by hash. It is not a claim that Legalise certifies the
+legal position.
 
-The reconstruction view pulls from three substrate sources — the
-`audit_entries` table, `state_machine_transitions`, and
-`advice_boundary_decisions` — and reconstructs the timeline across all
-three. This is what the regulator-facing record looks like.
+## 7 — Read the Record
 
-## 5 — Pre-Motion (same loop, second module)
+1. Open **Record** for the matter.
+2. Confirm it shows the story of the run: skill run, model call, output,
+   sign-off, and any gates or denials.
+3. Use advanced details only if you need raw row filters.
 
-Pre-Motion (`examples.pre-motion`) is the second reference module and
-exercises the same install → grant → run → audit loop:
+The Record is the proof layer. The raw audit rows remain inspectable, but
+they are not the primary user surface.
 
-1. <http://localhost:3000/modules> → Pre-Motion → Install → walk
-   through the ceremony.
-2. Khan v Acme → grant the Pre-Motion `draft_motion` capability.
-3. Run it from the matter page.
-4. The matter Audit tab shows a fresh run with the same five rows
-   the Contract Review run produced:
-   `module.capability.invoked` (e2e-covered), `model.call`
-   (e2e-covered), `model.invoked` (pytest-covered),
-   `advice_boundary.decision.completed` (pytest-covered, posture
-   `B_mixed`), `module.capability.completed` (e2e-covered).
+## 8 — Export the working pack
 
-Two modules, two grants, two invocations. Same substrate, same
-contract, same receipts.
+1. Open **Working pack**.
+2. Start an export and wait for the job to complete.
+3. Download the pack.
+
+The pack contains the matter metadata, documents, outputs, sign-off
+records, reviews, reconstruction data, and README/manifest copy that
+states the honesty boundaries.
 
 ## If something looks wrong
 
-- Doctor first: `docker compose -f infra/docker-compose.yml exec
-  backend python -m app.tools.doctor`.
+- Doctor first: `docker compose -f infra/docker-compose.yml exec backend python -m app.tools.doctor`.
 - Common setup errors and their fixes:
   [`docs/TROUBLESHOOTING.md`](./TROUBLESHOOTING.md).
 - Audit row names and emission sites:

@@ -40,7 +40,8 @@ from app.models import AuditEntry
 from app.models.document_edit import DocumentEdit
 from app.modules.contract_review import agents as cr_agents
 from app.modules.contract_review.agents import AgentCall, ParserAgent, RedlinerAgent
-from app.modules.contract_review.schemas import ParsedContract
+from app.modules.contract_review.pipeline import run_contract_review
+from app.modules.contract_review.schemas import ContractReviewInputs, ParsedContract
 from app.modules.document_edit.resolver import apply_anchor_substitution
 
 
@@ -571,41 +572,22 @@ def _agent_call(stage: str, parsed: dict[str, Any]) -> AgentCall:
     )
 
 
-class TestContractReviewOrchestratorE2E:
-    """`POST /api/matters/{slug}/contract-review/run` against canned agents."""
+class TestContractReviewOrchestrator:
+    """Contract Review pipeline against canned agents.
 
-    def _build_client(self, matter: _MatterStub) -> tuple[Any, _RoutingSession, _UserStub]:
-        from fastapi.testclient import TestClient
-
-        from app.core.auth import current_user
-        from app.core.db import get_session
-        from app.main import app
-
-        session = _RoutingSession(matter)
-        user = _UserStub()
-
-        async def _override_session():
-            yield session
-
-        async def _override_user():
-            return user
-
-        app.dependency_overrides[current_user] = _override_user
-        app.dependency_overrides[get_session] = _override_session
-        return TestClient(app), session, user
-
-    def _clear_overrides(self) -> None:
-        from app.main import app
-
-        app.dependency_overrides.clear()
+    The HTTP run/stream endpoints were retired after the UI moved to
+    durable jobs. The job worker calls this same pipeline, so the smoke
+    keeps the regulated-adjacent orchestration proof without preserving
+    a deleted route as the test subject.
+    """
 
     @pytest.mark.asyncio
-    async def test_run_endpoint_returns_envelope_against_khan_nda(self) -> None:
+    async def test_pipeline_returns_envelope_against_khan_nda(self) -> None:
         matter = _MatterStub()
         matter.slug = "khan-v-acme"
         matter.privilege_posture = "B_mixed"
-
-        client, session, _user = self._build_client(matter)
+        session = _RoutingSession(matter)
+        user = _UserStub()
 
         async def _parser_run(self_inner, **_kw):
             return _agent_call("parser", _canned_parsed_envelope())
@@ -619,28 +601,27 @@ class TestContractReviewOrchestratorE2E:
         async def _summariser_run(self_inner, **_kw):
             return _agent_call("summariser", _canned_summary_envelope())
 
-        try:
-            with patch.object(cr_agents.ParserAgent, "run", _parser_run), patch.object(
-                cr_agents.AnalystAgent, "run", _analyst_run
-            ), patch.object(
-                cr_agents.RedlinerAgent, "run", _redliner_run
-            ), patch.object(
-                cr_agents.SummariserAgent, "run", _summariser_run
-            ):
-                resp = client.post(
-                    "/api/matters/khan-v-acme/contract-review/run",
-                    json={
-                        "document_id": str(session.document.id),
-                        "posture": "balanced",
-                        "contract_type": "nda",
-                        "counterparty_name": "Acme Ltd",
-                    },
-                )
-        finally:
-            self._clear_overrides()
+        with patch.object(cr_agents.ParserAgent, "run", _parser_run), patch.object(
+            cr_agents.AnalystAgent, "run", _analyst_run
+        ), patch.object(
+            cr_agents.RedlinerAgent, "run", _redliner_run
+        ), patch.object(
+            cr_agents.SummariserAgent, "run", _summariser_run
+        ):
+            result = await run_contract_review(
+                session=session,
+                gateway=_FakeGateway({}),
+                matter=matter,
+                actor_id=user.id,
+                inputs=ContractReviewInputs(
+                    document_id=str(session.document.id),
+                    posture="balanced",
+                    contract_type="nda",
+                    counterparty_name="Acme Ltd",
+                ),
+            )
 
-        assert resp.status_code == 200, resp.text
-        body = resp.json()
+        body = result.model_dump()
         assert body["matter_slug"] == "khan-v-acme"
         assert body["document_id"] == str(session.document.id)
         assert len(body["parsed"]["clauses"]) >= 1
@@ -653,27 +634,27 @@ class TestContractReviewOrchestratorE2E:
         )
 
     @pytest.mark.asyncio
-    async def test_run_endpoint_returns_409_on_c_paused(self) -> None:
+    async def test_pipeline_blocks_c_paused(self) -> None:
         matter = _MatterStub()
         matter.slug = "khan-v-acme"
         matter.privilege_posture = "C_paused"
+        session = _RoutingSession(matter)
+        user = _UserStub()
 
-        client, _session, _user = self._build_client(matter)
-        try:
-            resp = client.post(
-                "/api/matters/khan-v-acme/contract-review/run",
-                json={
-                    "document_id": str(uuid.uuid4()),
-                    "posture": "balanced",
-                    "contract_type": "nda",
-                },
+        with pytest.raises(PrivilegePaused) as info:
+            await run_contract_review(
+                session=session,
+                gateway=_FakeGateway({}),
+                matter=matter,
+                actor_id=user.id,
+                inputs=ContractReviewInputs(
+                    document_id=str(uuid.uuid4()),
+                    posture="balanced",
+                    contract_type="nda",
+                ),
             )
-        finally:
-            self._clear_overrides()
 
-        assert resp.status_code == 409
-        detail = resp.json().get("detail", "")
-        assert "C_paused" in detail or "paused" in detail.lower()
+        assert "C_paused" in str(info.value) or "paused" in str(info.value).lower()
 
 
 # ---------------------------------------------------------------------------

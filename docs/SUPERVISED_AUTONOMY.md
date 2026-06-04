@@ -36,7 +36,8 @@ V1 ships an evaluation workspace around the Khan v Acme sample matter.
 The shipped surface includes:
 
 - **Matter-first workspace** with the four-tab loop
-  (`Matter desk` / `Documents` / `Actions` / `Activity Trail`).
+  (`Chat` / `Documents` / `Skills` / `Record`) plus signed outputs and
+  the working-pack export.
 - **Documents** as first-class records: ingress, extraction, versions,
   optional anonymisation, original-file retrieval through an
   owner-only backend proxy, and a `document.original.accessed` audit
@@ -62,7 +63,7 @@ The shipped surface includes:
   and records `signed` / `signed_with_observations` / `rejected`.
   Append-only history. The exact output payload (including its
   anchors) is pinned by a hash; the signature attaches to the hash.
-  The Activity Trail promotes sign-off as a foreground decision event.
+  The Record promotes sign-off as a foreground decision event.
 - **Supervisor Review** remains available as an optional separate
   review path. It does not compete with the author sign-off path; it
   is the firm-mode "second pair of eyes" surface.
@@ -171,7 +172,7 @@ The V1 flow:
 2. Documents are present (seeded) or added through the Documents tab.
 3. Disclosure-tainted entries are flagged; the chronology gate
    requires acknowledgement before detail renders.
-4. From the Actions tab, run a governed action against matter material
+4. From Chat or the Skills tab, run a governed skill against matter material
    under declared, granted capabilities.
 5. The action emits an output that carries its **source anchors** —
    the documents it used, and (where the model returned a quote) a
@@ -179,7 +180,7 @@ The V1 flow:
 6. The author reads the output with cited sources visible, then signs:
    `signed`, `signed_with_observations` (free-text reasoning), or
    `rejected`. The exact output payload is pinned by hash. The
-   sign-off event lands in the Activity Trail as a foreground
+   sign-off event lands in the Record as a foreground
    decision row.
 7. Export the matter; the bundle preserves documents, audit,
    reconstruction, outputs, sign-off status, and integrity flags.
@@ -194,7 +195,7 @@ default loop.
 
 Use:
 
-> Open a matter. Add documents. Run governed actions. Review outputs
+> Open a matter. Add documents. Run skills. Review outputs
 > with cited sources visible. Sign the output as a record of
 > professional judgement. Export the matter record.
 

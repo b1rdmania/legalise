@@ -275,19 +275,17 @@ during it.
 Run against the seeded Khan matter:
 
 ```bash
-# 1. Kick off a Contract Review SSE stream. Capture the first stage frame,
-# then disconnect immediately (curl --max-time 5 hangs up after 5s).
-curl --max-time 5 -N -s \
-  -H "Accept: text/event-stream" \
+# 1. Kick off a Contract Review durable job.
+curl -s \
+  -H "Content-Type: application/json" \
   -X POST \
-  https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/contract-review/run-stream \
-  | head -20
+  https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/contract-review/jobs \
+  -d '{"document_id":"<document-id>","posture":"balanced","contract_type":"nda"}'
 
-# 2. Wait ~30s for the background task to either finish or wedge.
+# 2. Poll GET /api/matters/{slug}/jobs/{job_id} until terminal.
 sleep 30
 
-# 3. Tail the backend logs for the matter slug. Expect to see a terminal
-# audit row (action ending in `run.completed` or `run.failed`) AND no
+# 3. Tail the backend logs for the matter slug. Expect to see no
 # 'asyncio Task was destroyed but it is pending' warnings.
 fly logs --app legalise-backend | grep -E "khan-v-acme-trading-2026|asyncio|Task was destroyed" | tail -40
 
@@ -298,25 +296,24 @@ curl -s https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/audit \
 ```
 
 **Green state — all four must hold:**
-- The background task reached a terminal audit row (`...run.completed` or
-  `...run.failed`). A missing terminal row means the task was cancelled
-  with the client disconnect — a v0.1 launch blocker.
+- The job reaches a terminal state via `GET /api/matters/{slug}/jobs/{job_id}`.
 - No `asyncio Task was destroyed but it is pending` warning in logs.
 - No `SQLAlchemy DBAPIError` or `connection already closed` in logs
-  (the DB session must close cleanly even though the response stream
-  was severed).
-- Re-running the smoke from step 1 succeeds with a fresh SSE stream.
+  (the worker DB session must close cleanly).
+- Re-running the smoke from step 1 creates a fresh job.
 
 **If any of the above fail, do not promote to launch.** This is the
 signal that `arq` + Redis (the locked v0.2 direction) needs to land before
 v0.1 ships, not after. Surface to Andy.
 
 **Manual click-through after the curls pass:**
-- Visit `https://legalise.dev/`. Hero + four SurfaceCards render, TopBar shows `lhr1` green, `OPEN DEMO MATTER →` is enabled (assumes a seeded matter exists from step 3).
-- Click the demo CTA. Matter detail loads, audit log non-empty.
-- Click `RUN PREMORTEM →`. SSE stages tick through (4 stage strips, terminal-green "running" → platinum "done"). Final result card renders with verdict.
-- Click `EXPORT PDF →`. PDF downloads. Open it — verdict + summary + stages table + failure scenarios all rendered.
-- Open the Letters section. Catalogue lists 6 ET letter types (Khan is ET). Click `lba`, then `DRAFT LETTER →`. Draft renders.
+- Visit `https://legalise.dev/`.
+- Open the demo matter.
+- Confirm Chat, Documents, Skills, Record, Signed outputs, and Working pack
+  are reachable.
+- Run a ready skill. The output should render, offer Review & sign, and link to
+  the Record for the invocation.
+- Start a Working pack export and confirm the job reaches a terminal state.
 
 If any of the curl steps red, **do not proceed** — debug before the click-through wastes Anthropic tokens.
 

@@ -19,7 +19,7 @@
  *
  * Per Reviewer-narrow brief, this component handles invocation +
  * result rendering only. No reconstruction inline, no admin, no
- * settings, no async. The "View in Activity Trail" link from the result
+ * settings, no async. The "View in Record" link from the result
  * panel points at /matters/{slug}/audit?invocation_id=…, preserving the
  * reconstruction deep-link for the output chain.
  */

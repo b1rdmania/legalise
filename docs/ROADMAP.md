@@ -10,13 +10,13 @@ evaluation copy. The hosted site is not for live client matters.
 
 Shipped surfaces:
 
-- **Matter-first workspace**, four-tab compression: Matter desk, Documents,
-  Actions, Activity Trail.
+- **Matter-first workspace** ordered around the golden loop: Chat, Documents,
+  Skills, Record, Signed outputs, Working pack.
 - **Documents** as first-class records: ingress, extraction, versions,
   optional anonymisation (Presidio detection + deterministic token map +
   detokenise round-trip), original-file retrieval through an owner-only
   backend proxy, `document.original.accessed` audit row on access.
-- **Capability runtime.** Manifests declare what a module needs; the
+- **Permission runtime.** Manifests declare what a skill needs; the
   workspace grants it on a matter; the runtime checks at every privileged
   boundary. Denied attempts emit structured 403 + canonical `*.blocked`
   audit row via the `audit_failure` helper.
