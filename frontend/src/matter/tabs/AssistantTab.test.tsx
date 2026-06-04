@@ -164,8 +164,36 @@ describe("AssistantTab — in-chat skill picker", () => {
       ],
     });
 
-    expect(await screen.findByText("witness-statement.docx")).toBeInTheDocument();
+    const context = await screen.findByTestId("chat-attached-document-context");
+    expect(context).toHaveTextContent(/Asking about/i);
+    expect(context).toHaveTextContent("witness-statement.docx");
     expect(screen.getByTitle("Remove witness-statement.docx")).toBeInTheDocument();
+  });
+
+  it("opens the focused file from the attached document context", async () => {
+    const onDocumentChip = vi.fn();
+    mountChat({
+      initialDocumentId: "doc-1",
+      onDocumentChip,
+      docs: [
+        {
+          id: "doc-1",
+          matter_id: "m-1",
+          filename: "witness-statement.docx",
+          mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          size_bytes: 1200,
+          sha256: "a".repeat(64),
+          tag: "draft",
+          from_disclosure: false,
+          uploaded_at: "2026-06-03T10:00:00",
+          uploaded_by_id: "u-1",
+        },
+      ],
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: /Open file/i }));
+
+    expect(onDocumentChip).toHaveBeenCalledWith("doc-1");
   });
 
   it("mounts the generic runner for a runnable V2 skill instead of routing to a bespoke tab", async () => {

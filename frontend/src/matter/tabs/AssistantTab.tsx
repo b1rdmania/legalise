@@ -381,6 +381,48 @@ export function AssistantTab({
           </div>
         </div>
 
+        {attachedDocs.length > 0 && (
+          <section
+            className="mb-4 border border-rule bg-paper-sunken px-4 py-3"
+            data-testid="chat-attached-document-context"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-widest text-muted">
+                  Asking about
+                </p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {attachedDocs.map((doc) => (
+                    <span
+                      key={doc.id}
+                      className="inline-flex max-w-full items-center gap-2 border border-rule bg-paper px-2 py-1 font-mono text-xs text-ink"
+                    >
+                      <span className="max-w-[360px] truncate">{doc.filename}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeDoc(doc.id)}
+                        className="text-muted hover:text-ink"
+                        aria-label={`Remove ${doc.filename}`}
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {attachedDocs.length === 1 && (
+                <button
+                  type="button"
+                  onClick={() => dispatchDocChip(attachedDocs[0].id)}
+                  className="shrink-0 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                >
+                  Open file →
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
         <div
           ref={scrollRef}
           className="flex-1 space-y-5 overflow-y-auto border-y border-rule py-6 lg:max-h-[62vh]"
