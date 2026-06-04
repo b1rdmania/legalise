@@ -253,6 +253,8 @@ describe("DocumentRichEditor surface", () => {
 
     expect(await screen.findByText("Server draft wording.")).toBeInTheDocument();
     expect(screen.getByTestId("document-editor")).toHaveTextContent("Shared draft saved · r3");
+    expect(screen.getByTestId("document-working-diff")).toHaveTextContent("Unsaved changes");
+    expect(screen.getByTestId("document-working-diff")).toHaveTextContent("Preview redline before saving");
   });
 
   it("saves by committing the shared working draft", async () => {
