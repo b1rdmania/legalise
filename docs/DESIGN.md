@@ -1,10 +1,13 @@
-# Legalise - Design Contract (v0.4)
+# Legalise - Design Contract (v0.5)
 
 > **Two registers, not one.** The Warp Engine whitepaper aesthetic
 > applies to the **Landing** only (it is genuinely a whitepaper). The
-> **matter workspace** is a SaaS LLM workspace and uses a compact left
-> rail + slim breadcrumb pattern lifted from Mike, Claude.ai, Sana AI,
-> Mistral, and Fibery. Memo still provides the token base across both.
+> **matter workspace** is a SaaS LLM workspace and, as of **v0.5**, uses
+> an **inset floating-panel** layout — elevated rounded panels on a
+> neutral-grey canvas — set in **Redaction**. The compact left rail +
+> slim breadcrumb IA (lifted from Mike, Claude.ai, Sana AI, Mistral,
+> Fibery) is **unchanged**; only its skin changed. Memo still provides
+> the token base; Redaction is the typeface across both registers.
 
 > **Design serves joy.** This document defines visual and interface
 > rules. The product-feel doctrine lives in [`JOY.md`](./JOY.md): what
@@ -13,15 +16,53 @@
 > Audit Confirmation, Module Cards), and the anti-patterns that break
 > trust. When the two conflict, design serves joy.
 
-**Theme:** light. Paper-and-ink, no shadows, no rounded corners.
-Borders define structure. Mono accents on data and labels. No status
-colour fills; status reads via mono bordered pills.
+**Theme:** light. Mono accents on data and labels. No status colour
+fills; status reads via mono bordered pills. Colour is for verdicts and
+the seal, **never** for chrome.
 
-The Landing reads like a **printed brief**. The matter workspace reads
-like a **legal LLM workspace**: compact navigation, conceptual density
-over nav granularity, persistent surfaces, assistant as the front door.
-Five primitives in the matter rail; installed legal modules nest behind
-one of them (Workflows).
+- **Landing register** reads like a **printed brief**: paper-and-ink,
+  square, shadowless, border-defined. Unchanged from v0.4.
+- **Workspace register (v0.5)** reads like a **legal LLM workspace**:
+  inset **floating panels** — neutral-grey canvas (`#E8E8E8`), panels
+  `#F5F5F5` lifted on one soft shadow with an 18px radius — carrying the
+  same compact rail + breadcrumb IA, set in Redaction. Compact
+  navigation, conceptual density over nav granularity, persistent
+  surfaces, assistant as the front door.
+
+### What changed in v0.5
+
+> Ratified 2026-06-04 (Andy), after a variant exploration + a
+> preserve/amend/integration pass against the live workspace. Research:
+> [`docs/design-research/SURFACE_RESTYLE_V0.5.md`](./design-research/SURFACE_RESTYLE_V0.5.md).
+> **The information architecture did not change** — the rail, matter
+> card, `Chat / Documents / Skills / Record` loop, breadcrumb, and status
+> footer are all v0.4 structure. v0.5 is a **skin shift only**.
+
+- **Three v0.4 hard rules are deliberately superseded for the workspace
+  register** (the Landing keeps them):
+  - *No shadows* → the **panel shell** (rail, main content, and P21
+    cards) carries one soft two-layer shadow for elevation. Pills,
+    buttons, table rows, the breadcrumb-as-text stay shadowless.
+  - *No rounded corners* → **panels and nav-item fills** take a radius
+    token (18px panels, 8px nav items / rows / cards). Pills and inputs
+    stay square.
+  - *Paper-white canvas* → the app canvas is **neutral grey** `#E8E8E8`;
+    panels are `#F5F5F5` so they read as lifted off the canvas. (The
+    v0.5 *proposal* explored a warm canvas; ratified value is the
+    cooler neutral grey from the variant — see research §2.)
+- **Typeface is Redaction** across both registers (clean base; grit
+  grades reserved for the wordmark / stamp buttons / large editorial
+  display — never body or chrome). Supersedes Hanken Grotesk / Inter.
+- **The scope fence still holds.** Radius + shadow live on the **panel
+  shell and P21 cards only**. If a PR rounds or shadows a pill, an
+  input, a table row, or a breadcrumb, reject it. Soft is a named
+  primitive, not a default.
+- **Sanctioned colour / grit moments** (so "sneak some colour in" is a
+  decision, not drift): **oxblood `#8B0000`** → verdicts, the seal/stamp,
+  at most one landing hero accent — never workspace chrome. **Redaction
+  grit** → wordmark (grade 35), stamp buttons (grade 20), large
+  editorial display numerals/titles. Everywhere else: clean Redaction,
+  ink, neutral grey.
 
 ### What changed in v0.4
 
@@ -171,11 +212,23 @@ verdicts, posture badges).
 | Name | Value | Tailwind class | Role |
 |---|---|---|---|
 | **Ink** | `#181818` | `text-ink`, `bg-ink`, `border-ink` | Body text, button background, header logo, primary headings |
-| **Paper** | `#FFFFFF` | `text-paper`, `bg-paper` | Primary page background, panel background, ink button text |
-| **Wash** | `#F4F4F4` | `bg-wash`, `hover:bg-wash` | Secondary background (hover, surfaces, code block bg, nav-link active fill) |
+| **Paper** | `#FFFFFF` | `text-paper`, `bg-paper` | Landing page background, P21 card fill (lifts off panel), ink button text |
+| **Wash** | `#F4F4F4` | `bg-wash`, `hover:bg-wash` | Secondary background (hover, surfaces, code block bg, nav-link active fill — Landing) |
 | **Rule** | `#E5E5E5` | `border-rule`, `decoration-rule` | All borders, hr, table dividers, code block border |
 | **Muted** | `#9CA3AF` | `text-muted` | Eyebrow labels, breadcrumb separators, inactive nav, helper text |
 | **Prose** | `#4B5563` | `text-prose` | Long-form body copy (`p` inside prose blocks), description text |
+
+**Workspace register tokens (v0.5)** — neutral grey, from the variant
+(research §2). Used by the panel shell + P21 only; Landing is unaffected.
+
+| Name | Value | Tailwind class | Role |
+|---|---|---|---|
+| **Canvas** | `#E8E8E8` | `bg-canvas` | Workspace app background — panels float on it |
+| **Panel** | `#F5F5F5` | `bg-panel` | Rail + main content panel fill, P21 card fill on grey |
+| **Panel-hover** | `#EBEBEB` | `bg-panel-hover` | Nav-item / row hover inside panels |
+| **Panel-sel** | `#E2E2E2` | `bg-panel-sel` | Nav-item / row active (selected) fill |
+| **Panel-2** | `#F7F7F7` | `bg-panel-2` | Secondary inset surface (detail pane, banner) |
+| **Seal** | `#8B0000` | `text-seal` | Oxblood — verdicts + seal/stamp ONLY, never chrome |
 
 **Semantic state colours** (used only where domain requires them — do
 not apply decoratively):
@@ -192,31 +245,43 @@ not apply decoratively):
 
 **Hard rules:**
 - No gradients anywhere. The Orbital Glow gradient from v0.1 is gone.
-- No shadows. Depth comes from borders and surface stacking.
-- No rounded corners. Every box is `radius: 0`. The `rounded-*`
-  utility is forbidden.
-- Hover states change `bg-color` only, never add shadow or transform.
+- **No shadows — except the v0.5 panel shell + P21 cards** (one soft
+  two-layer `shadow-panel`). Pills, buttons, inputs, table rows, the
+  breadcrumb stay shadowless. Landing stays shadowless throughout.
+- **No rounded corners — except v0.5 panels (18px) and nav-item / row /
+  card fills (8px).** Pills and inputs stay `radius: 0`. On the Landing,
+  `rounded-*` remains forbidden.
+- Hover states change `bg-color` only (or lift `shadow-panel` →
+  `shadow-panel-hover` on a P21 card), never a transform.
+- **Colour never touches chrome.** Seal/oxblood and the semantic status
+  hexes appear on verdicts, posture indicators, and the seal/stamp only.
 
 ---
 
 ## Tokens - Typography
 
-| Family | Stack | Tailwind |
+**Primary typeface: Redaction** (Titus Kaphar & Reginald Dwayne Betts;
+type by Jeremy Mickel/MCKL; CD Forest Young. SIL OFL 1.1). Self-hosted
+from `frontend/public/fonts/redaction/` — see `redaction.css` for the
+full `@font-face` set. Three styles × seven degradation grades; **use
+the clean base for body + UI, grit sparingly and large.**
+
+| Role | Stack | Tailwind / class |
 |---|---|---|
-| Sans | `"Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif` | `font-sans` (default) |
+| Base (body, UI) | `"Redaction", Georgia, "Times New Roman", serif` | `font-serif` (default) |
+| Wordmark | `"Redaction 35", Georgia, serif` | `.wordmark` |
+| Stamp button | `"Redaction 20", Georgia, serif` (uppercase, tracked) | `.btn-stamp` / `button.bg-ink` |
 | Mono | `"JetBrains Mono", ui-monospace, SFMono-Regular, monospace` | `font-mono` |
 
-Google Fonts load:
-```html
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-```
+Weights: Redaction `400 / 700` + `400 italic`, per grade. Mono `400 / 500`.
 
-Weights available: Hanken Grotesk `400 / 500 / 600 / 700`; JetBrains Mono `400 / 500`.
-
-Hanken Grotesk is the open-source HK Grotesk family used by the live
-Warp Engine site. Geometric humanist sans, lifts cleanly into the
-document-as-product idiom. Inter is the closest substitute if Hanken
-Grotesk fails to load - keep both in the fallback chain.
+**Grit grade discipline.** The clean family `"Redaction"` is the only one
+used for body, nav, labels, tables, prose. Grit grades exist for
+*texture moments only*: grade **35** for the `Legalise.` wordmark
+(signature square period), grade **20** for stamp buttons (the "pressed
+legal stamp" feel — caps + tracked), and optionally a heavier grade for
+a large editorial display numeral/title. Never set body or chrome in a
+grit grade. Supersedes Hanken Grotesk / Inter (v0.4).
 
 ### Type scale (Tailwind tokens, verbatim from Memo bundle)
 
@@ -307,7 +372,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        // v0.5: Redaction is the base. `font-serif` is the default body face.
+        serif: ['Redaction', 'Georgia', '"Times New Roman"', 'serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
@@ -317,6 +383,13 @@ module.exports = {
         rule: '#E5E5E5',
         muted: '#9CA3AF',
         prose: '#4B5563',
+        // v0.5 workspace register (neutral grey panel shell)
+        canvas: '#E8E8E8',
+        panel: '#F5F5F5',
+        'panel-hover': '#EBEBEB',
+        'panel-sel': '#E2E2E2',
+        'panel-2': '#F7F7F7',
+        seal: '#8B0000',
       },
       maxWidth: {
         page: '1440px',
@@ -328,11 +401,16 @@ module.exports = {
       },
       borderRadius: {
         none: '0',
-        DEFAULT: '0',
+        DEFAULT: '0',        // default stays ZERO — pills/inputs/Landing unaffected
+        panel: '18px',       // v0.5 — panel shell ONLY
+        item: '8px',         // v0.5 — nav items / rows / P21 cards ONLY
       },
       boxShadow: {
         none: 'none',
-        DEFAULT: 'none',
+        DEFAULT: 'none',     // default stays NONE — chrome unaffected
+        // v0.5 — panel shell + P21 cards ONLY:
+        panel: '0 8px 32px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.01)',
+        'panel-hover': '0 2px 8px rgba(0,0,0,0.08)',
       },
     },
   },
@@ -342,12 +420,13 @@ module.exports = {
 ### Global CSS — required additions
 
 ```css
-/* index.css */
+/* index.css — @import "/fonts/redaction/redaction.css" loads the faces */
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body {
-  background: #FFFFFF;
+  background: #FFFFFF; /* Landing/auth default; the workspace shell paints bg-canvas itself */
   color: #181818;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: "Redaction", Georgia, "Times New Roman", serif;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -1157,6 +1236,83 @@ retention, and status do not appear here. Posture lives in the P19
 matter card, the rest live in the breadcrumb only if the surface
 genuinely needs them, in which case the surface renders an inline
 strip below this breadcrumb.
+
+## P21 — Workspace panel shell (v0.5)
+
+Source: variant exploration + preserve/amend/integration pass against
+the live workspace, ratified 2026-06-04. Geometry/elevation lineage:
+Basecamp / ClickUp Home / Frame via Mobbin (research §2). This is the
+**skin** for the v0.5 workspace register; it changes how P19 (rail),
+P20 (breadcrumb), and the content column are *contained*, not their
+structure, props, or content.
+
+**The shell.** The matter workspace is no longer flat columns divided by
+a 1px border. It is a neutral-grey canvas holding **two floating panels**
+(rail + main), each lifted on one soft shadow with an 18px radius.
+
+```jsx
+{/* Workspace shell */}
+<div className="min-h-screen bg-canvas p-3 sm:p-4 flex flex-col gap-3">
+  {/* Topbar sits directly on the canvas (product identity) — no panel */}
+  <TopBar />
+  <div className="flex-1 flex gap-3 min-h-0">
+    {/* Rail panel — P19 structure, now in a panel */}
+    <aside className="w-[220px] shrink-0 bg-panel rounded-panel shadow-panel
+                      flex flex-col overflow-hidden">
+      {/* matter card · nav loop · status footer — unchanged */}
+    </aside>
+    {/* Main panel — P20 breadcrumb + tab body live inside */}
+    <main className="flex-1 min-w-0 bg-panel rounded-panel shadow-panel
+                     flex flex-col overflow-hidden">
+      <MatterBreadcrumb />   {/* border-b border-rule inside the panel */}
+      <div className="flex-1 overflow-y-auto">{/* tab body */}</div>
+    </main>
+  </div>
+</div>
+```
+
+**Exact values (copy, do not approximate):**
+
+| Property | Value | Notes |
+|---|---|---|
+| Canvas | `bg-canvas` #E8E8E8 | the page; panels float on it |
+| Shell padding / gap | `p-3 sm:p-4` / `gap-3` | the inset that makes panels float |
+| Panel fill | `bg-panel` #F5F5F5 | rail + main |
+| Panel radius | `rounded-panel` 18px | panel shell ONLY |
+| Panel shadow | `shadow-panel` | one soft two-layer; ONLY the shell + P21 cards |
+| Topbar | on the canvas, no panel, no shadow | wordmark in `.wordmark` (Redaction 35) |
+
+**Nav-item / row / card fills (inside panels).** These take the small
+`rounded-item` (8px) and the panel hover/selected fills — the only
+rounding allowed below panel level:
+
+| State | Class |
+|---|---|
+| Nav item idle | `text-prose hover:text-ink hover:bg-panel-hover rounded-item` |
+| Nav item active | `bg-panel-sel text-ink font-semibold rounded-item` — **fill only, no accent bar, no oxblood** |
+| Table/list row hover | `hover:bg-panel-hover rounded-item` |
+| Selected row | `bg-panel-sel rounded-item` |
+
+**Content cards (optional, within the main panel).** A grouping card uses
+`bg-paper rounded-item border border-rule p-5` and may add `shadow-panel`
++ `hover:shadow-panel-hover` when it is itself an elevated/clickable
+surface. Default content does not need a card — it sits directly in the
+main panel.
+
+**Hard rules (carry v0.4 discipline into the new register):**
+- Radius + shadow live on the **panel shell and P21 cards only**. Pills
+  (P15), inputs (P13), buttons (P12), table grid (P16 rows get the 8px
+  hover fill but the table itself stays borderless-on-panel), and the
+  breadcrumb stay square + shadowless.
+- Active states are **fill + weight only**. No left accent bar, no
+  coloured indicator. (This is the exact flourish v0.5 review killed.)
+- **Oxblood never appears in the shell.** Verdicts/seal only.
+- Hover lifts `bg` (or `shadow-panel`→`shadow-panel-hover` on a card),
+  never a transform.
+
+**Mobile.** At `< md` the rail panel is hidden and renders as the P19
+slide-out sheet; the main panel goes full-bleed (drop the canvas inset
+and radius below `sm` if it crowds — `rounded-none sm:rounded-panel`).
 
 ---
 

@@ -27,11 +27,19 @@ export default {
         rule: '#E5E5E5',
         muted: '#9CA3AF',
         prose: '#4B5563',
-        // Tertiary accent — sealing wax. Used SPARINGLY: hero underline,
-        // nav hover, privilege C_paused, audit blocked rows, chronology
-        // CPR 31.22 flag, destructive confirms. Never as a background,
-        // never on body prose, never on the brand mark.
+        // Tertiary accent — sealing wax. v0.5: verdicts, the seal/stamp,
+        // privilege C_paused, audit blocked rows, CPR 31.22 flag,
+        // destructive confirms. NEVER in workspace chrome (no nav accent,
+        // no panel border), never a background, never on the brand mark.
         seal: '#8B0000',
+        // v0.5 workspace register — neutral-grey floating-panel shell.
+        // See docs/DESIGN.md P21. Used by the matter workspace only;
+        // Landing/auth keep paper #FFFFFF.
+        canvas: '#E8E8E8',
+        panel: '#F5F5F5',
+        'panel-hover': '#EBEBEB',
+        'panel-sel': '#E2E2E2',
+        'panel-2': '#F7F7F7',
       },
       maxWidth: {
         page: '1440px',
@@ -43,11 +51,16 @@ export default {
       },
       borderRadius: {
         none: '0',
-        DEFAULT: '0',
+        DEFAULT: '0',        // default stays ZERO — pills/inputs/Landing unaffected
+        panel: '18px',       // v0.5 — floating panel shell ONLY
+        item: '8px',         // v0.5 — nav items / rows / P21 cards ONLY
       },
       boxShadow: {
         none: 'none',
-        DEFAULT: 'none',
+        DEFAULT: 'none',     // default stays NONE — chrome unaffected
+        // v0.5 — panel shell + P21 cards ONLY:
+        panel: '0 8px 32px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.01)',
+        'panel-hover': '0 2px 8px rgba(0,0,0,0.08)',
       },
     },
   },
