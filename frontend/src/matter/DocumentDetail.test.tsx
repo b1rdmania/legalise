@@ -828,6 +828,22 @@ describe("DocumentDetail", () => {
         resolved_by_id: null,
       },
     ]);
+    const update = vi
+      .spyOn(api, "updateDocumentComment")
+      .mockResolvedValue({
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: null,
+        body_sha256: null,
+        anchor_start: null,
+        anchor_end: null,
+        body: "Edited after checking the source.",
+        status: "open",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: null,
+        resolved_by_id: null,
+      });
     const resolve = vi
       .spyOn(api, "resolveDocumentComment")
       .mockResolvedValue({
@@ -847,6 +863,16 @@ describe("DocumentDetail", () => {
 
     mount();
     await screen.findByText("Resolve after checking the source.");
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Edit note"), {
+      target: { value: "Edited after checking the source." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => {
+      expect(update).toHaveBeenCalledWith("doc-1", "comment-1", {
+        body: "Edited after checking the source.",
+      });
+    });
     fireEvent.click(screen.getByRole("button", { name: "Resolve" }));
 
     await waitFor(() => {

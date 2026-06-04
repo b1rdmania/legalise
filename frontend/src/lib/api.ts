@@ -2005,6 +2005,22 @@ export const createDocumentComment = (
     body: JSON.stringify(payload),
   }).then((r) => resolutionJsonOrThrow<DocumentCommentRead>(r));
 
+export const updateDocumentComment = (
+  documentId: string,
+  commentId: string,
+  payload: { body: string },
+) =>
+  apiFetch(
+    `${API}/documents/${encodeURIComponent(documentId)}/comments/${encodeURIComponent(
+      commentId,
+    )}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  ).then((r) => resolutionJsonOrThrow<DocumentCommentRead>(r));
+
 export const resolveDocumentComment = (documentId: string, commentId: string) =>
   apiFetch(
     `${API}/documents/${encodeURIComponent(documentId)}/comments/${encodeURIComponent(

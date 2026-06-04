@@ -128,12 +128,25 @@ async def test_document_comments_owner_can_create_list_and_resolve(client) -> No
     assert listed.status_code == 200, listed.text
     assert [row["id"] for row in listed.json()] == [comment["id"]]
 
+    updated = await client.patch(
+        f"/api/documents/{doc_id}/comments/{comment['id']}",
+        json={"body": "Checked against the source and updated for clarity."},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["body"] == "Checked against the source and updated for clarity."
+
     resolved = await client.post(
         f"/api/documents/{doc_id}/comments/{comment['id']}/resolve",
     )
     assert resolved.status_code == 200, resolved.text
     assert resolved.json()["status"] == "resolved"
     assert resolved.json()["resolved_at"] is not None
+
+    edit_resolved = await client.patch(
+        f"/api/documents/{doc_id}/comments/{comment['id']}",
+        json={"body": "Too late to edit."},
+    )
+    assert edit_resolved.status_code == 409, edit_resolved.text
 
 
 @pytest.mark.asyncio
@@ -198,6 +211,11 @@ async def test_document_comments_cross_user_returns_404(client) -> None:
         f"/api/documents/{doc_id}/comments/{comment_id}/resolve",
     )
     assert resolved.status_code == 404, resolved.text
+    updated = await client.patch(
+        f"/api/documents/{doc_id}/comments/{comment_id}",
+        json={"body": "Cross-user edit."},
+    )
+    assert updated.status_code == 404, updated.text
 
 
 @pytest.mark.asyncio
