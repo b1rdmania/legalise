@@ -4,7 +4,7 @@
 // body-missing state is honest, and deep metadata sits behind Details.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -794,6 +794,18 @@ describe("DocumentDetail", () => {
     expect(await screen.findByTestId("document-comments")).toHaveTextContent(
       "Check the context before relying on this.",
     );
+    expect(await screen.findByTestId("document-note-navigator")).toHaveTextContent(
+      "1 open note on this file.",
+    );
+    expect(screen.getByTestId("document-note-navigator")).toHaveTextContent(
+      "Check the context before relying on this.",
+    );
+    fireEvent.click(
+      within(screen.getByTestId("document-note-navigator")).getByRole("button", {
+        name: /Note 1/i,
+      }),
+    );
+    expect(screen.getByTestId("document-content")).toBeInTheDocument();
     expect(screen.getByTestId("document-comments")).toHaveTextContent("Open");
     expect(screen.getByTestId("document-comments")).toHaveTextContent("Anchored");
     expect(screen.getByTestId("document-comments")).toHaveTextContent("Resolved");
@@ -940,9 +952,12 @@ describe("DocumentDetail", () => {
         created_at: "2026-06-03T10:00:00",
         resolved_at: "2026-06-03T10:10:00",
         resolved_by_id: "u-1",
-      });
+    });
     mount();
-    await screen.findByText("Resolve after checking the source.");
+    await screen.findByTestId("document-comments");
+    expect(screen.getByTestId("document-comments")).toHaveTextContent(
+      "Resolve after checking the source.",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     fireEvent.change(screen.getByLabelText("Edit note"), {
       target: { value: "Edited after checking the source." },
