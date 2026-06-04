@@ -17,8 +17,7 @@
  * expandable payload + refs block. Filters:
  *   - source chips (audit / state_machine / advice_boundary)
  *   - ?action=<string> filters by exact action match
- *   - ?invocation_id=<id> filters client-side (substrate does not
- *     yet honour the param — see BACKEND_GAP_AUDIT finding 14-E-#1)
+ *   - ?invocation_id=<id> filters client-side
  *
  * Visiting this page emits one `audit.reconstruction.viewed` row
  * (substrate-side; the UI does NOT emit). That row will show up on

@@ -46,7 +46,7 @@ If the user clicks "Run" on a capability where their role doesn't satisfy the ma
 }
 ```
 
-The UI catches this and re-renders the banner with an "Invocation blocked at <timestamp>" timestamp + a "View this denial in the audit trail" link that deep-links to `/matters/{slug}/audit?action=posture_gate.check.blocked&actor=<user_id>` (the action filter is a `BACKEND_GAP_AUDIT.md` finding if server-side filtering doesn't exist; client-side filtering is the fallback).
+The UI catches this and re-renders the banner with an "Invocation blocked at <timestamp>" timestamp + a "View this denial in the audit trail" link that deep-links to `/matters/{slug}/audit?action=posture_gate.check.blocked&actor=<user_id>`.
 
 ## Why this matters
 

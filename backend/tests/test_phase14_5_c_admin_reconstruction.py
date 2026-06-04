@@ -1,10 +1,8 @@
-"""Phase 14.5 C — workspace / admin audit reconstruction.
+"""Workspace / admin audit reconstruction.
 
-Closes BACKEND_GAP_AUDIT finding 14-B-#2. New endpoint
-``GET /api/admin/audit/reconstruction`` returns workspace-scoped
-audit rows (matter_id IS NULL) so InstallCeremony's invalid-transition
-banner + future admin surfaces can deep-link to a real reconstruction
-page.
+Pins ``GET /api/admin/audit/reconstruction`` returning workspace-scoped
+audit rows (matter_id IS NULL) so admin surfaces can deep-link to a real
+reconstruction page.
 
 Substrate truth + locks:
 - Superuser-only (admin_required envelope on 403).

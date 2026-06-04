@@ -1146,23 +1146,6 @@ export const setPrivilege = (slug: string, posture: string) =>
     body: JSON.stringify({ privilege_posture: posture }),
   }).then((r) => jsonOrThrow<Matter>(r));
 
-export interface PluginInvokeResponse {
-  plugin: string;
-  skill: string;
-  matter_slug: string;
-  response_text: string;
-  model_used: string;
-  token_count: number;
-  latency_ms: number;
-}
-
-export const invokePlugin = (slug: string, plugin: string, skill: string, inputs: Record<string, unknown> = {}) =>
-  apiFetch(`${API}/matters/${slug}/invoke`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plugin, skill, inputs }),
-  }).then((r) => jsonOrThrow<PluginInvokeResponse>(r));
-
 // ----- Installed skill catalogue -----
 
 export interface ModuleSkill {
@@ -1352,13 +1335,6 @@ export interface PreMotionRunResult {
   evidence_flags: PreMotionEvidenceFlag[];
   synthesis: PreMotionSynthesis;
 }
-
-export const runPreMotion = (slug: string, inputs: { depth?: "fast" | "thorough" } = {}) =>
-  apiFetch(`${API}/matters/${slug}/pre-motion/run`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(inputs),
-  }).then((r) => jsonOrThrow<PreMotionRunResult>(r));
 
 export type PreMotionStreamEvent =
   | { event: "stage.start"; data: { stage: string; index: number; sub_agent_count: number } }
@@ -2231,15 +2207,6 @@ export const getAnonymisationMapping = (documentId: string): Promise<MappingRead
     anonymisationJsonOrThrow<MappingRead>(r),
   );
 
-export const deleteAnonymisation = async (documentId: string): Promise<void> => {
-  const res = await apiFetch(`${API}/documents/${documentId}/anonymise`, {
-    method: "DELETE",
-  });
-  if (!res.ok && res.status !== 404) {
-    throw new Error(`${res.status} ${res.statusText}`);
-  }
-};
-
 // ----- Tabular review (folded from modules/tabular_review/api.ts) --------
 
 export type ColumnType = "text" | "date" | "yesno" | "number";
@@ -2619,16 +2586,6 @@ export interface ContractReviewResult {
   posture: Posture;
   contract_type: ContractKind;
 }
-
-export const runContractReview = (
-  slug: string,
-  inputs: ContractReviewInputs,
-): Promise<ContractReviewResult> =>
-  apiFetch(`${API}/matters/${slug}/contract-review/run`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(inputs),
-  }).then((r) => jsonOrThrow<ContractReviewResult>(r));
 
 export type ContractReviewStreamEvent =
   | { event: "stage.start"; data: { stage: string } }

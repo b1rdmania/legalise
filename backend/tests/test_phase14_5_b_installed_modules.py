@@ -1,11 +1,10 @@
-"""Phase 14.5 B — installed-modules listing endpoint.
+"""Installed-modules listing endpoint.
 
-Closes BACKEND_GAP_AUDIT finding 14-B-#1. New read-only endpoint
-``GET /api/modules/installed`` returns one row per module_id (most
-recent by installed_at). Powers the catalog "Installed vX.Y" badge
-and the GrantsPanel runnable-pair AND-gate.
+Pins ``GET /api/modules/installed`` returning one row per module_id
+(most recent by installed_at). Powers the catalog "Installed vX.Y"
+badge and the GrantsPanel runnable-pair AND-gate.
 
-No audit emission (Phase 13b Decision #1 — reads don't audit).
+No audit emission: reads don't audit.
 """
 
 from __future__ import annotations

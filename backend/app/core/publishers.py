@@ -13,10 +13,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-class VerifiedPublishersError(ValueError):
-    """Raised on registry misconfiguration."""
-
-
 @dataclass(frozen=True)
 class PublisherInfo:
     """Public-facing info about a verified publisher.
@@ -78,7 +74,6 @@ def all_verified_publishers() -> list[PublisherInfo]:
 
 __all__ = [
     "PublisherInfo",
-    "VerifiedPublishersError",
     "is_verified_publisher",
     "publisher_info",
     "all_verified_publishers",

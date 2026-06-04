@@ -125,24 +125,6 @@ export function Field({
   );
 }
 
-export function StatusBadge({ status }: { status: string }) {
-  const colour =
-    status === "open"
-      ? "#00A35C"
-      : status === "closed" || status === "paused"
-        ? "#D9304F"
-        : "#181818";
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold"
-      style={{ borderColor: colour, color: colour }}
-    >
-      <span className="w-1.5 h-1.5" style={{ backgroundColor: colour }} />
-      {status.toUpperCase()}
-    </span>
-  );
-}
-
 export function Badge({ children }: { children: ReactNode }) {
   return (
     <span className="border border-rule text-ink text-[10px] font-mono uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
