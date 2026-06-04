@@ -45,6 +45,7 @@ from app.models import (
     DocumentEdit,
     DocumentEditSession,
     DocumentVersion,
+    DocumentWorkingDraft,
     Matter,
     STATUS_ARCHIVED,
     User,
@@ -213,6 +214,31 @@ class DocumentEditSessionResponse(BaseModel):
     active: list[DocumentEditSessionRead]
 
 
+class DocumentWorkingDraftRead(BaseModel):
+    document_id: uuid.UUID
+    updated_by_id: uuid.UUID | None
+    updated_at: datetime | None
+    plain_text: str
+    editor_json: dict[str, Any] | None = None
+    base_version_id: uuid.UUID | None = None
+    version_counter: int
+    client_id: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class DocumentWorkingDraftUpsert(BaseModel):
+    plain_text: str = Field(max_length=500_000)
+    editor_json: dict[str, Any] | None = None
+    base_version_id: uuid.UUID | None = None
+    client_id: str | None = Field(default=None, max_length=96)
+
+
+class DocumentWorkingDraftCommitRequest(BaseModel):
+    notes: str | None = Field(default=None, max_length=500)
+    clear_draft: bool = True
+
+
 class EditInstructionResponse(BaseModel):
     version: DocumentVersionRead
     pending_edits: list[DocumentEditRead]
@@ -255,6 +281,104 @@ async def _active_edit_sessions(
         )
         for row, user in rows
     ]
+
+
+async def _latest_text_version(
+    session: AsyncSession,
+    document_id: uuid.UUID,
+) -> DocumentVersion | None:
+    return await session.scalar(
+        select(DocumentVersion)
+        .where(
+            DocumentVersion.document_id == document_id,
+            DocumentVersion.resolved_text.is_not(None),
+        )
+        .order_by(DocumentVersion.version_number.desc(), DocumentVersion.created_at.desc())
+        .limit(1)
+    )
+
+
+async def _initial_working_draft(
+    session: AsyncSession,
+    doc: Document,
+) -> DocumentWorkingDraftRead:
+    latest = await _latest_text_version(session, doc.id)
+    if latest is not None:
+        return DocumentWorkingDraftRead(
+            document_id=doc.id,
+            updated_by_id=None,
+            updated_at=None,
+            plain_text=latest.resolved_text or "",
+            editor_json=latest.resolved_json,
+            base_version_id=latest.id,
+            version_counter=0,
+            client_id=None,
+        )
+
+    body = await extracted_body_for(session, doc.id)
+    return DocumentWorkingDraftRead(
+        document_id=doc.id,
+        updated_by_id=None,
+        updated_at=None,
+        plain_text=body.extracted_text if body is not None else "",
+        editor_json=None,
+        base_version_id=None,
+        version_counter=0,
+        client_id=None,
+    )
+
+
+async def _create_user_edit_version(
+    session: AsyncSession,
+    *,
+    doc: Document,
+    matter: Matter,
+    user: User,
+    resolved_text: str,
+    resolved_json: dict[str, Any] | None,
+    notes: str | None,
+    audit_source: str = "manual",
+) -> DocumentVersion:
+    next_version = (
+        await session.scalar(
+            select(func.coalesce(func.max(DocumentVersion.version_number), 0) + 1)
+            .where(DocumentVersion.document_id == doc.id)
+        )
+        or 1
+    )
+    version = DocumentVersion(
+        document_id=doc.id,
+        version_number=int(next_version),
+        kind=VERSION_KIND_USER_EDIT,
+        created_by_id=user.id,
+        filename=doc.filename,
+        mime_type="text/plain",
+        size_bytes=len(resolved_text.encode("utf-8")),
+        sha256=hashlib.sha256(resolved_text.encode("utf-8")).hexdigest(),
+        resolved_text=resolved_text,
+        resolved_json=resolved_json,
+        notes=notes or "Edited in Legalise document editor",
+    )
+    session.add(version)
+    await session.flush()
+    await audit.log(
+        session,
+        "document.version.saved",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "document_id": str(doc.id),
+            "version_number": version.version_number,
+            "kind": version.kind,
+            "char_count": len(resolved_text),
+            "rich_json": resolved_json is not None,
+            "source": audit_source,
+        },
+    )
+    return version
 
 
 @router.post("/{document_id}/edit-instructions", response_model=EditInstructionResponse)
@@ -841,6 +965,123 @@ async def post_reject_all(
     return await _resolve_all(version_id, "reject_all", session, user)
 
 
+@router.get("/{document_id}/draft", response_model=DocumentWorkingDraftRead)
+async def get_document_working_draft(
+    document_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentWorkingDraftRead:
+    """Return the shared working draft for the document editor.
+
+    If no mutable draft exists yet, return an initial draft derived from the
+    latest saved text version or the extracted document body. This keeps
+    initialisation server-owned without creating audit noise.
+    """
+    doc, _matter = await _load_owned_document(document_id, session, user)
+    draft = await session.scalar(
+        select(DocumentWorkingDraft).where(DocumentWorkingDraft.document_id == doc.id)
+    )
+    if draft is None:
+        return await _initial_working_draft(session, doc)
+    return DocumentWorkingDraftRead.model_validate(draft)
+
+
+@router.put("/{document_id}/draft", response_model=DocumentWorkingDraftRead)
+async def put_document_working_draft(
+    document_id: uuid.UUID,
+    body: DocumentWorkingDraftUpsert,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentWorkingDraftRead:
+    """Autosave the mutable working draft for a document.
+
+    Draft writes are intentionally not audit rows. The matter record should
+    show saved versions and professional decisions, not keystroke persistence.
+    """
+    doc, _matter = await _load_owned_document(document_id, session, user)
+    base_version_id = body.base_version_id
+    if base_version_id is not None:
+        exists = await session.scalar(
+            select(DocumentVersion.id).where(
+                DocumentVersion.id == base_version_id,
+                DocumentVersion.document_id == doc.id,
+            )
+        )
+        if exists is None:
+            raise HTTPException(
+                422,
+                {
+                    "error": "invalid_base_version",
+                    "message": "The draft base version does not belong to this document.",
+                },
+            )
+
+    now = datetime.now(UTC)
+    draft = await session.scalar(
+        select(DocumentWorkingDraft).where(DocumentWorkingDraft.document_id == doc.id)
+    )
+    if draft is None:
+        draft = DocumentWorkingDraft(
+            document_id=doc.id,
+            updated_by_id=user.id,
+            updated_at=now,
+            plain_text=body.plain_text,
+            editor_json=body.editor_json,
+            base_version_id=base_version_id,
+            version_counter=1,
+            client_id=body.client_id,
+        )
+        session.add(draft)
+    else:
+        draft.updated_by_id = user.id
+        draft.updated_at = now
+        draft.plain_text = body.plain_text
+        draft.editor_json = body.editor_json
+        draft.base_version_id = base_version_id
+        draft.client_id = body.client_id
+        draft.version_counter += 1
+
+    await session.commit()
+    return DocumentWorkingDraftRead.model_validate(draft)
+
+
+@router.post("/{document_id}/draft/commit", response_model=DocumentVersionRead)
+async def post_document_working_draft_commit(
+    document_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+    body: DocumentWorkingDraftCommitRequest = DocumentWorkingDraftCommitRequest(),
+) -> DocumentVersionRead:
+    """Commit the mutable working draft as an immutable document version."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    draft = await session.scalar(
+        select(DocumentWorkingDraft).where(DocumentWorkingDraft.document_id == doc.id)
+    )
+    if draft is None or not draft.plain_text.strip():
+        raise HTTPException(
+            422,
+            {
+                "error": "working_draft_empty",
+                "message": "There is no working draft text to save as a version.",
+            },
+        )
+
+    version = await _create_user_edit_version(
+        session,
+        doc=doc,
+        matter=matter,
+        user=user,
+        resolved_text=draft.plain_text,
+        resolved_json=draft.editor_json,
+        notes=body.notes or "Saved working draft from Legalise document editor",
+        audit_source="working_draft",
+    )
+    if body.clear_draft:
+        await session.delete(draft)
+    await session.commit()
+    return DocumentVersionRead.model_validate(version)
+
+
 @router.post("/{document_id}/versions/manual", response_model=DocumentVersionRead)
 async def post_manual_document_version(
     document_id: uuid.UUID,
@@ -850,43 +1091,14 @@ async def post_manual_document_version(
 ) -> DocumentVersionRead:
     """Save user-edited text as a new immutable document version."""
     doc, matter = await _load_owned_document(document_id, session, user)
-    next_version = (
-        await session.scalar(
-            select(func.coalesce(func.max(DocumentVersion.version_number), 0) + 1)
-            .where(DocumentVersion.document_id == doc.id)
-        )
-        or 1
-    )
-    version = DocumentVersion(
-        document_id=doc.id,
-        version_number=int(next_version),
-        kind=VERSION_KIND_USER_EDIT,
-        created_by_id=user.id,
-        filename=doc.filename,
-        mime_type="text/plain",
-        size_bytes=len(body.resolved_text.encode("utf-8")),
-        sha256=hashlib.sha256(body.resolved_text.encode("utf-8")).hexdigest(),
+    version = await _create_user_edit_version(
+        session,
+        doc=doc,
+        matter=matter,
+        user=user,
         resolved_text=body.resolved_text,
         resolved_json=body.resolved_json,
-        notes=body.notes or "Edited in Legalise document editor",
-    )
-    session.add(version)
-    await session.flush()
-    await audit.log(
-        session,
-        "document.version.saved",
-        actor_id=user.id,
-        matter_id=matter.id,
-        module="document_editor",
-        resource_type="document_version",
-        resource_id=str(version.id),
-        payload={
-            "document_id": str(doc.id),
-            "version_number": version.version_number,
-            "kind": version.kind,
-            "char_count": len(body.resolved_text),
-            "rich_json": body.resolved_json is not None,
-        },
+        notes=body.notes,
     )
     await session.commit()
     return DocumentVersionRead.model_validate(version)

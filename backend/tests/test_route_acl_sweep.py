@@ -276,6 +276,94 @@ async def test_post_manual_document_version_creates_user_edit_version(client) ->
 
 
 @pytest.mark.asyncio
+async def test_document_working_draft_round_trip_and_commit(client) -> None:
+    """Owner can autosave a mutable draft and commit it as an immutable version."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Original extracted text.")
+
+    initial = await client.get(f"/api/documents/{doc_id}/draft")
+    assert initial.status_code == 200, initial.text
+    initial_payload = initial.json()
+    assert initial_payload["plain_text"] == "Original extracted text."
+    assert initial_payload["version_counter"] == 0
+    assert initial_payload["base_version_id"] is None
+
+    saved = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={
+            "plain_text": "Working draft text.\n\nSecond paragraph.",
+            "editor_json": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "Working draft text."}],
+                    },
+                ],
+            },
+            "client_id": "client-draft-1",
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    draft = saved.json()
+    assert draft["plain_text"] == "Working draft text.\n\nSecond paragraph."
+    assert draft["editor_json"]["type"] == "doc"
+    assert draft["version_counter"] == 1
+    assert draft["client_id"] == "client-draft-1"
+
+    listed = await client.get(f"/api/documents/{doc_id}/draft")
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["plain_text"] == "Working draft text.\n\nSecond paragraph."
+
+    committed = await client.post(
+        f"/api/documents/{doc_id}/draft/commit",
+        json={"notes": "Commit shared working draft"},
+    )
+    assert committed.status_code == 200, committed.text
+    version = committed.json()
+    assert version["kind"] == "user_edit"
+    assert version["version_number"] == 2
+    assert version["resolved_text"] == "Working draft text.\n\nSecond paragraph."
+    assert version["resolved_json"]["type"] == "doc"
+    assert version["notes"] == "Commit shared working draft"
+
+    after_commit = await client.get(f"/api/documents/{doc_id}/draft")
+    assert after_commit.status_code == 200, after_commit.text
+    derived = after_commit.json()
+    assert derived["plain_text"] == "Working draft text.\n\nSecond paragraph."
+    assert derived["base_version_id"] == version["id"]
+    assert derived["version_counter"] == 0
+
+    versions = await client.get(f"/api/documents/{doc_id}/versions")
+    assert versions.status_code == 200, versions.text
+    rows = versions.json()
+    assert rows[-1]["version"]["notes"] == "Commit shared working draft"
+
+
+@pytest.mark.asyncio
+async def test_document_working_draft_base_version_must_belong_to_document(client) -> None:
+    """Draft base_version_id cannot point at another document's version."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id_a = await _create_matter_and_upload_text(client, "Document A.")
+    _, doc_id_b = await _create_matter_and_upload_text(client, "Document B.")
+    version_b = await client.post(
+        f"/api/documents/{doc_id_b}/versions/manual",
+        json={"resolved_text": "Document B saved version."},
+    )
+    assert version_b.status_code == 200, version_b.text
+
+    resp = await client.put(
+        f"/api/documents/{doc_id_a}/draft",
+        json={
+            "plain_text": "Invalid base pointer.",
+            "base_version_id": version_b.json()["id"],
+        },
+    )
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"]["error"] == "invalid_base_version"
+
+
+@pytest.mark.asyncio
 async def test_post_upload_document_version_updates_active_document_and_body(client) -> None:
     """Owner can upload a replacement binary as the next active document version."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
@@ -588,6 +676,30 @@ async def test_post_manual_document_version_cross_user_returns_404(client) -> No
 
 
 @pytest.mark.asyncio
+async def test_document_working_draft_cross_user_returns_404(client) -> None:
+    """User B cannot read, write, or commit User A's working draft by UUID."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Owned draft source.")
+    saved = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={"plain_text": "Owned working draft."},
+    )
+    assert saved.status_code == 200, saved.text
+    await client.post("/auth/logout")
+
+    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    get_resp = await client.get(f"/api/documents/{doc_id}/draft")
+    assert get_resp.status_code == 404, get_resp.text
+    put_resp = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={"plain_text": "Cross-user draft should not land."},
+    )
+    assert put_resp.status_code == 404, put_resp.text
+    commit_resp = await client.post(f"/api/documents/{doc_id}/draft/commit")
+    assert commit_resp.status_code == 404, commit_resp.text
+
+
+@pytest.mark.asyncio
 async def test_get_document_version_docx_cross_user_returns_404(client) -> None:
     """User B cannot download User A's saved editor version."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
@@ -683,6 +795,31 @@ async def test_post_manual_document_version_archived_matter_returns_404(client) 
         json={"resolved_text": "Archived matter edit should not land."},
     )
     assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_document_working_draft_archived_matter_returns_404(client) -> None:
+    """After archive, draft read/write/commit 404s."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    slug, doc_id = await _create_matter_and_upload_text(client, "Archive draft source.")
+    saved = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={"plain_text": "Archive working draft."},
+    )
+    assert saved.status_code == 200, saved.text
+
+    del_resp = await client.delete(f"/api/matters/{slug}")
+    assert del_resp.status_code == 204, del_resp.text
+
+    get_resp = await client.get(f"/api/documents/{doc_id}/draft")
+    assert get_resp.status_code == 404, get_resp.text
+    put_resp = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={"plain_text": "Archived matter draft should not land."},
+    )
+    assert put_resp.status_code == 404, put_resp.text
+    commit_resp = await client.post(f"/api/documents/{doc_id}/draft/commit")
+    assert commit_resp.status_code == 404, commit_resp.text
 
 
 @pytest.mark.asyncio
