@@ -14,7 +14,12 @@ from app.api.module_routes import (
     skill_body,
 )
 from app.api.module_routes.catalogue_discovery import list_modules
-from app.api.module_routes.common import ModulesResponse
+from app.api.module_routes.common import (
+    ModulesResponse,
+    _module_json_for,
+    _plugins_root,
+    _skill_paths,
+)
 
 
 router = APIRouter()
