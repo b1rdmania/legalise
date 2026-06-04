@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -410,6 +416,10 @@ export function DocumentRichEditor({
           .replace(/\s+/g, " ")
           .trim()
       : null;
+  const findPositionLabel =
+    findMatches.length > 0
+      ? `${activeFindIndex + 1} / ${findMatches.length}`
+      : null;
   const outlineItems = useMemo(
     () => documentOutlineFromJson(currentEditorJson, plainText),
     [currentEditorJson, plainText],
@@ -509,6 +519,11 @@ export function DocumentRichEditor({
     setActiveFindIndex((current) =>
       (current + direction + findMatches.length) % findMatches.length,
     );
+  };
+  const handleFindKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    moveFind(event.shiftKey ? -1 : 1);
   };
 
   useEffect(() => {
@@ -786,6 +801,7 @@ export function DocumentRichEditor({
           type="search"
           value={findQuery}
           onChange={(event) => setFindQuery(event.target.value)}
+          onKeyDown={handleFindKeyDown}
           placeholder="Search this document"
           className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
         />
@@ -812,7 +828,7 @@ export function DocumentRichEditor({
         </button>
         {findMatches.length > 0 && (
           <span className="text-xs text-muted" data-testid="document-editor-find-position">
-            {activeFindIndex + 1} / {findMatches.length}
+            {findPositionLabel}
           </span>
         )}
         {findQuery && (
@@ -829,7 +845,7 @@ export function DocumentRichEditor({
             className="basis-full text-xs leading-5 text-muted"
             data-testid="document-editor-find-preview"
           >
-            First match: {findPreview}
+            Match {findPositionLabel}: {findPreview}
           </p>
         )}
       </div>
