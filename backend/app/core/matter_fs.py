@@ -26,7 +26,6 @@ import os
 from datetime import datetime, date, UTC
 from pathlib import Path
 
-import frontmatter
 import yaml
 
 from app.core.config import settings
@@ -73,13 +72,6 @@ def _yaml_frontmatter(fields: dict) -> str:
     payload = {k: _coerce_for_yaml(v) for k, v in fields.items()}
     dumped = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True, default_flow_style=False)
     return f"---\n{dumped}---\n"
-
-
-def parse_matter_md(text: str) -> tuple[dict, str]:
-    """Parse a matter.md file into (frontmatter_dict, body). Thin wrapper
-    around python-frontmatter so callers don't need to import the lib."""
-    post = frontmatter.loads(text)
-    return dict(post.metadata), post.content
 
 
 def materialise_matter(matter: Matter) -> Path:
@@ -206,5 +198,4 @@ __all__ = [
     "materialise_matter",
     "append_history",
     "record_document",
-    "parse_matter_md",
 ]

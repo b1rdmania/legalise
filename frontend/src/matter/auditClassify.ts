@@ -23,19 +23,6 @@ export type RowClass =
   | "module"
   | "system";
 
-// Pinned precedence (index = priority; lower wins).
-export const ROW_CLASS_ORDER: RowClass[] = [
-  "error",
-  "signed",
-  "review",
-  "blocked_denied",
-  "grant_role",
-  "advice",
-  "model",
-  "module",
-  "system",
-];
-
 // Classes that count as "decision points" (the foreground lane).
 // Sign-off is THE decision event — promote it hard.
 const DECISION_CLASSES: ReadonlySet<RowClass> = new Set<RowClass>([

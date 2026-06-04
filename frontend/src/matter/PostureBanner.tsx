@@ -52,7 +52,7 @@ const ALL_POSTURES: ReadonlyArray<Posture> = [
 // `workspace_admin` / `is_superuser` is NOT a bypass —
 // posture_gate.check_posture compares POSTURE_POLICY[posture] against
 // the actor_role string only. Anything else here would diverge from
-// substrate behaviour (ACCEPTANCE.md §14).
+// substrate behaviour.
 const ROLE_THAT_SATISFIES_B_MIXED = "qualified_solicitor";
 
 export function PostureBanner({

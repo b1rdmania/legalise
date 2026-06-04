@@ -16,8 +16,7 @@
  *     /modules/install/{ceremony_id}. The stepper UI lives in
  *     InstallCeremony.tsx — this page does NOT inline the ceremony.
  *
- * Authority gating (load-bearing — no smuggled authority per
- * ACCEPTANCE.md §12):
+ * Authority gating (load-bearing — no smuggled authority):
  *   - Install   → superuser only (substrate enforces via
  *                 require_admin at modules.py:678)
  *   - Update    → superuser only (require_admin at modules.py:997)

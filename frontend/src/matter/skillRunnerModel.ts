@@ -122,12 +122,6 @@ export function grantKey(moduleId: string, capabilityId: string): string {
   return `${moduleId}::${capabilityId}`;
 }
 
-export function grantedCapabilityKeys(grants: GrantRow[] | null): Set<string> {
-  const keys = new Set<string>();
-  for (const g of grants ?? []) keys.add(grantKey(g.plugin, g.skill));
-  return keys;
-}
-
 function capabilityHasRequiredGrantRows(
   cap: ManifestCapability,
   moduleId: string,

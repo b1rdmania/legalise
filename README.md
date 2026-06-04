@@ -11,8 +11,6 @@ Legalise is open source. The hosted site is a limited evaluation
 environment. Real AI workflows require your own model key. Legalise
 does not provide model access and is not for live client matters.
 
-![Audit tab. Khan v Acme sample matter.](docs/img/audit-tab.png)
-
 ---
 
 ## Why

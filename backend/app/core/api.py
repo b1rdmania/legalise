@@ -162,11 +162,10 @@ async def audit_failure(
     returning. It does NOT participate in the request session's
     transaction, so the row survives any subsequent rollback.
 
-    Required because the reviewer R3 pass surfaced that ProviderKeyMissing
-    + ProviderUpstreamError audit rows in `model_gateway.py` and the
-    storage upload/download failure audit rows were being lost to
-    rollback (see HANDOVER_R2_HARDENING_DONE.md §6 for the original gap
-    framing). All failure-provenance audit writes must use this helper.
+    Required because ProviderKeyMissing + ProviderUpstreamError audit
+    rows in `model_gateway.py` and storage upload/download failure audit
+    rows can otherwise be lost to rollback. All failure-provenance audit
+    writes must use this helper.
 
     Implementation note: the conftest test pattern wraps the request
     session in a SAVEPOINT inside an outer transaction. A separate

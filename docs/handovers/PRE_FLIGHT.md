@@ -405,8 +405,8 @@ If any row fails, fix before deploy. Blocking.
   by Cloudflare Pages + Fly automatic during deploy.
 - Backend smoke test — runs in `infra/deploy/cloudflare.md` §6 against
   the live URLs after deploy.
-- HN / X / LinkedIn post drafts — maintain separately in `docs/outreach/`
-  or in the launch workspace, not in the repo root handover files.
+- HN / X / LinkedIn post drafts — maintain outside the repo or in the launch
+  workspace, not in the repo root handover files.
 
 Once every checkbox here is green, open `infra/deploy/cloudflare.md`
 and start at §"Setup steps" §1.

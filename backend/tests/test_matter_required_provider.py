@@ -3,7 +3,7 @@
 Single source of truth: the matter's ``required_provider`` is computed by
 the same ``provider_for_model`` the runtime gateway uses, so the frontend
 reads it for run-readiness instead of re-deriving model families (which
-drifted from the backend — see FINDING_provider_readiness_hint.md).
+can drift from the backend).
 """
 
 from __future__ import annotations

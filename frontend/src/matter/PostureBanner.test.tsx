@@ -1,5 +1,5 @@
 /**
- * Phase 14 C — PostureBanner matrix regression.
+ * PostureBanner matrix regression.
  *
  * Asserts the per-(role × posture) cell from POSTURE_GATE_UX.md. The
  * matrix is the load-bearing UX contract; this test pins it.

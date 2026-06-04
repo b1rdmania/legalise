@@ -6,31 +6,24 @@ Start here before reading older phase notes.
 
 - `HANDOVER_V1_PRODUCT_STATE_2026_05_30.md` — current product state and V1
   product rules.
-- `KISS_REPO_REVIEW_2026_05_30.md` — current hygiene/KISS cleanup review and
-  execution plan.
-- `KRAMER_DEMO_COMPREHENSION.md` — what to lift from the Kramer vs Kramer vs AI
-  build (shipped at divorce.broker 1 Jun 2026) into Legalise's demo layer, and
-  what to leave behind. Demo-comprehension scope only — does not modify the
-  locked v2 architecture plan.
-- `../IMPLEMENTATION_PLAN_REWRITE_ADDENDUM_2026_06_01.md` — factual
-  reconciliation between the v2 plan and master at `c94d0ca`. Pairs with
-  `../IMPLEMENTATION_PLAN_REWRITE.md`.
-- `KHAN_HEALTH_CHECK.md` — non-destructive pre-flight runbook (`legalise
-  doctor`) for Khan demo. Required gate before any Kramer carry-over PR.
 - `LEGALISE_IA_RESET_BLUEPRINT_2026_06_02.md` — **SOURCE OF TRUTH** for the
   IA reset. Buildable spec with locked vocabulary, visual tokens, ten Mobbin-
   anchored surface patterns (§4A), and a seven-PR sequence with merge gates.
   Build agents cite this; deviations are merge blockers. Read this before
   touching any frontend route, label, or layout.
-- `LEGALISE_IA_RESET_WHITEPAPER_2026_06_02.md` — predecessor decision paper.
-  Useful context for *why* the reset; superseded by the blueprint above for
-  *what* to build.
+- `DOCUMENT_ENGINE_PARITY_PLAN_2026_06_04.md` — current document-engine parity
+  plan.
+- `SIMPLIFY_CUTLIST_2026-06-04.md` — current code/doc simplification cutlist.
+- `BACKEND_TODOS.md` and `LAUNCH_ISSUES.md` — active backlog notes.
+- `DEPLOYMENT_SECRETS.md`, `PRE_FLIGHT.md`, and `PRODUCTION_SMOKE.md` — live
+  ops runbooks.
 
 ## Current Working Rule
 
-Only the most recent `DONE` handover for an active feature should remain easy to
-find at the top level. Older phase plans and per-feature handovers are
-historical context.
+Only current state, current doctrine, live runbooks, active findings, and the
+current active build plan should remain easy to find at the top level. Older
+phase plans, superseded build briefs, per-feature `DONE` handovers, and
+round-by-round reviewer notes are historical context carried by git history.
 
 When a consolidated state handover lands:
 
@@ -40,34 +33,20 @@ When a consolidated state handover lands:
 3. future agents should read this index, then the current state handover, before
    reading historical plans.
 
-## Recent Product Handovers Consolidated By Current State
+## Deleted Historical Exhaust
 
-The current V1 product state handover supersedes these per-feature
-handovers, all moved to `archive/` per the rule above:
+On 2026-06-04, stale handover/build-exhaust files were deleted in the KISS
+simplification pass. That included old per-phase plans, superseded `DONE`
+handovers, resolved findings, reviewer round notes, and the previous `archive/`
+directory. The decision rule is recorded in `SIMPLIFY_CUTLIST_2026-06-04.md`.
 
-- `archive/HANDOVER_PROFESSIONAL_SIGNOFF_V1_DONE.md`
-- `archive/HANDOVER_EXPORT_GATING_V1_1_DONE.md`
-- `archive/HANDOVER_SOURCE_ANCHORS_V1_DONE.md`
-- `archive/HANDOVER_CONTRACT_REVIEW_SOURCE_ANCHORS_V1_DONE.md`
-- `archive/HANDOVER_MATTER_DESK_UX_PASS_DONE.md`
-- `archive/HANDOVER_V1_KISS_COMPRESSION_PASS_DONE.md`
-- `archive/HANDOVER_DOCUMENT_INGRESS_MARKETPLACE_V1_DONE.md`
-- `archive/HANDOVER_DOCUMENT_WORKSPACE_V1_DONE.md`
-- `archive/HANDOVER_ORIGINAL_FILE_RETRIEVAL_V1_DONE.md`
-- `archive/HANDOVER_MODULE_STANDALONE_CREATE_V1_DONE.md`
-- `archive/HANDOVER_PROMPT_RUNTIME_V1_DONE.md`
-- `archive/HANDOVER_EXTERNAL_SKILLS_LOOP_V1_DONE.md`
-- `archive/HANDOVER_GUIDED_DEMO_LOOP_V1_DONE.md`
-- `archive/HANDOVER_PROVIDER_READINESS_HINT_DONE.md`
-
-Do not treat older wording in those files as more current than the
-consolidated state handover.
+Do not treat removed handover wording as active instruction. If historical
+detail is needed, use git history for the deleted file.
 
 ## Archive Policy
 
-Do not delete historical handovers without a deliberate archive commit. Moving
-old handovers is safe only when current docs no longer link to them as active
-instructions.
+Do not delete historical handovers unless current docs no longer link to them
+as active instructions and the deletion commit states the decision rule.
 
 High-signal candidates to keep top-level:
 

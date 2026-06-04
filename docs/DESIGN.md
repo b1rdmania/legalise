@@ -1040,9 +1040,7 @@ The em-dash row is a literal `<div className="my-2 border-t border-rule" />` bet
 >   Treat four items (Chat / Documents / Skills / Record) as the target, not a
 >   shipped fact.
 >
-> **Two divergences need a decision — now with live-Mobbin evidence** (full
-> research: `docs/design-research/LEFT_RAIL_MOBBIN_AUDIT_2026-06-03.md`, a pass
-> over 14 real rail references):
+> **Two divergences need a decision:**
 > 1. **Posture chip.** Spec: always-visible "Posture" eyebrow + chip in the
 >    matter card. Code (`MatterNav.tsx:134`): gated behind `showPosture` (only
 >    caller passes `false`) *and* collapsed inside a `<details>` "Project
@@ -1240,18 +1238,3 @@ These ship in the global CSS and are not optional:
 - Inter loaded with `font-display: swap` — never `display=block`.
 
 ---
-
-# Reference files (read these before touching design)
-
-Committed verbatim into the repo at `docs/design-refs/` so they
-survive a Downloads-folder cleanup. Source-of-truth, never edit.
-
-- `docs/design-refs/warp-whitepaper.html` — Warp whitepaper HTML (patterns P2, P3, P4, P5, P6, P7, P8, P17 — Landing only)
-- `docs/design-refs/hypertrade-terminal.html` — HyperTrade Terminal HTML (RETIRED in v0.3; kept for historical lineage of P10 dense rows + P15 status pill only; not authoritative)
-- `docs/design-refs/warp-whitepaper.react.js` — Warp whitepaper as React (Landing conversion template; scroll-spy implementation lives here, copied verbatim into `src/landing/Landing.tsx`)
-- `docs/design-refs/memo-production.css` — Memo production CSS (token definitions, utility classes)
-- `https://memo-app-eta-tawny.vercel.app/` — Memo live (interaction patterns, motion)
-- `~/.claude/skills/variant-workflow/SKILL.md` — strict preservation rules
-
-Don't synthesise. If a pattern isn't lifted from one of the above,
-it doesn't belong in this design system.

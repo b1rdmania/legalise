@@ -1,11 +1,11 @@
-"""Phase 14.5 A — server-side reconstruction filters.
+"""Server-side reconstruction filters.
 
-Closes BACKEND_GAP_AUDIT 14-E-#1. Adds `invocation_id` and `action`
-query params to `GET /api/matters/{slug}/audit/reconstruction`. The
-load-bearing invariant is **filters apply BEFORE pagination**: a
-target row at the tail of a dense non-matching window must enter
-the first page response, not require the caller to chase
-`next_cursor` through irrelevant prefix rows.
+Pins `invocation_id` and `action` query params on
+`GET /api/matters/{slug}/audit/reconstruction`. The load-bearing
+invariant is **filters apply BEFORE pagination**: a target row at the
+tail of a dense non-matching window must enter the first page response,
+not require the caller to chase `next_cursor` through irrelevant prefix
+rows.
 """
 
 from __future__ import annotations
