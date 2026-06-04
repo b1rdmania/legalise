@@ -27,11 +27,14 @@ import {
   getDocumentEditSessions,
   getDocumentVersions,
   listGrants,
+  listArtifacts,
   listDocuments,
   listInstalledModules,
+  readArtifact,
   resolveDocumentComment,
   startDocumentEditSession,
   uploadDocumentVersion,
+  type ArtifactRead,
   type AnonymisationResult,
   type DocumentCommentRead,
   type DocumentBody,
@@ -132,6 +135,50 @@ function WorkbenchTab({
   );
 }
 
+function artifactReferencesDocument(artifact: ArtifactRead, documentId: string): boolean {
+  const payload = artifact.payload;
+  const documentRef = payload.document_id;
+  if (documentRef === documentId) return true;
+  const documentRefs = payload.document_ids;
+  if (Array.isArray(documentRefs) && documentRefs.includes(documentId)) return true;
+
+  const input = payload.input;
+  if (input && typeof input === "object") {
+    const inputRecord = input as Record<string, unknown>;
+    if (inputRecord.document_id === documentId) return true;
+    if (
+      Array.isArray(inputRecord.document_ids) &&
+      inputRecord.document_ids.includes(documentId)
+    ) {
+      return true;
+    }
+  }
+
+  const anchors = payload.source_anchors;
+  if (
+    Array.isArray(anchors) &&
+    anchors.some(
+      (anchor) =>
+        anchor &&
+        typeof anchor === "object" &&
+        (anchor as Record<string, unknown>).document_id === documentId,
+    )
+  ) {
+    return true;
+  }
+
+  const evidence = payload.evidence;
+  return (
+    Array.isArray(evidence) &&
+    evidence.some(
+      (row) =>
+        row &&
+        typeof row === "object" &&
+        (row as Record<string, unknown>).document_id === documentId,
+    )
+  );
+}
+
 export function DocumentDetail({
   slug,
   documentId,
@@ -173,6 +220,7 @@ export function DocumentDetail({
     useState<"loading" | "ready" | "error">("loading");
   const [activeRunnerSkill, setActiveRunnerSkill] =
     useState<RunnableMatterSkill | null>(null);
+  const [documentArtifacts, setDocumentArtifacts] = useState<ArtifactRead[] | null>(null);
   const workbenchRef = useRef<HTMLDivElement | null>(null);
   const notesRef = useRef<HTMLElement | null>(null);
   const skillsRef = useRef<HTMLElement | null>(null);
@@ -326,6 +374,33 @@ export function DocumentDetail({
     };
   }, [slug]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setDocumentArtifacts(null);
+    void listArtifacts(slug)
+      .then((rows) =>
+        Promise.all(
+          rows.slice(0, 40).map((row) =>
+            readArtifact(slug, row.id).catch(() => null),
+          ),
+        ),
+      )
+      .then((rows) => {
+        if (cancelled) return;
+        setDocumentArtifacts(
+          rows.filter((row): row is ArtifactRead =>
+            Boolean(row && artifactReferencesDocument(row, documentId)),
+          ),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setDocumentArtifacts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, documentId]);
+
   if (q.status === "loading") {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
@@ -428,6 +503,7 @@ export function DocumentDetail({
   const secondaryDocumentSkills = documentSkills.slice(1, 4);
   const reviewQueueTotal =
     pendingEdits + openComments.length + (activeEditSessions.length > 1 ? 1 : 0);
+  const citedOutputCount = documentArtifacts?.length ?? 0;
   const hasConcurrentSession = activeEditSessions.length > 1;
   const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
     .filter(
@@ -1131,6 +1207,62 @@ export function DocumentDetail({
               >
                 View Record
               </a>
+            </section>
+
+            <section
+              className="border border-rule bg-paper p-4"
+              data-testid="document-output-links"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Outputs using this file
+                  </p>
+                  <h2 className="mt-1 text-sm font-semibold text-ink">
+                    {documentArtifacts === null
+                      ? "Checking signed outputs..."
+                      : citedOutputCount === 0
+                        ? "No outputs cite this file yet."
+                        : `${citedOutputCount} output${citedOutputCount === 1 ? "" : "s"} ${
+                            citedOutputCount === 1 ? "cites" : "cite"
+                          } this file.`}
+                  </h2>
+                </div>
+                <a
+                  href={`/matters/${encodeURIComponent(slug)}/artifacts`}
+                  className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                >
+                  Signed outputs
+                </a>
+              </div>
+              {documentArtifacts && documentArtifacts.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {documentArtifacts.slice(0, 3).map((artifact) => (
+                    <a
+                      key={artifact.id}
+                      href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
+                      className="block border border-rule bg-paper-sunken px-3 py-2 text-sm hover:border-ink"
+                    >
+                      <span className="block font-semibold text-ink">
+                        {artifact.kind.replace(/_/g, " ")}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted">
+                        {artifact.module_id} · {artifact.created_at.replace("T", " ").slice(0, 16)}
+                      </span>
+                    </a>
+                  ))}
+                  {documentArtifacts.length > 3 && (
+                    <p className="text-xs text-muted">
+                      {documentArtifacts.length - 3} more in Signed outputs.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-muted">
+                  Run a document skill, then sign the output. When the output cites this
+                  file, it appears here and in the matter Record.
+                </p>
+              )}
             </section>
 
             <section className="border border-ink bg-paper p-4" data-testid="document-review-queue">

@@ -142,6 +142,8 @@ beforeEach(() => {
   });
   vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
   vi.spyOn(api, "listGrants").mockResolvedValue({ matter_id: "m-1", grants: [] });
+  vi.spyOn(api, "listArtifacts").mockResolvedValue([]);
+  vi.spyOn(api, "readArtifact").mockRejectedValue(new Error("not found"));
   vi.spyOn(api, "getDocumentVersions").mockResolvedValue([]);
   vi.spyOn(api, "getDocumentComments").mockResolvedValue([]);
   vi.spyOn(api, "getDocumentEditSessions").mockResolvedValue([]);
@@ -205,6 +207,9 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-next-step")).toHaveTextContent(
       "Start by reading or selecting text.",
     );
+    expect(await screen.findByTestId("document-output-links")).toHaveTextContent(
+      "No outputs cite this file yet.",
+    );
     expect(screen.getByText("Suggested edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Read / edit" })).toBeInTheDocument();
@@ -244,6 +249,55 @@ describe("DocumentDetail", () => {
     expect(link).toHaveTextContent("Download edited DOCX");
     expect(link.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
     expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+  });
+
+  it("links signed outputs that cite this document", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "listArtifacts").mockResolvedValue([
+      {
+        id: "art-1",
+        matter_id: "m-1",
+        module_id: "demo.guided-skill",
+        capability_id: "summarise",
+        invocation_id: "inv-1",
+        kind: "skill_response",
+        created_by_id: "u-1",
+        created_at: "2026-06-03T10:00:00",
+        size_bytes: 123,
+      },
+    ]);
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "art-1",
+      matter_id: "m-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      invocation_id: "inv-1",
+      kind: "skill_response",
+      created_by_id: "u-1",
+      created_at: "2026-06-03T10:00:00",
+      size_bytes: 123,
+      payload: {
+        output: "Summary",
+        source_anchors: [
+          {
+            id: "a1",
+            source_type: "document",
+            document_id: "doc-1",
+            filename: "claim-form.pdf",
+          },
+        ],
+      },
+    });
+
+    mount();
+
+    const links = await screen.findByTestId("document-output-links");
+    expect(links).toHaveTextContent("1 output cites this file.");
+    expect(screen.getByRole("link", { name: /skill response/i })).toHaveAttribute(
+      "href",
+      "/matters/khan/artifacts/art-1",
+    );
   });
 
   it("shows original file actions for uploaded versions in the version record", async () => {
