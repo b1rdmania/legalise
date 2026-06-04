@@ -202,8 +202,12 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-editor")).toBeInTheDocument();
     expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
     expect(screen.getByTestId("document-state-rail")).toBeInTheDocument();
+    expect(screen.getByTestId("document-next-step")).toHaveTextContent(
+      "Start by reading or selecting text.",
+    );
     expect(screen.getByText("Suggested edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Read / edit" })).toBeInTheDocument();
     expect(screen.queryByText("Version record")).toBeNull();
     // Admin-ish document facts sit behind File details; the primary scan
     // path is filename, text, original actions, review, skills, and versions.
@@ -216,7 +220,7 @@ describe("DocumentDetail", () => {
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
     expect(screen.getByRole("button", { name: "Compare versions" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View Record" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "View Record" }).length).toBeGreaterThan(0);
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
     expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Original" }));

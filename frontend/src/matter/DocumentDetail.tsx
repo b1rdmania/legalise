@@ -623,6 +623,48 @@ export function DocumentDetail({
     ]);
     setWorkbenchView("editor");
   };
+  const nextStep =
+    activeEditResult
+      ? {
+          eyebrow: "Review changes",
+          title: `${activeEditResult.pending_edits.length} redline${
+            activeEditResult.pending_edits.length === 1 ? "" : "s"
+          } ready.`,
+          body: "Review the model's suggested changes before they become a saved version.",
+          action: "Review redlines",
+          onClick: () => openWorkbenchView("redlines" as WorkbenchView),
+        }
+      : primaryDocumentSkill
+        ? {
+            eyebrow: "Run a skill",
+            title: `${primaryDocumentSkill.title} is ready for this file.`,
+            body: "Run a governed skill with this document selected, then review and sign the output.",
+            action: "Run with this file",
+            onClick: () => {
+              setActiveRunnerSkill(primaryDocumentSkill);
+              requestAnimationFrame(() => {
+                skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+              });
+            },
+          }
+        : openComments.length > 0
+          ? {
+              eyebrow: "Review notes",
+              title: `${openComments.length} open note${
+                openComments.length === 1 ? "" : "s"
+              } on this file.`,
+              body: "Open the review notes, resolve what is done, or add a new note from selected text.",
+              action: "Open notes",
+              onClick: () =>
+                notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
+            }
+          : {
+              eyebrow: "Read the file",
+              title: "Start by reading or selecting text.",
+              body: "The document is ready. Select a passage to add a note, or switch to the original preview.",
+              action: "Keep reading",
+              onClick: () => openWorkbenchView("editor" as WorkbenchView),
+            };
 
   return (
     <div className="bg-wash px-4 py-6 text-ink sm:px-6 lg:px-8">
@@ -753,7 +795,7 @@ export function DocumentDetail({
             active={workbenchView === "editor"}
             onClick={() => openWorkbenchView("editor")}
           >
-            Editor
+            Read / edit
           </WorkbenchTab>
           <WorkbenchTab
             active={workbenchView === "original"}
@@ -1065,6 +1107,32 @@ export function DocumentDetail({
           </main>
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+            <section
+              className="border border-ink bg-paper p-4"
+              data-testid="document-next-step"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                {nextStep.eyebrow}
+              </p>
+              <h2 className="mt-2 text-lg font-semibold tracking-tight2 text-ink">
+                {nextStep.title}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted">{nextStep.body}</p>
+              <button
+                type="button"
+                onClick={nextStep.onClick}
+                className="mt-4 border border-ink bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-black"
+              >
+                {nextStep.action}
+              </button>
+              <a
+                href={recordHref}
+                className="ml-3 inline-flex text-sm text-muted underline underline-offset-4 hover:text-ink"
+              >
+                View Record
+              </a>
+            </section>
+
             <section className="border border-ink bg-paper p-4" data-testid="document-review-queue">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -1077,8 +1145,8 @@ export function DocumentDetail({
                       : `${reviewQueueTotal} item${reviewQueueTotal === 1 ? "" : "s"} need attention.`}
                   </h2>
                 </div>
-                <span className="border border-ink bg-ink px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-paper">
-                  Workbench
+                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  Status
                 </span>
               </div>
               <div className="mt-4 grid gap-2 text-sm">
