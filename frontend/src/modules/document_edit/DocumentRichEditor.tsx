@@ -569,6 +569,48 @@ export function DocumentRichEditor({
     [documentId, reviewNoteExtension],
   );
 
+  async function loadSharedDraftFromServer({
+    allowWordImport = true,
+    reloadedMessage = null,
+    isCancelled = () => false,
+  }: {
+    allowWordImport?: boolean;
+    reloadedMessage?: string | null;
+    isCancelled?: () => boolean;
+  } = {}) {
+    if (!editor) return;
+    setDraftLoadState("loading");
+    const draft = await getDocumentWorkingDraft(documentId);
+    if (isCancelled()) return;
+    setServerDraft(draft);
+    draftBaseVersionIdRef.current = draft.base_version_id ?? latestVersionId ?? null;
+    draftVersionCounterRef.current = draft.version_counter;
+    const shouldImportWord =
+      allowWordImport &&
+      draft.version_counter === 0 &&
+      !draft.editor_json &&
+      isEditableWordDocument(filename, originalMimeType);
+    if (shouldImportWord) {
+      const imported = await importOriginalWordDraft();
+      if (isCancelled()) return;
+      if (imported) {
+        setDraftLoadState("ready");
+        return;
+      }
+    }
+    const draftContent = draft.editor_json ?? textToEditorHtml(draft.plain_text, sourceHighlight);
+    editor.commands.setContent(draftContent as Content, { emitUpdate: false });
+    const hasMutableDraft = draft.version_counter > 0;
+    setDraftBaselineText(initialText);
+    setDirty(hasMutableDraft);
+    onDirtyChange?.(hasMutableDraft);
+    setDraftLoadState("ready");
+    setDraftSaveState(hasMutableDraft ? "saved" : "idle");
+    setDraftConflict(null);
+    setError(null);
+    setSavedMessage(reloadedMessage ?? (hasMutableDraft ? "Shared draft loaded" : null));
+  }
+
   useEffect(() => {
     if (!editor) return;
     editor.commands.setContent(content, { emitUpdate: false });
@@ -594,34 +636,9 @@ export function DocumentRichEditor({
   useEffect(() => {
     if (!editor) return;
     let cancelled = false;
-    setDraftLoadState("loading");
-    getDocumentWorkingDraft(documentId)
-      .then(async (draft) => {
+    loadSharedDraftFromServer({ isCancelled: () => cancelled })
+      .then(() => {
         if (cancelled) return;
-        setServerDraft(draft);
-        draftBaseVersionIdRef.current = draft.base_version_id ?? latestVersionId ?? null;
-        draftVersionCounterRef.current = draft.version_counter;
-        const shouldImportWord =
-          draft.version_counter === 0 &&
-          !draft.editor_json &&
-          isEditableWordDocument(filename, originalMimeType);
-        if (shouldImportWord) {
-          const imported = await importOriginalWordDraft();
-          if (cancelled) return;
-          if (imported) {
-            setDraftLoadState("ready");
-            return;
-          }
-        }
-        const draftContent = draft.editor_json ?? textToEditorHtml(draft.plain_text, sourceHighlight);
-        editor.commands.setContent(draftContent as Content, { emitUpdate: false });
-        const hasMutableDraft = draft.version_counter > 0;
-        setDraftBaselineText(initialText);
-        setDirty(hasMutableDraft);
-        onDirtyChange?.(hasMutableDraft);
-        setDraftLoadState("ready");
-        setDraftSaveState(hasMutableDraft ? "saved" : "idle");
-        setSavedMessage(hasMutableDraft ? "Shared draft loaded" : null);
       })
       .catch(() => {
         if (cancelled) return;
@@ -632,6 +649,8 @@ export function DocumentRichEditor({
     return () => {
       cancelled = true;
     };
+    // loadSharedDraftFromServer captures editor-bound state and is intentionally scoped here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, editor, filename, initialText, latestVersionId, onDirtyChange, originalMimeType, sourceHighlight]);
 
   useEffect(() => {
@@ -1093,13 +1112,30 @@ export function DocumentRichEditor({
         </p>
       )}
       {draftSaveState === "error" && (
-        <p
-          className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
           data-testid="document-server-draft-error"
         >
-          {draftConflict ??
-            "Shared draft could not be saved. The browser copy is preserved locally; try saving again before leaving this file."}
-        </p>
+          <span>
+            {draftConflict ??
+              "Shared draft could not be saved. The browser copy is preserved locally; try saving again before leaving this file."}
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              loadSharedDraftFromServer({
+                allowWordImport: false,
+                reloadedMessage: "Shared draft reloaded",
+              }).catch((err) => {
+                setDraftSaveState("error");
+                setError(err instanceof Error ? err.message : String(err));
+              })
+            }
+            className="border border-amber-900 bg-paper px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+          >
+            Reload shared draft
+          </button>
+        </div>
       )}
       {originalImportState === "loading" && (
         <p className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
