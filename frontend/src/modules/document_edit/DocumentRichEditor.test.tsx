@@ -441,6 +441,11 @@ describe("DocumentRichEditor surface", () => {
     expect(await screen.findByTestId("document-server-draft-error")).toHaveTextContent(
       "The shared draft changed before this version save.",
     );
+    fireEvent.click(screen.getByRole("button", { name: "Reload shared draft" }));
+    await waitFor(() => {
+      expect(screen.queryByTestId("document-server-draft-error")).toBeNull();
+    });
+    expect(screen.getByTestId("document-editor")).toHaveTextContent("Shared draft saved · r3");
   });
 
   it("renders grouped document editing controls on a page canvas", async () => {
