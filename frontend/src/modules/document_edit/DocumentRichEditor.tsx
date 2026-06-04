@@ -5,7 +5,8 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import { Extension, type Content, type JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -146,6 +147,13 @@ function reviewNoteDecorationsExtension(noteHighlights: DocumentNoteHighlight[])
       ];
     },
   });
+}
+
+function selectedEditorText(editor: Editor | null): string {
+  if (!editor) return "";
+  const { from, to } = editor.state.selection;
+  if (from === to) return "";
+  return editor.state.doc.textBetween(from, to, " ").replace(/\s+/g, " ").trim();
 }
 
 export function findNormalizedRanges(
@@ -979,6 +987,19 @@ export function DocumentRichEditor({
     window.setTimeout(() => setCopiedMessage(null), 2000);
   }
 
+  async function copyEditorSelection() {
+    const selection = selectedEditorText(editor);
+    if (!selection) return;
+    await window.navigator.clipboard.writeText(selection);
+    setCopiedMessage("Copied selected passage");
+    window.setTimeout(() => setCopiedMessage(null), 2000);
+  }
+
+  function highlightEditorSelection() {
+    if (!editor || !selectedEditorText(editor)) return;
+    editor.chain().focus().toggleHighlight().run();
+  }
+
   function downloadWorkingText() {
     const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
@@ -1248,6 +1269,44 @@ export function DocumentRichEditor({
         >
           {copiedMessage}
         </p>
+      )}
+      {selectedQuote && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-ink bg-paper px-5 py-3"
+          data-testid="document-editor-selection-ribbon"
+        >
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-ink">
+              Selected passage
+            </p>
+            <p className="mt-1 max-w-3xl truncate text-sm text-muted">{selectedQuote}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void copySelectedQuote()}
+              className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              onClick={() => setFindQuery(selectedQuote)}
+              className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
+            >
+              Find in document
+            </button>
+            {onCreateNoteFromSelection && (
+              <button
+                type="button"
+                onClick={onCreateNoteFromSelection}
+                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+              >
+                Add review note
+              </button>
+            )}
+          </div>
+        </div>
       )}
       {draftSaveState === "error" && (
         <div
@@ -1602,6 +1661,44 @@ export function DocumentRichEditor({
         </aside>
         <div className="bg-[#f5f5f2] px-4 py-6 sm:px-8" data-testid="document-editor-canvas">
           <div className={`mx-auto ${canvasMaxWidth}`}>
+            {editor && (
+              <BubbleMenu
+                editor={editor}
+                shouldShow={({ editor: bubbleEditor }) =>
+                  selectedEditorText(bubbleEditor).length >= 3
+                }
+                options={{ placement: "top", offset: 8 }}
+              >
+                <div
+                  className="flex items-center gap-1 border border-ink bg-paper px-1.5 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+                  data-testid="document-editor-selection-menu"
+                >
+                  <button
+                    type="button"
+                    onClick={() => void copyEditorSelection()}
+                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={highlightEditorSelection}
+                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
+                  >
+                    Highlight
+                  </button>
+                  {onCreateNoteFromSelection && (
+                    <button
+                      type="button"
+                      onClick={onCreateNoteFromSelection}
+                      className="bg-ink px-2 py-1 text-xs font-semibold text-paper hover:bg-black"
+                    >
+                      Add note
+                    </button>
+                  )}
+                </div>
+              </BubbleMenu>
+            )}
             <EditorContent editor={editor} />
           </div>
         </div>
