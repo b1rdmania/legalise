@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import {
   clearDocumentLocalDraft,
@@ -22,6 +22,7 @@ const tableCell = (type: "tableCell" | "tableHeader", text: string): TiptapNode 
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   window.localStorage.clear();
   vi.restoreAllMocks();
 });
@@ -242,7 +243,7 @@ describe("DocumentRichEditor surface", () => {
     render(
       <DocumentRichEditor
         documentId="doc-1"
-        filename="draft.docx"
+        filename="draft.txt"
         initialText="Extracted fallback."
         latestVersionNumber={2}
         latestVersionId="version-1"
@@ -255,6 +256,70 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor")).toHaveTextContent("Shared draft saved · r3");
     expect(screen.getByTestId("document-working-diff")).toHaveTextContent("Unsaved changes");
     expect(screen.getByTestId("document-working-diff")).toHaveTextContent("Preview redline before saving");
+  });
+
+  it("refreshes a clean editor when a newer shared draft appears", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          document_id: "doc-1",
+          updated_by_id: null,
+          updated_at: null,
+          plain_text: "Extracted fallback.",
+          editor_json: null,
+          base_version_id: "version-1",
+          version_counter: 0,
+          client_id: null,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          document_id: "doc-1",
+          updated_by_id: "user-2",
+          updated_at: "2026-06-04T03:10:00Z",
+          plain_text: "Remote shared wording.",
+          editor_json: {
+            type: "doc",
+            content: [
+              {
+                type: "paragraph",
+                content: [{ type: "text", text: "Remote shared wording." }],
+              },
+            ],
+          },
+          base_version_id: "version-1",
+          version_counter: 1,
+          client_id: "other-client",
+        }),
+      );
+
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.txt"
+        initialText="Extracted fallback."
+        latestVersionNumber={2}
+        latestVersionId="version-1"
+        sourceLabel="extracted · 19 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId("document-editor-canvas")).toHaveTextContent(
+      "Extracted fallback.",
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(screen.getByTestId("document-editor-canvas")).toHaveTextContent(
+      "Remote shared wording.",
+    );
+    expect(screen.queryByTestId("document-remote-draft-notice")).toBeNull();
   });
 
   it("saves by committing the shared working draft", async () => {

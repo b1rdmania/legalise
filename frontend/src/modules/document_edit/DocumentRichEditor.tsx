@@ -47,6 +47,7 @@ type DocumentStats = { words: number; chars: number; blocks: number };
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
 type WorkingDiffPart = ReturnType<typeof buildVersionDiff>[number];
+const SHARED_DRAFT_POLL_MS = 15_000;
 type DocumentLocalDraft = {
   documentId: string;
   filename: string;
@@ -424,11 +425,13 @@ export function DocumentRichEditor({
   const [draftLoadState, setDraftLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [draftSaveState, setDraftSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [draftConflict, setDraftConflict] = useState<string | null>(null);
+  const [remoteDraftNotice, setRemoteDraftNotice] = useState<string | null>(null);
   const [originalImportState, setOriginalImportState] = useState<OriginalImportState>("idle");
   const [draftBaselineText, setDraftBaselineText] = useState(initialText);
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
+  const dirtyRef = useRef(false);
   const draftBaseVersionIdRef = useRef<string | null>(latestVersionId ?? null);
   const draftVersionCounterRef = useRef<number>(0);
   const draftClientIdRef = useRef<string>("");
@@ -472,6 +475,7 @@ export function DocumentRichEditor({
     draftBaseVersionIdRef.current = draft.base_version_id;
     draftVersionCounterRef.current = draft.version_counter;
     setDraftConflict(null);
+    setRemoteDraftNotice(null);
     setDraftSaveState("saved");
     return draft;
   }
@@ -561,6 +565,7 @@ export function DocumentRichEditor({
         });
         scheduleWorkingDraftSave(json, plainText);
         setDirty(true);
+        dirtyRef.current = true;
         onDirtyChange?.(true);
         setSavedMessage(null);
       },
@@ -603,10 +608,12 @@ export function DocumentRichEditor({
     const hasMutableDraft = draft.version_counter > 0;
     setDraftBaselineText(initialText);
     setDirty(hasMutableDraft);
+    dirtyRef.current = hasMutableDraft;
     onDirtyChange?.(hasMutableDraft);
     setDraftLoadState("ready");
     setDraftSaveState(hasMutableDraft ? "saved" : "idle");
     setDraftConflict(null);
+    setRemoteDraftNotice(null);
     setError(null);
     setSavedMessage(reloadedMessage ?? (hasMutableDraft ? "Shared draft loaded" : null));
   }
@@ -615,6 +622,7 @@ export function DocumentRichEditor({
     if (!editor) return;
     editor.commands.setContent(content, { emitUpdate: false });
     setDirty(false);
+    dirtyRef.current = false;
     onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
@@ -623,6 +631,7 @@ export function DocumentRichEditor({
     setDraftLoadState("loading");
     setDraftSaveState("idle");
     setDraftConflict(null);
+    setRemoteDraftNotice(null);
     setOriginalImportState("idle");
     setDraftBaselineText(initialText);
     draftBaseVersionIdRef.current = latestVersionId ?? null;
@@ -632,6 +641,10 @@ export function DocumentRichEditor({
       draftSaveTimerRef.current = null;
     }
   }, [content, documentId, editor, initialText, latestVersionId, onDirtyChange]);
+
+  useEffect(() => {
+    dirtyRef.current = dirty;
+  }, [dirty]);
 
   useEffect(() => {
     if (!editor) return;
@@ -652,6 +665,41 @@ export function DocumentRichEditor({
     // loadSharedDraftFromServer captures editor-bound state and is intentionally scoped here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, editor, filename, initialText, latestVersionId, onDirtyChange, originalMimeType, sourceHighlight]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const interval = window.setInterval(() => {
+      getDocumentWorkingDraft(documentId)
+        .then((draft) => {
+          if (draft.version_counter <= draftVersionCounterRef.current) return;
+          if (draft.client_id && draft.client_id === draftClientIdRef.current) return;
+          if (dirtyRef.current) {
+            setRemoteDraftNotice(
+              `A newer shared draft is available (r${draft.version_counter}). Reload it when you are ready.`,
+            );
+            return;
+          }
+          const draftContent =
+            draft.editor_json ?? textToEditorHtml(draft.plain_text, sourceHighlight);
+          editor.commands.setContent(draftContent as Content, { emitUpdate: false });
+          setServerDraft(draft);
+          draftBaseVersionIdRef.current = draft.base_version_id ?? latestVersionId ?? null;
+          draftVersionCounterRef.current = draft.version_counter;
+          setDraftBaselineText(initialText);
+          setDirty(draft.version_counter > 0);
+          dirtyRef.current = draft.version_counter > 0;
+          onDirtyChange?.(draft.version_counter > 0);
+          setDraftLoadState("ready");
+          setDraftSaveState(draft.version_counter > 0 ? "saved" : "idle");
+          setDraftConflict(null);
+          setRemoteDraftNotice(null);
+          setError(null);
+          setSavedMessage("Shared draft updated");
+        })
+        .catch(() => undefined);
+    }, SHARED_DRAFT_POLL_MS);
+    return () => window.clearInterval(interval);
+  }, [documentId, editor, initialText, latestVersionId, onDirtyChange, sourceHighlight]);
 
   useEffect(() => {
     return () => {
@@ -756,6 +804,7 @@ export function DocumentRichEditor({
         draftVersionCounterRef.current,
       );
       setDirty(false);
+      dirtyRef.current = false;
       onDirtyChange?.(false);
       setSavedMessage(`Saved v${version.version_number}`);
       setServerDraft(null);
@@ -764,6 +813,7 @@ export function DocumentRichEditor({
       draftVersionCounterRef.current = 0;
       setDraftSaveState("idle");
       setDraftConflict(null);
+      setRemoteDraftNotice(null);
       clearDocumentLocalDraft(documentId);
       setLocalDraft(null);
       onSaved(version);
@@ -809,10 +859,12 @@ export function DocumentRichEditor({
   function reset() {
     editor?.commands.setContent(content, { emitUpdate: false });
     setDirty(false);
+    dirtyRef.current = false;
     onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
     setDraftConflict(null);
+    setRemoteDraftNotice(null);
     setDraftBaselineText(initialText);
     clearDocumentLocalDraft(documentId);
     setLocalDraft(null);
@@ -823,6 +875,7 @@ export function DocumentRichEditor({
     editor.commands.setContent(localDraft.json, { emitUpdate: false });
     setDraftBaselineText(initialText);
     setDirty(true);
+    dirtyRef.current = true;
     onDirtyChange?.(true);
     scheduleWorkingDraftSave(localDraft.json, localDraft.plainText);
     setSavedMessage("Local draft restored. Save it to create a document version.");
@@ -1132,6 +1185,29 @@ export function DocumentRichEditor({
               })
             }
             className="border border-amber-900 bg-paper px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
+          >
+            Reload shared draft
+          </button>
+        </div>
+      )}
+      {remoteDraftNotice && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-paper-sunken px-5 py-2 text-xs leading-5 text-muted"
+          data-testid="document-remote-draft-notice"
+        >
+          <span>{remoteDraftNotice}</span>
+          <button
+            type="button"
+            onClick={() =>
+              loadSharedDraftFromServer({
+                allowWordImport: false,
+                reloadedMessage: "Shared draft reloaded",
+              }).catch((err) => {
+                setRemoteDraftNotice(null);
+                setError(err instanceof Error ? err.message : String(err));
+              })
+            }
+            className="border border-rule bg-paper px-3 py-1.5 text-xs font-semibold text-ink hover:border-ink"
           >
             Reload shared draft
           </button>
