@@ -66,10 +66,16 @@ describe("PdfDocumentViewer", () => {
     expect(screen.getByText("PDF reader")).toBeInTheDocument();
     expect(screen.getByText(/dismissal-letter.pdf/)).toBeInTheDocument();
     expect(screen.getByTestId("mock-pdf-page")).toHaveTextContent("Page 1");
+    expect(screen.getByTestId("pdf-page-index")).toHaveTextContent("Pages");
 
     await waitFor(() => {
       expect(screen.getByText("1 page · 1 / 1")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("pdf-page-index")).toHaveTextContent(
+      "The dismissal letter mentioned a single social-media post",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Page 2/i }));
+    expect(screen.getByTestId("mock-pdf-page")).toHaveTextContent("Page 2");
 
     await userEvent.clear(screen.getByPlaceholderText("Search text in this PDF"));
     await userEvent.type(screen.getByPlaceholderText("Search text in this PDF"), "dismissal");
