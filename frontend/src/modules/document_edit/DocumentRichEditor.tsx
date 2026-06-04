@@ -1493,6 +1493,70 @@ export function DocumentRichEditor({
           )}
           <span className="ml-auto text-xs text-muted">Cmd/Ctrl+S saves · Cmd/Ctrl+F finds</span>
         </div>
+        <div
+          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-5 py-3"
+          data-testid="document-editor-find-panel"
+        >
+          <label
+            htmlFor={`find-${documentId}`}
+            className="text-xs font-semibold uppercase tracking-track2 text-muted"
+          >
+            Find
+          </label>
+          <input
+            ref={findInputRef}
+            id={`find-${documentId}`}
+            type="search"
+            value={findQuery}
+            onChange={(event) => setFindQuery(event.target.value)}
+            onKeyDown={handleFindKeyDown}
+            placeholder="Search this document"
+            className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
+          />
+          <span className="text-xs text-muted" data-testid="document-editor-find-count">
+            {findQuery.trim().length >= 3
+              ? `${findMatches.length} match${findMatches.length === 1 ? "" : "es"}`
+              : "Type 3+ characters"}
+          </span>
+          <button
+            type="button"
+            onClick={() => moveFind(-1)}
+            disabled={findMatches.length === 0}
+            className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={() => moveFind(1)}
+            disabled={findMatches.length === 0}
+            className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+          >
+            Next
+          </button>
+          {findMatches.length > 0 && (
+            <span className="text-xs text-muted" data-testid="document-editor-find-position">
+              {findPositionLabel}
+            </span>
+          )}
+          {findQuery && (
+            <button
+              type="button"
+              onClick={() => setFindQuery("")}
+              className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+            >
+              Clear
+            </button>
+          )}
+          {findPreview && (
+            <p
+              className="basis-full text-xs leading-5 text-muted"
+              data-testid="document-editor-find-preview"
+            >
+              Match {findPositionLabel}: {findPreview}
+            </p>
+          )}
+        </div>
       </div>
 
       {copiedMessage && (
@@ -1686,70 +1750,6 @@ export function DocumentRichEditor({
           </details>
         </div>
       )}
-      <div
-        className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-5 py-3"
-        data-testid="document-editor-find-panel"
-      >
-        <label
-          htmlFor={`find-${documentId}`}
-          className="text-xs font-semibold uppercase tracking-track2 text-muted"
-        >
-          Find
-        </label>
-        <input
-          ref={findInputRef}
-          id={`find-${documentId}`}
-          type="search"
-          value={findQuery}
-          onChange={(event) => setFindQuery(event.target.value)}
-          onKeyDown={handleFindKeyDown}
-          placeholder="Search this document"
-          className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
-        />
-        <span className="text-xs text-muted" data-testid="document-editor-find-count">
-          {findQuery.trim().length >= 3
-            ? `${findMatches.length} match${findMatches.length === 1 ? "" : "es"}`
-            : "Type 3+ characters"}
-        </span>
-        <button
-          type="button"
-          onClick={() => moveFind(-1)}
-          disabled={findMatches.length === 0}
-          className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-        >
-          Previous
-        </button>
-        <button
-          type="button"
-          onClick={() => moveFind(1)}
-          disabled={findMatches.length === 0}
-          className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-        >
-          Next
-        </button>
-        {findMatches.length > 0 && (
-          <span className="text-xs text-muted" data-testid="document-editor-find-position">
-            {findPositionLabel}
-          </span>
-        )}
-        {findQuery && (
-          <button
-            type="button"
-            onClick={() => setFindQuery("")}
-            className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-          >
-            Clear
-          </button>
-        )}
-        {findPreview && (
-          <p
-            className="basis-full text-xs leading-5 text-muted"
-            data-testid="document-editor-find-preview"
-          >
-            Match {findPositionLabel}: {findPreview}
-          </p>
-        )}
-      </div>
       {error && (
         <p className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
           {error}
