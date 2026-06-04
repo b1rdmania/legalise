@@ -1101,18 +1101,6 @@ export function DocumentDetail({
               </div>
             </section>
 
-            <section className="border border-rule bg-paper p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Document intelligence
-              </p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
-                Review, edit, and preserve the file.
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                Proposed edits, human notes, active sessions, and version status stay with this document.
-              </p>
-            </section>
-
             <section
               ref={skillsRef}
               className="border border-rule bg-paper p-4"
@@ -1217,11 +1205,21 @@ export function DocumentDetail({
               </div>
             </section>
 
-            <section className="border border-rule bg-paper p-4">
-              <h2 className="text-sm font-semibold text-ink">
-                Version state
-              </h2>
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+            <section className="border border-rule bg-paper p-4" data-testid="document-state-rail">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Document state
+                  </p>
+                  <h2 className="mt-1 text-sm font-semibold text-ink">
+                    Versions, people, redaction, and file details.
+                  </h2>
+                </div>
+                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  v{latestVersion?.version_number ?? 1}
+                </span>
+              </div>
+              <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Pending</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">{pendingEdits}</dd>
@@ -1235,41 +1233,87 @@ export function DocumentDetail({
                   <dd className="mt-1 text-lg font-semibold text-ink">{rejectedEdits}</dd>
                 </div>
               </dl>
-            </section>
+              <div className="mt-4 space-y-3 text-sm">
+                <details className="border border-rule bg-paper-sunken p-3" open={hasConcurrentSession}>
+                  <summary className="cursor-pointer font-medium text-ink">
+                    Editing now · {activeEditSessions.length || 1} active
+                  </summary>
+                  <div className="mt-3 space-y-2">
+                    {activeEditSessions.length > 0 ? (
+                      activeEditSessions.map((session) => (
+                        <div
+                          key={session.id}
+                          className="flex items-center justify-between gap-3 border border-rule bg-paper px-3 py-2 text-sm"
+                        >
+                          <span className="font-medium text-ink">{session.user_label}</span>
+                          <span className="text-xs text-muted">
+                            {session.last_seen_at.replace("T", " ").slice(0, 16)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted">You are editing this document.</p>
+                    )}
+                    {hasConcurrentSession && (
+                      <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                        Another session is active. Agree who saves the next version before applying edits.
+                      </p>
+                    )}
+                  </div>
+                </details>
 
-            <section className="border border-rule bg-paper p-4" data-testid="document-edit-sessions">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-ink">Editing now</h2>
-                  <p className="mt-1 text-sm leading-6 text-muted">
-                    Active document sessions are visible here. Edits are preserved as versions so another person's save does not disappear into the file.
+                <details className="border border-rule bg-paper-sunken p-3">
+                  <summary className="cursor-pointer font-medium text-ink">
+                    Redaction
+                  </summary>
+                  <p className="mt-3 text-sm text-muted">
+                    {anon
+                      ? `Redacted body available · ${anon.entity_count} entities via ${anon.engine}, ${anon.anonymised_at.replace("T", " ").slice(0, 16)}.`
+                      : "No redacted body yet."}
                   </p>
-                </div>
-                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                  {activeEditSessions.length || 1} active
-                </span>
-              </div>
-              <div className="mt-3 space-y-2">
-                {activeEditSessions.length > 0 ? (
-                  activeEditSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="flex items-center justify-between gap-3 border border-rule bg-paper-sunken px-3 py-2 text-sm"
-                    >
-                      <span className="font-medium text-ink">{session.user_label}</span>
-                      <span className="text-xs text-muted">
-                        {session.last_seen_at.replace("T", " ").slice(0, 16)}
-                      </span>
+                  <div className="mt-3">
+                    <AnonymiseButton
+                      documentId={documentId}
+                      onResult={(r) => setAnon(r)}
+                    />
+                  </div>
+                </details>
+
+                <div className="border border-rule bg-paper-sunken p-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowDetails((v) => !v)}
+                    aria-expanded={showDetails}
+                    data-testid="document-details-toggle"
+                    className="flex w-full items-center justify-between text-left font-medium text-ink"
+                  >
+                    <span>File details</span>
+                    <span aria-hidden="true" className="text-xs text-muted">
+                      {showDetails ? "Hide" : "Show"}
+                    </span>
+                  </button>
+                  {showDetails && (
+                    <div className="mt-4 space-y-4">
+                      {body && !bodyMissing && body.error_reason && (
+                        <p className="text-xs text-muted">{body.error_reason}</p>
+                      )}
+                      <dl className="space-y-3 text-sm">
+                        <DescItem label="Type">
+                          <span className="font-mono text-xs">{doc.mime_type}</span>
+                        </DescItem>
+                        <DescItem label="Uploaded">
+                          {doc.uploaded_at.replace("T", " ").slice(0, 19)}
+                        </DescItem>
+                        <DescItem label="SHA-256">
+                          <span className="font-mono text-xs break-all">{doc.sha256}</span>
+                        </DescItem>
+                      </dl>
+                      <p className="text-xs text-muted">
+                        Original file access is recorded.
+                      </p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted">You are editing this document.</p>
-                )}
-                {hasConcurrentSession && (
-                  <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-                    Another session is active. Agree who saves the next version before applying edits.
-                  </p>
-                )}
+                  )}
+                </div>
               </div>
             </section>
 
@@ -1475,57 +1519,6 @@ export function DocumentDetail({
               </div>
             </section>
 
-            <section className="border border-rule bg-paper p-4">
-              <h2 className="text-sm font-semibold text-ink">Redaction</h2>
-              <p className="mt-2 text-sm text-muted">
-                {anon
-                  ? `Redacted body available — ${anon.entity_count} entities via ${anon.engine}, ${anon.anonymised_at.replace("T", " ").slice(0, 16)}.`
-                  : "No redacted body yet."}
-              </p>
-              <div className="mt-3">
-                <AnonymiseButton
-                  documentId={documentId}
-                  onResult={(r) => setAnon(r)}
-                />
-              </div>
-            </section>
-
-            <section className="border border-rule bg-paper p-4">
-              <button
-                type="button"
-                onClick={() => setShowDetails((v) => !v)}
-                aria-expanded={showDetails}
-                data-testid="document-details-toggle"
-                className="flex w-full items-center justify-between text-left"
-              >
-                <h2 className="text-sm font-semibold text-ink">Details</h2>
-                <span aria-hidden="true" className="text-xs text-muted">
-                  {showDetails ? "Hide" : "Show"}
-                </span>
-              </button>
-
-              {showDetails && (
-                <div className="mt-4 space-y-4">
-                  {body && !bodyMissing && body.error_reason && (
-                    <p className="text-xs text-muted">{body.error_reason}</p>
-                  )}
-                  <dl className="space-y-3 text-sm">
-                    <DescItem label="Type">
-                      <span className="font-mono text-xs">{doc.mime_type}</span>
-                    </DescItem>
-                    <DescItem label="Uploaded">
-                      {doc.uploaded_at.replace("T", " ").slice(0, 19)}
-                    </DescItem>
-                    <DescItem label="SHA-256">
-                      <span className="font-mono text-xs break-all">{doc.sha256}</span>
-                    </DescItem>
-                  </dl>
-                  <p className="text-xs text-muted">
-                    Original file access is audited.
-                  </p>
-                </div>
-              )}
-            </section>
           </aside>
         </div>
       </div>

@@ -201,12 +201,12 @@ describe("DocumentDetail", () => {
     // editable document surface without metadata disclosure first.
     expect(screen.getByTestId("document-editor")).toBeInTheDocument();
     expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
-    expect(screen.getByText("Document intelligence")).toBeInTheDocument();
+    expect(screen.getByTestId("document-state-rail")).toBeInTheDocument();
     expect(screen.getByText("Suggested edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
     expect(screen.queryByText("Version record")).toBeNull();
-    // Admin-ish document facts sit behind Details; the primary scan
-    // path is filename, text, original actions, and document tools.
+    // Admin-ish document facts sit behind File details; the primary scan
+    // path is filename, text, original actions, review, skills, and versions.
     expect(screen.queryByText("application/pdf")).toBeNull();
     expect(screen.queryByText(/a{8}/)).toBeNull();
     // Original-file actions are still present (secondary).
@@ -328,7 +328,7 @@ describe("DocumentDetail", () => {
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
   });
 
-  it("surfaces full metadata once the Details disclosure is opened", async () => {
+  it("surfaces full metadata once File details is opened", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue({
       document_id: "doc-1",
