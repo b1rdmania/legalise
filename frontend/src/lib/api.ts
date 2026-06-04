@@ -1616,6 +1616,14 @@ export const documentVersionDocxUrl = (
     versionId,
   )}/docx`;
 
+export const documentVersionPdfUrl = (
+  documentId: string,
+  versionId: string,
+): string =>
+  `${API}/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(
+    versionId,
+  )}/pdf`;
+
 export const documentVersionOriginalUrl = (
   documentId: string,
   versionId: string,
