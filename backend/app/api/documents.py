@@ -2142,6 +2142,44 @@ async def post_resolve_document_comment(
     return DocumentCommentRead.model_validate(comment)
 
 
+@router.post(
+    "/{document_id}/comments/{comment_id}/reopen",
+    response_model=DocumentCommentRead,
+)
+async def post_reopen_document_comment(
+    document_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentCommentRead:
+    """Reopen a resolved document review note."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    comment = await session.scalar(
+        select(DocumentComment).where(
+            DocumentComment.id == comment_id,
+            DocumentComment.document_id == doc.id,
+        )
+    )
+    if comment is None:
+        raise HTTPException(404, "document comment not found")
+    if comment.status == COMMENT_STATUS_RESOLVED:
+        comment.status = COMMENT_STATUS_OPEN
+        comment.resolved_at = None
+        comment.resolved_by_id = None
+        await audit.log(
+            session,
+            "document.comment.reopened",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="document_editor",
+            resource_type="document_comment",
+            resource_id=str(comment.id),
+            payload={"document_id": str(doc.id)},
+        )
+    await session.commit()
+    return DocumentCommentRead.model_validate(comment)
+
+
 def _result_from_redacted(body: DocumentBody) -> AnonymisationResult:
     """Reconstruct an AnonymisationResult from the persisted redacted body."""
     tokens: list[TokenMapping] = []
