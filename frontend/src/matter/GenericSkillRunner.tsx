@@ -343,27 +343,39 @@ function RunnerResult({
                 kindHint={artifact.kind}
                 matterSlug={slug}
               />
-              <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                <Link
-                  to="/matters/$slug/artifacts/$artifactId"
-                  params={{ slug, artifactId: artifact.id }}
-                  className="underline underline-offset-4 hover:text-ink"
-                >
-                  Open output →
-                </Link>
-                <Link
-                  to="/matters/$slug/artifacts/$artifactId/sign"
-                  params={{ slug, artifactId: artifact.id }}
-                  className="underline underline-offset-4 hover:text-ink"
-                >
-                  Review & sign →
-                </Link>
-                <a
-                  href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
-                  className="underline underline-offset-4 hover:text-ink"
-                >
-                  View Record for this run →
-                </a>
+              <div
+                className="mt-3 border border-ink bg-paper-sunken p-3"
+                data-testid={`generic-runner-next-steps-${artifact.id}`}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+                  Next step
+                </p>
+                <p className="mt-1 text-sm font-semibold text-ink">
+                  Review the output, sign it if you stand behind it, then use the Record as
+                  the receipt.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <Link
+                    to="/matters/$slug/artifacts/$artifactId/sign"
+                    params={{ slug, artifactId: artifact.id }}
+                    className="border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                  >
+                    Review & sign
+                  </Link>
+                  <Link
+                    to="/matters/$slug/artifacts/$artifactId"
+                    params={{ slug, artifactId: artifact.id }}
+                    className="border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
+                  >
+                    Open output
+                  </Link>
+                  <a
+                    href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
+                    className="border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
+                  >
+                    View Record
+                  </a>
+                </div>
               </div>
             </section>
           ))}

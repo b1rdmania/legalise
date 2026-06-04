@@ -90,6 +90,10 @@ describe("GenericSkillRunner", () => {
 
     expect(await screen.findByTestId("generic-runner-result")).toBeInTheDocument();
     expect(screen.getByText(/The witness statement says X/i)).toBeInTheDocument();
+    expect(screen.getByTestId("generic-runner-next-steps-artifact-1")).toHaveTextContent(
+      "Review the output, sign it if you stand behind it",
+    );
+    expect(screen.getByRole("link", { name: "Review & sign" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Close run/i }));
 
