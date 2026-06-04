@@ -29,6 +29,7 @@ function escapeHtml(value: string): string {
 type TextRange = { start: number; end: number };
 type OutlineItem = { id: string; label: string; query: string };
 type DocumentStats = { words: number; chars: number; blocks: number };
+type DocumentCanvasMode = "page" | "wide";
 type DocumentLocalDraft = {
   documentId: string;
   filename: string;
@@ -267,6 +268,30 @@ function ToolbarGroup({
   );
 }
 
+function ViewModeButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-8 items-center border px-3 text-xs font-semibold ${
+        active
+          ? "border-ink bg-ink text-paper"
+          : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function DocumentRichEditor({
   documentId,
   filename,
@@ -298,6 +323,7 @@ export function DocumentRichEditor({
   const [findQuery, setFindQuery] = useState("");
   const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
+  const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
   const content = useMemo<Content>(
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
@@ -394,6 +420,7 @@ export function DocumentRichEditor({
       : latestVersionNumber
         ? `Saved v${latestVersionNumber}`
         : "Extracted text";
+  const canvasMaxWidth = canvasMode === "page" ? "max-w-[820px]" : "max-w-[1040px]";
 
   useEffect(() => {
     setActiveFindIndex(0);
@@ -498,16 +525,82 @@ export function DocumentRichEditor({
 
   return (
     <section className="min-h-[760px] border border-rule bg-paper" data-testid="document-editor">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-5 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-ink">Document editor</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            {sourceLabel}
-            {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
-            {" · Cmd/Ctrl+S saves · Cmd/Ctrl+F finds"}
-          </p>
+      <div
+        className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur"
+        data-testid="document-editor-command-bar"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-3">
+          <div className="min-w-[220px]">
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Working copy
+            </p>
+            <h2 className="mt-1 text-sm font-semibold text-ink">Document editor</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              {sourceLabel}
+              {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="flex items-center gap-1 border-r border-rule pr-2"
+              aria-label="Document view"
+              data-testid="document-editor-view-mode"
+            >
+              <ViewModeButton active={canvasMode === "page"} onClick={() => setCanvasMode("page")}>
+                Page
+              </ViewModeButton>
+              <ViewModeButton active={canvasMode === "wide"} onClick={() => setCanvasMode("wide")}>
+                Wide
+              </ViewModeButton>
+            </div>
+            <button
+              type="button"
+              onClick={reset}
+              disabled={!dirty || saving}
+              className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyWorkingText()}
+              disabled={!plainText.trim()}
+              className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+            >
+              Copy text
+            </button>
+            <button
+              type="button"
+              onClick={downloadWorkingText}
+              disabled={!plainText.trim()}
+              className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+            >
+              Download text
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={!canSave}
+              className="inline-flex h-8 items-center border border-ink bg-ink px-3 text-xs font-semibold text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
+            >
+              {saving ? "Saving..." : "Save version"}
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${dirty ? "bg-amber-500" : "bg-emerald-700"}`}
+              aria-hidden="true"
+            />
+            {editorStatusLabel}. Every save creates a new version.
+          </span>
+          <span className="font-mono uppercase tracking-track2" data-testid="document-editor-stats">
+            {stats.words.toLocaleString()} words · {stats.chars.toLocaleString()} chars ·{" "}
+            {stats.blocks.toLocaleString()} blocks
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-5 py-2">
           {editor && (
             <>
               <ToolbarGroup label="Style">
@@ -632,38 +725,7 @@ export function DocumentRichEditor({
               </ToolbarGroup>
             </>
           )}
-          <button
-            type="button"
-            onClick={reset}
-            disabled={!dirty || saving}
-            className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={() => void copyWorkingText()}
-            disabled={!plainText.trim()}
-            className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Copy text
-          </button>
-          <button
-            type="button"
-            onClick={downloadWorkingText}
-            disabled={!plainText.trim()}
-            className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Download text
-          </button>
-          <button
-            type="button"
-            onClick={save}
-            disabled={!canSave}
-            className="inline-flex h-8 items-center border border-ink bg-ink px-3 text-xs font-semibold text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
-          >
-            {saving ? "Saving..." : "Save version"}
-          </button>
+          <span className="ml-auto text-xs text-muted">Cmd/Ctrl+S saves · Cmd/Ctrl+F finds</span>
         </div>
       </div>
 
@@ -675,19 +737,6 @@ export function DocumentRichEditor({
           {copiedMessage}
         </p>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
-        <span className="inline-flex items-center gap-2">
-          <span
-            className={`h-2 w-2 rounded-full ${dirty ? "bg-amber-500" : "bg-emerald-700"}`}
-            aria-hidden="true"
-          />
-          {editorStatusLabel}. Every save creates a new version.
-        </span>
-        <span className="font-mono uppercase tracking-track2" data-testid="document-editor-stats">
-          {stats.words.toLocaleString()} words · {stats.chars.toLocaleString()} chars ·{" "}
-          {stats.blocks.toLocaleString()} blocks
-        </span>
-      </div>
       {localDraft && (
         <div
           className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-amber-50 px-5 py-3 text-sm text-ink"
@@ -715,7 +764,10 @@ export function DocumentRichEditor({
           </span>
         </div>
       )}
-      <div className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-5 py-3">
+      <div
+        className="flex flex-wrap items-center gap-3 border-b border-rule bg-paper px-5 py-3"
+        data-testid="document-editor-find-panel"
+      >
         <label
           htmlFor={`find-${documentId}`}
           className="text-xs font-semibold uppercase tracking-track2 text-muted"
@@ -849,11 +901,8 @@ export function DocumentRichEditor({
             </div>
           </div>
         </aside>
-        <div
-          className="bg-[#f5f5f2] px-4 py-6 sm:px-8"
-          data-testid="document-editor-canvas"
-        >
-          <div className="mx-auto max-w-[840px]">
+        <div className="bg-[#f5f5f2] px-4 py-6 sm:px-8" data-testid="document-editor-canvas">
+          <div className={`mx-auto ${canvasMaxWidth}`}>
             <EditorContent editor={editor} />
           </div>
         </div>
