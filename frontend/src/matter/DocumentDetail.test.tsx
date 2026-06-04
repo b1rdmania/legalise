@@ -317,6 +317,7 @@ describe("DocumentDetail", () => {
     expect(ask.getAttribute("href")).toContain("document=doc-1");
     expect(screen.getAllByRole("link", { name: "View Record" }).length).toBeGreaterThan(0);
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
+    expect(screen.queryByTestId("document-download-edited-pdf")).toBeNull();
     expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Original" }));
     expect(await screen.findByTestId("pdf-document-viewer")).toBeInTheDocument();
@@ -326,7 +327,7 @@ describe("DocumentDetail", () => {
     ).toBeNull();
   });
 
-  it("offers edited DOCX download when a saved resolved version exists", async () => {
+  it("offers edited DOCX and PDF downloads when a saved resolved version exists", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc({ filename: "witness.docx" })]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
     vi.spyOn(api, "getDocumentVersions").mockResolvedValue([
@@ -338,6 +339,9 @@ describe("DocumentDetail", () => {
     const link = await screen.findByTestId("document-download-edited-docx");
     expect(link).toHaveTextContent("Download edited DOCX");
     expect(link.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/docx");
+    const pdf = screen.getByTestId("document-download-edited-pdf");
+    expect(pdf).toHaveTextContent("Download PDF");
+    expect(pdf.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/pdf");
     expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
   });
 
@@ -450,6 +454,9 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
       "/documents/doc-1/versions/v-3/docx",
     );
+    expect(screen.getByTestId("document-download-edited-pdf").getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-3/pdf",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Versions" }));
     expect(screen.getByLabelText("Compare against")).toHaveValue("__extracted");
@@ -470,6 +477,9 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
       "/documents/doc-1/versions/v-2/docx",
     );
+    expect(screen.getByTestId("document-download-edited-pdf").getAttribute("href")).toContain(
+      "/documents/doc-1/versions/v-2/pdf",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Versions" }));
     fireEvent.click(screen.getByRole("button", { name: "Extracted text" }));
@@ -478,6 +488,7 @@ describe("DocumentDetail", () => {
     });
     await expectEditorText(container, "Original body");
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
+    expect(screen.queryByTestId("document-download-edited-pdf")).toBeNull();
   });
 
   it("surfaces full metadata once File details is opened", async () => {

@@ -18,6 +18,7 @@ import {
   createDocumentComment,
   documentOriginalUrl,
   documentVersionDocxUrl,
+  documentVersionPdfUrl,
   endDocumentEditSession,
   type EditInstructionResponse,
   getAnonymisation,
@@ -944,6 +945,13 @@ export function DocumentDetail({
                     data-testid="document-download-edited-docx"
                   >
                     Download edited DOCX
+                  </a>
+                  <a
+                    href={documentVersionPdfUrl(documentId, selectedResolvedVersion.id)}
+                    className="inline-flex items-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                    data-testid="document-download-edited-pdf"
+                  >
+                    Download PDF
                   </a>
                   {comments.length > 0 && (
                     <p className="text-[11px] leading-4 text-muted">

@@ -870,6 +870,53 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
 
 
 @pytest.mark.asyncio
+async def test_get_manual_document_version_pdf_exports_print_copy(client, monkeypatch) -> None:
+    """Saved rich-editor versions can be exported as a PDF through the document route."""
+    import app.api.documents as documents_api
+
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Original body")
+
+    captured_html: dict[str, str] = {}
+
+    async def fake_html_to_pdf(html_doc: str) -> bytes:
+        captured_html["html"] = html_doc
+        return b"%PDF-1.4 legalise edited document\n"
+
+    monkeypatch.setattr(documents_api, "_html_to_pdf", fake_html_to_pdf)
+    save = await client.post(
+        f"/api/documents/{doc_id}/versions/manual",
+        json={
+            "resolved_text": "Edited body",
+            "resolved_json": {
+                "type": "doc",
+                "content": [
+                    {
+                        "type": "heading",
+                        "attrs": {"level": 2},
+                        "content": [{"type": "text", "text": "Edited heading"}],
+                    },
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "Edited body"}],
+                    },
+                ],
+            },
+        },
+    )
+    assert save.status_code == 200, save.text
+    version_id = save.json()["id"]
+
+    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/pdf")
+    assert resp.status_code == 200, resp.text
+    assert resp.headers["content-type"].startswith("application/pdf")
+    assert resp.headers.get("content-disposition", "").endswith('.pdf"')
+    assert resp.content.startswith(b"%PDF-1.4")
+    assert "Edited heading" in captured_html["html"]
+    assert "Edited body" in captured_html["html"]
+
+
+@pytest.mark.asyncio
 async def test_get_upload_document_version_docx_without_resolved_text_returns_422(client) -> None:
     """Upload versions without resolved_text are not exportable through the editor path."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)

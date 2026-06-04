@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import io
+import base64
 import hashlib
+import html
 import re
 import uuid
 from dataclasses import dataclass
@@ -12,6 +14,7 @@ from urllib.parse import unquote, urlparse
 
 from typing import Any, Literal
 
+import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from docx import Document as DocxDocument
@@ -40,6 +43,7 @@ from app.core.text_extraction import extract as extract_text
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.api import audit, audit_failure
+from app.core.config import settings
 from app.models import (
     AuditEntry,
     COMMENT_STATUS_OPEN,
@@ -512,6 +516,14 @@ def _docx_export_filename(filename: str, version_number: int) -> str:
     return f"{cleaned}-v{version_number}.docx"
 
 
+def _pdf_export_filename(filename: str, version_number: int) -> str:
+    stem = filename.rsplit(".", 1)[0] if "." in filename else filename
+    cleaned = _FILENAME_SAFE_RE.sub("-", stem).strip("-._")[:80].rstrip("-._")
+    if not cleaned:
+        cleaned = "document"
+    return f"{cleaned}-v{version_number}.pdf"
+
+
 async def _owned_live_document(
     session: AsyncSession,
     document_id: uuid.UUID,
@@ -796,6 +808,33 @@ def _add_tiptap_image(paragraph, attrs: dict[str, Any], context: DocumentAssetCo
     return True
 
 
+def _mime_from_filename(filename: str | None) -> str:
+    suffix = filename.rsplit(".", 1)[-1].lower() if filename and "." in filename else ""
+    return {
+        "gif": "image/gif",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp",
+    }.get(suffix, "application/octet-stream")
+
+
+def _tiptap_image_data_uri(attrs: dict[str, Any], context: DocumentAssetContext | None) -> str | None:
+    key = _document_asset_key_from_src(
+        attrs.get("src") if isinstance(attrs.get("src"), str) else None,
+        context,
+    )
+    if key is None:
+        return None
+    try:
+        data = get_storage_backend().get_bytes(key)
+    except (KeyError, StorageReadError):
+        return None
+    mime_type = _mime_from_filename(attrs.get("src") if isinstance(attrs.get("src"), str) else key)
+    encoded = base64.b64encode(data).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
 def _add_tiptap_inline_content(
     paragraph,
     nodes: list[dict[str, Any]] | None,
@@ -986,6 +1025,208 @@ def _add_tiptap_table(document: DocxDocument, node: dict[str, Any]) -> None:
                 for para in table_cell.paragraphs:
                     for run in para.runs:
                         run.bold = True
+
+
+def _html_attrs(attrs: dict[str, str]) -> str:
+    pairs = [
+        f'{name}="{html.escape(value, quote=True)}"'
+        for name, value in attrs.items()
+        if value
+    ]
+    return " " + " ".join(pairs) if pairs else ""
+
+
+def _tiptap_inline_html(
+    nodes: list[dict[str, Any]] | None,
+    asset_context: DocumentAssetContext | None = None,
+) -> str:
+    parts: list[str] = []
+    for node in nodes or []:
+        node_type = node.get("type")
+        if node_type == "text":
+            text = html.escape(str(node.get("text") or ""))
+            for mark in node.get("marks") or []:
+                if not isinstance(mark, dict):
+                    continue
+                mark_type = mark.get("type")
+                if mark_type == "bold":
+                    text = f"<strong>{text}</strong>"
+                elif mark_type == "italic":
+                    text = f"<em>{text}</em>"
+                elif mark_type == "underline":
+                    text = f"<u>{text}</u>"
+                elif mark_type == "highlight":
+                    text = f"<mark>{text}</mark>"
+                elif mark_type == "textStyle":
+                    color = (mark.get("attrs") or {}).get("color")
+                    if _rgb_from_hex(color) is not None:
+                        text = f'<span style="color:{html.escape(str(color))}">{text}</span>'
+            parts.append(text)
+        elif node_type == "hardBreak":
+            parts.append("<br/>")
+        elif node_type == "image":
+            attrs = node.get("attrs") or {}
+            alt = html.escape(str(attrs.get("alt") or "image"))
+            data_uri = _tiptap_image_data_uri(attrs, asset_context)
+            if data_uri:
+                parts.append(f'<img src="{data_uri}" alt="{alt}" />')
+            else:
+                parts.append(f'<em class="image-placeholder">[image: {alt}]</em>')
+        elif isinstance(node.get("content"), list):
+            parts.append(_tiptap_inline_html(node.get("content"), asset_context))
+    return "".join(parts)
+
+
+def _tiptap_block_html(
+    node: dict[str, Any],
+    asset_context: DocumentAssetContext | None = None,
+) -> str:
+    node_type = node.get("type")
+    attrs = node.get("attrs") or {}
+    align = attrs.get("textAlign") if attrs.get("textAlign") in {"left", "center", "right"} else None
+    align_attr = _html_attrs({"style": f"text-align:{align}"} if align else {})
+    if node_type == "paragraph":
+        return f"<p{align_attr}>{_tiptap_inline_html(node.get('content'), asset_context)}</p>"
+    if node_type == "heading":
+        level = max(1, min(int(attrs.get("level") or 2), 4))
+        return f"<h{level}{align_attr}>{_tiptap_inline_html(node.get('content'), asset_context)}</h{level}>"
+    if node_type == "bulletList":
+        items = "".join(
+            f"<li>{_tiptap_inline_html(child.get('content'), asset_context)}</li>"
+            if isinstance(child, dict) and child.get("type") == "listItem"
+            else ""
+            for child in node.get("content") or []
+        )
+        return f"<ul>{items}</ul>"
+    if node_type == "orderedList":
+        items = "".join(
+            f"<li>{_tiptap_inline_html(child.get('content'), asset_context)}</li>"
+            if isinstance(child, dict) and child.get("type") == "listItem"
+            else ""
+            for child in node.get("content") or []
+        )
+        return f"<ol>{items}</ol>"
+    if node_type == "taskList":
+        items = []
+        for child in node.get("content") or []:
+            if not isinstance(child, dict) or child.get("type") != "taskItem":
+                continue
+            checked = "x" if (child.get("attrs") or {}).get("checked") else " "
+            items.append(
+                f"<li><span class=\"task-box\">[{checked}]</span> "
+                f"{_tiptap_inline_html(child.get('content'), asset_context)}</li>"
+            )
+        return f"<ul class=\"task-list\">{''.join(items)}</ul>"
+    if node_type == "image":
+        return f"<figure>{_tiptap_inline_html([node], asset_context)}</figure>"
+    if node_type == "table":
+        rows = []
+        for row in node.get("content") or []:
+            if not isinstance(row, dict) or row.get("type") != "tableRow":
+                continue
+            cells = []
+            for cell in row.get("content") or []:
+                if not isinstance(cell, dict):
+                    continue
+                tag = "th" if cell.get("type") == "tableHeader" else "td"
+                cells.append(f"<{tag}>{html.escape(_tiptap_cell_text(cell))}</{tag}>")
+            rows.append(f"<tr>{''.join(cells)}</tr>")
+        return f"<table>{''.join(rows)}</table>"
+    return ""
+
+
+def _render_tiptap_html_body(
+    body_json: dict[str, Any] | None,
+    fallback_text: str,
+    asset_context: DocumentAssetContext | None = None,
+) -> str:
+    if (
+        not body_json
+        or body_json.get("type") != "doc"
+        or not isinstance(body_json.get("content"), list)
+    ):
+        return "".join(
+            f"<p>{html.escape(part)}</p>"
+            for part in re.split(r"\n{2,}", fallback_text)
+            if part.strip()
+        )
+    return "".join(
+        _tiptap_block_html(node, asset_context)
+        for node in body_json.get("content") or []
+        if isinstance(node, dict)
+    )
+
+
+def _render_document_version_html(
+    title: str,
+    version: DocumentVersion,
+    comments: list[DocumentComment],
+    asset_context: DocumentAssetContext,
+) -> str:
+    body_html = _render_tiptap_html_body(
+        version.resolved_json,
+        version.resolved_text or "",
+        asset_context,
+    )
+    comments_html = "".join(
+        f"<li><strong>{html.escape(comment.status)}</strong> "
+        f"{html.escape(comment.body)}</li>"
+        for comment in comments
+    )
+    comments_section = (
+        f"<section><h2>Review notes</h2><ul>{comments_html}</ul></section>"
+        if comments_html
+        else ""
+    )
+    rendered_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{html.escape(title)} v{version.version_number}</title>
+<style>
+  @page {{ size: A4; margin: 22mm 18mm; }}
+  body {{ font-family: Inter, Helvetica, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #1f2124; }}
+  h1 {{ font-size: 22pt; margin: 0 0 8pt; }}
+  h2 {{ font-size: 14pt; margin: 18pt 0 6pt; border-bottom: 1px solid #d4d4d4; padding-bottom: 4pt; }}
+  h3 {{ font-size: 12pt; margin: 14pt 0 5pt; }}
+  .meta {{ font-family: "Courier New", monospace; font-size: 9pt; color: #5d5e61; margin-bottom: 16pt; }}
+  p {{ margin: 0 0 9pt; }}
+  mark {{ background: #fff1a8; padding: 0 1pt; }}
+  img {{ max-width: 100%; height: auto; margin: 8pt 0; }}
+  figure {{ margin: 10pt 0; }}
+  table {{ border-collapse: collapse; width: 100%; margin: 10pt 0; font-size: 10pt; }}
+  th, td {{ border: 1px solid #d4d4d4; padding: 5pt 7pt; text-align: left; vertical-align: top; }}
+  th {{ background: #f3f3f3; font-weight: 600; }}
+  ul, ol {{ padding-left: 18pt; }}
+  li {{ margin-bottom: 5pt; }}
+  .task-list {{ list-style: none; padding-left: 0; }}
+  .task-box {{ font-family: "Courier New", monospace; color: #5d5e61; }}
+  .image-placeholder {{ color: #5d5e61; }}
+  footer {{ margin-top: 24pt; padding-top: 6pt; border-top: 1px solid #d4d4d4; font-family: "Courier New", monospace; font-size: 9pt; color: #5d5e61; }}
+</style>
+</head>
+<body>
+  <h1>{html.escape(title)}</h1>
+  <div class="meta">version: {version.version_number} · rendered: {rendered_at}</div>
+  <main>{body_html}</main>
+  {comments_section}
+  <footer>Legalise document export · {rendered_at}</footer>
+</body>
+</html>"""
+
+
+async def _html_to_pdf(html_doc: str) -> bytes:
+    files = {"files": ("index.html", html_doc, "text/html")}
+    url = f"{settings.gotenberg_url.rstrip('/')}/forms/chromium/convert/html"
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(url, files=files)
+    except httpx.HTTPError as exc:
+        raise RuntimeError(f"Gotenberg unreachable at {url}: {exc}") from exc
+    if resp.status_code != 200:
+        raise RuntimeError(f"Gotenberg returned {resp.status_code}: {resp.text[:200]}")
+    return resp.content
 
 
 def _render_tiptap_docx(
@@ -2009,6 +2250,79 @@ async def get_document_version_docx(
     return StreamingResponse(
         iter([data]),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(data)),
+        },
+    )
+
+
+@router.get("/{document_id}/versions/{version_id}/pdf")
+async def get_document_version_pdf(
+    document_id: uuid.UUID,
+    version_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> StreamingResponse:
+    """Download a saved document version as a print-ready PDF."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    version = await session.scalar(
+        select(DocumentVersion).where(
+            DocumentVersion.id == version_id,
+            DocumentVersion.document_id == doc.id,
+        )
+    )
+    if version is None:
+        raise HTTPException(404, "document version not found")
+    if not version.resolved_text:
+        raise HTTPException(422, "document version has no resolved text")
+
+    comments = (
+        await session.execute(
+            select(DocumentComment)
+            .where(DocumentComment.document_id == doc.id)
+            .order_by(DocumentComment.created_at.asc(), DocumentComment.id.asc())
+        )
+    ).scalars().all()
+    html_doc = _render_document_version_html(
+        doc.filename,
+        version,
+        comments,
+        DocumentAssetContext(user.id, matter.id, doc.id),
+    )
+    try:
+        data = await _html_to_pdf(html_doc)
+    except RuntimeError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": "pdf_export_failed",
+                "message": str(exc),
+            },
+        ) from exc
+    filename = _pdf_export_filename(doc.filename, version.version_number)
+    await audit.log(
+        session,
+        "document.version.pdf.exported",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_version",
+        resource_id=str(version.id),
+        payload={
+            "document_id": str(doc.id),
+            "version_number": version.version_number,
+            "char_count": len(version.resolved_text),
+            "byte_count": len(data),
+            "format": "pdf",
+            "rich_json": version.resolved_json is not None,
+            "review_note_count": len(comments),
+        },
+    )
+    await session.commit()
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/pdf",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Content-Length": str(len(data)),
