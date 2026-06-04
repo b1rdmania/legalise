@@ -648,7 +648,7 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
     expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download text" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Download DOCX" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download DOCX" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Copy text" }));
     await waitFor(() => {
       expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
