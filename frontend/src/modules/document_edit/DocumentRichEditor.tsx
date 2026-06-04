@@ -13,6 +13,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -608,6 +609,9 @@ export function DocumentRichEditor({
           HTMLAttributes: {
             class: "text-ink underline underline-offset-4",
           },
+        }),
+        TextAlign.configure({
+          types: ["heading", "paragraph"],
         }),
         findExtension,
         reviewNoteExtension,
@@ -1222,6 +1226,29 @@ export function DocumentRichEditor({
                   }
                 >
                   Unlink
+                </ToolbarButton>
+              </ToolbarGroup>
+              <ToolbarGroup label="Align">
+                <ToolbarButton
+                  label="Align left"
+                  active={editor.isActive({ textAlign: "left" })}
+                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                >
+                  L
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Align centre"
+                  active={editor.isActive({ textAlign: "center" })}
+                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                >
+                  C
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Align right"
+                  active={editor.isActive({ textAlign: "right" })}
+                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                >
+                  R
                 </ToolbarButton>
               </ToolbarGroup>
               <ToolbarGroup label="Lists">

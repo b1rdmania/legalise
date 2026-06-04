@@ -646,6 +646,9 @@ describe("DocumentRichEditor surface", () => {
     expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove link" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Align left" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Align centre" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Align right" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
     expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
     expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();
