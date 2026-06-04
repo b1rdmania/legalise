@@ -18,8 +18,11 @@ import TableRow from "@tiptap/extension-table-row";
 import type { Content, JSONContent } from "@tiptap/core";
 
 import {
-  saveDocumentVersion,
+  commitDocumentWorkingDraft,
+  getDocumentWorkingDraft,
+  saveDocumentWorkingDraft,
   type DocumentVersionRead,
+  type DocumentWorkingDraftRead,
 } from "../../lib/api";
 
 export type TiptapNode = JSONContent;
@@ -304,6 +307,7 @@ export function DocumentRichEditor({
   initialText,
   initialJson,
   latestVersionNumber,
+  latestVersionId,
   sourceLabel,
   sourceHighlight,
   noteHighlights = [],
@@ -318,6 +322,7 @@ export function DocumentRichEditor({
   initialText: string;
   initialJson?: TiptapNode | null;
   latestVersionNumber?: number;
+  latestVersionId?: string | null;
   sourceLabel: string;
   sourceHighlight?: string | null;
   noteHighlights?: DocumentNoteHighlight[];
@@ -335,12 +340,55 @@ export function DocumentRichEditor({
   const [findQuery, setFindQuery] = useState("");
   const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
+  const [serverDraft, setServerDraft] = useState<DocumentWorkingDraftRead | null>(null);
+  const [draftLoadState, setDraftLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [draftSaveState, setDraftSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
+  const draftSaveTimerRef = useRef<number | null>(null);
+  const draftBaseVersionIdRef = useRef<string | null>(latestVersionId ?? null);
+  const draftClientIdRef = useRef<string>("");
+  if (!draftClientIdRef.current) {
+    const suffix =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    draftClientIdRef.current = `document-editor-${suffix}`;
+  }
   const content = useMemo<Content>(
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
     [initialJson, initialText, sourceHighlight],
   );
+  async function persistWorkingDraft(
+    editorJson: TiptapNode,
+    plainText: string,
+  ): Promise<DocumentWorkingDraftRead> {
+    setDraftSaveState("saving");
+    const draft = await saveDocumentWorkingDraft(documentId, {
+      plain_text: plainText,
+      editor_json: editorJson as Record<string, unknown>,
+      base_version_id: draftBaseVersionIdRef.current,
+      client_id: draftClientIdRef.current,
+    });
+    setServerDraft(draft);
+    draftBaseVersionIdRef.current = draft.base_version_id;
+    setDraftSaveState("saved");
+    return draft;
+  }
+
+  function scheduleWorkingDraftSave(editorJson: TiptapNode, plainText: string) {
+    if (draftSaveTimerRef.current !== null) {
+      window.clearTimeout(draftSaveTimerRef.current);
+    }
+    setDraftSaveState("saving");
+    draftSaveTimerRef.current = window.setTimeout(() => {
+      draftSaveTimerRef.current = null;
+      persistWorkingDraft(editorJson, plainText).catch(() => {
+        setDraftSaveState("error");
+      });
+    }, 900);
+  }
+
   const editor = useEditor(
     {
       extensions: [
@@ -379,6 +427,7 @@ export function DocumentRichEditor({
           plainText,
           json,
         });
+        scheduleWorkingDraftSave(json, plainText);
         setDirty(true);
         onDirtyChange?.(true);
         setSavedMessage(null);
@@ -396,7 +445,51 @@ export function DocumentRichEditor({
     setError(null);
     setSavedMessage(null);
     setLocalDraft(readDocumentLocalDraft(documentId));
-  }, [content, documentId, editor, onDirtyChange]);
+    setServerDraft(null);
+    setDraftLoadState("loading");
+    setDraftSaveState("idle");
+    draftBaseVersionIdRef.current = latestVersionId ?? null;
+    if (draftSaveTimerRef.current !== null) {
+      window.clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
+  }, [content, documentId, editor, latestVersionId, onDirtyChange]);
+
+  useEffect(() => {
+    if (!editor) return;
+    let cancelled = false;
+    setDraftLoadState("loading");
+    getDocumentWorkingDraft(documentId)
+      .then((draft) => {
+        if (cancelled) return;
+        setServerDraft(draft);
+        draftBaseVersionIdRef.current = draft.base_version_id ?? latestVersionId ?? null;
+        const draftContent = draft.editor_json ?? textToEditorHtml(draft.plain_text, sourceHighlight);
+        editor.commands.setContent(draftContent as Content, { emitUpdate: false });
+        const hasMutableDraft = draft.version_counter > 0;
+        setDirty(hasMutableDraft);
+        onDirtyChange?.(hasMutableDraft);
+        setDraftLoadState("ready");
+        setDraftSaveState(hasMutableDraft ? "saved" : "idle");
+        setSavedMessage(hasMutableDraft ? "Shared draft loaded" : null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDraftLoadState("error");
+        setDraftSaveState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId, editor, latestVersionId, onDirtyChange, sourceHighlight]);
+
+  useEffect(() => {
+    return () => {
+      if (draftSaveTimerRef.current !== null) {
+        window.clearTimeout(draftSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
   const currentEditorJson = editor ? editor.getJSON() as TiptapNode : null;
@@ -429,8 +522,18 @@ export function DocumentRichEditor({
     [plainText, sourceHighlight],
   );
   const stats = useMemo(() => documentStatsFromText(plainText), [plainText]);
+  const sharedDraftLabel =
+    draftLoadState === "loading"
+      ? "Loading shared draft"
+      : draftSaveState === "saving"
+        ? "Saving shared draft"
+        : draftSaveState === "saved"
+          ? `Shared draft saved${serverDraft ? ` · r${serverDraft.version_counter}` : ""}`
+          : draftSaveState === "error"
+            ? "Local fallback active"
+            : "Shared draft ready";
   const editorStatusLabel = dirty
-    ? "Unsaved local draft"
+    ? sharedDraftLabel
     : savedMessage
       ? savedMessage
       : latestVersionNumber
@@ -452,15 +555,21 @@ export function DocumentRichEditor({
     setError(null);
     try {
       const editorJson = editor.getJSON() as TiptapNode;
-      const version = await saveDocumentVersion(
+      if (draftSaveTimerRef.current !== null) {
+        window.clearTimeout(draftSaveTimerRef.current);
+        draftSaveTimerRef.current = null;
+      }
+      await persistWorkingDraft(editorJson, plainText);
+      const version = await commitDocumentWorkingDraft(
         documentId,
-        plainText,
         `Edited ${filename} in Legalise document editor`,
-        editorJson,
       );
       setDirty(false);
       onDirtyChange?.(false);
       setSavedMessage(`Saved v${version.version_number}`);
+      setServerDraft(null);
+      draftBaseVersionIdRef.current = version.id;
+      setDraftSaveState("idle");
       clearDocumentLocalDraft(documentId);
       setLocalDraft(null);
       onSaved(version);
@@ -486,6 +595,7 @@ export function DocumentRichEditor({
     editor.commands.setContent(localDraft.json, { emitUpdate: false });
     setDirty(true);
     onDirtyChange?.(true);
+    scheduleWorkingDraftSave(localDraft.json, localDraft.plainText);
     setSavedMessage("Local draft restored. Save it to create a document version.");
     setLocalDraft(null);
   }
@@ -611,7 +721,13 @@ export function DocumentRichEditor({
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
           <span className="inline-flex items-center gap-2">
             <span
-              className={`h-2 w-2 rounded-full ${dirty ? "bg-amber-500" : "bg-emerald-700"}`}
+              className={`h-2 w-2 rounded-full ${
+                draftSaveState === "error"
+                  ? "bg-red-700"
+                  : dirty
+                    ? "bg-amber-500"
+                    : "bg-emerald-700"
+              }`}
               aria-hidden="true"
             />
             {editorStatusLabel}. Every save creates a new version.
@@ -756,6 +872,15 @@ export function DocumentRichEditor({
           data-testid="document-editor-copy-status"
         >
           {copiedMessage}
+        </p>
+      )}
+      {draftSaveState === "error" && (
+        <p
+          className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
+          data-testid="document-server-draft-error"
+        >
+          Shared draft could not be saved. The browser copy is preserved locally; try saving
+          again before leaving this file.
         </p>
       )}
       {localDraft && (

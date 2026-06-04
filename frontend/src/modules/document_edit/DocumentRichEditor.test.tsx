@@ -22,7 +22,15 @@ const tableCell = (type: "tableCell" | "tableHeader", text: string): TiptapNode 
 
 afterEach(() => {
   window.localStorage.clear();
+  vi.restoreAllMocks();
 });
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 describe("DocumentRichEditor text conversion", () => {
   it("turns plain paragraphs into editor-safe HTML", () => {
@@ -197,6 +205,145 @@ describe("DocumentRichEditor text conversion", () => {
 });
 
 describe("DocumentRichEditor surface", () => {
+  it("loads a shared server draft into the editor", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse({
+        document_id: "doc-1",
+        updated_by_id: "user-1",
+        updated_at: "2026-06-04T02:30:00Z",
+        plain_text: "Server draft wording.",
+        editor_json: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Server draft wording." }],
+            },
+          ],
+        },
+        base_version_id: "version-1",
+        version_counter: 3,
+        client_id: "client-1",
+      }),
+    );
+
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="Extracted fallback."
+        latestVersionNumber={2}
+        latestVersionId="version-1"
+        sourceLabel="extracted · 19 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    expect(await screen.findByText("Server draft wording.")).toBeInTheDocument();
+    expect(screen.getByTestId("document-editor")).toHaveTextContent("Shared draft saved · r3");
+  });
+
+  it("saves by committing the shared working draft", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/documents/doc-1/draft") && !init?.method) {
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: "user-1",
+            updated_at: "2026-06-04T02:30:00Z",
+            plain_text: "Server draft wording.",
+            editor_json: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Server draft wording." }],
+                },
+              ],
+            },
+            base_version_id: "version-1",
+            version_counter: 3,
+            client_id: "client-1",
+          }),
+        );
+      }
+      if (url.endsWith("/documents/doc-1/draft") && init?.method === "PUT") {
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: "user-1",
+            updated_at: "2026-06-04T02:31:00Z",
+            plain_text: "Server draft wording.",
+            editor_json: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Server draft wording." }],
+                },
+              ],
+            },
+            base_version_id: "version-1",
+            version_counter: 4,
+            client_id: "document-editor-test",
+          }),
+        );
+      }
+      if (url.endsWith("/documents/doc-1/draft/commit") && init?.method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            id: "version-2",
+            document_id: "doc-1",
+            version_number: 3,
+            kind: "user_edit",
+            created_by_id: "user-1",
+            created_at: "2026-06-04T02:32:00Z",
+            storage_uri: null,
+            filename: "draft.docx",
+            mime_type: "text/plain",
+            size_bytes: 21,
+            sha256: "abc",
+            notes: "Edited draft.docx in Legalise document editor",
+            resolved_text: "Server draft wording.",
+            resolved_json: null,
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ detail: "not found" }, 404));
+    });
+    const onSaved = vi.fn();
+
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="Extracted fallback."
+        latestVersionNumber={2}
+        latestVersionId="version-1"
+        sourceLabel="extracted · 19 chars"
+        onSaved={onSaved}
+      />,
+    );
+
+    expect(await screen.findByText("Server draft wording.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save version" }));
+
+    await waitFor(() => {
+      expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: "version-2" }));
+    });
+    const calledUrls = fetchMock.mock.calls.map(([input, init]) => ({
+      url: String(input),
+      method: init?.method ?? "GET",
+    }));
+    expect(calledUrls).toContainEqual({ url: "/api/documents/doc-1/draft", method: "PUT" });
+    expect(calledUrls).toContainEqual({
+      url: "/api/documents/doc-1/draft/commit",
+      method: "POST",
+    });
+    expect(calledUrls.some((call) => call.url.endsWith("/versions/manual"))).toBe(false);
+  });
+
   it("renders grouped document editing controls on a page canvas", async () => {
     Object.assign(window.navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
