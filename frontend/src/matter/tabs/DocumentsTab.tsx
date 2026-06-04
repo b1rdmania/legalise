@@ -139,13 +139,6 @@ export function DocumentsTab({
       return matchesQuery && matchesFilter;
     }) ?? null;
 
-  // Column template shared by the header row and each data row so columns
-  // stay aligned. Document gets the largest fr; full SHA moves into the
-  // expand drawer (short hash still shown as muted secondary line under
-  // the filename) so the primary scan path is workflow-shaped.
-  const gridCols =
-    "grid grid-cols-[1.5fr_110px_90px_110px_90px_130px_72px] gap-4 px-4 py-3";
-
   return (
     <div className="max-w-4xl">
       <details className="mb-8 border border-rule bg-paper" open={!docs || docs.length === 0}>
@@ -307,19 +300,10 @@ export function DocumentsTab({
               Showing {filteredDocs?.length ?? 0} of {docs.length} document{docs.length === 1 ? "" : "s"}.
             </p>
           </div>
-          <div className="overflow-x-auto border-t border-rule">
-          <div className="min-w-[720px]">
-            <div
-              className={`${gridCols} text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]`}
-            >
-              <span>Document</span>
-              <span>Type</span>
-              <span>Size</span>
-              <span>Disclosure</span>
-              <span>Notes</span>
-              <span>Updated</span>
-              <span className="text-right">Action</span>
-            </div>
+          <div
+            className="grid gap-3 md:grid-cols-2"
+            data-testid="document-library-cards"
+          >
             {filteredDocs?.map((d) => {
               const typeLabel = deriveType(d);
               return (
@@ -327,49 +311,69 @@ export function DocumentsTab({
                   key={d.id}
                   to="/matters/$slug/documents/$documentId"
                   params={{ slug, documentId: d.id }}
-                  className={`${gridCols} border-b border-rule hover:bg-wash transition-colors items-center`}
+                  className="group border border-rule bg-paper p-4 transition-colors hover:border-ink hover:bg-wash"
                   title={`SHA-256 ${d.sha256}`}
                 >
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-ink truncate">
-                      {d.filename}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold text-ink">
+                        {d.filename}
+                      </p>
+                      <p className="mt-1 truncate font-mono text-[11px] text-muted">
+                        {d.sha256.slice(0, 8)}
+                      </p>
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted truncate">
-                      {d.sha256.slice(0, 8)}
-                    </div>
-                  </div>
-                  <span>
                     <Badge>{typeLabel}</Badge>
-                  </span>
-                  <span className="text-xs text-ink">
-                    {formatBytes(d.size_bytes)}
-                  </span>
-                  <span>
-                    {d.from_disclosure ? (
-                      <Badge>CPR 31</Badge>
-                    ) : (
-                      <span className="text-xs text-muted">Upload</span>
-                    )}
-                  </span>
-                  <span className="text-xs text-ink">
-                    {d.comment_count ? `${d.comment_count} note${d.comment_count === 1 ? "" : "s"}` : "None"}
-                  </span>
-                  <span className="text-xs text-ink">
-                    {formatDate(d.uploaded_at)}
-                  </span>
-                  <span className="text-muted uppercase tracking-track2 text-[9px] text-right">
-                    Open workbench
-                  </span>
+                  </div>
+                  <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                        Source
+                      </dt>
+                      <dd className="mt-1 text-ink">
+                        {d.from_disclosure ? "CPR 31 disclosure" : "Upload"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                        Size
+                      </dt>
+                      <dd className="mt-1 text-ink">{formatBytes(d.size_bytes)}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                        Notes
+                      </dt>
+                      <dd className="mt-1 text-ink">
+                        {d.comment_count
+                          ? `${d.comment_count} note${d.comment_count === 1 ? "" : "s"}`
+                          : "None"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                        Updated
+                      </dt>
+                      <dd className="mt-1 text-ink">{formatDate(d.uploaded_at)}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-5 flex items-center justify-between border-t border-rule pt-3">
+                    <span className="text-xs leading-5 text-muted">
+                      Reader, notes, versions, skills, and Record links open together.
+                    </span>
+                    <span className="shrink-0 border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper group-hover:bg-black">
+                      Open workbench
+                    </span>
+                  </div>
                 </Link>
               );
             })}
             {filteredDocs?.length === 0 && (
-              <div className="border-b border-rule bg-paper px-4 py-6 text-sm text-muted">
+              <div className="border border-rule bg-paper px-4 py-6 text-sm text-muted md:col-span-2">
                 No documents match this search. Clear the query or switch filters.
               </div>
             )}
           </div>
-        </div>
         </div>
       )}
     </div>
