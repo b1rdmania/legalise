@@ -1265,6 +1265,11 @@ export function DocumentDetail({
                       selectedQuote={selectedQuote || undefined}
                       selectedQuoteAnchored={Boolean(selectedAnchor)}
                       onCreateNoteFromSelection={startNoteFromCurrentSelection}
+                      onRunSkillFromSelection={
+                        primaryDocumentSkill
+                          ? () => openDocumentSkill(primaryDocumentSkill, true)
+                          : undefined
+                      }
                       onSaved={(version) => {
                         setSelectedVersionId(version.id);
                         getDocumentVersions(documentId)

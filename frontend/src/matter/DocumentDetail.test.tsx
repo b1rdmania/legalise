@@ -889,10 +889,9 @@ describe("DocumentDetail", () => {
     } as unknown as Selection);
 
     fireEvent.mouseUp(content);
-    expect(await screen.findByTestId("document-editor-selected-passage")).toHaveTextContent(
-      "single social-media post",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Add review note" }));
+    const selectedPassage = await screen.findByTestId("document-editor-selected-passage");
+    expect(selectedPassage).toHaveTextContent("single social-media post");
+    fireEvent.click(within(selectedPassage).getByRole("button", { name: "Add review note" }));
     fireEvent.change(
       screen.getByPlaceholderText("What should be checked before relying on this document?"),
       {

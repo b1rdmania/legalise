@@ -729,6 +729,7 @@ describe("DocumentRichEditor surface", () => {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
     const onCreateNoteFromSelection = vi.fn();
+    const onRunSkillFromSelection = vi.fn();
     render(
       <DocumentRichEditor
         documentId="doc-1"
@@ -738,6 +739,7 @@ describe("DocumentRichEditor surface", () => {
         selectedQuote="single social-media post"
         selectedQuoteAnchored
         onCreateNoteFromSelection={onCreateNoteFromSelection}
+        onRunSkillFromSelection={onRunSkillFromSelection}
         onSaved={() => undefined}
       />,
     );
@@ -752,6 +754,8 @@ describe("DocumentRichEditor surface", () => {
     expect(ribbon).toHaveTextContent("single social-media post");
     fireEvent.click(within(ribbon).getByRole("button", { name: "Find in document" }));
     expect(screen.getByLabelText("Find")).toHaveValue("single social-media post");
+    fireEvent.click(within(ribbon).getByRole("button", { name: "Run skill" }));
+    expect(onRunSkillFromSelection).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Copy passage" }));
     await waitFor(() => {
       expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
