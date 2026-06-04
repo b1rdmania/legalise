@@ -132,17 +132,17 @@ function NavBody({
           {matter.slug}
         </div>
         {showPosture && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-[10px] uppercase tracking-widest text-muted hover:text-ink">
-              Project settings
-            </summary>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="eyebrow">Privilege</span>
-              <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
-                <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
-              </span>
-            </div>
-          </details>
+          // Posture is surfaced inline, not hidden behind a disclosure: it
+          // gates every privileged action, so it stays visible in the matter
+          // card. Restores the P19 always-visible pattern (Mobbin audit
+          // 2026-06-03: no reference buries key record context behind a
+          // <details>).
+          <div className="mt-3 flex items-center gap-2">
+            <span className="eyebrow">Posture</span>
+            <span className="inline-flex items-center border border-rule px-1.5 py-0.5">
+              <PrivilegeControlInline value={matter.privilege_posture} onChange={onPostureChange} />
+            </span>
+          </div>
         )}
       </div>
 
@@ -170,6 +170,15 @@ function NavBody({
         })}
       </nav>
 
+      {/* Bottom utility zone — matter status. A persistent bottom strip is a
+          near-universal rail convention (Mobbin audit 2026-06-03); mt-auto
+          pins it to the foot of the flex-column rail. */}
+      <div className="mt-auto border-t border-rule px-4 py-3 flex items-center justify-between gap-2">
+        <span className="eyebrow text-muted">Status</span>
+        <span className="text-[10px] font-mono uppercase tracking-track2 text-muted truncate">
+          {matter.status}
+        </span>
+      </div>
     </>
   );
 }
