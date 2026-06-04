@@ -1,6 +1,7 @@
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { demoDocumentMatches, splitSearchMatches } from "./DemoMatter";
+import { DemoDocumentReader, demoDocumentMatches, splitSearchMatches } from "./DemoMatter";
 
 describe("DemoMatter document search", () => {
   it("splits all case-insensitive matches without changing source text", () => {
@@ -39,5 +40,38 @@ describe("DemoMatter document search", () => {
     expect(demoDocumentMatches(doc, "cpr 31")).toBe(true);
     expect(demoDocumentMatches(doc, "abc123")).toBe(true);
     expect(demoDocumentMatches(doc, "witness")).toBe(false);
+  });
+
+  it("shows a no-sign-in document workbench rail in the public reader", () => {
+    const docs = [
+      {
+        id: "doc-1",
+        matter_id: "matter-1",
+        filename: "dismissal-letter.pdf",
+        mime_type: "application/pdf",
+        size_bytes: 2048,
+        sha256: "abc123".padEnd(64, "0"),
+        tag: "disclosure",
+        from_disclosure: true,
+        uploaded_at: "2026-06-03T10:00:00",
+        uploaded_by_id: "user-1",
+      },
+    ];
+
+    render(<DemoDocumentReader documentId="doc-1" docs={docs} />);
+
+    expect(screen.getByRole("heading", { name: "dismissal-letter.pdf" })).toBeInTheDocument();
+    expect(screen.getByTestId("demo-document-workbench-rail")).toHaveTextContent(
+      "This file is ready to use.",
+    );
+    expect(screen.getByRole("link", { name: /Run a skill with this file/i })).toHaveAttribute(
+      "href",
+      "/demo/workflows",
+    );
+    expect(screen.getByRole("link", { name: /View the Record/i })).toHaveAttribute(
+      "href",
+      "/demo/audit",
+    );
+    expect(screen.queryByText(/sign in/i)).not.toBeInTheDocument();
   });
 });

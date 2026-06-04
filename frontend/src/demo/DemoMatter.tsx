@@ -662,7 +662,7 @@ function DemoDocumentsTab({
   );
 }
 
-function DemoDocumentReader({
+export function DemoDocumentReader({
   documentId,
   docs,
 }: {
@@ -791,16 +791,54 @@ function DemoDocumentReader({
         </section>
 
         <aside className="space-y-4">
-          <section className="border border-rule bg-paper p-4">
-            <h2 className="text-sm font-semibold text-ink">How this is used</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Skills and chat answers cite project documents. In the live workspace,
-              source chips open the reader, proposed edits create versions, and
-              document access is recorded.
+          <section className="border border-ink bg-paper p-4" data-testid="demo-document-workbench-rail">
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Document workbench
             </p>
+            <h2 className="mt-1 text-sm font-semibold text-ink">This file is ready to use.</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              In the product, chat and skills use this reader as their source surface.
+              Source chips come back here so a solicitor can check the text before
+              relying on output.
+            </p>
+            <div className="mt-4 grid gap-2 text-sm">
+              <a
+                href="/demo/workflows"
+                className="flex items-center justify-between border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+              >
+                <span>Run a skill with this file</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a
+                href="/demo/audit"
+                className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
+              >
+                <span>View the Record</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a
+                href="/demo/documents"
+                className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
+              >
+                <span>Open other files</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
           </section>
           <section className="border border-rule bg-paper p-4">
-            <h2 className="text-sm font-semibold text-ink">Document facts</h2>
+            <h2 className="text-sm font-semibold text-ink">What happens in the workspace</h2>
+            <ol className="mt-3 space-y-2 text-sm leading-6 text-muted">
+              <li><span className="font-semibold text-ink">1.</span> Read or search the document.</li>
+              <li><span className="font-semibold text-ink">2.</span> Run a skill with the file selected.</li>
+              <li><span className="font-semibold text-ink">3.</span> Review and sign the output.</li>
+              <li><span className="font-semibold text-ink">4.</span> Export the working pack record.</li>
+            </ol>
+          </section>
+          <section className="border border-rule bg-paper p-4">
+            <details>
+              <summary className="cursor-pointer text-sm font-semibold text-ink">
+                Document facts
+              </summary>
             <dl className="mt-3 space-y-3 text-sm">
               <DemoReaderFact label="Type" value={doc.mime_type} />
               <DemoReaderFact
@@ -809,6 +847,7 @@ function DemoDocumentReader({
               />
               <DemoReaderFact label="SHA-256" value={doc.sha256} mono />
             </dl>
+            </details>
           </section>
         </aside>
       </main>
