@@ -905,6 +905,10 @@ class DocumentCommentCreate(BaseModel):
     anchor_end: int | None = Field(default=None, ge=0)
 
 
+class DocumentCommentUpdate(BaseModel):
+    body: str = Field(min_length=2, max_length=4000)
+
+
 async def _resolve_one(
     document_id_unused: None,
     edit_id: uuid.UUID,
@@ -2043,6 +2047,59 @@ async def post_document_comment(
             "anchor_end": comment.anchor_end,
         },
     )
+    await session.commit()
+    return DocumentCommentRead.model_validate(comment)
+
+
+@router.patch(
+    "/{document_id}/comments/{comment_id}",
+    response_model=DocumentCommentRead,
+)
+async def patch_document_comment(
+    document_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    body: DocumentCommentUpdate,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentCommentRead:
+    """Update the body of an open document review note."""
+    doc, matter = await _load_owned_document(document_id, session, user)
+    comment = await session.scalar(
+        select(DocumentComment).where(
+            DocumentComment.id == comment_id,
+            DocumentComment.document_id == doc.id,
+        )
+    )
+    if comment is None:
+        raise HTTPException(404, "document comment not found")
+    if comment.status == COMMENT_STATUS_RESOLVED:
+        raise HTTPException(
+            409,
+            {
+                "error": "document_comment_resolved",
+                "message": "Resolved review notes cannot be edited.",
+            },
+        )
+    next_body = body.body.strip()
+    if len(next_body) < 2:
+        raise HTTPException(422, "comment body is required")
+    if next_body != comment.body:
+        previous_length = len(comment.body)
+        comment.body = next_body
+        await audit.log(
+            session,
+            "document.comment.updated",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="document_editor",
+            resource_type="document_comment",
+            resource_id=str(comment.id),
+            payload={
+                "document_id": str(doc.id),
+                "previous_length": previous_length,
+                "next_length": len(next_body),
+            },
+        )
     await session.commit()
     return DocumentCommentRead.model_validate(comment)
 

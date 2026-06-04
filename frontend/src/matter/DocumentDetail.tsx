@@ -33,6 +33,7 @@ import {
   readArtifact,
   resolveDocumentComment,
   startDocumentEditSession,
+  updateDocumentComment,
   uploadDocumentVersion,
   type ArtifactRead,
   type AnonymisationResult,
@@ -199,6 +200,8 @@ export function DocumentDetail({
   const [activeReaderQuote, setActiveReaderQuote] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentBusy, setCommentBusy] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentBody, setEditingCommentBody] = useState("");
   const [versionUploadFile, setVersionUploadFile] = useState<File | null>(null);
   const [versionUploadNotes, setVersionUploadNotes] = useState("");
   const [versionUploadBusy, setVersionUploadBusy] = useState(false);
@@ -608,6 +611,34 @@ export function DocumentDetail({
       loadComments();
     } catch (err) {
       setCommentError(err instanceof Error ? err.message : "Could not resolve note.");
+    } finally {
+      setCommentBusy(false);
+    }
+  };
+  const startEditingComment = (comment: DocumentCommentRead) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentBody(comment.body);
+    setCommentError(null);
+  };
+  const cancelEditingComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentBody("");
+  };
+  const submitCommentEdit = async (commentId: string) => {
+    const trimmed = editingCommentBody.trim();
+    if (trimmed.length < 2) {
+      setCommentError("Add a note before saving.");
+      return;
+    }
+    setCommentBusy(true);
+    setCommentError(null);
+    try {
+      await updateDocumentComment(documentId, commentId, { body: trimmed });
+      setEditingCommentId(null);
+      setEditingCommentBody("");
+      loadComments();
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Could not update note.");
     } finally {
       setCommentBusy(false);
     }
@@ -1860,17 +1891,59 @@ export function DocumentDetail({
                         </button>
                       </div>
                     )}
-                    <p className="leading-6 text-ink">{comment.body}</p>
+                    {editingCommentId === comment.id ? (
+                      <div className="space-y-2">
+                        <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
+                          Edit note
+                          <textarea
+                            value={editingCommentBody}
+                            onChange={(event) => setEditingCommentBody(event.target.value)}
+                            rows={3}
+                            className="w-full resize-y border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                          />
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={commentBusy}
+                            onClick={() => submitCommentEdit(comment.id)}
+                            className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Save changes
+                          </button>
+                          <button
+                            type="button"
+                            disabled={commentBusy}
+                            onClick={cancelEditingComment}
+                            className="border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="leading-6 text-ink">{comment.body}</p>
+                    )}
                     <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
                       <span>{comment.created_at.replace("T", " ").slice(0, 16)}</span>
-                      <button
-                        type="button"
-                        disabled={commentBusy}
-                        onClick={() => resolveComment(comment.id)}
-                        className="underline underline-offset-4 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Resolve
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          disabled={commentBusy}
+                          onClick={() => startEditingComment(comment)}
+                          className="underline underline-offset-4 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          disabled={commentBusy}
+                          onClick={() => resolveComment(comment.id)}
+                          className="underline underline-offset-4 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Resolve
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
