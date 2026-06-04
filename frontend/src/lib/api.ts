@@ -1770,6 +1770,17 @@ export interface DocumentEditSessionResponse {
   active: DocumentEditSessionRead[];
 }
 
+export interface DocumentWorkingDraftRead {
+  document_id: string;
+  updated_by_id: string | null;
+  updated_at: string | null;
+  plain_text: string;
+  editor_json: Record<string, unknown> | null;
+  base_version_id: string | null;
+  version_counter: number;
+  client_id: string | null;
+}
+
 export class ConflictError extends Error {
   status = 409;
 }
@@ -1810,6 +1821,37 @@ export const getDocumentVersions = (documentId: string) =>
   apiFetch(`${API}/documents/${documentId}/versions`).then((r) =>
     resolutionJsonOrThrow<DocumentVersionSummary[]>(r),
   );
+
+export const getDocumentWorkingDraft = (documentId: string) =>
+  apiFetch(`${API}/documents/${documentId}/draft`).then((r) =>
+    resolutionJsonOrThrow<DocumentWorkingDraftRead>(r),
+  );
+
+export const saveDocumentWorkingDraft = (
+  documentId: string,
+  body: {
+    plain_text: string;
+    editor_json?: Record<string, unknown> | null;
+    base_version_id?: string | null;
+    client_id?: string | null;
+  },
+) =>
+  apiFetch(`${API}/documents/${documentId}/draft`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then((r) => resolutionJsonOrThrow<DocumentWorkingDraftRead>(r));
+
+export const commitDocumentWorkingDraft = (
+  documentId: string,
+  notes?: string,
+  clearDraft = true,
+) =>
+  apiFetch(`${API}/documents/${documentId}/draft/commit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes: notes?.trim() || null, clear_draft: clearDraft }),
+  }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
 
 export const saveDocumentVersion = (
   documentId: string,

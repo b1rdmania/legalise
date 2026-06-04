@@ -991,6 +991,7 @@ export function DocumentDetail({
                   initialText={editorText}
                   initialJson={editorJson}
                   latestVersionNumber={latestVersion?.version_number}
+                  latestVersionId={latestVersion?.id ?? null}
                   sourceLabel={editorSourceLabel}
                   sourceHighlight={currentReaderQuote}
                   noteHighlights={anchoredOpenNotes}
