@@ -860,7 +860,6 @@ describe("DocumentDetail", () => {
         resolved_at: "2026-06-03T10:10:00",
         resolved_by_id: "u-1",
       });
-
     mount();
     await screen.findByText("Resolve after checking the source.");
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
@@ -877,6 +876,54 @@ describe("DocumentDetail", () => {
 
     await waitFor(() => {
       expect(resolve).toHaveBeenCalledWith("doc-1", "comment-1");
+    });
+  });
+
+  it("reopens resolved document review notes", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
+    vi.spyOn(api, "getDocumentComments").mockResolvedValue([
+      {
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: null,
+        body_sha256: null,
+        anchor_start: null,
+        anchor_end: null,
+        body: "Resolve after checking the source.",
+        status: "resolved",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: "2026-06-03T10:10:00",
+        resolved_by_id: "u-1",
+      },
+    ]);
+    const reopen = vi
+      .spyOn(api, "reopenDocumentComment")
+      .mockResolvedValue({
+        id: "comment-1",
+        document_id: "doc-1",
+        author_id: "u-1",
+        quote_text: null,
+        body_sha256: null,
+        anchor_start: null,
+        anchor_end: null,
+        body: "Resolve after checking the source.",
+        status: "open",
+        created_at: "2026-06-03T10:00:00",
+        resolved_at: null,
+        resolved_by_id: null,
+      });
+
+    mount();
+    await waitFor(() => {
+      expect(screen.getByText(/Resolved notes \(1\)/)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText(/Resolved notes \(1\)/));
+    fireEvent.click(screen.getByRole("button", { name: "Reopen" }));
+
+    await waitFor(() => {
+      expect(reopen).toHaveBeenCalledWith("doc-1", "comment-1");
     });
   });
 

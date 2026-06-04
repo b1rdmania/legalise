@@ -106,8 +106,8 @@ async def test_get_document_versions_cross_user_returns_404(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_document_comments_owner_can_create_list_and_resolve(client) -> None:
-    """Owner can leave and resolve review notes on a document."""
+async def test_document_comments_owner_can_create_list_resolve_and_reopen(client) -> None:
+    """Owner can leave, resolve, and reopen review notes on a document."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
     _, doc_id = await _create_matter_and_upload(client)
 
@@ -147,6 +147,21 @@ async def test_document_comments_owner_can_create_list_and_resolve(client) -> No
         json={"body": "Too late to edit."},
     )
     assert edit_resolved.status_code == 409, edit_resolved.text
+
+    reopened = await client.post(
+        f"/api/documents/{doc_id}/comments/{comment['id']}/reopen",
+    )
+    assert reopened.status_code == 200, reopened.text
+    assert reopened.json()["status"] == "open"
+    assert reopened.json()["resolved_at"] is None
+    assert reopened.json()["resolved_by_id"] is None
+
+    edit_reopened = await client.patch(
+        f"/api/documents/{doc_id}/comments/{comment['id']}",
+        json={"body": "Reopened and edited."},
+    )
+    assert edit_reopened.status_code == 200, edit_reopened.text
+    assert edit_reopened.json()["body"] == "Reopened and edited."
 
 
 @pytest.mark.asyncio
@@ -211,6 +226,10 @@ async def test_document_comments_cross_user_returns_404(client) -> None:
         f"/api/documents/{doc_id}/comments/{comment_id}/resolve",
     )
     assert resolved.status_code == 404, resolved.text
+    reopened = await client.post(
+        f"/api/documents/{doc_id}/comments/{comment_id}/reopen",
+    )
+    assert reopened.status_code == 404, reopened.text
     updated = await client.patch(
         f"/api/documents/{doc_id}/comments/{comment_id}",
         json={"body": "Cross-user edit."},
@@ -847,6 +866,10 @@ async def test_document_comments_archived_matter_returns_404(client) -> None:
         f"/api/documents/{doc_id}/comments/{comment_id}/resolve",
     )
     assert resolved.status_code == 404, resolved.text
+    reopened = await client.post(
+        f"/api/documents/{doc_id}/comments/{comment_id}/reopen",
+    )
+    assert reopened.status_code == 404, reopened.text
 
 
 @pytest.mark.asyncio

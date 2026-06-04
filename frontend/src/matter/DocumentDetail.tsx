@@ -31,6 +31,7 @@ import {
   listDocuments,
   listInstalledModules,
   readArtifact,
+  reopenDocumentComment,
   resolveDocumentComment,
   startDocumentEditSession,
   updateDocumentComment,
@@ -611,6 +612,18 @@ export function DocumentDetail({
       loadComments();
     } catch (err) {
       setCommentError(err instanceof Error ? err.message : "Could not resolve note.");
+    } finally {
+      setCommentBusy(false);
+    }
+  };
+  const reopenComment = async (commentId: string) => {
+    setCommentBusy(true);
+    setCommentError(null);
+    try {
+      await reopenDocumentComment(documentId, commentId);
+      loadComments();
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "Could not reopen note.");
     } finally {
       setCommentBusy(false);
     }
@@ -1980,6 +1993,14 @@ export function DocumentDetail({
                                 Find in document
                               </button>
                             )}
+                            <button
+                              type="button"
+                              disabled={commentBusy}
+                              onClick={() => reopenComment(comment.id)}
+                              className="font-medium text-ink underline underline-offset-4 hover:text-muted disabled:cursor-not-allowed disabled:text-muted"
+                            >
+                              Reopen
+                            </button>
                           </div>
                         </article>
                       ))}

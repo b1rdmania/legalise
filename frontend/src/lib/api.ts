@@ -2029,6 +2029,14 @@ export const resolveDocumentComment = (documentId: string, commentId: string) =>
     { method: "POST" },
   ).then((r) => resolutionJsonOrThrow<DocumentCommentRead>(r));
 
+export const reopenDocumentComment = (documentId: string, commentId: string) =>
+  apiFetch(
+    `${API}/documents/${encodeURIComponent(documentId)}/comments/${encodeURIComponent(
+      commentId,
+    )}/reopen`,
+    { method: "POST" },
+  ).then((r) => resolutionJsonOrThrow<DocumentCommentRead>(r));
+
 // ----- Auth + user --------------------------------------------------------
 // Auth endpoints live in `./api/auth` (sit at backend origin, NOT under
 // /api). Re-exported here so `../lib/api` consumers keep working.
