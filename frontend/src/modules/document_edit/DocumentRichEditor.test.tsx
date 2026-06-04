@@ -267,4 +267,29 @@ describe("DocumentRichEditor surface", () => {
     fireEvent.keyDown(window, { key: "f", metaKey: true });
     expect(find).toHaveFocus();
   });
+
+  it("surfaces the selected passage as a review-note action", async () => {
+    const onCreateNoteFromSelection = vi.fn();
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="The dismissal letter mentioned a single social-media post."
+        sourceLabel="extracted · 60 chars"
+        selectedQuote="single social-media post"
+        selectedQuoteAnchored
+        onCreateNoteFromSelection={onCreateNoteFromSelection}
+        onSaved={() => undefined}
+      />,
+    );
+
+    expect(await screen.findByTestId("document-editor-selected-passage")).toHaveTextContent(
+      "single social-media post",
+    );
+    expect(screen.getByTestId("document-editor-selected-passage")).toHaveTextContent(
+      "Anchored",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add review note" }));
+    expect(onCreateNoteFromSelection).toHaveBeenCalledTimes(1);
+  });
 });

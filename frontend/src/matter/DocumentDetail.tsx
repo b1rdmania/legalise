@@ -563,7 +563,15 @@ export function DocumentDetail({
       setSelectedAnchor(null);
     }
     requestAnimationFrame(() => {
-      notesRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    });
+  };
+  const startNoteFromCurrentSelection = () => {
+    const trimmed = selectedQuote.trim().replace(/\s+/g, " ");
+    if (!trimmed) return;
+    setCommentQuote(trimmed);
+    requestAnimationFrame(() => {
+      notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
     });
   };
   const submitVersionUpload = async () => {
@@ -866,6 +874,9 @@ export function DocumentDetail({
                   sourceLabel={editorSourceLabel}
                   sourceHighlight={currentReaderQuote}
                   noteHighlights={anchoredOpenNotes}
+                  selectedQuote={selectedQuote || undefined}
+                  selectedQuoteAnchored={Boolean(selectedAnchor)}
+                  onCreateNoteFromSelection={startNoteFromCurrentSelection}
                   onSaved={(version) => {
                     setSelectedVersionId(version.id);
                     getDocumentVersions(documentId)
@@ -1079,7 +1090,7 @@ export function DocumentDetail({
                 </button>
                 <button
                   type="button"
-                  onClick={() => notesRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })}
+                  onClick={() => notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })}
                   className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
                 >
                   <span>Open review notes</span>
