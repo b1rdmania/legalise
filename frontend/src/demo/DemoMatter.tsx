@@ -32,7 +32,7 @@ const POSTURE_DOT: Record<string, { label: string; dot: string }> = {
 };
 
 const DEMO_READ_ONLY =
-  "This public demo is read-only. Use the previews to inspect the project loop.";
+  "This demo is read-only. Open a preview to look around.";
 
 export type SearchSegment = { text: string; match: boolean };
 
@@ -312,9 +312,8 @@ function DemoStartPanel({
             A legal project with documents, skills, and a record of what the AI did.
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-prose">
-            This read-only Khan v Acme matter shows the current Legalise loop:
-            open a project, inspect the documents, run a skill, review the
-            output, then trace it in the matter Record.
+            Read-only Khan v Acme. Open the project, inspect the documents,
+            run a skill, review the output, and trace it in the Record.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <button

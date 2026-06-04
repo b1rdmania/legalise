@@ -144,7 +144,7 @@ export function Landing() {
         <div className="max-w-page mx-auto">
           <div className="eyebrow text-muted mb-3">How it works</div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
-            The product loop is simple. The record is what makes it serious.
+            Six steps, and a record of every one.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
             {SURFACES.map((s, i) => (
@@ -207,8 +207,8 @@ export function Landing() {
             </div>
           </div>
           <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted">
-            The hosted site is a product demonstration. The ambition is
-            infrastructure for real regulated deployment.
+            The hosted site is a demonstration. The build is aimed at real
+            regulated deployment.
           </p>
         </div>
       </section>
@@ -220,8 +220,8 @@ export function Landing() {
             See a Khan v Acme demo matter with documents, skills, and a record.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-prose">
-            No sign-in required. Click through the public matter, inspect the
-            documents, open a skill preview, and see where the record sits.
+            No sign-in. Click through the matter, inspect the documents, open
+            a skill preview, and read the record.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <a

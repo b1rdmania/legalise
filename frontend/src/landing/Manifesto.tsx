@@ -71,10 +71,9 @@ export function Manifesto() {
                 sign what they accept, and export the working record.
               </p>
               <p>
-                The point is not that AI does legal work by itself. The point
-                is that AI can prepare more of the work, faster, while the
-                solicitor keeps judgement, responsibility, and a record that can
-                be inspected later.
+                AI does not do legal work by itself. It prepares more of the
+                work, faster, while the solicitor keeps judgement,
+                responsibility, and a record that can be inspected later.
               </p>
             </div>
           </div>
@@ -109,9 +108,9 @@ export function Manifesto() {
               part of the final file.
             </p>
             <p className="mt-5 text-base leading-relaxed text-prose">
-              That is what makes AI work insurable and regulatorable. Not magic
-              prompts. Not a prettier chat window. A controlled backend with a
-              clean surface on top.
+              That is what makes AI work insurable and defensible to a
+              regulator. Not magic prompts. Not a prettier chat window. A
+              controlled backend with a clean surface on top.
             </p>
           </div>
         </section>

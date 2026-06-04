@@ -352,8 +352,8 @@ export function AssistantTab({
             {matter.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Ask about the documents, or run a skill from this project. Outputs
-            can be signed and traced in the Record.
+            Ask about the documents, or run a skill. Outputs can be signed and
+            traced in the Record.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
             <span data-testid="docs-context-status">
@@ -512,7 +512,7 @@ export function AssistantTab({
           <div className="mt-3 sticky bottom-0 bg-paper pt-3">
           <div className="border-t border-rule py-3 flex flex-wrap items-center gap-3">
             <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
-              {disabledPlaceholder ?? "Create an evaluation account to ask the assistant against this matter."}
+              {disabledPlaceholder ?? "Create an evaluation account to use the assistant on this matter."}
             </p>
             <div className="flex items-center gap-3">
               <a
