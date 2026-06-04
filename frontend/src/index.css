@@ -175,6 +175,14 @@
     width: 1rem;
   }
 
+  .legalise-document-editor img {
+    border: 1px solid #D9D9D6;
+    display: block;
+    height: auto;
+    margin: 1rem auto 1.25rem;
+    max-width: 100%;
+  }
+
   .legalise-document-editor table {
     border-collapse: collapse;
     margin: 0 0 1.25rem;

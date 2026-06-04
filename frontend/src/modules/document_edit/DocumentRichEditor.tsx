@@ -13,6 +13,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
 import Color from "@tiptap/extension-color";
+import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
@@ -247,6 +248,7 @@ export function textToEditorHtml(
 function plainTextFromNode(node: TiptapNode): string {
   if (node.type === "text") return node.text ?? "";
   if (node.type === "hardBreak") return "\n";
+  if (node.type === "image") return node.attrs?.alt ? `[image: ${node.attrs.alt}]\n\n` : "[image]\n\n";
   const children = node.content?.map(plainTextFromNode).join("") ?? "";
   if (node.type === "paragraph" || node.type === "heading") return `${children}\n\n`;
   if (node.type === "taskItem") {
@@ -648,6 +650,10 @@ export function DocumentRichEditor({
         Highlight.configure({ multicolor: false }),
         TextStyle,
         Color,
+        Image.configure({
+          allowBase64: false,
+          inline: false,
+        }),
         Link.configure({
           autolink: true,
           defaultProtocol: "https",
@@ -1080,6 +1086,16 @@ export function DocumentRichEditor({
     editor.chain().focus().extendMarkRange("link").setLink({ href: trimmed }).run();
   }
 
+  function insertEditorImage() {
+    if (!editor) return;
+    const src = window.prompt("Paste image URL");
+    if (src === null) return;
+    const trimmed = src.trim();
+    if (!trimmed) return;
+    const alt = window.prompt("Image description", "")?.trim() ?? "";
+    editor.chain().focus().setImage({ src: trimmed, alt }).run();
+  }
+
   function downloadWorkingText() {
     const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
@@ -1340,6 +1356,14 @@ export function DocumentRichEditor({
                   onClick={() => editor.chain().focus().toggleTaskList().run()}
                 >
                   ☑
+                </ToolbarButton>
+              </ToolbarGroup>
+              <ToolbarGroup label="Media">
+                <ToolbarButton
+                  label="Insert image"
+                  onClick={insertEditorImage}
+                >
+                  Img
                 </ToolbarButton>
               </ToolbarGroup>
               <ToolbarGroup label="Table">

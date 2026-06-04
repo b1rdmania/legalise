@@ -22,6 +22,7 @@
     "@tanstack/react-router": "^1.85.0",
     "@tiptap/extension-color": "^3.25.0",
     "@tiptap/extension-highlight": "^3.25.0",
+    "@tiptap/extension-image": "^3.25.0",
     "@tiptap/extension-link": "^3.25.0",
     "@tiptap/extension-placeholder": "^3.25.0",
     "@tiptap/extension-table": "^3.25.0",

@@ -153,6 +153,23 @@ describe("DocumentRichEditor text conversion", () => {
     ).toBe("[ ] Review source\n[x] Check deadline");
   });
 
+  it("keeps image placeholders readable in the plain-text fallback", () => {
+    expect(
+      editorJsonToPlainText({
+        type: "doc",
+        content: [
+          {
+            type: "image",
+            attrs: {
+              src: "https://example.com/diagram.png",
+              alt: "timeline diagram",
+            },
+          },
+        ],
+      }),
+    ).toBe("[image: timeline diagram]");
+  });
+
   it("keeps table cells legible in the plain-text fallback", () => {
     expect(
       editorJsonToPlainText({
@@ -681,6 +698,7 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByRole("button", { name: "Align left" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Align centre" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Align right" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Insert image" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
     expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
     expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();
