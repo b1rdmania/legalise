@@ -424,6 +424,8 @@ export function DocumentDetail({
   const documentSkills = runnableSkills.filter((skill) =>
     skill.reads.includes("document.body.read"),
   );
+  const primaryDocumentSkill = documentSkills[0] ?? null;
+  const secondaryDocumentSkills = documentSkills.slice(1, 4);
   const reviewQueueTotal =
     pendingEdits + openComments.length + (activeEditSessions.length > 1 ? 1 : 0);
   const hasConcurrentSession = activeEditSessions.length > 1;
@@ -1119,9 +1121,14 @@ export function DocumentDetail({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-ink">Run a skill on this file</h2>
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Document skills
+                  </p>
+                  <h2 className="mt-1 text-sm font-semibold text-ink">
+                    Run a skill with this file selected.
+                  </h2>
                   <p className="mt-1 text-sm leading-6 text-muted">
-                    Use the same project skills from Chat, preloaded with this document.
+                    Skills use the same project runner as Chat, with {doc.filename} already in context.
                   </p>
                 </div>
                 <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
@@ -1157,25 +1164,74 @@ export function DocumentDetail({
                   </Link>
                 </div>
               ) : (
-                <div className="mt-3 space-y-2">
-                  {documentSkills.slice(0, 4).map((skill) => (
+                <div className="mt-4 space-y-3">
+                  {primaryDocumentSkill && (
                     <button
-                      key={`${skill.moduleId}:${skill.capabilityId}`}
                       type="button"
                       onClick={() => {
-                        setActiveRunnerSkill(skill);
+                        setActiveRunnerSkill(primaryDocumentSkill);
                         requestAnimationFrame(() => {
-                          skillsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+                          skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
                         });
                       }}
-                      className="w-full border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
+                      className="w-full border border-ink bg-paper px-3 py-3 text-left hover:bg-paper-sunken"
                     >
-                      <span className="block text-sm font-semibold text-ink">{skill.title}</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        Reads {shortCapabilityList(skill.reads)} · writes {shortCapabilityList(skill.writes)}
+                      <span className="flex items-start justify-between gap-3">
+                        <span>
+                          <span className="block text-sm font-semibold text-ink">
+                            {primaryDocumentSkill.title}
+                          </span>
+                          <span className="mt-1 block text-xs leading-5 text-muted">
+                            {primaryDocumentSkill.description ||
+                              "Runs against this document and writes an output to the Record."}
+                          </span>
+                        </span>
+                        <span className="shrink-0 border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                          Recommended
+                        </span>
+                      </span>
+                      <span className="mt-3 block text-xs text-muted">
+                        Reads {shortCapabilityList(primaryDocumentSkill.reads)} · writes{" "}
+                        {shortCapabilityList(primaryDocumentSkill.writes)}
+                      </span>
+                      <span className="mt-3 inline-flex border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper">
+                        Run with this file
                       </span>
                     </button>
-                  ))}
+                  )}
+                  {secondaryDocumentSkills.length > 0 && (
+                    <details className="border border-rule bg-paper-sunken p-3">
+                      <summary className="cursor-pointer text-sm font-medium text-ink">
+                        More document skills ({secondaryDocumentSkills.length})
+                      </summary>
+                      <div className="mt-3 space-y-2">
+                        {secondaryDocumentSkills.map((skill) => (
+                          <button
+                            key={`${skill.moduleId}:${skill.capabilityId}`}
+                            type="button"
+                            onClick={() => {
+                              setActiveRunnerSkill(skill);
+                              requestAnimationFrame(() => {
+                                skillsRef.current?.scrollIntoView?.({
+                                  block: "start",
+                                  behavior: "smooth",
+                                });
+                              });
+                            }}
+                            className="w-full border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                          >
+                            <span className="block text-sm font-semibold text-ink">
+                              {skill.title}
+                            </span>
+                            <span className="mt-1 block text-xs text-muted">
+                              Reads {shortCapabilityList(skill.reads)} · writes{" "}
+                              {shortCapabilityList(skill.writes)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                   {documentSkills.length > 4 && (
                     <Link
                       to="/matters/$slug/$tab"
