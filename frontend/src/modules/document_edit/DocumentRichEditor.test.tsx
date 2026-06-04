@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import {
   clearDocumentLocalDraft,
@@ -446,5 +446,43 @@ describe("DocumentRichEditor surface", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Add review note" }));
     expect(onCreateNoteFromSelection).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows which review notes are located in the working copy", async () => {
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="The dismissal letter mentioned a single social-media post."
+        sourceLabel="extracted · 60 chars"
+        noteHighlights={[
+          {
+            id: "note-1",
+            label: "Open note",
+            quote: "single social-media post",
+            status: "open",
+          },
+          {
+            id: "note-2",
+            label: "Moved note",
+            quote: "holiday pay clause",
+            status: "open",
+          },
+        ]}
+        onSaved={() => undefined}
+      />,
+    );
+
+    const reviewMap = await screen.findByTestId("document-editor-review-map");
+    expect(reviewMap).toHaveTextContent("1 of 2 note anchors located");
+    expect(within(reviewMap).getByRole("button", { name: /Open note/ })).toHaveTextContent(
+      "Located",
+    );
+    expect(within(reviewMap).getByRole("button", { name: /Moved note/ })).toHaveTextContent(
+      "Not located",
+    );
+
+    fireEvent.click(within(reviewMap).getByRole("button", { name: /Open note/ }));
+    expect(screen.getByLabelText("Find")).toHaveValue("single social-media post");
   });
 });

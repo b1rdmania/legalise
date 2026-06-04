@@ -524,6 +524,15 @@ export function DocumentRichEditor({
     () => findNormalizedRange(plainText, sourceHighlight),
     [plainText, sourceHighlight],
   );
+  const noteAnchorSummaries = useMemo(
+    () =>
+      noteHighlights.map((note) => ({
+        ...note,
+        located: Boolean(findNormalizedRange(plainText, note.quote)),
+      })),
+    [noteHighlights, plainText],
+  );
+  const locatedNoteCount = noteAnchorSummaries.filter((note) => note.located).length;
   const stats = useMemo(() => documentStatsFromText(plainText), [plainText]);
   const sharedDraftLabel =
     draftLoadState === "loading"
@@ -1012,6 +1021,49 @@ export function DocumentRichEditor({
         <p className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
           {error}
         </p>
+      )}
+      {noteAnchorSummaries.length > 0 && (
+        <div
+          className="border-b border-rule bg-paper px-5 py-3"
+          data-testid="document-editor-review-map"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                Review map
+              </p>
+              <p className="mt-1 text-sm text-ink">
+                {locatedNoteCount} of {noteAnchorSummaries.length} note anchor
+                {noteAnchorSummaries.length === 1 ? "" : "s"} located in this working copy.
+              </p>
+            </div>
+            <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Anchored notes
+            </span>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {noteAnchorSummaries.map((note) => (
+              <button
+                key={note.id}
+                type="button"
+                onClick={() => setFindQuery(note.quote)}
+                className={`min-w-[220px] max-w-[280px] border px-3 py-2 text-left text-xs leading-5 ${
+                  note.located
+                    ? "border-ink bg-paper text-ink"
+                    : "border-amber-300 bg-amber-50 text-amber-950"
+                }`}
+              >
+                <span className="block font-semibold">{note.label}</span>
+                <span className="mt-1 block max-h-10 overflow-hidden text-muted">
+                  {note.quote}
+                </span>
+                <span className="mt-2 block font-mono uppercase tracking-track2">
+                  {note.located ? "Located" : "Not located"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
       <div className="grid min-h-[620px] lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="border-b border-rule bg-paper-sunken px-5 py-5 lg:border-b-0 lg:border-r">
