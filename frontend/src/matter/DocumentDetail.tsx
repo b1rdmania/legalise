@@ -68,7 +68,6 @@ import {
 import { GenericSkillRunner } from "./GenericSkillRunner";
 import {
   runnableMatterSkills,
-  shortCapabilityList,
   type RunnableMatterSkill,
 } from "./skillRunnerModel";
 
@@ -1768,8 +1767,7 @@ export function DocumentDetail({
                         </span>
                       </span>
                       <span className="mt-3 block text-xs text-muted">
-                        Reads {shortCapabilityList(primaryDocumentSkill.reads)} · writes{" "}
-                        {shortCapabilityList(primaryDocumentSkill.writes)}
+                        Uses this document and writes an output to the Record.
                       </span>
                       <span className="mt-3 inline-flex border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper">
                         Run with this file
@@ -1793,8 +1791,7 @@ export function DocumentDetail({
                               {skill.title}
                             </span>
                             <span className="mt-1 block text-xs text-muted">
-                              Reads {shortCapabilityList(skill.reads)} · writes{" "}
-                              {shortCapabilityList(skill.writes)}
+                              Uses this document and writes an output to the Record.
                             </span>
                           </button>
                         ))}
