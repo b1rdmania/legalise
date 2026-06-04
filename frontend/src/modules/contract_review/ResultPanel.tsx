@@ -10,7 +10,7 @@ import type {
   Redline,
   RiskSeverity,
   UkIssueCategory,
-} from "./api";
+} from "../../lib/api";
 
 interface Props {
   result: ContractReviewResult;

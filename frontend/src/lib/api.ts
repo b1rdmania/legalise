@@ -2587,54 +2587,20 @@ export interface ContractReviewResult {
   contract_type: ContractKind;
 }
 
-export type ContractReviewStreamEvent =
-  | { event: "stage.start"; data: { stage: string } }
-  | {
-      event: "stage.end";
-      data: {
-        stage: string;
-        duration_ms: number;
-        token_count: number;
-        status: "ok" | "error" | "skipped";
-        error?: string;
-      };
-    }
-  | { event: "result"; data: ContractReviewResult }
-  | {
-      event: "error";
-      data: {
-        message: string;
-        code?: number;
-        error?: string;
-        provider?: string;
-      };
-    };
-
-export class StreamPreflightError extends Error {
-  status: number;
-  body: unknown;
-  constructor(status: number, body: unknown, message: string) {
-    super(message);
-    this.status = status;
-    this.body = body;
-  }
-}
-
-export async function* runContractReviewStream(
+// Contract Review runs on the durable jobs path (POST .../contract-review/jobs);
+// the frontend polls `getJob` for stage/progress + the final result_payload.
+// (The bespoke /run-stream SSE path is retired — 2026-06-04.) Provider-key /
+// upstream preflight failures surface synchronously here, same as before.
+export async function createContractReviewJob(
   slug: string,
   inputs: ContractReviewInputs,
-  signal?: AbortSignal,
-): AsyncIterableIterator<ContractReviewStreamEvent> {
-  const resp = await apiFetch(
-    `${API}/matters/${slug}/contract-review/run-stream`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(inputs),
-      signal,
-    },
-  );
-  if (!resp.ok || !resp.body) {
+): Promise<JobRead> {
+  const resp = await apiFetch(`${API}/matters/${slug}/contract-review/jobs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(inputs),
+  });
+  if (!resp.ok) {
     const text = await resp.text();
     let parsed: unknown = text;
     try {
@@ -2661,31 +2627,9 @@ export async function* runContractReviewStream(
     } else if (typeof parsed === "string" && parsed) {
       message = parsed;
     }
-    throw new StreamPreflightError(resp.status, parsed, message);
+    throw new Error(message);
   }
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder("utf-8");
-  let buffer = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) return;
-    buffer += decoder.decode(value, { stream: true });
-    let sep: number;
-    while ((sep = buffer.indexOf("\n\n")) >= 0) {
-      const frame = buffer.slice(0, sep);
-      buffer = buffer.slice(sep + 2);
-      let event = "message";
-      const dataLines: string[] = [];
-      for (const line of frame.split("\n")) {
-        if (line.startsWith("event:")) event = line.slice(6).trim();
-        else if (line.startsWith("data:"))
-          dataLines.push(line.slice(5).trim());
-      }
-      if (dataLines.length === 0) continue;
-      const data = JSON.parse(dataLines.join("\n"));
-      yield { event, data } as ContractReviewStreamEvent;
-    }
-  }
+  return (await resp.json()) as JobRead;
 }
 
 export interface DocxExportResult {

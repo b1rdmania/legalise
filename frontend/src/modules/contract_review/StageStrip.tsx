@@ -2,7 +2,7 @@
 // Pill state maps to StageState; visuals mirror the Pre-Motion strip's
 // Paper Ink Workspace tokens (bg-paper / border-rule / text-ink).
 
-import type { StageState, StageStatus } from "./api";
+import type { StageState, StageStatus } from "../../lib/api";
 
 interface Props {
   stages: StageStatus[];
