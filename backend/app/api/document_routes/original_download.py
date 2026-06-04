@@ -55,8 +55,7 @@ async def download_generated_docx(
         # Forensic provenance via `audit_failure` (separate committed
         # session) so the row survives the route's session rollback —
         # R3 review fix. Aligned with the upload-fail path.
-        from app.core.api import audit_failure
-        await audit_failure(
+        await documents_api.audit_failure(
             session,
             "storage.get_bytes.failed",
             actor_id=user.id,
@@ -134,7 +133,7 @@ async def get_document_original(
     except KeyError:
         raise HTTPException(404, "original file not available")
     except StorageReadError as exc:
-        await audit_failure(
+        await documents_api.audit_failure(
             session,
             "storage.get_bytes.failed",
             actor_id=user.id,
