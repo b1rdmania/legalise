@@ -950,6 +950,9 @@ describe("DocumentDetail", () => {
 
     const redlines = await screen.findByTestId("document-inline-redlines");
     expect(redlines).toBeInTheDocument();
+    expect(screen.getByTestId("document-redlines-ready")).toHaveTextContent(
+      "1 proposed edit waiting",
+    );
     expect(screen.getByText(/Review suggested changes/i)).toBeInTheDocument();
     expect(redlines).toHaveTextContent(/on written notice/i);
     expect(

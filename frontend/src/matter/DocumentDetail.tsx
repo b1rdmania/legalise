@@ -1252,6 +1252,37 @@ export function DocumentDetail({
               <p className="mt-1 text-sm leading-6 text-muted">
                 Ask the model to propose changes. Review each redline before it becomes a saved version.
               </p>
+              {activeEditResult && (
+                <div
+                  className="mt-4 border border-ink bg-paper-sunken p-3"
+                  data-testid="document-redlines-ready"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                        Redlines ready
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-ink">
+                        {activeEditResult.pending_edits.length} proposed edit
+                        {activeEditResult.pending_edits.length === 1 ? "" : "s"} waiting in the
+                        document review area.
+                      </p>
+                      {activeEditResult.model_notes && (
+                        <p className="mt-2 text-xs leading-5 text-muted">
+                          {activeEditResult.model_notes}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openWorkbenchView("redlines")}
+                      className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                    >
+                      Review redlines
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="mt-4" data-testid="document-redline-workspace">
                 <EditPanel
                   documentId={documentId}
