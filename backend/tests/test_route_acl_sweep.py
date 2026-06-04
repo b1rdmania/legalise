@@ -17,6 +17,8 @@ import zipfile
 
 import pytest
 from docx import Document as DocxDocument
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import RGBColor
 
 
 EMAIL_A = "acl-sweep-a@example.com"
@@ -621,7 +623,10 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
     save = await client.post(
         f"/api/documents/{doc_id}/versions/manual",
         json={
-            "resolved_text": "Important term\n\nListed point",
+            "resolved_text": (
+                "Important term\n\nListed point\n\nRight aligned red\n\n"
+                "[ ] Review source\n[x] Check deadline\n\n[image: timeline diagram]"
+            ),
             "resolved_json": {
                 "type": "doc",
                 "content": [
@@ -655,6 +660,54 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
                                 ],
                             }
                         ],
+                    },
+                    {
+                        "type": "paragraph",
+                        "attrs": {"textAlign": "right"},
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Right aligned red",
+                                "marks": [
+                                    {
+                                        "type": "textStyle",
+                                        "attrs": {"color": "#8C1D18"},
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "type": "taskList",
+                        "content": [
+                            {
+                                "type": "taskItem",
+                                "attrs": {"checked": False},
+                                "content": [
+                                    {
+                                        "type": "paragraph",
+                                        "content": [{"type": "text", "text": "Review source"}],
+                                    }
+                                ],
+                            },
+                            {
+                                "type": "taskItem",
+                                "attrs": {"checked": True},
+                                "content": [
+                                    {
+                                        "type": "paragraph",
+                                        "content": [{"type": "text", "text": "Check deadline"}],
+                                    }
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        "type": "image",
+                        "attrs": {
+                            "src": "https://example.com/timeline.png",
+                            "alt": "timeline diagram",
+                        },
                     },
                     {
                         "type": "table",
@@ -728,6 +781,12 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
     bullet = next(p for p in docx.paragraphs if p.text == "Listed point")
     assert bullet.style.name.startswith("List Bullet")
     assert bullet.runs[0].font.highlight_color is not None
+    aligned = next(p for p in docx.paragraphs if p.text == "Right aligned red")
+    assert aligned.alignment == WD_ALIGN_PARAGRAPH.RIGHT
+    assert aligned.runs[0].font.color.rgb == RGBColor(0x8C, 0x1D, 0x18)
+    assert next(p for p in docx.paragraphs if p.text == "[ ] Review source")
+    assert next(p for p in docx.paragraphs if p.text == "[x] Check deadline")
+    assert next(p for p in docx.paragraphs if p.text == "[image: timeline diagram]")
     assert docx.tables[0].cell(0, 0).text == "Issue"
     assert docx.tables[0].cell(0, 1).text == "Risk"
     assert docx.tables[0].cell(1, 0).text == "Indemnity"
