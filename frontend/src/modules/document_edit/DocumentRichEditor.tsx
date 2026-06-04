@@ -6,6 +6,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
+import { Extension, type Content, type JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
@@ -15,7 +16,8 @@ import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
-import type { Content, JSONContent } from "@tiptap/core";
+import { Plugin, PluginKey } from "prosemirror-state";
+import { Decoration, DecorationSet } from "prosemirror-view";
 
 import {
   commitDocumentWorkingDraft,
@@ -58,6 +60,42 @@ export type DocumentNoteHighlight = {
   quote: string;
   status: "open" | "resolved";
 };
+
+function reviewNoteDecorationsExtension(noteHighlights: DocumentNoteHighlight[]) {
+  return Extension.create({
+    name: "legaliseReviewNotes",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin({
+          key: new PluginKey("legaliseReviewNotes"),
+          props: {
+            decorations(state) {
+              const decorations: Decoration[] = [];
+              state.doc.descendants((node, position) => {
+                if (!node.isText || !node.text) return;
+                noteHighlights.forEach((note) => {
+                  findNormalizedRanges(node.text ?? "", note.quote).forEach((range) => {
+                    decorations.push(
+                      Decoration.inline(position + range.start, position + range.end, {
+                        class:
+                          note.status === "resolved"
+                            ? "legalise-review-note-resolved"
+                            : "legalise-review-note-open",
+                        "data-review-note-id": note.id,
+                        title: note.label,
+                      }),
+                    );
+                  });
+                });
+              });
+              return DecorationSet.create(state.doc, decorations);
+            },
+          },
+        }),
+      ];
+    },
+  });
+}
 
 export function findNormalizedRanges(
   text: string,
@@ -405,6 +443,19 @@ export function DocumentRichEditor({
     () => initialJson ?? textToEditorHtml(initialText, sourceHighlight),
     [initialJson, initialText, sourceHighlight],
   );
+  const noteHighlightsKey = useMemo(
+    () =>
+      noteHighlights
+        .map((note) => `${note.id}:${note.status}:${note.quote}`)
+        .join("|"),
+    [noteHighlights],
+  );
+  const reviewNoteExtension = useMemo(
+    () => reviewNoteDecorationsExtension(noteHighlights),
+    // The key keeps the editor extension stable unless the actual anchor inputs change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [noteHighlightsKey],
+  );
   async function persistWorkingDraft(
     editorJson: TiptapNode,
     plainText: string,
@@ -484,6 +535,7 @@ export function DocumentRichEditor({
         }),
         Typography,
         Highlight.configure({ multicolor: false }),
+        reviewNoteExtension,
         Underline,
         Table.configure({ resizable: true }),
         TableRow,
@@ -514,7 +566,7 @@ export function DocumentRichEditor({
       },
       immediatelyRender: false,
     },
-    [documentId],
+    [documentId, reviewNoteExtension],
   );
 
   useEffect(() => {

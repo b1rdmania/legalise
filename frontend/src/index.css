@@ -120,6 +120,18 @@
     padding: 0 0.1em;
   }
 
+  .legalise-document-editor .legalise-review-note-open {
+    background: #EAF4F4;
+    box-shadow: inset 0 -2px 0 #2F6F6D;
+    padding: 0 0.08em;
+  }
+
+  .legalise-document-editor .legalise-review-note-resolved {
+    background: #F1F1ED;
+    box-shadow: inset 0 -2px 0 #9CA3AF;
+    padding: 0 0.08em;
+  }
+
   .legalise-document-editor table {
     border-collapse: collapse;
     margin: 0 0 1.25rem;
