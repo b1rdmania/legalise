@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
 import {
@@ -256,6 +256,7 @@ export function DocumentDetail({
       };
     },
   });
+  const navigate = useNavigate();
   const fromTab = sourceContext.fromTab;
   const backTab: TabKey = fromTab ?? "documents";
   const backLabel =
@@ -805,6 +806,19 @@ export function DocumentDetail({
     ]);
     setWorkbenchView("editor");
   };
+  const openChatWithDocument = () =>
+    void navigate({
+      to: "/matters/$slug/$tab",
+      params: { slug, tab: "assistant" },
+      search: { document: documentId },
+    });
+  const chatNextStep = {
+    eyebrow: "Return to Chat",
+    title: "Ask the next question with this file attached.",
+    body: "This document stays selected in Chat, so the next answer works from the same file.",
+    action: "Back to Chat",
+    onClick: openChatWithDocument,
+  };
   const nextStep =
     activeEditResult
       ? {
@@ -816,32 +830,34 @@ export function DocumentDetail({
           action: "Review redlines",
           onClick: () => openWorkbenchView("redlines" as WorkbenchView),
         }
-      : primaryDocumentSkill
-        ? {
-            eyebrow: "Run a skill",
-            title: `${primaryDocumentSkill.title} is ready for this file.`,
-            body: "Run a governed skill with this document selected, then review and sign the output.",
-            action: "Run with this file",
-            onClick: () => openDocumentSkill(primaryDocumentSkill),
-          }
-        : openComments.length > 0
+      : arrivedFromChat
+        ? chatNextStep
+        : primaryDocumentSkill
           ? {
-              eyebrow: "Review notes",
-              title: `${openComments.length} open note${
-                openComments.length === 1 ? "" : "s"
-              } on this file.`,
-              body: "Open the review notes, resolve what is done, or add a new note from selected text.",
-              action: "Open notes",
-              onClick: () =>
-                notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
+              eyebrow: "Run a skill",
+              title: `${primaryDocumentSkill.title} is ready for this file.`,
+              body: "Run a governed skill with this document selected, then review and sign the output.",
+              action: "Run with this file",
+              onClick: () => openDocumentSkill(primaryDocumentSkill),
             }
-          : {
-              eyebrow: "Read the file",
-              title: "Start by reading or selecting text.",
-              body: "The document is ready. Select a passage to add a note, or switch to the original preview.",
-              action: "Keep reading",
-              onClick: () => openWorkbenchView("editor" as WorkbenchView),
-            };
+          : openComments.length > 0
+            ? {
+                eyebrow: "Review notes",
+                title: `${openComments.length} open note${
+                  openComments.length === 1 ? "" : "s"
+                } on this file.`,
+                body: "Open the review notes, resolve what is done, or add a new note from selected text.",
+                action: "Open notes",
+                onClick: () =>
+                  notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
+              }
+            : {
+                eyebrow: "Read the file",
+                title: "Start by reading or selecting text.",
+                body: "The document is ready. Select a passage to add a note, or switch to the original preview.",
+                action: "Keep reading",
+                onClick: () => openWorkbenchView("editor" as WorkbenchView),
+              };
 
   return (
     <div className="bg-wash px-4 py-6 text-ink sm:px-6 lg:px-8">
@@ -961,7 +977,7 @@ export function DocumentDetail({
                 to="/matters/$slug/$tab"
                 params={{ slug, tab: "assistant" }}
                 search={{ document: documentId }}
-                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
+                className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
                 data-testid="document-ask-chat-link"
               >
                 Ask about this file

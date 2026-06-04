@@ -1297,6 +1297,10 @@ describe("DocumentDetail", () => {
     });
     // Smart back reflects the arrived-from tab.
     expect(screen.getByTestId("document-back-link")).toHaveTextContent(/Back to Chat/i);
+    expect(screen.getByTestId("document-next-step")).toHaveTextContent(
+      /Ask the next question with this file attached/i,
+    );
+    expect(screen.getByRole("button", { name: "Back to Chat" })).toBeInTheDocument();
   });
 
   it("highlights a cited quote when opened from an output source link", async () => {
