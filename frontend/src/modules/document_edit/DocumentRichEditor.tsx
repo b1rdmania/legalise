@@ -20,6 +20,7 @@ import type { Content, JSONContent } from "@tiptap/core";
 import {
   commitDocumentWorkingDraft,
   documentVersionDocxUrl,
+  fetchDocumentOriginalBlob,
   getDocumentWorkingDraft,
   saveDocumentWorkingDraft,
   type DocumentVersionRead,
@@ -40,6 +41,7 @@ type TextRange = { start: number; end: number };
 type OutlineItem = { id: string; label: string; query: string };
 type DocumentStats = { words: number; chars: number; blocks: number };
 type DocumentCanvasMode = "page" | "wide";
+type OriginalImportState = "idle" | "loading" | "ready" | "error";
 type DocumentLocalDraft = {
   documentId: string;
   filename: string;
@@ -145,6 +147,13 @@ function plainTextFromNode(node: TiptapNode): string {
 
 export function editorJsonToPlainText(json: TiptapNode): string {
   return plainTextFromNode(json).replace(/\n{3,}/g, "\n\n").trim();
+}
+
+export function isEditableWordDocument(filename: string, mimeType?: string | null): boolean {
+  return (
+    /\.docx$/i.test(filename) ||
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  );
 }
 
 function firstTextFromNode(node: TiptapNode): string {
@@ -309,6 +318,7 @@ export function DocumentRichEditor({
   initialJson,
   latestVersionNumber,
   latestVersionId,
+  originalMimeType,
   sourceLabel,
   sourceHighlight,
   noteHighlights = [],
@@ -324,6 +334,7 @@ export function DocumentRichEditor({
   initialJson?: TiptapNode | null;
   latestVersionNumber?: number;
   latestVersionId?: string | null;
+  originalMimeType?: string | null;
   sourceLabel: string;
   sourceHighlight?: string | null;
   noteHighlights?: DocumentNoteHighlight[];
@@ -345,6 +356,7 @@ export function DocumentRichEditor({
   const [serverDraft, setServerDraft] = useState<DocumentWorkingDraftRead | null>(null);
   const [draftLoadState, setDraftLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [draftSaveState, setDraftSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [originalImportState, setOriginalImportState] = useState<OriginalImportState>("idle");
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
@@ -376,6 +388,31 @@ export function DocumentRichEditor({
     draftBaseVersionIdRef.current = draft.base_version_id;
     setDraftSaveState("saved");
     return draft;
+  }
+
+  async function importOriginalWordDraft(): Promise<boolean> {
+    if (!editor || !isEditableWordDocument(filename, originalMimeType)) return false;
+    setOriginalImportState("loading");
+    try {
+      const blob = await fetchDocumentOriginalBlob(documentId);
+      const arrayBuffer = await blob.arrayBuffer();
+      const mammoth = await import("mammoth");
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      const html = result.value.trim();
+      if (!html) throw new Error("Word import returned no editable content.");
+      editor.commands.setContent(html, { emitUpdate: false });
+      const editorJson = editor.getJSON() as TiptapNode;
+      const importedText = editorJsonToPlainText(editorJson);
+      await persistWorkingDraft(editorJson, importedText);
+      setDirty(true);
+      onDirtyChange?.(true);
+      setSavedMessage("Word structure imported. Save it to create an editable version.");
+      setOriginalImportState("ready");
+      return true;
+    } catch {
+      setOriginalImportState("error");
+      return false;
+    }
   }
 
   function scheduleWorkingDraftSave(editorJson: TiptapNode, plainText: string) {
@@ -450,6 +487,7 @@ export function DocumentRichEditor({
     setServerDraft(null);
     setDraftLoadState("loading");
     setDraftSaveState("idle");
+    setOriginalImportState("idle");
     draftBaseVersionIdRef.current = latestVersionId ?? null;
     if (draftSaveTimerRef.current !== null) {
       window.clearTimeout(draftSaveTimerRef.current);
@@ -462,10 +500,22 @@ export function DocumentRichEditor({
     let cancelled = false;
     setDraftLoadState("loading");
     getDocumentWorkingDraft(documentId)
-      .then((draft) => {
+      .then(async (draft) => {
         if (cancelled) return;
         setServerDraft(draft);
         draftBaseVersionIdRef.current = draft.base_version_id ?? latestVersionId ?? null;
+        const shouldImportWord =
+          draft.version_counter === 0 &&
+          !draft.editor_json &&
+          isEditableWordDocument(filename, originalMimeType);
+        if (shouldImportWord) {
+          const imported = await importOriginalWordDraft();
+          if (cancelled) return;
+          if (imported) {
+            setDraftLoadState("ready");
+            return;
+          }
+        }
         const draftContent = draft.editor_json ?? textToEditorHtml(draft.plain_text, sourceHighlight);
         editor.commands.setContent(draftContent as Content, { emitUpdate: false });
         const hasMutableDraft = draft.version_counter > 0;
@@ -483,7 +533,7 @@ export function DocumentRichEditor({
     return () => {
       cancelled = true;
     };
-  }, [documentId, editor, latestVersionId, onDirtyChange, sourceHighlight]);
+  }, [documentId, editor, filename, latestVersionId, onDirtyChange, originalMimeType, sourceHighlight]);
 
   useEffect(() => {
     return () => {
@@ -924,6 +974,27 @@ export function DocumentRichEditor({
         >
           Shared draft could not be saved. The browser copy is preserved locally; try saving
           again before leaving this file.
+        </p>
+      )}
+      {originalImportState === "loading" && (
+        <p className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
+          Importing Word structure into the editable working copy...
+        </p>
+      )}
+      {originalImportState === "ready" && (
+        <p
+          className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted"
+          data-testid="document-word-import-ready"
+        >
+          Word structure imported into the shared draft. Save a version when the edit is ready.
+        </p>
+      )}
+      {originalImportState === "error" && (
+        <p
+          className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
+          data-testid="document-word-import-fallback"
+        >
+          Word structure could not be imported here, so the editor is using extracted text.
         </p>
       )}
       {localDraft && (

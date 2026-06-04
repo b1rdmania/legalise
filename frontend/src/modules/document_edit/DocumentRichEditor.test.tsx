@@ -9,6 +9,7 @@ import {
   documentStatsFromText,
   findNormalizedRange,
   findNormalizedRanges,
+  isEditableWordDocument,
   readDocumentLocalDraft,
   type TiptapNode,
   textToEditorHtml,
@@ -201,6 +202,17 @@ describe("DocumentRichEditor text conversion", () => {
     expect(readDocumentLocalDraft("doc-1")?.plainText).toBe("Unsaved wording");
     clearDocumentLocalDraft("doc-1");
     expect(readDocumentLocalDraft("doc-1")).toBeNull();
+  });
+
+  it("detects editable Word originals by extension or MIME type", () => {
+    expect(isEditableWordDocument("lease.docx", null)).toBe(true);
+    expect(
+      isEditableWordDocument(
+        "lease",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ),
+    ).toBe(true);
+    expect(isEditableWordDocument("lease.pdf", "application/pdf")).toBe(false);
   });
 });
 
