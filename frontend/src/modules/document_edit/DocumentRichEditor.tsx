@@ -855,6 +855,13 @@ export function DocumentRichEditor({
         activeIndex,
       } satisfies FindDecorationState),
     );
+    if (findQuery.trim().length >= 3 && findMatches.length > 0) {
+      window.requestAnimationFrame(() => {
+        editor.view.dom
+          .querySelector('[data-find-match="active"]')
+          ?.scrollIntoView({ block: "center", inline: "nearest" });
+      });
+    }
   }, [activeFindIndex, editor, findMatches.length, findQuery]);
 
   async function save(): Promise<DocumentVersionRead | null> {
