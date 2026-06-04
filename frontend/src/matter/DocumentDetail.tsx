@@ -224,6 +224,9 @@ export function DocumentDetail({
     useState<"loading" | "ready" | "error">("loading");
   const [activeRunnerSkill, setActiveRunnerSkill] =
     useState<RunnableMatterSkill | null>(null);
+  const [runnerInitialInput, setRunnerInitialInput] = useState<string | undefined>(
+    undefined,
+  );
   const [documentArtifacts, setDocumentArtifacts] = useState<ArtifactRead[] | null>(null);
   const workbenchRef = useRef<HTMLDivElement | null>(null);
   const notesRef = useRef<HTMLElement | null>(null);
@@ -696,6 +699,24 @@ export function DocumentDetail({
       notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
     });
   };
+  const selectedPassageRequest = (skill: RunnableMatterSkill): string | undefined => {
+    const trimmed = selectedQuote.trim().replace(/\s+/g, " ");
+    if (!trimmed) return undefined;
+    return [
+      `Use this selected passage from ${doc?.filename ?? "the document"}:`,
+      "",
+      `"${trimmed}"`,
+      "",
+      `Run ${skill.title}.`,
+    ].join("\n");
+  };
+  const openDocumentSkill = (skill: RunnableMatterSkill, useSelection = false) => {
+    setRunnerInitialInput(useSelection ? selectedPassageRequest(skill) : undefined);
+    setActiveRunnerSkill(skill);
+    requestAnimationFrame(() => {
+      skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    });
+  };
   const submitVersionUpload = async () => {
     if (!versionUploadFile) {
       setVersionUploadError("Choose a file to upload as the next version.");
@@ -760,12 +781,7 @@ export function DocumentDetail({
             title: `${primaryDocumentSkill.title} is ready for this file.`,
             body: "Run a governed skill with this document selected, then review and sign the output.",
             action: "Run with this file",
-            onClick: () => {
-              setActiveRunnerSkill(primaryDocumentSkill);
-              requestAnimationFrame(() => {
-                skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-              });
-            },
+            onClick: () => openDocumentSkill(primaryDocumentSkill),
           }
         : openComments.length > 0
           ? {
@@ -1320,10 +1336,7 @@ export function DocumentDetail({
                   <button
                     type="button"
                     onClick={() => {
-                      if (primaryDocumentSkill) setActiveRunnerSkill(primaryDocumentSkill);
-                      requestAnimationFrame(() => {
-                        skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-                      });
+                      if (primaryDocumentSkill) openDocumentSkill(primaryDocumentSkill);
                     }}
                     className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
                   >
@@ -1468,10 +1481,14 @@ export function DocumentDetail({
               {activeRunnerSkill ? (
                 <div className="mt-4">
                   <GenericSkillRunner
+                    key={`${activeRunnerSkill.moduleId}:${activeRunnerSkill.capabilityId}:${
+                      runnerInitialInput ?? "document"
+                    }`}
                     slug={slug}
                     skill={activeRunnerSkill}
                     documents={[doc]}
                     initialDocumentIds={[documentId]}
+                    initialInput={runnerInitialInput}
                     onRunComplete={(_response, artifacts) => {
                       const related = artifacts.filter((artifact) =>
                         artifactReferencesDocument(artifact, documentId),
@@ -1485,7 +1502,10 @@ export function DocumentDetail({
                         ];
                       });
                     }}
-                    onClose={() => setActiveRunnerSkill(null)}
+                    onClose={() => {
+                      setActiveRunnerSkill(null);
+                      setRunnerInitialInput(undefined);
+                    }}
                     compact
                   />
                 </div>
@@ -1511,12 +1531,7 @@ export function DocumentDetail({
                   {primaryDocumentSkill && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setActiveRunnerSkill(primaryDocumentSkill);
-                        requestAnimationFrame(() => {
-                          skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
-                        });
-                      }}
+                      onClick={() => openDocumentSkill(primaryDocumentSkill)}
                       className="w-full border border-ink bg-paper px-3 py-3 text-left hover:bg-paper-sunken"
                     >
                       <span className="flex items-start justify-between gap-3">
@@ -1552,15 +1567,7 @@ export function DocumentDetail({
                           <button
                             key={`${skill.moduleId}:${skill.capabilityId}`}
                             type="button"
-                            onClick={() => {
-                              setActiveRunnerSkill(skill);
-                              requestAnimationFrame(() => {
-                                skillsRef.current?.scrollIntoView?.({
-                                  block: "start",
-                                  behavior: "smooth",
-                                });
-                              });
-                            }}
+                            onClick={() => openDocumentSkill(skill)}
                             className="w-full border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
                           >
                             <span className="block text-sm font-semibold text-ink">
@@ -1828,13 +1835,24 @@ export function DocumentDetail({
                           ? "This note will stay anchored to the current document text."
                           : "This passage can be quoted, but its exact text position was not found."}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => setCommentQuote(selectedQuote)}
-                        className="mt-3 border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
-                      >
-                        Quote this passage
-                      </button>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCommentQuote(selectedQuote)}
+                          className="border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
+                        >
+                          Quote this passage
+                        </button>
+                        {primaryDocumentSkill && (
+                          <button
+                            type="button"
+                            onClick={() => openDocumentSkill(primaryDocumentSkill, true)}
+                            className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                          >
+                            Run skill on passage
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                   <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
