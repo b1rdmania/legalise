@@ -358,6 +358,91 @@ describe("DocumentRichEditor surface", () => {
     expect(calledUrls.some((call) => call.url.endsWith("/versions/manual"))).toBe(false);
   });
 
+  it("surfaces shared-draft conflicts when saving a version", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/documents/doc-1/draft") && !init?.method) {
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: "user-1",
+            updated_at: "2026-06-04T02:30:00Z",
+            plain_text: "Server draft wording.",
+            editor_json: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Server draft wording." }],
+                },
+              ],
+            },
+            base_version_id: "version-1",
+            version_counter: 3,
+            client_id: "client-1",
+          }),
+        );
+      }
+      if (url.endsWith("/documents/doc-1/draft") && init?.method === "PUT") {
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: "user-1",
+            updated_at: "2026-06-04T02:31:00Z",
+            plain_text: "Server draft wording.",
+            editor_json: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Server draft wording." }],
+                },
+              ],
+            },
+            base_version_id: "version-1",
+            version_counter: 4,
+            client_id: "document-editor-test",
+          }),
+        );
+      }
+      if (url.endsWith("/documents/doc-1/draft/commit") && init?.method === "POST") {
+        return Promise.resolve(
+          jsonResponse(
+            {
+              detail: {
+                error: "working_draft_conflict",
+                message: "The shared draft changed before this version save.",
+                current_version_counter: 5,
+                current_client_id: "client-2",
+              },
+            },
+            409,
+          ),
+        );
+      }
+      return Promise.resolve(jsonResponse({ detail: "not found" }, 404));
+    });
+
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="Extracted fallback."
+        latestVersionNumber={2}
+        latestVersionId="version-1"
+        sourceLabel="extracted · 19 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    expect(await screen.findByText("Server draft wording.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save version" }));
+
+    expect(await screen.findByTestId("document-server-draft-error")).toHaveTextContent(
+      "The shared draft changed before this version save.",
+    );
+  });
+
   it("renders grouped document editing controls on a page canvas", async () => {
     Object.assign(window.navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
