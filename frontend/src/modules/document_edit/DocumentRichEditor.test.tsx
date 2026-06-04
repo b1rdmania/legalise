@@ -748,6 +748,10 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor-selected-passage")).toHaveTextContent(
       "Anchored",
     );
+    const ribbon = screen.getByTestId("document-editor-selection-ribbon");
+    expect(ribbon).toHaveTextContent("single social-media post");
+    fireEvent.click(within(ribbon).getByRole("button", { name: "Find in document" }));
+    expect(screen.getByLabelText("Find")).toHaveValue("single social-media post");
     fireEvent.click(screen.getByRole("button", { name: "Copy passage" }));
     await waitFor(() => {
       expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
@@ -757,7 +761,7 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
       "Copied selected passage",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Add review note" }));
+    fireEvent.click(within(ribbon).getByRole("button", { name: "Add review note" }));
     expect(onCreateNoteFromSelection).toHaveBeenCalledTimes(1);
   });
 
