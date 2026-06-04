@@ -220,6 +220,13 @@ Verification then runs the existing `test_audit_worm.py` assertions against the 
 
 Track as a v0.6 ops follow-up.
 
+**Update (engineering de-risked, branch `harden/worm-role-split-verify`):** the role-split SQL is now extracted from this migration's runbook into `infra/postgres-roles.sql` (idempotent, secret-free), and the immutability property is *verified*, not just documented:
+
+- `infra/verify-worm-role-split.sh` — one command, no app-schema/asyncpg dependency. Stands up a disposable two-role Postgres, proves app-role `UPDATE`/`DELETE` are refused with SQLSTATE `42501` (privilege layer, *before* the trigger), proves a privileged role still hits the `append-only` trigger, then drops the DB. Ran green natively.
+- `backend/tests/test_audit_worm_role_split.py` — CI/integration form, gated on `TEST_APP_ROLE_DATABASE_URL`; skips when unset so single-role CI stays green.
+
+The two layers are now confirmed independently sufficient. **What remains is purely operational** (no engineering risk in the window): create the two roles + run `infra/postgres-roles.sql` on Neon, swap `POSTGRES_DSN` → app-role DSN and `ALEMBIC_URL` → migrate-role DSN as Fly secrets, deploy. Point `TEST_APP_ROLE_DATABASE_URL` at the app-role DSN once to confirm in the prod-shaped environment.
+
 ### 8.3 The three documented gaps in §6
 
 - Worker smoke needs hands-on debug.
