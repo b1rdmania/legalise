@@ -15,6 +15,7 @@ from app.api.document_routes import (
     original_download,
     working_draft,
 )
+from app.api.document_routes.common import get_storage_backend
 
 
 router = APIRouter()

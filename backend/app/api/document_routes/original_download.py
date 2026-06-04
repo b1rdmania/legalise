@@ -44,7 +44,9 @@ async def download_generated_docx(
     if not storage_uri:
         raise HTTPException(404, "generated document not found")
 
-    storage = get_storage_backend()
+    from app.api import documents as documents_api
+
+    storage = documents_api.get_storage_backend()
     try:
         data = storage.get_bytes(storage_uri)
     except KeyError:
@@ -124,7 +126,9 @@ async def get_document_original(
     if not doc.storage_uri:
         raise HTTPException(404, "original file not available")
 
-    storage = get_storage_backend()
+    from app.api import documents as documents_api
+
+    storage = documents_api.get_storage_backend()
     try:
         data = storage.get_bytes(doc.storage_uri)
     except KeyError:
