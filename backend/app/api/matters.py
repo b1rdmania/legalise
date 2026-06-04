@@ -43,6 +43,7 @@ from app.models import (
     AuditEntry,
     Document,
     DocumentComment,
+    DocumentEdit,
     Job,
     Matter,
     User,
@@ -57,6 +58,8 @@ from app.models import (
     JOB_KIND_EXPORT,
     JOB_STATUS_SUCCEEDED,
 )
+from app.models.document_comment import COMMENT_STATUS_OPEN
+from app.models.document_edit import EDIT_STATUS_PENDING
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
 
@@ -136,6 +139,10 @@ class DocumentRead(BaseModel):
     uploaded_at: datetime
     uploaded_by_id: uuid.UUID
     comment_count: int = 0
+    open_comment_count: int = 0
+    version_count: int = 0
+    edit_count: int = 0
+    pending_edit_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -487,18 +494,70 @@ async def list_documents(
     )
     if matter is None:
         raise HTTPException(404, f"matter not found: {slug}")
+    comment_counts = (
+        select(
+            DocumentComment.document_id.label("document_id"),
+            func.count(DocumentComment.id).label("comment_count"),
+            func.count(DocumentComment.id)
+            .filter(DocumentComment.status == COMMENT_STATUS_OPEN)
+            .label("open_comment_count"),
+        )
+        .group_by(DocumentComment.document_id)
+        .subquery()
+    )
+    version_counts = (
+        select(
+            DocumentVersion.document_id.label("document_id"),
+            func.count(DocumentVersion.id).label("version_count"),
+        )
+        .group_by(DocumentVersion.document_id)
+        .subquery()
+    )
+    edit_counts = (
+        select(
+            DocumentVersion.document_id.label("document_id"),
+            func.count(DocumentEdit.id).label("edit_count"),
+            func.count(DocumentEdit.id)
+            .filter(DocumentEdit.status == EDIT_STATUS_PENDING)
+            .label("pending_edit_count"),
+        )
+        .join(DocumentEdit, DocumentEdit.document_version_id == DocumentVersion.id)
+        .group_by(DocumentVersion.document_id)
+        .subquery()
+    )
     rows = await session.execute(
-        select(Document, func.count(DocumentComment.id).label("comment_count"))
-        .outerjoin(DocumentComment, DocumentComment.document_id == Document.id)
+        select(
+            Document,
+            comment_counts.c.comment_count,
+            comment_counts.c.open_comment_count,
+            version_counts.c.version_count,
+            edit_counts.c.edit_count,
+            edit_counts.c.pending_edit_count,
+        )
+        .outerjoin(comment_counts, comment_counts.c.document_id == Document.id)
+        .outerjoin(version_counts, version_counts.c.document_id == Document.id)
+        .outerjoin(edit_counts, edit_counts.c.document_id == Document.id)
         .where(Document.matter_id == matter.id)
-        .group_by(Document.id)
         .order_by(Document.uploaded_at.desc())
     )
     return [
         DocumentRead.model_validate(doc).model_copy(
-            update={"comment_count": int(comment_count or 0)}
+            update={
+                "comment_count": int(comment_count or 0),
+                "open_comment_count": int(open_comment_count or 0),
+                "version_count": int(version_count or 0),
+                "edit_count": int(edit_count or 0),
+                "pending_edit_count": int(pending_edit_count or 0),
+            }
         )
-        for doc, comment_count in rows.all()
+        for (
+            doc,
+            comment_count,
+            open_comment_count,
+            version_count,
+            edit_count,
+            pending_edit_count,
+        ) in rows.all()
     ]
 
 

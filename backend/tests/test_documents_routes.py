@@ -45,6 +45,12 @@ async def test_list_documents_returns_three_seeded_docs(client) -> None:
         "witness-statement-khan.docx",
         "synthetic-mutual-nda.docx",
     }
+    for doc in body:
+        assert "comment_count" in doc
+        assert "open_comment_count" in doc
+        assert "version_count" in doc
+        assert "edit_count" in doc
+        assert "pending_edit_count" in doc
 
 
 @pytest.mark.asyncio
