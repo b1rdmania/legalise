@@ -32,7 +32,9 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Literal
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -42,7 +44,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.adapters import plugin_bridge as _plugin_bridge_module
-from app.core.model_gateway import gateway as _gateway
+from app.core.model_gateway import PrivilegePaused, gateway as _gateway
+from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import AuditEntry, Matter
 
 
@@ -130,6 +133,61 @@ class _AuditAPI:
 
 
 audit = _AuditAPI()
+
+
+PROVIDER_HTTP_EXCEPTIONS = (
+    PrivilegePaused,
+    ProviderKeyMissing,
+    ProviderUpstreamError,
+)
+
+
+def provider_error_http_exception(
+    exc: PrivilegePaused | ProviderKeyMissing | ProviderUpstreamError,
+    *,
+    missing_key_message: str | None = None,
+    upstream_shape: Literal["module", "generic"] = "module",
+) -> HTTPException:
+    """Translate model-provider exceptions into the canonical HTTP envelopes.
+
+    Most module routers expose upstream failures as ``{"error": exc.code,
+    "message": str(exc)}``. The generic invocation endpoint historically uses
+    ``{"error": "provider_upstream_error", "code": exc.code}``. Keep both
+    shapes explicit so callers can centralise translation without changing
+    their public wire contract.
+    """
+    if isinstance(exc, PrivilegePaused):
+        return HTTPException(409, str(exc))
+    if isinstance(exc, ProviderKeyMissing):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "provider_key_missing",
+                "provider": getattr(exc, "provider", None),
+                "message": missing_key_message or str(exc),
+            },
+        )
+
+    if upstream_shape == "generic":
+        return HTTPException(
+            status_code=502,
+            detail={
+                "error": "provider_upstream_error",
+                "provider": getattr(exc, "provider", None),
+                "code": getattr(exc, "code", None),
+                "upstream_status": getattr(exc, "upstream_status", None),
+            },
+        )
+
+    return HTTPException(
+        status_code=502,
+        detail={
+            "error": exc.code,
+            "provider": exc.provider,
+            "upstream_status": exc.upstream_status,
+            "message": str(exc),
+        },
+    )
 
 
 async def audit_failure(
@@ -262,6 +320,8 @@ __all__ = [
     "get_matter",
     "audit",
     "audit_failure",
+    "PROVIDER_HTTP_EXCEPTIONS",
+    "provider_error_http_exception",
     "model_gateway",
     "plugin_bridge",
     "storage",

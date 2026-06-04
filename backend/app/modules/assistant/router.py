@@ -11,11 +11,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
+from app.core.api import PROVIDER_HTTP_EXCEPTIONS, provider_error_http_exception
 from app.core.db import get_session
 from app.core.limits import check_assistant_message
 from app.core.matter_access import resolve_owned_open_matter
-from app.core.model_gateway import PrivilegePaused
-from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import Matter, User
 from app.models.assistant import AssistantMessage as AssistantMessageRow
 
@@ -89,27 +88,8 @@ async def post_message(
             actor_id=user.id,
             request=request,
         )
-    except PrivilegePaused as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ProviderKeyMissing as exc:
-        raise HTTPException(
-            422,
-            detail={
-                "error": "provider_key_missing",
-                "provider": exc.provider,
-                "message": str(exc),
-            },
-        ) from exc
-    except ProviderUpstreamError as exc:
-        raise HTTPException(
-            502,
-            detail={
-                "error": exc.code,
-                "provider": exc.provider,
-                "upstream_status": exc.upstream_status,
-                "message": str(exc),
-            },
-        ) from exc
+    except PROVIDER_HTTP_EXCEPTIONS as exc:
+        raise provider_error_http_exception(exc) from exc
 
     return AssistantPostResponse(
         user=_to_schema(user_row),

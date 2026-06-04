@@ -40,9 +40,8 @@ from app.core.storage import (
     uploaded_key,
 )
 from app.core.text_extraction import extract as extract_text
-from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
-from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
-from app.core.api import audit, audit_failure
+from app.core.model_gateway import gateway as model_gateway
+from app.core.api import PROVIDER_HTTP_EXCEPTIONS, audit, audit_failure, provider_error_http_exception
 from app.core.config import settings
 from app.models import (
     AuditEntry,
@@ -450,23 +449,8 @@ async def post_edit_instruction(
         raise HTTPException(404, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    except PrivilegePaused as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ProviderKeyMissing as exc:
-        raise HTTPException(
-            422,
-            detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
-        ) from exc
-    except ProviderUpstreamError as exc:
-        raise HTTPException(
-            502,
-            detail={
-                "error": exc.code,
-                "provider": exc.provider,
-                "upstream_status": exc.upstream_status,
-                "message": str(exc),
-            },
-        ) from exc
+    except PROVIDER_HTTP_EXCEPTIONS as exc:
+        raise provider_error_http_exception(exc) from exc
 
     await session.commit()
     return EditInstructionResponse(
@@ -2900,27 +2884,8 @@ async def post_anonymise_document(
         raise HTTPException(404, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    except PrivilegePaused as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ProviderKeyMissing as exc:
-        raise HTTPException(
-            422,
-            detail={
-                "error": "provider_key_missing",
-                "provider": exc.provider,
-                "message": str(exc),
-            },
-        ) from exc
-    except ProviderUpstreamError as exc:
-        raise HTTPException(
-            502,
-            detail={
-                "error": exc.code,
-                "provider": exc.provider,
-                "upstream_status": exc.upstream_status,
-                "message": str(exc),
-            },
-        ) from exc
+    except PROVIDER_HTTP_EXCEPTIONS as exc:
+        raise provider_error_http_exception(exc) from exc
     except RuntimeError as exc:
         # Presidio not installed in this environment. 503 communicates
         # "service is real but disabled" more honestly than 500.
