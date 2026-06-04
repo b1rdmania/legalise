@@ -95,6 +95,10 @@ function compactText(value: string | null | undefined, max = 96): string {
   return `${compact.slice(0, max - 3).trimEnd()}...`;
 }
 
+function artifactLabel(artifact: ArtifactRead): string {
+  return artifact.kind.replace(/_/g, " ");
+}
+
 type DocQuery =
   | { status: "loading" }
   | { status: "ready"; doc: MatterDocument }
@@ -1113,6 +1117,48 @@ export function DocumentDetail({
                     )}
                   </section>
                 )}
+                {documentArtifacts && documentArtifacts.length > 0 && (
+                  <section
+                    className="border border-rule bg-paper p-3"
+                    data-testid="document-attached-outputs"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                          Work from this file
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-ink">
+                          {documentArtifacts.length} signed output
+                          {documentArtifacts.length === 1 ? " cites" : "s cite"} this document.
+                        </p>
+                      </div>
+                      <Link
+                        to="/matters/$slug/$tab"
+                        params={{ slug, tab: "artifacts" }}
+                        className="border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
+                      >
+                        Open signed outputs
+                      </Link>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {documentArtifacts.slice(0, 4).map((artifact) => (
+                        <a
+                          key={artifact.id}
+                          href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
+                          className="border border-rule bg-paper-sunken px-3 py-2 text-sm hover:border-ink"
+                        >
+                          <span className="block font-semibold capitalize text-ink">
+                            {artifactLabel(artifact)}
+                          </span>
+                          <span className="mt-1 block text-xs text-muted">
+                            {artifact.module_id} ·{" "}
+                            {artifact.created_at.replace("T", " ").slice(0, 16)}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </section>
+                )}
                 <div data-testid="document-content">
                   {bodyMissing && !selectedResolvedVersion ? (
                     <div className="p-6">
@@ -1462,7 +1508,7 @@ export function DocumentDetail({
                         className="block border border-rule bg-paper px-3 py-2 text-sm hover:border-ink"
                       >
                         <span className="block font-semibold text-ink">
-                          {artifact.kind.replace(/_/g, " ")}
+                          {artifactLabel(artifact)}
                         </span>
                         <span className="mt-1 block text-xs text-muted">
                           {artifact.module_id} · {artifact.created_at.replace("T", " ").slice(0, 16)}
