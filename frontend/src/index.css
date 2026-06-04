@@ -145,6 +145,36 @@
     padding: 0 0.08em;
   }
 
+  .legalise-document-editor ul[data-type="taskList"] {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+  }
+
+  .legalise-document-editor ul[data-type="taskList"] li {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.65rem;
+    margin: 0.25rem 0;
+  }
+
+  .legalise-document-editor ul[data-type="taskList"] li > label {
+    flex: 0 0 auto;
+    line-height: 1.8;
+    user-select: none;
+  }
+
+  .legalise-document-editor ul[data-type="taskList"] li > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .legalise-document-editor ul[data-type="taskList"] input[type="checkbox"] {
+    accent-color: #181818;
+    height: 1rem;
+    width: 1rem;
+  }
+
   .legalise-document-editor table {
     border-collapse: collapse;
     margin: 0 0 1.25rem;
