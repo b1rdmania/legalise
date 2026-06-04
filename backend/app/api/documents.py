@@ -6,7 +6,9 @@ import io
 import hashlib
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from urllib.parse import unquote, urlparse
 
 from typing import Any, Literal
 
@@ -14,7 +16,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Respon
 from fastapi.responses import StreamingResponse
 from docx import Document as DocxDocument
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
-from docx.shared import RGBColor
+from docx.shared import Inches, RGBColor
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +30,7 @@ from app.core.document_uploads import (
     sniff_format,
 )
 from app.core.storage import (
+    document_asset_key,
     get_storage_backend,
     StorageReadError,
     StorageWriteError,
@@ -78,6 +81,36 @@ from app.modules.anonymisation.schemas import (
 )
 
 router = APIRouter()
+
+IMAGE_ASSET_MIMES = {
+    "image/gif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+MAX_DOCUMENT_ASSET_BYTES = 5 * 1024 * 1024
+DOCUMENT_ASSET_URL_RE = re.compile(
+    r"^/api/documents/"
+    r"(?P<document_id>[0-9a-fA-F-]{36})/assets/"
+    r"(?P<asset_id>[0-9a-fA-F-]{36})/"
+    r"(?P<filename>[^?#]+)$"
+)
+
+
+@dataclass(frozen=True)
+class DocumentAssetContext:
+    user_id: uuid.UUID
+    matter_id: uuid.UUID
+    document_id: uuid.UUID
+
+
+class DocumentAssetUploadRead(BaseModel):
+    id: uuid.UUID
+    filename: str
+    mime_type: str
+    size_bytes: int
+    sha256: str
+    url: str
 
 
 class DocumentBodyRead(BaseModel):
@@ -462,12 +495,190 @@ def _safe_filename(title: str | None, file_uuid: str) -> str:
     return f"generated-{file_uuid[:8]}.docx"
 
 
+def _safe_asset_filename(filename: str | None, fallback: str) -> str:
+    if filename:
+        cleaned = _FILENAME_SAFE_RE.sub("-", filename).strip("-._")
+        cleaned = cleaned[:100].rstrip("-._")
+        if cleaned:
+            return cleaned
+    return fallback
+
+
 def _docx_export_filename(filename: str, version_number: int) -> str:
     stem = filename.rsplit(".", 1)[0] if "." in filename else filename
     cleaned = _FILENAME_SAFE_RE.sub("-", stem).strip("-._")[:80].rstrip("-._")
     if not cleaned:
         cleaned = "document"
     return f"{cleaned}-v{version_number}.docx"
+
+
+async def _owned_live_document(
+    session: AsyncSession,
+    document_id: uuid.UUID,
+    user: User,
+) -> tuple[Document, Matter]:
+    row = await session.execute(
+        select(Document, Matter)
+        .join(Matter, Matter.id == Document.matter_id)
+        .where(Document.id == document_id)
+    )
+    pair = row.first()
+    if pair is None:
+        raise HTTPException(404, "document not found")
+    doc, matter = pair
+    if matter.created_by_id != user.id or matter.status == STATUS_ARCHIVED:
+        raise HTTPException(404, "document not found")
+    return doc, matter
+
+
+@router.post("/{document_id}/assets", response_model=DocumentAssetUploadRead)
+async def post_document_asset(
+    document_id: uuid.UUID,
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> DocumentAssetUploadRead:
+    """Upload an embedded editor image for a document.
+
+    Assets live under the matter storage prefix and are retrieved through
+    the backend, so auth and matter cleanup stay inside the existing
+    document boundary. Reads are not audited because every render would
+    otherwise create noisy rows; the upload itself is recorded.
+    """
+    doc, matter = await _owned_live_document(session, document_id, user)
+    mime_type = file.content_type or "application/octet-stream"
+    if mime_type not in IMAGE_ASSET_MIMES:
+        raise HTTPException(415, "unsupported image type")
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "empty image")
+    if len(data) > MAX_DOCUMENT_ASSET_BYTES:
+        raise HTTPException(413, "image too large")
+
+    asset_id = uuid.uuid4()
+    extension = {
+        "image/gif": "gif",
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    }[mime_type]
+    filename = _safe_asset_filename(file.filename, f"{asset_id}.{extension}")
+    if "." not in filename:
+        filename = f"{filename}.{extension}"
+    digest = hashlib.sha256(data).hexdigest()
+    key = document_asset_key(user.id, matter.id, doc.id, asset_id, filename)
+    try:
+        get_storage_backend().put_bytes(
+            key,
+            data,
+            content_type=mime_type,
+            metadata={"sha256": digest, "document_id": str(doc.id)},
+        )
+    except StorageWriteError as exc:
+        await audit_failure(
+            session,
+            "storage.put_bytes.failed",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="storage",
+            resource_type="document_asset",
+            resource_id=str(asset_id),
+            payload={
+                "storage_key": key,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_write_failed",
+                "message": "Failed to store document image.",
+                "storage_key": key,
+                "backend": exc.backend,
+            },
+        ) from exc
+
+    await audit.log(
+        session,
+        "document.asset.uploaded",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="document_editor",
+        resource_type="document_asset",
+        resource_id=str(asset_id),
+        payload={
+            "document_id": str(doc.id),
+            "filename": filename,
+            "mime_type": mime_type,
+            "size_bytes": len(data),
+            "sha256": digest,
+        },
+    )
+    await session.commit()
+    return DocumentAssetUploadRead(
+        id=asset_id,
+        filename=filename,
+        mime_type=mime_type,
+        size_bytes=len(data),
+        sha256=digest,
+        url=f"/api/documents/{doc.id}/assets/{asset_id}/{filename}",
+    )
+
+
+@router.get("/{document_id}/assets/{asset_id}/{filename}")
+async def get_document_asset(
+    document_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    filename: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> StreamingResponse:
+    doc, matter = await _owned_live_document(session, document_id, user)
+    safe_filename = _safe_asset_filename(filename, f"{asset_id}")
+    key = document_asset_key(user.id, matter.id, doc.id, asset_id, safe_filename)
+    try:
+        data = get_storage_backend().get_bytes(key)
+    except KeyError:
+        raise HTTPException(404, "document asset not found")
+    except StorageReadError as exc:
+        await audit_failure(
+            session,
+            "storage.get_bytes.failed",
+            actor_id=user.id,
+            matter_id=matter.id,
+            module="storage",
+            resource_type="document_asset",
+            resource_id=str(asset_id),
+            payload={
+                "storage_key": key,
+                "backend": exc.backend,
+                "error_code": exc.error_code,
+            },
+        )
+        raise HTTPException(
+            502,
+            detail={
+                "error": "storage_read_failed",
+                "message": "Failed to read document image.",
+                "storage_key": key,
+                "backend": exc.backend,
+            },
+        ) from exc
+
+    suffix = safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else ""
+    mime_type = {
+        "gif": "image/gif",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp",
+    }.get(suffix, "application/octet-stream")
+    return StreamingResponse(
+        iter([data]),
+        media_type=mime_type,
+        headers={"Content-Length": str(len(data))},
+    )
 
 
 def _render_resolved_text_docx(
@@ -539,7 +750,57 @@ def _paragraph_alignment(value: str | None):
     }.get(value or "")
 
 
-def _add_tiptap_inline_content(paragraph, nodes: list[dict[str, Any]] | None) -> None:
+def _document_asset_key_from_src(
+    src: str | None,
+    context: DocumentAssetContext | None,
+) -> str | None:
+    if not src or context is None:
+        return None
+    parsed = urlparse(src)
+    path = parsed.path if parsed.scheme or parsed.netloc else src
+    match = DOCUMENT_ASSET_URL_RE.match(path)
+    if match is None:
+        return None
+    try:
+        document_id = uuid.UUID(match.group("document_id"))
+        asset_id = uuid.UUID(match.group("asset_id"))
+    except ValueError:
+        return None
+    if document_id != context.document_id:
+        return None
+    filename = _safe_asset_filename(unquote(match.group("filename")), f"{asset_id}")
+    return document_asset_key(
+        context.user_id,
+        context.matter_id,
+        context.document_id,
+        asset_id,
+        filename,
+    )
+
+
+def _add_tiptap_image(paragraph, attrs: dict[str, Any], context: DocumentAssetContext | None) -> bool:
+    key = _document_asset_key_from_src(
+        attrs.get("src") if isinstance(attrs.get("src"), str) else None,
+        context,
+    )
+    if key is None:
+        return False
+    try:
+        data = get_storage_backend().get_bytes(key)
+    except (KeyError, StorageReadError):
+        return False
+    try:
+        paragraph.add_run().add_picture(io.BytesIO(data), width=Inches(5.8))
+    except Exception:
+        return False
+    return True
+
+
+def _add_tiptap_inline_content(
+    paragraph,
+    nodes: list[dict[str, Any]] | None,
+    asset_context: DocumentAssetContext | None = None,
+) -> None:
     for node in nodes or []:
         node_type = node.get("type")
         if node_type == "text":
@@ -564,17 +825,19 @@ def _add_tiptap_inline_content(paragraph, nodes: list[dict[str, Any]] | None) ->
             paragraph.add_run().add_break()
         elif node_type == "image":
             attrs = node.get("attrs") or {}
-            label = attrs.get("alt") or attrs.get("src") or "image"
-            run = paragraph.add_run(f"[image: {label}]")
-            run.italic = True
+            if not _add_tiptap_image(paragraph, attrs, asset_context):
+                label = attrs.get("alt") or attrs.get("src") or "image"
+                run = paragraph.add_run(f"[image: {label}]")
+                run.italic = True
         elif isinstance(node.get("content"), list):
-            _add_tiptap_inline_content(paragraph, node.get("content"))
+            _add_tiptap_inline_content(paragraph, node.get("content"), asset_context)
 
 
 def _add_tiptap_paragraph(
     document: DocxDocument,
     node: dict[str, Any],
     style: str | None = None,
+    asset_context: DocumentAssetContext | None = None,
 ) -> None:
     if node.get("type") == "heading":
         level = int((node.get("attrs") or {}).get("level") or 1)
@@ -584,10 +847,15 @@ def _add_tiptap_paragraph(
     alignment = _paragraph_alignment((node.get("attrs") or {}).get("textAlign"))
     if alignment is not None:
         paragraph.alignment = alignment
-    _add_tiptap_inline_content(paragraph, node.get("content"))
+    _add_tiptap_inline_content(paragraph, node.get("content"), asset_context)
 
 
-def _add_tiptap_list_item(document: DocxDocument, item: dict[str, Any], style: str) -> None:
+def _add_tiptap_list_item(
+    document: DocxDocument,
+    item: dict[str, Any],
+    style: str,
+    asset_context: DocumentAssetContext | None = None,
+) -> None:
     children = item.get("content") or []
     wrote_paragraph = False
     for child in children:
@@ -599,23 +867,33 @@ def _add_tiptap_list_item(document: DocxDocument, item: dict[str, Any], style: s
                 document,
                 child,
                 style=style if not wrote_paragraph else None,
+                asset_context=asset_context,
             )
             wrote_paragraph = True
         elif child_type == "bulletList":
-            _add_tiptap_list(document, child, "List Bullet")
+            _add_tiptap_list(document, child, "List Bullet", asset_context)
         elif child_type == "orderedList":
-            _add_tiptap_list(document, child, "List Number")
+            _add_tiptap_list(document, child, "List Number", asset_context)
     if not wrote_paragraph:
         document.add_paragraph(style=style)
 
 
-def _add_tiptap_list(document: DocxDocument, node: dict[str, Any], style: str) -> None:
+def _add_tiptap_list(
+    document: DocxDocument,
+    node: dict[str, Any],
+    style: str,
+    asset_context: DocumentAssetContext | None = None,
+) -> None:
     for child in node.get("content") or []:
         if isinstance(child, dict) and child.get("type") == "listItem":
-            _add_tiptap_list_item(document, child, style)
+            _add_tiptap_list_item(document, child, style, asset_context)
 
 
-def _add_tiptap_task_item(document: DocxDocument, item: dict[str, Any]) -> None:
+def _add_tiptap_task_item(
+    document: DocxDocument,
+    item: dict[str, Any],
+    asset_context: DocumentAssetContext | None = None,
+) -> None:
     checked = bool((item.get("attrs") or {}).get("checked"))
     prefix = "[x] " if checked else "[ ] "
     children = item.get("content") or []
@@ -626,13 +904,17 @@ def _add_tiptap_task_item(document: DocxDocument, item: dict[str, Any]) -> None:
             break
     paragraph = document.add_paragraph()
     paragraph.add_run(prefix)
-    _add_tiptap_inline_content(paragraph, paragraph_children)
+    _add_tiptap_inline_content(paragraph, paragraph_children, asset_context)
 
 
-def _add_tiptap_task_list(document: DocxDocument, node: dict[str, Any]) -> None:
+def _add_tiptap_task_list(
+    document: DocxDocument,
+    node: dict[str, Any],
+    asset_context: DocumentAssetContext | None = None,
+) -> None:
     for child in node.get("content") or []:
         if isinstance(child, dict) and child.get("type") == "taskItem":
-            _add_tiptap_task_item(document, child)
+            _add_tiptap_task_item(document, child, asset_context)
 
 
 def _tiptap_cell_text(cell: dict[str, Any]) -> str:
@@ -711,6 +993,7 @@ def _render_tiptap_docx(
     body_json: dict[str, Any],
     fallback_text: str,
     comments: list[DocumentComment] | None = None,
+    asset_context: DocumentAssetContext | None = None,
 ) -> bytes:
     if body_json.get("type") != "doc" or not isinstance(body_json.get("content"), list):
         return _render_resolved_text_docx(title, fallback_text, comments or [])
@@ -722,16 +1005,16 @@ def _render_tiptap_docx(
             continue
         node_type = node.get("type")
         if node_type in {"paragraph", "heading"}:
-            _add_tiptap_paragraph(document, node)
+            _add_tiptap_paragraph(document, node, asset_context=asset_context)
         elif node_type == "bulletList":
-            _add_tiptap_list(document, node, "List Bullet")
+            _add_tiptap_list(document, node, "List Bullet", asset_context)
         elif node_type == "orderedList":
-            _add_tiptap_list(document, node, "List Number")
+            _add_tiptap_list(document, node, "List Number", asset_context)
         elif node_type == "taskList":
-            _add_tiptap_task_list(document, node)
+            _add_tiptap_task_list(document, node, asset_context)
         elif node_type == "image":
             paragraph = document.add_paragraph()
-            _add_tiptap_inline_content(paragraph, [node])
+            _add_tiptap_inline_content(paragraph, [node], asset_context)
         elif node_type == "table":
             _add_tiptap_table(document, node)
     _append_document_comments_docx(document, comments or [])
@@ -1698,6 +1981,7 @@ async def get_document_version_docx(
             version.resolved_json,
             version.resolved_text,
             comments,
+            DocumentAssetContext(user.id, matter.id, doc.id),
         )
         if version.resolved_json
         else _render_resolved_text_docx(doc.filename, version.resolved_text, comments)

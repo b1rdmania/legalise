@@ -698,7 +698,12 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByRole("button", { name: "Align left" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Align centre" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Align right" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Insert image" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload image" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Insert image URL" })).toBeInTheDocument();
+    expect(screen.getByTestId("document-image-upload-input")).toHaveAttribute(
+      "accept",
+      "image/png,image/jpeg,image/webp,image/gif",
+    );
     expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
     expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
     expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();
@@ -712,6 +717,69 @@ describe("DocumentRichEditor surface", () => {
     });
     expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
       "Copied working text",
+    );
+  });
+
+  it("uploads an image asset before inserting it into the editor", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/documents/doc-1/draft") && !init?.method) {
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: null,
+            updated_at: null,
+            plain_text: "Existing text.",
+            editor_json: null,
+            base_version_id: "version-1",
+            version_counter: 0,
+            client_id: null,
+          }),
+        );
+      }
+      if (url.endsWith("/documents/doc-1/assets") && init?.method === "POST") {
+        expect(init.body).toBeInstanceOf(FormData);
+        return Promise.resolve(
+          jsonResponse({
+            id: "asset-1",
+            filename: "diagram.png",
+            mime_type: "image/png",
+            size_bytes: 7,
+            sha256: "abc",
+            url: "/api/documents/doc-1/assets/asset-1/diagram.png",
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ detail: "not found" }, 404));
+    });
+
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.docx"
+        initialText="Existing text."
+        latestVersionNumber={2}
+        latestVersionId="version-1"
+        sourceLabel="extracted · 14 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    expect(await screen.findByTestId("document-editor-canvas")).toHaveTextContent(
+      "Existing text.",
+    );
+    const file = new File(["diagram"], "diagram.png", { type: "image/png" });
+    fireEvent.change(screen.getByTestId("document-image-upload-input"), {
+      target: { files: [file] },
+    });
+
+    expect(await screen.findByAltText("diagram.png")).toHaveAttribute(
+      "src",
+      "/api/documents/doc-1/assets/asset-1/diagram.png",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/documents/doc-1/assets",
+      expect.objectContaining({ method: "POST" }),
     );
   });
 

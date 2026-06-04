@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import base64
 import uuid
 import zipfile
 
@@ -27,6 +28,9 @@ EMAIL_B = "acl-sweep-b@example.com"
 PASSWORD_B = "acl-sweep-b-password-2026"
 
 _PDF_MAGIC = b"%PDF-1.4 1 0 obj<</Type /Catalog>>stream\nHello\nendstream\nendobj"
+_ONE_PIXEL_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+)
 
 
 async def _signup_and_login(client, email: str, password: str) -> None:
@@ -104,6 +108,62 @@ async def test_get_document_versions_cross_user_returns_404(client) -> None:
 
     await _signup_and_login(client, EMAIL_B, PASSWORD_B)
     resp = await client.get(f"/api/documents/{doc_id}/versions")
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_document_asset_owner_can_upload_and_read_image(client) -> None:
+    """Owner can upload an embedded editor image and read it through the proxy."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Document body.")
+
+    png = b"\x89PNG\r\n\x1a\nlegalise-image"
+    uploaded = await client.post(
+        f"/api/documents/{doc_id}/assets",
+        files={"file": ("diagram.png", io.BytesIO(png), "image/png")},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    payload = uploaded.json()
+    assert payload["filename"] == "diagram.png"
+    assert payload["mime_type"] == "image/png"
+    assert payload["size_bytes"] == len(png)
+    assert payload["sha256"] == hashlib.sha256(png).hexdigest()
+    assert payload["url"].startswith(f"/api/documents/{doc_id}/assets/")
+
+    read_back = await client.get(payload["url"])
+    assert read_back.status_code == 200, read_back.text
+    assert read_back.headers["content-type"].startswith("image/png")
+    assert read_back.content == png
+
+
+@pytest.mark.asyncio
+async def test_document_asset_rejects_unsupported_mime(client) -> None:
+    """Image assets are intentionally image-only."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Document body.")
+
+    resp = await client.post(
+        f"/api/documents/{doc_id}/assets",
+        files={"file": ("payload.svg", io.BytesIO(b"<svg />"), "image/svg+xml")},
+    )
+    assert resp.status_code == 415, resp.text
+
+
+@pytest.mark.asyncio
+async def test_document_asset_cross_user_returns_404(client) -> None:
+    """User B cannot read User A's embedded editor images by document UUID."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Document body.")
+    uploaded = await client.post(
+        f"/api/documents/{doc_id}/assets",
+        files={"file": ("diagram.png", io.BytesIO(b"png-bytes"), "image/png")},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    url = uploaded.json()["url"]
+    await client.post("/auth/logout")
+
+    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    resp = await client.get(url)
     assert resp.status_code == 404, resp.text
 
 
@@ -619,13 +679,20 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
     """Rich editor saves keep basic formatting when exported as .docx."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
     _, doc_id = await _create_matter_and_upload(client)
+    image_upload = await client.post(
+        f"/api/documents/{doc_id}/assets",
+        files={"file": ("governed.png", io.BytesIO(_ONE_PIXEL_PNG), "image/png")},
+    )
+    assert image_upload.status_code == 200, image_upload.text
+    governed_image_url = image_upload.json()["url"]
 
     save = await client.post(
         f"/api/documents/{doc_id}/versions/manual",
         json={
             "resolved_text": (
                 "Important term\n\nListed point\n\nRight aligned red\n\n"
-                "[ ] Review source\n[x] Check deadline\n\n[image: timeline diagram]"
+                "[ ] Review source\n[x] Check deadline\n\n"
+                "[image: timeline diagram]\n\n[image: governed diagram]"
             ),
             "resolved_json": {
                 "type": "doc",
@@ -710,6 +777,13 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
                         },
                     },
                     {
+                        "type": "image",
+                        "attrs": {
+                            "src": governed_image_url,
+                            "alt": "governed diagram",
+                        },
+                    },
+                    {
                         "type": "table",
                         "content": [
                             {
@@ -787,6 +861,8 @@ async def test_get_manual_document_version_docx_preserves_rich_editor_marks(clie
     assert next(p for p in docx.paragraphs if p.text == "[ ] Review source")
     assert next(p for p in docx.paragraphs if p.text == "[x] Check deadline")
     assert next(p for p in docx.paragraphs if p.text == "[image: timeline diagram]")
+    assert not any(p.text == "[image: governed diagram]" for p in docx.paragraphs)
+    assert len(docx.inline_shapes) == 1
     assert docx.tables[0].cell(0, 0).text == "Issue"
     assert docx.tables[0].cell(0, 1).text == "Risk"
     assert docx.tables[0].cell(1, 0).text == "Indemnity"
