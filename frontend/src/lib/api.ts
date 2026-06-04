@@ -1783,12 +1783,32 @@ export interface DocumentWorkingDraftRead {
 
 export class ConflictError extends Error {
   status = 409;
+  detail: unknown;
+  constructor(message = "edit already resolved", detail: unknown = null) {
+    super(message);
+    this.name = "ConflictError";
+    this.detail = detail;
+  }
 }
 
 async function resolutionJsonOrThrow<T>(res: Response): Promise<T> {
   if (res.status === 409) {
     const text = await res.text();
-    throw new ConflictError(text || "edit already resolved");
+    try {
+      const parsed = JSON.parse(text) as unknown;
+      const detail =
+        parsed && typeof parsed === "object" && "detail" in parsed
+          ? (parsed as { detail?: unknown }).detail
+          : parsed;
+      const message =
+        detail && typeof detail === "object" && "message" in detail
+          ? String((detail as { message?: unknown }).message || "")
+          : "";
+      throw new ConflictError(message || "edit already resolved", detail);
+    } catch (err) {
+      if (err instanceof ConflictError) throw err;
+      throw new ConflictError(text || "edit already resolved");
+    }
   }
   if (!res.ok) {
     const text = await res.text();
@@ -1834,6 +1854,7 @@ export const saveDocumentWorkingDraft = (
     editor_json?: Record<string, unknown> | null;
     base_version_id?: string | null;
     client_id?: string | null;
+    expected_version_counter?: number | null;
   },
 ) =>
   apiFetch(`${API}/documents/${documentId}/draft`, {
@@ -1846,11 +1867,16 @@ export const commitDocumentWorkingDraft = (
   documentId: string,
   notes?: string,
   clearDraft = true,
+  expectedVersionCounter?: number | null,
 ) =>
   apiFetch(`${API}/documents/${documentId}/draft/commit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ notes: notes?.trim() || null, clear_draft: clearDraft }),
+    body: JSON.stringify({
+      notes: notes?.trim() || null,
+      clear_draft: clearDraft,
+      expected_version_counter: expectedVersionCounter ?? null,
+    }),
   }).then((r) => resolutionJsonOrThrow<DocumentVersionRead>(r));
 
 export const saveDocumentVersion = (

@@ -232,11 +232,13 @@ class DocumentWorkingDraftUpsert(BaseModel):
     editor_json: dict[str, Any] | None = None
     base_version_id: uuid.UUID | None = None
     client_id: str | None = Field(default=None, max_length=96)
+    expected_version_counter: int | None = Field(default=None, ge=0)
 
 
 class DocumentWorkingDraftCommitRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
     clear_draft: bool = True
+    expected_version_counter: int | None = Field(default=None, ge=0)
 
 
 class EditInstructionResponse(BaseModel):
@@ -1021,6 +1023,16 @@ async def put_document_working_draft(
         select(DocumentWorkingDraft).where(DocumentWorkingDraft.document_id == doc.id)
     )
     if draft is None:
+        if body.expected_version_counter not in (None, 0):
+            raise HTTPException(
+                409,
+                {
+                    "error": "working_draft_conflict",
+                    "message": "The shared draft changed before this save. Reload the document before saving again.",
+                    "current_version_counter": 0,
+                    "current_client_id": None,
+                },
+            )
         draft = DocumentWorkingDraft(
             document_id=doc.id,
             updated_by_id=user.id,
@@ -1033,6 +1045,19 @@ async def put_document_working_draft(
         )
         session.add(draft)
     else:
+        if (
+            body.expected_version_counter is not None
+            and body.expected_version_counter != draft.version_counter
+        ):
+            raise HTTPException(
+                409,
+                {
+                    "error": "working_draft_conflict",
+                    "message": "The shared draft changed before this save. Reload the document before saving again.",
+                    "current_version_counter": draft.version_counter,
+                    "current_client_id": draft.client_id,
+                },
+            )
         draft.updated_by_id = user.id
         draft.updated_at = now
         draft.plain_text = body.plain_text
@@ -1063,6 +1088,19 @@ async def post_document_working_draft_commit(
             {
                 "error": "working_draft_empty",
                 "message": "There is no working draft text to save as a version.",
+            },
+        )
+    if (
+        body.expected_version_counter is not None
+        and body.expected_version_counter != draft.version_counter
+    ):
+        raise HTTPException(
+            409,
+            {
+                "error": "working_draft_conflict",
+                "message": "The shared draft changed before this version save. Reload the document before saving again.",
+                "current_version_counter": draft.version_counter,
+                "current_client_id": draft.client_id,
             },
         )
 

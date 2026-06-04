@@ -364,6 +364,43 @@ async def test_document_working_draft_base_version_must_belong_to_document(clien
 
 
 @pytest.mark.asyncio
+async def test_document_working_draft_rejects_stale_counter(client) -> None:
+    """Autosave and commit reject stale shared-draft counters."""
+    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
+    _, doc_id = await _create_matter_and_upload_text(client, "Original extracted text.")
+
+    first = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={
+            "plain_text": "First working draft.",
+            "client_id": "client-a",
+            "expected_version_counter": 0,
+        },
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["version_counter"] == 1
+
+    stale_save = await client.put(
+        f"/api/documents/{doc_id}/draft",
+        json={
+            "plain_text": "Stale overwrite attempt.",
+            "client_id": "client-b",
+            "expected_version_counter": 0,
+        },
+    )
+    assert stale_save.status_code == 409, stale_save.text
+    assert stale_save.json()["detail"]["error"] == "working_draft_conflict"
+    assert stale_save.json()["detail"]["current_version_counter"] == 1
+
+    stale_commit = await client.post(
+        f"/api/documents/{doc_id}/draft/commit",
+        json={"expected_version_counter": 0},
+    )
+    assert stale_commit.status_code == 409, stale_commit.text
+    assert stale_commit.json()["detail"]["error"] == "working_draft_conflict"
+
+
+@pytest.mark.asyncio
 async def test_post_upload_document_version_updates_active_document_and_body(client) -> None:
     """Owner can upload a replacement binary as the next active document version."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)

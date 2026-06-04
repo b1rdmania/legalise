@@ -19,6 +19,7 @@ import type { Content, JSONContent } from "@tiptap/core";
 
 import {
   commitDocumentWorkingDraft,
+  ConflictError,
   documentVersionDocxUrl,
   fetchDocumentOriginalBlob,
   getDocumentWorkingDraft,
@@ -384,12 +385,14 @@ export function DocumentRichEditor({
   const [serverDraft, setServerDraft] = useState<DocumentWorkingDraftRead | null>(null);
   const [draftLoadState, setDraftLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [draftSaveState, setDraftSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [draftConflict, setDraftConflict] = useState<string | null>(null);
   const [originalImportState, setOriginalImportState] = useState<OriginalImportState>("idle");
   const [draftBaselineText, setDraftBaselineText] = useState(initialText);
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
   const draftBaseVersionIdRef = useRef<string | null>(latestVersionId ?? null);
+  const draftVersionCounterRef = useRef<number>(0);
   const draftClientIdRef = useRef<string>("");
   if (!draftClientIdRef.current) {
     const suffix =
@@ -412,9 +415,12 @@ export function DocumentRichEditor({
       editor_json: editorJson as Record<string, unknown>,
       base_version_id: draftBaseVersionIdRef.current,
       client_id: draftClientIdRef.current,
+      expected_version_counter: draftVersionCounterRef.current,
     });
     setServerDraft(draft);
     draftBaseVersionIdRef.current = draft.base_version_id;
+    draftVersionCounterRef.current = draft.version_counter;
+    setDraftConflict(null);
     setDraftSaveState("saved");
     return draft;
   }
@@ -452,8 +458,13 @@ export function DocumentRichEditor({
     setDraftSaveState("saving");
     draftSaveTimerRef.current = window.setTimeout(() => {
       draftSaveTimerRef.current = null;
-      persistWorkingDraft(editorJson, plainText).catch(() => {
+      persistWorkingDraft(editorJson, plainText).catch((err) => {
         setDraftSaveState("error");
+        setDraftConflict(
+          err instanceof ConflictError
+            ? err.message
+            : null,
+        );
       });
     }, 900);
   }
@@ -517,9 +528,11 @@ export function DocumentRichEditor({
     setServerDraft(null);
     setDraftLoadState("loading");
     setDraftSaveState("idle");
+    setDraftConflict(null);
     setOriginalImportState("idle");
     setDraftBaselineText(initialText);
     draftBaseVersionIdRef.current = latestVersionId ?? null;
+    draftVersionCounterRef.current = 0;
     if (draftSaveTimerRef.current !== null) {
       window.clearTimeout(draftSaveTimerRef.current);
       draftSaveTimerRef.current = null;
@@ -535,6 +548,7 @@ export function DocumentRichEditor({
         if (cancelled) return;
         setServerDraft(draft);
         draftBaseVersionIdRef.current = draft.base_version_id ?? latestVersionId ?? null;
+        draftVersionCounterRef.current = draft.version_counter;
         const shouldImportWord =
           draft.version_counter === 0 &&
           !draft.editor_json &&
@@ -561,6 +575,7 @@ export function DocumentRichEditor({
         if (cancelled) return;
         setDraftLoadState("error");
         setDraftSaveState("error");
+        setDraftConflict(null);
       });
     return () => {
       cancelled = true;
@@ -666,6 +681,8 @@ export function DocumentRichEditor({
       const version = await commitDocumentWorkingDraft(
         documentId,
         `Edited ${filename} in Legalise document editor`,
+        true,
+        draftVersionCounterRef.current,
       );
       setDirty(false);
       onDirtyChange?.(false);
@@ -673,12 +690,23 @@ export function DocumentRichEditor({
       setServerDraft(null);
       setDraftBaselineText(plainText);
       draftBaseVersionIdRef.current = version.id;
+      draftVersionCounterRef.current = 0;
       setDraftSaveState("idle");
+      setDraftConflict(null);
       clearDocumentLocalDraft(documentId);
       setLocalDraft(null);
       onSaved(version);
       return version;
     } catch (err) {
+      if (err instanceof ConflictError) {
+        const message =
+          err.message ||
+          "The shared draft changed in another editor. Reload this document before saving again.";
+        setDraftSaveState("error");
+        setDraftConflict(message);
+        setError(message);
+        return null;
+      }
       setError(err instanceof Error ? err.message : String(err));
       return null;
     } finally {
@@ -713,6 +741,7 @@ export function DocumentRichEditor({
     onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
+    setDraftConflict(null);
     setDraftBaselineText(initialText);
     clearDocumentLocalDraft(documentId);
     setLocalDraft(null);
@@ -1016,8 +1045,8 @@ export function DocumentRichEditor({
           className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
           data-testid="document-server-draft-error"
         >
-          Shared draft could not be saved. The browser copy is preserved locally; try saving
-          again before leaving this file.
+          {draftConflict ??
+            "Shared draft could not be saved. The browser copy is preserved locally; try saving again before leaving this file."}
         </p>
       )}
       {originalImportState === "loading" && (
