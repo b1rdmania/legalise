@@ -27,10 +27,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.document_uploads import (
-    ALLOWED_UPLOAD_MIMES,
-    MAX_UPLOAD_BYTES,
-    MIME_TO_FORMAT,
-    sniff_format,
+    validate_upload_magic_bytes,
+    validate_upload_mime,
+    validate_upload_size,
 )
 from app.core.storage import (
     document_asset_key,
@@ -41,7 +40,14 @@ from app.core.storage import (
 )
 from app.core.text_extraction import extract as extract_text
 from app.core.model_gateway import gateway as model_gateway
-from app.core.api import PROVIDER_HTTP_EXCEPTIONS, audit, audit_failure, provider_error_http_exception
+from app.core.api import (
+    PROVIDER_HTTP_EXCEPTIONS,
+    audit,
+    audit_failure,
+    audit_storage_write_failure,
+    provider_error_http_exception,
+    storage_write_http_exception,
+)
 from app.core.config import settings
 from app.models import (
     AuditEntry,
@@ -571,28 +577,20 @@ async def post_document_asset(
             metadata={"sha256": digest, "document_id": str(doc.id)},
         )
     except StorageWriteError as exc:
-        await audit_failure(
+        await audit_storage_write_failure(
             session,
-            "storage.put_bytes.failed",
             actor_id=user.id,
             matter_id=matter.id,
-            module="storage",
             resource_type="document_asset",
             resource_id=str(asset_id),
-            payload={
-                "storage_key": key,
-                "backend": exc.backend,
-                "error_code": exc.error_code,
-            },
+            storage_key=key,
+            backend=exc.backend,
+            error_code=exc.error_code,
         )
-        raise HTTPException(
-            502,
-            detail={
-                "error": "storage_write_failed",
-                "message": "Failed to store document image.",
-                "storage_key": key,
-                "backend": exc.backend,
-            },
+        raise storage_write_http_exception(
+            message="Failed to store document image.",
+            storage_key=key,
+            backend=exc.backend,
         ) from exc
 
     await audit.log(
@@ -1775,39 +1773,10 @@ async def post_upload_document_version(
     """
     doc, matter = await _load_owned_document(document_id, session, user)
 
-    if file.content_type not in ALLOWED_UPLOAD_MIMES:
-        raise HTTPException(
-            415,
-            detail={
-                "error": "unsupported_mime",
-                "got": file.content_type,
-                "allowed": sorted(ALLOWED_UPLOAD_MIMES),
-            },
-        )
-
+    validate_upload_mime(file.content_type)
     contents = await file.read()
-    if len(contents) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            413,
-            detail={
-                "error": "upload_too_large",
-                "max_bytes": MAX_UPLOAD_BYTES,
-                "got_bytes": len(contents),
-            },
-        )
-
-    declared_format = MIME_TO_FORMAT[file.content_type or ""]
-    inferred_format = sniff_format(contents[:1024])
-    if inferred_format is None or declared_format != inferred_format:
-        raise HTTPException(
-            415,
-            detail={
-                "error": "magic_byte_mismatch",
-                "declared_mime": file.content_type,
-                "declared_format": declared_format,
-                "inferred_format": inferred_format,
-            },
-        )
+    validate_upload_size(contents)
+    validate_upload_magic_bytes(file.content_type, contents)
 
     sha = hashlib.sha256(contents).hexdigest()
     filename = file.filename or doc.filename or "untitled"
@@ -1830,29 +1799,21 @@ async def post_upload_document_version(
             },
         )
     except StorageWriteError as exc:
-        await audit_failure(
+        await audit_storage_write_failure(
             session,
-            "storage.put_bytes.failed",
             actor_id=user.id,
             matter_id=matter.id,
-            module="storage",
             resource_type="document",
             resource_id=str(doc.id),
-            payload={
-                "storage_key": obj_key,
-                "backend": exc.backend,
-                "error_code": exc.error_code,
-                "version_upload": True,
-            },
+            storage_key=obj_key,
+            backend=exc.backend,
+            error_code=exc.error_code,
+            version_upload=True,
         )
-        raise HTTPException(
-            502,
-            detail={
-                "error": "storage_write_failed",
-                "message": "Failed to write document version to object storage.",
-                "storage_key": obj_key,
-                "backend": exc.backend,
-            },
+        raise storage_write_http_exception(
+            message="Failed to write document version to object storage.",
+            storage_key=obj_key,
+            backend=exc.backend,
         ) from exc
 
     next_version = (
@@ -2073,29 +2034,21 @@ async def post_restore_document_version(
                 },
             )
         except StorageWriteError as exc:
-            await audit_failure(
+            await audit_storage_write_failure(
                 session,
-                "storage.put_bytes.failed",
                 actor_id=user.id,
                 matter_id=matter.id,
-                module="storage",
                 resource_type="document_version",
                 resource_id=str(source.id),
-                payload={
-                    "storage_key": storage_uri,
-                    "backend": exc.backend,
-                    "error_code": exc.error_code,
-                    "restore": True,
-                },
+                storage_key=storage_uri,
+                backend=exc.backend,
+                error_code=exc.error_code,
+                restore=True,
             )
-            raise HTTPException(
-                502,
-                detail={
-                    "error": "storage_write_failed",
-                    "message": "Failed to store restored document version.",
-                    "storage_key": storage_uri,
-                    "backend": exc.backend,
-                },
+            raise storage_write_http_exception(
+                message="Failed to store restored document version.",
+                storage_key=storage_uri,
+                backend=exc.backend,
             ) from exc
 
     next_version = (
