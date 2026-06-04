@@ -451,6 +451,7 @@ export function DocumentRichEditor({
   selectedQuote,
   selectedQuoteAnchored,
   onCreateNoteFromSelection,
+  onRunSkillFromSelection,
   onSaved,
   onDirtyChange,
 }: {
@@ -467,6 +468,7 @@ export function DocumentRichEditor({
   selectedQuote?: string;
   selectedQuoteAnchored?: boolean;
   onCreateNoteFromSelection?: () => void;
+  onRunSkillFromSelection?: () => void;
   onSaved: (version: DocumentVersionRead) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -1305,6 +1307,15 @@ export function DocumentRichEditor({
                 Add review note
               </button>
             )}
+            {onRunSkillFromSelection && (
+              <button
+                type="button"
+                onClick={onRunSkillFromSelection}
+                className="border border-ink bg-paper px-3 py-2 text-xs font-semibold text-ink hover:bg-paper-sunken"
+              >
+                Run skill
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1694,6 +1705,15 @@ export function DocumentRichEditor({
                       className="bg-ink px-2 py-1 text-xs font-semibold text-paper hover:bg-black"
                     >
                       Add note
+                    </button>
+                  )}
+                  {onRunSkillFromSelection && (
+                    <button
+                      type="button"
+                      onClick={onRunSkillFromSelection}
+                      className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
+                    >
+                      Run skill
                     </button>
                   )}
                 </div>
