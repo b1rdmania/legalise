@@ -322,6 +322,119 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.queryByTestId("document-remote-draft-notice")).toBeNull();
   });
 
+  it("warns instead of overwriting when a newer shared draft appears over local edits", async () => {
+    vi.useFakeTimers();
+    writeDocumentLocalDraft({
+      documentId: "doc-1",
+      filename: "draft.txt",
+      savedAt: "2026-06-04T03:00:00Z",
+      plainText: "Local edit.",
+      json: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Local edit." }],
+          },
+        ],
+      },
+    });
+    let draftGetCount = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url.endsWith("/documents/doc-1/draft") && init?.method === "PUT") {
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: "user-1",
+            updated_at: "2026-06-04T03:05:00Z",
+            plain_text: "Local edit.",
+            editor_json: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Local edit." }],
+                },
+              ],
+            },
+            base_version_id: "version-1",
+            version_counter: 1,
+            client_id: "document-editor-test",
+          }),
+        );
+      }
+      if (url.endsWith("/documents/doc-1/draft") && !init?.method) {
+        draftGetCount += 1;
+        if (draftGetCount === 1) {
+          return Promise.resolve(
+            jsonResponse({
+              document_id: "doc-1",
+              updated_by_id: null,
+              updated_at: null,
+              plain_text: "Extracted fallback.",
+              editor_json: null,
+              base_version_id: "version-1",
+              version_counter: 0,
+              client_id: null,
+            }),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            document_id: "doc-1",
+            updated_by_id: "user-2",
+            updated_at: "2026-06-04T03:10:00Z",
+            plain_text: "Remote shared wording.",
+            editor_json: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Remote shared wording." }],
+                },
+              ],
+            },
+            base_version_id: "version-1",
+            version_counter: 2,
+            client_id: "other-client",
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ detail: "not found" }, 404));
+    });
+
+    render(
+      <DocumentRichEditor
+        documentId="doc-1"
+        filename="draft.txt"
+        initialText="Extracted fallback."
+        latestVersionNumber={2}
+        latestVersionId="version-1"
+        sourceLabel="extracted · 19 chars"
+        onSaved={() => undefined}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Restore draft" }));
+    expect(screen.getByTestId("document-editor-canvas")).toHaveTextContent("Local edit.");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+
+    expect(screen.getByTestId("document-editor-canvas")).toHaveTextContent("Local edit.");
+    expect(screen.getByTestId("document-editor-canvas")).not.toHaveTextContent(
+      "Remote shared wording.",
+    );
+    expect(screen.getByTestId("document-remote-draft-notice")).toHaveTextContent(
+      "A newer shared draft is available (r2).",
+    );
+  });
+
   it("saves by committing the shared working draft", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = String(input);
