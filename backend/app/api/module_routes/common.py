@@ -61,6 +61,17 @@ from app.models import (
 
 # Shared DTOs and helper functions for module route groups.
 
+# Schema lookup. The repo-root `schemas/module.json` is the canonical
+# location; fall back to the legacy `backend/schemas/module.json` if it
+# is ever added there. Loaded once per process.
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+_SCHEMA_CANDIDATES = (
+    _REPO_ROOT / "schemas" / "module.json",
+    _REPO_ROOT / "backend" / "schemas" / "module.json",
+)
+
+
+@lru_cache(maxsize=1)
 def _module_schema() -> dict | None:
     for candidate in _SCHEMA_CANDIDATES:
         if candidate.exists():
