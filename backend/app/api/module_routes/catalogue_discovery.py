@@ -38,7 +38,6 @@ async def list_modules_public(response: Response) -> PublicModulesResponse:
     )
 
 
-@router.get("", response_model=ModulesResponse)
 async def list_modules(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),

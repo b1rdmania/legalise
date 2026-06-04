@@ -13,9 +13,12 @@ from app.api.module_routes import (
     installed_update,
     skill_body,
 )
+from app.api.module_routes.catalogue_discovery import list_modules
+from app.api.module_routes.common import ModulesResponse
 
 
 router = APIRouter()
+router.add_api_route("", list_modules, methods=["GET"], response_model=ModulesResponse)
 
 # Keep catch-all `/{plugin}/{skill}` last so literal routes win.
 for subrouter in (
