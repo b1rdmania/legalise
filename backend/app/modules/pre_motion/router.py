@@ -19,7 +19,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.api import audit as audit_api
+from app.core.api import PROVIDER_HTTP_EXCEPTIONS, audit as audit_api, provider_error_http_exception
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
@@ -30,7 +30,11 @@ from app.core.model_gateway import (
     PrivilegePosture,
     gateway as model_gateway,
 )
-from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError, get_user_provider_key
+from app.core.user_keys import (
+    ProviderKeyMissing,
+    ProviderUpstreamError,
+    get_user_provider_key,
+)
 from app.core.storage import StorageWriteError
 from app.models import STATUS_ARCHIVED, Matter, User
 
@@ -68,23 +72,8 @@ async def run_pre_motion_endpoint(
             actor_id=user.id,
             inputs=body,
         )
-    except PrivilegePaused as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ProviderKeyMissing as exc:
-        raise HTTPException(
-            422,
-            detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
-        ) from exc
-    except ProviderUpstreamError as exc:
-        raise HTTPException(
-            502,
-            detail={
-                "error": exc.code,
-                "provider": exc.provider,
-                "upstream_status": exc.upstream_status,
-                "message": str(exc),
-            },
-        ) from exc
+    except PROVIDER_HTTP_EXCEPTIONS as exc:
+        raise provider_error_http_exception(exc) from exc
 
 
 @router.post("/{slug}/pre-motion/run-stream")

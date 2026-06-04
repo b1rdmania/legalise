@@ -29,9 +29,8 @@ from app.core.db import get_session
 from app.core.limits import check_generated_artefact
 from app.core.matter_access import resolve_owned_open_matter
 from app.core.model_gateway import PrivilegePaused, gateway as model_gateway
-from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.core.storage import StorageWriteError
-from app.core.api import audit
+from app.core.api import PROVIDER_HTTP_EXCEPTIONS, audit, provider_error_http_exception
 from app.models import Matter, User
 
 from .catalog import catalogue_for_matter_type, resolve
@@ -103,23 +102,8 @@ async def draft_letter(
         raise HTTPException(404, str(exc)) from exc
     except SkillDisabled as exc:
         raise HTTPException(403, str(exc)) from exc
-    except PrivilegePaused as exc:
-        raise HTTPException(409, str(exc)) from exc
-    except ProviderKeyMissing as exc:
-        raise HTTPException(
-            422,
-            detail={"error": "provider_key_missing", "provider": exc.provider, "message": str(exc)},
-        ) from exc
-    except ProviderUpstreamError as exc:
-        raise HTTPException(
-            502,
-            detail={
-                "error": exc.code,
-                "provider": exc.provider,
-                "upstream_status": exc.upstream_status,
-                "message": str(exc),
-            },
-        ) from exc
+    except PROVIDER_HTTP_EXCEPTIONS as exc:
+        raise provider_error_http_exception(exc) from exc
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

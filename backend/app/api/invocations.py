@@ -39,11 +39,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.advice_boundary import AdviceBoundaryDenied
+from app.core.api import PROVIDER_HTTP_EXCEPTIONS, provider_error_http_exception
 from app.core.auth import current_user
 from app.core.capabilities import CapabilityDenied
 from app.core.db import get_session
 from app.core.grants_lifecycle import CapabilityScopeUnsupported
-from app.core.model_gateway import ProviderKeyMissing, ProviderUpstreamError
 from app.core.phase1_runtime.exceptions import Phase1Blocked
 from app.core.posture_gate import PostureBlocked
 from app.core.runtime import (
@@ -266,28 +266,14 @@ async def invoke_capability_endpoint(
                 "gate_state": exc.payload.gate_state,
             },
         )
-    except ProviderKeyMissing as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "error": "provider_key_missing",
-                "provider": getattr(exc, "provider", None),
-                "message": (
-                    "User has not configured an API key for the "
-                    "selected provider."
-                ),
-            },
-        )
-    except ProviderUpstreamError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail={
-                "error": "provider_upstream_error",
-                "provider": getattr(exc, "provider", None),
-                "code": getattr(exc, "code", None),
-                "upstream_status": getattr(exc, "upstream_status", None),
-            },
-        )
+    except PROVIDER_HTTP_EXCEPTIONS as exc:
+        raise provider_error_http_exception(
+            exc,
+            missing_key_message=(
+                "User has not configured an API key for the selected provider."
+            ),
+            upstream_shape="generic",
+        ) from exc
     except CapabilityNotDeclared as exc:
         # The dispatcher disagreed with the endpoint's pre-check
         # (e.g. the module-author's invoke() rejects the capability
