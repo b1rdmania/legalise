@@ -912,28 +912,30 @@ export function DocumentDetail({
                   </span>
                 )}
               </div>
-              <dl
-                className="mt-4 grid gap-2 text-xs sm:grid-cols-4"
+              <p
+                className="mt-4 text-sm leading-6 text-muted"
                 data-testid="document-header-status"
               >
-                {headerStatusItems.map((item) => (
-                  <div
-                    key={item.label}
-                    className={`border px-3 py-2 ${
-                      item.tone === "active"
-                        ? "border-ink bg-paper-sunken"
-                        : "border-rule bg-paper-sunken"
-                    }`}
-                  >
-                    <dt className="font-mono uppercase tracking-track2 text-muted">
-                      {item.label}
-                    </dt>
-                    <dd className="mt-1 text-base font-semibold text-ink">{item.value}</dd>
-                  </div>
+                {headerStatusItems.map((item, index) => (
+                  <span key={item.label}>
+                    {index > 0 && <span aria-hidden="true"> · </span>}
+                    <span className={item.tone === "active" ? "font-semibold text-ink" : ""}>
+                      {item.value} {item.label.toLowerCase()}
+                    </span>
+                  </span>
                 ))}
-              </dl>
+              </p>
             </div>
-            <div className="flex flex-wrap items-start gap-2 text-sm" aria-label="Document commands">
+            <div className="flex flex-col items-stretch gap-2 text-sm sm:min-w-[220px]" aria-label="Document commands">
+              <Link
+                to="/matters/$slug/$tab"
+                params={{ slug, tab: "assistant" }}
+                search={{ document: documentId }}
+                className="inline-flex items-center justify-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
+                data-testid="document-ask-chat-link"
+              >
+                Ask about this file
+              </Link>
               {selectedResolvedVersion && (
                 <div className="grid gap-1">
                   <a
@@ -951,43 +953,41 @@ export function DocumentDetail({
                   )}
                 </div>
               )}
-              <a
-                href={originalHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
-                data-testid="document-open-original"
-              >
-                Open original
-              </a>
-              <a
-                href={documentOriginalUrl(documentId, { download: true })}
-                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
-              >
-                Download
-              </a>
-              <button
-                type="button"
-                onClick={() => openWorkbenchView("versions")}
-                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
-              >
-                Compare versions
-              </button>
-              <Link
-                to="/matters/$slug/$tab"
-                params={{ slug, tab: "assistant" }}
-                search={{ document: documentId }}
-                className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
-                data-testid="document-ask-chat-link"
-              >
-                Ask about this file
-              </Link>
-              <a
-                href={recordHref}
-                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
-              >
-                View Record
-              </a>
+              <details className="border border-rule bg-paper-sunken px-3 py-2">
+                <summary className="cursor-pointer text-sm font-medium text-ink">
+                  File actions
+                </summary>
+                <div className="mt-3 grid gap-2">
+                  <a
+                    href={originalHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                    data-testid="document-open-original"
+                  >
+                    Open original
+                  </a>
+                  <a
+                    href={documentOriginalUrl(documentId, { download: true })}
+                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  >
+                    Download
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => openWorkbenchView("versions")}
+                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  >
+                    Compare versions
+                  </button>
+                  <a
+                    href={recordHref}
+                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  >
+                    View Record
+                  </a>
+                </div>
+              </details>
             </div>
           </div>
         </header>

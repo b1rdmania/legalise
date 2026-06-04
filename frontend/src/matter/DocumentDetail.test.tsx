@@ -280,10 +280,9 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-editor")).toBeInTheDocument();
     expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
     expect(screen.getByText("Ready to read")).toBeInTheDocument();
-    expect(screen.getByTestId("document-header-status")).toHaveTextContent("Open notes");
-    expect(screen.getByTestId("document-header-status")).toHaveTextContent("Pending changes");
-    expect(screen.getByTestId("document-header-status")).toHaveTextContent("Versions");
-    expect(screen.getByTestId("document-header-status")).toHaveTextContent("Ready skills");
+    expect(screen.getByTestId("document-header-status")).toHaveTextContent(
+      "0 open notes · 0 pending changes · 0 versions · 0 ready skills",
+    );
     expect(screen.getByTestId("document-state-rail")).toBeInTheDocument();
     expect(screen.getByTestId("document-next-step")).toHaveTextContent(
       "Start by reading or selecting text.",
