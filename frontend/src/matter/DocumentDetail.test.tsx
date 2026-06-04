@@ -128,10 +128,86 @@ function versionSummary(
   };
 }
 
+function mockReadyDocumentSkill() {
+  vi.spyOn(api, "listInstalledModules").mockResolvedValue([
+    {
+      module_id: "demo.guided-skill",
+      version: "0.1.0",
+      publisher: "legalise",
+      visibility: "first_party",
+      signature_status: "verified",
+      enabled: true,
+      installed_at: "2026-01-01T00:00:00",
+      installed_by_user_id: null,
+    },
+  ]);
+  vi.spyOn(api, "getModulesV2").mockResolvedValue({
+    modules: [
+      {
+        module_id: "demo.guided-skill",
+        source_kind: "v2",
+        manifest: {
+          name: "Demo skill",
+          description: "Summarises the selected file.",
+          capabilities: [
+            {
+              id: "summarise",
+              kind: "skill",
+              scope: "matter",
+              reads: ["document.body.read"],
+              writes: ["matter.artifact.write"],
+              model_access: "required",
+              ui: {
+                label: "Plain-English Summary",
+                default_request: "Summarise {filename}.",
+              },
+            },
+          ],
+        },
+        is_valid: true,
+        validation_errors: [],
+      },
+    ],
+    ui_slots: [],
+  });
+  vi.spyOn(api, "listGrants").mockResolvedValue({
+    matter_id: "m-1",
+    grants: [
+      {
+        id: "g-1",
+        plugin: "demo.guided-skill",
+        skill: "summarise",
+        capability: "document.body.read",
+        scope_type: "matter",
+        scope_id: "m-1",
+        granted_at: "2026-01-01T00:00:00",
+      },
+      {
+        id: "g-2",
+        plugin: "demo.guided-skill",
+        skill: "summarise",
+        capability: "matter.artifact.write",
+        scope_type: "matter",
+        scope_id: "m-1",
+        granted_at: "2026-01-01T00:00:00",
+      },
+    ],
+  });
+}
+
 async function expectEditorText(container: HTMLElement, text: string) {
   await waitFor(() => {
     expect(container.querySelector(".legalise-document-editor")).toHaveTextContent(text);
   });
+}
+
+async function editorTextNode(content: HTMLElement): Promise<ChildNode> {
+  let node: ChildNode | undefined;
+  await waitFor(() => {
+    node = content.querySelector(".legalise-document-editor")?.firstChild ?? undefined;
+    expect(node).toBeTruthy();
+  });
+  return node as ChildNode;
 }
 
 beforeEach(() => {
@@ -540,70 +616,7 @@ describe("DocumentDetail", () => {
   it("runs ready document skills from the document workbench", async () => {
     vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
     vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
-    vi.spyOn(api, "listInstalledModules").mockResolvedValue([
-      {
-        module_id: "demo.guided-skill",
-        version: "0.1.0",
-        publisher: "legalise",
-        visibility: "first_party",
-        signature_status: "verified",
-        enabled: true,
-        installed_at: "2026-01-01T00:00:00",
-        installed_by_user_id: null,
-      },
-    ]);
-    vi.spyOn(api, "getModulesV2").mockResolvedValue({
-      modules: [
-        {
-          module_id: "demo.guided-skill",
-          source_kind: "v2",
-          manifest: {
-            name: "Demo skill",
-            description: "Summarises the selected file.",
-            capabilities: [
-              {
-                id: "summarise",
-                kind: "skill",
-                scope: "matter",
-                reads: ["document.body.read"],
-                writes: ["matter.artifact.write"],
-                model_access: "required",
-                ui: {
-                  label: "Plain-English Summary",
-                  default_request: "Summarise {filename}.",
-                },
-              },
-            ],
-          },
-          is_valid: true,
-          validation_errors: [],
-        },
-      ],
-      ui_slots: [],
-    });
-    vi.spyOn(api, "listGrants").mockResolvedValue({
-      matter_id: "m-1",
-      grants: [
-        {
-          id: "g-1",
-          plugin: "demo.guided-skill",
-          skill: "summarise",
-          capability: "document.body.read",
-          scope_type: "matter",
-          scope_id: "m-1",
-          granted_at: "2026-01-01T00:00:00",
-        },
-        {
-          id: "g-2",
-          plugin: "demo.guided-skill",
-          skill: "summarise",
-          capability: "matter.artifact.write",
-          scope_type: "matter",
-          scope_id: "m-1",
-          granted_at: "2026-01-01T00:00:00",
-        },
-      ],
-    });
+    mockReadyDocumentSkill();
     vi.spyOn(api, "invokeCapability").mockResolvedValue({
       invocation_id: "inv-1",
       module_id: "demo.guided-skill",
@@ -655,6 +668,75 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-output-links")).toHaveTextContent(
       "1 signed output cites this file",
     );
+  });
+
+  it("runs a ready document skill against a selected passage", async () => {
+    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
+    vi.spyOn(api, "getDocumentBody").mockResolvedValue(
+      body({
+        extracted_text: "The dismissal letter mentioned a single social-media post.",
+        char_count: 60,
+      }),
+    );
+    mockReadyDocumentSkill();
+    const invoke = vi.spyOn(api, "invokeCapability").mockResolvedValue({
+      invocation_id: "inv-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      matter_id: "m-1",
+      result: { artifact_id: "art-1" },
+    });
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "art-1",
+      matter_id: "m-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      invocation_id: "inv-1",
+      kind: "skill_response",
+      created_by_id: "u-1",
+      created_at: "2026-06-03T10:00:00",
+      size_bytes: 123,
+      payload: { output: "Summary" },
+    });
+
+    mount();
+    const content = await screen.findByTestId("document-content");
+    const textNode = await editorTextNode(content);
+    vi.spyOn(window, "getSelection").mockReturnValue({
+      toString: () => "single social-media post",
+      anchorNode: textNode,
+      focusNode: textNode,
+    } as unknown as Selection);
+    fireEvent.mouseUp(content);
+    expect(await screen.findByTestId("document-selected-quote")).toHaveTextContent(
+      "single social-media post",
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Run skill on passage" }));
+
+    const expectedRequest = [
+      "Use this selected passage from claim-form.pdf:",
+      "",
+      '"single social-media post"',
+      "",
+      "Run Plain-English Summary.",
+    ].join("\n");
+    expect(screen.getAllByRole("textbox")[0]).toHaveValue(expectedRequest);
+    fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
+
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith(
+        "khan",
+        expect.objectContaining({
+          module_id: "demo.guided-skill",
+          capability_id: "summarise",
+          args: expect.objectContaining({
+            input: expectedRequest,
+            document_id: "doc-1",
+          }),
+        }),
+      );
+    });
   });
 
   it("shows document review notes and lets the user add one", async () => {
@@ -775,8 +857,7 @@ describe("DocumentDetail", () => {
 
     mount();
     const content = await screen.findByTestId("document-content");
-    const textNode = content.querySelector(".legalise-document-editor")?.firstChild;
-    expect(textNode).toBeTruthy();
+    const textNode = await editorTextNode(content);
     vi.spyOn(window, "getSelection").mockReturnValue({
       toString: () => "single social-media post",
       anchorNode: textNode,
