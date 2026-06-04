@@ -1188,7 +1188,7 @@ export function DocumentDetail({
               data-testid="document-next-step"
             >
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                {nextStep.eyebrow}
+                Work on this file
               </p>
               <h2 className="mt-2 text-lg font-semibold tracking-tight2 text-ink">
                 {nextStep.title}
@@ -1197,121 +1197,172 @@ export function DocumentDetail({
               <button
                 type="button"
                 onClick={nextStep.onClick}
-                className="mt-4 border border-ink bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-black"
+                className="mt-4 w-full border border-ink bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-black"
               >
                 {nextStep.action}
               </button>
-              <a
-                href={recordHref}
-                className="ml-3 inline-flex text-sm text-muted underline underline-offset-4 hover:text-ink"
+              <div
+                className="mt-4 divide-y divide-rule border border-rule"
+                data-testid="document-work-plan"
               >
-                View Record
-              </a>
-            </section>
-
-            <section
-              className="border border-rule bg-paper p-4"
-              data-testid="document-output-links"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                    Outputs using this file
-                  </p>
-                  <h2 className="mt-1 text-sm font-semibold text-ink">
-                    {documentArtifacts === null
-                      ? "Checking signed outputs..."
-                      : citedOutputCount === 0
-                        ? "No outputs cite this file yet."
-                        : `${citedOutputCount} output${citedOutputCount === 1 ? "" : "s"} ${
-                            citedOutputCount === 1 ? "cites" : "cite"
-                          } this file.`}
-                  </h2>
-                </div>
-                <a
-                  href={`/matters/${encodeURIComponent(slug)}/artifacts`}
-                  className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                <button
+                  type="button"
+                  onClick={() => openWorkbenchView("editor")}
+                  className="flex w-full items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-left text-sm hover:bg-paper"
                 >
-                  Signed outputs
+                  <span>
+                    <span className="block font-semibold text-ink">Read and mark up</span>
+                    <span className="mt-1 block text-xs text-muted">
+                      Select text to anchor a review note.
+                    </span>
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
+                    Editor
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
+                  }
+                  className="flex w-full items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-left text-sm hover:bg-paper"
+                >
+                  <span>
+                    <span className="block font-semibold text-ink">Review notes</span>
+                    <span className="mt-1 block text-xs text-muted">
+                      {openComments.length === 0
+                        ? "No open notes yet."
+                        : `${openComments.length} open note${
+                            openComments.length === 1 ? "" : "s"
+                          } waiting.`}
+                    </span>
+                  </span>
+                  <span className="text-sm font-semibold text-ink">{openComments.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (primaryDocumentSkill) setActiveRunnerSkill(primaryDocumentSkill);
+                    requestAnimationFrame(() => {
+                      skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+                    });
+                  }}
+                  className="flex w-full items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-left text-sm hover:bg-paper"
+                >
+                  <span>
+                    <span className="block font-semibold text-ink">Run document skill</span>
+                    <span className="mt-1 block text-xs text-muted">
+                      {documentSkills.length === 0
+                        ? "No document skills are ready."
+                        : `${documentSkills.length} ready for this file.`}
+                    </span>
+                  </span>
+                  <span className="text-sm font-semibold text-ink">{documentSkills.length}</span>
+                </button>
+                <a
+                  href={recordHref}
+                  className="flex items-center justify-between gap-3 bg-paper-sunken px-3 py-3 text-sm hover:bg-paper"
+                >
+                  <span>
+                    <span className="block font-semibold text-ink">View matter Record</span>
+                    <span className="mt-1 block text-xs text-muted">
+                      Notes, skill runs, sign-off, and file access.
+                    </span>
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
+                    Open
+                  </span>
                 </a>
               </div>
-              {documentArtifacts && documentArtifacts.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  {documentArtifacts.slice(0, 3).map((artifact) => (
+              <details
+                className="mt-4 border border-rule bg-paper-sunken p-3"
+                data-testid="document-output-links"
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-ink">
+                  {documentArtifacts === null
+                    ? "Checking outputs that cite this file"
+                    : citedOutputCount === 0
+                      ? "No signed outputs cite this file yet"
+                      : `${citedOutputCount} signed output${
+                          citedOutputCount === 1 ? "" : "s"
+                        } ${citedOutputCount === 1 ? "cites" : "cite"} this file`}
+                </summary>
+                {documentArtifacts && documentArtifacts.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    {documentArtifacts.slice(0, 3).map((artifact) => (
+                      <a
+                        key={artifact.id}
+                        href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
+                        className="block border border-rule bg-paper px-3 py-2 text-sm hover:border-ink"
+                      >
+                        <span className="block font-semibold text-ink">
+                          {artifact.kind.replace(/_/g, " ")}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted">
+                          {artifact.module_id} · {artifact.created_at.replace("T", " ").slice(0, 16)}
+                        </span>
+                      </a>
+                    ))}
                     <a
-                      key={artifact.id}
-                      href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
-                      className="block border border-rule bg-paper-sunken px-3 py-2 text-sm hover:border-ink"
+                      href={`/matters/${encodeURIComponent(slug)}/artifacts`}
+                      className="text-xs text-muted underline underline-offset-4 hover:text-ink"
                     >
-                      <span className="block font-semibold text-ink">
-                        {artifact.kind.replace(/_/g, " ")}
-                      </span>
-                      <span className="mt-1 block text-xs text-muted">
-                        {artifact.module_id} · {artifact.created_at.replace("T", " ").slice(0, 16)}
-                      </span>
+                      Open all signed outputs →
                     </a>
-                  ))}
-                  {documentArtifacts.length > 3 && (
-                    <p className="text-xs text-muted">
-                      {documentArtifacts.length - 3} more in Signed outputs.
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm leading-6 text-muted">
+                    Run a document skill, then sign the output. When the output cites this
+                    file, it appears here and in the matter Record.
+                  </p>
+                )}
+              </details>
+              <details
+                className="mt-3 border border-rule bg-paper-sunken p-3"
+                data-testid="document-review-queue"
+                open={reviewQueueTotal > 0}
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-ink">
+                  {reviewQueueTotal === 0
+                    ? "Nothing waiting in the review queue"
+                    : `${reviewQueueTotal} review item${
+                        reviewQueueTotal === 1 ? "" : "s"
+                      } waiting`}
+                </summary>
+                <div className="mt-3 grid gap-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => openWorkbenchView(activeEditResult ? "redlines" : "versions")}
+                    className="flex items-center justify-between border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                  >
+                    <span>Proposed redlines</span>
+                    <span className="font-semibold text-ink">{pendingEdits}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
+                    }
+                    className="flex items-center justify-between border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                  >
+                    <span>Open review notes</span>
+                    <span className="font-semibold text-ink">{openComments.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openWorkbenchView("versions")}
+                    className="flex items-center justify-between border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                  >
+                    <span>Saved versions</span>
+                    <span className="font-semibold text-ink">{versions.length}</span>
+                  </button>
+                  {activeEditSessions.length > 1 && (
+                    <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                      Another session is open. Coordinate before saving a new version.
                     </p>
                   )}
                 </div>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-muted">
-                  Run a document skill, then sign the output. When the output cites this
-                  file, it appears here and in the matter Record.
-                </p>
-              )}
-            </section>
-
-            <section className="border border-ink bg-paper p-4" data-testid="document-review-queue">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                    Review queue
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
-                    {reviewQueueTotal === 0
-                      ? "Nothing waiting."
-                      : `${reviewQueueTotal} item${reviewQueueTotal === 1 ? "" : "s"} need attention.`}
-                  </h2>
-                </div>
-                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                  Status
-                </span>
-              </div>
-              <div className="mt-4 grid gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => openWorkbenchView(activeEditResult ? "redlines" : "versions")}
-                  className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
-                >
-                  <span>Proposed redlines</span>
-                  <span className="font-semibold text-ink">{pendingEdits}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })}
-                  className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
-                >
-                  <span>Open review notes</span>
-                  <span className="font-semibold text-ink">{openComments.length}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openWorkbenchView("versions")}
-                  className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 text-left hover:border-ink"
-                >
-                  <span>Saved versions</span>
-                  <span className="font-semibold text-ink">{versions.length}</span>
-                </button>
-                {activeEditSessions.length > 1 && (
-                  <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-                    Another session is open. Coordinate before saving a new version.
-                  </p>
-                )}
-              </div>
+              </details>
             </section>
 
             <section

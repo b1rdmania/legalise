@@ -208,7 +208,10 @@ describe("DocumentDetail", () => {
       "Start by reading or selecting text.",
     );
     expect(await screen.findByTestId("document-output-links")).toHaveTextContent(
-      "No outputs cite this file yet.",
+      "No signed outputs cite this file yet",
+    );
+    expect(screen.getByTestId("document-work-plan")).toHaveTextContent(
+      "Run document skill",
     );
     expect(screen.getByText("Suggested edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
@@ -293,7 +296,7 @@ describe("DocumentDetail", () => {
     mount();
 
     const links = await screen.findByTestId("document-output-links");
-    expect(links).toHaveTextContent("1 output cites this file.");
+    expect(links).toHaveTextContent("1 signed output cites this file");
     expect(screen.getByRole("link", { name: /skill response/i })).toHaveAttribute(
       "href",
       "/matters/khan/artifacts/art-1",
@@ -503,7 +506,7 @@ describe("DocumentDetail", () => {
     mount();
 
     expect(await screen.findByTestId("document-review-queue")).toHaveTextContent(
-      "4 items need attention.",
+      "4 review items waiting",
     );
     expect(screen.getByTestId("document-review-queue")).toHaveTextContent(
       "Proposed redlines",
