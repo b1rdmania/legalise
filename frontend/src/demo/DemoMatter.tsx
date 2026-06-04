@@ -742,7 +742,7 @@ export function DemoDocumentReader({
       </header>
 
       <main className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="min-h-[680px] border border-rule bg-paper">
+        <section className="order-2 min-h-[680px] border border-rule bg-paper lg:order-1">
           <div className="border-b border-rule px-5 py-3">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -790,7 +790,7 @@ export function DemoDocumentReader({
           </div>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="order-1 space-y-4 lg:order-2">
           <section className="border border-ink bg-paper p-4" data-testid="demo-document-workbench-rail">
             <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
               Document workbench
