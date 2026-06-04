@@ -5,9 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
 import { Badge } from "../ui/primitives";
-import { MatterNav } from "../matter/MatterNav";
-import { MatterBreadcrumb } from "../matter/MatterBreadcrumb";
-import { isTabKey, type TabKey } from "../matter/tabs/types";
+import { isTabKey, sidebarActiveFor, type TabKey } from "../matter/tabs/types";
+import { SidebarView, NavIcon, type RailItem } from "../ui/SidebarView";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { PreMotionTab } from "../matter/tabs/PreMotionTab";
 import { LettersTab } from "../matter/tabs/LettersTab";
@@ -24,6 +23,13 @@ const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "workflows", label: "Skills" },
   { key: "audit", label: "Record" },
 ];
+
+// Posture indicator dot (matches ui/Sidebar.tsx). Semantic, not chrome.
+const POSTURE_DOT: Record<string, { label: string; dot: string }> = {
+  A_cleared: { label: "Cleared", dot: "#3F7A5A" },
+  B_mixed: { label: "Mixed", dot: "#E67E22" },
+  C_paused: { label: "Paused", dot: "#8B0000" },
+};
 
 const DEMO_READ_ONLY =
   "This public demo is read-only. Use the previews to inspect the project loop.";
@@ -133,32 +139,54 @@ export function DemoMatter() {
   );
 
   const [showSoF, setShowSoF] = useState(false);
-  const flashPosture = () => flashCta(DEMO_READ_ONLY);
+
+  const flashRO = () => flashCta(DEMO_READ_ONLY);
+  const globalItems: RailItem[] = [
+    { key: "matters", label: "Matters", icon: <NavIcon name="matters" />, onSelect: flashRO },
+    { key: "library", label: "Skill library", icon: <NavIcon name="library" />, onSelect: flashRO },
+  ];
+  const matterItems: RailItem[] = [
+    ...DEMO_NAV.map((t) => ({
+      key: t.key,
+      label: t.label,
+      icon: <NavIcon name={t.key} />,
+      active: sidebarActiveFor(tab) === t.key,
+      onSelect: () => setTabAndHash(t.key),
+    })),
+    { key: "artifacts", label: "Signed outputs", icon: <NavIcon name="artifacts" />, onSelect: flashRO },
+    { key: "lifecycle", label: "Working pack", icon: <NavIcon name="lifecycle" />, onSelect: flashRO },
+  ];
+  const utilItems: RailItem[] = [
+    { key: "settings", label: "Settings", icon: <NavIcon name="settings" />, onSelect: flashRO },
+    { key: "help", label: "Help", icon: <NavIcon name="help" />, onSelect: flashRO },
+  ];
 
   return (
     <>
-      <div>
-        {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
-      </div>
-      <div className="flex">
-        <MatterNav
-          matter={matter}
-          tab={tab}
-          onChange={setTabAndHash}
-          onPostureChange={flashPosture}
-          mobileOpen={mobileNavOpen}
-          onMobileClose={() => setMobileNavOpen(false)}
-          showPosture={false}
-          navItems={DEMO_NAV}
+      {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
+      <div className="min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
+        <SidebarView
+          globalItems={globalItems}
+          matterTitle={matter.title}
+          matterPosture={POSTURE_DOT[matter.privilege_posture]}
+          matterItems={matterItems}
+          utilItems={utilItems}
+          open={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
         />
-        <div className="flex-1 min-w-0">
-          <MatterBreadcrumb
-            matter={matter}
-            tab={tab}
-            onToggleMobileNav={() => setMobileNavOpen((v) => !v)}
-          />
-          <div className="flex bg-wash">
-          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-8 lg:py-12 min-h-[calc(100vh-80px)]">
+        <div className="md:hidden sticky top-0 z-30 flex items-center h-[56px] px-4 bg-canvas border-b border-rule">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open menu"
+            className="min-h-[44px] min-w-[44px] -ml-2 flex items-center justify-center text-ink"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </button>
+        </div>
+        <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
             {tab === "assistant" && (
               <div className="space-y-8">
                 <DemoStartPanel
@@ -256,9 +284,7 @@ export function DemoMatter() {
             {tab === "research" && (
               <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
             )}
-          </main>
-          </div>
-        </div>
+        </main>
       </div>
     </>
   );
@@ -884,6 +910,3 @@ function demoDocumentExtract(doc: MatterDocument): string {
   }
   return "The synthetic mutual NDA contains indefinite confidentiality obligations, broad mutual indemnity language, a data-protection clause, and no governing law or jurisdiction clause.";
 }
-
-// Public demo shares the MatterNav + MatterBreadcrumb shell with the
-// live workspace. Mutation handlers flash a sign-up CTA.

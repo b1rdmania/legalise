@@ -131,8 +131,11 @@ function AppShellInner() {
   const useAppShell = !!auth.user && !CHROMELESS_ROUTES.has(route.name);
 
   if (useAppShell) {
+    // v0.5: inset floating-panel shell (DESIGN.md P21). The canvas is the
+    // page; the Sidebar and the content each float as a rounded, elevated
+    // panel with a gap. Mobile keeps the off-canvas drawer + a slim top bar.
     return (
-      <div className="min-h-screen bg-paper text-ink md:pl-64">
+      <div className="min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
         <Sidebar
           route={route}
           matter={drawer.drawerMatter}
@@ -141,7 +144,7 @@ function AppShellInner() {
           onClose={() => setNavOpen(false)}
         />
         {/* mobile top bar: just a menu button to open the sidebar drawer */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center h-[56px] px-4 bg-paper border-b border-rule">
+        <div className="md:hidden sticky top-0 z-30 flex items-center h-[56px] px-4 bg-canvas border-b border-rule">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
@@ -153,7 +156,7 @@ function AppShellInner() {
             </svg>
           </button>
         </div>
-        <main className="min-h-screen">
+        <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto">
           <Outlet />
         </main>
       </div>
