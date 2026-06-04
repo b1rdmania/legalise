@@ -54,12 +54,63 @@ type DocumentLocalDraft = {
   plainText: string;
   json: TiptapNode;
 };
+type FindDecorationState = {
+  activeIndex: number;
+  query: string;
+};
 export type DocumentNoteHighlight = {
   id: string;
   label: string;
   quote: string;
   status: "open" | "resolved";
 };
+const FIND_DECORATIONS_PLUGIN_KEY = new PluginKey<FindDecorationState>(
+  "legaliseDocumentFind",
+);
+
+function findDecorationsExtension() {
+  return Extension.create({
+    name: "legaliseDocumentFind",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin<FindDecorationState>({
+          key: FIND_DECORATIONS_PLUGIN_KEY,
+          state: {
+            init: () => ({ query: "", activeIndex: 0 }),
+            apply(transaction, previous) {
+              return transaction.getMeta(FIND_DECORATIONS_PLUGIN_KEY) ?? previous;
+            },
+          },
+          props: {
+            decorations(state) {
+              const pluginState = FIND_DECORATIONS_PLUGIN_KEY.getState(state);
+              const query = pluginState?.query?.trim() ?? "";
+              if (query.length < 3) return DecorationSet.empty;
+              const decorations: Decoration[] = [];
+              let matchIndex = 0;
+              state.doc.descendants((node, position) => {
+                if (!node.isText || !node.text) return;
+                findNormalizedRanges(node.text, query).forEach((range) => {
+                  const isActive = matchIndex === pluginState?.activeIndex;
+                  decorations.push(
+                    Decoration.inline(position + range.start, position + range.end, {
+                      class: isActive
+                        ? "legalise-find-match legalise-find-match-active"
+                        : "legalise-find-match",
+                      "data-find-match": isActive ? "active" : "true",
+                    }),
+                  );
+                  matchIndex += 1;
+                });
+              });
+              return DecorationSet.create(state.doc, decorations);
+            },
+          },
+        }),
+      ];
+    },
+  });
+}
 
 function reviewNoteDecorationsExtension(noteHighlights: DocumentNoteHighlight[]) {
   return Extension.create({
@@ -458,6 +509,7 @@ export function DocumentRichEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [noteHighlightsKey],
   );
+  const findExtension = useMemo(() => findDecorationsExtension(), []);
   async function persistWorkingDraft(
     editorJson: TiptapNode,
     plainText: string,
@@ -538,6 +590,7 @@ export function DocumentRichEditor({
         }),
         Typography,
         Highlight.configure({ multicolor: false }),
+        findExtension,
         reviewNoteExtension,
         Table.configure({ resizable: true }),
         TableRow,
@@ -569,7 +622,7 @@ export function DocumentRichEditor({
       },
       immediatelyRender: false,
     },
-    [documentId, reviewNoteExtension],
+    [documentId, findExtension, reviewNoteExtension],
   );
 
   async function loadSharedDraftFromServer({
@@ -789,6 +842,20 @@ export function DocumentRichEditor({
   useEffect(() => {
     if (activeFindIndex >= findMatches.length) setActiveFindIndex(0);
   }, [activeFindIndex, findMatches.length]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const activeIndex =
+      findMatches.length === 0
+        ? 0
+        : Math.min(activeFindIndex, Math.max(0, findMatches.length - 1));
+    editor.view.dispatch(
+      editor.state.tr.setMeta(FIND_DECORATIONS_PLUGIN_KEY, {
+        query: findQuery,
+        activeIndex,
+      } satisfies FindDecorationState),
+    );
+  }, [activeFindIndex, editor, findMatches.length, findQuery]);
 
   async function save(): Promise<DocumentVersionRead | null> {
     if (!editor || !canSave) return null;
