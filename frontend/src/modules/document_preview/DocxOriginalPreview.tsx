@@ -13,14 +13,64 @@ type DocxSearchHit = {
   preview: string;
 };
 
-function normalise(value: string): string {
-  return value.replace(/\s+/g, " ").trim().toLowerCase();
-}
-
 function previewAround(text: string, index: number, length: number): string {
   const start = Math.max(0, index - 80);
   const end = Math.min(text.length, index + length + 120);
   return text.slice(start, end).replace(/\s+/g, " ").trim();
+}
+
+function clearDocxSearchHighlights(root: HTMLElement): void {
+  const marks = Array.from(root.querySelectorAll("mark[data-docx-search-hit]"));
+  for (const mark of marks) {
+    const text = document.createTextNode(mark.textContent ?? "");
+    mark.replaceWith(text);
+    text.parentElement?.normalize();
+  }
+}
+
+function applyDocxSearchHighlights(root: HTMLElement, query: string): HTMLElement[] {
+  clearDocxSearchHighlights(root);
+  const needle = query.trim().toLowerCase();
+  if (needle.length < 3) return [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes: Text[] = [];
+  let current = walker.nextNode();
+  while (current) {
+    if (current.textContent?.trim()) textNodes.push(current as Text);
+    current = walker.nextNode();
+  }
+
+  const marks: HTMLElement[] = [];
+  for (const node of textNodes) {
+    const value = node.nodeValue ?? "";
+    const lower = value.toLowerCase();
+    let from = 0;
+    const fragment = document.createDocumentFragment();
+    let changed = false;
+    while (from < value.length) {
+      const index = lower.indexOf(needle, from);
+      if (index === -1) break;
+      changed = true;
+      if (index > from) {
+        fragment.appendChild(document.createTextNode(value.slice(from, index)));
+      }
+      const mark = document.createElement("mark");
+      mark.dataset.docxSearchHit = String(marks.length);
+      mark.className = "legalise-docx-search-hit";
+      mark.textContent = value.slice(index, index + needle.length);
+      marks.push(mark);
+      fragment.appendChild(mark);
+      from = index + needle.length;
+      if (marks.length >= 50) break;
+    }
+    if (!changed) continue;
+    if (from < value.length) {
+      fragment.appendChild(document.createTextNode(value.slice(from)));
+    }
+    node.replaceWith(fragment);
+    if (marks.length >= 50) break;
+  }
+  return marks;
 }
 
 export function DocxOriginalPreview({
@@ -43,8 +93,8 @@ export function DocxOriginalPreview({
 
   const searchTerm = query.trim();
   const searchHits = (() => {
-    const needle = normalise(searchTerm);
-    const haystack = normalise(renderedText);
+    const needle = searchTerm.toLowerCase();
+    const haystack = renderedText.toLowerCase();
     if (needle.length < 3 || !haystack) return [] as DocxSearchHit[];
     const hits: DocxSearchHit[] = [];
     let from = 0;
@@ -71,6 +121,20 @@ export function DocxOriginalPreview({
   useEffect(() => {
     if (activeHitIndex >= searchHits.length) setActiveHitIndex(0);
   }, [activeHitIndex, searchHits.length]);
+
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root || state.status !== "ready") return;
+    const marks = applyDocxSearchHighlights(root, searchTerm);
+    marks.forEach((mark, index) => {
+      mark.classList.toggle("legalise-docx-search-hit-active", index === activeHitIndex);
+    });
+    const active = marks[activeHitIndex];
+    active?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    return () => {
+      if (root.isConnected) clearDocxSearchHighlights(root);
+    };
+  }, [activeHitIndex, searchTerm, state.status, renderedText]);
 
   const moveSearchHit = (direction: 1 | -1) => {
     if (searchHits.length === 0) return;

@@ -69,6 +69,8 @@ describe("DocxOriginalPreview", () => {
       expect(screen.getByText("1 match · 1 / 1")).toBeInTheDocument();
     });
     expect(screen.getAllByText(/dismissal facts/).length).toBeGreaterThan(0);
+    const activeHit = document.querySelector(".legalise-docx-search-hit-active");
+    expect(activeHit).toHaveTextContent("dismissal facts");
 
     await userEvent.click(screen.getByRole("button", { name: "Quote in note" }));
     expect(onQuoteSelected).toHaveBeenCalledWith(
