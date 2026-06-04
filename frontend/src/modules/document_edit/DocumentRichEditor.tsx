@@ -26,6 +26,7 @@ import {
   type DocumentVersionRead,
   type DocumentWorkingDraftRead,
 } from "../../lib/api";
+import { buildVersionDiff, buildVersionDiffSummary } from "./VersionDiff";
 
 export type TiptapNode = JSONContent;
 
@@ -42,6 +43,7 @@ type OutlineItem = { id: string; label: string; query: string };
 type DocumentStats = { words: number; chars: number; blocks: number };
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
+type WorkingDiffPart = ReturnType<typeof buildVersionDiff>[number];
 type DocumentLocalDraft = {
   documentId: string;
   filename: string;
@@ -311,6 +313,32 @@ function ViewModeButton({
   );
 }
 
+function renderWorkingDiffParts(parts: WorkingDiffPart[]) {
+  return parts.map((part, index) => {
+    if (part.type === "insert") {
+      return (
+        <ins
+          key={`${part.type}-${index}`}
+          className="bg-green-100 px-0.5 text-green-950 no-underline"
+        >
+          {part.text}
+        </ins>
+      );
+    }
+    if (part.type === "delete") {
+      return (
+        <del
+          key={`${part.type}-${index}`}
+          className="bg-red-100 px-0.5 text-red-950"
+        >
+          {part.text}
+        </del>
+      );
+    }
+    return <span key={`${part.type}-${index}`}>{part.text}</span>;
+  });
+}
+
 export function DocumentRichEditor({
   documentId,
   filename,
@@ -357,6 +385,7 @@ export function DocumentRichEditor({
   const [draftLoadState, setDraftLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [draftSaveState, setDraftSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [originalImportState, setOriginalImportState] = useState<OriginalImportState>("idle");
+  const [draftBaselineText, setDraftBaselineText] = useState(initialText);
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
   const findInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
@@ -403,6 +432,7 @@ export function DocumentRichEditor({
       editor.commands.setContent(html, { emitUpdate: false });
       const editorJson = editor.getJSON() as TiptapNode;
       const importedText = editorJsonToPlainText(editorJson);
+      setDraftBaselineText(initialText);
       await persistWorkingDraft(editorJson, importedText);
       setDirty(true);
       onDirtyChange?.(true);
@@ -488,12 +518,13 @@ export function DocumentRichEditor({
     setDraftLoadState("loading");
     setDraftSaveState("idle");
     setOriginalImportState("idle");
+    setDraftBaselineText(initialText);
     draftBaseVersionIdRef.current = latestVersionId ?? null;
     if (draftSaveTimerRef.current !== null) {
       window.clearTimeout(draftSaveTimerRef.current);
       draftSaveTimerRef.current = null;
     }
-  }, [content, documentId, editor, latestVersionId, onDirtyChange]);
+  }, [content, documentId, editor, initialText, latestVersionId, onDirtyChange]);
 
   useEffect(() => {
     if (!editor) return;
@@ -519,6 +550,7 @@ export function DocumentRichEditor({
         const draftContent = draft.editor_json ?? textToEditorHtml(draft.plain_text, sourceHighlight);
         editor.commands.setContent(draftContent as Content, { emitUpdate: false });
         const hasMutableDraft = draft.version_counter > 0;
+        setDraftBaselineText(initialText);
         setDirty(hasMutableDraft);
         onDirtyChange?.(hasMutableDraft);
         setDraftLoadState("ready");
@@ -533,7 +565,7 @@ export function DocumentRichEditor({
     return () => {
       cancelled = true;
     };
-  }, [documentId, editor, filename, latestVersionId, onDirtyChange, originalMimeType, sourceHighlight]);
+  }, [documentId, editor, filename, initialText, latestVersionId, onDirtyChange, originalMimeType, sourceHighlight]);
 
   useEffect(() => {
     return () => {
@@ -584,6 +616,15 @@ export function DocumentRichEditor({
   );
   const locatedNoteCount = noteAnchorSummaries.filter((note) => note.located).length;
   const stats = useMemo(() => documentStatsFromText(plainText), [plainText]);
+  const workingDiffParts = useMemo(
+    () => buildVersionDiff(draftBaselineText, plainText),
+    [draftBaselineText, plainText],
+  );
+  const workingDiffSummary = useMemo(
+    () => buildVersionDiffSummary(workingDiffParts),
+    [workingDiffParts],
+  );
+  const showWorkingDiff = dirty && workingDiffSummary.changed;
   const sharedDraftLabel =
     draftLoadState === "loading"
       ? "Loading shared draft"
@@ -630,6 +671,7 @@ export function DocumentRichEditor({
       onDirtyChange?.(false);
       setSavedMessage(`Saved v${version.version_number}`);
       setServerDraft(null);
+      setDraftBaselineText(plainText);
       draftBaseVersionIdRef.current = version.id;
       setDraftSaveState("idle");
       clearDocumentLocalDraft(documentId);
@@ -671,6 +713,7 @@ export function DocumentRichEditor({
     onDirtyChange?.(false);
     setError(null);
     setSavedMessage(null);
+    setDraftBaselineText(initialText);
     clearDocumentLocalDraft(documentId);
     setLocalDraft(null);
   }
@@ -678,6 +721,7 @@ export function DocumentRichEditor({
   function restoreLocalDraft() {
     if (!editor || !localDraft) return;
     editor.commands.setContent(localDraft.json, { emitUpdate: false });
+    setDraftBaselineText(initialText);
     setDirty(true);
     onDirtyChange?.(true);
     scheduleWorkingDraftSave(localDraft.json, localDraft.plainText);
@@ -1022,6 +1066,45 @@ export function DocumentRichEditor({
               Discard
             </button>
           </span>
+        </div>
+      )}
+      {showWorkingDiff && (
+        <div
+          className="border-b border-rule bg-paper px-5 py-3"
+          data-testid="document-working-diff"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                Unsaved changes
+              </p>
+              <p className="mt-1 text-sm text-ink">
+                Review the working copy before saving it as a new document version.
+              </p>
+            </div>
+            <dl className="flex flex-wrap gap-2 text-xs">
+              <div className="border border-rule bg-paper-sunken px-3 py-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Added</dt>
+                <dd className="mt-1 font-semibold text-green-900">
+                  {workingDiffSummary.insertedChars.toLocaleString()} chars
+                </dd>
+              </div>
+              <div className="border border-rule bg-paper-sunken px-3 py-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Removed</dt>
+                <dd className="mt-1 font-semibold text-red-900">
+                  {workingDiffSummary.deletedChars.toLocaleString()} chars
+                </dd>
+              </div>
+            </dl>
+          </div>
+          <details className="mt-3 border border-rule bg-paper-sunken">
+            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink">
+              Preview redline before saving
+            </summary>
+            <div className="max-h-[260px] overflow-auto border-t border-rule bg-paper p-4 text-sm leading-7">
+              {renderWorkingDiffParts(workingDiffParts)}
+            </div>
+          </details>
         </div>
       )}
       <div
