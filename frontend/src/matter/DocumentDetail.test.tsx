@@ -601,6 +601,35 @@ describe("DocumentDetail", () => {
         },
       ],
     });
+    vi.spyOn(api, "invokeCapability").mockResolvedValue({
+      invocation_id: "inv-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      matter_id: "m-1",
+      result: { artifact_id: "art-1" },
+    });
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "art-1",
+      matter_id: "m-1",
+      module_id: "demo.guided-skill",
+      capability_id: "summarise",
+      invocation_id: "inv-1",
+      kind: "skill_response",
+      created_by_id: "u-1",
+      created_at: "2026-06-03T10:00:00",
+      size_bytes: 123,
+      payload: {
+        output: "Summary",
+        source_anchors: [
+          {
+            id: "a1",
+            source_type: "document",
+            document_id: "doc-1",
+            filename: "claim-form.pdf",
+          },
+        ],
+      },
+    });
 
     mount();
 
@@ -617,6 +646,12 @@ describe("DocumentDetail", () => {
 
     expect(screen.getByTestId("generic-runner-demo.guided-skill-summarise")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Summarise claim-form.pdf.")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
+
+    expect(await screen.findByTestId("generic-runner-result")).toHaveTextContent("Output written");
+    expect(screen.getByTestId("document-output-links")).toHaveTextContent(
+      "1 signed output cites this file",
+    );
   });
 
   it("shows document review notes and lets the user add one", async () => {

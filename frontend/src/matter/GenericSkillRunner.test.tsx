@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import * as api from "../lib/api";
 import { artifactIdsFromResult, GenericSkillRunner } from "./GenericSkillRunner";
 import type { RunnableMatterSkill } from "./skillRunnerModel";
@@ -37,9 +38,18 @@ const docs = [
   },
 ];
 
-function renderRunner(skill: RunnableMatterSkill = baseSkill) {
+function renderRunner(
+  skill: RunnableMatterSkill = baseSkill,
+  props: Partial<ComponentProps<typeof GenericSkillRunner>> = {},
+) {
   return render(
-    <GenericSkillRunner slug="khan-v-acme" skill={skill} documents={docs} compact />,
+    <GenericSkillRunner
+      slug="khan-v-acme"
+      skill={skill}
+      documents={docs}
+      compact
+      {...props}
+    />,
   );
 }
 
@@ -99,6 +109,31 @@ describe("GenericSkillRunner", () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId("generic-runner-result")).toBeNull();
+    });
+  });
+
+  it("notifies the parent surface when a run completes", async () => {
+    const onRunComplete = vi.fn();
+    vi.spyOn(api, "invokeCapability").mockResolvedValue({
+      invocation_id: "inv-1",
+      result: { artifact_id: "artifact-1" },
+    } as never);
+    vi.spyOn(api, "readArtifact").mockResolvedValue({
+      id: "artifact-1",
+      kind: "skill_response",
+      payload: { output: "The witness statement says X." },
+      invocation_id: "inv-1",
+      created_at: "2026-01-01T00:00:00",
+    } as never);
+    renderRunner(baseSkill, { onRunComplete });
+
+    fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
+
+    await waitFor(() => {
+      expect(onRunComplete).toHaveBeenCalledWith(
+        expect.objectContaining({ invocation_id: "inv-1" }),
+        [expect.objectContaining({ id: "artifact-1" })],
+      );
     });
   });
 
