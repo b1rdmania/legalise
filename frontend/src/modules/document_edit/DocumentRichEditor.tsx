@@ -301,6 +301,9 @@ export function DocumentRichEditor({
   sourceLabel,
   sourceHighlight,
   noteHighlights = [],
+  selectedQuote,
+  selectedQuoteAnchored,
+  onCreateNoteFromSelection,
   onSaved,
   onDirtyChange,
 }: {
@@ -312,6 +315,9 @@ export function DocumentRichEditor({
   sourceLabel: string;
   sourceHighlight?: string | null;
   noteHighlights?: DocumentNoteHighlight[];
+  selectedQuote?: string;
+  selectedQuoteAnchored?: boolean;
+  onCreateNoteFromSelection?: () => void;
   onSaved: (version: DocumentVersionRead) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -856,6 +862,33 @@ export function DocumentRichEditor({
                 </button>
               )}
             </div>
+            {selectedQuote && (
+              <div
+                className="border border-ink bg-paper p-3"
+                data-testid="document-editor-selected-passage"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-ink">
+                    Selected passage
+                  </p>
+                  <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                    {selectedQuoteAnchored ? "Anchored" : "Unanchored"}
+                  </span>
+                </div>
+                <p className="mt-2 max-h-28 overflow-hidden text-xs leading-5 text-muted">
+                  {selectedQuote}
+                </p>
+                {onCreateNoteFromSelection && (
+                  <button
+                    type="button"
+                    onClick={onCreateNoteFromSelection}
+                    className="mt-3 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                  >
+                    Add review note
+                  </button>
+                )}
+              </div>
+            )}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
                 Review notes
