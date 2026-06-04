@@ -644,6 +644,8 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor")).toHaveTextContent("Document editor");
     expect(screen.getByTestId("document-editor-canvas")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove link" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
     expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
     expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();

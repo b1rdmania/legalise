@@ -12,6 +12,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -600,6 +601,14 @@ export function DocumentRichEditor({
         }),
         Typography,
         Highlight.configure({ multicolor: false }),
+        Link.configure({
+          autolink: true,
+          defaultProtocol: "https",
+          openOnClick: false,
+          HTMLAttributes: {
+            class: "text-ink underline underline-offset-4",
+          },
+        }),
         findExtension,
         reviewNoteExtension,
         Table.configure({ resizable: true }),
@@ -1002,6 +1011,21 @@ export function DocumentRichEditor({
     editor.chain().focus().toggleHighlight().run();
   }
 
+  function setEditorLink() {
+    if (!editor) return;
+    const currentHref = typeof editor.getAttributes("link").href === "string"
+      ? editor.getAttributes("link").href
+      : "";
+    const nextHref = window.prompt("Paste link URL. Leave blank to remove the link.", currentHref);
+    if (nextHref === null) return;
+    const trimmed = nextHref.trim();
+    if (!trimmed) {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: trimmed }).run();
+  }
+
   function downloadWorkingText() {
     const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
@@ -1182,6 +1206,22 @@ export function DocumentRichEditor({
                   onClick={() => editor.chain().focus().toggleHighlight().run()}
                 >
                   H
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Link"
+                  active={editor.isActive("link")}
+                  onClick={setEditorLink}
+                >
+                  Link
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Remove link"
+                  disabled={!editor.isActive("link")}
+                  onClick={() =>
+                    editor.chain().focus().extendMarkRange("link").unsetLink().run()
+                  }
+                >
+                  Unlink
                 </ToolbarButton>
               </ToolbarGroup>
               <ToolbarGroup label="Lists">
@@ -1697,6 +1737,13 @@ export function DocumentRichEditor({
                     className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
                   >
                     Highlight
+                  </button>
+                  <button
+                    type="button"
+                    onClick={setEditorLink}
+                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
+                  >
+                    Link
                   </button>
                   {onCreateNoteFromSelection && (
                     <button
