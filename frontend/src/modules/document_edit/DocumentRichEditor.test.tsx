@@ -661,6 +661,14 @@ describe("DocumentRichEditor surface", () => {
   });
 
   it("lets the reader move through find results", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const requestAnimationFrame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
     render(
       <DocumentRichEditor
         documentId="doc-1"
@@ -680,12 +688,14 @@ describe("DocumentRichEditor surface", () => {
       expect(document.querySelectorAll('[data-find-match="true"]')).toHaveLength(2);
       expect(document.querySelector('[data-find-match="active"]')).toHaveTextContent("Clause");
     });
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "center", inline: "nearest" });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("2 / 3");
     await waitFor(() => {
       expect(document.querySelectorAll('[data-find-match="true"]')).toHaveLength(2);
       expect(document.querySelector('[data-find-match="active"]')).toHaveTextContent("Clause");
     });
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
     expect(screen.getByTestId("document-editor-find-preview")).toHaveTextContent(
@@ -695,6 +705,7 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("2 / 3");
     fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Enter", shiftKey: true });
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
+    requestAnimationFrame.mockRestore();
   });
 
   it("focuses document find with Cmd/Ctrl+F", async () => {
