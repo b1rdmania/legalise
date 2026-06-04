@@ -41,6 +41,12 @@ describe("DocxOriginalPreview", () => {
     });
     expect(screen.getByText(/Rendered Word body/)).toBeInTheDocument();
     expect(api.fetchDocumentOriginalBlob).toHaveBeenCalledWith("doc-1");
+    expect(screen.getByRole("button", { name: "Paper" })).toHaveClass("bg-ink");
+    await userEvent.click(screen.getByRole("button", { name: "Wide" }));
+    expect(screen.getByRole("button", { name: "Wide" })).toHaveClass("bg-ink");
+    expect(screen.getByTestId("document-docx-reader-canvas").firstChild).toHaveClass(
+      "legalise-docx-preview-wide",
+    );
   });
 
   it("searches rendered Word text and turns a hit into a review note quote", async () => {
