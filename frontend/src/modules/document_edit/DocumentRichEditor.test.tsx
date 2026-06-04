@@ -124,6 +124,35 @@ describe("DocumentRichEditor text conversion", () => {
     ).toBe("Issues\n\nLimitation\nDisclosure");
   });
 
+  it("keeps checklist items readable in the plain-text fallback", () => {
+    expect(
+      editorJsonToPlainText({
+        type: "doc",
+        content: [
+          {
+            type: "taskList",
+            content: [
+              {
+                type: "taskItem",
+                attrs: { checked: false },
+                content: [
+                  { type: "paragraph", content: [{ type: "text", text: "Review source" }] },
+                ],
+              },
+              {
+                type: "taskItem",
+                attrs: { checked: true },
+                content: [
+                  { type: "paragraph", content: [{ type: "text", text: "Check deadline" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe("[ ] Review source\n[x] Check deadline");
+  });
+
   it("keeps table cells legible in the plain-text fallback", () => {
     expect(
       editorJsonToPlainText({

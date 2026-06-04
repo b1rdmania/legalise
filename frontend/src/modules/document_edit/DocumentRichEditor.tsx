@@ -13,6 +13,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
+import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
@@ -238,6 +240,9 @@ function plainTextFromNode(node: TiptapNode): string {
   if (node.type === "hardBreak") return "\n";
   const children = node.content?.map(plainTextFromNode).join("") ?? "";
   if (node.type === "paragraph" || node.type === "heading") return `${children}\n\n`;
+  if (node.type === "taskItem") {
+    return `${node.attrs?.checked ? "[x]" : "[ ]"} ${children.trimEnd()}\n`;
+  }
   if (node.type === "listItem") return `${children.trimEnd()}\n`;
   if (node.type === "tableCell" || node.type === "tableHeader") return children.trim();
   if (node.type === "tableRow") {
@@ -612,6 +617,10 @@ export function DocumentRichEditor({
         }),
         TextAlign.configure({
           types: ["heading", "paragraph"],
+        }),
+        TaskList,
+        TaskItem.configure({
+          nested: true,
         }),
         findExtension,
         reviewNoteExtension,
@@ -1265,6 +1274,13 @@ export function DocumentRichEditor({
                   onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 >
                   1.
+                </ToolbarButton>
+                <ToolbarButton
+                  label="Checklist"
+                  active={editor.isActive("taskList")}
+                  onClick={() => editor.chain().focus().toggleTaskList().run()}
+                >
+                  ☑
                 </ToolbarButton>
               </ToolbarGroup>
               <ToolbarGroup label="Table">
