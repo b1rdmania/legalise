@@ -714,6 +714,9 @@ describe("DocumentRichEditor surface", () => {
   });
 
   it("surfaces the selected passage as a review-note action", async () => {
+    Object.assign(window.navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
     const onCreateNoteFromSelection = vi.fn();
     render(
       <DocumentRichEditor
@@ -733,6 +736,15 @@ describe("DocumentRichEditor surface", () => {
     );
     expect(screen.getByTestId("document-editor-selected-passage")).toHaveTextContent(
       "Anchored",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Copy passage" }));
+    await waitFor(() => {
+      expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
+        "single social-media post",
+      );
+    });
+    expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
+      "Copied selected passage",
     );
     fireEvent.click(screen.getByRole("button", { name: "Add review note" }));
     expect(onCreateNoteFromSelection).toHaveBeenCalledTimes(1);

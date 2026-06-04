@@ -965,6 +965,13 @@ export function DocumentRichEditor({
     window.setTimeout(() => setCopiedMessage(null), 2000);
   }
 
+  async function copySelectedQuote() {
+    if (!selectedQuote?.trim()) return;
+    await window.navigator.clipboard.writeText(selectedQuote.trim());
+    setCopiedMessage("Copied selected passage");
+    window.setTimeout(() => setCopiedMessage(null), 2000);
+  }
+
   function downloadWorkingText() {
     const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
@@ -1523,11 +1530,18 @@ export function DocumentRichEditor({
                 <p className="mt-2 max-h-28 overflow-hidden text-xs leading-5 text-muted">
                   {selectedQuote}
                 </p>
+                <button
+                  type="button"
+                  onClick={() => void copySelectedQuote()}
+                  className="mt-3 w-full border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
+                >
+                  Copy passage
+                </button>
                 {onCreateNoteFromSelection && (
                   <button
                     type="button"
                     onClick={onCreateNoteFromSelection}
-                    className="mt-3 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                    className="mt-2 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
                   >
                     Add review note
                   </button>
