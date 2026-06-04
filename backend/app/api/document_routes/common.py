@@ -91,6 +91,22 @@ from app.modules.anonymisation.schemas import (
 
 # Shared DTOs and helper functions for document route groups.
 
+IMAGE_ASSET_MIMES = {
+    "image/gif",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+MAX_DOCUMENT_ASSET_BYTES = 5 * 1024 * 1024
+DOCUMENT_ASSET_URL_RE = re.compile(
+    r"^/api/documents/"
+    r"(?P<document_id>[0-9a-fA-F-]{36})/assets/"
+    r"(?P<asset_id>[0-9a-fA-F-]{36})/"
+    r"(?P<filename>[^/]+)$"
+)
+
+
+@dataclass(frozen=True)
 class DocumentAssetContext:
     user_id: uuid.UUID
     matter_id: uuid.UUID
@@ -346,6 +362,9 @@ async def _create_user_edit_version(
         },
     )
     return version
+
+
+_FILENAME_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 def _safe_filename(title: str | None, file_uuid: str) -> str:
