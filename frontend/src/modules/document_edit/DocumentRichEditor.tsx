@@ -12,10 +12,12 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
 import Highlight from "@tiptap/extension-highlight";
+import Color from "@tiptap/extension-color";
 import Link from "@tiptap/extension-link";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -51,6 +53,13 @@ type DocumentStats = { words: number; chars: number; blocks: number };
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
 type WorkingDiffPart = ReturnType<typeof buildVersionDiff>[number];
+const EDITOR_TEXT_COLORS = [
+  { label: "Ink text", value: "#181818" },
+  { label: "Red text", value: "#8C1D18" },
+  { label: "Amber text", value: "#8A5A00" },
+  { label: "Green text", value: "#236A44" },
+  { label: "Blue text", value: "#245B8A" },
+] as const;
 const SHARED_DRAFT_POLL_MS = 15_000;
 type DocumentLocalDraft = {
   documentId: string;
@@ -394,6 +403,36 @@ function ToolbarGroup({
   );
 }
 
+function ColorButton({
+  active,
+  color,
+  label,
+  onClick,
+}: {
+  active?: boolean;
+  color: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`inline-flex h-8 min-w-8 items-center justify-center border bg-paper px-2 ${
+        active ? "border-ink" : "border-rule hover:border-ink"
+      }`}
+    >
+      <span
+        className="block h-4 w-4 border border-rule"
+        style={{ backgroundColor: color }}
+        aria-hidden="true"
+      />
+    </button>
+  );
+}
+
 function ViewModeButton({
   active,
   children,
@@ -607,6 +646,8 @@ export function DocumentRichEditor({
         }),
         Typography,
         Highlight.configure({ multicolor: false }),
+        TextStyle,
+        Color,
         Link.configure({
           autolink: true,
           defaultProtocol: "https",
@@ -1235,6 +1276,24 @@ export function DocumentRichEditor({
                   }
                 >
                   Unlink
+                </ToolbarButton>
+              </ToolbarGroup>
+              <ToolbarGroup label="Colour">
+                {EDITOR_TEXT_COLORS.map((color) => (
+                  <ColorButton
+                    key={color.value}
+                    label={color.label}
+                    color={color.value}
+                    active={editor.isActive("textStyle", { color: color.value })}
+                    onClick={() => editor.chain().focus().setColor(color.value).run()}
+                  />
+                ))}
+                <ToolbarButton
+                  label="Remove text colour"
+                  disabled={!editor.isActive("textStyle")}
+                  onClick={() => editor.chain().focus().unsetColor().run()}
+                >
+                  Clear
                 </ToolbarButton>
               </ToolbarGroup>
               <ToolbarGroup label="Align">

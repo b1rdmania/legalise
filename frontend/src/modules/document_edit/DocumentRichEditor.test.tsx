@@ -675,6 +675,9 @@ describe("DocumentRichEditor surface", () => {
     expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove link" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ink text" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Red text" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove text colour" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Align left" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Align centre" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Align right" })).toBeInTheDocument();
