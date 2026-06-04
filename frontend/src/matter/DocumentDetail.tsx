@@ -1799,13 +1799,26 @@ export function DocumentDetail({
               )}
             </section>
 
-            <section className="border border-rule bg-paper p-4">
-              <h2 className="text-sm font-semibold text-ink">
-                Suggested edits
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                Ask the model to propose changes. Review each redline before it becomes a saved version.
-              </p>
+            <details
+              className="border border-rule bg-paper p-4"
+              open={Boolean(activeEditResult)}
+              data-testid="document-suggested-edits"
+            >
+              <summary className="cursor-pointer list-none">
+                <span className="flex items-start justify-between gap-3">
+                  <span>
+                    <span className="block text-sm font-semibold text-ink">Suggest edits</span>
+                    <span className="mt-1 block text-sm leading-6 text-muted">
+                      Ask the model to propose redlines. Nothing changes until you review and save.
+                    </span>
+                  </span>
+                  {activeEditResult && (
+                    <span className="shrink-0 border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                      Ready
+                    </span>
+                  )}
+                </span>
+              </summary>
               {activeEditResult && (
                 <div
                   className="mt-4 border border-ink bg-paper-sunken p-3"
@@ -1855,22 +1868,26 @@ export function DocumentDetail({
                   }}
                 />
               </div>
-            </section>
+            </details>
 
-            <section className="border border-rule bg-paper p-4" data-testid="document-state-rail">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                    Document state
-                  </p>
-                  <h2 className="mt-1 text-sm font-semibold text-ink">
-                    Versions, people, redaction, and file details.
-                  </h2>
-                </div>
-                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                  v{latestVersion?.version_number ?? 1}
+            <details
+              className="border border-rule bg-paper p-4"
+              data-testid="document-state-rail"
+              open={hasConcurrentSession}
+            >
+              <summary className="cursor-pointer list-none">
+                <span className="flex items-start justify-between gap-3">
+                  <span>
+                    <span className="block text-sm font-semibold text-ink">File state</span>
+                    <span className="mt-1 block text-sm leading-6 text-muted">
+                      Versions, people, redaction, and file details.
+                    </span>
+                  </span>
+                  <span className="shrink-0 border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    v{latestVersion?.version_number ?? 1}
+                  </span>
                 </span>
-              </div>
+              </summary>
               <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Pending</dt>
@@ -1967,7 +1984,7 @@ export function DocumentDetail({
                   )}
                 </div>
               </div>
-            </section>
+            </details>
 
             <section
               ref={notesRef}

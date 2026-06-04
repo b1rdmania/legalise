@@ -296,7 +296,7 @@ describe("DocumentDetail", () => {
     expect(screen.getByTestId("document-work-plan")).toHaveTextContent(
       "Run document skill",
     );
-    expect(screen.getByText("Suggested edits")).toBeInTheDocument();
+    expect(screen.getByText("Suggest edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Read / edit" })).toBeInTheDocument();
     expect(screen.queryByText("Version record")).toBeNull();
