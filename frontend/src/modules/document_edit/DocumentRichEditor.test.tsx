@@ -250,6 +250,13 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("2 / 3");
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
+    expect(screen.getByTestId("document-editor-find-preview")).toHaveTextContent(
+      "Match 1 / 3:",
+    );
+    fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Enter" });
+    expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("2 / 3");
+    fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Enter", shiftKey: true });
+    expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
   });
 
   it("focuses document find with Cmd/Ctrl+F", async () => {
