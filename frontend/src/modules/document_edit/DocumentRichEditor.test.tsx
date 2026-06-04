@@ -580,6 +580,16 @@ describe("DocumentRichEditor surface", () => {
     expect(within(reviewMap).getByRole("button", { name: /Moved note/ })).toHaveTextContent(
       "Not located",
     );
+    expect(
+      screen
+        .getByTestId("document-editor-canvas")
+        .querySelector('[data-review-note-id="note-1"]'),
+    ).toHaveTextContent("single social-media post");
+    expect(
+      screen
+        .getByTestId("document-editor-canvas")
+        .querySelector('[data-review-note-id="note-2"]'),
+    ).toBeNull();
 
     fireEvent.click(within(reviewMap).getByRole("button", { name: /Open note/ }));
     expect(screen.getByLabelText("Find")).toHaveValue("single social-media post");
