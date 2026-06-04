@@ -64,6 +64,12 @@ describe("DemoMatter document search", () => {
     expect(screen.getByTestId("demo-document-workbench-rail")).toHaveTextContent(
       "This file is ready to use.",
     );
+    expect(screen.getByTestId("demo-document-workbench-rail").closest("aside")).toHaveClass(
+      "order-1",
+    );
+    expect(screen.getByTestId("demo-document-reader").closest("section")).toHaveClass(
+      "order-2",
+    );
     expect(screen.getByRole("link", { name: /Run a skill with this file/i })).toHaveAttribute(
       "href",
       "/demo/workflows",
