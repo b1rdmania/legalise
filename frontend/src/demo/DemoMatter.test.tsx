@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { splitSearchMatches } from "./DemoMatter";
+import { demoDocumentMatches, splitSearchMatches } from "./DemoMatter";
 
 describe("DemoMatter document search", () => {
   it("splits all case-insensitive matches without changing source text", () => {
@@ -18,5 +18,26 @@ describe("DemoMatter document search", () => {
     expect(splitSearchMatches("No search", "   ")).toEqual([
       { text: "No search", match: false },
     ]);
+  });
+
+  it("matches demo documents by filename, source, tag, and hash", () => {
+    const doc = {
+      id: "doc-1",
+      matter_id: "matter-1",
+      filename: "dismissal-letter.pdf",
+      mime_type: "application/pdf",
+      size_bytes: 2048,
+      sha256: "abc123".padEnd(64, "0"),
+      tag: "disclosure",
+      from_disclosure: true,
+      uploaded_at: "2026-06-03T10:00:00",
+      uploaded_by_id: "user-1",
+    };
+
+    expect(demoDocumentMatches(doc, "")).toBe(true);
+    expect(demoDocumentMatches(doc, "dismissal")).toBe(true);
+    expect(demoDocumentMatches(doc, "cpr 31")).toBe(true);
+    expect(demoDocumentMatches(doc, "abc123")).toBe(true);
+    expect(demoDocumentMatches(doc, "witness")).toBe(false);
   });
 });
