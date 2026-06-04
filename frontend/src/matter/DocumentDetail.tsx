@@ -881,122 +881,50 @@ export function DocumentDetail({
         </div>
 
         <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-                Document workbench
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
-                {doc.filename}
-              </h1>
-              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                <span className="border border-ink bg-ink px-2 py-1 text-paper">
-                  {documentStateLabel}
-                </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              Document workbench
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
+              {doc.filename}
+            </h1>
+            <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              <span className="border border-ink bg-ink px-2 py-1 text-paper">
+                {documentStateLabel}
+              </span>
+              <span className="border border-rule bg-paper-sunken px-2 py-1">
+                {doc.tag || "untagged"}
+              </span>
+              <span className="border border-rule bg-paper-sunken px-2 py-1">
+                {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
+              </span>
+              <span className="border border-rule bg-paper-sunken px-2 py-1">
+                {formatBytes(doc.size_bytes)}
+              </span>
+              {latestVersion && (
                 <span className="border border-rule bg-paper-sunken px-2 py-1">
-                  {doc.tag || "untagged"}
+                  v{latestVersion.version_number}
                 </span>
-                <span className="border border-rule bg-paper-sunken px-2 py-1">
-                  {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
-                </span>
-                <span className="border border-rule bg-paper-sunken px-2 py-1">
-                  {formatBytes(doc.size_bytes)}
-                </span>
-                {latestVersion && (
-                  <span className="border border-rule bg-paper-sunken px-2 py-1">
-                    v{latestVersion.version_number}
-                  </span>
-                )}
-                {selectedResolvedVersion && (
-                  <span className="border border-rule bg-paper-sunken px-2 py-1">
-                    editable
-                  </span>
-                )}
-              </div>
-              <p
-                className="mt-4 text-sm leading-6 text-muted"
-                data-testid="document-header-status"
-              >
-                {headerStatusItems.map((item, index) => (
-                  <span key={item.label}>
-                    {index > 0 && <span aria-hidden="true"> · </span>}
-                    <span className={item.tone === "active" ? "font-semibold text-ink" : ""}>
-                      {item.value} {item.label.toLowerCase()}
-                    </span>
-                  </span>
-                ))}
-              </p>
-            </div>
-            <div className="flex flex-col items-stretch gap-2 text-sm sm:min-w-[220px]" aria-label="Document commands">
-              <Link
-                to="/matters/$slug/$tab"
-                params={{ slug, tab: "assistant" }}
-                search={{ document: documentId }}
-                className="inline-flex items-center justify-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
-                data-testid="document-ask-chat-link"
-              >
-                Ask about this file
-              </Link>
-              {selectedResolvedVersion && (
-                <div className="grid gap-1">
-                  <a
-                    href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
-                    className="inline-flex items-center border border-ink bg-ink px-3 py-2 text-paper hover:bg-black"
-                    data-testid="document-download-edited-docx"
-                  >
-                    Download edited DOCX
-                  </a>
-                  <a
-                    href={documentVersionPdfUrl(documentId, selectedResolvedVersion.id)}
-                    className="inline-flex items-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
-                    data-testid="document-download-edited-pdf"
-                  >
-                    Download PDF
-                  </a>
-                  {comments.length > 0 && (
-                    <p className="text-[11px] leading-4 text-muted">
-                      Includes {comments.length} review{" "}
-                      {comments.length === 1 ? "note" : "notes"}.
-                    </p>
-                  )}
-                </div>
               )}
-              <details className="border border-rule bg-paper-sunken px-3 py-2">
-                <summary className="cursor-pointer text-sm font-medium text-ink">
-                  File actions
-                </summary>
-                <div className="mt-3 grid gap-2">
-                  <a
-                    href={originalHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
-                    data-testid="document-open-original"
-                  >
-                    Open original
-                  </a>
-                  <a
-                    href={documentOriginalUrl(documentId, { download: true })}
-                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
-                  >
-                    Download
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => openWorkbenchView("versions")}
-                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
-                  >
-                    Compare versions
-                  </button>
-                  <a
-                    href={recordHref}
-                    className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
-                  >
-                    View Record
-                  </a>
-                </div>
-              </details>
+              {selectedResolvedVersion && (
+                <span className="border border-rule bg-paper-sunken px-2 py-1">
+                  editable
+                </span>
+              )}
             </div>
+            <p
+              className="mt-4 text-sm leading-6 text-muted"
+              data-testid="document-header-status"
+            >
+              {headerStatusItems.map((item, index) => (
+                <span key={item.label}>
+                  {index > 0 && <span aria-hidden="true"> · </span>}
+                  <span className={item.tone === "active" ? "font-semibold text-ink" : ""}>
+                    {item.value} {item.label.toLowerCase()}
+                  </span>
+                </span>
+              ))}
+            </p>
           </div>
         </header>
 
@@ -1024,58 +952,57 @@ export function DocumentDetail({
           </p>
         )}
 
-        <nav
-          className="mt-4 flex flex-wrap items-center gap-2 border border-rule bg-paper px-3 py-3"
-          aria-label="Document workspace views"
-          data-testid="document-workbench-tabs"
+        <section
+          className="mt-4 border border-rule bg-paper"
+          aria-label="Document command surface"
+          data-testid="document-command-bar"
         >
-          <span className="mr-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-            View
-          </span>
-          <WorkbenchTab
-            active={workbenchView === "editor"}
-            onClick={() => openWorkbenchView("editor")}
-          >
-            Read / edit
-          </WorkbenchTab>
-          <WorkbenchTab
-            active={workbenchView === "original"}
-            onClick={() => openWorkbenchView("original")}
-          >
-            Original
-          </WorkbenchTab>
-          <WorkbenchTab
-            active={workbenchView === "versions"}
-            onClick={() => openWorkbenchView("versions")}
-          >
-            Versions
-          </WorkbenchTab>
-          {activeEditResult && (
-            <WorkbenchTab
-              active={workbenchView === "redlines"}
-              onClick={() => openWorkbenchView("redlines")}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-3 py-3">
+            <nav
+              className="flex flex-wrap items-center gap-2"
+              aria-label="Document workspace views"
+              data-testid="document-workbench-tabs"
             >
-              Redlines
-            </WorkbenchTab>
-          )}
-        </nav>
-
-        <div
-          className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-rule bg-paper px-4 py-3 text-sm"
-          data-testid="document-presence-strip"
-        >
-          <div>
-            <span className="font-semibold text-ink">
-              {activeEditSessions.length > 1
-                ? `${activeEditSessions.length} people have this file open`
-                : "You are working in this file"}
-            </span>
-            <span className="ml-2 text-muted">
-              Live presence is recorded; edits save as document versions.
-            </span>
-          </div>
-          {activeEditSessions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                View
+              </span>
+              <WorkbenchTab
+                active={workbenchView === "editor"}
+                onClick={() => openWorkbenchView("editor")}
+              >
+                Read / edit
+              </WorkbenchTab>
+              <WorkbenchTab
+                active={workbenchView === "original"}
+                onClick={() => openWorkbenchView("original")}
+              >
+                Original
+              </WorkbenchTab>
+              <WorkbenchTab
+                active={workbenchView === "versions"}
+                onClick={() => openWorkbenchView("versions")}
+              >
+                Versions
+              </WorkbenchTab>
+              {activeEditResult && (
+                <WorkbenchTab
+                  active={workbenchView === "redlines"}
+                  onClick={() => openWorkbenchView("redlines")}
+                >
+                  Redlines
+                </WorkbenchTab>
+              )}
+            </nav>
+            <div
+              className="flex flex-wrap items-center gap-2 text-sm"
+              data-testid="document-presence-strip"
+            >
+              <span className="font-semibold text-ink">
+                {activeEditSessions.length > 1
+                  ? `${activeEditSessions.length} people have this file open`
+                  : "You are working in this file"}
+              </span>
+              <span className="text-muted">Edits save as document versions.</span>
               {activeEditSessions.slice(0, 4).map((session) => (
                 <span
                   key={session.id}
@@ -1085,8 +1012,88 @@ export function DocumentDetail({
                 </span>
               ))}
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 px-3 py-3 text-sm">
+            <Link
+              to="/matters/$slug/$tab"
+              params={{ slug, tab: "assistant" }}
+              search={{ document: documentId }}
+              className="inline-flex min-h-[40px] items-center border border-ink bg-ink px-3 text-paper hover:bg-black"
+              data-testid="document-ask-chat-link"
+            >
+              Ask about this file
+            </Link>
+            {primaryDocumentSkill && (
+              <button
+                type="button"
+                onClick={() => openDocumentSkill(primaryDocumentSkill)}
+                className="inline-flex min-h-[40px] items-center border border-rule bg-paper px-3 text-ink hover:border-ink"
+                data-testid="document-run-primary-skill"
+              >
+                Run skill
+              </button>
+            )}
+            {selectedResolvedVersion && (
+              <>
+                <a
+                  href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
+                  className="inline-flex min-h-[40px] items-center border border-rule bg-paper px-3 text-ink hover:border-ink"
+                  data-testid="document-download-edited-docx"
+                >
+                  Download edited DOCX
+                </a>
+                <a
+                  href={documentVersionPdfUrl(documentId, selectedResolvedVersion.id)}
+                  className="inline-flex min-h-[40px] items-center border border-rule bg-paper px-3 text-ink hover:border-ink"
+                  data-testid="document-download-edited-pdf"
+                >
+                  Download PDF
+                </a>
+              </>
+            )}
+            <details className="ml-auto border border-rule bg-paper-sunken px-3 py-2">
+              <summary className="cursor-pointer text-sm font-medium text-ink">
+                File actions
+              </summary>
+              <div className="mt-3 grid min-w-48 gap-2">
+                <a
+                  href={originalHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  data-testid="document-open-original"
+                >
+                  Open original
+                </a>
+                <a
+                  href={documentOriginalUrl(documentId, { download: true })}
+                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                >
+                  Download
+                </a>
+                <button
+                  type="button"
+                  onClick={() => openWorkbenchView("versions")}
+                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                >
+                  Compare versions
+                </button>
+                <a
+                  href={recordHref}
+                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                >
+                  View Record
+                </a>
+              </div>
+            </details>
+          </div>
+          {selectedResolvedVersion && comments.length > 0 && (
+            <p className="border-t border-rule px-3 py-2 text-xs text-muted">
+              Downloads include {comments.length} review{" "}
+              {comments.length === 1 ? "note" : "notes"}.
+            </p>
           )}
-        </div>
+        </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
           <main
