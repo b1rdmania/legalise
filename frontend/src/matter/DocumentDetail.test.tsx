@@ -312,6 +312,10 @@ describe("DocumentDetail", () => {
     expect(open.getAttribute("href")).not.toContain("download=1");
     expect(download.getAttribute("href")).toContain("download=1");
     expect(screen.getByRole("button", { name: "Compare versions" })).toBeInTheDocument();
+    const ask = screen.getByTestId("document-ask-chat-link");
+    expect(ask).toHaveTextContent("Ask about this file");
+    expect(ask.getAttribute("href")).toContain("/matters/khan/assistant");
+    expect(ask.getAttribute("href")).toContain("document=doc-1");
     expect(screen.getAllByRole("link", { name: "View Record" }).length).toBeGreaterThan(0);
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
     expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();

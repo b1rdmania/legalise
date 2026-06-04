@@ -49,6 +49,7 @@ interface AssistantTabProps {
   // Optional route override for read-only/public shells. Normal matters
   // route source chips into the authenticated matter document reader.
   onDocumentChip?: (documentId: string) => void;
+  initialDocumentId?: string | null;
 }
 
 // Three concrete first-actions per matter type. Per JOY.md "Suggested
@@ -93,6 +94,7 @@ export function AssistantTab({
   showContextRail = true,
   onDisabledAction,
   onDocumentChip,
+  initialDocumentId,
   // back-compat — see AssistantTabProps; deliberately unused.
   auditCount: _auditCount,
   workflowsGrantedCount: _workflowsGrantedCount,
@@ -184,6 +186,16 @@ export function AssistantTab({
     for (const d of docs ?? []) map.set(d.id, d);
     return map;
   }, [docs]);
+
+  useEffect(() => {
+    if (!initialDocumentId || !docsById.has(initialDocumentId)) return;
+    setSelectedDocIds((prev) => {
+      if (prev.has(initialDocumentId)) return prev;
+      const next = new Set(prev);
+      next.add(initialDocumentId);
+      return next;
+    });
+  }, [initialDocumentId, docsById]);
 
   const recentDocs = useMemo(() => {
     if (!docs) return [];

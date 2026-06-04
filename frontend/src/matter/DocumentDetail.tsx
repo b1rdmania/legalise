@@ -957,6 +957,15 @@ export function DocumentDetail({
               >
                 Compare versions
               </button>
+              <Link
+                to="/matters/$slug/$tab"
+                params={{ slug, tab: "assistant" }}
+                search={{ document: documentId }}
+                className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
+                data-testid="document-ask-chat-link"
+              >
+                Ask about this file
+              </Link>
               <a
                 href={recordHref}
                 className="inline-flex items-center border border-rule px-3 py-2 text-ink hover:border-ink"
