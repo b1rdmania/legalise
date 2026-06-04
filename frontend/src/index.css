@@ -209,4 +209,15 @@
     margin-right: auto;
     max-width: 100%;
   }
+
+  .legalise-docx-search-hit {
+    background: rgba(196, 143, 51, 0.28);
+    color: inherit;
+    padding: 0 0.08em;
+  }
+
+  .legalise-docx-search-hit-active {
+    background: rgba(196, 143, 51, 0.52);
+    box-shadow: 0 0 0 1px rgba(24, 24, 24, 0.28);
+  }
 }
