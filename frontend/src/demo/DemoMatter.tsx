@@ -595,7 +595,7 @@ function DemoDocumentsTab({
                 {inspectedDoc.filename}
               </h3>
               <p className="mt-1 text-xs text-muted">
-                Extracted text preview. In the live workspace, source chips open this reader.
+                Extracted text preview. Skills and source chips point back to this reader.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -797,9 +797,8 @@ export function DemoDocumentReader({
             </p>
             <h2 className="mt-1 text-sm font-semibold text-ink">This file is ready to use.</h2>
             <p className="mt-2 text-sm leading-6 text-muted">
-              In the product, chat and skills use this reader as their source surface.
-              Source chips come back here so a solicitor can check the text before
-              relying on output.
+              This public demo lets you read the source, open the skills that use it,
+              and inspect the record without creating an account.
             </p>
             <div className="mt-4 grid gap-2 text-sm">
               <a
@@ -829,9 +828,9 @@ export function DemoDocumentReader({
             <h2 className="text-sm font-semibold text-ink">What happens in the workspace</h2>
             <ol className="mt-3 space-y-2 text-sm leading-6 text-muted">
               <li><span className="font-semibold text-ink">1.</span> Read or search the document.</li>
-              <li><span className="font-semibold text-ink">2.</span> Run a skill with the file selected.</li>
-              <li><span className="font-semibold text-ink">3.</span> Review and sign the output.</li>
-              <li><span className="font-semibold text-ink">4.</span> Export the working pack record.</li>
+              <li><span className="font-semibold text-ink">2.</span> Open a skill that uses the file.</li>
+              <li><span className="font-semibold text-ink">3.</span> Inspect the produced output.</li>
+              <li><span className="font-semibold text-ink">4.</span> Open the Record to see what happened.</li>
             </ol>
           </section>
           <section className="border border-rule bg-paper p-4">
