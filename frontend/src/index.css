@@ -120,6 +120,19 @@
     padding: 0 0.1em;
   }
 
+  .legalise-document-editor .legalise-find-match {
+    background: #FFF4B8;
+    box-shadow: inset 0 -2px 0 #D8A300;
+    padding: 0 0.08em;
+  }
+
+  .legalise-document-editor .legalise-find-match-active {
+    background: #FFE28A;
+    box-shadow:
+      inset 0 -2px 0 #111111,
+      0 0 0 1px rgba(17, 17, 17, 0.18);
+  }
+
   .legalise-document-editor .legalise-review-note-open {
     background: #EAF4F4;
     box-shadow: inset 0 -2px 0 #2F6F6D;

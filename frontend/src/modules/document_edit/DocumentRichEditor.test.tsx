@@ -676,8 +676,16 @@ describe("DocumentRichEditor surface", () => {
     });
     expect(screen.getByTestId("document-editor-find-count")).toHaveTextContent("3 matches");
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-find-match="true"]')).toHaveLength(2);
+      expect(document.querySelector('[data-find-match="active"]')).toHaveTextContent("Clause");
+    });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("2 / 3");
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-find-match="true"]')).toHaveLength(2);
+      expect(document.querySelector('[data-find-match="active"]')).toHaveTextContent("Clause");
+    });
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     expect(screen.getByTestId("document-editor-find-position")).toHaveTextContent("1 / 3");
     expect(screen.getByTestId("document-editor-find-preview")).toHaveTextContent(
