@@ -63,6 +63,10 @@ export function MatterDetail({ slug }: { slug: string }) {
   const initialTab: TabKey =
     route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
+  const initialChatDocumentId =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("document")
+      : null;
 
   // sync tab → drawer label
   useEffect(() => {
@@ -362,6 +366,7 @@ export function MatterDetail({ slug }: { slug: string }) {
               chronology={chron?.events ?? []}
               auditCount={audit?.length ?? 0}
               setTabAndHash={setTabAndHash}
+              initialDocumentId={initialChatDocumentId}
             />
           )}
           {tab === "documents" && (

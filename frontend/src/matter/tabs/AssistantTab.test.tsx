@@ -37,6 +37,7 @@ function mountChat(overrides?: {
   docs?: MatterDocument[] | null;
   initialMessages?: AssistantMessage[];
   onDocumentChip?: (documentId: string) => void;
+  initialDocumentId?: string | null;
 }) {
   const setTabAndHash = overrides?.setTabAndHash ?? vi.fn();
   const docs = overrides?.docs ?? [];
@@ -54,6 +55,7 @@ function mountChat(overrides?: {
         showPostureInPulse={false}
         initialMessages={overrides?.initialMessages}
         onDocumentChip={overrides?.onDocumentChip}
+        initialDocumentId={overrides?.initialDocumentId}
       />
     ),
   });
@@ -141,6 +143,29 @@ describe("AssistantTab — in-chat skill picker", () => {
 
     fireEvent.click(screen.getByTestId("open-documents-link"));
     expect(setTabAndHash).toHaveBeenCalledWith("documents");
+  });
+
+  it("pre-attaches a document when opened from the document workbench", async () => {
+    mountChat({
+      initialDocumentId: "doc-1",
+      docs: [
+        {
+          id: "doc-1",
+          matter_id: "m-1",
+          filename: "witness-statement.docx",
+          mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          size_bytes: 1200,
+          sha256: "a".repeat(64),
+          tag: "draft",
+          from_disclosure: false,
+          uploaded_at: "2026-06-03T10:00:00",
+          uploaded_by_id: "u-1",
+        },
+      ],
+    });
+
+    expect(await screen.findByText("witness-statement.docx")).toBeInTheDocument();
+    expect(screen.getByTitle("Remove witness-statement.docx")).toBeInTheDocument();
   });
 
   it("mounts the generic runner for a runnable V2 skill instead of routing to a bespoke tab", async () => {
