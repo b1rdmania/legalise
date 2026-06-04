@@ -170,4 +170,18 @@
   .legalise-docx-preview .legalise-docx {
     box-shadow: 0 1px 2px rgba(24, 24, 24, 0.08);
   }
+
+  .legalise-docx-preview-wide {
+    align-items: stretch;
+  }
+
+  .legalise-docx-preview-wide .legalise-docx-wrapper {
+    width: 100%;
+  }
+
+  .legalise-docx-preview-wide .legalise-docx {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
 }

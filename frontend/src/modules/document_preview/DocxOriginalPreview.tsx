@@ -37,6 +37,7 @@ export function DocxOriginalPreview({
   const [state, setState] = useState<PreviewState>({ status: "loading" });
   const [renderedText, setRenderedText] = useState("");
   const [query, setQuery] = useState(sourceHighlight?.trim() ?? "");
+  const [viewMode, setViewMode] = useState<"paper" | "wide">("paper");
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const searchTerm = query.trim();
@@ -110,19 +111,43 @@ export function DocxOriginalPreview({
 
   return (
     <section
-      className="mt-6 border border-rule bg-paper"
+      className="border border-rule bg-paper"
       data-testid="document-docx-preview"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-rule px-5 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-rule px-5 py-4">
         <div>
-          <h2 className="text-sm font-semibold text-ink">Original preview</h2>
+          <h2 className="text-sm font-semibold text-ink">Word reader</h2>
           <p className="mt-0.5 text-xs text-muted">
             Word preview rendered from the audited original file proxy.
           </p>
         </div>
-        <div className="text-right">
-          <span className="block text-xs font-medium text-ink">{filename}</span>
-          <span className="mt-1 block text-[11px] uppercase tracking-track2 text-muted">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="mr-1 max-w-52 truncate text-xs font-medium text-muted">
+            {filename}
+          </span>
+          <button
+            type="button"
+            onClick={() => setViewMode("paper")}
+            className={`border px-3 py-2 text-xs font-medium ${
+              viewMode === "paper"
+                ? "border-ink bg-ink text-paper"
+                : "border-rule text-muted hover:border-ink hover:text-ink"
+            }`}
+          >
+            Paper
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("wide")}
+            className={`border px-3 py-2 text-xs font-medium ${
+              viewMode === "wide"
+                ? "border-ink bg-ink text-paper"
+                : "border-rule text-muted hover:border-ink hover:text-ink"
+            }`}
+          >
+            Wide
+          </button>
+          <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] uppercase tracking-track2 text-muted">
             {state.status === "ready"
               ? "Rendered"
               : state.status === "loading"
@@ -189,11 +214,16 @@ export function DocxOriginalPreview({
           <p className="mt-3 text-xs text-muted">No matches in the rendered Word text.</p>
         )}
       </div>
-      <div className="max-h-[780px] overflow-auto bg-paper-sunken px-4 py-5">
+      <div
+        className="max-h-[780px] overflow-auto bg-paper-sunken px-4 py-5"
+        data-testid="document-docx-reader-canvas"
+      >
         <div
           ref={containerRef}
           aria-label={`Original Word preview for ${filename}`}
-          className="legalise-docx-preview"
+          className={`legalise-docx-preview ${
+            viewMode === "wide" ? "legalise-docx-preview-wide" : ""
+          }`}
         />
       </div>
     </section>
