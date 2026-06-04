@@ -19,6 +19,7 @@ import type { Content, JSONContent } from "@tiptap/core";
 
 import {
   commitDocumentWorkingDraft,
+  documentVersionDocxUrl,
   getDocumentWorkingDraft,
   saveDocumentWorkingDraft,
   type DocumentVersionRead,
@@ -334,6 +335,7 @@ export function DocumentRichEditor({
 }) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
@@ -493,7 +495,8 @@ export function DocumentRichEditor({
 
   const plainText = editor ? editorJsonToPlainText(editor.getJSON() as TiptapNode) : "";
   const currentEditorJson = editor ? editor.getJSON() as TiptapNode : null;
-  const canSave = Boolean(editor && dirty && plainText.trim() && !saving);
+  const canSave = Boolean(editor && dirty && plainText.trim() && !saving && !downloadingDocx);
+  const canDownloadDocx = Boolean(editor && plainText.trim() && !saving && !downloadingDocx);
   const findMatches = useMemo(
     () => findNormalizedRanges(plainText, findQuery),
     [plainText, findQuery],
@@ -549,8 +552,8 @@ export function DocumentRichEditor({
     if (activeFindIndex >= findMatches.length) setActiveFindIndex(0);
   }, [activeFindIndex, findMatches.length]);
 
-  async function save() {
-    if (!editor || !canSave) return;
+  async function save(): Promise<DocumentVersionRead | null> {
+    if (!editor || !canSave) return null;
     setSaving(true);
     setError(null);
     try {
@@ -573,10 +576,33 @@ export function DocumentRichEditor({
       clearDocumentLocalDraft(documentId);
       setLocalDraft(null);
       onSaved(version);
+      return version;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveAndDownloadDocx() {
+    if (!editor || !canDownloadDocx) return;
+    setDownloadingDocx(true);
+    setError(null);
+    try {
+      let versionId = latestVersionId ?? null;
+      if (dirty) {
+        const saved = await save();
+        versionId = saved?.id ?? null;
+      }
+      if (!versionId) {
+        throw new Error("Save this document before downloading a Word copy.");
+      }
+      window.location.assign(documentVersionDocxUrl(documentId, versionId));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      setDownloadingDocx(false);
     }
   }
 
@@ -715,6 +741,14 @@ export function DocumentRichEditor({
               className="inline-flex h-8 items-center border border-ink bg-ink px-3 text-xs font-semibold text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
             >
               {saving ? "Saving..." : "Save version"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveAndDownloadDocx()}
+              disabled={!canDownloadDocx}
+              className="inline-flex h-8 items-center border border-ink bg-paper px-3 text-xs font-semibold text-ink hover:bg-paper-sunken disabled:border-rule disabled:text-muted disabled:opacity-50"
+            >
+              {downloadingDocx ? "Preparing..." : dirty ? "Save & download DOCX" : "Download DOCX"}
             </button>
           </div>
         </div>
