@@ -522,6 +522,37 @@ export function DocumentDetail({
     pendingEdits + openComments.length + (activeEditSessions.length > 1 ? 1 : 0);
   const citedOutputCount = documentArtifacts?.length ?? 0;
   const hasConcurrentSession = activeEditSessions.length > 1;
+  const documentStateLabel = editorDirty
+    ? "Unsaved working copy"
+    : pendingEdits > 0
+      ? "Redlines waiting"
+      : openComments.length > 0
+        ? "Review notes open"
+        : selectedResolvedVersion
+          ? `Viewing v${selectedResolvedVersion.version_number}`
+          : "Ready to read";
+  const headerStatusItems = [
+    {
+      label: "Open notes",
+      value: openComments.length,
+      tone: openComments.length > 0 ? "active" : "quiet",
+    },
+    {
+      label: "Pending changes",
+      value: pendingEdits,
+      tone: pendingEdits > 0 ? "active" : "quiet",
+    },
+    {
+      label: "Versions",
+      value: versions.length,
+      tone: versions.length > 0 ? "active" : "quiet",
+    },
+    {
+      label: "Ready skills",
+      value: documentSkills.length,
+      tone: documentSkills.length > 0 ? "active" : "quiet",
+    },
+  ] as const;
   const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
     .filter(
       (comment) =>
@@ -842,6 +873,9 @@ export function DocumentDetail({
                 {doc.filename}
               </h1>
               <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                <span className="border border-ink bg-ink px-2 py-1 text-paper">
+                  {documentStateLabel}
+                </span>
                 <span className="border border-rule bg-paper-sunken px-2 py-1">
                   {doc.tag || "untagged"}
                 </span>
@@ -862,6 +896,26 @@ export function DocumentDetail({
                   </span>
                 )}
               </div>
+              <dl
+                className="mt-4 grid gap-2 text-xs sm:grid-cols-4"
+                data-testid="document-header-status"
+              >
+                {headerStatusItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className={`border px-3 py-2 ${
+                      item.tone === "active"
+                        ? "border-ink bg-paper-sunken"
+                        : "border-rule bg-paper-sunken"
+                    }`}
+                  >
+                    <dt className="font-mono uppercase tracking-track2 text-muted">
+                      {item.label}
+                    </dt>
+                    <dd className="mt-1 text-base font-semibold text-ink">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
             <div className="flex flex-wrap items-start gap-2 text-sm" aria-label="Document commands">
               {selectedResolvedVersion && (
