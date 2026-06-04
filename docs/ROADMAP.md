@@ -183,6 +183,21 @@ Theme: signed identity, submission infrastructure, and portability.
 - A public claim boundary for evals. Evals are evidence of a tested posture, not
   proof that the system gives legal advice.
 
+## Chat shape: Model B (docked assistant) — decided direction, post-v0.5
+
+The matter shell is currently Model C (Chat is one nav item) yet names Chat the
+default landing — a chat-primary claim wired as chat-incidental. To consult the
+assistant about a document you navigate away from it, which is backwards for
+supervised autonomy. The decided destination is **Model B**: the substance
+(documents / record) stays centre, the assistant is **docked alongside**, both
+co-visible during the review-and-sign loop (NotebookLM's Sources · Chat · Output
+shape). Not Model A (chat-as-canvas) — that buries the documents-of-record
+substance. This is an IA/layout move, not a skin change: the v0.5 panel shell,
+rail, and tokens survive it; only the main panel's contents change. Bridge =
+a collapsible docked chat present alongside Documents/Record before the full
+two/three-pane build. Sequenced after the cleanup programme; it overlaps the
+"collapse bespoke tabs into the generic runner" cut directly.
+
 ## Permanently out of scope
 
 - US, Scotland, NI jurisdictions (separate projects, not this codebase)
