@@ -13,6 +13,12 @@ type DocxSearchHit = {
   preview: string;
 };
 
+type WordOutlineItem = {
+  id: string;
+  label: string;
+  level: number;
+};
+
 function previewAround(text: string, index: number, length: number): string {
   const start = Math.max(0, index - 80);
   const end = Math.min(text.length, index + length + 120);
@@ -89,6 +95,7 @@ export function DocxOriginalPreview({
   const [query, setQuery] = useState(sourceHighlight?.trim() ?? "");
   const [viewMode, setViewMode] = useState<"paper" | "wide">("paper");
   const [activeHitIndex, setActiveHitIndex] = useState(0);
+  const [outline, setOutline] = useState<WordOutlineItem[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const searchTerm = query.trim();
@@ -154,6 +161,7 @@ export function DocxOriginalPreview({
     const container = containerRef.current;
     if (!container) return;
     container.innerHTML = "";
+    setOutline([]);
     setState({ status: "loading" });
     setRenderedText("");
 
@@ -178,7 +186,23 @@ export function DocxOriginalPreview({
           useBase64URL: true,
         });
         if (!cancelled) {
-          setRenderedText(containerRef.current?.textContent ?? "");
+          const rendered = containerRef.current;
+          setRenderedText(rendered?.textContent ?? "");
+          const headings = Array.from(
+            rendered?.querySelectorAll("h1,h2,h3") ?? [],
+          ).slice(0, 16);
+          setOutline(
+            headings
+              .map((heading, index) => {
+                const level = Number(heading.tagName.slice(1));
+                const label = heading.textContent?.trim().replace(/\s+/g, " ") ?? "";
+                if (!label) return null;
+                const id = `docx-outline-${index}`;
+                heading.id = id;
+                return { id, label, level };
+              })
+              .filter((item): item is WordOutlineItem => Boolean(item)),
+          );
           setState({ status: "ready" });
         }
       })
@@ -308,17 +332,54 @@ export function DocxOriginalPreview({
           <p className="mt-3 text-xs text-muted">No matches in the rendered Word text.</p>
         )}
       </div>
-      <div
-        className="max-h-[780px] overflow-auto bg-paper-sunken px-4 py-5"
-        data-testid="document-docx-reader-canvas"
-      >
+      <div className="grid max-h-[780px] grid-cols-1 overflow-hidden bg-paper-sunken lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside
+          className="max-h-[220px] overflow-auto border-b border-rule bg-paper px-3 py-3 lg:max-h-none lg:border-b-0 lg:border-r"
+          data-testid="document-docx-outline"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Outline
+            </p>
+            <span className="text-xs text-muted">{outline.length}</span>
+          </div>
+          {outline.length === 0 ? (
+            <p className="mt-3 text-xs leading-5 text-muted">
+              No headings found in the rendered Word file.
+            </p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {outline.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() =>
+                    document.getElementById(item.id)?.scrollIntoView?.({
+                      block: "start",
+                      behavior: "smooth",
+                    })
+                  }
+                  className="w-full border border-rule bg-paper-sunken px-3 py-2 text-left text-xs hover:border-ink"
+                  style={{ paddingLeft: `${0.75 + (item.level - 1) * 0.5}rem` }}
+                >
+                  <span className="block font-semibold text-ink">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </aside>
         <div
-          ref={containerRef}
-          aria-label={`Original Word preview for ${filename}`}
-          className={`legalise-docx-preview ${
-            viewMode === "wide" ? "legalise-docx-preview-wide" : ""
-          }`}
-        />
+          className="overflow-auto px-4 py-5"
+          data-testid="document-docx-reader-canvas"
+        >
+          <div
+            ref={containerRef}
+            aria-label={`Original Word preview for ${filename}`}
+            className={`legalise-docx-preview ${
+              viewMode === "wide" ? "legalise-docx-preview-wide" : ""
+            }`}
+          />
+        </div>
       </div>
     </section>
   );

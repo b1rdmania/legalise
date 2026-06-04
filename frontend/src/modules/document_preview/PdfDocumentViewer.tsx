@@ -32,6 +32,13 @@ function previewAround(text: string, index: number, length: number): string {
   return text.slice(start, end).replace(/\s+/g, " ").trim();
 }
 
+function pagePreview(text: string): string {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (!compact) return "No selectable text indexed on this page.";
+  if (compact.length <= 110) return compact;
+  return `${compact.slice(0, 107).trimEnd()}...`;
+}
+
 export function PdfDocumentViewer({
   fileUrl,
   filename,
@@ -274,26 +281,62 @@ export function PdfDocumentViewer({
         </div>
       )}
 
-      <div className="flex max-h-[760px] justify-center overflow-auto bg-neutral-100 px-4 py-6">
-        <Document
-          file={file}
-          loading={<p className="text-sm text-muted">Loading PDF...</p>}
-          error={<p className="text-sm text-red-700">Could not render this PDF.</p>}
-          onLoadError={(err) => setError(err.message)}
-          onLoadSuccess={(pdf) => {
-            setError(null);
-            setNumPages(pdf.numPages);
-            setPageNumber(1);
-            void extractText(pdf);
-          }}
+      <div className="grid max-h-[760px] grid-cols-1 overflow-hidden bg-neutral-100 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside
+          className="max-h-[220px] overflow-auto border-b border-rule bg-paper px-3 py-3 lg:max-h-none lg:border-b-0 lg:border-r"
+          data-testid="pdf-page-index"
         >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            renderAnnotationLayer
-            renderTextLayer
-          />
-        </Document>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Pages
+            </p>
+            <span className="text-xs text-muted">{numPages || "?"}</span>
+          </div>
+          {numPages === 0 ? (
+            <p className="mt-3 text-xs text-muted">Loading page index...</p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {Array.from({ length: numPages }, (_, index) => index + 1).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => setPageNumber(page)}
+                  className={`w-full border px-3 py-2 text-left text-xs leading-5 ${
+                    page === pageNumber
+                      ? "border-ink bg-paper text-ink"
+                      : "border-rule bg-paper-sunken text-muted hover:border-ink hover:text-ink"
+                  }`}
+                >
+                  <span className="block font-semibold">Page {page}</span>
+                  <span className="mt-1 block max-h-10 overflow-hidden">
+                    {pagePreview(pageTexts[page - 1] ?? "")}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </aside>
+        <div className="flex overflow-auto px-4 py-6 lg:justify-center">
+          <Document
+            file={file}
+            loading={<p className="text-sm text-muted">Loading PDF...</p>}
+            error={<p className="text-sm text-red-700">Could not render this PDF.</p>}
+            onLoadError={(err) => setError(err.message)}
+            onLoadSuccess={(pdf) => {
+              setError(null);
+              setNumPages(pdf.numPages);
+              setPageNumber(1);
+              void extractText(pdf);
+            }}
+          >
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              renderAnnotationLayer
+              renderTextLayer
+            />
+          </Document>
+        </div>
       </div>
     </section>
   );

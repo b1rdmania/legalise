@@ -9,7 +9,7 @@ import * as api from "../../lib/api";
 vi.mock("docx-preview", () => ({
   renderAsync: vi.fn(async (_blob: Blob, container: HTMLElement) => {
     container.innerHTML =
-      "<article>Rendered Word body with dismissal facts and a limitation point.</article>";
+      "<h1>Witness statement</h1><h2>Dismissal facts</h2><article>Rendered Word body with dismissal facts and a limitation point.</article>";
   }),
 }));
 
@@ -41,6 +41,12 @@ describe("DocxOriginalPreview", () => {
     });
     expect(screen.getByText(/Rendered Word body/)).toBeInTheDocument();
     expect(api.fetchDocumentOriginalBlob).toHaveBeenCalledWith("doc-1");
+    expect(screen.getByTestId("document-docx-outline")).toHaveTextContent(
+      "Witness statement",
+    );
+    expect(screen.getByTestId("document-docx-outline")).toHaveTextContent(
+      "Dismissal facts",
+    );
     expect(screen.getByRole("button", { name: "Paper" })).toHaveClass("bg-ink");
     await userEvent.click(screen.getByRole("button", { name: "Wide" }));
     expect(screen.getByRole("button", { name: "Wide" })).toHaveClass("bg-ink");
@@ -66,15 +72,15 @@ describe("DocxOriginalPreview", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("1 match · 1 / 1")).toBeInTheDocument();
+      expect(screen.getByText("2 matches · 1 / 2")).toBeInTheDocument();
     });
     expect(screen.getAllByText(/dismissal facts/).length).toBeGreaterThan(0);
     const activeHit = document.querySelector(".legalise-docx-search-hit-active");
-    expect(activeHit).toHaveTextContent("dismissal facts");
+    expect(activeHit?.textContent?.toLowerCase()).toContain("dismissal facts");
 
-    await userEvent.click(screen.getByRole("button", { name: "Quote in note" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Quote in note" })[0]);
     expect(onQuoteSelected).toHaveBeenCalledWith(
-      expect.stringContaining("dismissal facts"),
+      expect.stringMatching(/dismissal facts/i),
     );
 
     await userEvent.clear(screen.getByPlaceholderText("Search text in this Word file"));
