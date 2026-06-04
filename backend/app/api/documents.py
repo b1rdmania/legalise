@@ -13,7 +13,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from docx import Document as DocxDocument
-from docx.enum.text import WD_COLOR_INDEX
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
+from docx.shared import RGBColor
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -514,6 +515,30 @@ def _append_document_comments_docx(
             meta.add_run(comment.resolved_at.isoformat())
 
 
+def _rgb_from_hex(value: str | None) -> RGBColor | None:
+    if not value:
+        return None
+    cleaned = value.strip().lstrip("#")
+    if len(cleaned) != 6:
+        return None
+    try:
+        return RGBColor(
+            int(cleaned[0:2], 16),
+            int(cleaned[2:4], 16),
+            int(cleaned[4:6], 16),
+        )
+    except ValueError:
+        return None
+
+
+def _paragraph_alignment(value: str | None):
+    return {
+        "left": WD_ALIGN_PARAGRAPH.LEFT,
+        "center": WD_ALIGN_PARAGRAPH.CENTER,
+        "right": WD_ALIGN_PARAGRAPH.RIGHT,
+    }.get(value or "")
+
+
 def _add_tiptap_inline_content(paragraph, nodes: list[dict[str, Any]] | None) -> None:
     for node in nodes or []:
         node_type = node.get("type")
@@ -529,8 +554,19 @@ def _add_tiptap_inline_content(paragraph, nodes: list[dict[str, Any]] | None) ->
             run.underline = "underline" in mark_types
             if "highlight" in mark_types:
                 run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+            for mark in node.get("marks") or []:
+                if not isinstance(mark, dict) or mark.get("type") != "textStyle":
+                    continue
+                color = _rgb_from_hex((mark.get("attrs") or {}).get("color"))
+                if color is not None:
+                    run.font.color.rgb = color
         elif node_type == "hardBreak":
             paragraph.add_run().add_break()
+        elif node_type == "image":
+            attrs = node.get("attrs") or {}
+            label = attrs.get("alt") or attrs.get("src") or "image"
+            run = paragraph.add_run(f"[image: {label}]")
+            run.italic = True
         elif isinstance(node.get("content"), list):
             _add_tiptap_inline_content(paragraph, node.get("content"))
 
@@ -545,6 +581,9 @@ def _add_tiptap_paragraph(
         paragraph = document.add_heading(level=max(1, min(level, 4)))
     else:
         paragraph = document.add_paragraph(style=style)
+    alignment = _paragraph_alignment((node.get("attrs") or {}).get("textAlign"))
+    if alignment is not None:
+        paragraph.alignment = alignment
     _add_tiptap_inline_content(paragraph, node.get("content"))
 
 
@@ -576,6 +615,26 @@ def _add_tiptap_list(document: DocxDocument, node: dict[str, Any], style: str) -
             _add_tiptap_list_item(document, child, style)
 
 
+def _add_tiptap_task_item(document: DocxDocument, item: dict[str, Any]) -> None:
+    checked = bool((item.get("attrs") or {}).get("checked"))
+    prefix = "[x] " if checked else "[ ] "
+    children = item.get("content") or []
+    paragraph_children: list[dict[str, Any]] | None = None
+    for child in children:
+        if isinstance(child, dict) and child.get("type") == "paragraph":
+            paragraph_children = child.get("content")
+            break
+    paragraph = document.add_paragraph()
+    paragraph.add_run(prefix)
+    _add_tiptap_inline_content(paragraph, paragraph_children)
+
+
+def _add_tiptap_task_list(document: DocxDocument, node: dict[str, Any]) -> None:
+    for child in node.get("content") or []:
+        if isinstance(child, dict) and child.get("type") == "taskItem":
+            _add_tiptap_task_item(document, child)
+
+
 def _tiptap_cell_text(cell: dict[str, Any]) -> str:
     text = _plain_text_from_tiptap_node(cell).strip()
     return re.sub(r"\n{2,}", "\n", text)
@@ -587,11 +646,18 @@ def _plain_text_from_tiptap_node(node: dict[str, Any]) -> str:
         return str(node.get("text") or "")
     if node_type == "hardBreak":
         return "\n"
+    if node_type == "image":
+        attrs = node.get("attrs") or {}
+        label = attrs.get("alt") or attrs.get("src") or "image"
+        return f"[image: {label}]\n"
     children = "".join(
         _plain_text_from_tiptap_node(child)
         for child in node.get("content") or []
         if isinstance(child, dict)
     )
+    if node_type == "taskItem":
+        prefix = "[x] " if (node.get("attrs") or {}).get("checked") else "[ ] "
+        return f"{prefix}{children.strip()}\n"
     if node_type in {"paragraph", "heading", "listItem"}:
         return f"{children}\n"
     if node_type == "tableRow":
@@ -661,6 +727,11 @@ def _render_tiptap_docx(
             _add_tiptap_list(document, node, "List Bullet")
         elif node_type == "orderedList":
             _add_tiptap_list(document, node, "List Number")
+        elif node_type == "taskList":
+            _add_tiptap_task_list(document, node)
+        elif node_type == "image":
+            paragraph = document.add_paragraph()
+            _add_tiptap_inline_content(paragraph, [node])
         elif node_type == "table":
             _add_tiptap_table(document, node)
     _append_document_comments_docx(document, comments or [])
