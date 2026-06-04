@@ -37,6 +37,10 @@ describe("DocumentsTab — document ingress", () => {
       uploaded_at: "2026-06-03T10:00:00",
       uploaded_by_id: "u-1",
       comment_count: 2,
+      open_comment_count: 1,
+      version_count: 3,
+      edit_count: 4,
+      pending_edit_count: 2,
     },
     {
       id: "doc-2",
@@ -50,6 +54,10 @@ describe("DocumentsTab — document ingress", () => {
       uploaded_at: "2026-06-03T11:00:00",
       uploaded_by_id: "u-1",
       comment_count: 0,
+      open_comment_count: 0,
+      version_count: 1,
+      edit_count: 0,
+      pending_edit_count: 0,
     },
   ];
 
@@ -62,12 +70,16 @@ describe("DocumentsTab — document ingress", () => {
       />,
     );
 
-    expect(screen.getAllByText("Notes").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("2 notes")).toBeInTheDocument();
+    expect(screen.getAllByText("Open notes").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("1 note")).toBeInTheDocument();
+    expect(screen.getByText("3 saved versions")).toBeInTheDocument();
+    expect(screen.getByText("2 pending changes")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Documents in this project" })).toBeInTheDocument();
     expect(screen.getByText("Open workbench")).toBeInTheDocument();
     expect(screen.getAllByText("Files")[0]).toBeInTheDocument();
     expect(screen.getAllByText("1K")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Versions")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Changes")[0]).toBeInTheDocument();
   });
 
   it("searches and filters the document library without opening files", async () => {

@@ -35,6 +35,10 @@ export interface MatterDocument {
   uploaded_at: string;
   uploaded_by_id: string;
   comment_count?: number;
+  open_comment_count?: number;
+  version_count?: number;
+  edit_count?: number;
+  pending_edit_count?: number;
 }
 
 export interface MatterCreate {

@@ -37,6 +37,10 @@ function formatDate(iso: string): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+function plural(count: number, singular: string, pluralLabel = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : pluralLabel}`;
+}
+
 type IngressStatus =
   | { kind: "idle" }
   | { kind: "uploading"; done: number; total: number; current: string }
@@ -116,7 +120,12 @@ export function DocumentsTab({
     "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
   const totalBytes = docs?.reduce((total, d) => total + d.size_bytes, 0) ?? 0;
   const disclosureCount = docs?.filter((d) => d.from_disclosure).length ?? 0;
-  const noteCount = docs?.reduce((total, d) => total + (d.comment_count ?? 0), 0) ?? 0;
+  const openNoteCount =
+    docs?.reduce((total, d) => total + (d.open_comment_count ?? 0), 0) ?? 0;
+  const versionCount =
+    docs?.reduce((total, d) => total + (d.version_count ?? 0), 0) ?? 0;
+  const pendingEditCount =
+    docs?.reduce((total, d) => total + (d.pending_edit_count ?? 0), 0) ?? 0;
   const filteredDocs =
     docs?.filter((d) => {
       const query = documentQuery.trim().toLowerCase();
@@ -240,7 +249,7 @@ export function DocumentsTab({
                 with the matter record.
               </p>
             </div>
-            <dl className="grid grid-cols-3 gap-2 text-center text-xs">
+            <dl className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-5">
               <div className="border border-rule bg-paper-sunken p-2">
                 <dt className="font-mono uppercase tracking-track2 text-muted">Files</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{docs.length}</dd>
@@ -250,8 +259,16 @@ export function DocumentsTab({
                 <dd className="mt-1 text-sm font-semibold text-ink">{formatBytes(totalBytes)}</dd>
               </div>
               <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Notes</dt>
-                <dd className="mt-1 text-sm font-semibold text-ink">{noteCount}</dd>
+                <dt className="font-mono uppercase tracking-track2 text-muted">Open notes</dt>
+                <dd className="mt-1 text-sm font-semibold text-ink">{openNoteCount}</dd>
+              </div>
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Versions</dt>
+                <dd className="mt-1 text-sm font-semibold text-ink">{versionCount}</dd>
+              </div>
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="font-mono uppercase tracking-track2 text-muted">Changes</dt>
+                <dd className="mt-1 text-sm font-semibold text-ink">{pendingEditCount}</dd>
               </div>
             </dl>
           </div>
@@ -306,6 +323,14 @@ export function DocumentsTab({
           >
             {filteredDocs?.map((d) => {
               const typeLabel = deriveType(d);
+              const openNotes = d.open_comment_count ?? 0;
+              const versions = d.version_count ?? 0;
+              const pendingEdits = d.pending_edit_count ?? 0;
+              const workStatus = [
+                openNotes > 0 ? plural(openNotes, "open note") : null,
+                versions > 0 ? plural(versions, "saved version") : null,
+                pendingEdits > 0 ? plural(pendingEdits, "pending change") : null,
+              ].filter(Boolean);
               return (
                 <Link
                   key={d.id}
@@ -342,11 +367,11 @@ export function DocumentsTab({
                     </div>
                     <div>
                       <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
-                        Notes
+                        Open notes
                       </dt>
                       <dd className="mt-1 text-ink">
-                        {d.comment_count
-                          ? `${d.comment_count} note${d.comment_count === 1 ? "" : "s"}`
+                        {openNotes
+                          ? plural(openNotes, "note")
                           : "None"}
                       </dd>
                     </div>
@@ -357,6 +382,22 @@ export function DocumentsTab({
                       <dd className="mt-1 text-ink">{formatDate(d.uploaded_at)}</dd>
                     </div>
                   </dl>
+                  <div className="mt-4 flex flex-wrap gap-2" aria-label={`Workbench status for ${d.filename}`}>
+                    {workStatus.length > 0 ? (
+                      workStatus.map((item) => (
+                        <span
+                          key={item}
+                          className="border border-rule bg-paper-sunken px-2 py-1 text-xs font-medium text-ink"
+                        >
+                          {item}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted">
+                        Ready to review
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-5 flex items-center justify-between border-t border-rule pt-3">
                     <span className="text-xs leading-5 text-muted">
                       Reader, notes, versions, skills, and Record links open together.
