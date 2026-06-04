@@ -7,6 +7,8 @@ of route modules so the document engine does not drift by endpoint.
 
 from __future__ import annotations
 
+from fastapi import HTTPException
+
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 
 # Declared MIME -> canonical format key. The format key is what callers compare
@@ -39,3 +41,41 @@ def sniff_format(head: bytes) -> str | None:
     except UnicodeDecodeError:
         return None
 
+
+def validate_upload_mime(content_type: str | None) -> None:
+    if content_type not in ALLOWED_UPLOAD_MIMES:
+        raise HTTPException(
+            415,
+            detail={
+                "error": "unsupported_mime",
+                "got": content_type,
+                "allowed": sorted(ALLOWED_UPLOAD_MIMES),
+            },
+        )
+
+
+def validate_upload_size(contents: bytes) -> None:
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413,
+            detail={
+                "error": "upload_too_large",
+                "max_bytes": MAX_UPLOAD_BYTES,
+                "got_bytes": len(contents),
+            },
+        )
+
+
+def validate_upload_magic_bytes(content_type: str | None, contents: bytes) -> None:
+    declared_format = MIME_TO_FORMAT[content_type or ""]
+    inferred_format = sniff_format(contents[:1024])
+    if inferred_format is None or declared_format != inferred_format:
+        raise HTTPException(
+            415,
+            detail={
+                "error": "magic_byte_mismatch",
+                "declared_mime": content_type,
+                "declared_format": declared_format,
+                "inferred_format": inferred_format,
+            },
+        )

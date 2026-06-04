@@ -18,10 +18,9 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.limits import check_matter_create, check_document_upload
 from app.core.document_uploads import (
-    ALLOWED_UPLOAD_MIMES,
-    MAX_UPLOAD_BYTES,
-    MIME_TO_FORMAT,
-    sniff_format,
+    validate_upload_magic_bytes,
+    validate_upload_mime,
+    validate_upload_size,
 )
 from app.core.matter_fs import (
     append_history,
@@ -36,7 +35,13 @@ from app.core.storage import (
     StorageDeleteError,
 )
 from app.core.text_extraction import extract as extract_text
-from app.core.api import PROVIDER_HTTP_EXCEPTIONS, audit, provider_error_http_exception
+from app.core.api import (
+    PROVIDER_HTTP_EXCEPTIONS,
+    audit,
+    audit_storage_write_failure,
+    provider_error_http_exception,
+    storage_write_http_exception,
+)
 from app.models import (
     AuditEntry,
     Document,
@@ -290,44 +295,16 @@ async def upload_document(
     if tag is not None and tag not in TAG_VALUES:
         raise HTTPException(400, f"tag must be one of {sorted(TAG_VALUES)}")
 
-    if file.content_type not in ALLOWED_UPLOAD_MIMES:
-        raise HTTPException(
-            415,
-            detail={
-                "error": "unsupported_mime",
-                "got": file.content_type,
-                "allowed": sorted(ALLOWED_UPLOAD_MIMES),
-            },
-        )
-
+    validate_upload_mime(file.content_type)
     contents = await file.read()
-    if len(contents) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            413,
-            detail={
-                "error": "upload_too_large",
-                "max_bytes": MAX_UPLOAD_BYTES,
-                "got_bytes": len(contents),
-            },
-        )
+    validate_upload_size(contents)
 
     # Evaluation limits: checked after the 413 size cap so oversized bodies
     # produce 413 (not 429). Counts are read from Postgres against committed
     # data; the document is not yet inserted at this point.
     await check_document_upload(user.id, matter.id, len(contents), session)
 
-    declared_format = MIME_TO_FORMAT[file.content_type or ""]
-    inferred_format = sniff_format(contents[:1024])
-    if inferred_format is None or declared_format != inferred_format:
-        raise HTTPException(
-            415,
-            detail={
-                "error": "magic_byte_mismatch",
-                "declared_mime": file.content_type,
-                "declared_format": declared_format,
-                "inferred_format": inferred_format,
-            },
-        )
+    validate_upload_magic_bytes(file.content_type, contents)
 
     sha = hashlib.sha256(contents).hexdigest()
 
@@ -372,29 +349,20 @@ async def upload_document(
         # flushed Document row so no orphan exists. Forensic provenance
         # for the failure goes via `audit_failure` on a separate
         # committed session — survives the rollback — R3 review fix.
-        from app.core.api import audit_failure
-        await audit_failure(
+        await audit_storage_write_failure(
             session,
-            "storage.put_bytes.failed",
             actor_id=user.id,
             matter_id=matter.id,
-            module="storage",
             resource_type="document",
             resource_id=str(doc.id),
-            payload={
-                "storage_key": obj_key,
-                "backend": exc.backend,
-                "error_code": exc.error_code,
-            },
+            storage_key=obj_key,
+            backend=exc.backend,
+            error_code=exc.error_code,
         )
-        raise HTTPException(
-            502,
-            detail={
-                "error": "storage_write_failed",
-                "message": "Failed to write document to object storage.",
-                "storage_key": obj_key,
-                "backend": exc.backend,
-            },
+        raise storage_write_http_exception(
+            message="Failed to write document to object storage.",
+            storage_key=obj_key,
+            backend=exc.backend,
         ) from exc
     doc.storage_uri = obj_key
 

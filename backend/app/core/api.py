@@ -190,6 +190,70 @@ def provider_error_http_exception(
     )
 
 
+def http_error(
+    status_code: int,
+    error: str,
+    *,
+    message: str | None = None,
+    **detail: object,
+) -> HTTPException:
+    """Build a structured FastAPI HTTPException envelope.
+
+    Keeps repeated ``{"error": ..., "message": ...}`` shapes consistent
+    without hiding the status code at call sites.
+    """
+    payload: dict[str, object] = {"error": error}
+    if message is not None:
+        payload["message"] = message
+    payload.update({key: value for key, value in detail.items() if value is not None})
+    return HTTPException(status_code=status_code, detail=payload)
+
+
+def storage_write_http_exception(
+    *,
+    message: str,
+    storage_key: str,
+    backend: str,
+) -> HTTPException:
+    return http_error(
+        502,
+        "storage_write_failed",
+        message=message,
+        storage_key=storage_key,
+        backend=backend,
+    )
+
+
+async def audit_storage_write_failure(
+    request_session: AsyncSession,
+    *,
+    actor_id: uuid.UUID | None,
+    matter_id: uuid.UUID | None,
+    resource_type: str,
+    resource_id: str,
+    storage_key: str,
+    backend: str,
+    error_code: str,
+    **payload: object,
+) -> None:
+    """Record a storage write failure in the committed failure-audit path."""
+    await audit_failure(
+        request_session,
+        "storage.put_bytes.failed",
+        actor_id=actor_id,
+        matter_id=matter_id,
+        module="storage",
+        resource_type=resource_type,
+        resource_id=resource_id,
+        payload={
+            "storage_key": storage_key,
+            "backend": backend,
+            "error_code": error_code,
+            **payload,
+        },
+    )
+
+
 async def audit_failure(
     request_session: AsyncSession,
     action: str,
@@ -320,8 +384,11 @@ __all__ = [
     "get_matter",
     "audit",
     "audit_failure",
+    "audit_storage_write_failure",
+    "http_error",
     "PROVIDER_HTTP_EXCEPTIONS",
     "provider_error_http_exception",
+    "storage_write_http_exception",
     "model_gateway",
     "plugin_bridge",
     "storage",

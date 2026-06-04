@@ -39,7 +39,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.advice_boundary import AdviceBoundaryDenied
-from app.core.api import PROVIDER_HTTP_EXCEPTIONS, provider_error_http_exception
+from app.core.api import (
+    PROVIDER_HTTP_EXCEPTIONS,
+    http_error,
+    provider_error_http_exception,
+)
 from app.core.auth import current_user
 from app.core.capabilities import CapabilityDenied
 from app.core.db import get_session
@@ -99,9 +103,7 @@ async def _load_matter_or_404(
         )
     if matter is None or matter.status == STATUS_ARCHIVED:
         # Uniform 404 — never leak which matters exist for other users.
-        raise HTTPException(
-            status_code=404, detail=f"matter not found: {slug}"
-        )
+        raise HTTPException(status_code=404, detail=f"matter not found: {slug}")
     return matter
 
 
@@ -132,33 +134,19 @@ async def invoke_capability_endpoint(
         .order_by(InstalledModule.installed_at.desc())
     )
     if installed is None:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "module_not_installed",
-                "module_id": body.module_id,
-            },
-        )
+        raise http_error(404, "module_not_installed", module_id=body.module_id)
     if not installed.enabled:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": "module_disabled",
-                "module_id": body.module_id,
-            },
-        )
+        raise http_error(409, "module_disabled", module_id=body.module_id)
 
     # 2. Capability must be declared in the manifest.
     manifest = installed.manifest_snapshot or {}
     declaration = _find_capability_declaration(manifest, body.capability_id)
     if declaration is None:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "capability_not_declared",
-                "module_id": body.module_id,
-                "capability_id": body.capability_id,
-            },
+        raise http_error(
+            404,
+            "capability_not_declared",
+            module_id=body.module_id,
+            capability_id=body.capability_id,
         )
 
     # 3. Decision #7 — scope must be matter (the matter URL only
@@ -166,33 +154,29 @@ async def invoke_capability_endpoint(
     #    get a dedicated future endpoint).
     declared_scope = declaration.get("scope", "workspace")
     if declared_scope != "matter":
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "error": "capability_scope_not_supported_here",
-                "capability_id": body.capability_id,
-                "capability_scope": declared_scope,
-                "message": (
-                    "POST /api/matters/{slug}/invocations only invokes "
-                    "matter-scope capabilities."
-                ),
-            },
+        raise http_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "capability_scope_not_supported_here",
+            capability_id=body.capability_id,
+            capability_scope=declared_scope,
+            message=(
+                "POST /api/matters/{slug}/invocations only invokes "
+                "matter-scope capabilities."
+            ),
         )
 
     # 4. Decision #7 — kind must be directly invokable.
     declared_kind = declaration.get("kind", "skill")
     if declared_kind not in _INVOKABLE_KINDS:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "error": "capability_kind_not_invokable",
-                "capability_id": body.capability_id,
-                "capability_kind": declared_kind,
-                "message": (
-                    f"capability kind {declared_kind!r} is dispatched "
-                    f"by the substrate, not via direct invocation"
-                ),
-            },
+        raise http_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "capability_kind_not_invokable",
+            capability_id=body.capability_id,
+            capability_kind=declared_kind,
+            message=(
+                f"capability kind {declared_kind!r} is dispatched "
+                f"by the substrate, not via direct invocation"
+            ),
         )
 
     # 5. Build invocation context + provider adapter.
@@ -237,34 +221,28 @@ async def invoke_capability_endpoint(
         # Defence-in-depth — the endpoint already filters scope=matter
         # above. A module that internally enforces scope and re-raises
         # this signals a manifest/runtime mismatch.
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "error": "capability_scope_not_supported_here",
-                "capability_id": exc.capability_id,
-                "capability_scope": exc.capability_scope,
-            },
+        raise http_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "capability_scope_not_supported_here",
+            capability_id=exc.capability_id,
+            capability_scope=exc.capability_scope,
         )
     except CapabilityDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "error": "capability_denied",
-                "plugin": exc.plugin,
-                "skill": exc.skill,
-                "capability": exc.capability,
-                "matter_id": str(matter.id),
-                "scope": "matter",
-            },
+        raise http_error(
+            403,
+            "capability_denied",
+            plugin=exc.plugin,
+            skill=exc.skill,
+            capability=exc.capability,
+            matter_id=str(matter.id),
+            scope="matter",
         )
     except Phase1Blocked as exc:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "error": "phase1_blocked",
-                "blocked_reason": exc.payload.blocked_reason.value,
-                "gate_state": exc.payload.gate_state,
-            },
+        raise http_error(
+            403,
+            "phase1_blocked",
+            blocked_reason=exc.payload.blocked_reason.value,
+            gate_state=exc.payload.gate_state,
         )
     except PROVIDER_HTTP_EXCEPTIONS as exc:
         raise provider_error_http_exception(
@@ -278,43 +256,38 @@ async def invoke_capability_endpoint(
         # The dispatcher disagreed with the endpoint's pre-check
         # (e.g. the module-author's invoke() rejects the capability
         # name even though it's in the manifest). 404 — same shape.
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "capability_not_declared",
-                "module_id": exc.module_id,
-                "capability_id": exc.capability_id,
-            },
+        raise http_error(
+            404,
+            "capability_not_declared",
+            module_id=exc.module_id,
+            capability_id=exc.capability_id,
         )
     except EntrypointResolutionError as exc:
         # The manifest is installed but its entrypoint can't be
         # imported — install-side data problem. 500.
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "entrypoint_resolution_failed",
-                "message": str(exc),
-            },
+        raise http_error(
+            500,
+            "entrypoint_resolution_failed",
+            message=str(exc),
         )
     except AdviceBoundaryDenied as exc:
         # Advice-boundary gate denial. Keep this typed so unrelated
         # PermissionError uses in future modules do not masquerade as
         # advice-boundary decisions.
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "error": "advice_boundary_denied",
-                "decision_id": str(exc.decision_id) if exc.decision_id else None,
-                "gate_state": exc.gate_state,
-                "message": str(exc),
-            },
+        raise http_error(
+            403,
+            "advice_boundary_denied",
+            decision_id=str(exc.decision_id) if exc.decision_id else None,
+            gate_state=exc.gate_state,
+            message=str(exc),
         )
     except ValueError as exc:
         # The capability raised on bad args (or unknown claim_type,
         # empty document_ids, etc.).
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={"error": "invalid_args", "message": str(exc)},
+        raise http_error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "invalid_args",
+            message=str(exc),
         )
 
     await session.commit()
