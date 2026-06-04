@@ -1101,6 +1101,63 @@ The em-dash row is a literal `<div className="my-2 border-t border-rule" />` bet
 
 ## P19 - Compact left rail (matter workspace)
 
+### v0.5 spec — single global rail (reconciled 2026-06-04)
+
+Source: Mobbin pass across global-nav + nested-project workspaces —
+Todoist `4c39b647-967e-49a8-8907-74ab0bf6a75f` / `e1bd020e-3781-408c-bbef-13394640be5a`,
+Notion `6a2ccb4d-b8d8-47b2-91cb-44cb9088d9c7`, Height `92590638-38af-4a6c-90ea-254d93c9117e`,
+Asana `415e5074-6548-47de-954e-53a0aa799ddc`, Fibery `f44149e7-70a8-41a0-ada8-17284b37b646`,
+plus the 14-ref `design-research/LEFT_RAIL_MOBBIN_AUDIT_2026-06-03.md`.
+Why: these are the convergent precedent for *one rail that carries global
+nav + a nested record + a utility/account footer* — which is what the
+ratified single-Sidebar IA (`ui/Sidebar.tsx`, decision #2) is.
+
+What we lift (structure + presence + order are load-bearing):
+- One full-height rail carries the whole app; the open matter **nests
+  inside it**, it is not a second rail.
+- Top-of-rail = identity **+ a prominent New CTA** (not a static card).
+- Muted uppercase section labels group the rail.
+- The open record is shown **prominently** (title + posture), never
+  collapsed behind a disclosure.
+- A **bottom utility zone** (settings/help) + the account block pinned
+  bottom-left is near-universal — its absence is the most common drift.
+- Active row = subtle wash/fill + semibold. **No left accent bar.**
+
+Exact values (copy, do not approximate):
+
+| Property | Value | Notes |
+|---|---|---|
+| Rail width | `w-64` (256px) | in the 220–260 convergent range |
+| Container (v0.5) | `bg-panel rounded-panel shadow-panel`, inset on `bg-canvas` | floating panel (P21); was `border-r` edge-to-edge |
+| Brand row | logo + `Legalise.` wordmark, `h-[64px]`, `border-b border-rule` | wordmark in Redaction 35 |
+| New CTA | `New matter`, directly under brand, full-width ink stamp | top-of-rail, prominent (Todoist/Asana) |
+| Section label | `text-[10px]/[11px] font-semibold uppercase tracking-widest text-muted` | Workspace / Account |
+| Global group | `Matters` · `Skill library` (order) | "Skill library" — NOT "Skills" (avoids collision with the matter loop) |
+| Matter header | `Matter` eyebrow + bold serif title + posture chip | record context, always visible |
+| Matter loop | `Chat / Documents / Skills / Record` (order load-bearing) | the 4-item loop; **icons on every item** |
+| Matter extras | `Signed outputs` · `Working pack` | same icon+label treatment — never icon-less |
+| Active row | `bg-panel-sel text-ink font-semibold rounded-item` | **no left accent bar, no oxblood** |
+| Hover row | `hover:bg-panel-hover text-ink rounded-item` | fill only |
+| Utility zone | `Settings` · `Help` row, `border-t border-rule` | pinned above account |
+| Account block | avatar + name + chevron menu, pinned bottom-left, `border-t` | Asana/Whop/Origin pattern |
+
+Where it lands: `frontend/src/ui/Sidebar.tsx` (canonical) reskinned to
+the P21 panel shell. The demo (`demo/DemoMatter.tsx`) repoints to this
+same rail — `MatterNav.tsx` / `MatterBreadcrumb.tsx` are retired.
+
+Deliberate divergences from the references:
+- References put account at the *top* (workspace switcher); we keep it
+  **bottom-left** per the ratified Asana/Whop/Origin decision + the
+  14-ref audit. Recorded so it doesn't read as drift.
+- "Skill library" label is ours — the references don't carry a global
+  skill catalogue + a per-record skill list in one rail, so the
+  disambiguation is a Legalise-specific decision.
+
+> **Below: superseded history.** The 2026-06-03 reconciliation and the
+> original 220px `MatterNav` matter-only spec are kept for lineage. The
+> v0.5 spec above is canonical; `MatterNav` is retired into the single
+> global rail.
+
 > **Reconciliation — 2026-06-03 (post IA reset).** This pattern was specced
 > 2026-05-15, before the IA reset (2026-06-02) deliberately compressed the
 > matter shell. The structural reference below (220px rail, matter card,
