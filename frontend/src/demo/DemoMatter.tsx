@@ -55,6 +55,21 @@ export function splitSearchMatches(text: string, query: string): SearchSegment[]
   return segments.length ? segments : [{ text, match: false }];
 }
 
+export function demoDocumentMatches(doc: MatterDocument, query: string): boolean {
+  const target = query.trim().toLowerCase();
+  if (!target) return true;
+  return [
+    doc.filename,
+    doc.tag ?? "",
+    doc.sha256,
+    doc.from_disclosure ? "disclosure cpr 31" : "upload",
+    doc.mime_type,
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(target);
+}
+
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)}K`;
@@ -458,8 +473,7 @@ function DemoWorkflowsTab({
 }
 
 // -- Documents (demo variant) ----------------------------------------------
-// Mirrors DocumentsTab's layout but expansion shows a sign-up CTA panel
-// instead of the live EditPanel / AnonymiseButton (both of which fetch).
+// Mirrors the live document-library shape without mutation controls.
 
 function DemoDocumentsTab({
   docs,
@@ -471,6 +485,7 @@ function DemoDocumentsTab({
   onInspect: (id: string) => void;
 }) {
   const inspectedDoc = docs.find((doc) => doc.id === inspectedDocId) ?? docs[0];
+  const [fileQuery, setFileQuery] = useState("");
   const [previewQuery, setPreviewQuery] = useState("");
 
   useEffect(() => {
@@ -490,6 +505,7 @@ function DemoDocumentsTab({
   const previewMatchCount = previewQuery.trim()
     ? previewSegments.filter((segment) => segment.match).length
     : 0;
+  const filteredDocs = docs.filter((doc) => demoDocumentMatches(doc, fileQuery));
 
   return (
     <div className="max-w-6xl">
@@ -513,9 +529,22 @@ function DemoDocumentsTab({
             <p className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
               Matter files
             </p>
+            <label className="mt-3 block text-xs text-muted">
+              <span className="sr-only">Search demo documents</span>
+              <input
+                value={fileQuery}
+                onChange={(event) => setFileQuery(event.target.value)}
+                placeholder="Search files"
+                className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                data-testid="demo-document-list-search"
+              />
+            </label>
+            <p className="mt-2 text-xs text-muted" data-testid="demo-document-list-count">
+              Showing {filteredDocs.length} of {docs.length} files.
+            </p>
           </div>
           <div>
-            {docs.map((d) => {
+            {filteredDocs.map((d) => {
               const active = d.id === inspectedDoc.id;
               return (
                 <div
@@ -548,6 +577,11 @@ function DemoDocumentsTab({
                 </div>
               );
             })}
+            {filteredDocs.length === 0 && (
+              <p className="px-4 py-5 text-sm text-muted">
+                No demo files match this search.
+              </p>
+            )}
           </div>
         </div>
 
