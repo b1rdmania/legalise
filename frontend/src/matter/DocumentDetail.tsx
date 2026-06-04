@@ -2038,22 +2038,26 @@ export function DocumentDetail({
                   </dd>
                 </div>
               </dl>
-              <div className="mt-4 border border-rule bg-paper-sunken p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-ink">Add note</h3>
-                    <p className="mt-1 text-xs leading-5 text-muted">
-                      {selectedQuote
-                        ? "Use the selected passage below, or edit the quote before saving."
-                        : "Select text in the document to anchor a note, or save an unanchored note."}
-                    </p>
-                  </div>
-                  {selectedAnchor && (
-                    <span className="border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
-                      Anchored
+              <details className="mt-4 border border-rule bg-paper-sunken p-3" open={Boolean(selectedQuote)}>
+                <summary className="cursor-pointer list-none">
+                  <span className="flex items-start justify-between gap-3">
+                    <span>
+                      <span className="block text-sm font-semibold text-ink">Add note</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted">
+                        {selectedQuote
+                          ? "Use the selected passage below, or edit the quote before saving."
+                          : "Select text in the document to anchor a note, or open this to save an unanchored note."}
+                      </span>
                     </span>
-                  )}
-                </div>
+                    {selectedAnchor ? (
+                      <span className="border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                        Anchored
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-muted">Open</span>
+                    )}
+                  </span>
+                </summary>
                 <div className="mt-3 space-y-2">
                   {selectedQuote && (
                     <div
@@ -2121,7 +2125,7 @@ export function DocumentDetail({
                     Save note
                   </button>
                 </div>
-              </div>
+              </details>
               <div className="mt-4 space-y-3">
                 {openComments.length === 0 && resolvedComments.length === 0 && (
                   <p className="text-sm text-muted">No review notes yet.</p>
