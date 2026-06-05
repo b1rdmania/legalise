@@ -1511,6 +1511,27 @@ export interface DocumentBody {
   error_reason: string | null;
 }
 
+export interface DocumentWorkspaceBlock {
+  id: string;
+  type: "paragraph" | "table_cell";
+  ordinal: number;
+  text: string;
+}
+
+export interface DocumentWorkspace {
+  document_id: string;
+  filename: string;
+  mime_type: string;
+  source: "original_docx" | "latest_version" | "extracted_body";
+  source_version_id: string | null;
+  source_version_number: number | null;
+  extraction_method: string | null;
+  blocks: DocumentWorkspaceBlock[];
+  text: string;
+  char_count: number;
+  notes: string[];
+}
+
 export type EditMode =
   | "tighten"
   | "rewrite"
@@ -1561,6 +1582,32 @@ export interface EditInstructionResponse {
 export const getDocumentBody = (documentId: string) =>
   apiFetch(`${API}/documents/${documentId}/body`).then((r) =>
     jsonOrThrow<DocumentBody>(r),
+  );
+
+export const getDocumentWorkspace = (documentId: string) =>
+  apiFetch(`${API}/documents/${documentId}/workspace`).then((r) =>
+    jsonOrThrow<DocumentWorkspace>(r),
+  );
+
+export const saveDocumentWorkspace = (
+  documentId: string,
+  text: string,
+  notes?: string,
+  resolvedJson?: Record<string, unknown> | null,
+) =>
+  apiFetch(`${API}/documents/${documentId}/workspace`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      notes: notes?.trim() || null,
+      resolved_json: resolvedJson ?? null,
+    }),
+  }).then((r) =>
+    resolutionJsonOrThrow<{
+      version: DocumentVersionRead;
+      workspace: DocumentWorkspace;
+    }>(r),
   );
 
 // Original File Retrieval v1 — browser-navigable URL for the streamed
