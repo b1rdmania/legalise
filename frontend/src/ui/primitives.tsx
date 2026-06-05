@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 
 export const inputCls =
-  "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
+  "bg-paper border border-rule rounded-item px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
 
 export const primaryBtn =
-  "bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
+  "bg-ink text-paper rounded-item px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
 
 // Inline banner for the canonical `provider_key_missing` 422 error.
 // Border + text tokens only. No fill, no radius, no shadow. The deep
@@ -127,7 +127,7 @@ export function Field({
 
 export function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="border border-rule text-ink text-[10px] font-mono uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
+    <span className="border border-rule rounded-item text-ink text-[10px] font-mono uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
       {children}
     </span>
   );

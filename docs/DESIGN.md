@@ -248,9 +248,13 @@ not apply decoratively):
 - **No shadows — except the v0.5 panel shell + P21 cards** (one soft
   two-layer `shadow-panel`). Pills, buttons, inputs, table rows, the
   breadcrumb stay shadowless. Landing stays shadowless throughout.
-- **No rounded corners — except v0.5 panels (18px) and nav-item / row /
-  card fills (8px).** Pills and inputs stay `radius: 0`. On the Landing,
-  `rounded-*` remains forbidden.
+- **Soft edges — no hard rectangles (decision 2026-06-05).** Reverses the
+  earlier "sharp controls" rule. Radius scale: panels `rounded-panel` 18px;
+  content cards / boxes `rounded-card` 12px; buttons / inputs / chips /
+  rows `rounded-item` 8px; small status pills `rounded-full`. Borders stay
+  (hairline `border-rule`) — they just round. The **wordmark / brand mark
+  is the only element that may stay sharp** as the editorial anchor. Landing
+  keeps its own register but should not feel harder-edged than the workspace.
 - Hover states change `bg-color` only (or lift `shadow-panel` →
   `shadow-panel-hover` on a P21 card), never a transform.
 - **Colour never touches chrome.** Seal/oxblood and the semantic status

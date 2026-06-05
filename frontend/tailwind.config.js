@@ -53,7 +53,8 @@ export default {
         none: '0',
         DEFAULT: '0',        // default stays ZERO — pills/inputs/Landing unaffected
         panel: '18px',       // v0.5 — floating panel shell ONLY
-        item: '8px',         // v0.5 — nav items / rows / P21 cards ONLY
+        item: '8px',         // v0.5 — nav items / rows / buttons / inputs / chips
+        card: '12px',        // softened content cards / boxes (no-hard-edges, 2026-06-05)
       },
       boxShadow: {
         none: 'none',
