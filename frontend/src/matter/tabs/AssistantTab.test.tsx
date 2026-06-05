@@ -387,6 +387,37 @@ describe("AssistantTab — source chips", () => {
     expect(onDocumentChip).toHaveBeenCalledWith("doc-public");
   });
 
+  it("does not render an output row for a plain cited answer", async () => {
+    mountChat({
+      docs: [
+        {
+          id: "doc-public",
+          filename: "demo-note.txt",
+          sha256: "sha",
+          size_bytes: 99,
+          tag: "demo",
+          from_disclosure: false,
+          uploaded_at: "2026-01-01T00:00:00Z",
+          mime_type: "text/plain",
+        } as never,
+      ],
+      initialMessages: [
+        {
+          id: "a-1",
+          role: "assistant",
+          content: "The dismissal date is in [doc:doc-public].",
+          suggested_actions: [],
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(
+      await screen.findByRole("button", { name: /Document.*demo-note\.txt/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("assistant-output-row")).toBeNull();
+  });
+
   it("renders a compact output row and summons the Sources pane", async () => {
     mountChat({
       docs: [

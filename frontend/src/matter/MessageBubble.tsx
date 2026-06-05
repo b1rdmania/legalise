@@ -86,8 +86,8 @@ function AssistantMessageView({
 }: Props) {
   const { text, citations } = extractCitations(message.content, docs, chronology);
   const sourceCount = citations.length;
-  const hasActions = message.suggested_actions.length > 0;
-  const hasOutputRow = !compact && (sourceCount > 0 || hasActions);
+  const outputKind = outputKindForMessage(message);
+  const hasOutputRow = !compact && outputKind !== null;
   const metaSizing = compact ? "text-[10px]" : "text-[11px]";
   const proseSizing = compact ? "text-xs" : "text-[15px]";
 
@@ -152,6 +152,7 @@ function AssistantMessageView({
           <AssistantOutputRow
             message={message}
             citations={citations}
+            outputKind={outputKind}
             onDocChip={onDocChip}
             onAction={onAction}
             onSources={onSources}
@@ -167,6 +168,7 @@ function AssistantMessageView({
 function AssistantOutputRow({
   message,
   citations,
+  outputKind,
   onDocChip,
   onAction,
   onSources,
@@ -175,6 +177,7 @@ function AssistantOutputRow({
 }: {
   message: AssistantMessage;
   citations: Citation[];
+  outputKind: OutputKind;
   onDocChip: (documentId: string) => void;
   onAction?: (a: SuggestedAction) => void;
   onSources?: (message: AssistantMessage) => void;
@@ -193,11 +196,6 @@ function AssistantOutputRow({
     : firstDoc
       ? "Document answer"
       : "Matter answer";
-  const outputKind = summaryTitle
-    ? "Summary"
-    : primaryAction
-      ? actionKindLabel(primaryAction.type)
-      : "Answer";
   const status =
     citations.length > 0
       ? `${citations.length} source${citations.length === 1 ? "" : "s"}`
@@ -273,6 +271,29 @@ function AssistantOutputRow({
   );
 }
 
+type OutputKind =
+  | "Summary"
+  | "Pre-motion"
+  | "Draft letter"
+  | "Review"
+  | "Anonymise";
+
+const OUTPUT_ACTION_KIND: Partial<Record<SuggestedAction["type"], OutputKind>> = {
+  run_pre_motion: "Pre-motion",
+  draft_letter: "Draft letter",
+  review_contract: "Review",
+  anonymise_document: "Anonymise",
+};
+
+function outputKindForMessage(message: AssistantMessage): OutputKind | null {
+  if (summaryCardTitle(message.content)) return "Summary";
+  for (const action of message.suggested_actions) {
+    const kind = OUTPUT_ACTION_KIND[action.type];
+    if (kind) return kind;
+  }
+  return null;
+}
+
 function summaryCardTitle(content: string): string | null {
   const firstLine = content
     .split(/\r?\n/)
@@ -281,25 +302,6 @@ function summaryCardTitle(content: string): string | null {
   if (!firstLine) return null;
   const match = firstLine.match(/^Summary of\s+(.+?):?$/i);
   return match ? `Summary of ${match[1]}` : null;
-}
-
-function actionKindLabel(type: SuggestedAction["type"]): string {
-  switch (type) {
-    case "run_pre_motion":
-      return "Pre-motion";
-    case "draft_letter":
-      return "Draft letter";
-    case "review_contract":
-      return "Review";
-    case "anonymise_document":
-      return "Anonymise";
-    case "view_document":
-      return "Document";
-    case "view_audit":
-      return "Activity";
-    case "view_chronology":
-      return "Chronology";
-  }
 }
 
 // -- Citation extraction ---------------------------------------------------
