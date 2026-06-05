@@ -76,6 +76,36 @@ async def test_document_body_returns_extracted_text_for_each_seeded_doc(client) 
 
 
 @pytest.mark.asyncio
+async def test_document_workspace_reads_and_saves_seeded_doc(client) -> None:
+    await _signup_and_login(client)
+
+    docs_resp = await client.get(f"/api/matters/{KHAN_SLUG}/documents")
+    assert docs_resp.status_code == 200
+    document = docs_resp.json()[0]
+
+    workspace_resp = await client.get(f"/api/documents/{document['id']}/workspace")
+    assert workspace_resp.status_code == 200, workspace_resp.text
+    workspace = workspace_resp.json()
+    assert workspace["document_id"] == document["id"]
+    assert workspace["text"]
+    assert workspace["blocks"]
+    assert workspace["char_count"] == len(workspace["text"])
+
+    edited_text = workspace["text"] + "\n\nReviewer note added in workspace."
+    save_resp = await client.post(
+        f"/api/documents/{document['id']}/workspace",
+        json={"text": edited_text, "notes": "Save from workspace route test"},
+    )
+    assert save_resp.status_code == 200, save_resp.text
+    saved = save_resp.json()
+    assert saved["version"]["kind"] == "user_edit"
+    assert saved["version"]["resolved_text"] == edited_text
+    assert saved["workspace"]["source"] == "latest_version"
+    assert saved["workspace"]["source_version_id"] == saved["version"]["id"]
+    assert saved["workspace"]["text"] == edited_text
+
+
+@pytest.mark.asyncio
 async def test_documents_listing_unknown_matter_returns_404(client) -> None:
     await _signup_and_login(client)
     resp = await client.get("/api/matters/this-slug-does-not-exist/documents")
