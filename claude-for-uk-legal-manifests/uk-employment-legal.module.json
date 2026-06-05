@@ -1,7 +1,7 @@
 {
   "name": "uk-employment-legal",
   "version": "0.1.0",
-  "description": "UK employment law skills. Employment Tribunal claims, ACAS conciliation, settlement agreements, and pre-action correspondence.",
+  "description": "UK employment law skills. Pre-action correspondence, unfair-dismissal screening, and settlement-agreement review.",
   "author": "b1rdmania",
   "license": "Apache-2.0",
   "homepage": "https://github.com/b1rdmania/claude-for-uk-legal",
@@ -30,22 +30,6 @@
         "model.invoke"
       ]
     },
-    "acas-early-conciliation": {
-      "capabilities": [
-        "matter.read",
-        "document.body.read",
-        "document.generated.write",
-        "model.invoke"
-      ]
-    },
-    "et1-claim-drafter": {
-      "capabilities": [
-        "matter.read",
-        "document.body.read",
-        "document.generated.write",
-        "model.invoke"
-      ]
-    },
     "unfair-dismissal-screener": {
       "capabilities": [
         "matter.read",
@@ -54,14 +38,6 @@
       ]
     },
     "settlement-agreement-review": {
-      "capabilities": [
-        "matter.read",
-        "document.body.read",
-        "document.generated.write",
-        "model.invoke"
-      ]
-    },
-    "part-36-offer": {
       "capabilities": [
         "matter.read",
         "document.body.read",
