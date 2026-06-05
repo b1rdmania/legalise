@@ -154,12 +154,12 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(setTabAndHash).toHaveBeenCalledWith("workflows");
   });
 
-  it("exposes ambient Record and document attachment controls in the chat shell", async () => {
+  it("exposes ambient Activity and document attachment controls in the chat shell", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
     expect(await screen.findByTestId("open-record-link")).toHaveTextContent(
-      /View Record/i,
+      /Activity/i,
     );
 
     fireEvent.click(screen.getByTestId("chat-documents-toggle"));
@@ -212,7 +212,7 @@ describe("AssistantTab — in-chat skill picker", () => {
       ],
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: /Open file/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Preview/i }));
 
     expect(onDocumentChip).toHaveBeenCalledWith("doc-1");
   });
@@ -387,7 +387,7 @@ describe("AssistantTab — source chips", () => {
     expect(onDocumentChip).toHaveBeenCalledWith("doc-public");
   });
 
-  it("renders a durable action card and summons the Sources work pane", async () => {
+  it("renders a compact output row and summons the Sources pane", async () => {
     mountChat({
       docs: [
         {
@@ -413,7 +413,7 @@ describe("AssistantTab — source chips", () => {
       ],
     });
 
-    expect(await screen.findByTestId("assistant-action-card")).toHaveTextContent(
+    expect(await screen.findByTestId("assistant-output-row")).toHaveTextContent(
       /Summary of demo-note\.txt/i,
     );
 
@@ -421,7 +421,7 @@ describe("AssistantTab — source chips", () => {
 
     const pane = await screen.findByTestId("assistant-work-pane-sources");
     expect(pane).toHaveTextContent("demo-note.txt");
-    expect(pane).toHaveTextContent(/Work pane/i);
+    expect(pane).toHaveTextContent(/Inspect/i);
   });
 });
 

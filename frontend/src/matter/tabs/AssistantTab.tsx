@@ -60,20 +60,23 @@ interface AssistantTabProps {
 // Actions": not generic. Matter-shaped starters that prefill the composer.
 const SUGGESTED_BY_TYPE: Record<string, string[]> = {
   employment_tribunal: [
-    "Draft a Letter Before Action for the dismissal",
-    "Run pre-motion against the conduct framing",
+    "Stress-test the dismissal claim",
+    "Draft a letter before action",
+    "Build a chronology",
     "Summarise the witness statement",
   ],
   civil: [
-    "Draft a CPR pre-action letter",
-    "Run contract review on the NDA",
-    "Build the chronology from the documents",
+    "Stress-test this case",
+    "Draft a pre-action letter",
+    "Build a chronology",
+    "Summarise a document",
   ],
 };
 const SUGGESTED_DEFAULT = [
-  "Summarise this matter",
-  "List the documents and what they say",
-  "What deadlines should I be tracking?",
+  "Stress-test this case",
+  "Draft a letter",
+  "Build a chronology",
+  "Summarise a document",
 ];
 
 const ACTION_TARGET: Record<SuggestedAction["type"], TabKey> = {
@@ -363,24 +366,17 @@ export function AssistantTab({
 
   return (
     <div
-      className={`mx-auto grid w-full gap-8 ${
-        workPane
-          ? "max-w-[1220px] lg:grid-cols-[minmax(0,1fr)_360px]"
-          : "max-w-[860px]"
-      }`}
+      className="mx-auto w-full max-w-[760px]"
       data-testid="chat-led-workspace"
     >
       <div className="flex min-h-[620px] min-w-0 flex-col">
         <div className="mb-5">
-          <p className="text-[11px] uppercase tracking-widest text-muted">
-            Legal project
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
+          <h1 className="text-2xl font-semibold tracking-tight2 text-ink">
             {matter.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Ask about the documents, draft from the matter, or run a skill.
-            Sources and saved work stay attached to the thread.
+            Ask about files, draft from the matter, or run a skill.
+            Sources and saved work stay attached.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
             <span data-testid="docs-context-status">
@@ -403,7 +399,7 @@ export function AssistantTab({
               className="underline underline-offset-4 hover:text-ink"
               data-testid="open-record-link"
             >
-              View Record →
+              Activity →
             </button>
           </div>
         </div>
@@ -443,7 +439,7 @@ export function AssistantTab({
                   onClick={() => dispatchDocChip(attachedDocs[0].id)}
                   className="shrink-0 text-xs text-muted underline underline-offset-4 hover:text-ink"
                 >
-                  Open file →
+                  Preview →
                 </button>
               )}
             </div>
@@ -461,27 +457,15 @@ export function AssistantTab({
           </p>
         )}
         {loaded && messages.length === 0 && (
-          <div className="space-y-6 border border-rule bg-paper-sunken p-5" data-testid="chat-empty-state">
-            <div className="text-sm text-prose space-y-2">
-              <p>
-                This is the folder for <strong>{matter.title}</strong>. Ask
-                anything about the documents in here, or run a skill enabled
-                on this matter.
-              </p>
-              <p className="text-xs text-muted">
-                Sources appear as chips below each answer. Saved work and file
-                actions land in the matter Record.
-              </p>
-            </div>
+          <div className="space-y-2" data-testid="chat-empty-state">
             <div>
-              <div className="eyebrow mb-2">Try one of these</div>
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
                 {suggestions.map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => onSuggestion(s)}
-                    className="border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors text-left"
+                    className="block w-full rounded-md border border-rule bg-paper px-3 py-2 text-left text-sm text-ink transition-colors hover:border-ink"
                   >
                     {s}
                   </button>
@@ -501,7 +485,7 @@ export function AssistantTab({
             onAction={dispatchAction}
             onSources={(message) => setWorkPane({ kind: "sources", message })}
             onVersions={(message) => setWorkPane({ kind: "versions", message })}
-            onRecord={(message) => setWorkPane({ kind: "record", message })}
+            onRecord={(message) => setWorkPane({ kind: "activity", message })}
           />
         ))}
         {activeRunnerSkill && (
@@ -749,7 +733,7 @@ export function AssistantTab({
 }
 
 type AssistantWorkPaneState = {
-  kind: "sources" | "versions" | "record";
+  kind: "sources" | "versions" | "activity";
   message: AssistantMessage;
 };
 
@@ -874,19 +858,19 @@ function AssistantWorkPane({
       ? "Sources"
       : state.kind === "versions"
         ? "Versions"
-        : "Record";
+        : "Activity";
 
   return (
     <aside
-      className="lg:sticky lg:top-6 lg:self-start"
+      className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-rule bg-paper shadow-panel"
       data-testid={`assistant-work-pane-${state.kind}`}
       aria-label={`${title} pane`}
     >
-      <section className="border border-rule bg-paper p-4">
+      <section className="flex min-h-0 flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              Work pane
+              Inspect
             </p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
               {title}
@@ -895,7 +879,7 @@ function AssistantWorkPane({
           <button
             type="button"
             onClick={onClose}
-            className="border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink"
+            className="rounded-md border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink"
             aria-label="Close work pane"
           >
             Close
@@ -903,19 +887,21 @@ function AssistantWorkPane({
         </div>
 
         {state.kind === "sources" && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
             {cited.length === 0 ? (
               <p className="text-sm leading-6 text-muted">
-                This answer did not cite a document. Attach a file above the composer
-                and ask again to keep the source trail close to the answer.
+                This answer did not cite a file. Attach one above the composer
+                and ask again to keep sources close to the answer.
               </p>
             ) : (
               cited.map((doc) => (
                 <DocumentPaneCard
                   key={doc.id}
                   doc={doc}
-                  primaryLabel="Open document"
+                  primaryLabel="Preview"
                   onPrimary={() => onOpenDocument(doc.id)}
+                  secondaryHref={documentOriginalUrl(doc.id)}
+                  secondaryLabel="Original"
                 />
               ))
             )}
@@ -923,10 +909,10 @@ function AssistantWorkPane({
         )}
 
         {state.kind === "versions" && (
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
             {cited.length === 0 ? (
               <p className="text-sm leading-6 text-muted">
-                No cited document is attached to this answer, so there is no version
+                No cited file is attached to this answer, so there is no version
                 history to open from here.
               </p>
             ) : (
@@ -944,27 +930,26 @@ function AssistantWorkPane({
           </div>
         )}
 
-        {state.kind === "record" && (
-          <div className="mt-4 space-y-4">
+        {state.kind === "activity" && (
+          <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto">
             <p className="text-sm leading-6 text-muted">
-              This answer was saved in the matter thread. The full matter Record
-              shows the underlying assistant call, document context, model, posture,
-              and any later output events.
+              This answer was saved in the thread. Activity shows the assistant
+              call, file context, model, posture, and any later output events.
             </p>
             <button
               type="button"
               onClick={onOpenRecord}
-              className="inline-flex min-h-[40px] items-center border border-ink bg-ink px-3 text-sm font-medium text-paper hover:bg-black"
+              className="inline-flex min-h-[40px] items-center rounded-md border border-ink bg-ink px-3 text-sm font-medium text-paper hover:bg-black"
             >
-              Open matter Record
+              Open Activity
             </button>
             <dl className="grid grid-cols-2 gap-2 text-xs">
-              <div className="border border-rule bg-paper-sunken p-2">
+              <div className="rounded-md border border-rule bg-paper-sunken p-2">
                 <dt className="uppercase tracking-track2 text-muted">Matter</dt>
                 <dd className="mt-1 font-semibold text-ink">{matter.title}</dd>
               </div>
-              <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="uppercase tracking-track2 text-muted">Posture</dt>
+              <div className="rounded-md border border-rule bg-paper-sunken p-2">
+                <dt className="uppercase tracking-track2 text-muted">State</dt>
                 <dd className="mt-1 font-semibold text-ink">
                   {matter.privilege_posture}
                 </dd>
@@ -991,7 +976,7 @@ function DocumentPaneCard({
   secondaryLabel?: string;
 }) {
   return (
-    <article className="border border-rule bg-paper-sunken p-3">
+    <article className="rounded-md border border-rule bg-paper-sunken p-3">
       <p className="font-mono text-xs font-semibold text-ink">{doc.filename}</p>
       <p className="mt-1 text-xs text-muted">
         {doc.tag || "untagged"} · {doc.mime_type}
@@ -1000,14 +985,14 @@ function DocumentPaneCard({
         <button
           type="button"
           onClick={onPrimary}
-          className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          className="rounded-md border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
         >
           {primaryLabel}
         </button>
         {secondaryHref && secondaryLabel && (
           <a
             href={secondaryHref}
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+            className="rounded-md border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
           >
             {secondaryLabel}
           </a>
@@ -1085,10 +1070,9 @@ function MatterContextRail({
         )}
       </RailPanel>
 
-      <RailPanel eyebrow="Proof" actionLabel="Record" onAction={onOpenRecord}>
+      <RailPanel eyebrow="Activity" actionLabel="Open" onAction={onOpenRecord}>
         <p className="text-sm text-muted">
-          Every skill run writes to the matter Record. Signed outputs and the
-          working pack sit behind it.
+          Skill runs, saved outputs, and exports are visible from the matter activity.
         </p>
         <div className="mt-3 flex flex-wrap gap-3 text-xs">
           <button
@@ -1096,14 +1080,14 @@ function MatterContextRail({
             onClick={onOpenOutputs}
             className="underline underline-offset-4 hover:text-ink"
           >
-            Signed outputs
+            Outputs
           </button>
           <button
             type="button"
             onClick={onOpenPack}
             className="underline underline-offset-4 hover:text-ink"
           >
-            Working pack
+            Export
           </button>
         </div>
       </RailPanel>
@@ -1125,7 +1109,7 @@ function RailPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="border border-rule bg-paper p-4">
+    <section className="rounded-md border border-rule bg-paper p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
         <button

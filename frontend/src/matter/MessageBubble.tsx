@@ -87,7 +87,7 @@ function AssistantMessageView({
   const { text, citations } = extractCitations(message.content, docs, chronology);
   const sourceCount = citations.length;
   const hasActions = message.suggested_actions.length > 0;
-  const hasActionCard = !compact && (sourceCount > 0 || hasActions);
+  const hasOutputRow = !compact && (sourceCount > 0 || hasActions);
   const metaSizing = compact ? "text-[10px]" : "text-[11px]";
   const proseSizing = compact ? "text-xs" : "text-[15px]";
 
@@ -106,7 +106,7 @@ function AssistantMessageView({
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
-          {" · recorded in Record"}
+          {" · saved to Activity"}
         </div>
         <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
           {text}
@@ -134,7 +134,7 @@ function AssistantMessageView({
             ))}
           </div>
         )}
-        {!compact && message.suggested_actions.length > 0 && onAction && !hasActionCard && (
+        {!compact && message.suggested_actions.length > 0 && onAction && !hasOutputRow && (
           <div className="flex flex-wrap gap-2 pt-1">
             {message.suggested_actions.map((a, i) => (
               <button
@@ -148,8 +148,8 @@ function AssistantMessageView({
             ))}
           </div>
         )}
-        {hasActionCard && (
-          <AssistantActionCard
+        {hasOutputRow && (
+          <AssistantOutputRow
             message={message}
             citations={citations}
             onDocChip={onDocChip}
@@ -164,7 +164,7 @@ function AssistantMessageView({
   );
 }
 
-function AssistantActionCard({
+function AssistantOutputRow({
   message,
   citations,
   onDocChip,
@@ -186,61 +186,66 @@ function AssistantActionCard({
     (action) => !(firstDoc && action.type === "view_document"),
   ) ?? null;
   const summaryTitle = summaryCardTitle(message.content);
-  const cardTitle = summaryTitle
+  const outputTitle = summaryTitle
     ? summaryTitle
     : primaryAction
     ? primaryAction.label
     : firstDoc
       ? "Document answer"
       : "Matter answer";
-  const cardKind = summaryTitle
+  const outputKind = summaryTitle
     ? "Summary"
     : primaryAction
       ? actionKindLabel(primaryAction.type)
       : "Answer";
+  const status =
+    citations.length > 0
+      ? `${citations.length} source${citations.length === 1 ? "" : "s"}`
+      : "draft";
 
   return (
-    <div className="mt-2 border border-rule bg-paper-sunken p-3" data-testid="assistant-action-card">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
-            {cardKind}
-          </p>
-          <h3 className="mt-1 text-sm font-semibold text-ink">{cardTitle}</h3>
-          <p className="mt-1 text-xs leading-5 text-muted">
-            {citations.length > 0
-              ? `${citations.length} source${citations.length === 1 ? "" : "s"} attached to this turn.`
-              : "No source document was attached to this turn."}
-          </p>
+    <div
+      className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-rule bg-paper px-3 py-2"
+      data-testid="assistant-output-row"
+    >
+      <span
+        aria-hidden="true"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-rule bg-paper-sunken font-mono text-[10px] font-semibold uppercase text-muted"
+      >
+        {outputKind.slice(0, 1)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate text-sm font-semibold text-ink">{outputTitle}</span>
+          <span className="rounded-full border border-rule bg-paper-sunken px-2 py-0.5 text-[10px] font-medium uppercase tracking-track2 text-muted">
+            {status}
+          </span>
         </div>
-        <span className="border border-rule bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
-          Draft
-        </span>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
         {firstDoc && (
           <button
             type="button"
             onClick={() => onDocChip(firstDoc.id)}
-            className="border border-ink bg-ink px-3 py-1.5 text-xs font-medium text-paper hover:bg-black"
+            className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            Open document
+            Open
           </button>
         )}
-        {primaryAction && onAction && (
+        {!firstDoc && primaryAction && onAction && (
           <button
             type="button"
             onClick={() => onAction(primaryAction)}
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+            className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            Run action
+            Open
           </button>
         )}
         {citations.length > 0 && onSources && (
           <button
             type="button"
             onClick={() => onSources(message)}
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+            className="text-muted underline underline-offset-4 hover:text-ink"
           >
             Sources
           </button>
@@ -249,7 +254,7 @@ function AssistantActionCard({
           <button
             type="button"
             onClick={() => onVersions(message)}
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+            className="text-muted underline underline-offset-4 hover:text-ink"
           >
             Versions
           </button>
@@ -258,9 +263,9 @@ function AssistantActionCard({
           <button
             type="button"
             onClick={() => onRecord(message)}
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+            className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            Record
+            Activity
           </button>
         )}
       </div>
@@ -291,7 +296,7 @@ function actionKindLabel(type: SuggestedAction["type"]): string {
     case "view_document":
       return "Document";
     case "view_audit":
-      return "Record";
+      return "Activity";
     case "view_chronology":
       return "Chronology";
   }
