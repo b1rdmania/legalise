@@ -36,7 +36,7 @@ from app.core.model_gateway import (
 )
 from app.core.seed import KHAN_NDA_BODY
 from app.adapters.plugin_bridge import PluginBridge, SkillDisabled
-from app.models import AuditEntry, Document, DocumentBody
+from app.models import AuditEntry, Document, DocumentBody, InstalledModule
 from app.models.document_edit import DocumentEdit
 from app.modules.contract_review import agents as cr_agents
 from app.modules.contract_review.agents import AgentCall, ParserAgent, RedlinerAgent
@@ -688,8 +688,14 @@ def _canned_assistant_envelope(action_type: str = "run_pre_motion") -> dict[str,
 class _AssistantFakeGateway:
     """Records the prompt + system passed in, returns a canned envelope."""
 
-    def __init__(self, envelope: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        envelope: dict[str, Any] | None = None,
+        *,
+        envelopes: list[dict[str, Any]] | None = None,
+    ) -> None:
         self.envelope = envelope or _canned_assistant_envelope()
+        self.envelopes = list(envelopes or [])
         self.calls: list[dict[str, Any]] = []
 
     async def call(
@@ -716,8 +722,9 @@ class _AssistantFakeGateway:
                 "payload": payload or {},
             }
         )
+        envelope = self.envelopes.pop(0) if self.envelopes else self.envelope
         return ModelResult(
-            text=json.dumps(self.envelope),
+            text=json.dumps(envelope),
             model_used="stub-echo",
             prompt_hash="ph",
             response_hash="rh",
@@ -1006,6 +1013,147 @@ class TestAssistantPipeline:
         assert "letters/default-lba" in prompt or "pre_motion/default" in prompt
 
     @pytest.mark.asyncio
+    async def test_prompt_includes_provider_agnostic_tool_registry(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        gateway = _AssistantFakeGateway()
+        installed = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="legalise.contract_review",
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={},
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        tool = assistant_pipeline.AssistantToolSpec(
+            module_id="legalise.contract_review",
+            capability_id="review",
+            label="Review contract",
+            description="Review an uploaded contract.",
+            args_schema={
+                "type": "object",
+                "properties": {"document_ids": {"type": "array"}},
+            },
+            declaration={
+                "id": "review",
+                "kind": "skill",
+                "scope": "matter",
+                "reads": ["document.body.read"],
+                "writes": ["matter.artifact.write"],
+            },
+            installed_module=installed,
+        )
+
+        with patch.object(
+            assistant_pipeline, "_load_assistant_tools", return_value=[tool]
+        ):
+            await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Review the contract"),
+                gateway=gateway,
+            )
+
+        prompt = gateway.calls[0]["prompt"]
+        assert "## Tools" in prompt
+        assert "module_id: legalise.contract_review" in prompt
+        assert "capability_id: review" in prompt
+        assert "args_schema" in prompt
+
+    @pytest.mark.asyncio
+    async def test_tool_call_runs_once_and_finalises_reply(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        invocation_id = uuid.uuid4()
+        gateway = _AssistantFakeGateway(
+            envelopes=[
+                {
+                    "content": "I'll run the contract review.",
+                    "suggested_actions": [],
+                    "tool_calls": [
+                        {
+                            "module_id": "legalise.contract_review",
+                            "capability_id": "review",
+                            "args": {"input": "Review the attached NDA"},
+                        }
+                    ],
+                },
+                {
+                    "content": "Contract review completed. Open the Record for the run.",
+                    "suggested_actions": [
+                        {
+                            "type": "view_audit",
+                            "label": "Open Record",
+                            "params": {"invocation_id": str(invocation_id)},
+                        }
+                    ],
+                    "tool_calls": [],
+                },
+            ]
+        )
+        installed = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="legalise.contract_review",
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={},
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        tool = assistant_pipeline.AssistantToolSpec(
+            module_id="legalise.contract_review",
+            capability_id="review",
+            label="Review contract",
+            description="Review an uploaded contract.",
+            args_schema={},
+            declaration={"id": "review", "kind": "skill", "scope": "matter"},
+            installed_module=installed,
+        )
+
+        async def _fake_dispatch(**kwargs):
+            call = kwargs["call"]
+            assert call.module_id == "legalise.contract_review"
+            assert kwargs["actor_role"] == "qualified_solicitor"
+            return {"artifact_id": "art-1", "output_chars": 120}, invocation_id
+
+        with (
+            patch.object(assistant_pipeline, "_load_assistant_tools", return_value=[tool]),
+            patch.object(assistant_pipeline, "_dispatch_assistant_tool", _fake_dispatch),
+        ):
+            _, assistant_row = await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                actor_role="qualified_solicitor",
+                request=AssistantPostRequest(content="Review the attached NDA"),
+                gateway=gateway,
+            )
+
+        assert len(gateway.calls) == 2
+        assert "## Tool result" in gateway.calls[1]["prompt"]
+        assert assistant_row.content.startswith("Contract review completed")
+        assert assistant_row.suggested_actions[0]["type"] == "view_audit"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["tool_call_count"] == 1
+        assert audit_rows[0].payload["tool_invocation_id"] == str(invocation_id)
+
+    @pytest.mark.asyncio
     async def test_c_paused_returns_409(self) -> None:
         from fastapi.testclient import TestClient
         from app.core.auth import current_user
@@ -1124,6 +1272,7 @@ class TestAssistantPipeline:
             events=bulky_events,
             snippets=[],
             modules=[],
+            tools=[],
             user_content=user_msg,
             token_budget=200,
         )
