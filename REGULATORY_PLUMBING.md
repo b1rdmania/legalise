@@ -117,6 +117,5 @@ The workspace captures whether a document came from disclosure (and which procee
 This document is a reference for:
 
 - Reviewers stress-testing the plan: is the regulatory plumbing defensible as demo, or theatrical?
-- Future solicitor co-founder: this is what you'd expect to see if you joined and looked under the hood.
-- Future investor: this is what differentiates the workspace from generic legal-tech.
-- Future me (Andy): this is the list of things to harden when moving v0.2 → v0.5+.
+- Solicitors looking under the hood: this is what supervised autonomy looks like in the workspace.
+- Contributors and operators: the list of things to harden when moving v0.2 → v0.5+.

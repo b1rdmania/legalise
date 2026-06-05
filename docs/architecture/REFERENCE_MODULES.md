@@ -61,12 +61,12 @@ Proof pattern:
 - generated output
 - per-decision audit
 
-Source:
+Source (internal prototype, for pattern reference only):
 
-- `/Users/andy/counsel-mvp/backend/app/agents/redliner.py`
-- `/Users/andy/counsel-mvp/backend/app/services/pipeline.py`
-- `/Users/andy/counsel-mvp/backend/app/database.py`
-- `/Users/andy/counsel-mvp/src/pages/WorkbenchPage.jsx`
+- the four-stage redliner agent (parser / analyst / redliner / summariser)
+- the pipeline orchestration service
+- the matter-first persistence layer
+- the workbench review UI (accept/reject/edit loop)
 
 Target:
 

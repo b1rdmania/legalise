@@ -14,7 +14,7 @@ named where load-bearing.
   — the Folio (tabular bulk review) shape and the anonymise-chat
   shape informed our tabular review and anonymisation surfaces.
   Apache-Apache means code could move; in v0.1 nothing has.
-- **counsel-mvp** (Bird Legal internal) — the four-stage redliner pattern
+- **counsel-mvp** (internal prototype) — the four-stage redliner pattern
   used in Contract Review (parser / analyst / redliner / summariser)
   is a port from the counsel-mvp pipeline.
 - **claude-for-uk-legal** ([github.com/b1rdmania/claude-for-uk-legal](https://github.com/b1rdmania/claude-for-uk-legal), Apache-2.0)
