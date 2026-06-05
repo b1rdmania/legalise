@@ -6,11 +6,14 @@ import {
   listGrants,
   listAssistantMessages,
   listInstalledModules,
-  postAssistantMessage,
+  postAssistantMessageStream,
   ProviderKeyMissingError,
   ProviderUpstreamError,
+  providerKeyMissingFromBody,
   providerUpstreamMessage,
+  tryParseProviderUpstream,
   type AssistantMessage,
+  type AssistantStreamEvent,
   type ChronologyEvent,
   type GrantRow,
   type InstalledModule,
@@ -20,7 +23,7 @@ import {
   type V2ManifestEntry,
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
-import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
+import { InlineAgentStatus, MessageBubble, type InlineAgentStep } from "../MessageBubble";
 import { GenericSkillRunner } from "../GenericSkillRunner";
 import {
   runnableMatterSkills,
@@ -106,6 +109,7 @@ export function AssistantTab({
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [agentSteps, setAgentSteps] = useState<InlineAgentStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
@@ -239,6 +243,7 @@ export function AssistantTab({
     setKeyMissingProvider(null);
     setPending(true);
     setThinking(true);
+    setAgentSteps([{ label: "Starting turn", status: "running" }]);
     const optimistic: AssistantMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
@@ -249,14 +254,26 @@ export function AssistantTab({
     setMessages((prev) => [...prev, optimistic]);
     setInput("");
     try {
-      const res = await postAssistantMessage(matter.slug, {
+      const stream = postAssistantMessageStream(matter.slug, {
         content,
         selected_document_ids: selectedDocIds.size > 0 ? Array.from(selectedDocIds) : undefined,
       });
-      setMessages((prev) => {
-        const without = prev.filter((m) => m.id !== optimistic.id);
-        return [...without, res.user, res.assistant];
-      });
+      let sawResult = false;
+      for await (const event of stream) {
+        if (event.event === "error") {
+          throw streamEventError(event);
+        }
+        setAgentSteps((prev) => nextAgentSteps(prev, event));
+        if (event.event !== "result") continue;
+        sawResult = true;
+        setMessages((prev) => {
+          const without = prev.filter((m) => m.id !== optimistic.id);
+          return [...without, event.data.user, event.data.assistant];
+        });
+      }
+      if (!sawResult) {
+        throw new Error("Assistant stream ended before returning a result.");
+      }
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       if (err instanceof ProviderKeyMissingError) {
@@ -267,6 +284,7 @@ export function AssistantTab({
     } finally {
       setPending(false);
       setThinking(false);
+      setAgentSteps([]);
     }
   };
 
@@ -499,13 +517,7 @@ export function AssistantTab({
         )}
         {thinking && (
           <div className="flex justify-start">
-            <InlineAgentStatus
-              steps={[
-                { label: "Read chronology", status: "complete" },
-                { label: "Checked documents", status: "complete" },
-                { label: "Drafting answer", status: "running" },
-              ]}
-            />
+            <InlineAgentStatus steps={agentSteps} />
           </div>
         )}
         </div>
@@ -740,6 +752,85 @@ type AssistantWorkPaneState = {
   kind: "sources" | "versions" | "record";
   message: AssistantMessage;
 };
+
+function streamEventError(event: Extract<AssistantStreamEvent, { event: "error" }>): Error {
+  const keyMissing = providerKeyMissingFromBody(event.data);
+  if (keyMissing) return keyMissing;
+  const upstream = tryParseProviderUpstream(event.data);
+  if (upstream) return upstream;
+  return new Error(event.data.message || "Assistant stream failed.");
+}
+
+function nextAgentSteps(
+  previous: InlineAgentStep[],
+  event: AssistantStreamEvent,
+): InlineAgentStep[] {
+  switch (event.event) {
+    case "context.loaded":
+      return [
+        completeStep("Loaded matter context"),
+        runningStep(
+          event.data.tool_count > 0
+            ? `Found ${event.data.tool_count} tool${event.data.tool_count === 1 ? "" : "s"}`
+            : "Reading request",
+        ),
+      ];
+    case "turn.accepted":
+      return [...completeRunning(previous), runningStep("Planning answer")];
+    case "turn.deterministic":
+      return [...completeRunning(previous), runningStep("Preparing summary")];
+    case "model.start":
+      return [
+        ...completeRunning(previous),
+        runningStep(event.data.stage === "assistant.final" ? "Writing answer" : "Asking model"),
+      ];
+    case "tool.start":
+      return [
+        ...completeRunning(previous),
+        runningStep(toolLabel(event.data.module_id, event.data.capability_id)),
+      ];
+    case "tool.end":
+      return [
+        ...completeRunning(previous),
+        completeStep(toolLabel(event.data.module_id, event.data.capability_id)),
+        runningStep("Writing answer"),
+      ];
+    case "tool.error":
+      return [
+        ...completeRunning(previous),
+        completeStep("Tool returned a recoverable error"),
+        runningStep("Writing answer"),
+      ];
+    case "turn.end":
+      return [...completeRunning(previous), runningStep("Saving reply")];
+    case "result":
+      return [...completeRunning(previous), completeStep("Saved reply")];
+    case "turn.start":
+    case "error":
+    default:
+      return previous;
+  }
+}
+
+function completeRunning(steps: InlineAgentStep[]): InlineAgentStep[] {
+  return steps.map((step) =>
+    step.status === "running" ? { ...step, status: "complete" } : step,
+  );
+}
+
+function completeStep(label: string): InlineAgentStep {
+  return { label, status: "complete" };
+}
+
+function runningStep(label: string): InlineAgentStep {
+  return { label, status: "running" };
+}
+
+function toolLabel(moduleId: string, capabilityId: string): string {
+  const moduleLabel = moduleId.split(".").at(-1)?.replace(/[-_]/g, " ") || moduleId;
+  const capabilityLabel = capabilityId.replace(/[-_]/g, " ");
+  return `Running ${moduleLabel}: ${capabilityLabel}`;
+}
 
 const DOC_CITATION_RE = /\[doc:([A-Za-z0-9_.\-]+)\]/g;
 

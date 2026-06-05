@@ -97,6 +97,27 @@ beforeEach(() => {
       created_at: "",
     },
   } as never);
+  vi.spyOn(api, "postAssistantMessageStream").mockImplementation(async function* () {
+    yield {
+      event: "result",
+      data: {
+        user: {
+          id: "u-1",
+          role: "user",
+          content: "",
+          suggested_actions: [],
+          created_at: "",
+        },
+        assistant: {
+          id: "a-1",
+          role: "assistant",
+          content: "",
+          suggested_actions: [],
+          created_at: "",
+        },
+      },
+    } as never;
+  });
 });
 afterEach(() => {
   cleanup();
@@ -271,6 +292,65 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(
       await screen.findByTestId("generic-runner-demo.guided-skill-summarise"),
     ).toBeInTheDocument();
+  });
+
+  it("uses the SSE assistant stream and renders backend progress events", async () => {
+    let releaseResult!: () => void;
+    const resultGate = new Promise<void>((resolve) => {
+      releaseResult = resolve;
+    });
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(async function* () {
+      yield {
+        event: "context.loaded",
+        data: {
+          history_message_count: 0,
+          chronology_event_count: 0,
+          document_count: 1,
+          tool_count: 1,
+        },
+      } as never;
+      yield {
+        event: "model.start",
+        data: { stage: "assistant" },
+      } as never;
+      yield {
+        event: "tool.start",
+        data: { module_id: "legalise.contract-review", capability_id: "review" },
+      } as never;
+      await resultGate;
+      yield {
+        event: "result",
+        data: {
+          user: {
+            id: "u-stream",
+            role: "user",
+            content: "Review the NDA",
+            suggested_actions: [],
+            created_at: "2026-06-05T10:00:00Z",
+          },
+          assistant: {
+            id: "a-stream",
+            role: "assistant",
+            content: "I reviewed the NDA.",
+            suggested_actions: [],
+            created_at: "2026-06-05T10:00:01Z",
+          },
+        },
+      } as never;
+    });
+    mountChat();
+
+    const input = await screen.findByPlaceholderText(/Ask about Khan v Acme/i);
+    fireEvent.change(input, { target: { value: "Review the NDA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(/Running contract review: review/i)).toBeInTheDocument();
+    releaseResult();
+    expect(await screen.findByText("I reviewed the NDA.")).toBeInTheDocument();
+    expect(api.postAssistantMessageStream).toHaveBeenCalledWith(
+      matter.slug,
+      { content: "Review the NDA", selected_document_ids: undefined },
+    );
   });
 });
 

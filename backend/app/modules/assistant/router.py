@@ -145,13 +145,22 @@ async def post_message_stream(
                     )
                 except PROVIDER_HTTP_EXCEPTIONS as exc:
                     http_exc = provider_error_http_exception(exc)
+                    detail = http_exc.detail
+                    if isinstance(detail, dict):
+                        error_data = {
+                            **detail,
+                            "message": str(detail.get("message") or detail),
+                            "code": http_exc.status_code,
+                        }
+                    else:
+                        error_data = {
+                            "message": str(detail),
+                            "code": http_exc.status_code,
+                        }
                     await queue.put(
                         {
                             "event": "error",
-                            "data": {
-                                "message": str(http_exc.detail),
-                                "code": http_exc.status_code,
-                            },
+                            "data": error_data,
                         }
                     )
                     return
