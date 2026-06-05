@@ -28,13 +28,13 @@ The smallest thing that proves the shape, on Khan v Acme (plan §5b):
 
 If this feels natural, the deeper phasing (plan §6) follows. If not, we learn it cheap.
 
-## Before you build — get Andy to answer (plan §8)
+## Decisions — RESOLVED by Andy 2026-06-05 (you are unblocked)
 
-1. Tool-use format: **provider-agnostic JSON (recommended)** vs Anthropic-native tool_use.
-2. Streaming: **SSE progress (recommended v1)** vs token streaming.
-3. Work-pane default state.
+1. **Tool-use format: provider-agnostic JSON.** Keep the multi-provider promise (Anthropic / OpenAI / Ollama). Do NOT use Anthropic-native `tool_use`.
+2. **Streaming: SSE progress** (turn/stage events, like Pre-Motion's existing stream). NOT token streaming.
+3. **Work-pane default: moot — the pane is hidden by default.** It's summoned by a card action and opens to whatever was requested (sources / preview / versions / record); there is no standing default state. If a persistent/pinned pane is ever added, default it to Files/context.
 
-Don't start the backend loop until 1 & 2 are decided.
+Backend tool loop is cleared to build.
 
 ## Backend reality (you are NOT starting from zero)
 
