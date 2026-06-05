@@ -836,7 +836,7 @@ export function DocumentDetail({
           ? {
               eyebrow: "Run a skill",
               title: `${primaryDocumentSkill.title} is ready for this file.`,
-              body: "Run a governed skill with this document selected, then review and sign the output.",
+              body: "Run a skill with this document selected, then review the result before saving anything.",
               action: "Run with this file",
               onClick: () => openDocumentSkill(primaryDocumentSkill),
             }
@@ -853,9 +853,9 @@ export function DocumentDetail({
               }
             : {
                 eyebrow: "Read the file",
-                title: "Start by reading or selecting text.",
-                body: "The document is ready. Select a passage to add a note, or switch to the original preview.",
-                action: "Keep reading",
+                title: "Review, edit, or export this document.",
+                body: "Use the working copy to mark up the text, save a version, compare changes, or inspect the original file.",
+                action: "Open editor",
                 onClick: () => openWorkbenchView("editor" as WorkbenchView),
               };
 
@@ -882,7 +882,7 @@ export function DocumentDetail({
         <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              Document workbench
+              Document workspace
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
               {doc.filename}
@@ -1001,7 +1001,7 @@ export function DocumentDetail({
                   ? `${activeEditSessions.length} people have this file open`
                   : "You are working in this file"}
               </span>
-              <span className="text-muted">Edits save as document versions.</span>
+              <span className="text-muted">Edits are saved as versions.</span>
               {activeEditSessions.slice(0, 4).map((session) => (
                 <span
                   key={session.id}
@@ -1052,7 +1052,7 @@ export function DocumentDetail({
             )}
             <details className="ml-auto border border-rule bg-paper-sunken px-3 py-2">
               <summary className="cursor-pointer text-sm font-medium text-ink">
-                File actions
+                More actions
               </summary>
               <div className="mt-3 grid min-w-48 gap-2">
                 <a
@@ -1514,7 +1514,7 @@ export function DocumentDetail({
                 data-testid="document-work-plan"
               >
                 <summary className="cursor-pointer text-sm font-semibold text-ink">
-                  More file actions
+                  Workbench shortcuts
                 </summary>
                 <div className="mt-3 divide-y divide-rule border border-rule bg-paper">
                   <button
@@ -1575,7 +1575,7 @@ export function DocumentDetail({
                     <span>
                       <span className="block font-semibold text-ink">View matter Record</span>
                       <span className="mt-1 block text-xs text-muted">
-                        Notes, skill runs, sign-off, and file access.
+                        Notes, skill runs, versions, and file access.
                       </span>
                     </span>
                     <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
@@ -1592,8 +1592,8 @@ export function DocumentDetail({
                   {documentArtifacts === null
                     ? "Checking outputs that cite this file"
                     : citedOutputCount === 0
-                      ? "No signed outputs cite this file yet"
-                      : `${citedOutputCount} signed output${
+                      ? "No outputs cite this file yet"
+                      : `${citedOutputCount} output${
                           citedOutputCount === 1 ? "" : "s"
                         } ${citedOutputCount === 1 ? "cites" : "cite"} this file`}
                 </summary>
@@ -1622,8 +1622,8 @@ export function DocumentDetail({
                   </div>
                 ) : (
                   <p className="mt-3 text-sm leading-6 text-muted">
-                    Run a document skill, then sign the output. When the output cites this
-                    file, it appears here and in the matter Record.
+                    Run a document skill or create an output that cites this file. Related
+                    outputs appear here and in the matter Record.
                   </p>
                 )}
               </details>
@@ -1693,7 +1693,9 @@ export function DocumentDetail({
                   </p>
                 </div>
                 <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                  {documentSkills.length} ready
+                  {documentSkills.length === 0
+                    ? "No skills"
+                    : `${documentSkills.length} ready`}
                 </span>
               </div>
               {activeRunnerSkill ? (
@@ -1735,7 +1737,10 @@ export function DocumentDetail({
                 </p>
               ) : documentSkills.length === 0 ? (
                 <div className="mt-3 text-sm text-muted">
-                  <p>No document-reading skills are ready for this file yet.</p>
+                  <p>
+                    No document-reading skills are installed for this file yet. You can still
+                    edit, version, compare, and export the document.
+                  </p>
                   <Link
                     to="/matters/$slug/$tab"
                     params={{ slug, tab: "workflows" }}

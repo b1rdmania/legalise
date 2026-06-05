@@ -129,6 +129,7 @@ services:
 
   frontend:
     build: ../frontend
+    command: ["sh", "-lc", "npm install && npm run dev -- --host 0.0.0.0 --port 3000"]
     environment:
       # Vite dev server reads VITE_* from process.env at request time.
       # For local forks the signup form must render, so default the
