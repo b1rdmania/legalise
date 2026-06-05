@@ -43,6 +43,7 @@ import {
   isDecisionRow,
   type RowClass,
 } from "./auditClassify";
+import { humanActionLabel } from "./auditHumanLabel";
 
 // Class filter chips (AT-2). No `artifact` chip — artifacts are not an
 // audit class; they surface as the chain output node (AT-3). `system`
@@ -648,15 +649,17 @@ function AdvancedDetails({
 function TimelineRow({ entry }: { entry: TimelineEntry }) {
   const [expanded, setExpanded] = useState(false);
   const tone = sourceTone(entry.source);
-  const isReview = classifyEntry(entry) === "review";
+  const rowClass = classifyEntry(entry);
+  const isProminent = rowClass === "signed" || rowClass === "review";
+  const humanLabel = humanActionLabel(entry);
   return (
     <li
       className={
         "rounded-md border border-line p-3 " +
-        (isReview ? "border-l-2 border-l-seal" : "")
+        (isProminent ? "border-l-2 border-l-seal" : "")
       }
       data-testid={`timeline-row-${entry.source_row_id}`}
-      data-row-class={classifyEntry(entry)}
+      data-row-class={rowClass}
     >
       <button
         type="button"
@@ -671,7 +674,7 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
           >
             {SOURCE_LABEL[entry.source]}
           </span>
-          <code className="font-mono text-sm">{entry.action}</code>
+          <span className="font-medium text-ink">{humanLabel}</span>
           {entry.module_id && (
             <span className="text-xs text-muted">
               · <code className="font-mono">{entry.module_id}</code>
@@ -706,6 +709,12 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
 
       {expanded && (
         <div className="mt-3 space-y-2">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-muted">
+              Raw action
+            </p>
+            <code className="block font-mono text-xs">{entry.action}</code>
+          </div>
           <ExpandedBlock label="payload" data={entry.payload} />
           <ExpandedBlock label="refs" data={entry.refs} />
         </div>
