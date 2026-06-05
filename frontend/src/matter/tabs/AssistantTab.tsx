@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNod
 import { useNavigate } from "@tanstack/react-router";
 import {
   getModulesV2,
+  documentOriginalUrl,
   listGrants,
   listAssistantMessages,
   listInstalledModules,
@@ -91,7 +92,7 @@ export function AssistantTab({
   disabled = false,
   disabledPlaceholder,
   showDisabledFooter = true,
-  showContextRail = true,
+  showContextRail = false,
   onDisabledAction,
   onDocumentChip,
   initialDocumentId,
@@ -117,6 +118,7 @@ export function AssistantTab({
   const [grantRows, setGrantRows] = useState<GrantRow[] | null>(null);
   const [activeRunnerSkill, setActiveRunnerSkill] =
     useState<RunnableMatterSkill | null>(null);
+  const [workPane, setWorkPane] = useState<AssistantWorkPaneState | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Initial fetch (skip in demo: initialMessages provided).
@@ -342,7 +344,14 @@ export function AssistantTab({
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-[1220px] gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div
+      className={`mx-auto grid w-full gap-8 ${
+        workPane
+          ? "max-w-[1220px] lg:grid-cols-[minmax(0,1fr)_360px]"
+          : "max-w-[860px]"
+      }`}
+      data-testid="chat-led-workspace"
+    >
       <div className="flex min-h-[620px] min-w-0 flex-col">
         <div className="mb-5">
           <p className="text-[11px] uppercase tracking-widest text-muted">
@@ -352,8 +361,8 @@ export function AssistantTab({
             {matter.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Ask about the documents, or run a skill. Outputs can be signed and
-            traced in the Record.
+            Ask about the documents, draft from the matter, or run a skill.
+            Sources and saved work stay attached to the thread.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
             <span data-testid="docs-context-status">
@@ -442,8 +451,8 @@ export function AssistantTab({
                 on this matter.
               </p>
               <p className="text-xs text-muted">
-                Sources appear as chips below each answer. Outputs you sign
-                off land in the matter Record.
+                Sources appear as chips below each answer. Saved work and file
+                actions land in the matter Record.
               </p>
             </div>
             <div>
@@ -472,6 +481,9 @@ export function AssistantTab({
             onDocChip={dispatchDocChip}
             onChronChip={dispatchChronChip}
             onAction={dispatchAction}
+            onSources={(message) => setWorkPane({ kind: "sources", message })}
+            onVersions={(message) => setWorkPane({ kind: "versions", message })}
+            onRecord={(message) => setWorkPane({ kind: "record", message })}
           />
         ))}
         {activeRunnerSkill && (
@@ -568,6 +580,7 @@ export function AssistantTab({
               <button
                 type="button"
                 onClick={() => setAttachOpen((v) => !v)}
+                data-testid="chat-documents-toggle"
                 className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
               >
                 + Documents
@@ -694,7 +707,16 @@ export function AssistantTab({
         )}
       </div>
 
-      {showContextRail && (
+      {workPane ? (
+        <AssistantWorkPane
+          state={workPane}
+          matter={matter}
+          docs={docs}
+          onClose={() => setWorkPane(null)}
+          onOpenDocument={dispatchDocChip}
+          onOpenRecord={openRecord}
+        />
+      ) : showContextRail ? (
         <MatterContextRail
           docs={docs}
           recentDocs={recentDocs}
@@ -709,8 +731,198 @@ export function AssistantTab({
           onOpenOutputs={openOutputs}
           onOpenPack={openWorkingPack}
         />
-      )}
+      ) : null}
     </div>
+  );
+}
+
+type AssistantWorkPaneState = {
+  kind: "sources" | "versions" | "record";
+  message: AssistantMessage;
+};
+
+const DOC_CITATION_RE = /\[doc:([A-Za-z0-9_.\-]+)\]/g;
+
+function citedDocuments(
+  message: AssistantMessage,
+  docs: MatterDocument[] | null,
+): MatterDocument[] {
+  const byId = new Map((docs ?? []).map((doc) => [doc.id, doc]));
+  const seen = new Set<string>();
+  const out: MatterDocument[] = [];
+  let match: RegExpExecArray | null;
+  DOC_CITATION_RE.lastIndex = 0;
+  while ((match = DOC_CITATION_RE.exec(message.content)) !== null) {
+    const id = match[1];
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const doc = byId.get(id);
+    if (doc) out.push(doc);
+  }
+  return out;
+}
+
+function AssistantWorkPane({
+  state,
+  matter,
+  docs,
+  onClose,
+  onOpenDocument,
+  onOpenRecord,
+}: {
+  state: AssistantWorkPaneState;
+  matter: Matter;
+  docs: MatterDocument[] | null;
+  onClose: () => void;
+  onOpenDocument: (documentId: string) => void;
+  onOpenRecord: () => void;
+}) {
+  const cited = citedDocuments(state.message, docs);
+  const title =
+    state.kind === "sources"
+      ? "Sources"
+      : state.kind === "versions"
+        ? "Versions"
+        : "Record";
+
+  return (
+    <aside
+      className="lg:sticky lg:top-6 lg:self-start"
+      data-testid={`assistant-work-pane-${state.kind}`}
+      aria-label={`${title} pane`}
+    >
+      <section className="border border-rule bg-paper p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Work pane
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+              {title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink"
+            aria-label="Close work pane"
+          >
+            Close
+          </button>
+        </div>
+
+        {state.kind === "sources" && (
+          <div className="mt-4 space-y-3">
+            {cited.length === 0 ? (
+              <p className="text-sm leading-6 text-muted">
+                This answer did not cite a document. Attach a file above the composer
+                and ask again to keep the source trail close to the answer.
+              </p>
+            ) : (
+              cited.map((doc) => (
+                <DocumentPaneCard
+                  key={doc.id}
+                  doc={doc}
+                  primaryLabel="Open document"
+                  onPrimary={() => onOpenDocument(doc.id)}
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {state.kind === "versions" && (
+          <div className="mt-4 space-y-3">
+            {cited.length === 0 ? (
+              <p className="text-sm leading-6 text-muted">
+                No cited document is attached to this answer, so there is no version
+                history to open from here.
+              </p>
+            ) : (
+              cited.map((doc) => (
+                <DocumentPaneCard
+                  key={doc.id}
+                  doc={doc}
+                  primaryLabel="Open versions"
+                  onPrimary={() => onOpenDocument(doc.id)}
+                  secondaryHref={documentOriginalUrl(doc.id)}
+                  secondaryLabel="Original file"
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {state.kind === "record" && (
+          <div className="mt-4 space-y-4">
+            <p className="text-sm leading-6 text-muted">
+              This answer was saved in the matter thread. The full matter Record
+              shows the underlying assistant call, document context, model, posture,
+              and any later output events.
+            </p>
+            <button
+              type="button"
+              onClick={onOpenRecord}
+              className="inline-flex min-h-[40px] items-center border border-ink bg-ink px-3 text-sm font-medium text-paper hover:bg-black"
+            >
+              Open matter Record
+            </button>
+            <dl className="grid grid-cols-2 gap-2 text-xs">
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="uppercase tracking-track2 text-muted">Matter</dt>
+                <dd className="mt-1 font-semibold text-ink">{matter.title}</dd>
+              </div>
+              <div className="border border-rule bg-paper-sunken p-2">
+                <dt className="uppercase tracking-track2 text-muted">Posture</dt>
+                <dd className="mt-1 font-semibold text-ink">
+                  {matter.privilege_posture}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
+      </section>
+    </aside>
+  );
+}
+
+function DocumentPaneCard({
+  doc,
+  primaryLabel,
+  onPrimary,
+  secondaryHref,
+  secondaryLabel,
+}: {
+  doc: MatterDocument;
+  primaryLabel: string;
+  onPrimary: () => void;
+  secondaryHref?: string;
+  secondaryLabel?: string;
+}) {
+  return (
+    <article className="border border-rule bg-paper-sunken p-3">
+      <p className="font-mono text-xs font-semibold text-ink">{doc.filename}</p>
+      <p className="mt-1 text-xs text-muted">
+        {doc.tag || "untagged"} · {doc.mime_type}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onPrimary}
+          className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+        >
+          {primaryLabel}
+        </button>
+        {secondaryHref && secondaryLabel && (
+          <a
+            href={secondaryHref}
+            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            {secondaryLabel}
+          </a>
+        )}
+      </div>
+    </article>
   );
 }
 

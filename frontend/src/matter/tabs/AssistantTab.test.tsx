@@ -133,7 +133,7 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(setTabAndHash).toHaveBeenCalledWith("workflows");
   });
 
-  it("exposes ambient Record and Documents links in the shell", async () => {
+  it("exposes ambient Record and document attachment controls in the chat shell", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
@@ -141,8 +141,8 @@ describe("AssistantTab — in-chat skill picker", () => {
       /View Record/i,
     );
 
-    fireEvent.click(screen.getByTestId("open-documents-link"));
-    expect(setTabAndHash).toHaveBeenCalledWith("documents");
+    fireEvent.click(screen.getByTestId("chat-documents-toggle"));
+    expect(setTabAndHash).not.toHaveBeenCalledWith("documents");
   });
 
   it("pre-attaches a document when opened from the document workbench", async () => {
@@ -305,6 +305,42 @@ describe("AssistantTab — source chips", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Document.*demo-note\.txt/i }));
 
     expect(onDocumentChip).toHaveBeenCalledWith("doc-public");
+  });
+
+  it("renders a durable action card and summons the Sources work pane", async () => {
+    mountChat({
+      docs: [
+        {
+          id: "doc-public",
+          filename: "demo-note.txt",
+          sha256: "sha",
+          size_bytes: 99,
+          tag: "demo",
+          from_disclosure: false,
+          uploaded_at: "2026-01-01T00:00:00Z",
+          mime_type: "text/plain",
+        } as never,
+      ],
+      initialMessages: [
+        {
+          id: "a-1",
+          role: "assistant",
+          content: "The dismissal date is in [doc:doc-public].",
+          suggested_actions: [],
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(await screen.findByTestId("assistant-action-card")).toHaveTextContent(
+      /Document answer/i,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sources" }));
+
+    const pane = await screen.findByTestId("assistant-work-pane-sources");
+    expect(pane).toHaveTextContent("demo-note.txt");
+    expect(pane).toHaveTextContent(/Work pane/i);
   });
 });
 

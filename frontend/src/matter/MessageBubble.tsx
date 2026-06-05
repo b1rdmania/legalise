@@ -25,6 +25,9 @@ interface Props {
   onDocChip: (documentId: string) => void;
   onChronChip: (eventId: string) => void;
   onAction?: (a: SuggestedAction) => void;
+  onSources?: (message: AssistantMessage) => void;
+  onVersions?: (message: AssistantMessage) => void;
+  onRecord?: (message: AssistantMessage) => void;
   compact?: boolean;
 }
 
@@ -35,6 +38,9 @@ export function MessageBubble({
   onDocChip,
   onChronChip,
   onAction,
+  onSources,
+  onVersions,
+  onRecord,
   compact = false,
 }: Props) {
   const isUser = message.role === "user";
@@ -47,6 +53,9 @@ export function MessageBubble({
       onDocChip={onDocChip}
       onChronChip={onChronChip}
       onAction={onAction}
+      onSources={onSources}
+      onVersions={onVersions}
+      onRecord={onRecord}
       compact={compact}
     />
   );
@@ -70,10 +79,15 @@ function AssistantMessageView({
   onDocChip,
   onChronChip,
   onAction,
+  onSources,
+  onVersions,
+  onRecord,
   compact,
 }: Props) {
   const { text, citations } = extractCitations(message.content, docs, chronology);
   const sourceCount = citations.length;
+  const hasActions = message.suggested_actions.length > 0;
+  const hasActionCard = !compact && (sourceCount > 0 || hasActions);
   const metaSizing = compact ? "text-[10px]" : "text-[11px]";
   const proseSizing = compact ? "text-xs" : "text-[15px]";
 
@@ -120,7 +134,7 @@ function AssistantMessageView({
             ))}
           </div>
         )}
-        {!compact && message.suggested_actions.length > 0 && onAction && (
+        {!compact && message.suggested_actions.length > 0 && onAction && !hasActionCard && (
           <div className="flex flex-wrap gap-2 pt-1">
             {message.suggested_actions.map((a, i) => (
               <button
@@ -134,9 +148,134 @@ function AssistantMessageView({
             ))}
           </div>
         )}
+        {hasActionCard && (
+          <AssistantActionCard
+            message={message}
+            citations={citations}
+            onDocChip={onDocChip}
+            onAction={onAction}
+            onSources={onSources}
+            onVersions={onVersions}
+            onRecord={onRecord}
+          />
+        )}
       </div>
     </div>
   );
+}
+
+function AssistantActionCard({
+  message,
+  citations,
+  onDocChip,
+  onAction,
+  onSources,
+  onVersions,
+  onRecord,
+}: {
+  message: AssistantMessage;
+  citations: Citation[];
+  onDocChip: (documentId: string) => void;
+  onAction?: (a: SuggestedAction) => void;
+  onSources?: (message: AssistantMessage) => void;
+  onVersions?: (message: AssistantMessage) => void;
+  onRecord?: (message: AssistantMessage) => void;
+}) {
+  const firstDoc = citations.find((citation) => citation.kind === "doc");
+  const primaryAction = message.suggested_actions[0] ?? null;
+  const cardTitle = primaryAction
+    ? primaryAction.label
+    : firstDoc
+      ? "Document answer"
+      : "Matter answer";
+  const cardKind = primaryAction ? actionKindLabel(primaryAction.type) : "Answer";
+
+  return (
+    <div className="mt-2 border border-rule bg-paper-sunken p-3" data-testid="assistant-action-card">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
+            {cardKind}
+          </p>
+          <h3 className="mt-1 text-sm font-semibold text-ink">{cardTitle}</h3>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            {citations.length > 0
+              ? `${citations.length} source${citations.length === 1 ? "" : "s"} attached to this turn.`
+              : "No source document was attached to this turn."}
+          </p>
+        </div>
+        <span className="border border-rule bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+          Draft
+        </span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {firstDoc && (
+          <button
+            type="button"
+            onClick={() => onDocChip(firstDoc.id)}
+            className="border border-ink bg-ink px-3 py-1.5 text-xs font-medium text-paper hover:bg-black"
+          >
+            Open document
+          </button>
+        )}
+        {primaryAction && onAction && (
+          <button
+            type="button"
+            onClick={() => onAction(primaryAction)}
+            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            Run action
+          </button>
+        )}
+        {citations.length > 0 && onSources && (
+          <button
+            type="button"
+            onClick={() => onSources(message)}
+            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            Sources
+          </button>
+        )}
+        {firstDoc && onVersions && (
+          <button
+            type="button"
+            onClick={() => onVersions(message)}
+            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            Versions
+          </button>
+        )}
+        {onRecord && (
+          <button
+            type="button"
+            onClick={() => onRecord(message)}
+            className="border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            Record
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function actionKindLabel(type: SuggestedAction["type"]): string {
+  switch (type) {
+    case "run_pre_motion":
+      return "Pre-motion";
+    case "draft_letter":
+      return "Draft letter";
+    case "review_contract":
+      return "Review";
+    case "anonymise_document":
+      return "Anonymise";
+    case "view_document":
+      return "Document";
+    case "view_audit":
+      return "Record";
+    case "view_chronology":
+      return "Chronology";
+  }
 }
 
 // -- Citation extraction ---------------------------------------------------
