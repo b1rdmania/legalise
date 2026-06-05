@@ -182,13 +182,22 @@ function AssistantActionCard({
   onRecord?: (message: AssistantMessage) => void;
 }) {
   const firstDoc = citations.find((citation) => citation.kind === "doc");
-  const primaryAction = message.suggested_actions[0] ?? null;
-  const cardTitle = primaryAction
+  const primaryAction = message.suggested_actions.find(
+    (action) => !(firstDoc && action.type === "view_document"),
+  ) ?? null;
+  const summaryTitle = summaryCardTitle(message.content);
+  const cardTitle = summaryTitle
+    ? summaryTitle
+    : primaryAction
     ? primaryAction.label
     : firstDoc
       ? "Document answer"
       : "Matter answer";
-  const cardKind = primaryAction ? actionKindLabel(primaryAction.type) : "Answer";
+  const cardKind = summaryTitle
+    ? "Summary"
+    : primaryAction
+      ? actionKindLabel(primaryAction.type)
+      : "Answer";
 
   return (
     <div className="mt-2 border border-rule bg-paper-sunken p-3" data-testid="assistant-action-card">
@@ -257,6 +266,16 @@ function AssistantActionCard({
       </div>
     </div>
   );
+}
+
+function summaryCardTitle(content: string): string | null {
+  const firstLine = content
+    .split(/\r?\n/)
+    .find((line) => line.trim().length > 0)
+    ?.trim();
+  if (!firstLine) return null;
+  const match = firstLine.match(/^Summary of\s+(.+?):?$/i);
+  return match ? `Summary of ${match[1]}` : null;
 }
 
 function actionKindLabel(type: SuggestedAction["type"]): string {

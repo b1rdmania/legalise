@@ -325,7 +325,8 @@ describe("AssistantTab — source chips", () => {
         {
           id: "a-1",
           role: "assistant",
-          content: "The dismissal date is in [doc:doc-public].",
+          content:
+            "Summary of demo-note.txt:\n\n- The dismissal date is in [doc:doc-public].",
           suggested_actions: [],
           created_at: "2026-01-01T00:00:00Z",
         },
@@ -333,7 +334,7 @@ describe("AssistantTab — source chips", () => {
     });
 
     expect(await screen.findByTestId("assistant-action-card")).toHaveTextContent(
-      /Document answer/i,
+      /Summary of demo-note\.txt/i,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Sources" }));

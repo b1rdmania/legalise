@@ -13,6 +13,7 @@ surface, not a domain skill. v0.2 may move it to a forkable skill.
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from pathlib import Path
 
@@ -63,6 +64,9 @@ _CHRONOLOGY_EVENT_LIMIT = 12
 _RECENT_DOCUMENT_LIMIT = 3
 _PER_DOCUMENT_CHAR_BUDGET = 3000 * _CHARS_PER_TOKEN
 _DEFAULT_CONTEXT_TOKEN_BUDGET = 12000
+_SUMMARY_INTENT_RE = re.compile(
+    r"\b(summarise|summarize|summary|sum up|brief)\b", re.I
+)
 
 
 def _truncate(text: str, char_budget: int) -> str:
@@ -229,6 +233,64 @@ def _format_modules(modules: list[tuple[str, str, str]]) -> str:
     )
 
 
+def _looks_like_summary_request(user_content: str) -> bool:
+    return bool(_SUMMARY_INTENT_RE.search(user_content))
+
+
+def _sentence_chunks(text: str) -> list[str]:
+    compact = re.sub(r"\s+", " ", text).strip()
+    if not compact:
+        return []
+    chunks = re.split(r"(?<=[.!?])\s+", compact)
+    return [chunk.strip() for chunk in chunks if chunk.strip()]
+
+
+def _document_summary_content(document: Document, text: str) -> str:
+    sentences = _sentence_chunks(text)
+    if not sentences:
+        return (
+            f"I couldn't find extracted text for {document.filename}. "
+            f"Open the document to inspect the original file. [doc:{document.id}]"
+        )
+
+    lead = sentences[0]
+    bullets = sentences[1:4]
+    lines = [
+        f"Summary of {document.filename}:",
+        "",
+        f"- {lead}",
+    ]
+    for sentence in bullets:
+        lines.append(f"- {sentence}")
+    lines.extend(
+        [
+            "",
+            f"Source: [doc:{document.id}]",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _maybe_deterministic_document_summary(
+    *,
+    user_content: str,
+    snippets: list[tuple[Document, str]],
+) -> tuple[str, list[SuggestedAction]] | None:
+    if not snippets or not _looks_like_summary_request(user_content):
+        return None
+    document, text = snippets[0]
+    return (
+        _document_summary_content(document, text),
+        [
+            SuggestedAction(
+                type="view_document",
+                label="Open document",
+                params={"document_id": str(document.id)},
+            )
+        ],
+    )
+
+
 def _assemble_prompt(
     *,
     matter: Matter,
@@ -312,6 +374,48 @@ async def run_assistant_turn(
     )
     session.add(user_row)
     await session.flush()
+
+    deterministic = _maybe_deterministic_document_summary(
+        user_content=request.content,
+        snippets=snippets,
+    )
+    if deterministic is not None:
+        content_out, actions = deterministic
+        assistant_row = AssistantMessage(
+            matter_id=matter.id,
+            actor_id=actor_id,
+            role=ROLE_ASSISTANT,
+            content=content_out,
+            suggested_actions=[a.model_dump(mode="json") for a in actions],
+            model_used="deterministic-summary",
+            prompt_hash=None,
+            response_hash=None,
+            token_count=0,
+        )
+        session.add(assistant_row)
+        await session.flush()
+
+        await audit_api.log(
+            session,
+            "module.assistant.message",
+            actor_id=actor_id,
+            matter_id=matter.id,
+            module="assistant",
+            resource_type="assistant_message",
+            resource_id=str(assistant_row.id),
+            payload={
+                "suggested_action_count": len(actions),
+                "history_message_count": len(history),
+                "context_token_budget": context_token_budget,
+                "selected_document_count": len(request.selected_document_ids),
+                "parse_failed": False,
+                "deterministic": "document_summary",
+            },
+        )
+        await session.commit()
+        await session.refresh(user_row)
+        await session.refresh(assistant_row)
+        return user_row, assistant_row
 
     result = await gateway.call(
         session=session,

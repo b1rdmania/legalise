@@ -36,7 +36,7 @@ from app.core.model_gateway import (
 )
 from app.core.seed import KHAN_NDA_BODY
 from app.adapters.plugin_bridge import PluginBridge, SkillDisabled
-from app.models import AuditEntry
+from app.models import AuditEntry, Document, DocumentBody
 from app.models.document_edit import DocumentEdit
 from app.modules.contract_review import agents as cr_agents
 from app.modules.contract_review.agents import AgentCall, ParserAgent, RedlinerAgent
@@ -853,6 +853,36 @@ def _make_event(matter_id: uuid.UUID) -> Event:
     return event
 
 
+def _make_document(matter_id: uuid.UUID) -> Document:
+    return Document(
+        id=uuid.uuid4(),
+        matter_id=matter_id,
+        filename="dismissal-letter.txt",
+        mime_type="text/plain",
+        size_bytes=256,
+        sha256="a" * 64,
+        tag="disclosure",
+        from_disclosure=True,
+        uploaded_by_id=uuid.uuid4(),
+    )
+
+
+def _make_document_body(document_id: uuid.UUID) -> DocumentBody:
+    return DocumentBody(
+        document_id=document_id,
+        kind="extracted",
+        extracted_text=(
+            "Acme dismissed Jasmine Khan with immediate effect. "
+            "The dismissal followed a disciplinary hearing on 10 March 2026. "
+            "The stated reason was a personal Instagram post. "
+            "The letter offered payment in lieu of notice."
+        ),
+        extraction_method="passthrough",
+        char_count=210,
+        page_count=1,
+    )
+
+
 class TestAssistantPipeline:
     """Assistant turn persists, audits, round-trips actions, gates posture."""
 
@@ -907,6 +937,42 @@ class TestAssistantPipeline:
         action = assistant_row.suggested_actions[0]
         assert action["type"] == "run_pre_motion"
         assert action["label"] == "Run a pre-motion premortem"
+
+    @pytest.mark.asyncio
+    async def test_selected_document_summary_is_deterministic(self) -> None:
+        matter = _make_matter()
+        document = _make_document(matter.id)
+        body = _make_document_body(document.id)
+        session = _AssistantSession(
+            matter,
+            documents=[document],
+            bodies={document.id: body},
+        )
+        gateway = _AssistantFakeGateway()
+
+        _, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(
+                content="Summarise this document",
+                selected_document_ids=[document.id],
+            ),
+            gateway=gateway,
+        )
+
+        assert gateway.calls == []
+        assert "Summary of dismissal-letter.txt" in assistant_row.content
+        assert f"[doc:{document.id}]" in assistant_row.content
+        assert assistant_row.model_used == "deterministic-summary"
+        assert assistant_row.token_count == 0
+        assert assistant_row.suggested_actions[0]["type"] == "view_document"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["deterministic"] == "document_summary"
 
     @pytest.mark.asyncio
     async def test_prompt_includes_matter_chronology_and_modules(self) -> None:
