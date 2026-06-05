@@ -48,7 +48,9 @@ export function Drawer({
   let secondary: Item[] = [];
 
   if (isDetail && matter) {
-    // Workspace + matter in scope: sidebar nav · - · Modules · Settings · Sign out
+    // Workspace + matter in scope: Chat / Files / Skills · - · Settings · Sign out.
+    // Record, outputs, and working pack stay reachable from cards and
+    // context links; they are not primary destinations in the chat-led shell.
     const rawTab = route.name === "detail" ? route.tab : undefined;
     const currentTab = rawTab && isTabKey(rawTab) ? rawTab : "assistant";
     const activeKey = sidebarActiveFor(currentTab);
@@ -57,10 +59,6 @@ export function Drawer({
       label: t.label,
       active: activeKey === t.key,
     }));
-    primary.push(
-      { href: `/matters/${matter.slug}/artifacts`, label: "Signed outputs" },
-      { href: `/matters/${matter.slug}/lifecycle`, label: "Working pack" },
-    );
     secondary = [
       { href: "/skills", label: "Skills" },
       { href: "/settings/profile", label: "Settings" },

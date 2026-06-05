@@ -19,9 +19,8 @@ import { DEMO_SNAPSHOT } from "./snapshot";
 
 const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
-  { key: "documents", label: "Documents" },
+  { key: "documents", label: "Files" },
   { key: "workflows", label: "Skills" },
-  { key: "audit", label: "Record" },
 ];
 
 // Posture indicator dot (matches ui/Sidebar.tsx). Semantic, not chrome.
@@ -153,8 +152,6 @@ export function DemoMatter() {
       active: sidebarActiveFor(tab) === t.key,
       onSelect: () => setTabAndHash(t.key),
     })),
-    { key: "artifacts", label: "Signed outputs", icon: <NavIcon name="artifacts" />, onSelect: flashRO },
-    { key: "lifecycle", label: "Working pack", icon: <NavIcon name="lifecycle" />, onSelect: flashRO },
   ];
   const utilItems: RailItem[] = [
     { key: "settings", label: "Settings", icon: <NavIcon name="settings" />, onSelect: flashRO },

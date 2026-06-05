@@ -1,6 +1,6 @@
 # Chat-led matter workspace — build-to spec + implementation plan
 
-**Status:** plan, not yet built. Drafted 2026-06-05.
+**Status:** in progress. Drafted 2026-06-05; first shell slice built 2026-06-05.
 **Goal:** convert the matter workspace from tabbed (Pre-Motion / Chronology / Documents / Record as competing tabs) to **chat-led** (a matter-scoped conversation as the primary surface that invokes the 8 skills as tools), matching the Stella/Mike/Harvey shape — *while keeping the governance (audit, privilege posture, sign-off) as the differentiator.*
 
 This is the "Model B chat-dock" deferred in the v0.5 design system.
@@ -17,9 +17,9 @@ The flow is **Ask → Inspect → Edit → Save/Export** — not *Matter tab →
 ┌──────────┬─────────────────────────────────┬ ─ ─ ─ ─ ─ ─ ─ ─ ┐
 │  RAIL    │   CHAT  (the product)           │  RIGHT PANE       │
 │ matters  │                                 │  (hidden by       │
-│ recent   │  matter-scoped thread           │   default)        │
-│ docs     │  ┌───────────────────────────┐  │                   │
-│ outputs  │  │ action card: redline       │  │  opens only for:  │
+│ chat     │  matter-scoped thread           │   default)        │
+│ files    │  ┌───────────────────────────┐  │                   │
+│ skills   │  │ action card: redline       │  │  opens only for:  │
 │          │  │ proposal [Open][Sources]   │  │  · sources        │
 │          │  │          [Versions]        │  │  · doc preview    │
 │          │  └───────────────────────────┘  │  · redlines       │
@@ -29,7 +29,7 @@ The flow is **Ask → Inspect → Edit → Save/Export** — not *Matter tab →
         full-screen editor opens when the user wants to *work in* the doc
 ```
 
-- **Left rail:** matters/projects, recent docs, outputs.
+- **Left rail:** matters/projects plus the thin matter loop: Chat / Files / Skills. Record, signed outputs, and working pack remain routable from cards and contextual links, but are not primary destinations.
 - **Centre:** full-height chat as the default surface.
 - **Chat messages produce durable action cards** — `summary`, `redline proposal`, `draft letter`, `issue list`, `version saved`. Each card opens the full editor, its sources, version history, or the record.
 - **Right pane:** hidden by default; opens lightweight only for sources / document preview / redlines / versions / record.
