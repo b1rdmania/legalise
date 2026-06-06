@@ -112,7 +112,7 @@ export function TrackedChangesView({ result, onResolved, onSavedVersion }: Props
   return (
     <div className="mt-5 border-t border-rule pt-4">
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-        <div className="font-mono uppercase tracking-track2 text-[10px] text-muted">
+        <div className="tech-token uppercase tracking-track2 text-[10px] text-muted">
           Version v{result.version.version_number} · {edits.length} edit
           {edits.length === 1 ? "" : "s"} · {pendingCount} pending · model{" "}
           {result.model_used}
@@ -146,7 +146,7 @@ export function TrackedChangesView({ result, onResolved, onSavedVersion }: Props
 
       {banner && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border border-ink bg-wash p-3 text-[11px] text-ink">
-          <span className="font-mono">
+          <span className="tech-token">
             Version v{banner.version.version_number} saved · {banner.textLength} chars
           </span>
           {onSavedVersion && (

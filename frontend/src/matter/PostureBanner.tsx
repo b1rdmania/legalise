@@ -76,7 +76,7 @@ export function PostureBanner({
           This matter is paused. No skills can run regardless of role.
         </p>
         <p className="mt-1 text-sm text-muted">
-          Requires <code className="font-mono text-xs">matter_paused</code>{" "}
+          Requires <code className="tech-token text-xs">matter_paused</code>{" "}
           (no role satisfies — this is a hard stop).
         </p>
         {adminCanChange && (
@@ -101,17 +101,17 @@ export function PostureBanner({
     return (
       <BannerShell tone="mixed" badge="B_mixed" badgeLabel="Mixed">
         <p className="font-medium text-ink">
-          This matter is marked <code className="font-mono text-xs">B_mixed</code>.
+          This matter is marked <code className="tech-token text-xs">B_mixed</code>.
           Only qualified solicitors can run skills.
         </p>
         <p className="mt-1 text-sm text-muted">
           Requires{" "}
-          <code className="font-mono text-xs">qualified_solicitor</code>.
+          <code className="tech-token text-xs">qualified_solicitor</code>.
           {user && (
             <>
               {" "}
               Your role:{" "}
-              <code className="font-mono text-xs">{user.role}</code>.
+              <code className="tech-token text-xs">{user.role}</code>.
             </>
           )}
         </p>
@@ -130,7 +130,7 @@ export function PostureBanner({
   return (
     <BannerShell tone="mixed" badge={posture} badgeLabel="Unknown">
       <p className="font-medium text-ink">
-        Unknown privilege <code className="font-mono text-xs">{posture}</code>.
+        Unknown privilege <code className="tech-token text-xs">{posture}</code>.
         Skill runs will fail until the matter privilege state is
         recognised.
       </p>

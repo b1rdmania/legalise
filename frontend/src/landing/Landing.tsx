@@ -152,7 +152,7 @@ export function Landing() {
                 key={s.title}
                 className="bg-paper p-6 md:p-8 hover:bg-wash transition-colors"
               >
-                <div className="font-mono text-xs text-muted mb-4">
+                <div className="tech-token text-xs text-muted mb-4">
                   {String(i + 1).padStart(2, "0")} / 06
                 </div>
                 <h3 className="text-lg font-bold text-ink mb-3 tracking-tight2">

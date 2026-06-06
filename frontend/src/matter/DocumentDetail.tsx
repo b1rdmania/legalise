@@ -1985,13 +1985,13 @@ export function DocumentDetail({
                       )}
                       <dl className="space-y-3 text-sm">
                         <DescItem label="Type">
-                          <span className="font-mono text-xs">{doc.mime_type}</span>
+                          <span className="tech-token text-xs">{doc.mime_type}</span>
                         </DescItem>
                         <DescItem label="Uploaded">
                           {doc.uploaded_at.replace("T", " ").slice(0, 19)}
                         </DescItem>
                         <DescItem label="SHA-256">
-                          <span className="font-mono text-xs break-all">{doc.sha256}</span>
+                          <span className="tech-token text-xs break-all">{doc.sha256}</span>
                         </DescItem>
                       </dl>
                       <p className="text-xs text-muted">

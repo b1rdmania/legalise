@@ -101,7 +101,7 @@ function AssistantMessageView({
           " flex flex-col gap-2"
         }
       >
-        <div className={`font-mono ${metaSizing} text-muted`}>
+        <div className={`tech-token ${metaSizing} text-muted`}>
           Assistant{compact ? "" : ` · ${MODEL_LABEL}`}
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
@@ -121,7 +121,7 @@ function AssistantMessageView({
                   c.kind === "doc" ? onDocChip(c.id) : onChronChip(c.id)
                 }
                 title={c.full}
-                className={`inline-flex items-center border border-rule bg-paper text-ink px-2 py-0.5 font-mono ${
+                className={`inline-flex items-center border border-rule bg-paper text-ink px-2 py-0.5 tech-token ${
                   compact ? "text-[10px]" : "text-[11px]"
                 } hover:border-ink transition-colors`}
               >
@@ -208,7 +208,7 @@ function AssistantOutputRow({
     >
       <span
         aria-hidden="true"
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-rule bg-paper-sunken font-mono text-[10px] font-semibold uppercase text-muted"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-rule bg-paper-sunken tech-token text-[10px] font-semibold uppercase text-muted"
       >
         {outputKind.slice(0, 1)}
       </span>
@@ -386,7 +386,7 @@ export interface InlineAgentStep {
 export function InlineAgentStatus({ steps, compact = false }: { steps?: InlineAgentStep[]; compact?: boolean }) {
   const text = compact ? "text-[10px]" : "text-xs";
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 font-mono ${text} text-muted`}>
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 tech-token ${text} text-muted`}>
       <span className="text-prose">Working...</span>
       {(steps ?? []).map((s, i) => (
         <span key={i} className="inline-flex items-center gap-1">

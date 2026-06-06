@@ -211,7 +211,7 @@ export function LawveImport() {
                   >
                     {selected.repo}
                   </a>{" "}
-                  @ <span className="font-mono">{(selected.provenance.ref ?? "").slice(0, 8)}</span>{" "}
+                  @ <span className="tech-token">{(selected.provenance.ref ?? "").slice(0, 8)}</span>{" "}
                   · {selected.provenance.source_path}
                 </p>
 
@@ -316,7 +316,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
         <ul className="mt-3 space-y-1 text-xs">
           {draft.warnings.map((w) => (
             <li key={w.code} className="text-muted">
-              <span className="font-mono text-seal">{w.code}</span> — {w.message}
+              <span className="tech-token text-seal">{w.code}</span> — {w.message}
             </li>
           ))}
         </ul>
@@ -328,7 +328,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
           <ul className="mt-1 space-y-1">
             {draft.errors.map((e, i) => (
               <li key={i}>
-                <span className="font-mono text-muted">{e.path || "/"}</span> — {e.message}
+                <span className="tech-token text-muted">{e.path || "/"}</span> — {e.message}
               </li>
             ))}
           </ul>

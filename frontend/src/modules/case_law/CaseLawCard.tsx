@@ -55,7 +55,7 @@ export function CaseLawCard({ slug, result, onCited }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1 min-w-0">
           <div className="text-sm font-semibold text-ink">{result.case_name}</div>
-          <div className="text-xs font-mono text-prose">
+          <div className="text-xs tech-token text-prose">
             {result.citation_ref}
           </div>
           <div className="text-xs text-muted">

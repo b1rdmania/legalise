@@ -92,7 +92,7 @@ function CompatibilityBadge() {
   return (
     <span
       title="Tested against Anthropic Claude Sonnet 4.6 or newer. Legalise can support other approved model providers; the skill format is Claude-native in V1."
-      className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted"
+      className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 tech-token text-[9px] uppercase tracking-widest text-muted"
     >
       Tested with Claude Sonnet 4.6+
     </span>
@@ -296,7 +296,7 @@ export function ModulesCatalog() {
                     }
                   >
                     {TAB_LABEL[t]}
-                    <span className="ml-1.5 font-mono text-xs text-muted">
+                    <span className="ml-1.5 tech-token text-xs text-muted">
                       {tabCounts[t]}
                     </span>
                   </button>
@@ -353,7 +353,7 @@ export function ModulesCatalog() {
                         {STATE_LABEL[st]}
                       </span>
                     </div>
-                    <p className="mt-1 font-mono text-[11px] text-muted">
+                    <p className="mt-1 tech-token text-[11px] text-muted">
                       {m.module_id}
                       {manifestStr(m, "publisher") ? ` · ${manifestStr(m, "publisher")}` : ""}
                     </p>
@@ -366,7 +366,7 @@ export function ModulesCatalog() {
                     </p>
                     <dl className="mt-3 grid grid-cols-1 gap-2 border-t border-rule pt-3 text-xs sm:grid-cols-2">
                       <div>
-                        <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+                        <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
                           Reads
                         </dt>
                         <dd className="mt-1 text-ink">
@@ -374,7 +374,7 @@ export function ModulesCatalog() {
                         </dd>
                       </div>
                       <div>
-                        <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+                        <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
                           Writes
                         </dt>
                         <dd className="mt-1 text-ink">
@@ -503,7 +503,7 @@ function SkillsBySuite({ skills }: { skills: PublicModuleSkill[] }) {
                   className="bg-paper p-4"
                 >
                   <h4 className="text-sm font-medium text-ink">{s.name}</h4>
-                  <p className="mt-1 font-mono text-[11px] text-muted">{s.skill}</p>
+                  <p className="mt-1 tech-token text-[11px] text-muted">{s.skill}</p>
                   <p className="mt-2 text-sm text-muted line-clamp-2">{s.description}</p>
                 </li>
               ))}

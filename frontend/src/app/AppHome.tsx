@@ -136,10 +136,10 @@ function BootstrapRequiredState() {
         an existing user. This step is deliberately host-side; the UI does
         not expose a self-promotion path.
       </p>
-      <pre className="mt-6 overflow-x-auto rounded-md border border-line bg-paper-sunken px-4 py-3 text-sm font-mono">
+      <pre className="mt-6 overflow-x-auto rounded-md border border-line bg-paper-sunken px-4 py-3 text-sm tech-token">
         <code>{BOOTSTRAP_CLI}</code>
       </pre>
-      <p className="mt-3 text-xs font-mono text-muted">{BOOTSTRAP_PATH}</p>
+      <p className="mt-3 text-xs tech-token text-muted">{BOOTSTRAP_PATH}</p>
       <p className="mt-6 text-sm text-muted">
         Once the bootstrap CLI completes successfully, refresh this page.
       </p>

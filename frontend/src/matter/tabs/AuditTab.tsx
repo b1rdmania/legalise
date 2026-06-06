@@ -50,7 +50,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
 
   return (
     <div>
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-t border-rule bg-paper text-[11px] font-mono">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-t border-rule bg-paper text-[11px] tech-token">
         <span className="text-muted uppercase tracking-track2 text-[9px]">Filter</span>
         <select
           value={moduleFilter}
@@ -78,7 +78,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
       ) : (
         <div className="overflow-x-auto">
           <div className="min-w-[1020px]">
-            <div className="grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
               <span>Timestamp</span>
               <span>Module</span>
               <span>Action</span>
@@ -102,7 +102,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
                   className={
-                    "w-full text-left grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 border-b border-rule transition-colors font-mono text-[11px] items-center " +
+                    "w-full text-left grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 border-b border-rule transition-colors tech-token text-[11px] items-center " +
                     (isSelected ? "bg-wash" : "hover:bg-wash")
                   }
                 >
@@ -169,7 +169,7 @@ function AuditDetailDrawer({
           </button>
         </div>
 
-        <dl className="grid grid-cols-[110px_1fr] gap-y-3 gap-x-4 font-mono text-[12px] mb-6">
+        <dl className="grid grid-cols-[110px_1fr] gap-y-3 gap-x-4 tech-token text-[12px] mb-6">
           <Row label="Timestamp" value={entry.timestamp} />
           <Row label="Module" value={entry.module ?? "-"} />
           <Row label="Action" value={entry.action} />
@@ -187,7 +187,7 @@ function AuditDetailDrawer({
         {hasPayload && (
           <div>
             <div className="eyebrow mb-2">Payload</div>
-          <pre className="rounded-card font-mono text-xs bg-wash border border-rule p-3 overflow-x-auto whitespace-pre-wrap break-all">
+          <pre className="rounded-card tech-token text-xs bg-wash border border-rule p-3 overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(entry.payload, null, 2)}
             </pre>
           </div>
@@ -211,7 +211,7 @@ function Row({
   return (
     <>
       <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">{label}</dt>
-      <dd className={"text-ink " + (mono ? "font-mono " : "") + (brk ? "break-all" : "break-words")}>
+      <dd className={"text-ink " + (mono ? "tech-token " : "") + (brk ? "break-all" : "break-words")}>
         {value}
       </dd>
     </>
@@ -250,7 +250,7 @@ function CopyButton({ value }: { value: string }) {
 function UuidValue({ value }: { value: string }) {
   return (
     <span className="inline-flex items-center gap-2 break-all">
-      <span className="font-mono text-ink" title={value}>
+      <span className="tech-token text-ink" title={value}>
         {truncateUuid(value)}
       </span>
       <CopyButton value={value} />
@@ -301,7 +301,7 @@ function ResourceRow({ entry }: { entry: AuditEntry }) {
       <>
         <RowLabel label="Resource" />
         <dd className="inline-flex items-center gap-2 break-all">
-          <span className="font-mono text-ink" title={`${type}:${id}`}>
+          <span className="tech-token text-ink" title={`${type}:${id}`}>
             {type}:{truncateUuid(id)}
           </span>
           <CopyButton value={`${type}:${id}`} />
@@ -313,7 +313,7 @@ function ResourceRow({ entry }: { entry: AuditEntry }) {
   return (
     <>
       <RowLabel label="Resource" />
-      <dd className="text-ink font-mono break-words">{value}</dd>
+      <dd className="text-ink tech-token break-words">{value}</dd>
     </>
   );
 }
@@ -345,7 +345,7 @@ function MatterIdRow({
               <UuidValue value={matterId} />
             </div>
           ) : (
-            <div className="mt-1 text-muted font-mono break-all">{matterId}</div>
+            <div className="mt-1 text-muted tech-token break-all">{matterId}</div>
           )}
         </dd>
       </>
@@ -364,7 +364,7 @@ function MatterIdRow({
   return (
     <>
       <RowLabel label="Matter id" />
-      <dd className="text-ink font-mono break-words">{matterId}</dd>
+      <dd className="text-ink tech-token break-words">{matterId}</dd>
     </>
   );
 }

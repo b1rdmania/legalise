@@ -228,16 +228,16 @@ export function ArtifactDetail({
         </summary>
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <DT label="Kind">
-            <code className="font-mono text-xs">{a.kind}</code>
+            <code className="tech-token text-xs">{a.kind}</code>
           </DT>
           <DT label="Skill source">
-            <code className="font-mono text-xs">{a.module_id}</code>
+            <code className="tech-token text-xs">{a.module_id}</code>
           </DT>
           <DT label="Permission">
-            <code className="font-mono text-xs">{a.capability_id}</code>
+            <code className="tech-token text-xs">{a.capability_id}</code>
           </DT>
           <DT label="Run id">
-            <code className="font-mono text-xs">{a.invocation_id}</code>
+            <code className="tech-token text-xs">{a.invocation_id}</code>
           </DT>
           <DT label="Size">
             <span>{a.size_bytes.toLocaleString()} bytes</span>

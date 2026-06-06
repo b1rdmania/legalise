@@ -145,8 +145,8 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
               Prepared output — {artifact.kind}
             </h2>
             <p className="mt-1 text-[11px] text-muted">
-              Prepared by <span className="font-mono">{artifact.module_id}</span> ·{" "}
-              <span className="font-mono">{artifact.capability_id}</span>. The output
+              Prepared by <span className="tech-token">{artifact.module_id}</span> ·{" "}
+              <span className="tech-token">{artifact.capability_id}</span>. The output
               payload below is hashed and pinned on sign — this is what your
               signature attaches to.
             </p>

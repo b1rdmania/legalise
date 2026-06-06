@@ -135,7 +135,7 @@ function WorkflowCard({ workflow, slug }: { workflow: WorkflowState; slug: strin
       <div className="text-sm font-semibold text-ink mb-2">{workflow.title}</div>
       <p className="text-xs text-prose leading-relaxed">{workflow.description}</p>
 
-      <dl className="mt-4 grid grid-cols-[88px_1fr] gap-y-1 text-[11px] font-mono">
+      <dl className="mt-4 grid grid-cols-[88px_1fr] gap-y-1 text-[11px] tech-token">
         <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Permission</dt>
         <dd className={grantClasses(workflow.grant)}>{GRANT_LABEL[workflow.grant]}</dd>
         <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">Last run</dt>
@@ -146,7 +146,7 @@ function WorkflowCard({ workflow, slug }: { workflow: WorkflowState; slug: strin
         </dd>
       </dl>
 
-      <div className="mt-4 font-mono uppercase tracking-track2 text-[10px] text-muted group-hover:text-ink transition-colors">
+      <div className="mt-4 tech-token uppercase tracking-track2 text-[10px] text-muted group-hover:text-ink transition-colors">
         Open
       </div>
     </a>

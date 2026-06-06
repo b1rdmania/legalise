@@ -98,7 +98,7 @@ export function ColumnEditor({ columns, onChange }: Props) {
             >
               Remove
             </button>
-            <div className="col-span-12 text-[10px] text-muted font-mono pl-1 uppercase tracking-track2">
+            <div className="col-span-12 text-[10px] text-muted tech-token pl-1 uppercase tracking-track2">
               key: {c.key}
             </div>
           </div>

@@ -418,7 +418,7 @@ export function AssistantTab({
                   {attachedDocs.map((doc) => (
                     <span
                       key={doc.id}
-                      className="inline-flex max-w-full items-center gap-2 rounded-item border border-rule bg-paper px-2 py-1 font-mono text-xs text-ink"
+                      className="inline-flex max-w-full items-center gap-2 rounded-item border border-rule bg-paper px-2 py-1 tech-token text-xs text-ink"
                     >
                       <span className="max-w-[360px] truncate">{doc.filename}</span>
                       <button
@@ -451,7 +451,7 @@ export function AssistantTab({
           className="flex-1 space-y-5 overflow-y-auto border-y border-rule py-6 lg:max-h-[62vh]"
         >
         {!loaded && (
-          <p className="font-mono text-xs text-muted flex items-center gap-2">
+          <p className="tech-token text-xs text-muted flex items-center gap-2">
             <InlineSpinner />
             loading conversation
           </p>
@@ -550,7 +550,7 @@ export function AssistantTab({
                   type="button"
                   onClick={() => removeDoc(d.id)}
                   title={`Remove ${d.filename}`}
-                  className="inline-flex items-center gap-1.5 rounded-item border border-rule bg-paper px-2 py-1 font-mono text-[11px] text-ink hover:border-ink transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-item border border-rule bg-paper px-2 py-1 tech-token text-[11px] text-ink hover:border-ink transition-colors"
                 >
                   <span className="text-muted">Document</span>
                   <span className="max-w-[180px] truncate">{d.filename}</span>
@@ -577,7 +577,7 @@ export function AssistantTab({
                 type="button"
                 onClick={() => setAttachOpen((v) => !v)}
                 data-testid="chat-documents-toggle"
-                className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
+                className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
               >
                 + Documents
               </button>
@@ -587,7 +587,7 @@ export function AssistantTab({
                 aria-expanded={skillsOpen}
                 aria-haspopup="menu"
                 data-testid="chat-skills-toggle"
-                className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
+                className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
               >
                 Skills{runnableSkillCount > 0 ? ` (${runnableSkillCount})` : ""}
               </button>
@@ -671,7 +671,7 @@ export function AssistantTab({
                               onChange={() => toggleDoc(d.id)}
                               className="mt-0.5"
                             />
-                            <span className="font-mono text-ink truncate">{d.filename}</span>
+                            <span className="tech-token text-ink truncate">{d.filename}</span>
                           </label>
                         </li>
                       );
@@ -680,7 +680,7 @@ export function AssistantTab({
                   <button
                     type="button"
                     onClick={() => setAttachOpen(false)}
-                    className="mt-3 font-mono text-[10px] text-muted hover:text-ink"
+                    className="mt-3 tech-token text-[10px] text-muted hover:text-ink"
                   >
                     Close
                   </button>
@@ -977,7 +977,7 @@ function DocumentPaneCard({
 }) {
   return (
     <article className="rounded-card border border-rule bg-paper-sunken p-3">
-      <p className="font-mono text-xs font-semibold text-ink">{doc.filename}</p>
+      <p className="tech-token text-xs font-semibold text-ink">{doc.filename}</p>
       <p className="mt-1 text-xs text-muted">
         {doc.tag || "untagged"} · {doc.mime_type}
       </p>
@@ -1044,7 +1044,7 @@ function MatterContextRail({
             </p>
             <ul className="mt-3 space-y-2">
               {recentDocs.slice(0, 4).map((doc) => (
-                <li key={doc.id} className="truncate font-mono text-xs text-muted">
+                <li key={doc.id} className="truncate tech-token text-xs text-muted">
                   {doc.filename}
                 </li>
               ))}

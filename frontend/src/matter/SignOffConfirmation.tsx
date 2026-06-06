@@ -76,13 +76,13 @@ export function SignOffConfirmation({
         <Row label="Signed by">{signoff.signer_email ?? signoff.signer_id}</Row>
         <Row label="When">{signoff.signed_at.replace("T", " ").slice(0, 19)}</Row>
         <Row label="Output">
-          <span className="font-mono text-xs">
+          <span className="tech-token text-xs">
             {signoff.kind} · {signoff.module_id} / {signoff.capability_id}
           </span>
         </Row>
         {signoff.reasoning && <Row label="Reasoning">{signoff.reasoning}</Row>}
         <Row label="Output hash (pinned)">
-          <span className="break-all font-mono text-[11px]">{signoff.artifact_hash}</span>
+          <span className="break-all tech-token text-[11px]">{signoff.artifact_hash}</span>
         </Row>
       </dl>
 

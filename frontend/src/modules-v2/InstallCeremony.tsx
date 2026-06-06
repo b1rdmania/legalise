@@ -391,7 +391,7 @@ function CapabilityChecklist({ capabilities }: { capabilities: unknown[] }) {
                 ✓
               </span>
               <span>
-                <span className="font-mono text-xs text-ink">{id}</span>
+                <span className="tech-token text-xs text-ink">{id}</span>
                 {kind && (
                   <span className="ml-2 text-xs text-muted">({kind})</span>
                 )}
@@ -468,12 +468,12 @@ function InvalidTransitionBanner({
         Invalid ceremony transition
       </p>
       <p className="mt-1 text-sm text-muted">
-        Action <span className="font-mono">{state.requestedAction}</span> is
+        Action <span className="tech-token">{state.requestedAction}</span> is
         not valid from the current state. {state.message}
       </p>
       <p className="mt-2 text-sm text-muted">
         The runtime wrote a{" "}
-        <span className="font-mono">module.ceremony.rejected</span> audit
+        <span className="tech-token">module.ceremony.rejected</span> audit
         row for this attempt.{" "}
         <a
           href={auditHref}

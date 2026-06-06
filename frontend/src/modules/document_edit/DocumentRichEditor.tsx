@@ -1274,7 +1274,7 @@ export function DocumentRichEditor({
             />
             {editorStatusLabel}. Every save creates a new version.
           </span>
-          <span className="font-mono uppercase tracking-track2" data-testid="document-editor-stats">
+          <span className="tech-token uppercase tracking-track2" data-testid="document-editor-stats">
             {stats.words.toLocaleString()} words · {stats.chars.toLocaleString()} chars ·{" "}
             {stats.blocks.toLocaleString()} blocks
           </span>
@@ -1727,13 +1727,13 @@ export function DocumentRichEditor({
             </div>
             <dl className="flex flex-wrap gap-2 text-xs">
               <div className="border border-rule bg-paper-sunken px-3 py-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Added</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Added</dt>
                 <dd className="mt-1 font-semibold text-green-900">
                   {workingDiffSummary.insertedChars.toLocaleString()} chars
                 </dd>
               </div>
               <div className="border border-rule bg-paper-sunken px-3 py-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Removed</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Removed</dt>
                 <dd className="mt-1 font-semibold text-red-900">
                   {workingDiffSummary.deletedChars.toLocaleString()} chars
                 </dd>
@@ -1790,7 +1790,7 @@ export function DocumentRichEditor({
                 <span className="mt-1 block max-h-10 overflow-hidden text-muted">
                   {note.quote}
                 </span>
-                <span className="mt-2 block font-mono uppercase tracking-track2">
+                <span className="mt-2 block tech-token uppercase tracking-track2">
                   {note.located ? "Located" : "Not located"}
                 </span>
               </button>

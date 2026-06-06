@@ -176,7 +176,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <DT label="Name">{user.name || "—"}</DT>
         <DT label="Role">
-          <code className="font-mono text-xs">{user.role}</code>
+          <code className="tech-token text-xs">{user.role}</code>
         </DT>
         <DT label="Superuser">{user.is_superuser ? "yes" : "no"}</DT>
         <DT label="Active">{user.is_active ? "yes" : "no"}</DT>
@@ -237,8 +237,8 @@ export function AdminUserDetail({ userId }: { userId: string }) {
         {m.kind === "ok" && (
           <p className="mt-3 text-sm text-muted">
             Role set to{" "}
-            <code className="font-mono">{m.newRole}</code>. A real change
-            writes a <code className="font-mono">user.role.changed</code>{" "}
+            <code className="tech-token">{m.newRole}</code>. A real change
+            writes a <code className="tech-token">user.role.changed</code>{" "}
             audit row; setting a role that was already in place is a no-op
             and writes nothing. The audit trail is the source of truth for
             which happened.
@@ -252,12 +252,12 @@ export function AdminUserDetail({ userId }: { userId: string }) {
         {m.kind === "invalid_role" && (
           <p className="mt-3 text-sm text-seal">
             Role{" "}
-            <code className="font-mono">{m.supplied}</code> not in
+            <code className="tech-token">{m.supplied}</code> not in
             allowed set. Substrate allows:{" "}
             {m.allowed.map((r, i) => (
               <span key={r}>
                 {i > 0 && ", "}
-                <code className="font-mono">{r}</code>
+                <code className="tech-token">{r}</code>
               </span>
             ))}
             .

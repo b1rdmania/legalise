@@ -113,7 +113,7 @@ export function VersionTimeline({
 
   if (error) {
     return (
-      <div className="mt-4 border border-rule bg-wash p-3 text-[11px] text-muted font-mono">
+      <div className="mt-4 border border-rule bg-wash p-3 text-[11px] text-muted tech-token">
         {error}
       </div>
     );
@@ -133,15 +133,15 @@ export function VersionTimeline({
         </div>
         <dl className="grid grid-cols-3 gap-2 text-center text-xs">
           <div className="border border-rule bg-paper p-2">
-            <dt className="font-mono uppercase tracking-track2 text-muted">Versions</dt>
+            <dt className="tech-token uppercase tracking-track2 text-muted">Versions</dt>
             <dd className="mt-1 text-sm font-semibold text-ink">{versions.length}</dd>
           </div>
           <div className="border border-rule bg-paper p-2">
-            <dt className="font-mono uppercase tracking-track2 text-muted">Editable</dt>
+            <dt className="tech-token uppercase tracking-track2 text-muted">Editable</dt>
             <dd className="mt-1 text-sm font-semibold text-ink">{versionStats.editable}</dd>
           </div>
           <div className="border border-rule bg-paper p-2">
-            <dt className="font-mono uppercase tracking-track2 text-muted">Files</dt>
+            <dt className="tech-token uppercase tracking-track2 text-muted">Files</dt>
             <dd className="mt-1 text-sm font-semibold text-ink">{versionStats.files}</dd>
           </div>
         </dl>

@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 // Tokens mirror docs/DESIGN.md v0.3 (Document-as-product, Memo + Warp lift).
-// Six named colour tokens, two fonts, three letter-spacing utilities, zero radius, zero shadow.
+// Six named colour tokens, Redaction-first type, three letter-spacing utilities, explicit radius/shadow tokens.
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {

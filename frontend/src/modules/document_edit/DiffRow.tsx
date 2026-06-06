@@ -66,19 +66,19 @@ export function DiffRow({
   return (
     <div className="border border-rule p-3 text-[12px]">
       <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <span className="font-mono text-[10px] text-muted">#{index}</span>
+        <span className="tech-token text-[10px] text-muted">#{index}</span>
         <span
-          className={`font-mono uppercase tracking-track2 text-[9px] border px-1.5 py-0.5 ${statusClasses(edit.status)}`}
+          className={`tech-token uppercase tracking-track2 text-[9px] border px-1.5 py-0.5 ${statusClasses(edit.status)}`}
         >
           {edit.status}
         </span>
         {edit.correlation_id && (
-          <span className="font-mono uppercase tracking-track2 text-[9px] text-muted">
+          <span className="tech-token uppercase tracking-track2 text-[9px] text-muted">
             corr · {edit.correlation_id}
           </span>
         )}
         {conflict && (
-          <span className="font-mono uppercase tracking-track2 text-[9px] text-muted italic">
+          <span className="tech-token uppercase tracking-track2 text-[9px] text-muted italic">
             resolved elsewhere - refreshed
           </span>
         )}

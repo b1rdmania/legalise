@@ -169,7 +169,7 @@ function MotionDraftView({ payload }: { payload: MotionDraftPayload }) {
           {payload.claim_type && (
             <p className="mt-1 text-xs text-muted">
               Claim type:{" "}
-              <code className="font-mono">{payload.claim_type}</code>
+              <code className="tech-token">{payload.claim_type}</code>
             </p>
           )}
         </div>
@@ -202,7 +202,7 @@ function EvidenceListView({ payload }: { payload: EvidenceListPayload }) {
         <tbody>
           {payload.evidence.map((row, i) => (
             <tr key={i} className="border-t border-line">
-              <td className="px-3 py-2 font-mono text-xs">
+              <td className="px-3 py-2 tech-token text-xs">
                 {row.document_id ?? "—"}
               </td>
               <td className="px-3 py-2 text-sm">{row.relevance ?? "—"}</td>
@@ -247,7 +247,7 @@ function FindingsPackView({
         <tbody>
           {payload.findings.map((f, i) => (
             <tr key={i} className="border-t border-line align-top">
-              <td className="px-3 py-2 font-mono text-xs">
+              <td className="px-3 py-2 tech-token text-xs">
                 {f.clause_id ?? "—"}
               </td>
               <td className="px-3 py-2">
@@ -384,7 +384,7 @@ function SkillResponseView({
           )}
           {payload.model_id && (
             <p className="mt-1 text-xs text-muted">
-              Model: <code className="font-mono">{payload.model_id}</code>
+              Model: <code className="tech-token">{payload.model_id}</code>
             </p>
           )}
         </div>

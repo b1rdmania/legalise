@@ -251,23 +251,23 @@ export function DocumentsTab({
             </div>
             <dl className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-5">
               <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Files</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Files</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{docs.length}</dd>
               </div>
               <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Size</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Size</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{formatBytes(totalBytes)}</dd>
               </div>
               <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Open notes</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Open notes</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{openNoteCount}</dd>
               </div>
               <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Versions</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Versions</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{versionCount}</dd>
               </div>
               <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Changes</dt>
+                <dt className="tech-token uppercase tracking-track2 text-muted">Changes</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{pendingEditCount}</dd>
               </div>
             </dl>
@@ -344,7 +344,7 @@ export function DocumentsTab({
                       <p className="truncate text-base font-semibold text-ink">
                         {d.filename}
                       </p>
-                      <p className="mt-1 truncate font-mono text-[11px] text-muted">
+                      <p className="mt-1 truncate tech-token text-[11px] text-muted">
                         {d.sha256.slice(0, 8)}
                       </p>
                     </div>
@@ -352,7 +352,7 @@ export function DocumentsTab({
                   </div>
                   <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Source
                       </dt>
                       <dd className="mt-1 text-ink">
@@ -360,13 +360,13 @@ export function DocumentsTab({
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Size
                       </dt>
                       <dd className="mt-1 text-ink">{formatBytes(d.size_bytes)}</dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Open notes
                       </dt>
                       <dd className="mt-1 text-ink">
@@ -376,7 +376,7 @@ export function DocumentsTab({
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Updated
                       </dt>
                       <dd className="mt-1 text-ink">{formatDate(d.uploaded_at)}</dd>

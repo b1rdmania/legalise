@@ -42,7 +42,7 @@ export function ChronologyTab({
             events={showSoF ? chron.statement_of_facts_variant : chron.events}
           />
           {chron.gate.confirmed && chron.gate.confirmed_at && (
-            <p className="font-mono text-[11px] text-muted mt-4">
+            <p className="tech-token text-[11px] text-muted mt-4">
               cpr_31_22_acknowledged · {chron.gate.confirmed_at.slice(0, 19).replace("T", " ")}
             </p>
           )}
@@ -60,7 +60,7 @@ function ChronologyTable({
   return (
     <div className="border-t border-rule overflow-x-auto">
       <div className="min-w-[720px]">
-        <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+        <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
           <span>Date</span>
           <span>Sig</span>
           <span>Event</span>
@@ -71,7 +71,7 @@ function ChronologyTable({
         return (
           <div
             key={e.id}
-            className="relative h-[22px] grid grid-cols-[110px_50px_1fr_220px] gap-4 items-center px-4 hover:bg-wash transition-colors text-[11px] font-mono border-b border-rule"
+            className="relative h-[22px] grid grid-cols-[110px_50px_1fr_220px] gap-4 items-center px-4 hover:bg-wash transition-colors text-[11px] tech-token border-b border-rule"
           >
             <div
               className="absolute right-0 top-0 bottom-0 bg-[#00A35C]/15 pointer-events-none"

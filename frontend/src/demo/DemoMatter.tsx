@@ -357,7 +357,7 @@ function DemoFact({
 }) {
   return (
     <div className="rounded-card border border-rule bg-paper-sunken p-3">
-      <div className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+      <div className="tech-token text-[10px] uppercase tracking-track2 text-muted">
         {label}
       </div>
       <div className="mt-1 font-semibold text-ink">{value}</div>
@@ -369,7 +369,7 @@ function DemoFact({
 function FlashCta({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="border-b border-rule bg-paper px-4 sm:px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-      <span className="font-mono uppercase tracking-track2 text-[10px] font-bold text-ink">
+      <span className="tech-token uppercase tracking-track2 text-[10px] font-bold text-ink">
         Demo
       </span>
       <span className="text-sm text-ink">{message}.</span>
@@ -890,7 +890,7 @@ function DemoReaderFact({
       <dt className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
         {label}
       </dt>
-      <dd className={`mt-1 break-words text-ink ${mono ? "font-mono text-xs" : ""}`}>
+      <dd className={`mt-1 break-words text-ink ${mono ? "tech-token text-xs" : ""}`}>
         {value}
       </dd>
     </div>

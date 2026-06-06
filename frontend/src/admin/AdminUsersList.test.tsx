@@ -113,8 +113,8 @@ describe("AdminUsersList — admin", () => {
     });
     // Role appears in the table cell. Filter dropdown also has a
     // "solicitor" option; match the row cell specifically by its
-    // monospace styling — only role cells use font-mono on this page.
-    const rowCell = Array.from(document.querySelectorAll("td.font-mono")).find(
+    // monospace styling — only role cells use tech-token on this page.
+    const rowCell = Array.from(document.querySelectorAll("td.tech-token")).find(
       (el) => el.textContent === "solicitor",
     );
     expect(rowCell).toBeTruthy();

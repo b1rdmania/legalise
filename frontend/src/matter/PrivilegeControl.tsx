@@ -21,7 +21,7 @@ export function PrivilegeControl({
       onChange={(e) => onChange(e.target.value)}
       aria-label="Privilege control"
       className={
-        "bg-transparent text-sm font-semibold font-mono border-none outline-none cursor-pointer p-0 -ml-0.5 focus-visible:underline focus-visible:underline-offset-4 " +
+        "bg-transparent text-sm font-semibold tech-token border-none outline-none cursor-pointer p-0 -ml-0.5 focus-visible:underline focus-visible:underline-offset-4 " +
         (isPaused ? "text-seal" : "text-ink")
       }
     >

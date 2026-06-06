@@ -32,7 +32,7 @@ function renderCell(col: ColumnSpec, value: unknown): ReactElement {
         : "#9CA3AF";
     return (
       <span
-        className="inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold"
+        className="inline-flex items-center gap-1.5 border px-2 py-0.5 tech-token uppercase text-[10px] tracking-track2 font-bold"
         style={{ borderColor: colour, color: colour }}
       >
         {s}
@@ -75,7 +75,7 @@ export function ReviewGrid({
       <table className="min-w-full text-sm">
         <thead>
           <tr className="bg-paper border-b border-rule">
-            <th className="sticky left-0 bg-paper px-3 py-3 text-left border-r border-rule font-mono uppercase tracking-track2 text-[9px] text-muted">
+            <th className="sticky left-0 bg-paper px-3 py-3 text-left border-r border-rule tech-token uppercase tracking-track2 text-[9px] text-muted">
               Filename
             </th>
             {columns.map((c) => {
@@ -90,12 +90,12 @@ export function ReviewGrid({
                       <div className="text-sm font-semibold text-ink normal-case">
                         {c.label}
                       </div>
-                      <div className="text-[9px] text-muted font-mono uppercase tracking-track2 mt-0.5">
+                      <div className="text-[9px] text-muted tech-token uppercase tracking-track2 mt-0.5">
                         {c.key} · {c.type}
                       </div>
                     </div>
                     <button
-                      className="text-[10px] px-2 py-0.5 border border-rule hover:border-ink hover:bg-wash transition-colors font-mono uppercase tracking-track2 text-ink disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-[10px] px-2 py-0.5 border border-rule hover:border-ink hover:bg-wash transition-colors tech-token uppercase tracking-track2 text-ink disabled:opacity-40 disabled:cursor-not-allowed"
                       onClick={() => onRunColumn(c.key)}
                       disabled={busy}
                     >
@@ -110,7 +110,7 @@ export function ReviewGrid({
         <tbody>
           {rows.map((r) => (
             <tr key={r.document_id} className="border-t border-rule hover:bg-wash transition-colors">
-              <td className="sticky left-0 bg-paper px-3 py-2 text-left border-r border-rule max-w-[18rem] truncate font-mono text-xs text-ink">
+              <td className="sticky left-0 bg-paper px-3 py-2 text-left border-r border-rule max-w-[18rem] truncate tech-token text-xs text-ink">
                 {r.document_filename}
               </td>
               {columns.map((c) => {

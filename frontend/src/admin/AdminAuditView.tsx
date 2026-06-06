@@ -295,8 +295,8 @@ function FilterChip({
 }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-sunken px-3 py-1 text-xs">
-      <span className="font-mono text-muted">{label}=</span>
-      <span className="font-mono text-ink">{value}</span>
+      <span className="tech-token text-muted">{label}=</span>
+      <span className="tech-token text-ink">{value}</span>
       <a
         href={clearHref}
         className="text-muted hover:text-seal"
@@ -330,9 +330,9 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
           >
             {SOURCE_LABEL[entry.source]}
           </span>
-          <code className="font-mono text-sm">{entry.action}</code>
+          <code className="tech-token text-sm">{entry.action}</code>
         </div>
-        <span className="shrink-0 text-xs font-mono text-muted">
+        <span className="shrink-0 text-xs tech-token text-muted">
           {entry.occurred_at.replace("T", " ").slice(0, 19)}
         </span>
       </button>

@@ -176,7 +176,7 @@ export function GenericSkillRunner({
                     checked={selectedDocIds.has(doc.id)}
                     onChange={() => toggleDoc(doc.id)}
                   />
-                  <span className="truncate font-mono text-xs">{doc.filename}</span>
+                  <span className="truncate tech-token text-xs">{doc.filename}</span>
                 </label>
               ))}
             </div>
@@ -252,7 +252,7 @@ export function GenericSkillRunner({
             value={advancedJson}
             onChange={(e) => setAdvancedJson(e.target.value)}
             rows={3}
-            className="mt-2 w-full rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs"
+            className="mt-2 w-full rounded-md border border-line bg-paper px-2 py-1 tech-token text-xs"
           />
         )}
       </details>
@@ -326,7 +326,7 @@ function RunnerResult({
               ? `${artifacts.length} outputs written`
               : "Run complete"}
         </p>
-        <p className="font-mono text-[11px] text-muted">{response.invocation_id}</p>
+        <p className="tech-token text-[11px] text-muted">{response.invocation_id}</p>
       </div>
       {artifacts.length > 0 ? (
         <div className="mt-3 space-y-4">

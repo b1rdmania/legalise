@@ -12,7 +12,7 @@ function formatType(raw: string): string {
 
 function MonoPill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-item border border-rule px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold text-ink">
+    <span className="inline-flex items-center rounded-item border border-rule px-2 py-0.5 tech-token uppercase text-[10px] tracking-track2 font-bold text-ink">
       {children}
     </span>
   );
@@ -67,7 +67,7 @@ export function MatterList() {
       {matters && matters.length > 0 && (
         <div className="border-t border-rule overflow-x-auto">
           <div className="min-w-[860px]">
-            <div className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
               <span>Matter</span>
               <span>Type</span>
               <span>Status</span>
@@ -85,7 +85,7 @@ export function MatterList() {
                   <span className="block text-sm font-semibold text-ink truncate">
                     {m.title}
                   </span>
-                  <span className="block text-xs font-mono text-muted truncate mt-1">
+                  <span className="block text-xs tech-token text-muted truncate mt-1">
                     {m.slug}
                   </span>
                 </span>
@@ -98,10 +98,10 @@ export function MatterList() {
                 <span>
                   <MonoPill>{m.privilege_posture}</MonoPill>
                 </span>
-                <span className="text-sm font-mono text-ink">
+                <span className="text-sm tech-token text-ink">
                   {m.opened_at.slice(0, 10)}
                 </span>
-                <span className="text-sm font-mono text-muted">
+                <span className="text-sm tech-token text-muted">
                   {m.retention_until ? m.retention_until.slice(0, 10) : "-"}
                 </span>
               </a>

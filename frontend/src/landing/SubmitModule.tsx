@@ -348,7 +348,7 @@ export function SubmitModule() {
           </h2>
           <p className="prose-p mb-4">
             A draft pull request is open against{" "}
-            <code className="font-mono text-sm">b1rdmania/claude-for-uk-legal</code>.
+            <code className="tech-token text-sm">b1rdmania/claude-for-uk-legal</code>.
             The maintainer reviews submissions before merge.
           </p>
           <a
@@ -359,7 +359,7 @@ export function SubmitModule() {
           >
             View on GitHub →
           </a>
-          <p className="text-xs text-muted mt-4 mb-0 font-mono">
+          <p className="text-xs text-muted mt-4 mb-0 tech-token">
             branch: {result.branch_name}
           </p>
         </div>
@@ -371,7 +371,7 @@ export function SubmitModule() {
     <SubmitShell>
       <p className="prose-p mb-8">
         Propose a new skill for the{" "}
-        <code className="font-mono text-sm">claude-for-uk-legal</code>{" "}
+        <code className="tech-token text-sm">claude-for-uk-legal</code>{" "}
         catalogue. The form opens a draft pull request. Declared permission sets
         are surfaced for review; v0.1 does not enforce them at the call site.
       </p>
@@ -388,7 +388,7 @@ export function SubmitModule() {
               value={pluginName}
               onChange={(e) => setPluginName(e.target.value)}
               placeholder="uk-litigation-legal"
-              className="w-full border border-rule px-3 py-2 text-sm font-mono"
+              className="w-full border border-rule px-3 py-2 text-sm tech-token"
               required
             />
           </Field>
@@ -403,7 +403,7 @@ export function SubmitModule() {
               value={skillName}
               onChange={(e) => setSkillName(e.target.value)}
               placeholder="letter-before-action"
-              className="w-full border border-rule px-3 py-2 text-sm font-mono"
+              className="w-full border border-rule px-3 py-2 text-sm tech-token"
               required
             />
           </Field>
@@ -433,7 +433,7 @@ export function SubmitModule() {
               value={bodyMarkdown}
               onChange={(e) => setBodyMarkdown(e.target.value)}
               placeholder={"# Letter Before Action\n\n## When to use\n…\n"}
-              className="w-full border border-rule px-3 py-2 text-sm font-mono min-h-[180px]"
+              className="w-full border border-rule px-3 py-2 text-sm tech-token min-h-[180px]"
               rows={8}
               required
             />
@@ -442,7 +442,7 @@ export function SubmitModule() {
           <Field label="Declared permission sets" hint="Closed set; for review, not enforced.">
             <div className="grid grid-cols-2 gap-2">
               {SUBMISSION_CAPABILITIES.map((c) => (
-                <label key={c} className="flex items-center gap-2 text-sm font-mono">
+                <label key={c} className="flex items-center gap-2 text-sm tech-token">
                   <input
                     type="checkbox"
                     checked={capabilities.includes(c)}
@@ -458,7 +458,7 @@ export function SubmitModule() {
           <Field label="Trust state" hint="Declarative only in v0.1.">
             <div className="flex flex-wrap gap-4">
               {SUBMISSION_TRUST_POSTURES.map((p) => (
-                <label key={p} className="flex items-center gap-2 text-sm font-mono">
+                <label key={p} className="flex items-center gap-2 text-sm tech-token">
                   <input
                     type="radio"
                     name="trust_posture"
@@ -483,7 +483,7 @@ export function SubmitModule() {
               value={submitterHandle}
               onChange={(e) => setSubmitterHandle(e.target.value)}
               placeholder="octocat"
-              className="w-full border border-rule px-3 py-2 text-sm font-mono"
+              className="w-full border border-rule px-3 py-2 text-sm tech-token"
               required
             />
           </Field>
@@ -542,10 +542,10 @@ export function SubmitModule() {
         </div>
 
         <div>
-          <div className="eyebrow font-mono text-muted mb-3">
+          <div className="eyebrow tech-token text-muted mb-3">
             PREVIEW · SKILL.md (server is authoritative)
           </div>
-          <pre className="bg-wash border border-rule p-4 text-xs font-mono whitespace-pre-wrap overflow-x-auto min-h-[300px]">
+          <pre className="bg-wash border border-rule p-4 text-xs tech-token whitespace-pre-wrap overflow-x-auto min-h-[300px]">
             {previewText}
           </pre>
         </div>
@@ -559,7 +559,7 @@ function SubmitShell({ children }: { children: React.ReactNode }) {
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-16">
       <div className="max-w-5xl">
         <div className="mb-10">
-          <div className="eyebrow font-mono text-muted mb-4">PUBLIC SUBMISSION</div>
+          <div className="eyebrow tech-token text-muted mb-4">PUBLIC SUBMISSION</div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-4 leading-[1.1]">
             Submit a skill to claude-for-uk-legal.
           </h1>
@@ -588,7 +588,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="eyebrow font-mono text-muted mb-1.5 block">{label}</span>
+      <span className="eyebrow tech-token text-muted mb-1.5 block">{label}</span>
       {children}
       {hint && (
         <span

@@ -319,11 +319,11 @@ function DeletePanel({ slug, isClosed }: { slug: string; isClosed: boolean }) {
 
       <label className="mt-4 block text-xs text-muted">
         Type the matter reference{" "}
-        <span className="font-mono text-ink">{slug}</span> to confirm:
+        <span className="tech-token text-ink">{slug}</span> to confirm:
         <input
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
-          className="mt-1 w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-sm text-ink"
+          className="mt-1 w-full rounded-md border border-rule bg-paper px-3 py-2 tech-token text-sm text-ink"
           data-testid="delete-confirm-input"
           placeholder={slug}
         />

@@ -543,7 +543,7 @@ export function GrantsPanel({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-ink">{item.capabilityId}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-muted">
+                  <p className="mt-0.5 tech-token text-[11px] text-muted">
                     {item.moduleName === item.moduleId
                       ? "Installed skill"
                       : item.moduleName}
@@ -603,7 +603,7 @@ export function GrantsPanel({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm">{p.moduleName}</p>
-                    <p className="text-xs font-mono text-muted">
+                    <p className="text-xs tech-token text-muted">
                       {p.moduleId} · {p.capabilityId}
                     </p>
                   </div>
@@ -678,9 +678,9 @@ export function GrantsPanel({
               <tbody>
                 {grants.grants.map((g) => (
                   <tr key={g.id} className="border-t border-line">
-                    <td className="px-3 py-2 font-mono text-xs">{g.plugin}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{g.skill}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{g.capability}</td>
+                    <td className="px-3 py-2 tech-token text-xs">{g.plugin}</td>
+                    <td className="px-3 py-2 tech-token text-xs">{g.skill}</td>
+                    <td className="px-3 py-2 tech-token text-xs">{g.capability}</td>
                     <td className="px-3 py-2 text-xs text-muted">
                       {g.granted_at ? g.granted_at.slice(0, 19).replace("T", " ") : "—"}
                     </td>
@@ -800,16 +800,16 @@ export function GrantsPanel({
         {createState.kind === "not_installed" && (
           <p className="mt-3 text-sm text-seal">
             Skill{" "}
-            <span className="font-mono">{createState.moduleId}</span> is
+            <span className="tech-token">{createState.moduleId}</span> is
             not installed on this workspace. Ask an administrator to
             install it from{" "}
-            <code className="font-mono text-xs">/skills</code> first.
+            <code className="tech-token text-xs">/skills</code> first.
           </p>
         )}
         {createState.kind === "disabled" && (
           <p className="mt-3 text-sm text-seal">
             Skill{" "}
-            <span className="font-mono">{createState.moduleId}</span> is
+            <span className="tech-token">{createState.moduleId}</span> is
             installed but currently disabled. {createState.message}
           </p>
         )}

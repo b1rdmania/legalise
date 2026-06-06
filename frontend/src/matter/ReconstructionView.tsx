@@ -251,7 +251,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
         <div>
           <p className="text-xs uppercase tracking-widest text-muted">Matter record</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight2">What happened here</h1>
-          <p className="mt-1 text-xs font-mono text-muted">{slug}</p>
+          <p className="mt-1 text-xs tech-token text-muted">{slug}</p>
           <p className="mt-3 max-w-2xl text-sm text-muted">
             Skills run, documents referenced, outputs written, sign-offs,
             reviews, and blocked attempts. Raw audit sources are still here,
@@ -477,8 +477,8 @@ function FilterChip({
 }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-sunken px-3 py-1 text-xs">
-      <span className="font-mono text-muted">{label}=</span>
-      <span className="font-mono text-ink">{value}</span>
+      <span className="tech-token text-muted">{label}=</span>
+      <span className="tech-token text-ink">{value}</span>
       <a
         href={clearHref}
         className="text-muted hover:text-seal"
@@ -529,7 +529,7 @@ function InvocationChain({
           <span className="text-xs uppercase tracking-widest text-muted">
             Run
           </span>
-          <code className="font-mono text-sm">{invocationId.slice(0, 8)}…</code>
+          <code className="tech-token text-sm">{invocationId.slice(0, 8)}…</code>
           <span className="text-xs text-muted">{ordered.length} events</span>
         </span>
         {outcome && (
@@ -548,7 +548,7 @@ function InvocationChain({
               <span className="uppercase tracking-widest text-muted">Output</span>{" "}
               <a
                 href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifactId)}`}
-                className="font-mono underline underline-offset-4 hover:text-ink"
+                className="tech-token underline underline-offset-4 hover:text-ink"
               >
                 artifact {artifactId.slice(0, 8)}…
               </a>
@@ -671,19 +671,19 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
           >
             {SOURCE_LABEL[entry.source]}
           </span>
-          <code className="font-mono text-sm">{entry.action}</code>
+          <code className="tech-token text-sm">{entry.action}</code>
           {entry.module_id && (
             <span className="text-xs text-muted">
-              · <code className="font-mono">{entry.module_id}</code>
+              · <code className="tech-token">{entry.module_id}</code>
             </span>
           )}
           {entry.capability_id && (
             <span className="text-xs text-muted">
-              <code className="font-mono">{entry.capability_id}</code>
+              <code className="tech-token">{entry.capability_id}</code>
             </span>
           )}
         </div>
-        <span className="shrink-0 text-xs font-mono text-muted">
+        <span className="shrink-0 text-xs tech-token text-muted">
           {entry.occurred_at.replace("T", " ").slice(0, 19)}
         </span>
       </button>
@@ -691,13 +691,13 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
         {entry.actor.role && (
           <span>
-            role: <code className="font-mono">{String(entry.actor.role)}</code>
+            role: <code className="tech-token">{String(entry.actor.role)}</code>
           </span>
         )}
         {entry.actor.user_id && (
           <span>
             user:{" "}
-            <code className="font-mono">
+            <code className="tech-token">
               {String(entry.actor.user_id).slice(0, 8)}…
             </code>
           </span>

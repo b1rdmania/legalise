@@ -269,7 +269,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           <ul className="mt-2 list-disc pl-5 text-sm text-muted">
             {entry.validation_errors.map((e, i) => (
               <li key={i}>
-                <span className="font-mono">{e.path}</span>: {e.message}
+                <span className="tech-token">{e.path}</span>: {e.message}
               </li>
             ))}
           </ul>
@@ -353,7 +353,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
               onChange={(e) => setUpdateJson(e.target.value)}
               rows={8}
               spellCheck={false}
-              className="mt-2 w-full rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs"
+              className="mt-2 w-full rounded-md border border-line bg-paper px-3 py-2 tech-token text-xs"
               placeholder='{ "schema_version": "2.0.0", "id": "...", "version": "...", "publisher": "...", "visibility": "...", "runtime": "...", "entrypoint": {...}, "capabilities": [...] }'
             />
             <div className="mt-2 flex gap-2">
@@ -420,7 +420,7 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
   return (
     <li className="bg-paper p-4">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="font-mono text-sm text-ink">{cap.id ?? "—"}</p>
+        <p className="tech-token text-sm text-ink">{cap.id ?? "—"}</p>
         {cap.scope && (
           <span className="text-[10px] uppercase tracking-widest text-muted">
             {cap.scope}
@@ -455,7 +455,7 @@ function Access({ label, items }: { label: string; items: string[] }) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="mt-0.5 font-mono text-xs text-muted">{items.join(", ")}</dd>
+      <dd className="mt-0.5 tech-token text-xs text-muted">{items.join(", ")}</dd>
     </div>
   );
 }
@@ -562,7 +562,7 @@ function Field({
   return (
     <div>
       <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className={"mt-0.5 " + (mono ? "font-mono text-xs" : "text-sm")}>
+      <dd className={"mt-0.5 " + (mono ? "tech-token text-xs" : "text-sm")}>
         {value}
       </dd>
       {hint && <p className="mt-0.5 text-[11px] text-muted">{hint}</p>}

@@ -396,7 +396,7 @@ function EnabledModuleRow({
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{name}</p>
-          <p className="mt-0.5 font-mono text-[11px] text-muted">
+          <p className="mt-0.5 tech-token text-[11px] text-muted">
             {entry.module_id}
           </p>
         </div>
@@ -452,7 +452,7 @@ function AvailableModuleRow({
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{name}</p>
-          <p className="mt-0.5 font-mono text-[11px] text-muted">
+          <p className="mt-0.5 tech-token text-[11px] text-muted">
             {entry.module_id}
             {publisher ? ` · ${publisher}` : ""}
           </p>
@@ -496,7 +496,7 @@ function Meta({
 }) {
   return (
     <div>
-      <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+      <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
         {label}
       </dt>
       <dd className={"mt-1 " + (tone ?? "text-ink")}>{value}</dd>
@@ -574,7 +574,7 @@ function EnableSkillModal({
         <h2 id="enable-skill-title" className="mt-1 text-lg font-semibold text-ink">
           Enable {name} in this matter
         </h2>
-        <p className="mt-1 font-mono text-[11px] text-muted">{entry.module_id}</p>
+        <p className="mt-1 tech-token text-[11px] text-muted">{entry.module_id}</p>
 
         {/* Step 3 — document scope */}
         <Block label="Documents this skill will see">

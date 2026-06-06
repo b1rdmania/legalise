@@ -14,7 +14,7 @@ export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: 
       </p>
       <p className="text-prose leading-relaxed mb-4">
         Acknowledgement is recorded in the Record (audit action:{" "}
-        <span className="font-mono text-xs text-ink">chronology.gate.confirmed</span>) and scoped
+        <span className="tech-token text-xs text-ink">chronology.gate.confirmed</span>) and scoped
         to this matter and user.
       </p>
       <button

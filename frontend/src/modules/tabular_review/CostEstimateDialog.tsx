@@ -37,7 +37,7 @@ export function CostEstimateDialog({ estimate, onConfirm, onCancel, busy }: Prop
           </p>
         ) : (
           <>
-            <dl className="text-sm space-y-1.5 font-mono">
+            <dl className="text-sm space-y-1.5 tech-token">
               <div className="flex justify-between">
                 <dt className="text-muted">Total cells</dt>
                 <dd className="text-ink">{estimate.total_calls}</dd>

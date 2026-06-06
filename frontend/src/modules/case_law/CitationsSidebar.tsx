@@ -68,7 +68,7 @@ export function CitationsSidebar({ slug, refreshKey, initialCitations }: Props) 
                   <div className="text-sm font-semibold text-ink truncate">
                     {c.case_name || "(unnamed)"}
                   </div>
-                  <div className="text-xs font-mono text-prose truncate">
+                  <div className="text-xs tech-token text-prose truncate">
                     {c.citation_ref}
                   </div>
                 </div>

@@ -83,16 +83,16 @@ export function CreateModule() {
         <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           {REQUIRED_FIELDS.map((f) => (
             <div key={f.field}>
-              <dt className="font-mono text-xs text-ink">{f.field}</dt>
+              <dt className="tech-token text-xs text-ink">{f.field}</dt>
               <dd className="text-xs text-muted">{f.what}</dd>
             </div>
           ))}
         </dl>
         <p className="mt-3 text-xs text-muted">
-          Each permission set declares its <span className="font-mono">reads</span> /{" "}
-          <span className="font-mono">writes</span>, <span className="font-mono">gates</span>,{" "}
-          <span className="font-mono">advice_tier_max</span>, and the{" "}
-          <span className="font-mono">audit_events</span> it emits — that
+          Each permission set declares its <span className="tech-token">reads</span> /{" "}
+          <span className="tech-token">writes</span>, <span className="tech-token">gates</span>,{" "}
+          <span className="tech-token">advice_tier_max</span>, and the{" "}
+          <span className="tech-token">audit_events</span> it emits — that
           declaration is what the runtime gates and the audit trail records.
         </p>
       </section>
@@ -107,7 +107,7 @@ export function CreateModule() {
           rows={12}
           spellCheck={false}
           placeholder='{ "schema_version": "2.0.0", "id": "...", "version": "...", "publisher": "...", "visibility": "...", "runtime": "...", "entrypoint": {...}, "capabilities": [...] }'
-          className="mt-3 w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-xs"
+          className="mt-3 w-full rounded-md border border-rule bg-paper px-3 py-2 tech-token text-xs"
           data-testid="manifest-input"
         />
         <button
@@ -142,7 +142,7 @@ export function CreateModule() {
             <ul className="mt-2 space-y-1 text-xs">
               {result.result.errors.map((e, i) => (
                 <li key={i}>
-                  <span className="font-mono text-muted">{e.path || "/"}</span>
+                  <span className="tech-token text-muted">{e.path || "/"}</span>
                   {" — "}
                   {e.message}
                 </li>

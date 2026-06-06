@@ -77,7 +77,7 @@ export function EmptyState({
 
 export function LoadingLine({ label }: { label: string }) {
   return (
-    <p className="font-mono text-xs text-muted flex items-center gap-2">
+    <p className="tech-token text-xs text-muted flex items-center gap-2">
       <InlineSpinner />
       {label}
     </p>
@@ -127,7 +127,7 @@ export function Field({
 
 export function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="border border-rule rounded-item text-ink text-[10px] font-mono uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
+    <span className="border border-rule rounded-item text-ink text-[10px] tech-token uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
       {children}
     </span>
   );
@@ -146,7 +146,7 @@ export function ToggleButton({
     <button
       onClick={onClick}
       className={
-        "font-mono uppercase text-[11px] tracking-track2 font-bold border-b-2 h-full pt-1 -mb-px transition-colors " +
+        "tech-token uppercase text-[11px] tracking-track2 font-bold border-b-2 h-full pt-1 -mb-px transition-colors " +
         (active
           ? "text-ink border-ink"
           : "text-muted hover:text-ink border-transparent")
@@ -205,7 +205,7 @@ export function PageHeader({
             <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
           )}
           <h1 className="mt-1 text-2xl font-bold tracking-tight2 text-ink">{title}</h1>
-          {subId && <p className="mt-1 font-mono text-xs text-muted">{subId}</p>}
+          {subId && <p className="mt-1 tech-token text-xs text-muted">{subId}</p>}
           {description && (
             <p className="mt-2 max-w-2xl text-sm text-muted">{description}</p>
           )}

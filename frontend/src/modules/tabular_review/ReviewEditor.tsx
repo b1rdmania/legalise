@@ -162,7 +162,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
           <h2 className="text-2xl font-bold tracking-tight2 text-ink mb-1">
             {review.title}
           </h2>
-          <div className="text-xs font-mono text-muted">{review.rows.length} rows</div>
+          <div className="text-xs tech-token text-muted">{review.rows.length} rows</div>
         </div>
         <div className="flex gap-2 shrink-0">
           {isDirty && (
@@ -209,7 +209,7 @@ export function ReviewEditor({ slug, reviewId, onBack }: Props) {
       />
 
       {lastReport && (
-        <div className="border border-rule p-3 text-xs font-mono text-prose">
+        <div className="border border-rule p-3 text-xs tech-token text-prose">
           Last run: {lastReport.cells_run} cells ok
           {lastReport.cells_failed > 0 && ` · ${lastReport.cells_failed} failed`}
           {" · "}

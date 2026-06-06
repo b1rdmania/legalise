@@ -94,6 +94,12 @@
     font-family: "Redaction", Georgia, serif;
   }
 
+  .tech-token {
+    font-family: "Redaction", Georgia, "Times New Roman", serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
   .prose-p {
     color: #4B5563;
     margin-bottom: 1.5rem;

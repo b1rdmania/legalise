@@ -40,7 +40,7 @@ export function ProfileChip({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="w-8 h-8 bg-ink text-paper flex items-center justify-center font-mono text-sm font-semibold">
+        <span className="w-8 h-8 bg-ink text-paper flex items-center justify-center tech-token text-sm font-semibold">
           {initial}
         </span>
         <span className="text-sm truncate max-w-[180px]">{label}</span>
