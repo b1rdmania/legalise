@@ -1333,6 +1333,126 @@ class TestAssistantPipeline:
         assert events[5][1]["stage"] == "assistant.final"
         assert events[-1][1]["tool_failed"] is False
 
+    def test_stream_route_emits_tool_progress_and_result(self) -> None:
+        """The UI calls the SSE route, so prove the HTTP boundary carries
+        tool progress frames through to the browser-facing stream.
+        """
+        from fastapi.testclient import TestClient
+        from app.core.auth import current_user
+        from app.main import app
+        from app.modules.assistant import router as assistant_router
+
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        user = _UserStub()
+        user.id = matter.created_by_id
+        invocation_id = uuid.uuid4()
+
+        class _SessionFactory:
+            def __call__(self):
+                return self
+
+            async def __aenter__(self):
+                return session
+
+            async def __aexit__(self, *_exc):
+                return None
+
+        async def _override_user():
+            return user
+
+        async def _fake_run_assistant_turn(
+            *,
+            session,
+            matter,
+            actor_id,
+            actor_role,
+            request,
+            on_event=None,
+        ):
+            assert request.content == "Review this contract"
+            assert actor_id == user.id
+            assert actor_role == "owner"
+            assert on_event is not None
+            await on_event(
+                "context.loaded",
+                {"document_count": 1, "chronology_count": 0, "tool_count": 1},
+            )
+            await on_event(
+                "tool.start",
+                {
+                    "module_id": "legalise.contract_review",
+                    "capability_id": "review",
+                },
+            )
+            await on_event(
+                "tool.end",
+                {
+                    "module_id": "legalise.contract_review",
+                    "capability_id": "review",
+                    "invocation_id": str(invocation_id),
+                },
+            )
+            user_row = AssistantMessageRow(
+                id=uuid.uuid4(),
+                matter_id=matter.id,
+                actor_id=actor_id,
+                role="user",
+                content=request.content,
+                suggested_actions=[],
+                created_at=datetime.now(timezone.utc),
+            )
+            assistant_row = AssistantMessageRow(
+                id=uuid.uuid4(),
+                matter_id=matter.id,
+                actor_id=actor_id,
+                role="assistant",
+                content="Contract review completed.",
+                suggested_actions=[
+                    {
+                        "type": "view_audit",
+                        "label": "Open Record",
+                        "params": {"invocation_id": str(invocation_id)},
+                    }
+                ],
+                created_at=datetime.now(timezone.utc),
+            )
+            return user_row, assistant_row
+
+        had_previous_factory = hasattr(app.state, "session_factory")
+        previous_factory = getattr(app.state, "session_factory", None)
+        app.state.session_factory = _SessionFactory()
+        app.dependency_overrides[current_user] = _override_user
+        try:
+            with patch.object(
+                assistant_router, "run_assistant_turn", _fake_run_assistant_turn
+            ):
+                client = TestClient(app)
+                with client.stream(
+                    "POST",
+                    f"/api/matters/{matter.slug}/assistant/messages/stream",
+                    json={"content": "Review this contract"},
+                ) as resp:
+                    body = "".join(resp.iter_text())
+        finally:
+            app.dependency_overrides.clear()
+            if had_previous_factory:
+                app.state.session_factory = previous_factory
+            else:
+                try:
+                    delattr(app.state, "session_factory")
+                except AttributeError:
+                    pass
+
+        assert resp.status_code == 200
+        assert "event: turn.start" in body
+        assert "event: context.loaded" in body
+        assert "event: tool.start" in body
+        assert "event: tool.end" in body
+        assert "event: result" in body
+        assert "Contract review completed." in body
+        assert str(invocation_id) in body
+
     @pytest.mark.asyncio
     async def test_c_paused_returns_409(self) -> None:
         from fastapi.testclient import TestClient
