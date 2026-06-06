@@ -136,7 +136,7 @@ function WorkbenchTab({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[40px] border px-4 text-sm font-medium transition-colors ${
+      className={`min-h-[34px] rounded-item border px-3 text-[13px] transition-colors ${
         active
           ? "border-ink bg-ink text-paper"
           : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
@@ -860,59 +860,62 @@ export function DocumentDetail({
               };
 
   return (
-    <div className="bg-wash px-4 py-6 text-ink sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="bg-wash px-4 py-5 text-ink sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/matters/$slug/$tab"
             params={{ slug, tab: backTab }}
-            className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+            className="text-[13px] text-muted underline underline-offset-4 decoration-rule hover:text-ink"
             data-testid="document-back-link"
           >
             {backLabel}
           </Link>
           <a
             href={recordHref}
-            className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+            className="text-[13px] text-muted underline underline-offset-4 decoration-rule hover:text-ink"
           >
-            View matter Record →
+            Activity
           </a>
         </div>
 
-        <header className="rounded-card border border-rule bg-paper px-5 py-5 sm:px-6">
+        <header className="border-b border-rule pb-5">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-              Document workspace
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
+            <h1 className="max-w-4xl break-words text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[36px]">
               {doc.filename}
             </h1>
-            <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              <span className="rounded-item border border-ink bg-ink px-2 py-1 text-paper">
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-muted">
+              <span className="inline-flex items-center gap-1.5 text-ink">
+                <span className="h-2 w-2 rounded-full bg-[#0B7A55]" aria-hidden />
                 {documentStateLabel}
               </span>
-              <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
-                {doc.tag || "untagged"}
-              </span>
-              <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
-                {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
-              </span>
-              <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
+              <span aria-hidden="true">·</span>
+              <span>{doc.tag || "untagged"}</span>
+              <span aria-hidden="true">·</span>
+              <span>{doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}</span>
+              <span aria-hidden="true">·</span>
+              <span className="tech-token">
                 {formatBytes(doc.size_bytes)}
               </span>
               {latestVersion && (
-                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
+                <>
+                <span aria-hidden="true">·</span>
+                <span className="tech-token">
                   v{latestVersion.version_number}
                 </span>
+                </>
               )}
               {selectedResolvedVersion && (
-                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
+                <>
+                <span aria-hidden="true">·</span>
+                <span>
                   editable
                 </span>
+                </>
               )}
             </div>
             <p
-              className="mt-4 text-sm leading-6 text-muted"
+              className="mt-3 text-[13px] leading-6 text-muted"
               data-testid="document-header-status"
             >
               {headerStatusItems.map((item, index) => (
@@ -952,24 +955,21 @@ export function DocumentDetail({
         )}
 
         <section
-          className="mt-4 rounded-card border border-rule bg-paper"
+          className="mt-5 rounded-card border border-rule bg-paper"
           aria-label="Document command surface"
           data-testid="document-command-bar"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-3 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-3 py-2.5">
             <nav
               className="flex flex-wrap items-center gap-2"
               aria-label="Document workspace views"
               data-testid="document-workbench-tabs"
             >
-              <span className="mr-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                View
-              </span>
               <WorkbenchTab
                 active={workbenchView === "editor"}
                 onClick={() => openWorkbenchView("editor")}
               >
-                Read / edit
+                Read
               </WorkbenchTab>
               <WorkbenchTab
                 active={workbenchView === "original"}
@@ -993,10 +993,10 @@ export function DocumentDetail({
               )}
             </nav>
             <div
-              className="flex flex-wrap items-center gap-2 text-sm"
+              className="flex flex-wrap items-center gap-2 text-[13px]"
               data-testid="document-presence-strip"
             >
-              <span className="font-semibold text-ink">
+              <span className="text-ink">
                 {activeEditSessions.length > 1
                   ? `${activeEditSessions.length} people have this file open`
                   : "You are working in this file"}
@@ -1005,19 +1005,19 @@ export function DocumentDetail({
               {activeEditSessions.slice(0, 4).map((session) => (
                 <span
                   key={session.id}
-                  className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted"
+                  className="rounded-item border border-rule bg-paper-sunken px-2 py-0.5 text-xs text-muted"
                 >
                   {session.user_label}
                 </span>
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 px-3 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[13px]">
             <Link
               to="/matters/$slug/$tab"
               params={{ slug, tab: "assistant" }}
               search={{ document: documentId }}
-              className="inline-flex min-h-[40px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-black"
+              className="inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-black"
               data-testid="document-ask-chat-link"
             >
               Ask about this file
@@ -1026,7 +1026,7 @@ export function DocumentDetail({
               <button
                 type="button"
                 onClick={() => openDocumentSkill(primaryDocumentSkill)}
-                className="inline-flex min-h-[40px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
+                className="inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
                 data-testid="document-run-primary-skill"
               >
                 Run skill
@@ -1036,22 +1036,22 @@ export function DocumentDetail({
               <>
                 <a
                   href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
-                  className="inline-flex min-h-[40px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
+                  className="inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
                   data-testid="document-download-edited-docx"
                 >
                   Download edited DOCX
                 </a>
                 <a
                   href={documentVersionPdfUrl(documentId, selectedResolvedVersion.id)}
-                  className="inline-flex min-h-[40px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
+                  className="inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
                   data-testid="document-download-edited-pdf"
                 >
                   Download PDF
                 </a>
               </>
             )}
-            <details className="ml-auto rounded-item border border-rule bg-paper-sunken px-3 py-2">
-              <summary className="cursor-pointer text-sm font-medium text-ink">
+            <details className="ml-auto rounded-item border border-rule bg-paper-sunken px-3 py-1.5">
+              <summary className="cursor-pointer text-[13px] text-ink">
                 More actions
               </summary>
               <div className="mt-3 grid min-w-48 gap-2">

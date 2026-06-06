@@ -11,7 +11,7 @@
  * an <a href> (real routes) or a <button onClick> (demo tab switch).
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { BrandMark } from "./BrandMark";
 
 export type RailItem = {
@@ -26,14 +26,7 @@ export type RailItem = {
 
 export type RailPosture = { label: string; dot: string };
 
-function SectionLabel({ children, collapsed }: { children: ReactNode; collapsed: boolean }) {
-  if (collapsed) {
-    return (
-      <div className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted md:mx-4 md:my-3 md:border-t md:border-rule md:p-0 md:text-[0px]" aria-hidden="true">
-        {children}
-      </div>
-    );
-  }
+function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <div className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
       {children}
@@ -41,47 +34,45 @@ function SectionLabel({ children, collapsed }: { children: ReactNode; collapsed:
   );
 }
 
-function NavLink({ item, collapsed }: { item: RailItem; collapsed: boolean }) {
+function NavLink({ item }: { item: RailItem }) {
   const className =
-    "mx-2 flex items-center min-h-[40px] rounded-item text-sm text-left transition-colors " +
-    (collapsed ? "md:justify-center md:px-0 md:gap-0 gap-3 px-3 " : "gap-3 px-3 ") +
+    "mx-2 flex items-center gap-3 min-h-[40px] px-3 rounded-item text-sm text-left transition-colors " +
     (item.active
       ? "bg-panel-sel text-ink font-semibold"
       : "text-prose hover:bg-panel-hover hover:text-ink");
   const inner = (
     <>
       {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
-      <span className={collapsed ? "truncate md:sr-only" : "truncate"}>{item.label}</span>
+      <span className="truncate">{item.label}</span>
     </>
   );
   if (item.href) {
     return (
-      <a href={item.href} title={collapsed ? item.label : undefined} data-testid={item.testid} className={className} aria-current={item.active ? "page" : undefined}>
+      <a href={item.href} data-testid={item.testid} className={className} aria-current={item.active ? "page" : undefined}>
         {inner}
       </a>
     );
   }
   return (
-    <button type="button" onClick={item.onSelect} title={collapsed ? item.label : undefined} data-testid={item.testid} className={"w-[calc(100%-1rem)] " + className} aria-current={item.active ? "page" : undefined}>
+    <button type="button" onClick={item.onSelect} data-testid={item.testid} className={"w-[calc(100%-1rem)] " + className} aria-current={item.active ? "page" : undefined}>
       {inner}
     </button>
   );
 }
 
-function UtilLink({ item, collapsed }: { item: RailItem; collapsed: boolean }) {
+function UtilLink({ item }: { item: RailItem }) {
   const className =
-    "flex items-center justify-center min-h-[40px] rounded-item text-sm text-prose hover:bg-panel-hover hover:text-ink transition-colors " +
-    (collapsed ? "flex-1 gap-2 md:w-full md:flex-none md:gap-0" : "flex-1 gap-2");
+    "flex-1 flex items-center justify-center gap-2 min-h-[40px] rounded-item text-sm text-prose hover:bg-panel-hover hover:text-ink transition-colors";
   const inner = (
     <>
       {item.icon && <span className="opacity-70">{item.icon}</span>}
-      <span className={collapsed ? "md:sr-only" : ""}>{item.label}</span>
+      {item.label}
     </>
   );
   return item.href ? (
-    <a href={item.href} title={collapsed ? item.label : undefined} className={className}>{inner}</a>
+    <a href={item.href} className={className}>{inner}</a>
   ) : (
-    <button type="button" onClick={item.onSelect} title={collapsed ? item.label : undefined} className={className}>{inner}</button>
+    <button type="button" onClick={item.onSelect} className={className}>{inner}</button>
   );
 }
 
@@ -107,23 +98,11 @@ export function SidebarView({
   matterItems?: RailItem[];
   adminItems?: RailItem[];
   utilItems: RailItem[];
-  account?: ReactNode | ((collapsed: boolean) => ReactNode);
+  account?: ReactNode;
   closeButton?: ReactNode;
   open: boolean;
   onClose: () => void;
 }) {
-  const [desktopCollapsed, setDesktopCollapsed] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage.getItem("legalise.sidebar.collapsed") !== "false";
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem("legalise.sidebar.collapsed", desktopCollapsed ? "true" : "false");
-  }, [desktopCollapsed]);
-
-  const renderedAccount =
-    typeof account === "function" ? account(desktopCollapsed) : account;
-
   return (
     <>
       {open && (
@@ -131,77 +110,63 @@ export function SidebarView({
       )}
       <aside
         className={
-          "fixed inset-y-0 left-0 z-50 w-64 bg-panel flex flex-col transition-[transform,width] duration-200 " +
+          "fixed inset-y-0 left-0 z-50 w-64 bg-panel flex flex-col transition-transform " +
           "md:static md:z-auto md:h-full md:shrink-0 md:rounded-panel md:shadow-panel md:translate-x-0 " +
-          (desktopCollapsed ? "md:w-16 " : "md:w-64 ") +
           (open ? "translate-x-0" : "-translate-x-full md:translate-x-0")
         }
         aria-label="Navigation"
-        data-sidebar-collapsed={desktopCollapsed ? "true" : "false"}
       >
         {/* brand */}
-        <div className={"flex items-center h-[64px] border-b border-rule shrink-0 " + (desktopCollapsed ? "md:justify-center md:px-0 gap-2.5 px-4" : "gap-2.5 px-4")}>
-          <a href="/matters" className="shrink-0" aria-label="Legalise home">
-            <BrandMark />
-          </a>
-          <span className={desktopCollapsed ? "font-redaction35 text-[21px] leading-none tracking-tight2 text-ink md:sr-only" : "font-redaction35 text-[21px] leading-none tracking-tight2 text-ink"}>Legalise.</span>
-          <button
-            type="button"
-            onClick={() => setDesktopCollapsed((v) => !v)}
-            className="ml-auto hidden h-8 w-8 items-center justify-center rounded-item text-muted hover:bg-panel-hover hover:text-ink md:inline-flex"
-            aria-label={desktopCollapsed ? "Expand navigation" : "Collapse navigation"}
-            aria-expanded={!desktopCollapsed}
-            title={desktopCollapsed ? "Expand" : "Collapse"}
-          >
-            <ChevronIcon collapsed={desktopCollapsed} />
-          </button>
+        <div className="flex items-center gap-2.5 px-4 h-[64px] border-b border-rule shrink-0">
+          <BrandMark />
+          <span className="font-redaction35 text-[21px] leading-none tracking-tight2 text-ink">Legalise.</span>
           {closeButton && <span className="ml-auto">{closeButton}</span>}
         </div>
 
         {/* New CTA — top of rail */}
         {(newHref || onNew) && (
           newHref ? (
-            <a href={newHref} title={desktopCollapsed ? "New matter" : undefined} className={"mx-3 mt-3 mb-1 flex items-center justify-center rounded-item bg-ink text-paper font-redaction20 text-[11px] font-bold uppercase tracking-track1 hover:bg-black transition-colors " + (desktopCollapsed ? "md:min-h-[40px] md:gap-0 gap-2 min-h-[40px]" : "gap-2 min-h-[40px]")}>
-              <PlusIcon /> <span className={desktopCollapsed ? "md:sr-only" : ""}>New matter</span>
+            <a href={newHref} className="mx-3 mt-3 mb-1 flex items-center justify-center gap-2 min-h-[40px] rounded-item bg-ink text-paper font-redaction20 text-[11px] font-bold uppercase tracking-track1 hover:bg-black transition-colors">
+              <PlusIcon /> New matter
             </a>
           ) : (
-            <button type="button" onClick={onNew} title={desktopCollapsed ? "New matter" : undefined} className={"mx-3 mt-3 mb-1 flex items-center justify-center rounded-item bg-ink text-paper font-redaction20 text-[11px] font-bold uppercase tracking-track1 hover:bg-black transition-colors " + (desktopCollapsed ? "md:min-h-[40px] md:gap-0 gap-2 min-h-[40px]" : "gap-2 min-h-[40px]")}>
-              <PlusIcon /> <span className={desktopCollapsed ? "md:sr-only" : ""}>New matter</span>
+            <button type="button" onClick={onNew} className="mx-3 mt-3 mb-1 flex items-center justify-center gap-2 min-h-[40px] rounded-item bg-ink text-paper font-redaction20 text-[11px] font-bold uppercase tracking-track1 hover:bg-black transition-colors">
+              <PlusIcon /> New matter
             </button>
           )
         )}
 
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Workspace sections">
-          <SectionLabel collapsed={desktopCollapsed}>Workspace</SectionLabel>
+          <SectionLabel>Workspace</SectionLabel>
           {globalItems.map((it) => (
-            <NavLink key={it.key} item={it} collapsed={desktopCollapsed} />
+            <NavLink key={it.key} item={it} />
           ))}
 
           {matterItems && matterItems.length > 0 && (
             <>
-              <div className={desktopCollapsed ? "px-3 pt-5 pb-1.5 md:flex md:justify-center md:px-0" : "px-3 pt-5 pb-1.5"}>
-                <div className={desktopCollapsed ? "text-[10px] font-semibold uppercase tracking-widest text-muted mb-1.5 md:sr-only" : "text-[10px] font-semibold uppercase tracking-widest text-muted mb-1.5"}>Matter</div>
-                <div className={desktopCollapsed ? "flex items-center gap-2 flex-wrap md:justify-center md:gap-0" : "flex items-center gap-2 flex-wrap"}>
-                  <span className={desktopCollapsed ? "text-sm font-semibold text-ink leading-snug break-words md:sr-only" : "text-sm font-semibold text-ink leading-snug break-words"}>{matterTitle}</span>
+              <div className="px-3 pt-5 pb-1.5">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-1.5">Matter</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-ink leading-snug break-words">{matterTitle}</span>
                   {matterPosture && (
-                    <span className={desktopCollapsed ? "inline-flex h-8 w-8 items-center justify-center rounded-item border border-rule" : "inline-flex items-center gap-1.5 border border-rule rounded-item px-2 py-0.5 text-[9px] tech-token font-bold uppercase tracking-track1 text-ink"} title={`${matterTitle || "Matter"} · ${matterPosture.label}`}>
+                    <span className="inline-flex items-center gap-1.5 border border-rule rounded-item px-2 py-0.5 text-[9px] tech-token font-bold uppercase tracking-track1 text-ink">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: matterPosture.dot }} />
-                      <span className={desktopCollapsed ? "sr-only" : ""}>{matterPosture.label}</span>
+                      {matterPosture.label}
                     </span>
                   )}
                 </div>
               </div>
               {matterItems.map((it) => (
-                <NavLink key={it.key} item={it} collapsed={desktopCollapsed} />
+                <NavLink key={it.key} item={it} />
               ))}
             </>
           )}
 
           {adminItems && adminItems.length > 0 && (
             <>
-              <SectionLabel collapsed={desktopCollapsed}>Admin</SectionLabel>
+              <SectionLabel>Admin</SectionLabel>
               {adminItems.map((it) => (
-                <NavLink key={it.key} item={it} collapsed={desktopCollapsed} />
+                <NavLink key={it.key} item={it} />
               ))}
             </>
           )}
@@ -209,24 +174,16 @@ export function SidebarView({
 
         {/* Utility footer */}
         {utilItems.length > 0 && (
-          <div className={"gap-1 px-2 pt-1 pb-1 border-t border-rule " + (desktopCollapsed ? "flex md:flex-col" : "flex")}>
+          <div className="flex gap-1 px-2 pt-1 pb-1 border-t border-rule">
             {utilItems.map((it) => (
-              <UtilLink key={it.key} item={it} collapsed={desktopCollapsed} />
+              <UtilLink key={it.key} item={it} />
             ))}
           </div>
         )}
 
-        {renderedAccount}
+        {account}
       </aside>
     </>
-  );
-}
-
-function ChevronIcon({ collapsed }: { collapsed: boolean }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {collapsed ? <path d="M6 3l5 5-5 5" /> : <path d="M10 3L5 8l5 5" />}
-    </svg>
   );
 }
 

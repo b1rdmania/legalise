@@ -366,19 +366,18 @@ export function AssistantTab({
 
   return (
     <div
-      className="mx-auto w-full max-w-[760px]"
+      className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[740px] flex-col px-1"
       data-testid="chat-led-workspace"
     >
-      <div className="flex min-h-[620px] min-w-0 flex-col">
-        <div className="mb-5">
-          <h1 className="text-2xl font-semibold tracking-tight2 text-ink">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="mb-6 pt-1">
+          <h1 className="max-w-2xl text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[34px]">
             {matter.title}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Ask about files, draft from the matter, or run a skill.
-            Sources and saved work stay attached.
+          <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted">
+            Ask about files, draft from the matter, or run a skill. Saved work stays attached.
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-muted">
             <span data-testid="docs-context-status">
               {docs === null
                 ? "Loading documents…"
@@ -396,10 +395,10 @@ export function AssistantTab({
             <button
               type="button"
               onClick={openRecord}
-              className="underline underline-offset-4 hover:text-ink"
+              className="underline underline-offset-4 decoration-rule hover:text-ink"
               data-testid="open-record-link"
             >
-              Activity →
+              Activity
             </button>
           </div>
         </div>
@@ -448,7 +447,7 @@ export function AssistantTab({
 
         <div
           ref={scrollRef}
-          className="flex-1 space-y-5 overflow-y-auto border-y border-rule py-6 lg:max-h-[62vh]"
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto border-t border-rule py-5"
         >
         {!loaded && (
           <p className="tech-token text-xs text-muted flex items-center gap-2">
@@ -457,21 +456,20 @@ export function AssistantTab({
           </p>
         )}
         {loaded && messages.length === 0 && (
-          <div className="space-y-2" data-testid="chat-empty-state">
-            <div>
-              <div className="space-y-2">
-                {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => onSuggestion(s)}
-                    className="block w-full rounded-md border border-rule bg-paper px-3 py-2 text-left text-sm text-ink transition-colors hover:border-ink"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="grid gap-2 sm:grid-cols-2" data-testid="chat-empty-state">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSuggestion(s)}
+                className="group flex min-h-[44px] items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 text-left text-[14px] leading-5 text-ink transition-colors hover:border-ink hover:bg-paper-sunken"
+              >
+                <span>{s}</span>
+                <span className="text-muted transition-colors group-hover:text-ink" aria-hidden>
+                  →
+                </span>
+              </button>
+            ))}
           </div>
         )}
         {messages.map((m) => (
@@ -517,7 +515,7 @@ export function AssistantTab({
         {disabled ? (
           // Compact unauth state - sticky strip, attached to chat column.
           showDisabledFooter ? (
-          <div className="mt-3 sticky bottom-0 bg-paper pt-3">
+          <div className="sticky bottom-0 mt-3 bg-paper pt-3">
           <div className="border-t border-rule py-3 flex flex-wrap items-center gap-3">
             <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
               {disabledPlaceholder ?? "Create an evaluation account to use the assistant on this matter."}
@@ -566,9 +564,9 @@ export function AssistantTab({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             disabled={pending}
-            rows={3}
-            placeholder={`Ask about ${matter.title}. Cmd/Ctrl+Enter to send.`}
-            className="w-full bg-paper rounded-item border border-rule px-4 py-3 text-[15px] focus:border-ink focus:outline-none transition-colors font-sans text-ink resize-y disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed"
+            rows={2}
+            placeholder={`Ask about ${matter.title}`}
+            className="w-full resize-none rounded-item border border-rule bg-paper px-4 py-3 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:border-ink focus:outline-none disabled:cursor-not-allowed disabled:bg-wash disabled:text-muted"
           />
           <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
             {/* Left: attachment chips + workflows stub */}
@@ -693,9 +691,9 @@ export function AssistantTab({
               <button
                 onClick={onSend}
                 disabled={pending || !input.trim()}
-                className={primaryBtn}
+                className={`${primaryBtn} min-h-[38px] px-4 py-1.5 text-[14px]`}
               >
-                {pending ? "Sending..." : "Send"}
+                {pending ? "Sending…" : "Send"}
               </button>
             </div>
           </div>

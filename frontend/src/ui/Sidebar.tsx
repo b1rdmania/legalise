@@ -25,11 +25,9 @@ const POSTURE: Record<string, RailPosture> = {
 function AccountBlock({
   user,
   onSignOut,
-  collapsed = false,
 }: {
   user: CurrentUser;
   onSignOut: () => void;
-  collapsed?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -54,10 +52,7 @@ function AccountBlock({
       {open && (
         <div
           role="menu"
-          className={
-            "absolute bottom-full mb-1 bg-paper border border-rule rounded-item flex flex-col text-sm shadow-panel overflow-hidden " +
-            (collapsed ? "left-2 right-2 md:right-auto md:w-56" : "left-2 right-2")
-          }
+          className="absolute bottom-full left-2 right-2 mb-1 bg-paper border border-rule rounded-item flex flex-col text-sm shadow-panel overflow-hidden"
         >
           <div className="px-3 py-2 border-b border-rule">
             <div className="text-[10px] uppercase tracking-widest text-muted mb-0.5">Signed in as</div>
@@ -74,19 +69,15 @@ function AccountBlock({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={
-          "w-full flex items-center rounded-item hover:bg-panel-hover transition-colors " +
-          (collapsed ? "gap-2 px-2 py-2 md:justify-center md:gap-0 md:px-0" : "gap-2 px-2 py-2")
-        }
+        className="w-full flex items-center gap-2 px-2 py-2 rounded-item hover:bg-panel-hover transition-colors"
         aria-haspopup="menu"
         aria-expanded={open}
-        title={collapsed ? label : undefined}
       >
         <span className="w-7 h-7 bg-ink text-paper rounded-full flex items-center justify-center tech-token text-xs font-semibold shrink-0">
           {initial}
         </span>
-        <span className={collapsed ? "text-sm text-ink truncate flex-1 text-left md:sr-only" : "text-sm text-ink truncate flex-1 text-left"}>{label}</span>
-        <svg className={collapsed ? "md:hidden" : ""} width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <span className="text-sm text-ink truncate flex-1 text-left">{label}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
           <path d="M3 7l3-3 3 3" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </button>
@@ -188,15 +179,9 @@ export function Sidebar({
       open={open}
       onClose={onClose}
       account={
-        auth.user
-          ? (collapsed) => (
-              <AccountBlock
-                user={auth.user!}
-                collapsed={collapsed}
-                onSignOut={() => void auth.signOut().then(() => navigate("/"))}
-              />
-            )
-          : undefined
+        auth.user ? (
+          <AccountBlock user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+        ) : undefined
       }
     />
   );

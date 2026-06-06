@@ -387,7 +387,7 @@ function ToolbarButton({
       title={label}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-8 min-w-8 items-center justify-center border px-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-35 ${
+      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-item border px-2 text-sm disabled:cursor-not-allowed disabled:opacity-35 ${
         active
           ? "border-ink bg-ink text-paper"
           : "border-rule bg-paper text-ink hover:border-ink"
@@ -432,12 +432,12 @@ function ColorButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`inline-flex h-8 min-w-8 items-center justify-center border bg-paper px-2 ${
+      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-item border bg-paper px-2 ${
         active ? "border-ink" : "border-rule hover:border-ink"
       }`}
     >
       <span
-        className="block h-4 w-4 border border-rule"
+        className="block h-4 w-4 rounded-sm border border-rule"
         style={{ backgroundColor: color }}
         aria-hidden="true"
       />
@@ -458,7 +458,7 @@ function ViewModeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-8 items-center border px-3 text-xs font-semibold ${
+      className={`inline-flex h-8 items-center rounded-item border px-3 text-xs ${
         active
           ? "border-ink bg-ink text-paper"
           : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
@@ -538,6 +538,7 @@ export function DocumentRichEditor({
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
   const [findQuery, setFindQuery] = useState("");
+  const [formatOpen, setFormatOpen] = useState(false);
   const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
   const [serverDraft, setServerDraft] = useState<DocumentWorkingDraftRead | null>(null);
@@ -1189,25 +1190,22 @@ export function DocumentRichEditor({
   });
 
   return (
-    <section className="min-h-[760px] border border-rule bg-paper" data-testid="document-editor">
+    <section className="min-h-[760px] rounded-card border border-rule bg-paper" data-testid="document-editor">
       <div
         className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur"
         data-testid="document-editor-command-bar"
       >
-        <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-[220px]">
-            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              Working copy
-            </p>
-            <h2 className="mt-1 text-sm font-semibold text-ink">Document editor</h2>
-            <p className="mt-0.5 text-xs text-muted">
+            <h2 className="text-[15px] font-semibold text-ink">Working copy</h2>
+            <p className="mt-1 text-xs text-muted">
               {sourceLabel}
               {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
             <div
-              className="flex items-center gap-1 border-r border-rule pr-2"
+              className="mr-1 flex items-center gap-1 border-r border-rule pr-2"
               aria-label="Document view"
               data-testid="document-editor-view-mode"
             >
@@ -1222,7 +1220,7 @@ export function DocumentRichEditor({
               type="button"
               onClick={reset}
               disabled={!dirty || saving}
-              className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+              className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
             >
               Reset
             </button>
@@ -1230,37 +1228,29 @@ export function DocumentRichEditor({
               type="button"
               onClick={() => void copyWorkingText()}
               disabled={!plainText.trim()}
-              className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+              className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
             >
               Copy text
             </button>
             <button
               type="button"
-              onClick={downloadWorkingText}
-              disabled={!plainText.trim()}
-              className="inline-flex h-8 items-center border border-rule px-3 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-            >
-              Download text
-            </button>
-            <button
-              type="button"
               onClick={save}
               disabled={!canSave}
-              className="inline-flex h-8 items-center border border-ink bg-ink px-3 text-xs font-semibold text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
+              className="inline-flex h-8 items-center rounded-item border border-ink bg-ink px-3 text-xs text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
             >
-              {saving ? "Saving..." : "Save version"}
+              {saving ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => void saveAndDownloadDocx()}
               disabled={!canDownloadDocx}
-              className="inline-flex h-8 items-center border border-ink bg-paper px-3 text-xs font-semibold text-ink hover:bg-paper-sunken disabled:border-rule disabled:text-muted disabled:opacity-50"
+              className="inline-flex h-8 items-center rounded-item border border-rule bg-paper px-3 text-xs text-ink hover:border-ink disabled:border-rule disabled:text-muted disabled:opacity-50"
             >
-              {downloadingDocx ? "Preparing..." : dirty ? "Save & download DOCX" : "Download DOCX"}
+              {downloadingDocx ? "Preparing…" : dirty ? "Save & download" : "Download DOCX"}
             </button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule bg-paper-sunken px-4 py-2 text-xs text-muted">
           <span className="inline-flex items-center gap-2">
             <span
               className={`h-2 w-2 rounded-full ${
@@ -1279,7 +1269,27 @@ export function DocumentRichEditor({
             {stats.blocks.toLocaleString()} blocks
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-5 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-2">
+          <button
+            type="button"
+            onClick={() => setFormatOpen((current) => !current)}
+            aria-expanded={formatOpen}
+            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink"
+          >
+            Format
+          </button>
+          <button
+            type="button"
+            onClick={downloadWorkingText}
+            disabled={!plainText.trim()}
+            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+          >
+            Text export
+          </button>
+          <span className="ml-auto text-xs text-muted">Cmd/Ctrl+S saves · Cmd/Ctrl+F finds</span>
+        </div>
+        {formatOpen && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-2">
           {editor && (
             <>
               <ToolbarGroup label="Style">
@@ -1491,10 +1501,11 @@ export function DocumentRichEditor({
               </ToolbarGroup>
             </>
           )}
-          <span className="ml-auto text-xs text-muted">Cmd/Ctrl+S saves · Cmd/Ctrl+F finds</span>
+          <span className="ml-auto text-xs text-muted">Formatting tools</span>
         </div>
+        )}
         <div
-          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-5 py-3"
+          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2.5"
           data-testid="document-editor-find-panel"
         >
           <label
