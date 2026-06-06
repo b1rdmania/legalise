@@ -879,7 +879,7 @@ export function DocumentDetail({
           </a>
         </div>
 
-        <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
+        <header className="rounded-card border border-rule bg-paper px-5 py-5 sm:px-6">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
               Document workspace
@@ -888,25 +888,25 @@ export function DocumentDetail({
               {doc.filename}
             </h1>
             <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              <span className="border border-ink bg-ink px-2 py-1 text-paper">
+              <span className="rounded-item border border-ink bg-ink px-2 py-1 text-paper">
                 {documentStateLabel}
               </span>
-              <span className="border border-rule bg-paper-sunken px-2 py-1">
+              <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
                 {doc.tag || "untagged"}
               </span>
-              <span className="border border-rule bg-paper-sunken px-2 py-1">
+              <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
                 {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
               </span>
-              <span className="border border-rule bg-paper-sunken px-2 py-1">
+              <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
                 {formatBytes(doc.size_bytes)}
               </span>
               {latestVersion && (
-                <span className="border border-rule bg-paper-sunken px-2 py-1">
+                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
                   v{latestVersion.version_number}
                 </span>
               )}
               {selectedResolvedVersion && (
-                <span className="border border-rule bg-paper-sunken px-2 py-1">
+                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
                   editable
                 </span>
               )}
@@ -952,7 +952,7 @@ export function DocumentDetail({
         )}
 
         <section
-          className="mt-4 border border-rule bg-paper"
+          className="mt-4 rounded-card border border-rule bg-paper"
           aria-label="Document command surface"
           data-testid="document-command-bar"
         >
@@ -1005,7 +1005,7 @@ export function DocumentDetail({
               {activeEditSessions.slice(0, 4).map((session) => (
                 <span
                   key={session.id}
-                  className="border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted"
+                  className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted"
                 >
                   {session.user_label}
                 </span>
@@ -1017,7 +1017,7 @@ export function DocumentDetail({
               to="/matters/$slug/$tab"
               params={{ slug, tab: "assistant" }}
               search={{ document: documentId }}
-              className="inline-flex min-h-[40px] items-center border border-ink bg-ink px-3 text-paper hover:bg-black"
+              className="inline-flex min-h-[40px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-black"
               data-testid="document-ask-chat-link"
             >
               Ask about this file
@@ -1026,7 +1026,7 @@ export function DocumentDetail({
               <button
                 type="button"
                 onClick={() => openDocumentSkill(primaryDocumentSkill)}
-                className="inline-flex min-h-[40px] items-center border border-rule bg-paper px-3 text-ink hover:border-ink"
+                className="inline-flex min-h-[40px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
                 data-testid="document-run-primary-skill"
               >
                 Run skill
@@ -1036,21 +1036,21 @@ export function DocumentDetail({
               <>
                 <a
                   href={documentVersionDocxUrl(documentId, selectedResolvedVersion.id)}
-                  className="inline-flex min-h-[40px] items-center border border-rule bg-paper px-3 text-ink hover:border-ink"
+                  className="inline-flex min-h-[40px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
                   data-testid="document-download-edited-docx"
                 >
                   Download edited DOCX
                 </a>
                 <a
                   href={documentVersionPdfUrl(documentId, selectedResolvedVersion.id)}
-                  className="inline-flex min-h-[40px] items-center border border-rule bg-paper px-3 text-ink hover:border-ink"
+                  className="inline-flex min-h-[40px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
                   data-testid="document-download-edited-pdf"
                 >
                   Download PDF
                 </a>
               </>
             )}
-            <details className="ml-auto border border-rule bg-paper-sunken px-3 py-2">
+            <details className="ml-auto rounded-item border border-rule bg-paper-sunken px-3 py-2">
               <summary className="cursor-pointer text-sm font-medium text-ink">
                 More actions
               </summary>
@@ -1059,27 +1059,27 @@ export function DocumentDetail({
                   href={originalHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  className="inline-flex items-center justify-center rounded-item border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
                   data-testid="document-open-original"
                 >
                   Open original
                 </a>
                 <a
                   href={documentOriginalUrl(documentId, { download: true })}
-                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  className="inline-flex items-center justify-center rounded-item border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
                 >
                   Download
                 </a>
                 <button
                   type="button"
                   onClick={() => openWorkbenchView("versions")}
-                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  className="inline-flex items-center justify-center rounded-item border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
                 >
                   Compare versions
                 </button>
                 <a
                   href={recordHref}
-                  className="inline-flex items-center justify-center border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                  className="inline-flex items-center justify-center rounded-item border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
                 >
                   View Record
                 </a>
@@ -1103,7 +1103,7 @@ export function DocumentDetail({
           >
             {workbenchView === "redlines" && activeEditResult && (
               <section
-                className="border border-rule bg-paper p-5"
+                className="rounded-card border border-rule bg-paper p-5"
                 data-testid="document-inline-redlines"
               >
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -1124,7 +1124,7 @@ export function DocumentDetail({
                       setActiveEditResult(null);
                       setWorkbenchView("editor");
                     }}
-                    className="border border-rule px-3 py-2 text-sm text-muted hover:border-ink hover:text-ink"
+                    className="rounded-item border border-rule px-3 py-2 text-sm text-muted hover:border-ink hover:text-ink"
                   >
                     Hide redlines
                   </button>
@@ -1146,7 +1146,7 @@ export function DocumentDetail({
               <div className="space-y-3">
                 {openComments.length > 0 && (
                   <section
-                    className="border border-rule bg-paper p-3"
+                    className="rounded-card border border-rule bg-paper p-3"
                     data-testid="document-note-navigator"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1167,7 +1167,7 @@ export function DocumentDetail({
                             behavior: "smooth",
                           })
                         }
-                        className="border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
+                        className="rounded-item border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
                       >
                         Manage notes
                       </button>
@@ -1186,7 +1186,7 @@ export function DocumentDetail({
                               });
                             }
                           }}
-                          className="border border-rule bg-paper-sunken px-3 py-2 text-left text-sm hover:border-ink"
+                          className="rounded-item border border-rule bg-paper-sunken px-3 py-2 text-left text-sm hover:border-ink"
                         >
                           <span className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
                             Note {index + 1}
@@ -1212,7 +1212,7 @@ export function DocumentDetail({
                 )}
                 {documentArtifacts && documentArtifacts.length > 0 && (
                   <section
-                    className="border border-rule bg-paper p-3"
+                    className="rounded-card border border-rule bg-paper p-3"
                     data-testid="document-attached-outputs"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1228,7 +1228,7 @@ export function DocumentDetail({
                       <Link
                         to="/matters/$slug/$tab"
                         params={{ slug, tab: "artifacts" }}
-                        className="border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
+                        className="rounded-item border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
                       >
                         Open signed outputs
                       </Link>
@@ -1238,7 +1238,7 @@ export function DocumentDetail({
                         <a
                           key={artifact.id}
                           href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
-                          className="border border-rule bg-paper-sunken px-3 py-2 text-sm hover:border-ink"
+                          className="rounded-item border border-rule bg-paper-sunken px-3 py-2 text-sm hover:border-ink"
                         >
                           <span className="block font-semibold capitalize text-ink">
                             {artifactLabel(artifact)}
@@ -1261,7 +1261,7 @@ export function DocumentDetail({
                       />
                     </div>
                   ) : !body && !selectedResolvedVersion ? (
-                    <div className="border border-rule bg-paper p-6">
+                    <div className="rounded-card border border-rule bg-paper p-6">
                       <LoadingLine label="loading document text" />
                     </div>
                   ) : (
@@ -1300,7 +1300,7 @@ export function DocumentDetail({
             {workbenchView === "original" && (
               <Suspense
                 fallback={
-                  <div className="border border-rule bg-paper p-5">
+                  <div className="rounded-card border border-rule bg-paper p-5">
                     <LoadingLine label="loading document preview" />
                   </div>
                 }
@@ -1320,7 +1320,7 @@ export function DocumentDetail({
                     onQuoteSelected={startQuotedNote}
                   />
                 ) : (
-                  <section className="border border-rule bg-paper p-6">
+                  <section className="rounded-card border border-rule bg-paper p-6">
                     <EmptyState
                       title="Original preview unavailable"
                       body="This file type does not have an embedded preview yet. Open or download the original file instead."
@@ -1332,7 +1332,7 @@ export function DocumentDetail({
 
             {workbenchView === "versions" && (
             <section
-              className="border border-rule bg-paper p-5"
+              className="rounded-card border border-rule bg-paper p-5"
               data-testid="document-history-workspace"
             >
               <h2 className="text-lg font-semibold tracking-tight2 text-ink">
@@ -1342,7 +1342,7 @@ export function DocumentDetail({
                 Accepted edits and manual saves create new versions. Open a saved version to review or download it.
               </p>
               <div
-                className="mt-5 border border-rule bg-paper-sunken p-4"
+                className="mt-5 rounded-card border border-rule bg-paper-sunken p-4"
                 data-testid="document-version-upload"
               >
                 <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
@@ -1360,7 +1360,7 @@ export function DocumentDetail({
                         onChange={(event) =>
                           setVersionUploadFile(event.currentTarget.files?.[0] ?? null)
                         }
-                        className="w-full border border-rule bg-paper px-3 py-2 text-sm"
+                        className="w-full rounded-item border border-rule bg-paper px-3 py-2 text-sm"
                         data-testid="document-version-file-input"
                       />
                       <input
@@ -1368,7 +1368,7 @@ export function DocumentDetail({
                         value={versionUploadNotes}
                         onChange={(event) => setVersionUploadNotes(event.target.value)}
                         placeholder="Optional version note"
-                        className="w-full border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
+                        className="w-full rounded-item border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
                       />
                     </div>
                     {versionUploadFile && (
@@ -1384,7 +1384,7 @@ export function DocumentDetail({
                     type="button"
                     disabled={versionUploadBusy}
                     onClick={submitVersionUpload}
-                    className="border border-ink bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-item border border-ink bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {versionUploadBusy ? "Uploading..." : "Upload version"}
                   </button>
@@ -1429,13 +1429,13 @@ export function DocumentDetail({
               />
               {selectedResolvedVersion?.resolved_text && compareBeforeText && (
                 <>
-                  <div className="mt-5 flex flex-wrap items-end gap-3 border border-rule bg-paper-sunken p-4">
+                  <div className="mt-5 flex flex-wrap items-end gap-3 rounded-card border border-rule bg-paper-sunken p-4">
                     <label className="grid gap-1 text-xs font-semibold text-muted">
                       Compare against
                       <select
                         value={effectiveCompareVersionId}
                         onChange={(event) => setCompareVersionId(event.target.value)}
-                        className="min-w-52 border border-rule bg-paper px-3 py-2 text-sm font-normal text-ink"
+                        className="min-w-52 rounded-item border border-rule bg-paper px-3 py-2 text-sm font-normal text-ink"
                       >
                         <option value={EXTRACTED_VERSION_ID}>Extracted text</option>
                         {resolvedVersions
@@ -1473,7 +1473,7 @@ export function DocumentDetail({
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
             <section
-              className="border border-ink bg-paper p-4"
+              className="rounded-card border border-ink bg-paper p-4"
               data-testid="document-next-step"
             >
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
@@ -1486,7 +1486,7 @@ export function DocumentDetail({
               <button
                 type="button"
                 onClick={nextStep.onClick}
-                className="mt-4 w-full border border-ink bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-black"
+                className="mt-4 w-full rounded-item border border-ink bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-black"
               >
                 {nextStep.action}
               </button>
@@ -1494,15 +1494,15 @@ export function DocumentDetail({
                 className="mt-4 grid grid-cols-3 gap-2 text-center text-xs"
                 data-testid="document-review-board"
               >
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Notes</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">{openComments.length}</dd>
                 </div>
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Skills</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">{documentSkills.length}</dd>
                 </div>
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Outputs</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">
                     {documentArtifacts === null ? "..." : citedOutputCount}
@@ -1510,7 +1510,7 @@ export function DocumentDetail({
                 </div>
               </dl>
               <details
-                className="mt-4 border border-rule bg-paper-sunken p-3"
+                className="mt-4 rounded-card border border-rule bg-paper-sunken p-3"
                 data-testid="document-work-plan"
               >
                 <summary className="cursor-pointer text-sm font-semibold text-ink">
@@ -1585,7 +1585,7 @@ export function DocumentDetail({
                 </div>
               </details>
               <details
-                className="mt-4 border border-rule bg-paper-sunken p-3"
+                className="mt-4 rounded-card border border-rule bg-paper-sunken p-3"
                 data-testid="document-output-links"
               >
                 <summary className="cursor-pointer text-sm font-semibold text-ink">
@@ -1603,7 +1603,7 @@ export function DocumentDetail({
                       <a
                         key={artifact.id}
                         href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
-                        className="block border border-rule bg-paper px-3 py-2 text-sm hover:border-ink"
+                        className="block rounded-item border border-rule bg-paper px-3 py-2 text-sm hover:border-ink"
                       >
                         <span className="block font-semibold text-ink">
                           {artifactLabel(artifact)}
@@ -1628,7 +1628,7 @@ export function DocumentDetail({
                 )}
               </details>
               <details
-                className="mt-3 border border-rule bg-paper-sunken p-3"
+                className="mt-3 rounded-card border border-rule bg-paper-sunken p-3"
                 data-testid="document-review-queue"
                 open={reviewQueueTotal > 0}
               >
@@ -1643,7 +1643,7 @@ export function DocumentDetail({
                   <button
                     type="button"
                     onClick={() => openWorkbenchView(activeEditResult ? "redlines" : "versions")}
-                    className="flex items-center justify-between border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                    className="flex items-center justify-between rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
                   >
                     <span>Proposed redlines</span>
                     <span className="font-semibold text-ink">{pendingEdits}</span>
@@ -1653,7 +1653,7 @@ export function DocumentDetail({
                     onClick={() =>
                       notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
                     }
-                    className="flex items-center justify-between border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                    className="flex items-center justify-between rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
                   >
                     <span>Open review notes</span>
                     <span className="font-semibold text-ink">{openComments.length}</span>
@@ -1661,7 +1661,7 @@ export function DocumentDetail({
                   <button
                     type="button"
                     onClick={() => openWorkbenchView("versions")}
-                    className="flex items-center justify-between border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                    className="flex items-center justify-between rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
                   >
                     <span>Saved versions</span>
                     <span className="font-semibold text-ink">{versions.length}</span>
@@ -1677,7 +1677,7 @@ export function DocumentDetail({
 
             <section
               ref={skillsRef}
-              className="border border-rule bg-paper p-4"
+              className="rounded-card border border-rule bg-paper p-4"
               data-testid="document-skill-runner"
             >
               <div className="flex items-start justify-between gap-3">
@@ -1692,7 +1692,7 @@ export function DocumentDetail({
                     Skills use the same project runner as Chat, with {doc.filename} already in context.
                   </p>
                 </div>
-                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
                   {documentSkills.length === 0
                     ? "No skills"
                     : `${documentSkills.length} ready`}
@@ -1755,7 +1755,7 @@ export function DocumentDetail({
                     <button
                       type="button"
                       onClick={() => openDocumentSkill(primaryDocumentSkill)}
-                      className="w-full border border-ink bg-paper px-3 py-3 text-left hover:bg-paper-sunken"
+                      className="w-full rounded-item border border-ink bg-paper px-3 py-3 text-left hover:bg-paper-sunken"
                     >
                       <span className="flex items-start justify-between gap-3">
                         <span>
@@ -1767,20 +1767,20 @@ export function DocumentDetail({
                               "Runs against this document and writes an output to the Record."}
                           </span>
                         </span>
-                        <span className="shrink-0 border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                        <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
                           Recommended
                         </span>
                       </span>
                       <span className="mt-3 block text-xs text-muted">
                         Uses this document and writes an output to the Record.
                       </span>
-                      <span className="mt-3 inline-flex border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper">
+                      <span className="mt-3 inline-flex rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper">
                         Run with this file
                       </span>
                     </button>
                   )}
                   {secondaryDocumentSkills.length > 0 && (
-                    <details className="border border-rule bg-paper-sunken p-3">
+                    <details className="rounded-card border border-rule bg-paper-sunken p-3">
                       <summary className="cursor-pointer text-sm font-medium text-ink">
                         More document skills ({secondaryDocumentSkills.length})
                       </summary>
@@ -1790,7 +1790,7 @@ export function DocumentDetail({
                             key={`${skill.moduleId}:${skill.capabilityId}`}
                             type="button"
                             onClick={() => openDocumentSkill(skill)}
-                            className="w-full border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                            className="w-full rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
                           >
                             <span className="block text-sm font-semibold text-ink">
                               {skill.title}
@@ -1817,7 +1817,7 @@ export function DocumentDetail({
             </section>
 
             <details
-              className="border border-rule bg-paper p-4"
+              className="rounded-card border border-rule bg-paper p-4"
               open={Boolean(activeEditResult)}
               data-testid="document-suggested-edits"
             >
@@ -1830,7 +1830,7 @@ export function DocumentDetail({
                     </span>
                   </span>
                   {activeEditResult && (
-                    <span className="shrink-0 border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                    <span className="shrink-0 rounded-item border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
                       Ready
                     </span>
                   )}
@@ -1860,7 +1860,7 @@ export function DocumentDetail({
                     <button
                       type="button"
                       onClick={() => openWorkbenchView("redlines")}
-                      className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                      className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
                     >
                       Review redlines
                     </button>
@@ -1888,7 +1888,7 @@ export function DocumentDetail({
             </details>
 
             <details
-              className="border border-rule bg-paper p-4"
+              className="rounded-card border border-rule bg-paper p-4"
               data-testid="document-state-rail"
               open={hasConcurrentSession}
             >
@@ -1900,27 +1900,27 @@ export function DocumentDetail({
                       Versions, people, redaction, and file details.
                     </span>
                   </span>
-                  <span className="shrink-0 border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
                     v{latestVersion?.version_number ?? 1}
                   </span>
                 </span>
               </summary>
               <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Pending</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">{pendingEdits}</dd>
                 </div>
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Accepted</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">{acceptedEdits}</dd>
                 </div>
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Rejected</dt>
                   <dd className="mt-1 text-lg font-semibold text-ink">{rejectedEdits}</dd>
                 </div>
               </dl>
               <div className="mt-4 space-y-3 text-sm">
-                <details className="border border-rule bg-paper-sunken p-3" open={hasConcurrentSession}>
+                <details className="rounded-card border border-rule bg-paper-sunken p-3" open={hasConcurrentSession}>
                   <summary className="cursor-pointer font-medium text-ink">
                     Editing now · {activeEditSessions.length || 1} active
                   </summary>
@@ -1929,7 +1929,7 @@ export function DocumentDetail({
                       activeEditSessions.map((session) => (
                         <div
                           key={session.id}
-                          className="flex items-center justify-between gap-3 border border-rule bg-paper px-3 py-2 text-sm"
+                          className="flex items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 py-2 text-sm"
                         >
                           <span className="font-medium text-ink">{session.user_label}</span>
                           <span className="text-xs text-muted">
@@ -1948,7 +1948,7 @@ export function DocumentDetail({
                   </div>
                 </details>
 
-                <details className="border border-rule bg-paper-sunken p-3">
+                <details className="rounded-card border border-rule bg-paper-sunken p-3">
                   <summary className="cursor-pointer font-medium text-ink">
                     Redaction
                   </summary>
@@ -1965,7 +1965,7 @@ export function DocumentDetail({
                   </div>
                 </details>
 
-                <div className="border border-rule bg-paper-sunken p-3">
+                <div className="rounded-card border border-rule bg-paper-sunken p-3">
                   <button
                     type="button"
                     onClick={() => setShowDetails((v) => !v)}
@@ -2005,7 +2005,7 @@ export function DocumentDetail({
 
             <section
               ref={notesRef}
-              className="border border-rule bg-paper p-4"
+              className="rounded-card border border-rule bg-paper p-4"
               data-testid="document-comments"
             >
               <div className="flex items-start justify-between gap-3">
@@ -2016,31 +2016,31 @@ export function DocumentDetail({
                     to the current document body.
                   </p>
                 </div>
-                <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
                   {openComments.length} open
                 </span>
               </div>
               <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Open</dt>
                   <dd className="mt-1 text-base font-semibold text-ink">
                     {openComments.length}
                   </dd>
                 </div>
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Anchored</dt>
                   <dd className="mt-1 text-base font-semibold text-ink">
                     {anchoredComments.length}
                   </dd>
                 </div>
-                <div className="border border-rule bg-paper-sunken p-2">
+                <div className="rounded-card border border-rule bg-paper-sunken p-2">
                   <dt className="uppercase tracking-track2 text-muted">Resolved</dt>
                   <dd className="mt-1 text-base font-semibold text-ink">
                     {resolvedComments.length}
                   </dd>
                 </div>
               </dl>
-              <details className="mt-4 border border-rule bg-paper-sunken p-3" open={Boolean(selectedQuote)}>
+              <details className="mt-4 rounded-card border border-rule bg-paper-sunken p-3" open={Boolean(selectedQuote)}>
                 <summary className="cursor-pointer list-none">
                   <span className="flex items-start justify-between gap-3">
                     <span>
@@ -2052,7 +2052,7 @@ export function DocumentDetail({
                       </span>
                     </span>
                     {selectedAnchor ? (
-                      <span className="border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                      <span className="rounded-item border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
                         Anchored
                       </span>
                     ) : (
@@ -2063,7 +2063,7 @@ export function DocumentDetail({
                 <div className="mt-3 space-y-2">
                   {selectedQuote && (
                     <div
-                      className="border border-rule bg-paper p-3 text-sm"
+                      className="rounded-card border border-rule bg-paper p-3 text-sm"
                       data-testid="document-selected-quote"
                     >
                       <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
@@ -2081,7 +2081,7 @@ export function DocumentDetail({
                         <button
                           type="button"
                           onClick={() => setCommentQuote(selectedQuote)}
-                          className="border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
+                          className="rounded-item border border-rule bg-paper px-3 py-2 text-xs font-medium text-ink hover:border-ink"
                         >
                           Quote this passage
                         </button>
@@ -2089,7 +2089,7 @@ export function DocumentDetail({
                           <button
                             type="button"
                             onClick={() => openDocumentSkill(primaryDocumentSkill, true)}
-                            className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                            className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
                           >
                             Run skill on passage
                           </button>
@@ -2104,7 +2104,7 @@ export function DocumentDetail({
                       onChange={(event) => setCommentQuote(event.target.value)}
                       placeholder="Optional quoted passage"
                       rows={2}
-                      className="w-full resize-y border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                      className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
                     />
                   </label>
                   <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
@@ -2114,7 +2114,7 @@ export function DocumentDetail({
                       onChange={(event) => setCommentBody(event.target.value)}
                       placeholder="What should be checked before relying on this document?"
                       rows={3}
-                      className="w-full resize-y border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                      className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
                     />
                   </label>
                   {commentError && <p className="text-xs text-red-700">{commentError}</p>}
@@ -2122,7 +2122,7 @@ export function DocumentDetail({
                     type="button"
                     disabled={commentBusy}
                     onClick={submitComment}
-                    className="w-full border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-item border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Save note
                   </button>
@@ -2140,14 +2140,14 @@ export function DocumentDetail({
                 {openComments.map((comment) => (
                   <article
                     key={comment.id}
-                    className="border border-rule bg-paper p-3 text-sm"
+                    className="rounded-card border border-rule bg-paper p-3 text-sm"
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                      <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
                         Open note
                       </span>
                       {comment.anchor_start !== null && comment.anchor_end !== null && (
-                        <span className="border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                        <span className="rounded-item border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
                           Anchored
                         </span>
                       )}
@@ -2172,7 +2172,7 @@ export function DocumentDetail({
                             value={editingCommentBody}
                             onChange={(event) => setEditingCommentBody(event.target.value)}
                             rows={3}
-                            className="w-full resize-y border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                            className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
                           />
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -2180,7 +2180,7 @@ export function DocumentDetail({
                             type="button"
                             disabled={commentBusy}
                             onClick={() => submitCommentEdit(comment.id)}
-                            className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Save changes
                           </button>
@@ -2188,7 +2188,7 @@ export function DocumentDetail({
                             type="button"
                             disabled={commentBusy}
                             onClick={cancelEditingComment}
-                            className="border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-item border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Cancel
                           </button>
@@ -2221,7 +2221,7 @@ export function DocumentDetail({
                   </article>
                 ))}
                 {resolvedComments.length > 0 && (
-                  <details className="border border-rule bg-paper-sunken p-3">
+                  <details className="rounded-card border border-rule bg-paper-sunken p-3">
                     <summary className="cursor-pointer text-sm font-medium text-muted">
                       Resolved notes ({resolvedComments.length})
                     </summary>
@@ -2229,7 +2229,7 @@ export function DocumentDetail({
                       {resolvedComments.map((comment) => (
                         <article
                           key={comment.id}
-                          className="border border-rule bg-paper p-3 text-sm"
+                          className="rounded-card border border-rule bg-paper p-3 text-sm"
                         >
                           {comment.quote_text && (
                             <blockquote className="mb-2 border-l-2 border-rule pl-3 text-muted">

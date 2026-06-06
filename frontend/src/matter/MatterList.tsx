@@ -12,7 +12,7 @@ function formatType(raw: string): string {
 
 function MonoPill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center border border-rule px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold text-ink">
+    <span className="inline-flex items-center rounded-item border border-rule px-2 py-0.5 font-mono uppercase text-[10px] tracking-track2 font-bold text-ink">
       {children}
     </span>
   );

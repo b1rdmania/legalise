@@ -238,7 +238,7 @@ export function MatterSkillsTab({ slug }: Props) {
             </p>
           )}
           {workflows.workflows.length > 0 && (
-            <details className="border border-rule bg-paper p-4">
+            <details className="rounded-card border border-rule bg-paper p-4">
               <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">
                 Legacy built-in actions ({workflows.workflows.length})
               </summary>
@@ -326,7 +326,7 @@ function WorkflowRow({
   workflow: MatterWorkflowsResponse["workflows"][number];
 }) {
   return (
-    <article className="border border-rule bg-paper p-4" data-testid={`enabled-builtin-${workflow.key}`}>
+    <article className="rounded-card border border-rule bg-paper p-4" data-testid={`enabled-builtin-${workflow.key}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{workflow.title}</p>
@@ -390,7 +390,7 @@ function EnabledModuleRow({
 
   return (
     <article
-      className="border border-rule bg-paper p-4"
+      className="rounded-card border border-rule bg-paper p-4"
       data-testid={`enabled-module-${entry.module_id}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -446,7 +446,7 @@ function AvailableModuleRow({
 
   return (
     <article
-      className="border border-rule bg-paper p-4"
+      className="rounded-card border border-rule bg-paper p-4"
       data-testid={`available-module-${entry.module_id}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -567,7 +567,7 @@ function EnableSkillModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[480px] border border-rule bg-paper p-5 shadow-xl">
+      <div className="w-full max-w-[480px] rounded-card border border-rule bg-paper p-5 shadow-xl">
         <p className="text-[11px] uppercase tracking-widest text-muted">
           Enable skill
         </p>

@@ -141,7 +141,7 @@ function AssistantMessageView({
                 key={`${a.type}-${i}`}
                 type="button"
                 onClick={() => onAction(a)}
-                className="border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors"
+                className="rounded-item border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors"
               >
                 {a.label}
               </button>

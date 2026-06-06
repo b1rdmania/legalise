@@ -93,7 +93,7 @@ export function LettersTab({
           {error && <ErrorCallout message={error} compact />}
 
           {draft && (
-            <div className="border border-rule">
+          <div className="rounded-card border border-rule">
               <div className="border-b border-rule px-4 py-3 flex flex-wrap items-center justify-between gap-4 bg-paper">
                 <div className="flex items-center gap-4">
                   <span className="eyebrow">Draft</span>
@@ -107,7 +107,7 @@ export function LettersTab({
                   <button
                     onClick={onDownloadDocx}
                     disabled={docxBusy}
-                    className="border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40"
+                    className="rounded-item border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40"
                   >
                     {docxBusy ? "Rendering…" : "Download .docx"}
                   </button>

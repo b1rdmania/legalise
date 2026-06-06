@@ -46,7 +46,7 @@ export function PreMotionTab({
       </div>
 
       {blocked && (
-        <div className="border border-rule p-6 mb-6">
+      <div className="rounded-card border border-rule p-6 mb-6">
           <div className="text-sm font-semibold text-ink mb-1">
             Privilege control: C_paused
           </div>
@@ -69,14 +69,14 @@ export function PreMotionTab({
             <button
               onClick={onExportPdf}
               disabled={pdfBusy}
-              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40"
+              className="rounded-item border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40"
             >
               {pdfBusy ? "Rendering PDF…" : "Export PDF"}
             </button>
             <button
               onClick={onExportDocx}
               disabled={docxBusy}
-              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40"
+              className="rounded-item border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40"
             >
               {docxBusy ? "Rendering .docx…" : "Download .docx"}
             </button>
@@ -106,7 +106,7 @@ function PremotionStageStrip({ stages }: { stages: StageProgress[] }) {
   ];
   const byIndex = new Map(stages.map((s) => [s.index, s]));
   return (
-    <div className="border border-rule mb-6">
+  <div className="rounded-card border border-rule mb-6">
       <div className="grid grid-cols-2 md:grid-cols-4">
         {expected.map((e) => {
           const s = byIndex.get(e.index);

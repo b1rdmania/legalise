@@ -261,7 +261,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
         <div className="flex flex-wrap gap-2">
           <a
             href={`/matters/${encodeURIComponent(slug)}/artifacts`}
-            className="inline-flex items-center border border-rule px-3 py-2 text-sm hover:border-ink"
+            className="inline-flex items-center rounded-item border border-rule px-3 py-2 text-sm hover:border-ink"
           >
             Signed outputs
           </a>

@@ -51,7 +51,7 @@ export function ProfileChip({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-1 w-56 bg-paper border border-rule flex flex-col text-sm"
+        className="absolute right-0 top-full mt-1 w-56 rounded-card bg-paper border border-rule flex flex-col text-sm"
         >
           <div className="px-4 py-3 border-b border-rule">
             <div className="eyebrow-sm mb-1">Signed in as</div>

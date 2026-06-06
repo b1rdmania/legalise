@@ -141,7 +141,7 @@ function ExportPanel({ slug }: { slug: string }) {
   const failed = job?.status === "failed" || job?.status === "cancelled";
 
   return (
-    <section className="mt-8 border border-rule p-5">
+    <section className="mt-8 rounded-card border border-rule p-5">
       <h2 className="text-sm uppercase tracking-widest text-muted">Export working pack</h2>
       <div className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
         <div>
@@ -249,7 +249,7 @@ function ClosePanel({
   };
 
   return (
-    <section className="mt-8 border border-rule p-5">
+    <section className="mt-8 rounded-card border border-rule p-5">
       <h2 className="text-sm uppercase tracking-widest text-muted">Close matter</h2>
       <p className="mt-2 text-sm text-muted">
         Closing marks the matter inactive but is <span className="text-ink">non-destructive</span> —

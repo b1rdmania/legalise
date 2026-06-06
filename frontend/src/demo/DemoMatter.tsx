@@ -299,7 +299,7 @@ function DemoStartPanel({
   onRun: () => void;
 }) {
   return (
-    <section className="mx-auto w-full max-w-[1220px] border border-rule bg-paper p-5 sm:p-6">
+    <section className="mx-auto w-full max-w-[1220px] rounded-card border border-rule bg-paper p-5 sm:p-6">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
@@ -316,14 +316,14 @@ function DemoStartPanel({
             <button
               type="button"
               onClick={() => onOpen("documents")}
-              className="border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+              className="rounded-item border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
             >
               View documents
             </button>
             <button
               type="button"
               onClick={() => onOpen("workflows")}
-              className="border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
+              className="rounded-item border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
             >
               View skills
             </button>
@@ -356,7 +356,7 @@ function DemoFact({
   body: string;
 }) {
   return (
-    <div className="border border-rule bg-paper-sunken p-3">
+    <div className="rounded-card border border-rule bg-paper-sunken p-3">
       <div className="font-mono text-[10px] uppercase tracking-track2 text-muted">
         {label}
       </div>
@@ -433,7 +433,7 @@ function DemoWorkflowsTab({
 
   return (
     <div className="max-w-5xl">
-      <div className="mb-8 border border-rule bg-paper-sunken p-5">
+      <div className="mb-8 rounded-card border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
           Skills in this project
         </p>
@@ -449,13 +449,13 @@ function DemoWorkflowsTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {workflows.map((w) => (
-          <section key={w.key} className="border border-rule bg-paper p-5 hover:border-ink transition-colors">
+          <section key={w.key} className="rounded-card border border-rule bg-paper p-5 hover:border-ink transition-colors">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold tracking-tight2 text-ink">{w.title}</div>
                 <p className="mt-2 text-sm text-prose leading-relaxed">{w.body}</p>
               </div>
-              <span className="shrink-0 border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+              <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
                 Ready
               </span>
             </div>
@@ -516,7 +516,7 @@ function DemoDocumentsTab({
 
   if (!inspectedDoc) {
     return (
-      <div className="max-w-5xl border border-rule bg-paper p-5 text-sm text-muted">
+      <div className="max-w-5xl rounded-card border border-rule bg-paper p-5 text-sm text-muted">
         No demo documents are available.
       </div>
     );
@@ -531,7 +531,7 @@ function DemoDocumentsTab({
 
   return (
     <div className="max-w-6xl">
-      <div className="mb-6 border border-rule bg-paper-sunken p-5">
+      <div className="mb-6 rounded-card border border-rule bg-paper-sunken p-5">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
           Documents in this project
         </p>
@@ -546,7 +546,7 @@ function DemoDocumentsTab({
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="border border-rule bg-paper">
+        <div className="rounded-card border border-rule bg-paper">
           <div className="border-b border-rule bg-paper-sunken px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
               Matter files
@@ -557,7 +557,7 @@ function DemoDocumentsTab({
                 value={fileQuery}
                 onChange={(event) => setFileQuery(event.target.value)}
                 placeholder="Search files"
-                className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
                 data-testid="demo-document-list-search"
               />
             </label>
@@ -607,7 +607,7 @@ function DemoDocumentsTab({
           </div>
         </div>
 
-        <section className="min-h-[620px] border border-rule bg-paper">
+        <section className="min-h-[620px] rounded-card border border-rule bg-paper">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-rule px-5 py-4">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
@@ -623,14 +623,14 @@ function DemoDocumentsTab({
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={`/demo/documents/${encodeURIComponent(inspectedDoc.id)}`}
-                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
               >
                 Open full reader
               </a>
               <button
                 type="button"
                 onClick={() => navigate("/demo/workflows")}
-                className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
+                className="rounded-item border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
               >
                 View skills
               </button>
@@ -644,7 +644,7 @@ function DemoDocumentsTab({
                   value={previewQuery}
                   onChange={(event) => setPreviewQuery(event.target.value)}
                   placeholder="Search this document"
-                  className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                  className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
                   data-testid="demo-document-preview-search"
                 />
               </label>
@@ -704,7 +704,7 @@ export function DemoDocumentReader({
 
   if (!doc) {
     return (
-      <div className="max-w-4xl border border-rule bg-paper p-6">
+      <div className="max-w-4xl rounded-card border border-rule bg-paper p-6">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
           Document
         </p>
@@ -738,7 +738,7 @@ export function DemoDocumentReader({
         </a>
       </div>
 
-      <header className="border border-rule bg-paper px-5 py-5 sm:px-6">
+      <header className="rounded-card border border-rule bg-paper px-5 py-5 sm:px-6">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
           Demo document
         </p>
@@ -747,24 +747,24 @@ export function DemoDocumentReader({
         </h1>
         <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
           {doc.tag && (
-            <span className="border border-rule bg-paper-sunken px-2 py-1">
+            <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
               {doc.tag}
             </span>
           )}
-          <span className="border border-rule bg-paper-sunken px-2 py-1">
+          <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
             {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
           </span>
-          <span className="border border-rule bg-paper-sunken px-2 py-1">
+          <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
             {formatBytes(doc.size_bytes)}
           </span>
-          <span className="border border-rule bg-paper-sunken px-2 py-1">
+          <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
             source-ready
           </span>
         </div>
       </header>
 
       <main className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="order-2 min-h-[680px] border border-rule bg-paper lg:order-1">
+        <section className="order-2 min-h-[680px] rounded-card border border-rule bg-paper lg:order-1">
           <div className="border-b border-rule px-5 py-3">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -779,7 +779,7 @@ export function DemoDocumentReader({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search document"
-                  className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                  className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
                   data-testid="demo-document-search"
                 />
               </label>
@@ -813,7 +813,7 @@ export function DemoDocumentReader({
         </section>
 
         <aside className="order-1 space-y-4 lg:order-2">
-          <section className="border border-ink bg-paper p-4" data-testid="demo-document-workbench-rail">
+          <section className="rounded-card border border-ink bg-paper p-4" data-testid="demo-document-workbench-rail">
             <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
               Document workbench
             </p>
@@ -825,28 +825,28 @@ export function DemoDocumentReader({
             <div className="mt-4 grid gap-2 text-sm">
               <a
                 href="/demo/workflows"
-                className="flex items-center justify-between border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                className="flex items-center justify-between rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
               >
                 <span>Run a skill with this file</span>
                 <span aria-hidden="true">→</span>
               </a>
               <a
                 href="/demo/audit"
-                className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
+                className="flex items-center justify-between rounded-item border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
               >
                 <span>View the Record</span>
                 <span aria-hidden="true">→</span>
               </a>
               <a
                 href="/demo/documents"
-                className="flex items-center justify-between border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
+                className="flex items-center justify-between rounded-item border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
               >
                 <span>Open other files</span>
                 <span aria-hidden="true">→</span>
               </a>
             </div>
           </section>
-          <section className="border border-rule bg-paper p-4">
+          <section className="rounded-card border border-rule bg-paper p-4">
             <h2 className="text-sm font-semibold text-ink">What happens in the workspace</h2>
             <ol className="mt-3 space-y-2 text-sm leading-6 text-muted">
               <li><span className="font-semibold text-ink">1.</span> Read or search the document.</li>
@@ -855,7 +855,7 @@ export function DemoDocumentReader({
               <li><span className="font-semibold text-ink">4.</span> Open the Record to see what happened.</li>
             </ol>
           </section>
-          <section className="border border-rule bg-paper p-4">
+          <section className="rounded-card border border-rule bg-paper p-4">
             <details>
               <summary className="cursor-pointer text-sm font-semibold text-ink">
                 Document facts

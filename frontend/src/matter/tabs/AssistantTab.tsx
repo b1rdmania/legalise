@@ -406,7 +406,7 @@ export function AssistantTab({
 
         {attachedDocs.length > 0 && (
           <section
-            className="mb-4 border border-rule bg-paper-sunken px-4 py-3"
+            className="mb-4 rounded-card border border-rule bg-paper-sunken px-4 py-3"
             data-testid="chat-attached-document-context"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -418,7 +418,7 @@ export function AssistantTab({
                   {attachedDocs.map((doc) => (
                     <span
                       key={doc.id}
-                      className="inline-flex max-w-full items-center gap-2 border border-rule bg-paper px-2 py-1 font-mono text-xs text-ink"
+                      className="inline-flex max-w-full items-center gap-2 rounded-item border border-rule bg-paper px-2 py-1 font-mono text-xs text-ink"
                     >
                       <span className="max-w-[360px] truncate">{doc.filename}</span>
                       <button
@@ -550,7 +550,7 @@ export function AssistantTab({
                   type="button"
                   onClick={() => removeDoc(d.id)}
                   title={`Remove ${d.filename}`}
-                  className="inline-flex items-center gap-1.5 border border-rule bg-paper px-2 py-1 font-mono text-[11px] text-ink hover:border-ink transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-item border border-rule bg-paper px-2 py-1 font-mono text-[11px] text-ink hover:border-ink transition-colors"
                 >
                   <span className="text-muted">Document</span>
                   <span className="max-w-[180px] truncate">{d.filename}</span>
@@ -568,7 +568,7 @@ export function AssistantTab({
             disabled={pending}
             rows={3}
             placeholder={`Ask about ${matter.title}. Cmd/Ctrl+Enter to send.`}
-            className="w-full bg-paper border border-rule px-4 py-3 text-[15px] focus:border-ink focus:outline-none transition-colors font-sans text-ink resize-y disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed"
+            className="w-full bg-paper rounded-item border border-rule px-4 py-3 text-[15px] focus:border-ink focus:outline-none transition-colors font-sans text-ink resize-y disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed"
           />
           <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
             {/* Left: attachment chips + workflows stub */}
@@ -595,7 +595,7 @@ export function AssistantTab({
                 <div
                   role="menu"
                   aria-label="Skills enabled in this matter"
-                  className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[300px] z-10"
+                  className="absolute bottom-full left-0 mb-2 rounded-card border border-rule bg-paper p-3 w-[300px] z-10"
                   data-testid="chat-skills-popover"
                 >
                   <div className="eyebrow mb-2">Run a skill</div>
@@ -623,7 +623,7 @@ export function AssistantTab({
                                 type="button"
                                 role="menuitem"
                                 onClick={() => onPickRunnerSkill(skill)}
-                                className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
+                                className="flex w-full items-start justify-between gap-2 rounded-item border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
                                 data-testid={`chat-runner-skill-${skill.moduleId}-${skill.capabilityId}`}
                               >
                                 <span className="block">
@@ -657,7 +657,7 @@ export function AssistantTab({
                 </div>
               )}
               {attachOpen && recentDocs.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[280px] z-10">
+                <div className="absolute bottom-full left-0 mb-2 rounded-card border border-rule bg-paper p-3 w-[280px] z-10">
                   <div className="eyebrow mb-2">Attach documents</div>
                   <ul className="space-y-2">
                     {recentDocs.map((d) => {
@@ -879,7 +879,7 @@ function AssistantWorkPane({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink"
+            className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink"
             aria-label="Close work pane"
           >
             Close
@@ -944,11 +944,11 @@ function AssistantWorkPane({
               Open Activity
             </button>
             <dl className="grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-md border border-rule bg-paper-sunken p-2">
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
                 <dt className="uppercase tracking-track2 text-muted">Matter</dt>
                 <dd className="mt-1 font-semibold text-ink">{matter.title}</dd>
               </div>
-              <div className="rounded-md border border-rule bg-paper-sunken p-2">
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
                 <dt className="uppercase tracking-track2 text-muted">State</dt>
                 <dd className="mt-1 font-semibold text-ink">
                   {matter.privilege_posture}
@@ -976,7 +976,7 @@ function DocumentPaneCard({
   secondaryLabel?: string;
 }) {
   return (
-    <article className="rounded-md border border-rule bg-paper-sunken p-3">
+    <article className="rounded-card border border-rule bg-paper-sunken p-3">
       <p className="font-mono text-xs font-semibold text-ink">{doc.filename}</p>
       <p className="mt-1 text-xs text-muted">
         {doc.tag || "untagged"} · {doc.mime_type}
@@ -1109,7 +1109,7 @@ function RailPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-rule bg-paper p-4">
+    <section className="rounded-card border border-rule bg-paper p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
         <button

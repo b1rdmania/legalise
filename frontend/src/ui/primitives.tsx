@@ -66,7 +66,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="border border-rule p-8 text-center max-w-2xl mx-auto">
+    <div className="rounded-card border border-rule p-8 text-center max-w-2xl mx-auto">
       <div className="eyebrow mb-3">Empty</div>
       <div className="text-sm font-semibold text-ink">{title}</div>
       {body && <p className="text-sm text-prose mt-2">{body}</p>}

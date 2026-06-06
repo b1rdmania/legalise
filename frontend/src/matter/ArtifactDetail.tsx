@@ -120,7 +120,7 @@ export function ArtifactDetail({
 
       {/* Sign-off status + the hero action. Author sign-off (distinct from
           supervisor review): the solicitor takes ownership of this output. */}
-      <section className="mt-8 rounded-md border border-rule bg-paper p-4" data-testid="signoff-status">
+      <section className="mt-8 rounded-card border border-rule bg-paper p-4" data-testid="signoff-status">
         <h2 className="text-sm uppercase tracking-widest text-muted">Sign-off</h2>
         {signoff === undefined ? (
           <p className="mt-2 text-sm text-muted">Checking sign-off status…</p>
@@ -173,7 +173,7 @@ export function ArtifactDetail({
       </section>
 
       {REVIEW_ELIGIBLE_KINDS.includes(a.kind) && (
-        <details className="mt-8 border border-rule p-4">
+        <details className="mt-8 rounded-card border border-rule p-4">
           <summary className="cursor-pointer text-sm uppercase tracking-widest text-muted">
             Optional separate review
           </summary>

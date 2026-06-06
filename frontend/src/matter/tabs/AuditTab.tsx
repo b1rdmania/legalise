@@ -55,7 +55,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
         <select
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
-          className="bg-paper border border-rule px-2 py-1 text-ink"
+          className="bg-paper rounded-item border border-rule px-2 py-1 text-ink"
         >
           <option value="">All ({audit.length})</option>
           {modules.map((m) => (
@@ -72,7 +72,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
         </span>
       </div>
       {visible.length === 0 ? (
-        <div className="border border-rule p-6 text-sm text-muted">
+        <div className="rounded-card border border-rule p-6 text-sm text-muted">
           No entries match this filter.
         </div>
       ) : (
@@ -187,7 +187,7 @@ function AuditDetailDrawer({
         {hasPayload && (
           <div>
             <div className="eyebrow mb-2">Payload</div>
-            <pre className="font-mono text-xs bg-wash border border-rule p-3 overflow-x-auto whitespace-pre-wrap break-all">
+          <pre className="rounded-card font-mono text-xs bg-wash border border-rule p-3 overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(entry.payload, null, 2)}
             </pre>
           </div>

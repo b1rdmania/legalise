@@ -93,7 +93,7 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
       </p>
 
       {error && (
-        <div className="border border-rule bg-paper p-5 text-sm">
+        <div className="rounded-card border border-rule bg-paper p-5 text-sm">
           <p className="font-semibold text-ink">Skills are available inside your workspace.</p>
           <p className="mt-2 text-muted">{error}</p>
           <a
@@ -129,7 +129,7 @@ function WorkflowCard({ workflow, slug }: { workflow: WorkflowState; slug: strin
   return (
     <a
       href={`/matters/${slug}/${workflow.key}`}
-      className="block border border-rule p-5 hover:border-ink hover:bg-wash transition-colors group"
+      className="block rounded-item border border-rule p-5 hover:border-ink hover:bg-wash transition-colors group"
       title={workflow.reason ?? undefined}
     >
       <div className="text-sm font-semibold text-ink mb-2">{workflow.title}</div>

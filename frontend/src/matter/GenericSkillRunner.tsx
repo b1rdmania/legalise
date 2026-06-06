@@ -130,7 +130,7 @@ export function GenericSkillRunner({
 
   return (
     <section
-      className={compact ? "border border-rule bg-paper p-3" : "border border-rule bg-paper p-4"}
+      className={compact ? "rounded-card border border-rule bg-paper p-3" : "rounded-card border border-rule bg-paper p-4"}
       data-testid={`generic-runner-${skill.moduleId}-${skill.capabilityId}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -361,20 +361,20 @@ function RunnerResult({
                   <Link
                     to="/matters/$slug/artifacts/$artifactId/sign"
                     params={{ slug, artifactId: artifact.id }}
-                    className="border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                    className="rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
                   >
                     Review & sign
                   </Link>
                   <Link
                     to="/matters/$slug/artifacts/$artifactId"
                     params={{ slug, artifactId: artifact.id }}
-                    className="border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
+                    className="rounded-item border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
                   >
                     Open output
                   </Link>
                   <a
                     href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
-                    className="border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
+                    className="rounded-item border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
                   >
                     View Record
                   </a>

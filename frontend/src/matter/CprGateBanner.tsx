@@ -1,6 +1,6 @@
 export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: () => void }) {
   return (
-    <div className="bg-paper border border-rule border-l-[3px] border-l-seal p-4 text-ink text-sm mb-6">
+    <div className="bg-paper rounded-card border border-rule border-l-[3px] border-l-seal p-4 text-ink text-sm mb-6">
       <div className="font-semibold mb-2">
         <span className="text-seal mr-2" aria-hidden="true">▌</span>
         CPR 31.22 - implied undertaking · step required
