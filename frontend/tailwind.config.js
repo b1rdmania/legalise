@@ -15,7 +15,8 @@ export default {
         mono: ['"Redaction"', 'Georgia', '"Times New Roman"', 'serif'],
         // Degraded grades for deliberate, large, rare moments (font-redaction20,
         // -35). Grit muddies small — keep these for hero titles / stamps, not body.
-        redaction10: ['"Redaction 10"', 'Georgia', 'serif'],
+        // Only the grades the UI uses are declared in redaction.css; re-add an
+        // alias + its @font-face block together if a new grade is needed.
         redaction20: ['"Redaction 20"', 'Georgia', 'serif'],
         redaction35: ['"Redaction 35"', 'Georgia', 'serif'],
       },

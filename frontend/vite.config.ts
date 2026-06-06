@@ -41,6 +41,27 @@ const spaAwareBackendProxy = {
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Split stable, first-paint vendor code into its own long-cached
+        // chunks: an app deploy invalidates the app chunk but not these, so
+        // returning users skip re-downloading React / TanStack. Tiptap is
+        // deliberately NOT bucketed here — it lives only in the lazy
+        // DocumentDetail chunk (see src/router/index.tsx) and must stay there.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (
+            /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)
+          ) {
+            return "react";
+          }
+          if (id.includes("node_modules/@tanstack/")) return "tanstack";
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     host: "0.0.0.0",
     port: 3000,
