@@ -757,12 +757,14 @@ class _AssistantSession:
         events: list[Event] | None = None,
         documents: list[Any] | None = None,
         bodies: dict[uuid.UUID, Any] | None = None,
+        installed_modules: list[InstalledModule] | None = None,
     ) -> None:
         self.matter = matter
         self.history = history or []
         self.events = events or []
         self.documents = documents or []
         self.bodies = bodies or {}
+        self.installed_modules = installed_modules or []
         self.added: list[Any] = []
 
     def add(self, obj: Any) -> None:
@@ -801,6 +803,8 @@ class _AssistantSession:
             return _Scalars(self.events)
         if name == "Document":
             return _Scalars(self.documents)
+        if name == "InstalledModule":
+            return _Scalars([m for m in self.installed_modules if m.enabled])
         if name == "WorkspaceDisabledSkill":
             return _Scalars([])
         return _Scalars([])
@@ -1068,6 +1072,98 @@ class TestAssistantPipeline:
         assert "args_schema" in prompt
 
     @pytest.mark.asyncio
+    async def test_assistant_tool_registry_loads_latest_matter_tools(self) -> None:
+        """Registry is real InstalledModule state, not hard-coded chips.
+
+        Chat may only expose latest enabled matter-scope skill/tool/workflow
+        capabilities. Workspace/global capabilities and disabled older module
+        installs must not appear in the model-visible tool menu.
+        """
+        matter = _make_matter()
+        module_id = "legalise.contract_review"
+        old_install = InstalledModule(
+            id=uuid.uuid4(),
+            module_id=module_id,
+            version="0.9.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={
+                "name": "Old Contract Review",
+                "description": "Old description",
+                "capabilities": [
+                    {
+                        "id": "old-review",
+                        "kind": "skill",
+                        "scope": "matter",
+                    }
+                ],
+            },
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=False,
+        )
+        latest_install = InstalledModule(
+            id=uuid.uuid4(),
+            module_id=module_id,
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={
+                "name": "Contract Review",
+                "description": "Review contracts",
+                "capabilities": [
+                    {
+                        "id": "review",
+                        "kind": "skill",
+                        "scope": "matter",
+                        "reads": ["document.body.read"],
+                        "writes": ["matter.artifact.write"],
+                        "args_schema": {
+                            "type": "object",
+                            "properties": {
+                                "document_ids": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                }
+                            },
+                        },
+                        "ui": {
+                            "label": "Review contract",
+                            "description": "Review an uploaded contract.",
+                        },
+                    },
+                    {
+                        "id": "admin-only",
+                        "kind": "tool",
+                        "scope": "workspace",
+                    },
+                ],
+            },
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        session = _AssistantSession(
+            matter,
+            installed_modules=[old_install, latest_install],
+        )
+
+        tools = await assistant_pipeline._load_assistant_tools(session)
+
+        assert [(t.module_id, t.capability_id) for t in tools] == [
+            (module_id, "review")
+        ]
+        assert tools[0].label == "Review contract"
+        assert tools[0].description == "Review an uploaded contract."
+        assert tools[0].args_schema["properties"]["document_ids"]["type"] == "array"
+
+    @pytest.mark.asyncio
     async def test_tool_call_runs_once_and_finalises_reply(self) -> None:
         matter = _make_matter()
         session = _AssistantSession(matter)
@@ -1152,6 +1248,90 @@ class TestAssistantPipeline:
         ]
         assert audit_rows[0].payload["tool_call_count"] == 1
         assert audit_rows[0].payload["tool_invocation_id"] == str(invocation_id)
+
+    @pytest.mark.asyncio
+    async def test_tool_loop_emits_progress_events(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        invocation_id = uuid.uuid4()
+        events: list[tuple[str, dict[str, Any]]] = []
+        gateway = _AssistantFakeGateway(
+            envelopes=[
+                {
+                    "content": "I'll run the tool.",
+                    "suggested_actions": [],
+                    "tool_calls": [
+                        {
+                            "module_id": "legalise.contract_review",
+                            "capability_id": "review",
+                            "args": {},
+                        }
+                    ],
+                },
+                {
+                    "content": "Done.",
+                    "suggested_actions": [],
+                    "tool_calls": [],
+                },
+            ]
+        )
+        installed = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="legalise.contract_review",
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={},
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        tool = assistant_pipeline.AssistantToolSpec(
+            module_id="legalise.contract_review",
+            capability_id="review",
+            label="Review contract",
+            description="Review an uploaded contract.",
+            args_schema={},
+            declaration={"id": "review", "kind": "skill", "scope": "matter"},
+            installed_module=installed,
+        )
+
+        async def _fake_dispatch(**_kwargs):
+            return {"artifact_id": "art-1"}, invocation_id
+
+        async def _capture(name: str, payload: dict[str, Any]) -> None:
+            events.append((name, payload))
+
+        with (
+            patch.object(assistant_pipeline, "_load_assistant_tools", return_value=[tool]),
+            patch.object(assistant_pipeline, "_dispatch_assistant_tool", _fake_dispatch),
+        ):
+            await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Review this contract"),
+                gateway=gateway,
+                on_event=_capture,
+            )
+
+        names = [name for name, _ in events]
+        assert names == [
+            "context.loaded",
+            "turn.accepted",
+            "model.start",
+            "tool.start",
+            "tool.end",
+            "model.start",
+            "turn.end",
+        ]
+        assert events[0][1]["tool_count"] == 1
+        assert events[4][1]["invocation_id"] == str(invocation_id)
+        assert events[5][1]["stage"] == "assistant.final"
+        assert events[-1][1]["tool_failed"] is False
 
     @pytest.mark.asyncio
     async def test_c_paused_returns_409(self) -> None:
