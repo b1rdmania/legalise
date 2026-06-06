@@ -275,9 +275,9 @@ the clean base for body + UI, grit sparingly and large.**
 | Base (body, UI) | `"Redaction", Georgia, "Times New Roman", serif` | `font-serif` (default) |
 | Wordmark | `"Redaction 35", Georgia, serif` | `.wordmark` |
 | Stamp button | `"Redaction 20", Georgia, serif` (uppercase, tracked) | `.btn-stamp` / `button.bg-ink` |
-| Mono | `"JetBrains Mono", ui-monospace, SFMono-Regular, monospace` | `font-mono` |
+| Mono | `"Redaction", Georgia, serif` (alias of base — `font-mono` kept for label styling only) | `font-mono` |
 
-Weights: Redaction `400 / 700` + `400 italic`, per grade. Mono `400 / 500`.
+Weights: Redaction `400 / 700` + `400 italic`, per grade. JetBrains Mono and the Hanken grotesk are fully removed (2026-06-06) — the system is Redaction only.
 
 **Grit grade discipline.** The clean family `"Redaction"` is the only one
 used for body, nav, labels, tables, prose. Grit grades exist for
@@ -378,7 +378,7 @@ module.exports = {
       fontFamily: {
         // v0.5: Redaction is the base. `font-serif` is the default body face.
         serif: ['Redaction', 'Georgia', '"Times New Roman"', 'serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        mono: ['Redaction', 'Georgia', '"Times New Roman"', 'serif'],
       },
       colors: {
         ink: '#181818',

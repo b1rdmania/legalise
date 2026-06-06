@@ -10,10 +10,9 @@ export default {
         // the @font-face kit (public/fonts/redaction). Georgia is the serif
         // fallback so a font-swap flash doesn't jump to a sans.
         sans: ['"Redaction"', 'Georgia', '"Times New Roman"', 'serif'],
-        // `mono`/`sans` both map to Redaction during the restyle; `ui` kept on
-        // the grotesk stack for dense-data carve-outs if legibility needs it.
+        // `mono` aliases Redaction. JetBrains Mono and the Hanken grotesk
+        // (`ui`) were fully removed 2026-06-06 — everything is Redaction.
         mono: ['"Redaction"', 'Georgia', '"Times New Roman"', 'serif'],
-        ui: ['"Hanken Grotesk"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
         // Degraded grades for deliberate, large, rare moments (font-redaction20,
         // -35). Grit muddies small — keep these for hero titles / stamps, not body.
         redaction10: ['"Redaction 10"', 'Georgia', 'serif'],
