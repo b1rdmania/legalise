@@ -107,16 +107,16 @@ describe("ReconstructionView — basic render", () => {
 
     mountAt("/matters/khan/audit");
     await waitFor(() => {
-      expect(
-        screen.getByText("module.capability.invoked"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Skill run started")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("advice_boundary.decision.completed"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Advice boundary decided")).toBeInTheDocument();
     // Source pills render substrate vocabulary verbatim.
     const pills = screen.getAllByTestId("row-source-pill");
     expect(pills.length).toBe(2);
+
+    fireEvent.click(screen.getByTestId("timeline-row-r-1").querySelector("button")!);
+    expect(screen.getByText("Raw action")).toBeInTheDocument();
+    expect(screen.getByText("module.capability.invoked")).toBeInTheDocument();
   });
 });
 
@@ -283,9 +283,7 @@ describe("ReconstructionView — server-side filters (Phase 14.5 A)", () => {
       // payload.invocation_id would have dropped it.
       expect(screen.getByTestId("timeline-row-abd-1")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("advice_boundary.decision.completed"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Advice boundary decided")).toBeInTheDocument();
   });
 
   it("with active filter + substrate returns empty, renders the absolute 'no match' variant", async () => {
@@ -333,7 +331,7 @@ describe("ReconstructionView — decision lane + chains (AT-2/AT-3)", () => {
       expect(screen.getByTestId("chain-inv-7")).toBeInTheDocument();
     });
     // Chain is open by default → both rows + the output node render.
-    expect(screen.getByText("review.approved")).toBeInTheDocument();
+    expect(screen.getByText("Review approved")).toBeInTheDocument();
     const out = screen.getByTestId("chain-output-node");
     expect(out).toBeInTheDocument();
     expect(out.querySelector("a")?.getAttribute("href")).toContain(

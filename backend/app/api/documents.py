@@ -14,6 +14,7 @@ from app.api.document_routes import (
     edits,
     original_download,
     working_draft,
+    workspace,
 )
 from app.api.document_routes.common import (
     _html_to_pdf,
@@ -31,6 +32,7 @@ for subrouter in (
     assets.router,
     body_versions.router,
     working_draft.router,
+    workspace.router,
     edits.router,
     comments.router,
     edit_sessions.router,
