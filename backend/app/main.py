@@ -1,5 +1,6 @@
 """Legalise backend entrypoint."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -217,27 +218,10 @@ async def _request_validation_handler(
     path = request.url.path
     if "/install/" in path and path.endswith("/advance"):
         try:
-            from app.core.api import audit_failure
-
-            parts = path.split("/")
-            ceremony_id = (
-                parts[parts.index("install") + 1] if "install" in parts else None
+            await asyncio.wait_for(
+                _audit_validation_rejected_ceremony(request, exc),
+                timeout=2,
             )
-            actor_id = getattr(request.state, "user_id", None)
-
-            session_factory = request.app.state.session_factory
-            async with session_factory() as audit_session:
-                await audit_failure(
-                    audit_session,
-                    "module.ceremony.rejected",
-                    actor_id=actor_id,
-                    module="core.trust_ceremony",
-                    payload={
-                        "ceremony_id": ceremony_id,
-                        "reason": "schema_validation_failed",
-                        "errors": exc.errors(),
-                    },
-                )
         except Exception:
             # Never let audit emission break the 422 response.
             pass
@@ -245,6 +229,37 @@ async def _request_validation_handler(
         status_code=422,
         content={"detail": exc.errors()},
     )
+
+
+async def _audit_validation_rejected_ceremony(
+    request: Request, exc: RequestValidationError
+) -> None:
+    """Best-effort audit for invalid install-ceremony actions.
+
+    This runs from FastAPI's validation-error path, before the route
+    handler has a request-scoped DB session. Keep it isolated and bounded
+    so a failure-provenance write can never stall the 422 response.
+    """
+    from app.core.api import audit_failure
+
+    path = request.url.path
+    parts = path.split("/")
+    ceremony_id = parts[parts.index("install") + 1] if "install" in parts else None
+    actor_id = getattr(request.state, "user_id", None)
+
+    session_factory = request.app.state.session_factory
+    async with session_factory() as audit_session:
+        await audit_failure(
+            audit_session,
+            "module.ceremony.rejected",
+            actor_id=actor_id,
+            module="core.trust_ceremony",
+            payload={
+                "ceremony_id": ceremony_id,
+                "reason": "schema_validation_failed",
+                "errors": exc.errors(),
+            },
+        )
 
 
 @app.exception_handler(CapabilityDenied)
