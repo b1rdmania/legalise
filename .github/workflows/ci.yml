@@ -141,7 +141,7 @@ jobs:
               print(path)
           PY
           mapfile -t pytest_files < /tmp/backend-pytest-files.txt
-          python -m pytest -x -vv --durations=20 "${pytest_files[@]}"
+          python -m pytest -x -vv --durations=20 --timeout=60 --timeout-method=thread "${pytest_files[@]}"
 
   # ---------------------------------------------------------------------------
   # MinIO smoke — exercises the S3StorageBackend (boto3 path) against a real
