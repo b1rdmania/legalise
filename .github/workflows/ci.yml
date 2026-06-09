@@ -25,9 +25,13 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend pytest
+    name: Backend pytest (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [pre-round2, round2-and-later]
 
     services:
       postgres:
@@ -121,7 +125,23 @@ jobs:
 
       - name: pytest
         working-directory: backend
-        run: python -m pytest -x --durations=20
+        env:
+          PYTEST_SHARD: ${{ matrix.shard }}
+        run: |
+          python - <<'PY' > /tmp/backend-pytest-files.txt
+          import os
+          from pathlib import Path
+
+          files = sorted(Path("tests").glob("test_*.py"))
+          boundary = Path("tests/test_phase3_phase4_round2_fixes.py")
+          index = files.index(boundary)
+          shard = os.environ["PYTEST_SHARD"]
+          selected = files[:index] if shard == "pre-round2" else files[index:]
+          for path in selected:
+              print(path)
+          PY
+          mapfile -t pytest_files < /tmp/backend-pytest-files.txt
+          python -m pytest -x -vv --durations=20 "${pytest_files[@]}"
 
   # ---------------------------------------------------------------------------
   # MinIO smoke — exercises the S3StorageBackend (boto3 path) against a real
