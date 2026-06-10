@@ -11,7 +11,7 @@ const SURFACES: { title: string; body: string }[] = [
     body: "A matter workspace holds the documents, skills, outputs, signatures, and record in one place.",
   },
   {
-    title: "Install skill",
+    title: "Add skill",
     body: "Skills are governed legal work units. They declare what they read, what they write, and how they run.",
   },
   {

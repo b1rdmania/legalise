@@ -83,7 +83,7 @@ export function Manifesto() {
               The product loop
             </p>
             <ol className="mt-4 space-y-3 text-sm text-ink">
-              {["Open project", "Install skill", "Run against documents", "Review output", "Sign", "Export record"].map(
+              {["Open project", "Add skill", "Run against documents", "Review output", "Sign", "Export record"].map(
                 (item, idx) => (
                   <li key={item} className="flex gap-3">
                     <span className="tech-token text-muted">{idx + 1}</span>
