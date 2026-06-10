@@ -315,7 +315,7 @@ describe("DocumentDetail", () => {
     expect(ask).toHaveTextContent("Ask about this file");
     expect(ask.getAttribute("href")).toContain("/matters/khan/assistant");
     expect(ask.getAttribute("href")).toContain("document=doc-1");
-    expect(screen.getAllByRole("link", { name: "View Record" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "View Activity" }).length).toBeGreaterThan(0);
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
     expect(screen.queryByTestId("document-download-edited-pdf")).toBeNull();
     expect(screen.queryByTestId("pdf-document-viewer")).toBeNull();

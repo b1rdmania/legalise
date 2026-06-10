@@ -13,7 +13,7 @@ export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: 
         as redacted.
       </p>
       <p className="text-prose leading-relaxed mb-4">
-        Acknowledgement is recorded in the Record (audit action:{" "}
+        Acknowledgement is recorded in Activity (audit action:{" "}
         <span className="tech-token text-xs text-ink">chronology.gate.confirmed</span>) and scoped
         to this matter and user.
       </p>

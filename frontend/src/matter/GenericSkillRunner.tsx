@@ -137,7 +137,7 @@ export function GenericSkillRunner({
         <div>
           <p className="text-sm font-semibold text-ink">{skill.title}</p>
           <p className="mt-1 max-w-xl text-xs text-muted">
-            {skill.description || "Runs against this project and writes an output to the Record."}
+            {skill.description || "Runs against this project and writes an output to Activity."}
           </p>
         </div>
         <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
@@ -280,7 +280,7 @@ export function GenericSkillRunner({
           params={{ slug }}
           className="text-xs text-muted underline underline-offset-4 hover:text-ink"
         >
-          View Record →
+          View Activity →
         </Link>
       </div>
 
@@ -354,7 +354,7 @@ function RunnerResult({
                   Next step
                 </p>
                 <p className="mt-1 text-sm font-semibold text-ink">
-                  Review the output, sign it if you stand behind it, then use the Record as
+                  Review the output, sign it if you stand behind it, then use Activity as
                   the receipt.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -376,7 +376,7 @@ function RunnerResult({
                     href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
                     className="rounded-item border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
                   >
-                    View Record
+                    View Activity
                   </a>
                 </div>
               </div>

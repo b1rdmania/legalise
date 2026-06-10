@@ -1,7 +1,7 @@
 // Matter shell taxonomy (V1 — compressed matter rail).
 //
 // SIDEBAR_NAV is the core nav that renders in the matter rail.
-// Secondary/legacy surfaces (record, chronology, approvals,
+// Secondary/legacy surfaces (activity/audit, chronology, approvals,
 // individual workflow pages) remain routable for deep links but do not
 // compete with the main chat-led loop.
 // WORKFLOW_TABS are historical built-in skill surfaces reached from
@@ -10,7 +10,7 @@
 //
 // Bare /matters/{slug} lands on Chat (the assistant key).
 //
-// User-facing tab labels (Chat / Files / Skills / Record)
+// User-facing tab labels (Chat / Files / Skills / Activity)
 // intentionally do not match the underlying URL keys
 // (assistant / documents / workflows / audit). The keys are kept
 // stable in this slice for route compatibility; they are rewired in
@@ -45,7 +45,7 @@ export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
   documents: "Files",
   chronology: "Chronology",
   workflows: "Skills",
-  audit: "Record",
+  audit: "Activity",
   approvals: "Approvals",
   premotion: "Pre-Motion",
   letters: "Letters",

@@ -599,7 +599,7 @@ function EnableSkillModal({
         <Block label="What this skill writes">
           <p className="text-sm text-ink">{shortCapabilityList(writes)}</p>
           <p className="mt-1 text-xs text-muted">
-            Outputs land in the matter Record. Per-output narrowing arrives
+            Outputs land in matter Activity. Per-output narrowing arrives
             once output-specific permissions are available.
           </p>
         </Block>

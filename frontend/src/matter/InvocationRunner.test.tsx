@@ -81,9 +81,9 @@ describe("InvocationRunner — happy path", () => {
     });
     expect(screen.getByText("inv-1")).toBeInTheDocument();
     expect(screen.getByTestId("motion-draft-view")).toBeInTheDocument();
-    // Deep-link to the Record carries invocation_id.
+    // Deep-link to Activity carries invocation_id on the legacy audit route.
     const auditLink = screen.getByRole("link", {
-      name: /see record/i,
+      name: /see activity/i,
     });
     expect(auditLink.getAttribute("href")).toMatch(
       /\/matters\/khan\/audit\?invocation_id=inv-1/,

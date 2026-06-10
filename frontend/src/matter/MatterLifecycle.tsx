@@ -213,7 +213,7 @@ function ExportPanel({ slug }: { slug: string }) {
         href={`/matters/${encodeURIComponent(slug)}/audit?action=module.export.job.completed`}
         className="mt-3 inline-block text-xs text-muted underline underline-offset-4 hover:text-ink"
       >
-        View export activity in the Record
+        View export activity in Activity
       </a>
     </section>
   );

@@ -1081,7 +1081,7 @@ export function DocumentDetail({
                   href={recordHref}
                   className="inline-flex items-center justify-center rounded-item border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
                 >
-                  View Record
+                  View Activity
                 </a>
               </div>
             </details>
@@ -1573,7 +1573,7 @@ export function DocumentDetail({
                     className="flex items-center justify-between gap-3 px-3 py-3 text-sm hover:bg-paper-sunken"
                   >
                     <span>
-                      <span className="block font-semibold text-ink">View matter Record</span>
+                      <span className="block font-semibold text-ink">View matter Activity</span>
                       <span className="mt-1 block text-xs text-muted">
                         Notes, skill runs, versions, and file access.
                       </span>
@@ -1623,7 +1623,7 @@ export function DocumentDetail({
                 ) : (
                   <p className="mt-3 text-sm leading-6 text-muted">
                     Run a document skill or create an output that cites this file. Related
-                    outputs appear here and in the matter Record.
+                    outputs appear here and in matter Activity.
                   </p>
                 )}
               </details>
@@ -1764,7 +1764,7 @@ export function DocumentDetail({
                           </span>
                           <span className="mt-1 block text-xs leading-5 text-muted">
                             {primaryDocumentSkill.description ||
-                              "Runs against this document and writes an output to the Record."}
+                              "Runs against this document and writes an output to Activity."}
                           </span>
                         </span>
                         <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
@@ -1772,7 +1772,7 @@ export function DocumentDetail({
                         </span>
                       </span>
                       <span className="mt-3 block text-xs text-muted">
-                        Uses this document and writes an output to the Record.
+                        Uses this document and writes an output to Activity.
                       </span>
                       <span className="mt-3 inline-flex rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper">
                         Run with this file
@@ -1796,7 +1796,7 @@ export function DocumentDetail({
                               {skill.title}
                             </span>
                             <span className="mt-1 block text-xs text-muted">
-                              Uses this document and writes an output to the Record.
+                              Uses this document and writes an output to Activity.
                             </span>
                           </button>
                         ))}

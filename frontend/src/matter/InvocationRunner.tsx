@@ -232,7 +232,7 @@ function ResultPanel({
             href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(r.invocation_id)}`}
             className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            See Record for this run
+            See Activity for this run
           </a>
         </div>
       </div>
