@@ -17,7 +17,7 @@ By the end of the walkthrough you will have:
 
 - opened a real matter folder;
 - inspected the documents the skill can use;
-- installed and enabled a governed skill;
+- added and enabled a governed skill;
 - run the skill through the durable job path;
 - reviewed and signed the output;
 - read the matter Record; and
@@ -42,20 +42,20 @@ and the record preserves what happened.
 3. Confirm the extracted text is readable and the metadata is secondary.
 4. Use the back link to return to the matter.
 
-## 3 — Install a skill at the workspace
+## 3 — Add a skill to the workspace
 
 1. Navigate to <http://localhost:3000/skills>.
 2. Pick a reference skill such as **Contract Review** or **Pre-Motion**.
-3. Walk the install ceremony.
+3. Walk the add-skill trust ceremony.
 
-Installation is workspace-level trust. It does **not** make the skill
+Adding a skill is workspace-level trust. It does **not** make the skill
 runnable in every matter.
 
 ## 4 — Enable the skill on Khan
 
 1. Return to the Khan matter.
 2. Open **Skills**.
-3. Enable the installed skill for this matter.
+3. Enable the added skill for this matter.
 4. Confirm the card reads as ready in this project.
 
 Matter-level enablement is where the skill receives permission to read
