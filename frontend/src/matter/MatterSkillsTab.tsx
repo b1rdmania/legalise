@@ -286,7 +286,7 @@ export function MatterSkillsTab({ slug }: Props) {
       </div>
 
       <p className="mt-8 text-xs text-muted">
-        Workspace install, signature, and trust details live on{" "}
+        Workspace add, signature, and trust details live on{" "}
         <Link to="/skills" className="underline underline-offset-4 hover:text-ink">
           Workspace skills
         </Link>

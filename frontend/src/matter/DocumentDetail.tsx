@@ -1738,7 +1738,7 @@ export function DocumentDetail({
               ) : documentSkills.length === 0 ? (
                 <div className="mt-3 text-sm text-muted">
                   <p>
-                    No document-reading skills are installed for this file yet. You can still
+                    No document-reading skills are enabled for this file yet. You can still
                     edit, version, compare, and export the document.
                   </p>
                   <Link

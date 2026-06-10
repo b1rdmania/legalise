@@ -61,7 +61,7 @@ export function CreateModule() {
       <PageHeader
         eyebrow="Skills"
         title="Create a skill"
-        description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the install path uses — it does not install or sign."
+        description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the add-skill path uses — it does not add or sign."
       />
 
       <section>
@@ -72,7 +72,7 @@ export function CreateModule() {
           A skill is a signed, governed unit of legal work. Its manifest
           declares what it may touch; the runtime enforces those declarations on
           every call, and every run lands in the matter record. Skills are
-          installed at the workspace and enabled per matter.
+          added at the workspace and enabled per matter.
         </p>
       </section>
 
@@ -129,8 +129,8 @@ export function CreateModule() {
         )}
         {result.kind === "validated" && result.result.valid && (
           <p className="mt-3 text-sm text-ink" data-testid="validate-ok">
-            Valid — this manifest passes the same checks the install path runs.
-            Sign and install it locally (below) to use it.
+            Valid — this manifest passes the same checks the add-skill path runs.
+            Sign and add it locally (below) to use it.
           </p>
         )}
         {result.kind === "validated" && !result.result.valid && (

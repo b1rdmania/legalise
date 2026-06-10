@@ -441,7 +441,7 @@ function DemoWorkflowsTab({
           Run a legal skill against the matter file.
         </h2>
         <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          Skills are installed at workspace level, then enabled inside a
+          Skills are added at workspace level, then enabled inside a
           project. This public snapshot shows the ready state: what each skill
           reads, what it produces, and where the result is recorded.
         </p>

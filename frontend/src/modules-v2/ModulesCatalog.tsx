@@ -8,7 +8,7 @@
  *      card shows its workspace state (Available / Added / Added
  *      · disabled) derived from listInstalledModules.
  *   2. SECONDARY: the open UK-legal skill library (getPublicModules) —
- *      browse only, NOT an install path. Collapsed by default.
+ *      browse only, NOT an add path. Collapsed by default.
  *
  * Enablement is per-matter: adding a module at the workspace does
  * not make it "ready everywhere" — running it is granted from a matter.

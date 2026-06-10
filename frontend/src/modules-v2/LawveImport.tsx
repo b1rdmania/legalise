@@ -4,8 +4,8 @@
  * Browse `lawve-ai/awesome-legal-skills`, inspect a skill (metadata,
  * provenance, licence, SKILL.md, refs/scripts), and convert it into a
  * **governed Legalise module draft** — validated via the existing
- * validator, never installed, scripts never executed. A draft is not a
- * module until reviewed, validated, signed, and installed.
+ * validator, never added, scripts never executed. A draft is not a
+ * module until reviewed, validated, signed, and trusted.
  */
 
 import { useEffect, useMemo, useState } from "react";

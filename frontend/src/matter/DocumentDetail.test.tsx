@@ -285,20 +285,20 @@ describe("DocumentDetail", () => {
     );
     expect(screen.getByTestId("document-state-rail")).toBeInTheDocument();
     expect(screen.getByTestId("document-next-step")).toHaveTextContent(
-      "Start by reading or selecting text.",
+      "Review, edit, or export this document.",
     );
     expect(screen.getByTestId("document-review-board")).toHaveTextContent("Notes");
     expect(screen.getByTestId("document-review-board")).toHaveTextContent("Skills");
     expect(screen.getByTestId("document-review-board")).toHaveTextContent("Outputs");
     expect(await screen.findByTestId("document-output-links")).toHaveTextContent(
-      "No signed outputs cite this file yet",
+      "No outputs cite this file yet",
     );
     expect(screen.getByTestId("document-work-plan")).toHaveTextContent(
       "Run document skill",
     );
     expect(screen.getByText("Suggest edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Read / edit" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Read" })).toBeInTheDocument();
     expect(screen.queryByText("Version record")).toBeNull();
     // Admin-ish document facts sit behind File details; the primary scan
     // path is filename, text, original actions, review, skills, and versions.
@@ -387,7 +387,7 @@ describe("DocumentDetail", () => {
     mount();
 
     const links = await screen.findByTestId("document-output-links");
-    expect(links).toHaveTextContent("1 signed output cites this file");
+    expect(links).toHaveTextContent("1 output cites this file");
     const attached = await screen.findByTestId("document-attached-outputs");
     expect(attached).toHaveTextContent("Work from this file");
     expect(attached).toHaveTextContent("1 signed output cites this document.");
@@ -689,7 +689,7 @@ describe("DocumentDetail", () => {
 
     expect(await screen.findByTestId("generic-runner-result")).toHaveTextContent("Output written");
     expect(screen.getByTestId("document-output-links")).toHaveTextContent(
-      "1 signed output cites this file",
+      "1 output cites this file",
     );
   });
 
