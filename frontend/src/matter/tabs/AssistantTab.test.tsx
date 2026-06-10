@@ -8,6 +8,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import {
@@ -351,6 +352,44 @@ describe("AssistantTab — in-chat skill picker", () => {
       matter.slug,
       { content: "Review the NDA", selected_document_ids: undefined },
     );
+  });
+
+  it("keeps workflow suggestion chips in chat instead of routing to legacy tabs", async () => {
+    const setTabAndHash = vi.fn();
+    mountChat({
+      setTabAndHash,
+      initialMessages: [
+        {
+          id: "a-suggest",
+          role: "assistant",
+          content: "I can run a pre-motion premortem.",
+          suggested_actions: [
+            {
+              type: "run_pre_motion",
+              label: "Run a pre-motion premortem",
+              params: {},
+            },
+          ],
+          created_at: "2026-06-05T10:00:00Z",
+        },
+      ],
+    });
+
+    const row = await screen.findByTestId("assistant-output-row");
+    expect(row).toHaveTextContent("Run a pre-motion premortem");
+    fireEvent.click(within(row).getByRole("button", { name: "Open" }));
+
+    await waitFor(() =>
+      expect(api.postAssistantMessageStream).toHaveBeenCalledWith(
+        matter.slug,
+        {
+          content:
+            "Run the pre-motion premortem now.\n\nRequested from: Run a pre-motion premortem",
+          selected_document_ids: undefined,
+        },
+      ),
+    );
+    expect(setTabAndHash).not.toHaveBeenCalled();
   });
 });
 

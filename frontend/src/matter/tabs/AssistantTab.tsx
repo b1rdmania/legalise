@@ -79,14 +79,17 @@ const SUGGESTED_DEFAULT = [
   "Summarise a document",
 ];
 
-const ACTION_TARGET: Record<SuggestedAction["type"], TabKey> = {
-  run_pre_motion: "premotion",
-  draft_letter: "letters",
-  review_contract: "contract-review",
+const ACTION_TARGET: Partial<Record<SuggestedAction["type"], TabKey>> = {
   view_document: "documents",
   view_audit: "audit",
   view_chronology: "chronology",
-  anonymise_document: "documents",
+};
+
+const WORKFLOW_ACTION_PROMPT: Partial<Record<SuggestedAction["type"], string>> = {
+  run_pre_motion: "Run the pre-motion premortem now.",
+  draft_letter: "Draft the letter now.",
+  review_contract: "Run the contract review now.",
+  anonymise_document: "Anonymise the selected document now.",
 };
 
 export function AssistantTab({
@@ -239,8 +242,8 @@ export function AssistantTab({
     });
   };
 
-  const onSend = async () => {
-    const content = input.trim();
+  const sendMessage = async (content: string, selectedIds = selectedDocIds) => {
+    content = content.trim();
     if (!content || pending || disabled) return;
     setError(null);
     setKeyMissingProvider(null);
@@ -259,7 +262,7 @@ export function AssistantTab({
     try {
       const stream = postAssistantMessageStream(matter.slug, {
         content,
-        selected_document_ids: selectedDocIds.size > 0 ? Array.from(selectedDocIds) : undefined,
+        selected_document_ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
       });
       let sawResult = false;
       for await (const event of stream) {
@@ -291,6 +294,10 @@ export function AssistantTab({
     }
   };
 
+  const onSend = async () => {
+    await sendMessage(input);
+  };
+
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -299,6 +306,14 @@ export function AssistantTab({
   };
 
   const dispatchAction = (a: SuggestedAction) => {
+    const workflowPrompt = WORKFLOW_ACTION_PROMPT[a.type];
+    if (workflowPrompt) {
+      const selectedIds = new Set(selectedDocIds);
+      const documentId = a.params.document_id;
+      if (documentId && docsById.has(documentId)) selectedIds.add(documentId);
+      void sendMessage(`${workflowPrompt}\n\nRequested from: ${a.label}`, selectedIds);
+      return;
+    }
     const target = ACTION_TARGET[a.type];
     if (target) setTabAndHash(target);
   };
