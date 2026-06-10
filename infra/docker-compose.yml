@@ -81,7 +81,9 @@ services:
       LEGALISE_FIRM_ROLE_GATES_ENABLED: ${LEGALISE_FIRM_ROLE_GATES_ENABLED:-false}
       # Local/eval only: first registered user becomes workspace admin
       # automatically, removing the bootstrap_admin copy-paste from the
-      # two-minute demo path. Production ignores this flag in code.
+      # two-minute demo path. The e2e workflow exports false so it can
+      # exercise the manual bootstrap_admin operator path. Production
+      # ignores this flag in code.
       LEGALISE_DEV_AUTO_ADMIN_FIRST_USER: ${LEGALISE_DEV_AUTO_ADMIN_FIRST_USER:-true}
       # Plugin bind-mount target; matches the volume below.
       PLUGINS_ROOT: /plugins
