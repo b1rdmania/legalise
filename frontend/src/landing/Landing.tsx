@@ -32,6 +32,30 @@ const SURFACES: { title: string; body: string }[] = [
   },
 ];
 
+const QUICKSTART_CMD =
+  "git clone https://github.com/b1rdmania/legalise && cd legalise && ./scripts/quickstart.sh";
+
+function QuickstartCommand() {
+  const onCopy = () => {
+    void navigator.clipboard?.writeText(QUICKSTART_CMD);
+  };
+  return (
+    <div className="mt-6 flex max-w-xl items-center gap-3 border border-rule bg-wash px-4 py-3">
+      <code className="tech-token min-w-0 flex-1 truncate text-xs text-prose">
+        <span className="select-none text-muted">$ </span>
+        {QUICKSTART_CMD}
+      </code>
+      <button
+        type="button"
+        onClick={onCopy}
+        className="shrink-0 text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+      >
+        Copy
+      </button>
+    </div>
+  );
+}
+
 export function Landing() {
   const auth = useAuth();
   const onOpenDemo = () => navigate(`/matters/${DEMO_SLUG}`);
@@ -81,19 +105,17 @@ export function Landing() {
           />
         </div>
         <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-24 max-w-3xl">
-          <div className="eyebrow text-muted mb-5">Legal AI infrastructure</div>
+          <div className="eyebrow text-muted mb-5">
+            Open source · Apache 2.0 · v0.1
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
-            Backend rails for regulated AI legal work.
+            Legal AI that signs its work.
           </h1>
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            Legalise is for firms that want AI to prepare work without losing
-            control of the matter, the documents, or the professional record.
-          </p>
-          <p className="text-base text-prose leading-relaxed mt-5 max-w-xl">
-            Open a project, add documents, run a legal skill, review the
-            output, sign what you accept, and export the record. The hosted
-            demo is not a law firm and does not give legal advice.
+            An open-source workspace for England &amp; Wales. Plug in a legal
+            skill, run it from chat, watch the supervised run. Every output
+            knows its sources, its permissions, and who stood behind it.
           </p>
 
           {/* CTAs */}
@@ -137,6 +159,12 @@ export function Landing() {
               </a>
             </div>
           )}
+
+          <QuickstartCommand />
+
+          <p className="eyebrow mt-8 text-muted">
+            Not a law firm. Not legal advice. Bring your own model key.
+          </p>
         </div>
       </section>
 
