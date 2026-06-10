@@ -1497,13 +1497,13 @@ Exact values:
 |---|---|---|
 | Appears when | the turn produced an **artifact** — summary / draft letter / redline / review / issue list / version | NOT on `sourceCount > 0` alone (see divergence) |
 | Row container | `mt-2 flex flex-wrap items-center gap-2 rounded-md border border-rule bg-paper px-3 py-2` | |
-| Kind glyph | `h-6 w-6 rounded-sm border border-rule bg-paper-sunken font-mono text-[10px] uppercase text-muted` | first letter of the kind |
+| Kind glyph | `h-6 w-6 rounded-sm border border-rule bg-paper-sunken tech-token text-[10px] font-semibold uppercase text-muted` | first letter of the kind; `tech-token` is the system's mono idiom |
 | Title | `text-sm font-semibold text-ink truncate` | |
-| Status chip | `rounded-full border border-rule bg-paper-sunken px-2 py-0.5 text-[10px] uppercase tracking-track2 text-muted` | provenance now; becomes the sign-off seal (`Draft → Approved by [name]`) when sign-off is wired — `text-seal` only on Approved |
+| Status chip | `rounded-full border border-rule bg-paper-sunken px-2 py-0.5 text-[10px] font-medium uppercase tracking-track2 text-muted` | provenance now; becomes the sign-off seal (`Draft → Approved by [name]`) when sign-off is wired — `text-seal` only on Approved |
 | Actions | **Open · Sources · Versions · Activity** | `text-xs text-muted underline underline-offset-4 hover:text-ink`; show only what applies; never duplicate Open when a file and a `view_document` action coexist |
 
 Where it lands: `matter/MessageBubble.tsx`.
-Deliberate divergences: the as-shipped trigger is `hasOutputRow = sourceCount > 0 || hasActions`; **spec gates it to artifact-producing turns** — fix pending so cited answers don't spawn rows.
+Deliberate divergences: none. (The earlier `sourceCount > 0 || hasActions` trigger was fixed 2026-06-10: the row now gates on `outputKindForMessage()` — artifact-producing turns only; plain cited answers keep inline chips. Audited code-vs-spec same day: 11/11 rows honoured.)
 
 ---
 
@@ -1521,9 +1521,9 @@ Exact values:
 |---|---|---|
 | Default state | hidden | no standing pane |
 | Trigger | row action → `setWorkPane({ kind, message })` | kinds: `sources` / `versions` / `activity` (+ preview) |
-| Surface | slide-over (`ui/Drawer`), overlays from the right | not a column that shoves chat |
+| Surface | slide-over `<aside>` in `AssistantTab` (`fixed inset-y-0 right-0 z-40 max-w-[420px]`), overlays from the right | not a column that shoves chat; built inline rather than `ui/Drawer` (2026-06-10: same behaviour, local state, no portal needed) |
 | Document handoff | inline file chip → **Preview** in pane → "Open in editor" → full-screen `DocumentRichEditor` | inspect-before-edit; label is "Preview", not "Open file" |
 | Pin (future) | if ever pinned open, default content = Files | not in this slice |
 
-Where it lands: `matter/tabs/AssistantTab.tsx` (workPane state), `ui/Drawer.tsx`, `matter/DocumentDetail.tsx` (editor route).
-Deliberate divergences: none. Caveat before ratifying: confirm the pane *contents* (sources / versions / activity views) are rendered, not stubbed.
+Where it lands: `matter/tabs/AssistantTab.tsx` (workPane state + `AssistantWorkPane`), `matter/DocumentDetail.tsx` (editor route).
+Deliberate divergences (2026-06-10 audit): the pane surface is an inline `<aside>`, not `ui/Drawer` (same slide-over behaviour). Pane contents: **sources** renders real cited-document cards (parsed from `[doc:id]`); **versions** and **activity** are link-out gateways this slice (cards + "Open versions" / "Open Activity"), not embedded timelines — embedding the version timeline and a lite record view in-pane is the next P24 increment, tracked, not drift.

@@ -19,7 +19,7 @@ const baseSkill: RunnableMatterSkill = {
   reads: ["document.body.read"],
   writes: ["matter.artifact.write"],
   modelAccess: "required",
-  signatureStatus: "verified",
+  signatureStatus: "structure_verified",
   sourceKind: "v2",
 };
 

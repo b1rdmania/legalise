@@ -51,7 +51,7 @@ def test_unknown_publisher_with_signature_returns_unknown_publisher() -> None:
 def test_verified_publisher_with_signature_returns_verified() -> None:
     m = _base_manifest(publisher="legalise", signed_by="legalise")
     result = verify_manifest_signature(m, signature="b" * 64)
-    assert result.status is SignatureStatus.VERIFIED
+    assert result.status is SignatureStatus.STRUCTURE_VERIFIED
 
 
 def test_signed_by_mismatch_returns_invalid() -> None:

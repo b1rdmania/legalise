@@ -12,7 +12,9 @@ Three endpoints under ``/api/matters/{slug}/signoffs``:
 Owner-only matter access. Every signed-in user can sign their own matter
 outputs as themselves — no qualified-solicitor role gate and no
 workspace-admin/superuser signing shortcut. Professional Sign-Off v1 is
-personal ownership, not an admin override surface.
+personal ownership, not an admin override surface. Each read carries
+``signer_is_author`` so a self-signed output is labelled as such rather
+than presented as independent review.
 """
 
 from __future__ import annotations
@@ -59,6 +61,7 @@ class SignoffRead(BaseModel):
     reasoning: str | None
     signer_id: str
     signer_email: str | None
+    signer_is_author: bool
     signed_at: str
     is_current: bool
 
@@ -79,7 +82,13 @@ async def _load_matter_or_404(
     return matter
 
 
-def _to_read(s: MatterSignoff, *, is_current: bool, signer_email: str | None) -> SignoffRead:
+def _to_read(
+    s: MatterSignoff,
+    *,
+    is_current: bool,
+    signer_email: str | None,
+    signer_is_author: bool,
+) -> SignoffRead:
     return SignoffRead(
         id=str(s.id),
         matter_id=str(s.matter_id),
@@ -93,6 +102,7 @@ def _to_read(s: MatterSignoff, *, is_current: bool, signer_email: str | None) ->
         reasoning=s.reasoning,
         signer_id=str(s.signer_id),
         signer_email=signer_email,
+        signer_is_author=signer_is_author,
         signed_at=s.signed_at.isoformat() if s.signed_at else "",
         is_current=is_current,
     )
@@ -107,6 +117,20 @@ async def _signer_emails(
         select(User.id, User.email).where(User.id.in_(signer_ids))
     )
     return {uid: email for uid, email in rows.all()}
+
+
+async def _artifact_authors(
+    session: AsyncSession, artifact_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, uuid.UUID]:
+    """Map artifact id → created_by_id, for the signer-is-author flag."""
+    if not artifact_ids:
+        return {}
+    rows = await session.execute(
+        select(MatterArtifact.id, MatterArtifact.created_by_id).where(
+            MatterArtifact.id.in_(artifact_ids)
+        )
+    )
+    return {aid: author_id for aid, author_id in rows.all()}
 
 
 @router.post("/{slug}/signoffs", response_model=SignoffRead, status_code=201)
@@ -158,7 +182,12 @@ async def create_signoff_endpoint(
 
     await session.commit()
     # A newly created sign-off is always the current one for its artifact.
-    return _to_read(signoff, is_current=True, signer_email=user.email)
+    return _to_read(
+        signoff,
+        is_current=True,
+        signer_email=user.email,
+        signer_is_author=artifact.created_by_id == user.id,
+    )
 
 
 @router.get("/{slug}/signoffs", response_model=SignoffListResponse)
@@ -171,10 +200,16 @@ async def list_signoffs_endpoint(
     signoffs = await list_signoffs(session, matter=matter)
     current = current_signoff_ids(signoffs)
     emails = await _signer_emails(session, {s.signer_id for s in signoffs})
+    authors = await _artifact_authors(session, {s.artifact_id for s in signoffs})
     return SignoffListResponse(
         matter_id=str(matter.id),
         signoffs=[
-            _to_read(s, is_current=s.id in current, signer_email=emails.get(s.signer_id))
+            _to_read(
+                s,
+                is_current=s.id in current,
+                signer_email=emails.get(s.signer_id),
+                signer_is_author=authors.get(s.artifact_id) == s.signer_id,
+            )
             for s in signoffs
         ],
     )
@@ -211,8 +246,10 @@ async def get_signoff_endpoint(
         .limit(1)
     )
     emails = await _signer_emails(session, {signoff.signer_id})
+    authors = await _artifact_authors(session, {signoff.artifact_id})
     return _to_read(
         signoff,
         is_current=(latest == signoff.id),
         signer_email=emails.get(signoff.signer_id),
+        signer_is_author=authors.get(signoff.artifact_id) == signoff.signer_id,
     )

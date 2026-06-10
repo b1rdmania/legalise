@@ -96,7 +96,7 @@ def _stub_installed(
         version="1.0.0",
         publisher="legalise",
         visibility="example",
-        signature_status="verified",
+        signature_status="structure_verified",
         signed_by="legalise",
         install_path="<inline>",
         manifest_snapshot={

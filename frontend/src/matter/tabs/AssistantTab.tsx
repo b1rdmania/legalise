@@ -58,24 +58,22 @@ interface AssistantTabProps {
 
 // Three concrete first-actions per matter type. Per JOY.md "Suggested
 // Actions": not generic. Matter-shaped starters that prefill the composer.
+// P22: exactly 3 matter-type-aware starters, plain rows.
 const SUGGESTED_BY_TYPE: Record<string, string[]> = {
   employment_tribunal: [
     "Stress-test the dismissal claim",
     "Draft a letter before action",
-    "Build a chronology",
     "Summarise the witness statement",
   ],
   civil: [
     "Stress-test this case",
     "Draft a pre-action letter",
-    "Build a chronology",
     "Summarise a document",
   ],
 };
 const SUGGESTED_DEFAULT = [
   "Stress-test this case",
   "Draft a letter",
-  "Build a chronology",
   "Summarise a document",
 ];
 
@@ -385,7 +383,7 @@ export function AssistantTab({
 
   return (
     <div
-      className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[740px] flex-col px-1"
+      className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[760px] flex-col px-1"
       data-testid="chat-led-workspace"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">

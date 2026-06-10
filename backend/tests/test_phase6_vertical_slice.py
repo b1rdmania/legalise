@@ -227,7 +227,7 @@ async def test_contract_review_vertical_slice(client, stub_model_gateway) -> Non
             )
         )
         assert installed is not None
-        assert installed.signature_status == "verified"
+        assert installed.signature_status == "structure_verified"
 
     # POST /api/matters/{slug}/grants — real HTTP grant.
     grant_resp = await client.post(

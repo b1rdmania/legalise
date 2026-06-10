@@ -46,7 +46,7 @@ const ORDERED_STATES: ReadonlyArray<{
 }> = [
   { key: "discovered", label: "Discovered", blurb: "Skill manifest located in the registry." },
   { key: "inspected", label: "Inspected", blurb: "Manifest shape + structural validation passed." },
-  { key: "signature_checked", label: "Signature checked", blurb: "Signature verified (or fast-path declared)." },
+  { key: "signature_checked", label: "Signature checked", blurb: "Signature structure checked (or fast-path declared) — structural, not cryptographic." },
   { key: "publisher_checked", label: "Publisher checked", blurb: "Publisher identity confirmed against policy." },
   { key: "permissions_reviewed", label: "Permissions reviewed", blurb: "Permission sets + data movement acknowledged." },
   { key: "gates_reviewed", label: "Gates reviewed", blurb: "Privilege + advice-tier gates acknowledged." },

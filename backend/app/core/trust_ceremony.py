@@ -308,7 +308,7 @@ async def start_ceremony(
     card.signature_status = sig_result.status.value
 
     fast_path = (
-        sig_result.status == SignatureStatus.VERIFIED
+        sig_result.status == SignatureStatus.STRUCTURE_VERIFIED
         and card.publisher_verified
     )
 

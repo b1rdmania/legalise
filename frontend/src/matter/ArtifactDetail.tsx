@@ -141,7 +141,8 @@ export function ArtifactDetail({
                 ? "Signed with observations"
                 : "Signed in Legalise"}
             </span>{" "}
-            by {signoff.signer_email ?? "a user"} · {signoff.signed_at.slice(0, 10)}
+            by {signoff.signer_email ?? "a user"}
+            {signoff.signer_is_author && " (author)"} · {signoff.signed_at.slice(0, 10)}
           </p>
         )}
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">

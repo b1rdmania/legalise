@@ -47,7 +47,7 @@ def _make_installed_row(
     enabled: bool = True,
     publisher: str = "legalise",
     visibility: str = "first_party",
-    signature_status: str = "verified",
+    signature_status: str = "structure_verified",
     installed_by_user_id: uuid.UUID | None = None,
     capabilities: list[dict] | None = None,
 ) -> InstalledModule:

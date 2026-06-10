@@ -112,6 +112,8 @@ async def test_author_can_sign_own_output(client) -> None:
     assert body["is_current"] is True
     assert body["signer_email"] == email
     assert len(body["artifact_hash"]) == 64
+    # The record states the relationship: author self-sign is labelled, not hidden.
+    assert body["signer_is_author"] is True
 
 
 @pytest.mark.asyncio

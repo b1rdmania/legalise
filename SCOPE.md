@@ -30,7 +30,7 @@ The primary demo is one seeded sample matter that threads facts â†’ Pre-Motion â
 
 - Docker Compose self-host
 - Live demo at `legalise.dev`: Cloudflare Pages (frontend) + Fly.io `lhr` (backend) + Neon Postgres London + Cloudflare R2 (storage)
-- Postgres + pgvector + MinIO + Redis + Gotenberg + Ollama (local stack)
+- Postgres + MinIO + Redis + Gotenberg + Ollama (local stack)
 - One primary sample matter seeded for the launch narrative, with optional additional sample matters if ahead of plan
 
 ### Documentation

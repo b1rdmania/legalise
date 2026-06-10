@@ -1,9 +1,11 @@
 """Manifest signature verification.
 
 A *structural* signature verifier — the trust ceremony gets a clean
-four-state outcome (verified / unsigned / invalid / unknown_publisher)
-without depending on the sigstore Python library or a real signing
-pipeline. Real cryptographic chain verification (sigstore Rekor lookup
+four-state outcome (structure_verified / unsigned / invalid /
+unknown_publisher) without depending on the sigstore Python library or
+a real signing pipeline. The top status is deliberately named
+``structure_verified``, not ``verified``: it asserts shape and
+publisher-registry membership only, never cryptographic provenance. Real cryptographic chain verification (sigstore Rekor lookup
 + X.509 chain + OIDC identity claim) is sigstore-hardening backlog;
 the API contract here is designed so the verifier implementation can
 swap without touching callers.
@@ -23,7 +25,7 @@ from app.core.publishers import is_verified_publisher
 class SignatureStatus(str, Enum):
     """Possible outcomes of ``verify_manifest_signature``."""
 
-    VERIFIED = "verified"
+    STRUCTURE_VERIFIED = "structure_verified"
     UNSIGNED = "unsigned"
     INVALID = "invalid"
     UNKNOWN_PUBLISHER = "unknown_publisher"
@@ -34,7 +36,7 @@ class SignatureResult:
     """Outcome of a signature check.
 
     Trust ceremony branches on ``status``:
-    - ``verified`` → fast path (3 steps)
+    - ``structure_verified`` → fast path (3 steps)
     - everything else → full path (7 steps)
     """
 
@@ -80,13 +82,14 @@ def verify_manifest_signature(
     - ``INVALID``: ``signature`` is present but malformed (not a
       hex/base64 string of plausible length, or ``signed_by`` doesn't
       match the publisher).
-    - ``VERIFIED``: ``signature`` is present, structurally valid, the
-      publisher is verified, and ``signed_by`` matches.
+    - ``STRUCTURE_VERIFIED``: ``signature`` is present, structurally
+      valid, the publisher is verified, and ``signed_by`` matches.
 
-    Note: this does NOT verify cryptographic provenance. A
-    publisher-key mismatch returns INVALID; a forged signature with
-    correct shape returns VERIFIED. Real verification via the
-    sigstore Rekor transparency log lands with sigstore hardening.
+    Note: this does NOT verify cryptographic provenance — the status
+    name says exactly what was checked. A publisher-key mismatch
+    returns INVALID; a forged signature with correct shape returns
+    STRUCTURE_VERIFIED. Real verification via the sigstore Rekor
+    transparency log lands with sigstore hardening.
     """
     publisher = manifest.get("publisher")
     signed_by = manifest.get("signed_by")
@@ -143,11 +146,11 @@ def verify_manifest_signature(
 
     # Structural pass.
     # TODO(sigstore-hardening): wire sigstore Rekor lookup + X.509 chain
-    # verification + OIDC identity claim check here. Until then this is
-    # a structural verifier only; a forged signature with the correct
-    # shape would pass.
+    # verification + OIDC identity claim check here, and introduce a
+    # true VERIFIED status at that point. Until then the strongest
+    # status this verifier can honestly return is STRUCTURE_VERIFIED.
     return SignatureResult(
-        status=SignatureStatus.VERIFIED,
+        status=SignatureStatus.STRUCTURE_VERIFIED,
         publisher=publisher,
         signed_by=signed_by or publisher,
         notes="structural verification only; cryptographic check is sigstore-hardening backlog",
