@@ -40,7 +40,7 @@ Shipped surfaces:
   `signoffs.json`, `reviews.json`, and a reconstruction timeline.
 - **Audit reconstruction.** Ordered timeline merged from audit, state-machine,
   and advice-boundary sources, with decision events in the foreground lane.
-- **Module catalogue + install ceremony** with declared/granted capabilities,
+- **Module catalogue + add-skill trust ceremony** with declared/granted capabilities,
   per-skill trust posture, `module.json` schema validation, public submission
   flow that opens a draft PR against `claude-for-uk-legal`.
 - **fastapi-users cookie sessions** + email verification.
@@ -101,8 +101,8 @@ foundations are either shipped or explicitly deferred by reviewer sign-off:
 - **Assistant prompt hardening.** v0.1 ships a conservative built-in
   system prompt. v0.2 can add prompt versioning, richer source selection,
   and provider-native structured responses.
-- **Shared module discovery helper.** The Modules page and Assistant both
-  discover installed skills. v0.1 accepts the duplication; v0.2 centralises
+- **Shared module discovery helper.** The Skills page and Assistant both
+  discover added skills. v0.1 accepts the duplication; v0.2 centralises
   discovery behind one helper before capability enforcement lands.
 
 Other work already on the roadmap:
@@ -142,6 +142,9 @@ Theme: signed identity, submission infrastructure, and portability.
   generation.
 - **Disclosure list** as a workspace module with TAR / predictive coding
   flags.
+- **Review panels.** Multi-perspective skill runs should be exposed as
+  named review panels, not user-facing agents. See
+  [`docs/architecture/REVIEW_PANELS.md`](./architecture/REVIEW_PANELS.md).
 
 ## v0.4+: additional verticals
 
