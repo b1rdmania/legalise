@@ -56,6 +56,7 @@ def _to_schema(row: AssistantMessageRow) -> AssistantMessage:
         role=row.role,  # type: ignore[arg-type]
         content=row.content,
         suggested_actions=actions,
+        model_used=row.model_used,
         created_at=row.created_at,
     )
 

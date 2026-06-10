@@ -1,5 +1,14 @@
 # Legalise - Design Contract (v0.5)
 
+> **Status note (2026-06-10, skills-as-plugins cut).** The five built-in
+> skill surfaces this spec references in places (Pre-Motion, Letters,
+> Contract review, Tabular Review, Case law tabs and the Workflows
+> catalogue page) were removed from the app; skills now install as
+> governed modules and run from Chat. The canonical current IA is
+> **Chat / Files / Skills / Activity** (P22–P24). Sections describing
+> the retired surfaces are kept as historical pattern reference — do
+> not build new UI from them.
+
 > **Two registers, not one.** The Warp Engine whitepaper aesthetic
 > applies to the **Landing** only (it is genuinely a whitepaper). The
 > **matter workspace** is a SaaS LLM workspace and, as of **v0.5**, uses
@@ -206,7 +215,7 @@ any of them, reject the PR or add it to this list with a reason.
 
 Lifted verbatim from the Memo production bundle. Six named tokens.
 That is enough. Status colours from HyperTrade are added as utility
-hex values when they appear in a domain that needs them (Pre-Motion
+hex values when they appear in a domain that needs them (skill
 verdicts, posture badges).
 
 | Name | Value | Tailwind class | Role |
@@ -235,9 +244,9 @@ not apply decoratively):
 
 | Role | Hex | Tailwind class | Where it appears |
 |---|---|---|---|
-| Status / success | `#00A35C` | `text-[#00A35C]` | Pre-Motion verdict `steelman`, posture `A_cleared`, peer-reviewed badge |
-| Status / danger | `#D9304F` | `text-[#D9304F]` | Pre-Motion verdict `strawman`, posture `C_paused`, error states |
-| Status / warning | `#E67E22` | `text-[#E67E22]` | Pre-Motion verdict `borderline`, posture `B_mixed`, funding countdown |
+| Status / success | `#00A35C` | `text-[#00A35C]` | verdict-style success states, posture `A_cleared`, peer-reviewed badge |
+| Status / danger | `#D9304F` | `text-[#D9304F]` | verdict-style failure states, posture `C_paused`, error states |
+| Status / warning | `#E67E22` | `text-[#E67E22]` | verdict-style warning states, posture `B_mixed` |
 | Info / link | `#0066CC` | `text-[#0066CC]` | External links to source documents, document IDs |
 | Red-50 surface | `#FEF2F2` | `bg-red-50` | Error callout background |
 | Yellow-100 surface | `#FEF9C3` | `bg-yellow-100` | CPR 31.22 gate pending warning surface |
@@ -640,7 +649,7 @@ Source: Warp whitepaper (with Memo token swap).
 ```jsx
 <pre className="bg-wash border border-rule font-mono text-[13px] p-6 my-8
                 overflow-x-auto whitespace-pre">
-  <code>{`# Run Pre-Motion
+  <code>{`# Run skill
 curl -X POST https://api.legalise.dev/api/matters/khan-v-acme-2026/pre-motion/run \\
   -H "Content-Type: application/json" \\
   --cookie "legalise_session=..."`}</code>
@@ -850,7 +859,7 @@ Mono-button (for terminal surfaces):
 <button className="border border-rule bg-paper hover:bg-wash text-ink
                    px-3 py-1.5 transition-colors font-mono uppercase
                    text-[10px] tracking-track2 font-bold min-h-[44px]">
-  Run Pre-Motion
+  Run skill
 </button>
 ```
 
@@ -884,7 +893,7 @@ Source: Memo (red-50 / red-700 / red-700 border).
 ```jsx
 <div className="bg-red-50 border border-red-700 p-4 text-red-700 text-sm">
   <div className="font-semibold mb-1">Provider key missing</div>
-  Add an Anthropic API key in Settings → API Keys to run Pre-Motion.
+  Add an Anthropic API key in Settings → API Keys to run this skill.
 </div>
 ```
 
@@ -1069,14 +1078,14 @@ backdrop tap close it.
 | State | Items |
 |---|---|
 | **Marketing** (`#/`, unauthenticated) | Modules · Docs · GitHub · — · Open demo matter · Sign in |
-| **Workspace** (authenticated, matter in scope) | Matter context pill · Overview · Documents · Chronology · Pre-Motion · Letters · Audit · — · Modules · Settings · Sign out |
+| **Workspace** (authenticated, matter in scope) | Matter context pill · Chat · Files · Skills · Activity · — · Skill library · Settings · Sign out |
 | **Workspace** (authenticated, no matter) | Matters · Modules · — · Settings · Sign out |
 
 The em-dash row is a literal `<div className="my-2 border-t border-rule" />` between primary and secondary blocks. Active item gets the `border-l-2 border-ink` treatment from the JSX above — same active-state language as P9.
 
 **v0.1 routing note.** "Open demo matter" in the marketing state routes to `#/auth/signup`, not directly to the demo matter slug, because `/api/matters/{slug}` and friends are auth-gated. Day D copies the Khan demo into the new user's workspace on signup; from that point the link in workspace drawers resolves to the user's own copy. The visible label stays "Open demo matter" — the route is the only implementation detail that shifts. "Sign out" is a button (not an anchor) that calls `signout()` then navigates to `#/`.
 
-**Dense-data exception.** On Pre-Motion run streaming, Audit log, Module body, and Chronology table routes, replace the hamburger with `← back to matter` and one or two contextual actions. Drawer is one tap away via that back link. Reference: Yahoo Finance, Binance, Attio data screens drop the nav chrome entirely on data surfaces to maximise content. Apply this only on routes where content density would lose more from chrome than the user would gain from immediate nav.
+**Dense-data exception.** On Activity log, document preview, Module body, and Chronology table routes, replace the hamburger with `← back to matter` and one or two contextual actions. Drawer is one tap away via that back link. Reference: Yahoo Finance, Binance, Attio data screens drop the nav chrome entirely on data surfaces to maximise content. Apply this only on routes where content density would lose more from chrome than the user would gain from immediate nav.
 
 ```jsx
 {/* Dense-data variant of P1 — used inside matter sub-routes */}
@@ -1088,7 +1097,7 @@ The em-dash row is a literal `<div className="my-2 border-t border-rule" />` bet
       </svg>
       <span className="text-[16px] font-medium truncate max-w-[180px]">{matter.slug}</span>
     </a>
-    <span className="eyebrow-sm">{surfaceLabel /* "Audit", "Pre-Motion" */}</span>
+    <span className="eyebrow-sm">{surfaceLabel /* "Activity", "Chronology" */}</span>
   </div>
 </header>
 ```
@@ -1245,12 +1254,7 @@ bottom. v0.4 lands this for matter detail.
 indicator chip. The wash fill plus the semibold ink reads as the
 active surface against the rest of the rail at `text-prose`.
 
-**Workflow nesting.** When the user is on a workflow surface (Pre-Motion,
-Letters, Contract review, Tabular Review, Case law), the sidebar
-highlights the **Skills** item (URL key `workflows`) via
-`sidebarActiveFor(tab)` — see the 2026-06-03 reconciliation above for the
-Workflows → Skills rename. The deep route keeps working
-(`#/matters/{slug}/premotion`) so links stay stable.
+**Deep-route nesting.** Historical: built-in workflow surfaces were retired in the skills-as-plugins cut; deep skill routes no longer exist as nav slots. Skills run from Chat and the sidebar highlights the surface you are on directly.
 
 **Item count rule.** 4-6 items. If a sixth nav slot is needed, ask
 first whether it should nest under an existing one (Workflows is the
@@ -1290,7 +1294,7 @@ an optional intermediate hop for workflow surfaces.
 ```
 
 For workflow surfaces, render the Skills hop:
-`Matters / {title} / Skills / Pre-Motion` (post 2026-06-03 reconciliation —
+`Matters / {title} / Skills` (post 2026-06-03 reconciliation —
 was "Workflows"; `MatterBreadcrumb.tsx` renders the **Skills** label).
 Posture, slug, opened,
 retention, and status do not appear here. Posture lives in the P19
@@ -1381,7 +1385,7 @@ and radius below `sm` if it crowds — `rounded-none sm:rounded-panel`).
 
 Which patterns compose which surface.
 
-**Mobile inheritance.** At `< md`, every surface below inherits P18: the hamburger replaces the P1 right-side nav, and the drawer renders in marketing or workspace state per the table in P18. Matter sub-routes (Pre-Motion run streaming, Audit, Chronology, Module body) use the P18 dense-data exception instead of the hamburger.
+**Mobile inheritance.** At `< md`, every surface below inherits P18: the hamburger replaces the P1 right-side nav, and the drawer renders in marketing or workspace state per the table in P18. Matter sub-routes (Activity, Chronology, Module body) use the P18 dense-data exception instead of the hamburger.
 
 | Surface | Patterns |
 |---|---|
@@ -1396,12 +1400,8 @@ Which patterns compose which surface.
 | **Matter · Assistant tab** | Default landing for the matter. Chat surface with matter context · inline citation chips (P15-shape, mono, uppercase) · suggested-actions footer below each assistant reply |
 | **Matter · Documents tab** | P16 Data table (Document / Type / Source / Extracted / Last action / Action) · upload P13 form at top · per-row expand drawer surfaces SHA + Size + Uploaded-at before EditPanel + AnonymiseButton |
 | **Matter · Chronology tab** | P10 Dense data row with overlay bar (variable weight = significance) · P14 Yellow warning callout when CPR 31.22 gate pending · P13 Input for acknowledgement |
-| **Matter · Workflows tab** | Catalogue page (`WorkflowsTab`) listing installed modules as 2-col cards: Pre-Motion / Letters / Contract review / Tabular Review / Case law. Each card links to its workflow surface hash route. Sidebar highlights Workflows when any workflow surface is open. |
-| **Matter · Reviews tab (workflow)** | List view of saved reviews (P16-shape) → editor view (ColumnEditor form + ReviewGrid spreadsheet with monochrome bordered Yes/No pills) · CostEstimateDialog modal before run. Reached via Workflows. |
-| **Matter · Research tab** | P13 form (query + court + year) · result cards (case_name + citation_ref + summary + Cite-into-matter button) · CitationsSidebar pinned right (280px) |
-| **Matter · Pre-Motion tab** | Stage strip showing live stream of 4 stages (Optimistic Analyst / Evidence Inspector / Premortem Adversary / Synthesiser) · synthesis output uses P4 Prose + P15 Status pill for verdict colour · P5 Blockquote pull for "If we lose, this will be why" |
-| **Matter · Letters tab** | LetterSelector with P18-style active row (`bg-wash text-ink border-l-2 border-ink`) · LetterDraftView in bordered panel with P8-style eyebrow header strip · P12 ink-fill button for draft / re-draft |
-| **Matter · Contract review tab** | P13 form (Document / Posture / Contract type / Counterparty / Deal value) · StageStrip (parse / analyse / redline / summarise) · ResultPanel with three accordions (Summary / Analysis / Redlines) · severity + redline-priority use bordered semantic-text pills (no fills) |
+| **Matter · Workflows tab** | RETIRED (2026-06-10 skills-as-plugins cut). The Skills page (`MatterSkillsTab`) lists installed modules; skills run from Chat. |
+
 | **Matter · Audit tab** | Filter pill (module dropdown) · P16 Data table (Timestamp / Module / Action / Model / Tokens / Latency / Hash) |
 | **Settings** (`#/settings/{tab}`) | P1 TopBar · P2 Sidebar (Profile / Keys / Preferences) · main `flex-1 max-w-2xl p-10` · P13 Inputs per tab |
 | **Settings · Keys tab** | List of P10 dense rows (provider · last_used · created) · P13 form to add new |

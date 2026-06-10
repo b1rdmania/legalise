@@ -15,6 +15,11 @@ import type {
 
 const MODEL_LABEL = "Claude Sonnet 4.6";
 
+function modelLabel(message: AssistantMessage): string {
+  if (message.model_used === "deterministic-summary") return "extract, no model";
+  return MODEL_LABEL;
+}
+
 interface Props {
   message: AssistantMessage;
   docs: MatterDocument[] | null;
@@ -102,7 +107,7 @@ function AssistantMessageView({
         }
       >
         <div className={`tech-token ${metaSizing} text-muted`}>
-          Assistant{compact ? "" : ` · ${MODEL_LABEL}`}
+          Assistant{compact ? "" : ` · ${modelLabel(message)}`}
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}

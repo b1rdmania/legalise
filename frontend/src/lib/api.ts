@@ -2033,6 +2033,7 @@ export interface AssistantMessage {
   role: "user" | "assistant";
   content: string;
   suggested_actions: SuggestedAction[];
+  model_used?: string | null;
   created_at: string;
 }
 

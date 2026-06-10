@@ -162,7 +162,7 @@ The env var must carry both the backend origin **and** the `/api` path segment b
 
 ### 5b. Gotenberg sidecar — Fly.io `lhr`
 
-The Pre-Motion PDF export route (`POST /api/matters/{slug}/pre-motion/pdf`) calls Gotenberg's Chromium converter. Self-host already gets this for free via `infra/docker-compose.yml`; the live demo needs a second Fly app in the same region so the backend can reach it over Fly's internal network.
+Document HTML→PDF rendering (document version exports) calls Gotenberg's Chromium converter. Self-host already gets this for free via `infra/docker-compose.yml`; the live demo needs a second Fly app in the same region so the backend can reach it over Fly's internal network.
 
 **Why sidecar Fly app and not a hosted PDF API.** Hosted converters (Browserless, Doppio, etc.) add another vendor relationship, another egress path for matter content, and a second residency story to defend. Gotenberg as a sidecar keeps the PDF render inside the same Fly organisation, same `lhr` region, and same operator control. Cost is one always-on `shared-cpu-1x` machine — roughly $3/month.
 
@@ -275,12 +275,10 @@ during it.
 Run against the seeded Khan matter:
 
 ```bash
-# 1. Kick off a Contract Review durable job.
+# 1. Kick off an export durable job.
 curl -s \
-  -H "Content-Type: application/json" \
   -X POST \
-  https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/contract-review/jobs \
-  -d '{"document_id":"<document-id>","posture":"balanced","contract_type":"nda"}'
+  https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/export
 
 # 2. Poll GET /api/matters/{slug}/jobs/{job_id} until terminal.
 sleep 30
