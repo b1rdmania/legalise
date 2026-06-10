@@ -15,22 +15,18 @@ Or via docker-compose (worker service defined in infra/docker-compose.yml).
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from typing import Any
 
 import arq
-from arq import ArqRedis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
 from app.core.jobs import update_stage, update_status
 from app.models import (
-    JOB_KIND_CONTRACT_REVIEW,
     JOB_KIND_EXPORT,
-    JOB_KIND_PRE_MOTION,
     JOB_STATUS_FAILED,
     JOB_STATUS_RUNNING,
     JOB_STATUS_SUCCEEDED,
@@ -118,85 +114,9 @@ async def _dispatch(
     session: AsyncSession, job: Job, matter: Matter
 ) -> dict[str, Any]:
     """Route to the correct pipeline based on job.kind."""
-    if job.kind == JOB_KIND_PRE_MOTION:
-        return await _run_pre_motion(session, job, matter)
-    if job.kind == JOB_KIND_CONTRACT_REVIEW:
-        return await _run_contract_review(session, job, matter)
     if job.kind == JOB_KIND_EXPORT:
         return await _run_export(session, job, matter)
     raise ValueError(f"unknown job kind: {job.kind}")
-
-
-async def _run_pre_motion(
-    session: AsyncSession, job: Job, matter: Matter
-) -> dict[str, Any]:
-    from app.modules.pre_motion.pipeline import run_pre_motion
-    from app.modules.pre_motion.schemas import PreMotionRunInputs
-
-    inputs = PreMotionRunInputs(**job.input_payload)
-
-    async def _on_event(name: str, payload: dict[str, Any]) -> None:
-        stage = payload.get("stage") or name
-        progress = _stage_progress_pre_motion(name, payload)
-        await update_stage(session, job, stage=stage, progress=progress)
-        await session.commit()
-
-    result = await run_pre_motion(
-        session=session,
-        matter=matter,
-        actor_id=job.created_by_id,
-        inputs=inputs,
-        on_event=_on_event,
-    )
-    return result.model_dump()
-
-
-def _stage_progress_pre_motion(name: str, payload: dict[str, Any]) -> int | None:
-    """Map stage events to a 0-100 progress int for Pre-Motion (4 stages)."""
-    stage_name = payload.get("stage", "")
-    index = payload.get("index")
-    if name == "stage.start" and index is not None:
-        return int((index - 1) / 4 * 100)
-    if name == "stage.end" and index is not None:
-        return int(index / 4 * 100)
-    return None
-
-
-async def _run_contract_review(
-    session: AsyncSession, job: Job, matter: Matter
-) -> dict[str, Any]:
-    from app.core.model_gateway import gateway as model_gateway
-    from app.modules.contract_review.pipeline import run_contract_review
-    from app.modules.contract_review.schemas import ContractReviewInputs
-
-    inputs = ContractReviewInputs(**job.input_payload)
-
-    async def _on_event(name: str, payload: dict[str, Any]) -> None:
-        stage = payload.get("stage") or name
-        progress = _stage_progress_contract(name, payload)
-        await update_stage(session, job, stage=stage, progress=progress)
-        await session.commit()
-
-    result = await run_contract_review(
-        session=session,
-        gateway=model_gateway,
-        matter=matter,
-        actor_id=job.created_by_id,
-        inputs=inputs,
-        on_event=_on_event,
-    )
-    return result.model_dump()
-
-
-def _stage_progress_contract(name: str, payload: dict[str, Any]) -> int | None:
-    """Map stage events to a 0-100 progress int for Contract Review (4 stages)."""
-    stage_name = payload.get("stage", "")
-    index = payload.get("index")
-    if name == "stage.start" and index is not None:
-        return int((index - 1) / 4 * 100)
-    if name == "stage.end" and index is not None:
-        return int(index / 4 * 100)
-    return None
 
 
 async def _run_export(
@@ -207,7 +127,6 @@ async def _run_export(
     No model calls. No Redis content. Storage write only.
     """
     from app.core.exports import build_matter_export
-    from app.core.jobs import update_stage
 
     await update_stage(session, job, stage="building_zip", progress=10)
     await session.commit()

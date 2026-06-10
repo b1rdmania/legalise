@@ -7,11 +7,10 @@ Two surfaces:
 - E2E API tests via the `client` fixture. These skip when Postgres
   isn't reachable.
 
-NOTE: The Pre-Motion and Contract Review router migration (replacing
-the existing SSE endpoints with worker-backed job enqueues) is
-deferred. The new `POST /api/matters/{slug}/{module}/jobs` endpoints
-ship as an additive substrate; the worker process runs `app.worker`
-when Redis is up.
+NOTE: After the skills-as-plugins cut the only built-in job kind is
+``export``; the enqueue-failure and active-limit contracts are asserted
+against `POST /api/matters/{slug}/export`. The worker process runs
+`app.worker` when Redis is up.
 """
 
 from __future__ import annotations
@@ -28,8 +27,7 @@ from app.core.jobs import (
 )
 from app.models.job import (
     JOB_ACTIVE_STATUSES,
-    JOB_KIND_CONTRACT_REVIEW,
-    JOB_KIND_PRE_MOTION,
+    JOB_KIND_EXPORT,
     JOB_STATUS_FAILED,
     JOB_STATUS_QUEUED,
     JOB_STATUS_RUNNING,
@@ -84,11 +82,8 @@ class TestModuleNameMapping:
     `module.*` action carries a kwarg; this is where the kwarg
     originates for job rows."""
 
-    def test_pre_motion_kind(self) -> None:
-        assert _module_name(JOB_KIND_PRE_MOTION) == "pre_motion"
-
-    def test_contract_review_kind(self) -> None:
-        assert _module_name(JOB_KIND_CONTRACT_REVIEW) == "contract_review"
+    def test_export_kind(self) -> None:
+        assert _module_name(JOB_KIND_EXPORT) == "export"
 
 
 class TestGetActiveJobCount:
@@ -138,24 +133,21 @@ async def test_get_unknown_job_returns_404(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pre_motion_enqueue_failure_marks_job_failed(
+async def test_export_enqueue_failure_marks_job_failed(
     client, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """If Redis enqueue raises after the job row is committed, the row
     must be transitioned to FAILED with error_code=enqueue_failed and
     the API must return 503 — never a silent success."""
-    from app.api import jobs as jobs_api
+    from app.api import exports as exports_api
 
     async def _explode(*_args, **_kwargs):
         raise RuntimeError("redis unreachable")
 
-    monkeypatch.setattr(jobs_api, "_enqueue_job", _explode)
+    monkeypatch.setattr(exports_api, "_enqueue_job", _explode)
     await _signup_and_login(client)
 
-    resp = await client.post(
-        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "fast"},
-    )
+    resp = await client.post(f"/api/matters/{KHAN_SLUG}/export")
     assert resp.status_code == 503, resp.text
     detail = resp.json()["detail"]
     assert detail["error"] == "job_enqueue_failed"
@@ -170,23 +162,20 @@ async def test_enqueue_failed_job_does_not_consume_active_slot(
     must free the slot so the user can retry without hitting 429."""
     from sqlalchemy import select
 
-    from app.api import jobs as jobs_api
+    from app.api import exports as exports_api
     from app.core.jobs import get_active_job_count
     from app.models import User
 
     async def _explode(*_args, **_kwargs):
         raise RuntimeError("redis unreachable")
 
-    monkeypatch.setattr(jobs_api, "_enqueue_job", _explode)
+    monkeypatch.setattr(exports_api, "_enqueue_job", _explode)
     await _signup_and_login(client)
 
     user = await db_session.scalar(select(User).where(User.email == TEST_EMAIL))
     assert user is not None
 
-    resp = await client.post(
-        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "fast"},
-    )
+    resp = await client.post(f"/api/matters/{KHAN_SLUG}/export")
     assert resp.status_code == 503, resp.text
 
     active = await get_active_job_count(db_session, user.id)
@@ -217,26 +206,20 @@ async def test_active_job_limit_enforcement_matches_reporting(
     )
 
     # Patch the Redis enqueue so we don't actually need Redis.
-    from app.api import jobs as jobs_api
+    from app.api import exports as exports_api
 
     async def _noop_enqueue(*_args, **_kwargs):
         return None
 
-    monkeypatch.setattr(jobs_api, "_enqueue_job", _noop_enqueue)
+    monkeypatch.setattr(exports_api, "_enqueue_job", _noop_enqueue)
     await _signup_and_login(client)
 
     # First job — succeeds.
-    r1 = await client.post(
-        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "fast"},
-    )
+    r1 = await client.post(f"/api/matters/{KHAN_SLUG}/export")
     assert r1.status_code == 200, r1.text
 
     # Second job — over the cap.
-    r2 = await client.post(
-        f"/api/matters/{KHAN_SLUG}/pre-motion/jobs",
-        json={"depth": "fast"},
-    )
+    r2 = await client.post(f"/api/matters/{KHAN_SLUG}/export")
     assert r2.status_code == 429, r2.text
     detail = r2.json()["detail"]
     assert detail["error"] == "active_job_limit_reached"

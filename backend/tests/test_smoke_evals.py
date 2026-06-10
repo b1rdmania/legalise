@@ -12,8 +12,6 @@ the right span when anchored uniquely, and signals `skipped_no_anchor`
 when the context does not match base text.
 
 Eval 4: NDA-clause parse — the Khan-NDA seed body pipes through
-`ParserAgent.run` (model gateway mocked) and `parse_model_json` yields a
-`ParsedContract` with ≥1 clause; `RedlinerAgent.run` yields ≥1 redline.
 """
 
 from __future__ import annotations
@@ -38,10 +36,6 @@ from app.core.seed import KHAN_NDA_BODY
 from app.adapters.plugin_bridge import PluginBridge, SkillDisabled
 from app.models import AuditEntry, Document, DocumentBody, InstalledModule
 from app.models.document_edit import DocumentEdit
-from app.modules.contract_review import agents as cr_agents
-from app.modules.contract_review.agents import AgentCall, ParserAgent, RedlinerAgent
-from app.modules.contract_review.pipeline import run_contract_review
-from app.modules.contract_review.schemas import ContractReviewInputs, ParsedContract
 from app.modules.document_edit.resolver import apply_anchor_substitution
 
 
@@ -79,14 +73,9 @@ class _CapturingSession:
 # Canonical module namespace set used across the workspace. Lifted from
 # the audit-row callsites in app/modules/*/{router,pipeline}.py.
 _CANONICAL_MODULES = {
-    "letters",
-    "pre_motion",
-    "contract_review",
     "anonymisation",
-    "case_law",
     "chronology",
     "document_edit",
-    "tabular_review",
     "module_lifecycle",
     "plugin",
     "assistant",
@@ -97,14 +86,9 @@ _CANONICAL_MODULES = {
 # round-trip through `audit_api.log` and produce a row with the matching
 # module namespace.
 _ACTIONS_BY_MODULE = {
-    "letters": "module.letters.docx.exported",
-    "pre_motion": "module.pre_motion.run.complete",
-    "contract_review": "module.contract_review.run.start",
     "anonymisation": "module.anonymisation.run",
-    "case_law": "module.case_law.search",
     "chronology": "chronology.gate.confirmed",
     "document_edit": "document.edit.accepted",
-    "tabular_review": "module.tabular_review.run.completed",
     "module_lifecycle": "module.lifecycle.enabled",
     "plugin": "plugin.invoked",
     "assistant": "module.assistant.message",
@@ -371,61 +355,6 @@ class _MatterStub:
         self.privilege_posture = "B_mixed"
 
 
-class TestNdaClauseParse:
-    """Khan-NDA fixture pipes through agents; envelopes parse cleanly."""
-
-    @pytest.mark.asyncio
-    async def test_parser_yields_at_least_one_clause(self) -> None:
-        gateway = _FakeGateway(
-            {"parser": json.dumps(_canned_parsed_envelope())}
-        )
-        matter = _MatterStub()
-        session = _CapturingSession()
-
-        call = await ParserAgent().run(
-            session=session,
-            gateway=gateway,
-            matter=matter,
-            actor_id=uuid.uuid4(),
-            contract_body=KHAN_NDA_BODY,
-            contract_type_hint="nda",
-            posture="balanced",
-            counterparty="Acme Ltd",
-        )
-
-        assert call.error is None
-        assert call.parsed is not None
-        parsed = ParsedContract(**call.parsed)
-        assert len(parsed.clauses) >= 1
-        assert parsed.document_type == "nda"
-        # Khan-NDA seed body is the input the prompt actually carries.
-        assert any(KHAN_NDA_BODY[:32] in c["prompt"] for c in gateway.calls)
-
-    @pytest.mark.asyncio
-    async def test_redliner_yields_at_least_one_redline(self) -> None:
-        gateway = _FakeGateway(
-            {"redliner": json.dumps(_canned_redline_envelope())}
-        )
-        matter = _MatterStub()
-        session = _CapturingSession()
-
-        call = await RedlinerAgent().run(
-            session=session,
-            gateway=gateway,
-            matter=matter,
-            actor_id=uuid.uuid4(),
-            parsed_contract=_canned_parsed_envelope(),
-            analyses=[],
-            posture="balanced",
-        )
-
-        assert call.error is None
-        assert call.parsed is not None
-        redlines = call.parsed.get("redlines") or []
-        assert len(redlines) >= 1
-        assert redlines[0]["clause_id"] == "c2"
-
-
 class TestSkillDisabledShortCircuit:
     """Disabled `(plugin, skill)` raises before the gateway is touched."""
 
@@ -495,62 +424,6 @@ def _canned_summary_envelope() -> dict[str, Any]:
     }
 
 
-class _DocumentStub:
-    def __init__(self, matter_id: uuid.UUID) -> None:
-        self.id = uuid.uuid4()
-        self.matter_id = matter_id
-        self.filename = "khan-nda.pdf"
-
-
-class _DocumentBodyStub:
-    def __init__(self, document_id: uuid.UUID) -> None:
-        self.document_id = document_id
-        self.kind = "extracted"
-        self.extracted_text = KHAN_NDA_BODY
-        self.extraction_method = "test"
-
-
-class _RoutingSession:
-    """Async-session stand-in that routes `scalar` by select entity name."""
-
-    def __init__(self, matter: Any) -> None:
-        self.added: list[Any] = []
-        self.matter = matter
-        self.document = _DocumentStub(matter.id)
-        self.body = _DocumentBodyStub(self.document.id)
-
-    def add(self, obj: Any) -> None:
-        self.added.append(obj)
-
-    async def scalar(self, stmt: Any, *args: Any, **kwargs: Any):
-        try:
-            name = stmt.column_descriptions[0]["name"]
-        except Exception:
-            return None
-        if name == "Matter":
-            return self.matter
-        if name == "privilege_posture":
-            return self.matter.privilege_posture
-        if name == "Document":
-            return self.document
-        if name == "DocumentBody":
-            return self.body
-        return None
-
-    async def execute(self, *args: Any, **kwargs: Any):
-        class _Row:
-            def first(self_inner):
-                return None
-
-        return _Row()
-
-    async def commit(self) -> None:
-        return None
-
-    async def flush(self) -> None:
-        return None
-
-
 class _UserStub:
     def __init__(self) -> None:
         self.id = uuid.uuid4()
@@ -558,103 +431,6 @@ class _UserStub:
         self.is_active = True
         self.is_verified = True
         self.is_superuser = False
-
-
-def _agent_call(stage: str, parsed: dict[str, Any]) -> AgentCall:
-    return AgentCall(
-        stage=stage,
-        raw_text=json.dumps(parsed),
-        parsed=parsed,
-        token_count=12,
-        latency_ms=5,
-        model_used="stub-echo",
-        error=None,
-    )
-
-
-class TestContractReviewOrchestrator:
-    """Contract Review pipeline against canned agents.
-
-    The HTTP run/stream endpoints were retired after the UI moved to
-    durable jobs. The job worker calls this same pipeline, so the smoke
-    keeps the regulated-adjacent orchestration proof without preserving
-    a deleted route as the test subject.
-    """
-
-    @pytest.mark.asyncio
-    async def test_pipeline_returns_envelope_against_khan_nda(self) -> None:
-        matter = _MatterStub()
-        matter.slug = "khan-v-acme"
-        matter.privilege_posture = "B_mixed"
-        session = _RoutingSession(matter)
-        user = _UserStub()
-
-        async def _parser_run(self_inner, **_kw):
-            return _agent_call("parser", _canned_parsed_envelope())
-
-        async def _analyst_run(self_inner, **_kw):
-            return _agent_call("analyst", _canned_analyst_envelope())
-
-        async def _redliner_run(self_inner, **_kw):
-            return _agent_call("redliner", _canned_redline_envelope())
-
-        async def _summariser_run(self_inner, **_kw):
-            return _agent_call("summariser", _canned_summary_envelope())
-
-        with patch.object(cr_agents.ParserAgent, "run", _parser_run), patch.object(
-            cr_agents.AnalystAgent, "run", _analyst_run
-        ), patch.object(
-            cr_agents.RedlinerAgent, "run", _redliner_run
-        ), patch.object(
-            cr_agents.SummariserAgent, "run", _summariser_run
-        ):
-            result = await run_contract_review(
-                session=session,
-                gateway=_FakeGateway({}),
-                matter=matter,
-                actor_id=user.id,
-                inputs=ContractReviewInputs(
-                    document_id=str(session.document.id),
-                    posture="balanced",
-                    contract_type="nda",
-                    counterparty_name="Acme Ltd",
-                ),
-            )
-
-        body = result.model_dump()
-        assert body["matter_slug"] == "khan-v-acme"
-        assert body["document_id"] == str(session.document.id)
-        assert len(body["parsed"]["clauses"]) >= 1
-        assert len(body["redlines"]) >= 1
-        assert body["summary"]["executive_summary"].strip() != ""
-        assert body["total_token_count"] >= 0
-        assert any(
-            isinstance(row, AuditEntry) and row.module == "contract_review"
-            for row in session.added
-        )
-
-    @pytest.mark.asyncio
-    async def test_pipeline_blocks_c_paused(self) -> None:
-        matter = _MatterStub()
-        matter.slug = "khan-v-acme"
-        matter.privilege_posture = "C_paused"
-        session = _RoutingSession(matter)
-        user = _UserStub()
-
-        with pytest.raises(PrivilegePaused) as info:
-            await run_contract_review(
-                session=session,
-                gateway=_FakeGateway({}),
-                matter=matter,
-                actor_id=user.id,
-                inputs=ContractReviewInputs(
-                    document_id=str(uuid.uuid4()),
-                    posture="balanced",
-                    contract_type="nda",
-                ),
-            )
-
-        assert "C_paused" in str(info.value) or "paused" in str(info.value).lower()
 
 
 # ---------------------------------------------------------------------------
@@ -671,7 +447,7 @@ from app.modules.assistant.pipeline import run_assistant_turn
 from app.modules.assistant.schemas import AssistantPostRequest
 
 
-def _canned_assistant_envelope(action_type: str = "run_pre_motion") -> dict[str, Any]:
+def _canned_assistant_envelope(action_type: str = "anonymise_document") -> dict[str, Any]:
     return {
         "content": "The NDA mutually obliges both parties to keep "
         "[doc:Mutual NDA — Khan & Acme] confidential.",
@@ -932,7 +708,7 @@ class TestAssistantPipeline:
         matter = _make_matter()
         session = _AssistantSession(matter)
         gateway = _AssistantFakeGateway(
-            _canned_assistant_envelope("run_pre_motion")
+            _canned_assistant_envelope("anonymise_document")
         )
 
         _, assistant_row = await run_assistant_turn(
@@ -946,7 +722,7 @@ class TestAssistantPipeline:
         assert isinstance(assistant_row.suggested_actions, list)
         assert len(assistant_row.suggested_actions) == 1
         action = assistant_row.suggested_actions[0]
-        assert action["type"] == "run_pre_motion"
+        assert action["type"] == "anonymise_document"
         assert action["label"] == "Run a pre-motion premortem"
 
     @pytest.mark.asyncio

@@ -84,9 +84,6 @@ const ACTION_TARGET: Partial<Record<SuggestedAction["type"], TabKey>> = {
 };
 
 const WORKFLOW_ACTION_PROMPT: Partial<Record<SuggestedAction["type"], string>> = {
-  run_pre_motion: "Run the pre-motion premortem now.",
-  draft_letter: "Draft the letter now.",
-  review_contract: "Run the contract review now.",
   anonymise_document: "Anonymise the selected document now.",
 };
 

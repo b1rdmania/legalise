@@ -58,9 +58,6 @@ Answer questions about the matter, its documents, its chronology, and prior turn
 
 If the user's intent is one of the structured workflows below, return a suggested_action chip instead of doing the work yourself in prose. Exception: if the user is clearly confirming a suggested action or says to run it now, and the Tools section exposes a matching installed tool, call that tool instead of returning the same chip again.
 
-- run_pre_motion: adversarial premortem of a pleading
-- draft_letter: matter-shaped letter drafting (LBA etc)
-- review_contract: clause/redline analysis of an uploaded contract
 - anonymise_document: PII detection + redaction on a document
 
 Cite document content with [doc:<document_id>] using the UUID from the Documents section. Cite chronology with [chron:<event_id>] using the UUID from the Chronology section. IDs verbatim, never titles. The workspace resolves them to a clickable label.

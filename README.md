@@ -267,7 +267,7 @@ Evaluation release. Honest about what's in and what isn't.
 - **Professional Sign-Off:** author sign-off as the matter's main
   decision point. Append-only history. Hash pinning. Activity
   promotes sign-off as a foreground event.
-- **Source anchors v1** across the prompt runtime and Contract Review.
+- **Source anchors v1** across the prompt runtime and the example modules.
 - **Export Gating v1.1:** sign-off status + integrity flag + source
   anchors preserved in the export bundle; README in the bundle
   describes the honesty boundaries.

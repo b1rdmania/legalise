@@ -9,7 +9,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   createGrant,
-  getMatterWorkflows,
   getModulesV2,
   listDocuments,
   listGrants,
@@ -18,7 +17,6 @@ import {
   type GrantRow,
   type InstalledModule,
   type MatterDocument,
-  type MatterWorkflowsResponse,
   type V2ManifestEntry,
 } from "../lib/api";
 import { GenericSkillRunner } from "./GenericSkillRunner";
@@ -31,17 +29,6 @@ import {
 
 interface Props {
   slug: string;
-}
-
-function formatLastRun(iso: string | null): string {
-  if (!iso) return "Not run yet on this matter";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return `Last run ${d.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })}`;
 }
 
 function capabilityStrings(
@@ -85,17 +72,7 @@ function friendlyCapabilitySummary(values: string[]): string {
   return `${list.slice(0, 2).join(", ")} +${list.length - 2} more`;
 }
 
-function workflowStatus(workflow: MatterWorkflowsResponse["workflows"][number]) {
-  if (workflow.grant === "granted" && workflow.availability === "ok") {
-    return "Ready in this project";
-  }
-  return "Needs setup";
-}
-
 export function MatterSkillsTab({ slug }: Props) {
-  const [workflows, setWorkflows] = useState<MatterWorkflowsResponse | null>(
-    null,
-  );
   const [modules, setModules] = useState<V2ManifestEntry[]>([]);
   const [installed, setInstalled] = useState<Map<string, InstalledModule>>(
     new Map(),
@@ -106,21 +83,21 @@ export function MatterSkillsTab({ slug }: Props) {
   const [enableTarget, setEnableTarget] = useState<V2ManifestEntry | null>(null);
 
   const refresh = () => {
-    void getMatterWorkflows(slug)
-      .then(setWorkflows)
+    void listGrants(slug)
+      .then((r) => setGrants(r.grants))
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : String(e);
         if (!msg.includes("401")) setError(msg);
       });
-    void listGrants(slug)
-      .then((r) => setGrants(r.grants))
-      .catch(() => undefined);
     void listDocuments(slug)
       .then(setDocuments)
       .catch(() => setDocuments([]));
     void getModulesV2()
       .then((r) => setModules(r.modules))
-      .catch(() => undefined);
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("401")) setError(msg);
+      });
     void listInstalledModules()
       .then((rows) => {
         const idx = new Map<string, InstalledModule>();
@@ -205,10 +182,10 @@ export function MatterSkillsTab({ slug }: Props) {
       {/* Section 1 — Enabled in this matter */}
       <SectionHeader
         title="Enabled in this matter"
-        hint="Generic skills run in Chat. Legacy built-in actions stay available below, but are not the product model."
+        hint="Generic skills run in Chat."
       />
 
-      {workflows === null ? (
+      {grants === null ? (
         <p className="mt-3 text-sm text-muted">Loading…</p>
       ) : (
         <div className="mt-3 grid grid-cols-1 gap-3">
@@ -236,22 +213,6 @@ export function MatterSkillsTab({ slug }: Props) {
               No skills are enabled in this matter yet. Pick one from
               Available to enable below.
             </p>
-          )}
-          {workflows.workflows.length > 0 && (
-            <details className="rounded-card border border-rule bg-paper p-4">
-              <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">
-                Legacy built-in actions ({workflows.workflows.length})
-              </summary>
-              <p className="mt-2 text-xs text-muted">
-                These routes remain for compatibility while first-party work is
-                migrated into the generic runner. Use Chat for normal work.
-              </p>
-              <div className="mt-3 grid grid-cols-1 gap-3">
-                {workflows.workflows.map((w) => (
-                  <WorkflowRow key={w.key} slug={slug} workflow={w} />
-                ))}
-              </div>
-            </details>
           )}
         </div>
       )}
@@ -315,43 +276,6 @@ function SectionHeader({ title, hint }: { title: string; hint: string }) {
       <h3 className="text-sm uppercase tracking-widest text-muted">{title}</h3>
       <p className="mt-1 text-xs text-muted">{hint}</p>
     </div>
-  );
-}
-
-function WorkflowRow({
-  slug,
-  workflow,
-}: {
-  slug: string;
-  workflow: MatterWorkflowsResponse["workflows"][number];
-}) {
-  return (
-    <article className="rounded-card border border-rule bg-paper p-4" data-testid={`enabled-builtin-${workflow.key}`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-ink">{workflow.title}</p>
-          <p className="mt-0.5 text-xs text-muted">{workflow.description}</p>
-        </div>
-        <Link
-          to="/matters/$slug/$tab"
-          params={{ slug, tab: workflow.key }}
-          className="shrink-0 rounded-md border border-line px-3 py-1 text-xs hover:border-ink"
-        >
-          Open
-        </Link>
-      </div>
-      <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
-        <Meta label="Reads" value={friendlyCapabilitySummary(workflow.declared_capabilities)} />
-        <Meta
-          label="Status"
-          value={workflowStatus(workflow)}
-        />
-        <Meta label="Last run" value={formatLastRun(workflow.last_run_at)} />
-      </dl>
-      {workflow.reason && workflow.availability !== "ok" && (
-        <p className="mt-2 text-xs text-muted">{workflow.reason}</p>
-      )}
-    </article>
   );
 }
 

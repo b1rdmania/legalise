@@ -61,30 +61,6 @@ async def test_get_matter_returns_404_when_archived(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_pre_motion_job_create_returns_404_when_archived(client) -> None:
-    """POST /api/matters/{slug}/pre-motion/jobs must 404 on archived matter."""
-    await _signup_and_login(client)
-    slug = await _create_and_archive(client)
-    resp = await client.post(
-        f"/api/matters/{slug}/pre-motion/jobs",
-        json={"depth": "fast"},
-    )
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_contract_review_job_create_returns_404_when_archived(client) -> None:
-    """POST /api/matters/{slug}/contract-review/jobs must 404 on archived matter."""
-    await _signup_and_login(client)
-    slug = await _create_and_archive(client)
-    resp = await client.post(
-        f"/api/matters/{slug}/contract-review/jobs",
-        json={"document_id": str(uuid.uuid4())},
-    )
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
 async def test_get_job_returns_404_when_matter_archived(client) -> None:
     """GET /api/matters/{slug}/jobs/{job_id} must 404 once the matter is
     archived, even if the job id is well-formed."""
@@ -125,15 +101,6 @@ async def test_chronology_returns_404_when_archived(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_letters_catalog_returns_404_when_archived(client) -> None:
-    """GET /api/matters/{slug}/letters/catalog must 404 on archived matter."""
-    await _signup_and_login(client)
-    slug = await _create_and_archive(client)
-    resp = await client.get(f"/api/matters/{slug}/letters/catalog")
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
 async def test_assistant_messages_returns_404_when_archived(client) -> None:
     """GET /api/matters/{slug}/assistant/messages must 404 on archived matter."""
     await _signup_and_login(client)
@@ -163,5 +130,4 @@ async def test_live_matter_routes_unchanged_after_helper_swap(client) -> None:
     # Smoke a representative read across the families.
     assert (await client.get(f"/api/matters/{slug}")).status_code == 200
     assert (await client.get(f"/api/matters/{slug}/chronology")).status_code == 200
-    assert (await client.get(f"/api/matters/{slug}/letters/catalog")).status_code == 200
     assert (await client.get(f"/api/matters/{slug}/assistant/messages")).status_code == 200

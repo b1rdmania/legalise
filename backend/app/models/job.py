@@ -37,8 +37,6 @@ JOB_STATUS_VALUES = {
 JOB_ACTIVE_STATUSES = {JOB_STATUS_QUEUED, JOB_STATUS_RUNNING}
 
 # Kind constants
-JOB_KIND_PRE_MOTION = "pre_motion"
-JOB_KIND_CONTRACT_REVIEW = "contract_review"
 JOB_KIND_EXPORT = "export"
 
 # Per-user active-job ceiling is canonical at `app.core.limits.get_limits().active_jobs`

@@ -46,7 +46,7 @@ Shipped surfaces:
   flow that opens a draft PR against `claude-for-uk-legal`.
 - **fastapi-users cookie sessions** + email verification.
 - Smoke evals + real-DB E2E coverage across auth, chronology, modules,
-  matters, documents, audit, letters, workspace skills, capabilities,
+  matters, documents, audit, workspace skills, capabilities,
   sign-offs, reviews, export.
 
 ## Live-matter readiness: locked direction
@@ -91,9 +91,6 @@ foundations are either shipped or explicitly deferred by reviewer sign-off:
 - **`audit_actions.py` constants module.** Required. The audit action
   taxonomy moves from stringly-typed call sites to constants imported
   from `backend/app/core/audit_actions.py`.
-- **Docx templates for Pre-Motion and Contract Review.** v0.1 ships
-  LBA only. v0.2 brings the other two solicitor-facing artefacts onto
-  templates.
 - **`sse-starlette` swap.** Bespoke SSE frames replace with library
   inside the job-runner work.
 - **Multi-instance Redis-backed rate limiter** for the submission flow.
@@ -117,7 +114,7 @@ Other work already on the roadmap:
 - Cyber Essentials Plus certification target
 - DPIA summary published as a public artefact
 - Anthropic / OpenAI UK addenda signed and referenced from the processor list
-- CPR 31.22 gate coverage extended beyond chronology (Pre-Motion inputs, letter drafts, plugin invocations)
+- CPR 31.22 gate coverage extended beyond chronology (skill inputs, plugin invocations)
 - Audit-tab UI filter by `module` column (or Phase E polish, whichever lands first)
 
 ## v0.3+

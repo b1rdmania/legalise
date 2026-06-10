@@ -215,4 +215,4 @@ async def append_event(
 
 def _module_name(kind: str) -> str:
     """Map job kind to module audit namespace."""
-    return kind  # e.g. "pre_motion", "contract_review"
+    return kind  # e.g. "export"

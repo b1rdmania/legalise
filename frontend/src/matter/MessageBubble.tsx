@@ -273,15 +273,9 @@ function AssistantOutputRow({
 
 type OutputKind =
   | "Summary"
-  | "Pre-motion"
-  | "Draft letter"
-  | "Review"
   | "Anonymise";
 
 const OUTPUT_ACTION_KIND: Partial<Record<SuggestedAction["type"], OutputKind>> = {
-  run_pre_motion: "Pre-motion",
-  draft_letter: "Draft letter",
-  review_contract: "Review",
   anonymise_document: "Anonymise",
 };
 

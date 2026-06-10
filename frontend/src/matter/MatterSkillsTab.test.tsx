@@ -59,7 +59,6 @@ afterEach(() => {
 });
 
 function setupMixedScopeMocks() {
-  vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({ workflows: [] });
   vi.spyOn(api, "listGrants").mockResolvedValue({
     matter_id: "m-1",
     grants: [],
@@ -139,7 +138,6 @@ describe("MatterSkillsTab — enable truth", () => {
   });
 
   it("disables Enable with honest copy when no matter capability exists", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({ workflows: [] });
     vi.spyOn(api, "listGrants").mockResolvedValue({
       matter_id: "m-1",
       grants: [],
@@ -204,7 +202,6 @@ describe("MatterSkillsTab — enable truth", () => {
   });
 
   it("renders a generic runner for a V2 module whose project permissions are complete", async () => {
-    vi.spyOn(api, "getMatterWorkflows").mockResolvedValue({ workflows: [] });
     vi.spyOn(api, "listDocuments").mockResolvedValue([
       {
         id: "doc-1",

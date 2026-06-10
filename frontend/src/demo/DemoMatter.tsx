@@ -8,13 +8,8 @@ import { Badge } from "../ui/primitives";
 import { isTabKey, sidebarActiveFor, type TabKey } from "../matter/tabs/types";
 import { SidebarView, NavIcon, type RailItem } from "../ui/SidebarView";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
-import { PreMotionTab } from "../matter/tabs/PreMotionTab";
-import { LettersTab } from "../matter/tabs/LettersTab";
 import { AuditTab } from "../matter/tabs/AuditTab";
 import { AssistantTab } from "../matter/tabs/AssistantTab";
-import { ReviewsTab } from "../modules/tabular_review/ReviewsTab";
-import { ResearchTab } from "../modules/case_law/ResearchTab";
-import { ContractReviewTab } from "../modules/contract_review/ContractReviewTab";
 import { DEMO_SNAPSHOT } from "./snapshot";
 
 const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
@@ -128,15 +123,6 @@ export function DemoMatter() {
   const matter = DEMO_SNAPSHOT.matter;
   const documents = DEMO_SNAPSHOT.documents;
 
-  // Letters: rotate the local selection but always render the pre-baked draft
-  // for the default ("lba") letter. Picking another letter type just flashes
-  // the sign-up CTA on Draft.
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(
-    DEMO_SNAPSHOT.letterCatalogue.letter_types.find((lt) => lt.is_default)?.id ??
-      DEMO_SNAPSHOT.letterCatalogue.letter_types[0]?.id ??
-      null,
-  );
-
   const [showSoF, setShowSoF] = useState(false);
 
   const flashRO = () => flashCta(DEMO_READ_ONLY);
@@ -190,7 +176,7 @@ export function DemoMatter() {
                   docs={documents}
                   auditCount={DEMO_SNAPSHOT.audit.length}
                   onOpen={setTabAndHash}
-                  onRun={() => setTabAndHash("contract-review")}
+                  onRun={() => setTabAndHash("assistant")}
                 />
                 <AssistantTab
                   matter={matter}
@@ -232,55 +218,6 @@ export function DemoMatter() {
               <DemoWorkflowsTab onOpen={setTabAndHash} />
             )}
             {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} matter={matter} />}
-            {tab === "premotion" && (
-              <PreMotionTab
-                matter={matter}
-                running={false}
-                error={null}
-                stages={[]}
-                result={DEMO_SNAPSHOT.preMotion}
-                onRun={() => flashCta(DEMO_READ_ONLY)}
-                pdfBusy={false}
-                pdfError={null}
-                onExportPdf={() => flashCta(DEMO_READ_ONLY)}
-                docxBusy={false}
-                docxError={null}
-                onExportDocx={() => flashCta(DEMO_READ_ONLY)}
-              />
-            )}
-            {tab === "letters" && (
-              <LettersTab
-                matter={matter}
-                catalogue={DEMO_SNAPSHOT.letterCatalogue}
-                selected={selectedLetter}
-                onSelect={setSelectedLetter}
-                drafting={false}
-                error={null}
-                draft={
-                  selectedLetter === DEMO_SNAPSHOT.letterDraft.letter_type
-                    ? DEMO_SNAPSHOT.letterDraft
-                    : null
-                }
-                onDraft={() => flashCta(DEMO_READ_ONLY)}
-                docxBusy={false}
-                docxError={null}
-                onDownloadDocx={() => flashCta(DEMO_READ_ONLY)}
-              />
-            )}
-            {tab === "contract-review" && (
-              <ContractReviewTab
-                matter={matter}
-                docs={documents}
-                previewResult={DEMO_SNAPSHOT.contractReview}
-                onRunOverride={() => flashCta(DEMO_READ_ONLY)}
-              />
-            )}
-            {tab === "reviews" && (
-              <ReviewsTab matter={matter} initialReviews={DEMO_SNAPSHOT.reviews} />
-            )}
-            {tab === "research" && (
-              <ResearchTab matter={matter} initialCitations={DEMO_SNAPSHOT.citations} />
-            )}
         </main>
       </div>
     </>
@@ -332,13 +269,13 @@ function DemoStartPanel({
               onClick={onRun}
               className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black"
             >
-              Open skill preview
+              Open the chat
             </button>
           </div>
         </div>
         <div className="grid gap-3 text-sm">
           <DemoFact label="Documents" value={`${docs.length} loaded`} body="Matter evidence and drafts are in one folder." />
-          <DemoFact label="Skills" value="4 ready" body="Skills say what they read and what they produce." />
+          <DemoFact label="Skills" value="Ready" body="Skills say what they read and what they produce." />
           <DemoFact label="Record" value={`${auditCount} entries`} body="AI work, source use, and sign-off stay traceable." />
         </div>
       </div>
@@ -398,35 +335,19 @@ function DemoWorkflowsTab({
     last: string;
   }> = [
     {
-      key: "contract-review",
-      title: "Review the NDA",
-      body: "Flags enforceability, data-protection and missing governing-law issues.",
-      reads: "synthetic-mutual-nda.docx",
-      writes: "findings pack",
+      key: "assistant",
+      title: "Summarise a document",
+      body: "Plain-English summary of a matter document, run from chat with sources cited.",
+      reads: "dismissal letter",
+      writes: "summary card",
       last: "Ready in demo",
     },
     {
-      key: "premotion",
-      title: "Pre-motion analysis",
-      body: "Tests the conduct dismissal framing against the documents and chronology.",
-      reads: "dismissal letter, witness statement",
-      writes: "motion draft",
-      last: "Preview available",
-    },
-    {
-      key: "letters",
-      title: "Draft a letter before action",
-      body: "Produces a first draft from the dismissal facts and limitation dates.",
-      reads: "matter record",
-      writes: "letter draft",
-      last: "Preview available",
-    },
-    {
-      key: "research",
-      title: "Check authorities",
-      body: "Surfaces relevant authorities for the point being worked on.",
-      reads: "issue framing",
-      writes: "case-law note",
+      key: "assistant",
+      title: "Anonymise a document",
+      body: "PII detection and redaction with a reviewable mapping.",
+      reads: "witness statement",
+      writes: "redacted copy",
       last: "Preview available",
     },
   ];
@@ -449,7 +370,7 @@ function DemoWorkflowsTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {workflows.map((w) => (
-          <section key={w.key} className="rounded-card border border-rule bg-paper p-5 hover:border-ink transition-colors">
+          <section key={w.title} className="rounded-card border border-rule bg-paper p-5 hover:border-ink transition-colors">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold tracking-tight2 text-ink">{w.title}</div>
@@ -479,7 +400,7 @@ function DemoWorkflowsTab({
                 onClick={() => onOpen(w.key)}
                 className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black transition-colors"
               >
-                Open preview
+                Open in chat
               </button>
             </div>
           </section>

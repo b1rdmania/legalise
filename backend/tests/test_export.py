@@ -55,12 +55,6 @@ class TestJOBKindExport:
     def test_constant_value(self) -> None:
         assert JOB_KIND_EXPORT == "export"
 
-    def test_distinct_from_other_kinds(self) -> None:
-        from app.models.job import JOB_KIND_PRE_MOTION, JOB_KIND_CONTRACT_REVIEW
-
-        assert JOB_KIND_EXPORT != JOB_KIND_PRE_MOTION
-        assert JOB_KIND_EXPORT != JOB_KIND_CONTRACT_REVIEW
-
     def test_exported_from_models_init(self) -> None:
         from app.models import JOB_KIND_EXPORT as exported
 
