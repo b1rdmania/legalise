@@ -131,7 +131,7 @@ describe("AppHome — State 1: fresh fork (user_count=0)", () => {
     expect(body).toMatch(/local quickstart/i);
     expect(body).toMatch(/promoted to workspace admin automatically/i);
     expect(body).toMatch(/disable auto-admin/i);
-    expect(body).toMatch(/host-side bootstrap command/i);
+    expect(body).toMatch(/host-side bootstrap CLI command/i);
   });
 });
 

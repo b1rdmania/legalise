@@ -99,7 +99,7 @@ function FirstRunEmptyState() {
         Register the first account to begin. In the local quickstart,
         that account is verified, seeded with Khan v Acme, and promoted
         to workspace admin automatically. Deployments that disable
-        auto-admin will show the host-side bootstrap command after
+        auto-admin will show the host-side bootstrap CLI command after
         signup.
       </p>
       <div className="mt-8 flex items-center gap-3">
