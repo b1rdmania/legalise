@@ -124,7 +124,7 @@ async def test_delete_matter_cross_user_returns_404(client) -> None:
 async def test_delete_matter_with_active_job_returns_409(client, db_session) -> None:
     """DELETE /api/matters/{slug} returns 409 when an active job exists."""
     from app.models import Job
-    from app.models.job import JOB_KIND_PRE_MOTION, JOB_STATUS_RUNNING
+    from app.models.job import JOB_KIND_EXPORT, JOB_STATUS_RUNNING
 
     await _signup_and_login(client, EMAIL, PASSWORD)
 
@@ -150,7 +150,7 @@ async def test_delete_matter_with_active_job_returns_409(client, db_session) -> 
         id=uuid.uuid4(),
         matter_id=matter_id,
         created_by_id=user.id,
-        kind=JOB_KIND_PRE_MOTION,
+        kind=JOB_KIND_EXPORT,
         status=JOB_STATUS_RUNNING,
         input_payload={},
     )
