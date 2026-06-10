@@ -1,29 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   confirmGate,
-  downloadGeneratedDocx,
-  draftLetter,
-  exportLetterDocx,
-  exportPreMotionDocx,
-  exportPreMotionPdf,
   getBootstrapState,
   getChronology,
-  getLetterCatalogue,
   getMatter,
   listAudit,
   listDocuments,
-  ProviderKeyMissingError,
-  runPreMotionStream,
   setPrivilege,
   uploadDocument,
   UploadError,
   type AuditEntry,
   type ChronologyResponse,
-  type LetterCatalogue,
-  type LetterDraft,
   type Matter,
   type MatterDocument,
-  type PreMotionRunResult,
 } from "../lib/api";
 import { navigate, useRoute } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
@@ -32,18 +21,12 @@ import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { GrantsPanel } from "./GrantsPanel";
 import { MatterSkillsTab } from "./MatterSkillsTab";
 import { PostureBanner } from "./PostureBanner";
-import { isTabKey, type StageProgress, type TabKey } from "./tabs/types";
+import { isTabKey, type TabKey } from "./tabs/types";
 import { DocumentsTab } from "./tabs/DocumentsTab";
-import { ResearchTab } from "../modules/case_law/ResearchTab";
-import { ReviewsTab } from "../modules/tabular_review/ReviewsTab";
 import { ChronologyTab } from "./tabs/ChronologyTab";
-import { PreMotionTab } from "./tabs/PreMotionTab";
-import { LettersTab } from "./tabs/LettersTab";
-import { ContractReviewTab } from "../modules/contract_review/ContractReviewTab";
 import { AuditTab } from "./tabs/AuditTab";
 import { ApprovalsTab } from "./tabs/ApprovalsTab";
 import { AssistantTab } from "./tabs/AssistantTab";
-import { WorkflowsTab } from "./tabs/WorkflowsTab";
 
 export function MatterDetail({ slug }: { slug: string }) {
   // drawer state is now in a context. Pre-A0 callers
@@ -98,25 +81,8 @@ export function MatterDetail({ slug }: { slug: string }) {
   // system state resolves, so we never silently hide a live gate.
   const [firmRoleGates, setFirmRoleGates] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [premotion, setPremotion] = useState<PreMotionRunResult | null>(null);
-  const [premotionRunning, setPremotionRunning] = useState(false);
-  const [premotionError, setPremotionError] = useState<string | null>(null);
-  const [premotionKeyMissing, setPremotionKeyMissing] = useState<string | null>(null);
-  const [premotionStages, setPremotionStages] = useState<StageProgress[]>([]);
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
-  const [docxBusy, setDocxBusy] = useState(false);
-  const [docxError, setDocxError] = useState<string | null>(null);
-  const [letterDocxBusy, setLetterDocxBusy] = useState(false);
-  const [letterDocxError, setLetterDocxError] = useState<string | null>(null);
   const [chron, setChron] = useState<ChronologyResponse | null>(null);
   const [showSoF, setShowSoF] = useState(false);
-  const [letterCat, setLetterCat] = useState<LetterCatalogue | null>(null);
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [letterDraft, setLetterDraft] = useState<LetterDraft | null>(null);
-  const [letterDrafting, setLetterDrafting] = useState(false);
-  const [letterError, setLetterError] = useState<string | null>(null);
-  const [letterKeyMissing, setLetterKeyMissing] = useState<string | null>(null);
   const load = () => {
     getMatter(slug)
       .then((m) => {
@@ -130,15 +96,6 @@ export function MatterDetail({ slug }: { slug: string }) {
       .then((s) => setFirmRoleGates(s.firm_role_gates_enabled ?? true))
       .catch(() => undefined);
     getChronology(slug).then(setChron).catch(() => undefined);
-    getLetterCatalogue(slug)
-      .then((cat) => {
-        setLetterCat(cat);
-        setSelectedLetter(
-          (prev) =>
-            prev ?? cat.letter_types.find((lt) => lt.is_default)?.id ?? cat.letter_types[0]?.id ?? null,
-        );
-      })
-      .catch(() => undefined);
   };
 
   useEffect(load, [slug]);
@@ -158,143 +115,6 @@ export function MatterDetail({ slug }: { slug: string }) {
       listAudit(slug, 30).then(setAudit).catch(() => undefined);
     } catch (err) {
       setError(String(err));
-    }
-  };
-
-  const onRunPremotion = async () => {
-    setPremotionRunning(true);
-    setPremotionError(null);
-    setPremotionKeyMissing(null);
-    setPremotion(null);
-    setPremotionStages([]);
-    try {
-      for await (const ev of runPreMotionStream(slug, { depth: "thorough" })) {
-        if (ev.event === "stage.start") {
-          setPremotionStages((prev) => [
-            ...prev.filter((s) => s.index !== ev.data.index),
-            {
-              index: ev.data.index,
-              stage: ev.data.stage,
-              sub_agent_count: ev.data.sub_agent_count,
-              status: "running",
-            },
-          ]);
-        } else if (ev.event === "stage.end") {
-          setPremotionStages((prev) =>
-            prev.map((s) =>
-              s.index === ev.data.index
-                ? {
-                    ...s,
-                    status: ev.data.errors?.length ? "error" : "done",
-                    duration_ms: ev.data.duration_ms,
-                    token_count: ev.data.token_count,
-                    errors: ev.data.errors,
-                  }
-                : s,
-            ),
-          );
-        } else if (ev.event === "result") {
-          setPremotion(ev.data);
-        } else if (ev.event === "error") {
-          setPremotionError(ev.data.message);
-        }
-      }
-      listAudit(slug, 30).then(setAudit).catch(() => undefined);
-    } catch (err) {
-      if (err instanceof ProviderKeyMissingError) {
-        setPremotionKeyMissing(err.provider);
-      } else {
-        setPremotionError(String(err));
-      }
-    } finally {
-      setPremotionRunning(false);
-    }
-  };
-
-  const onExportPdf = async () => {
-    if (!premotion) return;
-    setPdfBusy(true);
-    setPdfError(null);
-    try {
-      const blob = await exportPreMotionPdf(slug, premotion);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `pre-motion-${slug}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      listAudit(slug, 30).then(setAudit).catch(() => undefined);
-    } catch (err) {
-      setPdfError(String(err));
-    } finally {
-      setPdfBusy(false);
-    }
-  };
-
-  const onExportDocx = async () => {
-    if (!premotion) return;
-    setDocxBusy(true);
-    setDocxError(null);
-    try {
-      const { file_uuid } = await exportPreMotionDocx(slug, premotion);
-      const blob = await downloadGeneratedDocx(file_uuid);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `pre-motion-${slug}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-      listAudit(slug, 30).then(setAudit).catch(() => undefined);
-    } catch (err) {
-      setDocxError(String(err));
-    } finally {
-      setDocxBusy(false);
-    }
-  };
-
-  const onDownloadLetterDocx = async () => {
-    if (!letterDraft) return;
-    setLetterDocxBusy(true);
-    setLetterDocxError(null);
-    try {
-      const { file_uuid } = await exportLetterDocx(slug, {
-        letter_type: letterDraft.letter_type,
-        title: `${letterDraft.letter_type.toUpperCase()} - ${matter?.title || slug}`,
-        draft_markdown: letterDraft.draft_markdown,
-      });
-      const blob = await downloadGeneratedDocx(file_uuid);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${letterDraft.letter_type}-${slug}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-      listAudit(slug, 30).then(setAudit).catch(() => undefined);
-    } catch (err) {
-      setLetterDocxError(String(err));
-    } finally {
-      setLetterDocxBusy(false);
-    }
-  };
-
-  const onDraftLetter = async () => {
-    if (!selectedLetter) return;
-    setLetterDrafting(true);
-    setLetterError(null);
-    setLetterKeyMissing(null);
-    setLetterDraft(null);
-    try {
-      const draft = await draftLetter(slug, selectedLetter);
-      setLetterDraft(draft);
-      listAudit(slug, 30).then(setAudit).catch(() => undefined);
-    } catch (err) {
-      if (err instanceof ProviderKeyMissingError) {
-        setLetterKeyMissing(err.provider);
-      } else {
-        setLetterError(String(err));
-      }
-    } finally {
-      setLetterDrafting(false);
     }
   };
 
@@ -388,14 +208,12 @@ export function MatterDetail({ slug }: { slug: string }) {
                   Permissions detail
                 </summary>
                 <p className="mt-2 text-xs text-muted">
-                  Direct grant management and the legacy built-in-skill
-                  launcher cards. The simplified view above is the
-                  primary surface for this matter; this section exists
-                  for operators who need to inspect or edit specific
-                  capability grants.
+                  Direct grant management. The simplified view above is
+                  the primary surface for this matter; this section
+                  exists for operators who need to inspect or edit
+                  specific capability grants.
                 </p>
                 <div className="mt-6 space-y-8">
-                  <WorkflowsTab slug={slug} />
                   <GrantsPanel
                     slug={matter.slug}
                     defaultModelId={matter.default_model_id}
@@ -407,45 +225,6 @@ export function MatterDetail({ slug }: { slug: string }) {
           )}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
           {tab === "approvals" && <ApprovalsTab slug={matter.slug} />}
-          {/* Skill surfaces reached from Skills; sidebar highlights Skills. */}
-          {tab === "premotion" && (
-            <PreMotionTab
-              matter={matter}
-              running={premotionRunning}
-              error={premotionError}
-              keyMissingProvider={premotionKeyMissing}
-              stages={premotionStages}
-              result={premotion}
-              onRun={onRunPremotion}
-              pdfBusy={pdfBusy}
-              pdfError={pdfError}
-              onExportPdf={onExportPdf}
-              docxBusy={docxBusy}
-              docxError={docxError}
-              onExportDocx={onExportDocx}
-            />
-          )}
-          {tab === "letters" && (
-            <LettersTab
-              matter={matter}
-              catalogue={letterCat}
-              selected={selectedLetter}
-              onSelect={setSelectedLetter}
-              drafting={letterDrafting}
-              error={letterError}
-              keyMissingProvider={letterKeyMissing}
-              draft={letterDraft}
-              onDraft={onDraftLetter}
-              docxBusy={letterDocxBusy}
-              docxError={letterDocxError}
-              onDownloadDocx={onDownloadLetterDocx}
-            />
-          )}
-          {tab === "contract-review" && matter && docs && (
-            <ContractReviewTab matter={matter} docs={docs} />
-          )}
-          {tab === "reviews" && matter && <ReviewsTab matter={matter} />}
-          {tab === "research" && matter && <ResearchTab matter={matter} />}
         </main>
         </div>
     </div>

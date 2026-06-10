@@ -401,7 +401,7 @@ async def test_download_not_found_stays_404(
 
 
 # ---------------------------------------------------------------------------
-# R3 round-2: generated-docx + tabular-review failure paths use audit_failure
+# R3 round-2: generated-docx failure path uses audit_failure
 # ---------------------------------------------------------------------------
 
 
@@ -458,70 +458,5 @@ async def test_generate_docx_storage_write_failure_invokes_audit_failure(
 
     rows = [c for c in captured if c["action"] == "storage.put_bytes.failed"]
     assert len(rows) == 1, "audit_failure must be invoked on generate_docx storage failure"
-    assert rows[0]["module"] == "storage"
-    assert rows[0]["resource_type"] == "document"
-
-
-@pytest.mark.asyncio
-async def test_tabular_review_export_storage_failure_invokes_audit_failure(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """`app.modules.tabular_review.export.export_review_docx` catches
-    StorageWriteError and must invoke `audit_failure` so the row
-    survives the caller's rollback. R3 round-2 review fix."""
-    from unittest.mock import AsyncMock, MagicMock
-
-    from app.core import api as api_module
-    from app.core.storage import StorageWriteError
-    from app.modules.tabular_review import export as tr_export
-
-    captured: list[dict] = []
-
-    async def _capturing_audit_failure(session, action, **kwargs):
-        captured.append({"action": action, **kwargs})
-
-    monkeypatch.setattr(api_module, "audit_failure", _capturing_audit_failure)
-    monkeypatch.setattr(tr_export, "audit_failure", _capturing_audit_failure)
-
-    class _WriteFails:
-        def put_bytes(self, *_args, **_kwargs):
-            raise StorageWriteError(
-                key="users/x/matters/y/generated/z/file.docx",
-                backend="s3",
-                error_code="boto_client_error",
-                message="simulated",
-            )
-
-    monkeypatch.setattr(tr_export, "get_storage_backend", lambda: _WriteFails())
-
-    async def _load_grid_stub(session, matter_id, review_id):
-        return ([], {})
-
-    monkeypatch.setattr(tr_export, "_load_grid", _load_grid_stub)
-
-    matter = MagicMock()
-    matter.id = uuid.uuid4()
-    matter.slug = "test-matter"
-    matter.title = "Test"
-    matter.created_by_id = uuid.uuid4()
-    review = MagicMock()
-    review.id = uuid.uuid4()
-    review.title = "Test Review"
-    review.columns_config = []
-
-    actor_id = uuid.uuid4()
-
-    with pytest.raises(StorageWriteError):
-        await tr_export.export_review_docx(
-            session=AsyncMock(),
-            review=review,
-            matter=matter,
-            actor_id=actor_id,
-        )
-
-    rows = [c for c in captured if c["action"] == "storage.put_bytes.failed"]
-    assert len(rows) == 1, (
-        "audit_failure must be invoked on tabular-review storage failure"
-    )
     assert rows[0]["module"] == "storage"
     assert rows[0]["resource_type"] == "document"

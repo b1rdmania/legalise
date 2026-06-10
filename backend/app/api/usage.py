@@ -10,7 +10,6 @@ plans, no internal user IDs, no matter slugs.
 
 from __future__ import annotations
 
-import uuid
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -101,18 +100,17 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
         )
     )
 
-    # --- workflow runs today (Pre-Motion + Contract Review, exports excluded) ---
+    # --- workflow runs today (job kinds other than export) ---
     from app.models.job import (
         JOB_ACTIVE_STATUSES,
-        JOB_KIND_CONTRACT_REVIEW,
-        JOB_KIND_PRE_MOTION,
+        JOB_KIND_EXPORT,
         Job,
     )
 
     workflow_runs_today = await session.scalar(
         select(func.count(Job.id)).where(
             Job.created_by_id == user.id,
-            Job.kind.in_({JOB_KIND_PRE_MOTION, JOB_KIND_CONTRACT_REVIEW}),
+            Job.kind != JOB_KIND_EXPORT,
             Job.created_at >= today_start,
         )
     )

@@ -21,7 +21,7 @@
 | Frontend | React 19 + Vite + TanStack Router | Modern but stable. Hot reload, fast build, no Next.js framework lock-in. |
 | Styling | Tailwind + Shadcn primitives | Solicitor-legible defaults, customisable, no design-system rebuild needed. |
 | AI gateway | `app/core/model_gateway.py` | Abstracts Anthropic, OpenAI, Ollama. Per-matter privilege posture selects provider. |
-| Multi-agent | Module-local pipelines in `app/modules/<name>/pipeline.py` (e.g. `pre_motion/pipeline.py` four-stage adversarial premortem; `contract_review/pipeline.py` parser → analyst → redliner → summariser). `app/agents/` exists as a placeholder for a future shared abstraction but is not used at runtime in v0.1. |
+| Multi-agent | Module-local pipelines in `app/modules/<name>/pipeline.py` where a module needs one. The heavyweight built-in pipelines (pre-motion, contract review, tabular review, case law, letters) were removed in the skills-as-plugins cut; reference implementations live as installable example modules under `examples/modules/`. |
 | Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
 | Hosting (live demo) | Cloudflare Pages (frontend) + Fly.io `lhr` (backend, default) + Neon Postgres London + R2 (storage). Cloudflare Containers optional / experimental. | UK-region database and backend; edge CDN and storage at EU / Western Europe placement (R2 hint best-effort). See `infra/deploy/cloudflare.md` for honest residency caveats. |
@@ -36,7 +36,7 @@ backend/app/modules/<module>/
   __init__.py
   router.py          # FastAPI routes
   service.py         # business logic
-  pipeline.py        # module-local multi-stage pipeline (where used; e.g. pre_motion, contract_review)
+  pipeline.py        # module-local multi-stage pipeline (where the module needs one)
   schemas.py         # pydantic input/output models
   templates/         # any prompt templates or output templates
 
@@ -68,12 +68,15 @@ A minimal worked example lives at `examples/modules/example-tab/`. Full develope
 
 ### Module registration (v0.1)
 
-Manual, two places:
+Two paths:
 
-1. `backend/app/main.py`: `app.include_router(module_router, prefix=...)`
-2. `frontend/src/lib/modules.ts`: registry array with the module slug and manifest
-
-v0.2 introduces auto-discovery. Modules drop in, the platform finds them at boot, no manual edits.
+1. **First-party routers** are registered manually in
+   `backend/app/main.py` via `app.include_router(...)`.
+2. **Installable modules** (example modules, plugin `SKILL.md` skills,
+   Lawve imports) are discovered by the registry
+   (`backend/app/core/registry/discovery.py`) and installed through the
+   trust ceremony; no code edit required. The frontend lists them from
+   the installed-modules API — there is no frontend registry file.
 
 ### Module migrations (v0.1)
 
@@ -178,14 +181,19 @@ All LLM calls go through the gateway. There is no direct SDK import in any modul
 
 ## Multi-stage pipelines (module-local)
 
-Multi-stage AI workflows live in each module's own `pipeline.py`. There is no shared agent abstraction in use at runtime in v0.1.
+Multi-stage AI workflows live in each module's own `pipeline.py` where a
+module needs one; the assistant's tool-calling turn loop
+(`app/modules/assistant/pipeline.py`) is the main in-tree example. The
+heavyweight built-in pipelines (Pre-Motion's four-stage premortem,
+Contract Review's parser → analyst → redliner → summariser, tabular
+review, case law, letters) were removed from the app in the
+skills-as-plugins cut — the platform ships chat + governance + the
+document workspace, and skills install as governed modules. Reference
+module implementations live under `examples/modules/`.
 
-- **Pre-Motion** (`backend/app/modules/pre_motion/pipeline.py`) - four stages: OptimisticAnalyst, then EvidenceInspector x 3 (parallel), then PremortemAdversary x 4 (parallel), then Synthesiser. Stage status streamed to the frontend via SSE.
-- **Contract Review** (`backend/app/modules/contract_review/pipeline.py`) - Parser, then Analyst, then Redliner, then Summariser. Stage events streamed via SSE.
-
-Each pipeline imports the model gateway, audit API, and matter primitives directly from `app.core.api`. Each pipeline owns its stage definitions, its sub-agent prompts, its commit cadence, and its audit-row shape.
-
-`backend/app/agents/` contains a `BaseAgent` ABC and a `SequentialOrchestrator` stub that raises `NotImplementedError`. It was scaffolded as a shared abstraction during early planning and was never wired up; modules pipelined locally instead. The folder remains in the tree as a placeholder for a future shared abstraction (v0.2+ scope) but does not run in v0.1.
+`backend/app/agents/` (a `BaseAgent` ABC + orchestrator stub scaffolded
+during early planning) was never wired up and has been deleted; there is
+no shared agent abstraction at runtime.
 
 ## Plugin bridge
 

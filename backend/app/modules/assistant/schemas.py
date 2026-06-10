@@ -9,9 +9,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 SuggestedActionType = Literal[
-    "run_pre_motion",
-    "draft_letter",
-    "review_contract",
     "view_document",
     "view_audit",
     "view_chronology",

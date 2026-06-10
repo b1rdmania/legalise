@@ -1,5 +1,7 @@
 # Scope — Legalise v1
 
+> **Status note (2026-06-10).** This document records the v0.1 launch scope as planned. The built-in module set it describes (Pre-Motion, Letters, Contract Review, Tabular Review, Case Law) was subsequently removed from the app in the skills-as-plugins cut: the platform now ships chat + governance + the document workspace, and skills install as governed modules (see `examples/modules/` and the catalogue). Kept for history.
+
 ## In scope
 
 ### v0.1 product surface

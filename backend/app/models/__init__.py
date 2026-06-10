@@ -56,7 +56,6 @@ from app.models.document_comment import (
     COMMENT_STATUS_VALUES,
     DocumentComment,
 )
-from app.models.tabular_review import TabularReview, TabularReviewRow
 from app.models.workspace_skill import WorkspaceDisabledSkill
 from app.models.workspace_skill_capability_grant import (
     SCOPE_TYPE_MATTER,
@@ -75,8 +74,6 @@ from app.models.job import (
     JOB_STATUS_CANCELLED,
     JOB_STATUS_VALUES,
     JOB_ACTIVE_STATUSES,
-    JOB_KIND_PRE_MOTION,
-    JOB_KIND_CONTRACT_REVIEW,
     JOB_KIND_EXPORT,
 )
 
@@ -169,8 +166,6 @@ __all__ = [
     "DocumentEditSession",
     "DocumentWorkingDraft",
     "DocumentComment",
-    "TabularReview",
-    "TabularReviewRow",
     "WorkspaceDisabledSkill",
     "WorkspaceSkillCapabilityGrant",
     "SCOPE_TYPE_WORKSPACE",
@@ -186,8 +181,6 @@ __all__ = [
     "JOB_STATUS_CANCELLED",
     "JOB_STATUS_VALUES",
     "JOB_ACTIVE_STATUSES",
-    "JOB_KIND_PRE_MOTION",
-    "JOB_KIND_CONTRACT_REVIEW",
     "JOB_KIND_EXPORT",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",

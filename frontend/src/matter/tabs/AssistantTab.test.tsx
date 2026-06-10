@@ -130,9 +130,7 @@ afterEach(() => {
 });
 
 describe("AssistantTab — in-chat skill picker", () => {
-  it("does not fetch or expose legacy built-in workflows in the chat picker", async () => {
-    const workflowsSpy = vi.spyOn(api, "getMatterWorkflows");
-
+  it("does not expose legacy built-in workflows in the chat picker", async () => {
     mountChat();
 
     const toggle = await screen.findByTestId("chat-skills-toggle");
@@ -140,7 +138,6 @@ describe("AssistantTab — in-chat skill picker", () => {
 
     fireEvent.click(toggle);
     expect(await screen.findByTestId("chat-skills-popover")).toBeInTheDocument();
-    expect(workflowsSpy).not.toHaveBeenCalled();
     expect(screen.queryByText(/Legacy built-in actions/i)).toBeNull();
     expect(screen.queryByTestId("chat-skill-premotion")).toBeNull();
     expect(screen.queryByTestId("chat-skill-letters")).toBeNull();
@@ -368,11 +365,11 @@ describe("AssistantTab — in-chat skill picker", () => {
         {
           id: "a-suggest",
           role: "assistant",
-          content: "I can run a pre-motion premortem.",
+          content: "I can anonymise that document.",
           suggested_actions: [
             {
-              type: "run_pre_motion",
-              label: "Run a pre-motion premortem",
+              type: "anonymise_document",
+              label: "Anonymise the witness statement",
               params: {},
             },
           ],
@@ -382,7 +379,7 @@ describe("AssistantTab — in-chat skill picker", () => {
     });
 
     const row = await screen.findByTestId("assistant-output-row");
-    expect(row).toHaveTextContent("Run a pre-motion premortem");
+    expect(row).toHaveTextContent("Anonymise the witness statement");
     fireEvent.click(within(row).getByRole("button", { name: "Open" }));
 
     await waitFor(() =>
@@ -390,7 +387,7 @@ describe("AssistantTab — in-chat skill picker", () => {
         matter.slug,
         {
           content:
-            "Run the pre-motion premortem now.\n\nRequested from: Run a pre-motion premortem",
+            "Anonymise the selected document now.\n\nRequested from: Anonymise the witness statement",
           selected_document_ids: undefined,
         },
       ),

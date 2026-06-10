@@ -2,7 +2,7 @@ import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
-import { MATTER_TAB_LABELS, WORKFLOW_TABS, type TabKey } from "../matter/tabs/types";
+import { MATTER_TAB_LABELS, type TabKey } from "../matter/tabs/types";
 
 const DEMO_HREF_UNAUTHED = "/demo";
 
@@ -31,10 +31,7 @@ export function TopBar({
     route.name === "adminUsers" || route.name === "adminUserDetail";
   const showAdminAnchor = auth.user?.is_superuser === true;
 
-  const surfaceLabel =
-    WORKFLOW_TABS.find((t) => t.key === drawerTab)?.label ??
-    MATTER_TAB_LABELS[drawerTab] ??
-    "";
+  const surfaceLabel = MATTER_TAB_LABELS[drawerTab] ?? "";
 
   return (
     <>

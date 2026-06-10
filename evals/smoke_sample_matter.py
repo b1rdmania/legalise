@@ -97,46 +97,10 @@ def main() -> int:
     posture = body["privilege_posture"]
     ok(f"matter loaded · type={body['matter_type']} · posture={posture}")
     if posture == "C_paused":
-        fail("seeded matter is C_paused — Pre-Motion + Letters will fast-fail; flip to A_cleared or B_mixed before running this eval")
+        fail("seeded matter is C_paused — skill runs will fast-fail; flip to A_cleared or B_mixed before running this eval")
 
     baseline = len(_audit(DEMO_SLUG))
     ok(f"baseline audit rows: {baseline}")
-
-    # ----- Letters catalogue + draft (3-row contract) --------------------
-    step("letters · catalogue is ET-shaped")
-    status, body = _req("GET", f"/matters/{DEMO_SLUG}/letters/catalog")
-    assert status == 200, f"catalog failed: {status} {body}"
-    assert isinstance(body, dict)
-    ids = [lt["id"] for lt in body["letter_types"]]
-    if not (ids and ids[0] == "lba"):
-        fail(f"expected lba as default ET letter, got {ids}")
-    ok(f"catalogue returns {len(ids)} types, default={ids[0]}")
-
-    step("letters · draft writes 3 audit rows")
-    before = len(_audit(DEMO_SLUG))
-    status, body = _req("POST", f"/matters/{DEMO_SLUG}/letters/draft", {"letter_type": "lba", "inputs": {}})
-    if status != 200:
-        fail(f"draft failed: {status} {body}")
-    assert isinstance(body, dict)
-    assert body["plugin"] == "uk-employment-legal"
-    assert body["skill"] == "lba-drafter"
-    assert body["draft_markdown"], "empty draft_markdown"
-    after = len(_audit(DEMO_SLUG))
-    delta = after - before
-    if delta != 3:
-        fail(f"expected 3 new audit rows (http.post + plugin.invoked + model.call), got {delta}")
-    ok(f"draft returned; +{delta} rows · model={body['model_used']} · tokens={body['token_count']}")
-
-    step("letters · civil id against ET matter returns 400")
-    before = len(_audit(DEMO_SLUG))
-    status, body = _req("POST", f"/matters/{DEMO_SLUG}/letters/draft", {"letter_type": "lbc", "inputs": {}})
-    if status != 400:
-        fail(f"expected 400 for civil-id on ET, got {status} {body}")
-    after = len(_audit(DEMO_SLUG))
-    # 1 row (http.post 400 from middleware) — no plugin.invoked, no model.call
-    if after - before != 1:
-        fail(f"expected 1 new audit row on rejected draft, got {after - before}")
-    ok("rejection has middleware-only audit row, no semantic rows")
 
     # ----- Pre-Motion run (12-row contract) -------------------------------
     step("pre-motion · run writes 12 audit rows + envelope shape")
