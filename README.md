@@ -121,6 +121,11 @@ remaining live-matter caveat is operational: a DB superuser can still
 bypass database controls, and external notary/anchoring is not yet part
 of the shipped loop. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
 
+That makes the Record a receipt today: useful for reconstruction,
+review, and export integrity. A future notary/anchoring step can pin
+audit-chain heads outside the database, but that is a credibility layer,
+not a prerequisite for the local demo loop.
+
 No background calls. No invisible inference. If it touched the matter, it's logged.
 
 ---
@@ -168,6 +173,13 @@ Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
 
    ```bash
    ./scripts/quickstart.sh
+   ```
+
+   To skip local backend/frontend image builds when published images are
+   available:
+
+   ```bash
+   LEGALISE_USE_PREBUILT_IMAGES=true ./scripts/quickstart.sh
    ```
 
 3. **Create the first account.** Open <http://localhost:3000> and sign
@@ -223,6 +235,10 @@ compose for you, the manual path is:
 
 - If deploying your fork to Fly, change `app = "legalise-backend"` in `backend/fly.toml` before `fly deploy`.
 - The backend image vendors [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) at a pinned SHA. Forks can point at their own plugin catalogue with the Docker build args `PLUGINS_REPO` and `PLUGINS_REPO_REF`.
+- GHCR images are published by `.github/workflows/container-images.yml`.
+  Local quickstart uses source builds by default; set
+  `LEGALISE_USE_PREBUILT_IMAGES=true` to pull the published
+  backend/frontend images instead.
 - Common setup errors and their fixes live in [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md).
 
 ## Status
