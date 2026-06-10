@@ -10,9 +10,10 @@ evaluation copy. The hosted site is not for live client matters.
 
 Shipped surfaces:
 
-- **Matter-first workspace** ordered around the golden loop: Chat, Documents,
-  Skills, Record, Signed outputs, Working pack.
-- **Documents** as first-class records: ingress, extraction, versions,
+- **Matter-first workspace** ordered around the chat-led loop: Chat, Files,
+  Skills, with Activity, signed outputs, and the working pack reached from
+  cards and contextual links.
+- **Files** as first-class records: ingress, extraction, versions,
   optional anonymisation (Presidio detection + deterministic token map +
   detokenise round-trip), original-file retrieval through an owner-only
   backend proxy, `document.original.accessed` audit row on access.
@@ -73,9 +74,10 @@ foundations are either shipped or explicitly deferred by reviewer sign-off:
 - **Matter export / delete.** Export a matter with documents, generated
   artefacts, audit, and redaction mode. Delete/archive is owner-scoped,
   refuses while jobs run, and records audit/retention consequences.
-- **Audit WORM groundwork.** Move toward DB-enforced append-only audit:
-  split migration/app roles, revoke update/delete on `audit_entries` for
-  the app role, and add trigger guard where practical.
+- **Audit WORM hardening.** The trigger guard and audit hash chain exist.
+  Remaining work is operational: split migration/app roles, revoke
+  update/delete on `audit_entries` for the app role, and add external
+  notary/anchoring where practical.
 - **Key rotation runbook.** CLI and operator guide for rotating
   `LEGALISE_KEY_ENCRYPTION_SECRET` across encrypted `user_api_keys`.
 - **Observability with scrubbing.** Error and job telemetry without prompts,

@@ -35,10 +35,10 @@ The point is not "AI replaces the solicitor". The point is:
 V1 ships an evaluation workspace around the Khan v Acme sample matter.
 The shipped surface includes:
 
-- **Matter-first workspace** with the four-tab loop
-  (`Chat` / `Documents` / `Skills` / `Record`) plus signed outputs and
-  the working-pack export.
-- **Documents** as first-class records: ingress, extraction, versions,
+- **Matter-first workspace** with the chat-led loop
+  (`Chat` / `Files` / `Skills`) plus contextual Activity, signed
+  outputs, and the working-pack export.
+- **Files** as first-class records: ingress, extraction, versions,
   optional anonymisation, original-file retrieval through an
   owner-only backend proxy, and a `document.original.accessed` audit
   row on successful access.
@@ -63,7 +63,7 @@ The shipped surface includes:
   and records `signed` / `signed_with_observations` / `rejected`.
   Append-only history. The exact output payload (including its
   anchors) is pinned by a hash; the signature attaches to the hash.
-  The Record promotes sign-off as a foreground decision event.
+  Activity promotes sign-off as a foreground decision event.
 - **Supervisor Review** remains available as an optional separate
   review path. It does not compete with the author sign-off path; it
   is the firm-mode "second pair of eyes" surface.
@@ -107,11 +107,12 @@ V1 is not, and does not claim to be:
 
 Specific items still on the live-matter readiness ledger:
 
-- WORM enforcement at the database level. The append-only audit
-  trail is enforced by application convention today; Postgres-level
-  REVOKE UPDATE/DELETE for the app role is a future gate. The
-  current trail is therefore not forensically tamper-resistant
-  against a DB superuser.
+- Operational WORM hardening. Normal application paths are already
+  guarded by a Postgres trigger that rejects UPDATE/DELETE on
+  `audit_entries`, and new rows are mirrored into an append-only audit
+  hash chain. The remaining gate is operational: split migration/app DB
+  roles, app-role REVOKE UPDATE/DELETE, and external notary/anchoring
+  so a DB superuser cannot bypass controls unnoticed.
 - Cryptographic signature verification on installed modules.
   Signature checking today is structural; sigstore Rekor + X.509
   chain + OIDC identity claim verification is hardening backlog.
