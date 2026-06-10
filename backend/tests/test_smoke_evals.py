@@ -509,6 +509,19 @@ class _AssistantFakeGateway:
         )
 
 
+class _KeylessFakeGateway:
+    """Simulates a keyed provider with no user key: every call raises."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    async def call(self, **kwargs):
+        from app.core.model_gateway import ProviderKeyMissing
+
+        self.calls.append(kwargs)
+        raise ProviderKeyMissing("anthropic")
+
+
 class _PausedFakeGateway:
     async def call(self, **_kw) -> ModelResult:
         raise PrivilegePaused("Matter privilege posture is C_paused — LLM calls are blocked.")
@@ -726,7 +739,49 @@ class TestAssistantPipeline:
         assert action["label"] == "Run a pre-motion premortem"
 
     @pytest.mark.asyncio
-    async def test_selected_document_summary_is_deterministic(self) -> None:
+    async def test_keyless_summary_falls_back_to_deterministic(self) -> None:
+        """No provider key: a summary-shaped request still answers with an
+        honestly-labelled extract instead of a 422. The gateway IS tried
+        first — deterministic is the fallback, not an override."""
+        matter = _make_matter()
+        document = _make_document(matter.id)
+        body = _make_document_body(document.id)
+        session = _AssistantSession(
+            matter,
+            documents=[document],
+            bodies={document.id: body},
+        )
+        gateway = _KeylessFakeGateway()
+
+        _, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(
+                content="Summarise this document",
+                selected_document_ids=[document.id],
+            ),
+            gateway=gateway,
+        )
+
+        assert len(gateway.calls) == 1  # model attempted first
+        assert "Summary of dismissal-letter.txt" in assistant_row.content
+        assert f"[doc:{document.id}]" in assistant_row.content
+        assert "without a model" in assistant_row.content  # honest label
+        assert assistant_row.model_used == "deterministic-summary"
+        assert assistant_row.token_count == 0
+        assert assistant_row.suggested_actions[0]["type"] == "view_document"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["deterministic"] == "document_summary"
+
+    @pytest.mark.asyncio
+    async def test_keyed_summary_goes_to_the_model(self) -> None:
+        """With a working provider, summary requests reach the model —
+        the deterministic extract must NOT hijack keyed turns."""
         matter = _make_matter()
         document = _make_document(matter.id)
         body = _make_document_body(document.id)
@@ -741,25 +796,41 @@ class TestAssistantPipeline:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
-            request=AssistantPostRequest(
-                content="Summarise this document",
-                selected_document_ids=[document.id],
-            ),
+            request=AssistantPostRequest(content="Summarise this document"),
             gateway=gateway,
         )
 
-        assert gateway.calls == []
-        assert "Summary of dismissal-letter.txt" in assistant_row.content
-        assert f"[doc:{document.id}]" in assistant_row.content
-        assert assistant_row.model_used == "deterministic-summary"
-        assert assistant_row.token_count == 0
-        assert assistant_row.suggested_actions[0]["type"] == "view_document"
-        audit_rows = [
-            o
-            for o in session.added
-            if isinstance(o, AuditEntry) and o.module == "assistant"
-        ]
-        assert audit_rows[0].payload["deterministic"] == "document_summary"
+        assert len(gateway.calls) == 1
+        assert assistant_row.model_used != "deterministic-summary"
+
+    @pytest.mark.asyncio
+    async def test_keyless_summary_matches_the_named_document(self) -> None:
+        """\"Summarise the dismissal letter\" with several documents on the
+        matter must summarise the dismissal letter, not snippets[0]."""
+        matter = _make_matter()
+        nda = _make_document(matter.id)
+        nda.filename = "synthetic-mutual-nda.docx"
+        nda_body = _make_document_body(nda.id)
+        dismissal = _make_document(matter.id)
+        dismissal.filename = "khan-dismissal-letter.pdf"
+        dismissal_body = _make_document_body(dismissal.id)
+        session = _AssistantSession(
+            matter,
+            documents=[nda, dismissal],
+            bodies={nda.id: nda_body, dismissal.id: dismissal_body},
+        )
+        gateway = _KeylessFakeGateway()
+
+        _, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(content="Summarise the dismissal letter"),
+            gateway=gateway,
+        )
+
+        assert "Summary of khan-dismissal-letter.pdf" in assistant_row.content
+        assert f"[doc:{dismissal.id}]" in assistant_row.content
 
     @pytest.mark.asyncio
     async def test_prompt_includes_matter_chronology_and_modules(self) -> None:

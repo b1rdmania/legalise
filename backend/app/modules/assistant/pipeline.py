@@ -29,7 +29,7 @@ from app.core.advice_boundary import AdviceBoundaryDenied
 from app.core.api import audit as audit_api
 from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
-from app.core.model_gateway import PrivilegePosture
+from app.core.model_gateway import PrivilegePosture, ProviderKeyMissing
 from app.core.model_gateway import gateway as model_gateway
 from app.core.phase1_runtime.exceptions import Phase1Blocked
 from app.core.posture_gate import PostureBlocked
@@ -402,9 +402,58 @@ def _document_summary_content(document: Document, text: str) -> str:
         [
             "",
             f"Source: [doc:{document.id}]",
+            "",
+            "Extract of the opening text, generated without a model. "
+            "Add an API key in Settings → API Keys for real summaries.",
         ]
     )
     return "\n".join(lines)
+
+
+_FILENAME_STOPWORDS = {"the", "a", "an", "of", "and", "doc", "docx", "pdf", "txt"}
+
+
+def _match_requested_document(
+    user_content: str,
+    snippets: list[tuple[Document, str]],
+) -> tuple[Document, str] | None:
+    """Pick the document the user actually asked about.
+
+    One document → that document. Otherwise score each candidate by
+    filename/tag token overlap with the request and require a unique
+    best match. No match → None (the model path handles ambiguity).
+    """
+    if not snippets:
+        return None
+    if len(snippets) == 1:
+        return snippets[0]
+
+    request_tokens = {
+        t for t in re.split(r"[^a-z0-9]+", user_content.lower()) if len(t) > 2
+    } - _FILENAME_STOPWORDS
+
+    scored: list[tuple[int, tuple[Document, str]]] = []
+    for doc, text in snippets:
+        name_tokens = {
+            t
+            for t in re.split(r"[^a-z0-9]+", doc.filename.lower())
+            if len(t) > 2
+        } - _FILENAME_STOPWORDS
+        if doc.tag:
+            name_tokens |= {
+                t
+                for t in re.split(r"[^a-z0-9]+", doc.tag.lower())
+                if len(t) > 2
+            }
+        scored.append((len(request_tokens & name_tokens), (doc, text)))
+
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    best_score = scored[0][0]
+    if best_score == 0:
+        return None
+    if len(scored) > 1 and scored[1][0] == best_score:
+        return None  # ambiguous — let the model disambiguate
+    return scored[0][1]
 
 
 def _maybe_deterministic_document_summary(
@@ -414,7 +463,10 @@ def _maybe_deterministic_document_summary(
 ) -> tuple[str, list[SuggestedAction]] | None:
     if not snippets or not _looks_like_summary_request(user_content):
         return None
-    document, text = snippets[0]
+    matched = _match_requested_document(user_content, snippets)
+    if matched is None:
+        return None
+    document, text = matched
     return (
         _document_summary_content(document, text),
         [
@@ -679,12 +731,9 @@ async def run_assistant_turn(
     if on_event is not None:
         await on_event("turn.accepted", {"user_message_id": str(user_row.id)})
 
-    deterministic = _maybe_deterministic_document_summary(
-        user_content=request.content,
-        snippets=snippets,
-    )
-    if deterministic is not None:
-        content_out, actions = deterministic
+    async def _persist_deterministic_summary(
+        content_out: str, actions: list[SuggestedAction]
+    ) -> AssistantMessage:
         assistant_row = AssistantMessage(
             matter_id=matter.id,
             actor_id=actor_id,
@@ -727,23 +776,38 @@ async def run_assistant_turn(
         await session.commit()
         await session.refresh(user_row)
         await session.refresh(assistant_row)
-        return user_row, assistant_row
+        return assistant_row
 
     if on_event is not None:
         await on_event("model.start", {"stage": "assistant"})
-    result = await gateway.call(
-        session=session,
-        matter_id=matter.id,
-        actor_id=actor_id,
-        prompt=prompt,
-        model=matter.default_model_id,
-        posture=PrivilegePosture(matter.privilege_posture),
-        system=SYSTEM_PROMPT,
-        resource_type="assistant_message",
-        resource_id=str(user_row.id),
-        payload={"stage": "assistant", "module": "assistant"},
-        caller_module="assistant",
-    )
+    try:
+        result = await gateway.call(
+            session=session,
+            matter_id=matter.id,
+            actor_id=actor_id,
+            prompt=prompt,
+            model=matter.default_model_id,
+            posture=PrivilegePosture(matter.privilege_posture),
+            system=SYSTEM_PROMPT,
+            resource_type="assistant_message",
+            resource_id=str(user_row.id),
+            payload={"stage": "assistant", "module": "assistant"},
+            caller_module="assistant",
+        )
+    except ProviderKeyMissing:
+        # Keyless fallback: a summary-shaped request over an identifiable
+        # document still answers deterministically (extract, honestly
+        # labelled) so the demo loop works without a key. Anything else
+        # propagates to the router's provider_key_missing envelope.
+        deterministic = _maybe_deterministic_document_summary(
+            user_content=request.content,
+            snippets=snippets,
+        )
+        if deterministic is None:
+            raise
+        content_out, actions = deterministic
+        assistant_row = await _persist_deterministic_summary(content_out, actions)
+        return user_row, assistant_row
 
     parse_failed = False
     try:

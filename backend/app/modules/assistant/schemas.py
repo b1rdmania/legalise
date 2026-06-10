@@ -40,6 +40,7 @@ class AssistantMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     suggested_actions: list[SuggestedAction] = Field(default_factory=list)
+    model_used: str | None = None
     created_at: datetime
 
 
