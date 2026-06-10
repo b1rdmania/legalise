@@ -46,9 +46,8 @@ export function Manifesto() {
             Legalise is backend infrastructure for regulated AI legal work.
           </h1>
           <p className="mt-8 text-xl md:text-2xl leading-relaxed text-prose max-w-3xl">
-            We are building the rails for an SRA-regulated, insurable law firm
-            to use AI without losing control of the matter, the documents, or
-            the professional record.
+            The rails a regulated firm would need to use AI without losing
+            control of the matter, the documents, or the professional record.
           </p>
         </div>
       </section>
