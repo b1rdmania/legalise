@@ -73,7 +73,12 @@ export function SignOffConfirmation({
             <span className="ml-2 text-[11px] text-muted">(superseded by a later sign-off)</span>
           )}
         </Row>
-        <Row label="Signed by">{signoff.signer_email ?? signoff.signer_id}</Row>
+        <Row label="Signed by">
+          {signoff.signer_email ?? signoff.signer_id}
+          {signoff.signer_is_author && (
+            <span className="ml-2 text-[11px] text-muted">(author — self-signed, not independent review)</span>
+          )}
+        </Row>
         <Row label="When">{signoff.signed_at.replace("T", " ").slice(0, 19)}</Row>
         <Row label="Output">
           <span className="tech-token text-xs">

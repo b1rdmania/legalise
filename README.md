@@ -156,7 +156,7 @@ The doctrine:
 
 The hosted evaluation environment at [legalise.dev](https://legalise.dev) is open for evaluation accounts. You can browse the Khan v Acme demo on the hosted site, create an account to run the workspace, or run the full stack locally.
 
-Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
+Stack: Postgres + MinIO + Redis + Gotenberg + FastAPI + React.
 
 ### Local fork — two-minute path
 

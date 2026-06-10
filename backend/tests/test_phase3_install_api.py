@@ -199,7 +199,7 @@ async def test_full_install_ceremony_persists_installed_module(client) -> None:
         assert row.version == "1.0.0"
         assert row.publisher == "legalise"
         assert row.enabled is True
-        assert row.signature_status == "verified"
+        assert row.signature_status == "structure_verified"
         assert row.verified_at is not None  # fast path took
 
 

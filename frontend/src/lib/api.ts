@@ -734,6 +734,7 @@ export interface Signoff {
   reasoning: string | null;
   signer_id: string;
   signer_email: string | null;
+  signer_is_author: boolean;
   signed_at: string;
   is_current: boolean;
 }

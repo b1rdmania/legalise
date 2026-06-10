@@ -94,7 +94,11 @@ async def create_signoff(
 
     Append-only: never mutates a prior sign-off. Any signed-in user may
     sign (author included) — there is no reviewer≠author rule and no role
-    gate here; that separation belongs to supervisor review.
+    gate here; that separation belongs to supervisor review. The record
+    states the relationship instead of hiding it: ``signer_is_author``
+    is computed against the artifact's ``created_by_id`` and written
+    into the audit payload, so a self-signed output reads as exactly
+    that in the Activity Trail and any export.
     """
     if decision not in SIGNOFF_DECISIONS:
         raise InvalidSignoffDecision(f"unknown decision '{decision}'")
@@ -104,6 +108,7 @@ async def create_signoff(
         raise ReasoningRequired(f"decision '{decision}' requires reasoning")
 
     artifact_hash = compute_signoff_hash(artifact)
+    signer_is_author = artifact.created_by_id == user.id
     signoff = MatterSignoff(
         matter_id=matter.id,
         artifact_id=artifact.id,
@@ -136,6 +141,7 @@ async def create_signoff(
             "kind": artifact.kind,
             "decision": decision,
             "reasoning": clean_reasoning or None,
+            "signer_is_author": signer_is_author,
         },
     )
     return signoff

@@ -41,7 +41,7 @@ function makeCeremony(overrides: Partial<CeremonyResponse> = {}): CeremonyRespon
       module_name: "Contract Review",
       publisher: "legalise",
       publisher_verified: true,
-      signature_status: "verified",
+      signature_status: "structure_verified",
       visibility: "first_party",
       version: "0.2.1",
       capabilities: [{ id: "cap-1" }],

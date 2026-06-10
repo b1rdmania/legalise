@@ -34,7 +34,6 @@ inherit their own licences.
 | `alembic` | MIT | Schema migrations |
 | `asyncpg` | Apache-2.0 | Async PostgreSQL driver |
 | `psycopg[binary]` | LGPL-3.0 | Sync Postgres driver (used by Alembic) |
-| `pgvector` | PostgreSQL | Vector search Python adapter |
 | `pydantic` | MIT | Data validation and settings |
 | `pydantic-settings` | MIT | Env-var-driven settings |
 | `python-multipart` | Apache-2.0 | Multipart form parsing |

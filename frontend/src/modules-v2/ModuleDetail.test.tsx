@@ -88,7 +88,7 @@ function installedRow(over: Partial<api.InstalledModule> = {}): api.InstalledMod
     version: "0.2.1",
     publisher: "legalise",
     visibility: "first_party",
-    signature_status: "verified",
+    signature_status: "structure_verified",
     enabled: true,
     installed_at: "2026-01-01T00:00:00",
     installed_by_user_id: null,

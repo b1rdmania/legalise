@@ -46,7 +46,7 @@ def test_signature_roundtrips_through_verifier(tmp_path: Path) -> None:
     path = _write_manifest(tmp_path, _minimal_manifest())
     signed = sign_manifest(path)
     result = verify_manifest_signature(signed)
-    assert result.status == SignatureStatus.VERIFIED
+    assert result.status == SignatureStatus.STRUCTURE_VERIFIED
     assert result.publisher == "legalise"
 
 

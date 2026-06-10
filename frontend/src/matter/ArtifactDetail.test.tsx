@@ -130,6 +130,7 @@ describe("ArtifactDetail", () => {
           reasoning: null,
           signer_id: "u-1",
           signer_email: "solicitor@example.com",
+          signer_is_author: true,
           signed_at: "2026-05-29T13:00:00",
           is_current: true,
         },

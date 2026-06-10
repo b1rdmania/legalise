@@ -21,7 +21,7 @@ cp .env.example .env             # edit ANTHROPIC_API_KEY if you have one
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-Brings up Postgres + pgvector, Redis, MinIO, Gotenberg, the FastAPI
+Brings up Postgres, Redis, MinIO, Gotenberg, the FastAPI
 backend on :8000, and the React frontend on :3000. Open
 `http://localhost:3000` and sign up. The Khan v Acme sample matter
 seeds automatically.
