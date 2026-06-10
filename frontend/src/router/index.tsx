@@ -171,14 +171,10 @@ const verifyRoute = createRoute({
   }),
 });
 
-// /skills is the v2 catalog (ModulesCatalog). The earlier Modules
-// component (v1 skill enable/disable) is retained in the codebase
-// under src/modules-page/ for reference but no longer mounted on a
-// route. Importing it elsewhere still works.
-//
-// The legacy /modules path is preserved via `legacyModulesRedirect`
-// below as a router-level redirect shim (TanStack `beforeLoad`), so
-// deep links, bookmarks, and tests keep working.
+// /skills is the v2 catalog (ModulesCatalog). The legacy /modules
+// path is preserved via `legacyModulesRedirect` below as a router-level
+// redirect shim (TanStack `beforeLoad`), so deep links, bookmarks, and
+// tests keep working.
 const modulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/skills",
