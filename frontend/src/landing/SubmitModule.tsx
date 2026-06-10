@@ -323,7 +323,7 @@ export function SubmitModule() {
             Skill submissions are currently closed.
           </p>
           <p className="text-sm text-muted mt-2 mb-0">
-            Visit the catalogue of installed skills, or fork{" "}
+            Visit the catalogue of added skills, or fork{" "}
             <a
               href="https://github.com/b1rdmania/claude-for-uk-legal"
               target="_blank"

@@ -3,7 +3,7 @@
  *
  * Coverage:
  *   - manifest + capabilities table render
- *   - Install CTA calls startInstall and navigates to the ceremony
+ *   - Add CTA calls startInstall and navigates to the ceremony
  *   - Update + Revoke admin gating (only superuser sees them)
  */
 
@@ -73,9 +73,9 @@ const MANIFEST = {
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  // Phase 18-B — ModuleDetail now derives an install-status badge from
-  // listInstalledModules. Default to "not installed"; tests that assert
-  // the installed/disabled badge override this.
+  // Phase 18-B — ModuleDetail now derives an add-status badge from
+  // listInstalledModules. Default to "not added"; tests that assert
+  // the added/disabled badge override this.
   vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 });
 afterEach(() => {
@@ -122,7 +122,7 @@ describe("ModuleDetail", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an Installed badge when the module is installed + enabled", async () => {
+  it("shows an Added badge when the module is added + enabled", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -133,11 +133,11 @@ describe("ModuleDetail", () => {
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([installedRow()]);
     mountAt("contract-review");
     await waitFor(() => {
-      expect(screen.getByText("Installed")).toBeInTheDocument();
+      expect(screen.getByText("Added")).toBeInTheDocument();
     });
   });
 
-  it("shows Installed · disabled when the installed row is disabled", async () => {
+  it("shows Added · disabled when the added row is disabled", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -150,11 +150,11 @@ describe("ModuleDetail", () => {
     ]);
     mountAt("contract-review");
     await waitFor(() => {
-      expect(screen.getByText(/installed · disabled/i)).toBeInTheDocument();
+      expect(screen.getByText(/added · disabled/i)).toBeInTheDocument();
     });
   });
 
-  it("shows Not installed when no installed row matches", async () => {
+  it("shows Not added when no added row matches", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -162,14 +162,14 @@ describe("ModuleDetail", () => {
       role: "qualified_solicitor",
       is_superuser: true,
     } as never);
-    // default beforeEach mock → empty installed list.
+    // default beforeEach mock -> empty installed list.
     mountAt("contract-review");
     await waitFor(() => {
-      expect(screen.getByText("Not installed")).toBeInTheDocument();
+      expect(screen.getByText("Not added")).toBeInTheDocument();
     });
   });
 
-  it("admin: Install CTA starts a ceremony and navigates to the stepper", async () => {
+  it("admin: Add CTA starts a ceremony and navigates to the stepper", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -189,9 +189,9 @@ describe("ModuleDetail", () => {
 
     mountAt("contract-review");
     await waitFor(() => {
-      expect(screen.getByText("Install")).toBeInTheDocument();
+      expect(screen.getByText("Add skill")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByText("Install"));
+    fireEvent.click(screen.getByText("Add skill"));
 
     await waitFor(() => {
       expect(start).toHaveBeenCalledWith({
@@ -204,7 +204,7 @@ describe("ModuleDetail", () => {
     });
   });
 
-  it("non-admin: Install button is hidden and startInstall cannot be triggered", async () => {
+  it("non-admin: Add button is hidden and startInstall cannot be triggered", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -216,12 +216,12 @@ describe("ModuleDetail", () => {
 
     mountAt("contract-review");
     // Manifest header must still render — non-admins can read the
-    // catalog detail, they just can't install.
+    // catalog detail, they just can't add skills.
     await waitFor(() => {
       expect(screen.getByText("Contract Review")).toBeInTheDocument();
     });
     // None of the admin-only CTAs are present.
-    expect(screen.queryByText("Install")).toBeNull();
+    expect(screen.queryByText("Add skill")).toBeNull();
     expect(screen.queryByText("Update")).toBeNull();
     expect(screen.queryByText("Revoke")).toBeNull();
     // The substrate-truth explainer IS present.
@@ -230,7 +230,7 @@ describe("ModuleDetail", () => {
     expect(start).not.toHaveBeenCalled();
   });
 
-  it("admin: shows Install + Update + Revoke", async () => {
+  it("admin: shows Add + Update + Revoke", async () => {
     vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
     vi.spyOn(api, "getCurrentUser").mockResolvedValue({
       id: "u-1",
@@ -240,7 +240,7 @@ describe("ModuleDetail", () => {
     } as never);
     mountAt("contract-review");
     await waitFor(() => {
-      expect(screen.getByText("Install")).toBeInTheDocument();
+      expect(screen.getByText("Add skill")).toBeInTheDocument();
     });
     expect(screen.getByText("Update")).toBeInTheDocument();
     expect(screen.getByText("Revoke")).toBeInTheDocument();

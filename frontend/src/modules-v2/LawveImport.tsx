@@ -114,7 +114,7 @@ export function LawveImport() {
       <PageHeader
         eyebrow="Skills"
         title="Lawve skill import"
-        description="Import open legal-AI skills from lawve-ai/awesome-legal-skills into Legalise as governed skill drafts. A Lawve skill is not installable until it is converted, validated, signed, and installed — and imported scripts are never executed."
+        description="Import open legal-AI skills from lawve-ai/awesome-legal-skills into Legalise as governed skill drafts. A Lawve skill cannot be added until it is converted, validated, signed, and trusted — and imported scripts are never executed."
       />
 
       {q.status === "error" && (
@@ -347,13 +347,13 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
         </button>
       </div>
 
-      {/* Continuity: a valid draft installs through the trust ceremony
-          directly — no copy-paste into another screen. Install is
+      {/* Continuity: a valid draft is added through the trust ceremony
+          directly — no copy-paste into another screen. Adding is
           admin-gated (the ceremony's enable step is require_admin), so
           non-admins get a clear ask rather than a dead button. */}
       <div className="mt-4 border-t border-rule pt-3">
         <p className="text-xs uppercase tracking-widest text-muted">
-          Imported skill → skill draft → trust ceremony → installed skill → enable per matter
+          Imported skill → skill draft → trust ceremony → added skill → enable per matter
         </p>
         {draft.valid ? (
           isAdmin ? (
@@ -365,23 +365,24 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
                 className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
                 data-testid="install-draft"
               >
-                {installing ? "Starting ceremony…" : "Install this draft"}
+                {installing ? "Starting ceremony…" : "Add this draft"}
               </button>
               <p className="mt-2 text-xs text-muted">
-                Opens the trust ceremony — you review permissions and enable before it
-                installs. The importer never installs without that confirmation.
+                Opens the trust ceremony — you review permissions and trust the
+                skill before it is added. The importer never adds it without
+                that confirmation.
               </p>
               {installErr && <ErrorCallout message={installErr} compact />}
             </div>
           ) : (
             <p className="mt-2 text-xs text-muted" data-testid="install-admin-note">
-              Installing a skill is an administrator action. Ask an administrator to
-              install this skill, or copy/download the manifest above to hand off.
+              Adding a skill is an administrator action. Ask an administrator to
+              add this skill, or copy/download the manifest above to hand off.
             </p>
           )
         ) : (
           <p className="mt-2 text-xs text-muted">
-            Resolve the validation errors above before this draft can be installed.
+            Resolve the validation errors above before this draft can be added.
           </p>
         )}
         <ul className="mt-3 list-disc pl-4 text-xs text-muted">

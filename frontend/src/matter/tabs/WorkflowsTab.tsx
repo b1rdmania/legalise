@@ -88,7 +88,7 @@ export function WorkflowsTab({ slug }: { slug: string; posture?: string }) {
   return (
     <div className="max-w-4xl">
       <p className="text-sm text-prose max-w-2xl leading-relaxed mb-8">
-        Run the installed legal skills for this matter. Each card says whether
+        Run the legal skills enabled for this matter. Each card says whether
         it is ready before you open it.
       </p>
 

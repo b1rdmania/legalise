@@ -409,7 +409,7 @@ export const createGrant = async (
     }
     if (parsed?.detail?.error === "module_not_installed") {
       throw new ModuleNotInstalledError(
-        `Module ${body.module_id} is not installed on this workspace.`,
+        `Skill ${body.module_id} has not been added to this workspace.`,
         body.module_id,
       );
     }

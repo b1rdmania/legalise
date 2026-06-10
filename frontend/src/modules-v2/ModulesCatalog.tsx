@@ -4,13 +4,13 @@
  *
  * Two distinct concepts, kept separate (ratified — no unification):
  *   1. PRIMARY: governed reference modules from the v2 registry
- *      (getModulesV2). These are what you install / trust / run. Each
- *      card shows its workspace state (Available / Installed / Installed
+ *      (getModulesV2). These are what you add / trust / run. Each
+ *      card shows its workspace state (Available / Added / Added
  *      · disabled) derived from listInstalledModules.
  *   2. SECONDARY: the open UK-legal skill library (getPublicModules) —
  *      browse only, NOT an install path. Collapsed by default.
  *
- * Enablement is per-matter: installing a module at the workspace does
+ * Enablement is per-matter: adding a module at the workspace does
  * not make it "ready everywhere" — running it is granted from a matter.
  */
 
@@ -74,12 +74,12 @@ function suiteLabel(plugin: string): string {
 
 const STATE_LABEL: Record<ModuleState, string> = {
   available: "Available",
-  installed: "Installed",
+  installed: "Added",
   disabled: "Revoked",
 };
 
 const TAB_LABEL: Record<SkillTab, string> = {
-  installed: "Installed",
+  installed: "Added",
   available: "Available",
   revoked: "Revoked",
 };
@@ -182,7 +182,7 @@ export function ModulesCatalog() {
     return counts;
   }, [installed, modules]);
 
-  // Default to Installed if anything is installed, otherwise show
+  // Default to Added if anything is already trusted, otherwise show
   // Available so a fresh workspace lands on the discovery view.
   useEffect(() => {
     if (modules === null) return;
@@ -252,7 +252,7 @@ export function ModulesCatalog() {
       )}
 
       {/* Primary: reference skills (v2 registry).
-          §7 tab structure: Installed / Available / Revoked
+          §7 tab structure: Added / Available / Revoked
           (Revoked is operator-only). */}
       {authed && (
       <section>
@@ -314,12 +314,12 @@ export function ModulesCatalog() {
         ) : filteredModules?.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
             {tab === "installed"
-              ? "No skills installed in this workspace yet. Switch to Available to browse the registry."
+              ? "No skills added to this workspace yet. Switch to Available to browse the registry."
               : tab === "revoked"
                 ? "No skills have been revoked in this workspace."
                 : query
                   ? "No skills match that search."
-                  : "Nothing to install — all reference skills are already trusted in this workspace."}
+                  : "Nothing to add — all reference skills are already trusted in this workspace."}
           </p>
         ) : (
           <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
@@ -384,7 +384,7 @@ export function ModulesCatalog() {
                     </dl>
                     <p className="mt-3 text-xs text-muted">
                       Running happens inside a matter after permissions are
-                      granted. Install state here is workspace-level.
+                      granted. Add state here is workspace-level.
                     </p>
                   </Link>
                 </li>
@@ -395,7 +395,7 @@ export function ModulesCatalog() {
       </section>
       )}
 
-      {/* Secondary: open skill library (browse only, not an install path) */}
+      {/* Secondary: open skill library (browse only, not an add path) */}
       <section className={authed ? "mt-10" : "mt-4"}>
         {authed ? (
           <button
@@ -416,7 +416,7 @@ export function ModulesCatalog() {
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-prose">
                 These examples come from the open legal skills library. Legalise
-                turns this kind of skill into something a firm can install, run
+                turns this kind of skill into something a firm can add, run
                 inside a matter, review, sign, and audit.
               </p>
             </div>

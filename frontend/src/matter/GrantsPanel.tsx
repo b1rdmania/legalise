@@ -217,7 +217,7 @@ export function GrantsPanel({
 }) {
   const [grants, setGrants] = useState<GrantsQuery>({ status: "loading" });
   const [catalog, setCatalog] = useState<CatalogQuery>({ status: "loading" });
-  // Installed-module state. ONE extra AND clause for runnablePairs:
+  // Added-module state. ONE extra AND clause for runnablePairs:
   // a capability is runnable only if its module is installed AND
   // enabled. This SUPPLEMENTS the strict manifest × per-string-grants
   // derivation; it does not replace it.
@@ -531,7 +531,7 @@ export function GrantsPanel({
         Skills on this matter
       </h2>
       <p className="mt-2 text-sm text-muted">
-        Run governed skills installed on this matter. The Record captures
+        Run governed skills enabled on this matter. The Record captures
         what each skill touched, which model ran, what output was
         written, and how it was reviewed.
       </p>
@@ -545,7 +545,7 @@ export function GrantsPanel({
                   <p className="text-sm font-medium text-ink">{item.capabilityId}</p>
                   <p className="mt-0.5 tech-token text-[11px] text-muted">
                     {item.moduleName === item.moduleId
-                      ? "Installed skill"
+                      ? "Workspace skill"
                       : item.moduleName}
                   </p>
                 </div>
@@ -590,7 +590,7 @@ export function GrantsPanel({
             Available skills
           </h3>
           <p className="mt-2 text-xs text-muted">
-            These skills are installed, enabled, and fully permitted on this
+            These skills are added, enabled, and fully permitted on this
             matter. Readiness shows the provider-key boundary before a run
             starts.
           </p>
@@ -660,7 +660,7 @@ export function GrantsPanel({
         {grants.status === "ready" && grants.grants.length === 0 && (
           <p className="mt-4 text-sm text-muted">
             No permissions are enabled on this matter yet. Use the form below
-            to enable one from an installed skill.
+            to enable one from a workspace skill.
           </p>
         )}
         {grants.status === "ready" && grants.grants.length > 0 && (
@@ -726,7 +726,7 @@ export function GrantsPanel({
         {catalog.status === "ready" && moduleOptions.length === 0 && (
           <p className="mt-3 text-sm text-muted">
             No skills with declared permissions are discoverable. Ask
-            an administrator to install a skill from the catalog first.
+            an administrator to add a skill from the catalogue first.
           </p>
         )}
         {catalog.status === "ready" && moduleOptions.length > 0 && (
@@ -801,8 +801,8 @@ export function GrantsPanel({
           <p className="mt-3 text-sm text-seal">
             Skill{" "}
             <span className="tech-token">{createState.moduleId}</span> is
-            not installed on this workspace. Ask an administrator to
-            install it from{" "}
+            not added to this workspace. Ask an administrator to
+            add it from{" "}
             <code className="tech-token text-xs">/skills</code> first.
           </p>
         )}
@@ -810,7 +810,7 @@ export function GrantsPanel({
           <p className="mt-3 text-sm text-seal">
             Skill{" "}
             <span className="tech-token">{createState.moduleId}</span> is
-            installed but currently disabled. {createState.message}
+            added but currently disabled. {createState.message}
           </p>
         )}
         {createState.kind === "error" && (

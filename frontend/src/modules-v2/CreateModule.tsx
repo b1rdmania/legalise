@@ -4,9 +4,9 @@
  *
  * Helps a developer/operator understand what a module is, what its
  * manifest must declare, and whether a candidate manifest validates —
- * using the SAME validator as the install path (read-only; no DB write,
+ * using the SAME validator as the add-skill path (read-only; no DB write,
  * ceremony, trust, or audit). Signing stays deploy-time / CLI: this page
- * explains a module must be signed before install and points at the
+ * explains a module must be signed before adding and points at the
  * local tooling. In-app signing is a future module-DX phase.
  */
 
@@ -154,12 +154,12 @@ export function CreateModule() {
 
       <section className="mt-8">
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          Sign &amp; install locally
+          Sign &amp; add locally
         </h2>
         <p className="mt-2 text-sm text-muted">
           A skill must be <span className="text-ink">signed</span> before it can
-          be installed — signing is a deploy-time / CLI step, not done in the
-          browser. Once your manifest validates, sign it and install it with the
+          be added — signing is a deploy-time / CLI step, not done in the
+          browser. Once your manifest validates, sign it and add it with the
           Legalise CLI, then it appears under Reference skills. See the
           skill-authoring docs in the repository for the exact commands.
         </p>

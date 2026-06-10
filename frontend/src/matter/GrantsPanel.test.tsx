@@ -220,7 +220,7 @@ describe("GrantsPanel — create", () => {
     });
     vi.spyOn(api, "createGrant").mockRejectedValue(
       new api.ModuleNotInstalledError(
-        "Module is not installed.",
+        "Skill has not been added.",
         "contract-review",
       ),
     );
@@ -238,7 +238,7 @@ describe("GrantsPanel — create", () => {
     fireEvent.click(screen.getByText("Enable"));
 
     await waitFor(() => {
-      expect(screen.getByText(/not installed/i)).toBeInTheDocument();
+      expect(screen.getByText(/not added/i)).toBeInTheDocument();
     });
     // User-facing route points to the canonical skills home.
     expect(screen.getByText(/\/skills/)).toBeInTheDocument();
