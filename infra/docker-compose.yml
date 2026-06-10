@@ -79,6 +79,12 @@ services:
       # dev/eval; the e2e workflow exports true so its posture suite can
       # assert firm-mode enforcement. Same ${VAR:-default} pattern.
       LEGALISE_FIRM_ROLE_GATES_ENABLED: ${LEGALISE_FIRM_ROLE_GATES_ENABLED:-false}
+      # Local/eval only: first registered user becomes workspace admin
+      # automatically, removing the bootstrap_admin copy-paste from the
+      # two-minute demo path. The e2e workflow exports false so it can
+      # exercise the manual bootstrap_admin operator path. Production
+      # ignores this flag in code.
+      LEGALISE_DEV_AUTO_ADMIN_FIRST_USER: ${LEGALISE_DEV_AUTO_ADMIN_FIRST_USER:-true}
       # Plugin bind-mount target; matches the volume below.
       PLUGINS_ROOT: /plugins
     ports:
@@ -129,6 +135,7 @@ services:
 
   frontend:
     build: ../frontend
+    command: ["sh", "-lc", "npm install && npm run dev -- --host 0.0.0.0 --port 3000"]
     environment:
       # Vite dev server reads VITE_* from process.env at request time.
       # For local forks the signup form must render, so default the

@@ -160,7 +160,7 @@ export function AdminUsersList() {
                   data-testid={`user-row-${u.id}`}
                 >
                   <td className="px-3 py-2 text-sm">{u.email}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{u.role}</td>
+                  <td className="px-3 py-2 tech-token text-xs">{u.role}</td>
                   <td className="px-3 py-2 text-xs">
                     {u.is_superuser ? "yes" : "—"}
                   </td>

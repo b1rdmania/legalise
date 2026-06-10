@@ -64,7 +64,7 @@ export function LettersTab({
                   <div className="flex flex-wrap items-center gap-3 mb-1">
                     <span className="text-sm font-semibold text-ink">{lt.label}</span>
                     {lt.is_default && <Badge>DEFAULT</Badge>}
-                    <span className="font-mono text-xs text-muted ml-auto">
+                    <span className="tech-token text-xs text-muted ml-auto">
                       {lt.plugin}/{lt.skill}
                     </span>
                   </div>
@@ -93,21 +93,21 @@ export function LettersTab({
           {error && <ErrorCallout message={error} compact />}
 
           {draft && (
-            <div className="border border-rule">
+          <div className="rounded-card border border-rule">
               <div className="border-b border-rule px-4 py-3 flex flex-wrap items-center justify-between gap-4 bg-paper">
                 <div className="flex items-center gap-4">
                   <span className="eyebrow">Draft</span>
-                  <span className="font-mono text-xs text-ink">{draft.letter_type}</span>
+                  <span className="tech-token text-xs text-ink">{draft.letter_type}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-muted">
+                  <span className="tech-token text-xs text-muted">
                     {draft.model_used} · {draft.token_count} tok ·{" "}
                     {(draft.latency_ms / 1000).toFixed(1)}s
                   </span>
                   <button
                     onClick={onDownloadDocx}
                     disabled={docxBusy}
-                    className="border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40"
+                    className="rounded-item border border-rule hover:border-ink text-ink px-3 py-1.5 hover:bg-wash transition-colors text-xs font-medium min-h-[36px] disabled:opacity-40"
                   >
                     {docxBusy ? "Rendering…" : "Download .docx"}
                   </button>

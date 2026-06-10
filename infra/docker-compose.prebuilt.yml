@@ -1,0 +1,21 @@
+services:
+  backend:
+    image: ${LEGALISE_BACKEND_IMAGE:-ghcr.io/b1rdmania/legalise-backend:latest}
+    build: !reset null
+    volumes: !override
+      - matters_data:/data/matters
+      - ../schemas:/schemas:ro
+      - ../examples:/app/examples:ro
+
+  worker:
+    image: ${LEGALISE_BACKEND_IMAGE:-ghcr.io/b1rdmania/legalise-backend:latest}
+    build: !reset null
+    volumes: !override
+      - matters_data:/data/matters
+      - ../schemas:/schemas:ro
+
+  frontend:
+    image: ${LEGALISE_FRONTEND_IMAGE:-ghcr.io/b1rdmania/legalise-frontend:latest}
+    build: !reset null
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    volumes: !override []

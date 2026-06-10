@@ -16,6 +16,7 @@ Schema overview:
 - AuditEntry: id, timestamp, actor_id, matter_id, action, resource_type,
     resource_id, model_used, prompt_hash, response_hash, token_count,
     latency_ms, payload (JSONB)
+- AuditChainEntry: separate append-only hash-chain link for each audit row
 
 See ARCHITECTURE.md for the full data model.
 """
@@ -37,6 +38,13 @@ from app.models.matter import (
 from app.models.document import Document, TAG_VALUES
 from app.models.event import Event
 from app.models.audit import AuditEntry
+from app.models.audit_chain import (
+    AUDIT_CHAIN_SCOPE_MATTER,
+    AUDIT_CHAIN_SCOPE_SYSTEM,
+    AUDIT_CHAIN_SCOPES,
+    AUDIT_CHAIN_VERSION,
+    AuditChainEntry,
+)
 from app.models.document_body import DocumentBody, BODY_KIND_VALUES, EXTRACTION_METHOD_VALUES
 from app.models.document_version import DocumentVersion, VERSION_KIND_VALUES
 from app.models.document_edit import DocumentEdit, EDIT_STATUS_VALUES
@@ -150,6 +158,11 @@ __all__ = [
     "Document",
     "Event",
     "AuditEntry",
+    "AuditChainEntry",
+    "AUDIT_CHAIN_VERSION",
+    "AUDIT_CHAIN_SCOPE_MATTER",
+    "AUDIT_CHAIN_SCOPE_SYSTEM",
+    "AUDIT_CHAIN_SCOPES",
     "DocumentBody",
     "DocumentVersion",
     "DocumentEdit",

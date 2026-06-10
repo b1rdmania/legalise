@@ -253,7 +253,7 @@ function SettingsProfile({
             value={defaultModel}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
             placeholder="claude-opus-4-7"
-            className={inputCls + " font-mono"}
+            className={inputCls + " tech-token"}
           />
           <FieldSave
             dirty={defaultModel !== savedModel}
@@ -431,7 +431,7 @@ function SettingsKeys() {
       {keys && keys.length > 0 && (
         <div className="border border-rule overflow-x-auto">
           <div className="min-w-[480px]">
-            <div className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule font-mono uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
               <span>Provider</span>
               <span>Created</span>
               <span>Last used</span>
@@ -440,7 +440,7 @@ function SettingsKeys() {
             {keys.map((k) => (
               <div
                 key={k.provider}
-                className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 border-b border-rule font-mono text-[11px] items-center"
+                className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 border-b border-rule tech-token text-[11px] items-center"
               >
                 <span className="text-ink font-bold uppercase">{k.provider}</span>
                 <span className="text-muted">{k.created_at.slice(0, 10)}</span>
@@ -463,7 +463,7 @@ function SettingsKeys() {
       <form className="flex flex-col gap-6 border-t border-rule pt-8" onSubmit={submit}>
         <h3 className="text-lg font-semibold text-ink">Add or replace a key</h3>
         <p className="text-xs text-muted -mt-3">
-          Saving a key writes a <span className="font-mono">user.key.configured</span> audit
+          Saving a key writes a <span className="tech-token">user.key.configured</span> audit
           row and switches your model calls from the keyless demo model to your provider.
         </p>
         <Field label="Provider">
@@ -483,7 +483,7 @@ function SettingsKeys() {
             value={apiKey}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setApiKey(e.target.value)}
             placeholder="sk-..."
-            className={inputCls + " font-mono"}
+            className={inputCls + " tech-token"}
           />
         </Field>
         {error && <ErrorCallout message={error} />}

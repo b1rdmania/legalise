@@ -168,12 +168,12 @@ export function InvocationRunner({ slug, moduleId, capabilityId, readiness }: Pr
             onChange={(e) => setArgsJson(e.target.value)}
             rows={4}
             spellCheck={false}
-            className="w-full rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs"
+            className="w-full rounded-md border border-line bg-paper px-2 py-1 tech-token text-xs"
             placeholder='{"claim_type":"unfair_dismissal","document_ids":["doc-1","doc-2"]}'
           />
           <p className="mt-1 text-xs text-muted">
             JSON args passed to the capability. Defaults to{" "}
-            <code className="font-mono">&#123;&#125;</code>; the
+            <code className="tech-token">&#123;&#125;</code>; the
             capability returns a structured 422 if required args are
             missing.
           </p>
@@ -217,7 +217,7 @@ function ResultPanel({
           <p className="text-xs uppercase tracking-widest text-muted">
             Run complete
           </p>
-          <p className="text-xs font-mono text-muted">{r.invocation_id}</p>
+          <p className="text-xs tech-token text-muted">{r.invocation_id}</p>
         </div>
         <ArtifactPreview payload={r.result} kindHint={null} />
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -232,7 +232,7 @@ function ResultPanel({
             href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(r.invocation_id)}`}
             className="text-muted underline underline-offset-4 hover:text-ink"
           >
-            See Record for this run
+            See Activity for this run
           </a>
         </div>
       </div>
@@ -244,15 +244,15 @@ function ResultPanel({
       <Banner tone="amber" title="Privilege gate blocked invocation">
         <p>
           This matter's privilege state (
-          <code className="font-mono text-xs">{state.err.posture}</code>)
+          <code className="tech-token text-xs">{state.err.posture}</code>)
           requires role{" "}
-          <code className="font-mono text-xs">{state.err.requiredRole}</code>.
+          <code className="tech-token text-xs">{state.err.requiredRole}</code>.
           Your role is{" "}
-          <code className="font-mono text-xs">{state.err.actorRole}</code>.
+          <code className="tech-token text-xs">{state.err.actorRole}</code>.
         </p>
         <p className="mt-1 text-xs">
           Audit row:{" "}
-          <code className="font-mono">posture_gate.check.blocked</code>.
+          <code className="tech-token">posture_gate.check.blocked</code>.
         </p>
       </Banner>
     );
@@ -263,15 +263,15 @@ function ResultPanel({
       <Banner tone="seal" title="Permission denied">
         <p>
           The runtime denied{" "}
-          <code className="font-mono text-xs">{state.err.plugin}</code>/
-          <code className="font-mono text-xs">{state.err.skill}</code>/
-          <code className="font-mono text-xs">{state.err.capability}</code>.
+          <code className="tech-token text-xs">{state.err.plugin}</code>/
+          <code className="tech-token text-xs">{state.err.skill}</code>/
+          <code className="tech-token text-xs">{state.err.capability}</code>.
           A permission exists in policy but `require_capability` rejected at
           dispatch time.
         </p>
         <p className="mt-1 text-xs">
           Audit row:{" "}
-          <code className="font-mono">module.capability.denied</code>.
+          <code className="tech-token">module.capability.denied</code>.
         </p>
       </Banner>
     );
@@ -282,14 +282,14 @@ function ResultPanel({
       <Banner tone="seal" title="Advice-boundary gate blocked invocation">
         <p>
           Blocked reason:{" "}
-          <code className="font-mono text-xs">
+          <code className="tech-token text-xs">
             {state.err.blockedReason}
           </code>
           .
         </p>
         <p className="mt-1 text-xs">
           Audit row:{" "}
-          <code className="font-mono">advice_boundary.check.blocked</code>.
+          <code className="tech-token">advice_boundary.check.blocked</code>.
         </p>
       </Banner>
     );
@@ -322,7 +322,7 @@ function ResultPanel({
         <p>
           Provider{" "}
           {state.err.provider ? (
-            <code className="font-mono text-xs">{state.err.provider}</code>
+            <code className="tech-token text-xs">{state.err.provider}</code>
           ) : (
             "upstream"
           )}{" "}
@@ -332,13 +332,13 @@ function ResultPanel({
             <>
               {" "}
               Code:{" "}
-              <code className="font-mono text-xs">{state.err.code}</code>.
+              <code className="tech-token text-xs">{state.err.code}</code>.
             </>
           ) : null}
         </p>
         <p className="mt-1 text-xs">
           Audit row:{" "}
-          <code className="font-mono">model.call.error</code>.
+          <code className="tech-token">model.call.error</code>.
         </p>
       </Banner>
     );

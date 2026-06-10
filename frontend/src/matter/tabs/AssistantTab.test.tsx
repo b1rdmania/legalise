@@ -8,6 +8,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import {
@@ -59,8 +60,13 @@ function mountChat(overrides?: {
       />
     ),
   });
+  const lawveStub = createRoute({
+    getParentRoute: () => root,
+    path: "/skills/lawve",
+    component: () => <div data-testid="lawve-stub" />,
+  });
   const router = createRouter({
-    routeTree: root.addChildren([tab]),
+    routeTree: root.addChildren([tab, lawveStub]),
     history: createMemoryHistory({
       initialEntries: [`/matters/${matter.slug}/assistant`],
     }),
@@ -97,6 +103,27 @@ beforeEach(() => {
       created_at: "",
     },
   } as never);
+  vi.spyOn(api, "postAssistantMessageStream").mockImplementation(async function* () {
+    yield {
+      event: "result",
+      data: {
+        user: {
+          id: "u-1",
+          role: "user",
+          content: "",
+          suggested_actions: [],
+          created_at: "",
+        },
+        assistant: {
+          id: "a-1",
+          role: "assistant",
+          content: "",
+          suggested_actions: [],
+          created_at: "",
+        },
+      },
+    } as never;
+  });
 });
 afterEach(() => {
   cleanup();
@@ -119,7 +146,7 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(screen.queryByTestId("chat-skill-letters")).toBeNull();
   });
 
-  it("shows the empty state and routes to the matter Skills tab when no generic skill is runnable", async () => {
+  it("shows the empty state and routes to Add skill when no generic skill is runnable", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
@@ -129,20 +156,21 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(
       await screen.findByText(/Nothing runnable here right now/i),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Open Skills/i));
-    expect(setTabAndHash).toHaveBeenCalledWith("workflows");
+    fireEvent.click(screen.getByText(/Add a skill/i));
+    expect(await screen.findByTestId("lawve-stub")).toBeInTheDocument();
+    expect(setTabAndHash).not.toHaveBeenCalled();
   });
 
-  it("exposes ambient Record and Documents links in the shell", async () => {
+  it("exposes ambient Activity and document attachment controls in the chat shell", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
     expect(await screen.findByTestId("open-record-link")).toHaveTextContent(
-      /View Record/i,
+      /Activity/i,
     );
 
-    fireEvent.click(screen.getByTestId("open-documents-link"));
-    expect(setTabAndHash).toHaveBeenCalledWith("documents");
+    fireEvent.click(screen.getByTestId("chat-documents-toggle"));
+    expect(setTabAndHash).not.toHaveBeenCalledWith("documents");
   });
 
   it("pre-attaches a document when opened from the document workbench", async () => {
@@ -191,7 +219,7 @@ describe("AssistantTab — in-chat skill picker", () => {
       ],
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: /Open file/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Preview/i }));
 
     expect(onDocumentChip).toHaveBeenCalledWith("doc-1");
   });
@@ -272,6 +300,103 @@ describe("AssistantTab — in-chat skill picker", () => {
       await screen.findByTestId("generic-runner-demo.guided-skill-summarise"),
     ).toBeInTheDocument();
   });
+
+  it("uses the SSE assistant stream and renders backend progress events", async () => {
+    let releaseResult!: () => void;
+    const resultGate = new Promise<void>((resolve) => {
+      releaseResult = resolve;
+    });
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(async function* () {
+      yield {
+        event: "context.loaded",
+        data: {
+          history_message_count: 0,
+          chronology_event_count: 0,
+          document_count: 1,
+          tool_count: 1,
+        },
+      } as never;
+      yield {
+        event: "model.start",
+        data: { stage: "assistant" },
+      } as never;
+      yield {
+        event: "tool.start",
+        data: { module_id: "legalise.contract-review", capability_id: "review" },
+      } as never;
+      await resultGate;
+      yield {
+        event: "result",
+        data: {
+          user: {
+            id: "u-stream",
+            role: "user",
+            content: "Review the NDA",
+            suggested_actions: [],
+            created_at: "2026-06-05T10:00:00Z",
+          },
+          assistant: {
+            id: "a-stream",
+            role: "assistant",
+            content: "I reviewed the NDA.",
+            suggested_actions: [],
+            created_at: "2026-06-05T10:00:01Z",
+          },
+        },
+      } as never;
+    });
+    mountChat();
+
+    const input = await screen.findByPlaceholderText(/Ask about Khan v Acme/i);
+    fireEvent.change(input, { target: { value: "Review the NDA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(/Running contract review: review/i)).toBeInTheDocument();
+    releaseResult();
+    expect(await screen.findByText("I reviewed the NDA.")).toBeInTheDocument();
+    expect(api.postAssistantMessageStream).toHaveBeenCalledWith(
+      matter.slug,
+      { content: "Review the NDA", selected_document_ids: undefined },
+    );
+  });
+
+  it("keeps workflow suggestion chips in chat instead of routing to legacy tabs", async () => {
+    const setTabAndHash = vi.fn();
+    mountChat({
+      setTabAndHash,
+      initialMessages: [
+        {
+          id: "a-suggest",
+          role: "assistant",
+          content: "I can run a pre-motion premortem.",
+          suggested_actions: [
+            {
+              type: "run_pre_motion",
+              label: "Run a pre-motion premortem",
+              params: {},
+            },
+          ],
+          created_at: "2026-06-05T10:00:00Z",
+        },
+      ],
+    });
+
+    const row = await screen.findByTestId("assistant-output-row");
+    expect(row).toHaveTextContent("Run a pre-motion premortem");
+    fireEvent.click(within(row).getByRole("button", { name: "Open" }));
+
+    await waitFor(() =>
+      expect(api.postAssistantMessageStream).toHaveBeenCalledWith(
+        matter.slug,
+        {
+          content:
+            "Run the pre-motion premortem now.\n\nRequested from: Run a pre-motion premortem",
+          selected_document_ids: undefined,
+        },
+      ),
+    );
+    expect(setTabAndHash).not.toHaveBeenCalled();
+  });
 });
 
 describe("AssistantTab — source chips", () => {
@@ -305,6 +430,74 @@ describe("AssistantTab — source chips", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Document.*demo-note\.txt/i }));
 
     expect(onDocumentChip).toHaveBeenCalledWith("doc-public");
+  });
+
+  it("does not render an output row for a plain cited answer", async () => {
+    mountChat({
+      docs: [
+        {
+          id: "doc-public",
+          filename: "demo-note.txt",
+          sha256: "sha",
+          size_bytes: 99,
+          tag: "demo",
+          from_disclosure: false,
+          uploaded_at: "2026-01-01T00:00:00Z",
+          mime_type: "text/plain",
+        } as never,
+      ],
+      initialMessages: [
+        {
+          id: "a-1",
+          role: "assistant",
+          content: "The dismissal date is in [doc:doc-public].",
+          suggested_actions: [],
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(
+      await screen.findByRole("button", { name: /Document.*demo-note\.txt/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("assistant-output-row")).toBeNull();
+  });
+
+  it("renders a compact output row and summons the Sources pane", async () => {
+    mountChat({
+      docs: [
+        {
+          id: "doc-public",
+          filename: "demo-note.txt",
+          sha256: "sha",
+          size_bytes: 99,
+          tag: "demo",
+          from_disclosure: false,
+          uploaded_at: "2026-01-01T00:00:00Z",
+          mime_type: "text/plain",
+        } as never,
+      ],
+      initialMessages: [
+        {
+          id: "a-1",
+          role: "assistant",
+          content:
+            "Summary of demo-note.txt:\n\n- The dismissal date is in [doc:doc-public].",
+          suggested_actions: [],
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(await screen.findByTestId("assistant-output-row")).toHaveTextContent(
+      /Summary of demo-note\.txt/i,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Sources" }));
+
+    const pane = await screen.findByTestId("assistant-work-pane-sources");
+    expect(pane).toHaveTextContent("demo-note.txt");
+    expect(pane).toHaveTextContent(/Inspect/i);
   });
 });
 

@@ -6,7 +6,10 @@
  *
  *   1. user_count === 0
  *      Empty state. "No accounts yet. Register the first account."
- *      Primary CTA → /auth/register (a.k.a. /auth/signup).
+ *      Primary CTA → /auth/register (a.k.a. /auth/signup). Local
+ *      quickstart promotes that first user automatically; deployments
+ *      that disable the dev convenience fall through to state 2 after
+ *      signup.
  *
  *   2. user_count > 0 && has_superuser === false
  *      "Bootstrap administrator required" — literal CLI command + the
@@ -93,9 +96,11 @@ function FirstRunEmptyState() {
       </p>
       <h1 className="mt-2 text-2xl font-bold tracking-tight2">No accounts yet</h1>
       <p className="mt-4 text-muted">
-        Register the first account to begin. Administrator status is set
-        separately by running the bootstrap CLI on the host; registration
-        creates a normal user.
+        Register the first account to begin. In the local quickstart,
+        that account is verified, seeded with Khan v Acme, and promoted
+        to workspace admin automatically. Deployments that disable
+        auto-admin will show the host-side bootstrap CLI command after
+        signup.
       </p>
       <div className="mt-8 flex items-center gap-3">
         <Link
@@ -136,10 +141,10 @@ function BootstrapRequiredState() {
         an existing user. This step is deliberately host-side; the UI does
         not expose a self-promotion path.
       </p>
-      <pre className="mt-6 overflow-x-auto rounded-md border border-line bg-paper-sunken px-4 py-3 text-sm font-mono">
+      <pre className="mt-6 overflow-x-auto rounded-md border border-line bg-paper-sunken px-4 py-3 text-sm tech-token">
         <code>{BOOTSTRAP_CLI}</code>
       </pre>
-      <p className="mt-3 text-xs font-mono text-muted">{BOOTSTRAP_PATH}</p>
+      <p className="mt-3 text-xs tech-token text-muted">{BOOTSTRAP_PATH}</p>
       <p className="mt-6 text-sm text-muted">
         Once the bootstrap CLI completes successfully, refresh this page.
       </p>

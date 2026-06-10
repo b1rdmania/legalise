@@ -8,19 +8,19 @@ v Acme matter is ready.
 The goal is to prove the Legalise loop without explaining every internal
 row name:
 
-> open a project → inspect documents → enable/run a skill → review output
-> → sign → read the Record → export the working pack.
+> open a project → inspect files → enable/run a skill → review output
+> → sign → read Activity → export the working pack.
 
 ## What this proves
 
 By the end of the walkthrough you will have:
 
 - opened a real matter folder;
-- inspected the documents the skill can use;
-- installed and enabled a governed skill;
+- inspected the files the skill can use;
+- added and enabled a governed skill;
 - run the skill through the durable job path;
 - reviewed and signed the output;
-- read the matter Record; and
+- read matter Activity; and
 - exported the working pack.
 
 That sequence is the smallest end-to-end demonstration of
@@ -35,27 +35,27 @@ and the record preserves what happened.
 3. Confirm the left rail shows the matter section and the main surface
    lands on **Chat**.
 
-## 2 — Inspect documents
+## 2 — Inspect files
 
-1. Open **Documents**.
+1. Open **Files**.
 2. Open a seeded document.
 3. Confirm the extracted text is readable and the metadata is secondary.
 4. Use the back link to return to the matter.
 
-## 3 — Install a skill at the workspace
+## 3 — Add a skill to the workspace
 
 1. Navigate to <http://localhost:3000/skills>.
 2. Pick a reference skill such as **Contract Review** or **Pre-Motion**.
-3. Walk the install ceremony.
+3. Walk the add-skill trust ceremony.
 
-Installation is workspace-level trust. It does **not** make the skill
+Adding a skill is workspace-level trust. It does **not** make the skill
 runnable in every matter.
 
 ## 4 — Enable the skill on Khan
 
 1. Return to the Khan matter.
 2. Open **Skills**.
-3. Enable the installed skill for this matter.
+3. Enable the added skill for this matter.
 4. Confirm the card reads as ready in this project.
 
 Matter-level enablement is where the skill receives permission to read
@@ -83,15 +83,15 @@ The signature records professional ownership of the output and pins the
 signed payload by hash. It is not a claim that Legalise certifies the
 legal position.
 
-## 7 — Read the Record
+## 7 — Read Activity
 
-1. Open **Record** for the matter.
+1. Open **Activity** for the matter.
 2. Confirm it shows the story of the run: skill run, model call, output,
    sign-off, and any gates or denials.
 3. Use advanced details only if you need raw row filters.
 
-The Record is the proof layer. The raw audit rows remain inspectable, but
-they are not the primary user surface.
+Activity is the proof layer for the current matter. The raw audit rows
+remain inspectable, but they are not the primary user surface.
 
 ## 8 — Export the working pack
 

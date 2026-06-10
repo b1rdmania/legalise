@@ -3,7 +3,7 @@
  *
  * Primary = v2 registry reference modules with workspace state; the
  * public skill library is a secondary, collapsed-by-default browse (not
- * an install path). Mounts the production router so the Links + auth
+ * an add path). Mounts the production router so the Links + auth
  * context the page now depends on resolve.
  */
 
@@ -93,7 +93,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("ModulesCatalog — integrations home", () => {
-  it("shows reference skills with workspace state + a Create skill action", async () => {
+  it("shows reference skills with workspace state + Add skill actions", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({
       modules: [refModule()],
       ui_slots: [],
@@ -117,9 +117,10 @@ describe("ModulesCatalog — integrations home", () => {
     });
     expect(
       screen.getByTestId("module-state-examples.contract-review"),
-    ).toHaveTextContent(/installed/i);
+    ).toHaveTextContent(/added/i);
     expect(screen.getByText("document.body.read")).toBeInTheDocument();
     expect(screen.getByText("matter.artifact.write")).toBeInTheDocument();
+    expect(screen.getByText("Add skill")).toBeInTheDocument();
     expect(screen.getByText("Create skill")).toBeInTheDocument();
   });
 
@@ -153,8 +154,8 @@ describe("ModulesCatalog — integrations home", () => {
 
     mountAt();
     // PR 3 (blueprint §7) replaces the state dropdown with three tabs:
-    // Installed / Available / (Revoked, operator-only). Default lands
-    // on Installed; switching to Available exposes the not-yet-installed
+    // Added / Available / (Revoked, operator-only). Default lands
+    // on Added; switching to Available exposes the not-yet-added
     // skills.
     await waitFor(() =>
       expect(screen.getByText("Contract Review")).toBeInTheDocument(),

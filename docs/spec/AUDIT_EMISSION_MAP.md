@@ -25,6 +25,7 @@ Phase 13 Decision #4: **a button that emits no audit row is a deliberate choice 
 | Auto-seed Khan v Acme on first register | (registration hook) | **VERIFIED** | `auth.user.demo_seeded` (actor_id=NULL, system-acting) | `backend/app/core/auth.py:147` |
 | Auto-grant declared capabilities | (registration hook) | **VERIFIED** | `auth.user.capabilities_auto_granted` (actor_id=NULL, payload.triple_count) | `backend/app/core/auth.py:181` |
 | Verify email (or dev autoverify) | `POST /auth/verify` (or hook) | **VERIFIED** | `auth.user.verified` — emitted from `_post_verify` so both real-verify and dev-autoverify paths land it | `backend/app/core/auth.py:130` |
+| Auto-promote first local dev user | (registration hook, `LEGALISE_DEV_AUTO_ADMIN_FIRST_USER=true`) | **VERIFIED** | `user.admin.auto_bootstrapped` (actor_id=NULL, payload.reason=`first_dev_user`) | `backend/app/core/auth.py:139` |
 | Log in | `POST /auth/login` | **VERIFIED** | `auth.user.logged_in` — emitted by `AuditingDatabaseStrategy.write_token` on the request session | `backend/app/core/auth.py:287` |
 | Log out | `POST /auth/logout` | **VERIFIED** | `auth.user.logged_out` — emitted by `AuditingDatabaseStrategy.destroy_token` | `backend/app/core/auth.py:303` |
 | Forgot password | `POST /auth/forgot-password` | **VERIFIED** | `auth.user.password_reset_requested` | `backend/app/core/auth.py:195` |

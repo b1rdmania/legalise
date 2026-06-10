@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 SuggestedActionType = Literal[
     "run_pre_motion",
     "draft_letter",
@@ -24,6 +23,19 @@ class SuggestedAction(BaseModel):
     type: SuggestedActionType
     label: str
     params: dict[str, str] = Field(default_factory=dict)
+
+
+class AssistantToolCall(BaseModel):
+    """Provider-agnostic tool request returned by the assistant model.
+
+    The model names an installed Legalise module + matter-scope capability.
+    The host validates both against the installed manifest before dispatching;
+    this is not Anthropic-native `tool_use` and it is not trusted authority.
+    """
+
+    module_id: str = Field(min_length=1, max_length=128)
+    capability_id: str = Field(min_length=1, max_length=128)
+    args: dict[str, object] = Field(default_factory=dict)
 
 
 class AssistantMessage(BaseModel):
@@ -49,3 +61,4 @@ class AssistantResponseEnvelope(BaseModel):
 
     content: str
     suggested_actions: list[SuggestedAction] = Field(default_factory=list)
+    tool_calls: list[AssistantToolCall] = Field(default_factory=list, max_length=1)

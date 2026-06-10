@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 
 export const inputCls =
-  "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
+  "bg-paper border border-rule rounded-item px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
 
 export const primaryBtn =
-  "bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
+  "bg-ink text-paper rounded-item px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
 
 // Inline banner for the canonical `provider_key_missing` 422 error.
 // Border + text tokens only. No fill, no radius, no shadow. The deep
@@ -66,7 +66,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="border border-rule p-8 text-center max-w-2xl mx-auto">
+    <div className="rounded-card border border-rule p-8 text-center max-w-2xl mx-auto">
       <div className="eyebrow mb-3">Empty</div>
       <div className="text-sm font-semibold text-ink">{title}</div>
       {body && <p className="text-sm text-prose mt-2">{body}</p>}
@@ -77,7 +77,7 @@ export function EmptyState({
 
 export function LoadingLine({ label }: { label: string }) {
   return (
-    <p className="font-mono text-xs text-muted flex items-center gap-2">
+    <p className="tech-token text-xs text-muted flex items-center gap-2">
       <InlineSpinner />
       {label}
     </p>
@@ -127,7 +127,7 @@ export function Field({
 
 export function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="border border-rule text-ink text-[10px] font-mono uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
+    <span className="border border-rule rounded-item text-ink text-[10px] tech-token uppercase tracking-track2 px-2 py-0.5 inline-flex items-center gap-1.5">
       {children}
     </span>
   );
@@ -146,7 +146,7 @@ export function ToggleButton({
     <button
       onClick={onClick}
       className={
-        "font-mono uppercase text-[11px] tracking-track2 font-bold border-b-2 h-full pt-1 -mb-px transition-colors " +
+        "tech-token uppercase text-[11px] tracking-track2 font-bold border-b-2 h-full pt-1 -mb-px transition-colors " +
         (active
           ? "text-ink border-ink"
           : "text-muted hover:text-ink border-transparent")
@@ -205,7 +205,7 @@ export function PageHeader({
             <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
           )}
           <h1 className="mt-1 text-2xl font-bold tracking-tight2 text-ink">{title}</h1>
-          {subId && <p className="mt-1 font-mono text-xs text-muted">{subId}</p>}
+          {subId && <p className="mt-1 tech-token text-xs text-muted">{subId}</p>}
           {description && (
             <p className="mt-2 max-w-2xl text-sm text-muted">{description}</p>
           )}

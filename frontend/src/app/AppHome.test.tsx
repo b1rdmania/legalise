@@ -2,8 +2,8 @@
  * Phase 14 A — AppHome three-state regression tests.
  *
  * Asserts copy + structure for each state:
- *   1. user_count=0          → "Register first account" CTA; copy does
- *                              NOT claim registration grants admin
+ *   1. user_count=0          → "Register first account" CTA; copy says
+ *                              local quickstart auto-promotes first user
  *   2. has_superuser=false   → CLI literal + binary path visible;
  *                              no UI shortcut to self-promote
  *   3. has_superuser=true    → either signin redirect (unauth) or
@@ -11,8 +11,8 @@
  *
  * Reviewer P1 invariant from the v2 plan redline:
  *   "Do not imply registration makes someone superuser unless the
- *    backend actually does that."
- * Test #1 explicitly asserts the absence of admin-promotion language.
+ *    backend actually does that." The backend now does that in local
+ *    quickstart only, so the test keeps the scope explicit.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -115,7 +115,7 @@ describe("AppHome — State 1: fresh fork (user_count=0)", () => {
     ).toHaveAttribute("href", "/auth/signup");
   });
 
-  it("does NOT claim that registration grants admin", async () => {
+  it("scopes first-user auto-admin to local quickstart", async () => {
     vi.spyOn(api, "getBootstrapState").mockResolvedValue({
       user_count: 0,
       has_superuser: false,
@@ -127,14 +127,11 @@ describe("AppHome — State 1: fresh fork (user_count=0)", () => {
     await waitFor(() => {
       expect(screen.getByText(/no accounts yet/i)).toBeInTheDocument();
     });
-    // Plain language check: the empty-state body must NOT contain
-    // "becomes the workspace administrator" or any phrasing that
-    // implies registration promotes to admin.
     const body = document.body.textContent ?? "";
-    expect(body).not.toMatch(/becomes the workspace administrator/i);
-    expect(body).not.toMatch(/first user becomes admin/i);
-    // Positive assertion: bootstrap is explicitly named as separate.
-    expect(body).toMatch(/bootstrap CLI/i);
+    expect(body).toMatch(/local quickstart/i);
+    expect(body).toMatch(/promoted to workspace admin automatically/i);
+    expect(body).toMatch(/disable auto-admin/i);
+    expect(body).toMatch(/host-side bootstrap CLI command/i);
   });
 });
 

@@ -125,7 +125,7 @@ export function ReviewList({ slug, onSelect, initialReviews }: Props) {
             >
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-ink truncate">{r.title}</div>
-                <div className="text-xs text-muted font-mono mt-1">
+                <div className="text-xs text-muted tech-token mt-1">
                   {r.column_count} cols · {r.row_count} rows
                   {r.last_run_at && ` · last run ${new Date(r.last_run_at).toLocaleString()}`}
                 </div>

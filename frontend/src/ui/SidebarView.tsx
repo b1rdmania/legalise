@@ -149,7 +149,7 @@ export function SidebarView({
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-ink leading-snug break-words">{matterTitle}</span>
                   {matterPosture && (
-                    <span className="inline-flex items-center gap-1.5 border border-rule rounded-item px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-track1 text-ink">
+                    <span className="inline-flex items-center gap-1.5 border border-rule rounded-item px-2 py-0.5 text-[9px] tech-token font-bold uppercase tracking-track1 text-ink">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: matterPosture.dot }} />
                       {matterPosture.label}
                     </span>

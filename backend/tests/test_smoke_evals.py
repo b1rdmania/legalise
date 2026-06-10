@@ -36,7 +36,7 @@ from app.core.model_gateway import (
 )
 from app.core.seed import KHAN_NDA_BODY
 from app.adapters.plugin_bridge import PluginBridge, SkillDisabled
-from app.models import AuditEntry
+from app.models import AuditEntry, Document, DocumentBody, InstalledModule
 from app.models.document_edit import DocumentEdit
 from app.modules.contract_review import agents as cr_agents
 from app.modules.contract_review.agents import AgentCall, ParserAgent, RedlinerAgent
@@ -688,8 +688,14 @@ def _canned_assistant_envelope(action_type: str = "run_pre_motion") -> dict[str,
 class _AssistantFakeGateway:
     """Records the prompt + system passed in, returns a canned envelope."""
 
-    def __init__(self, envelope: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        envelope: dict[str, Any] | None = None,
+        *,
+        envelopes: list[dict[str, Any]] | None = None,
+    ) -> None:
         self.envelope = envelope or _canned_assistant_envelope()
+        self.envelopes = list(envelopes or [])
         self.calls: list[dict[str, Any]] = []
 
     async def call(
@@ -716,8 +722,9 @@ class _AssistantFakeGateway:
                 "payload": payload or {},
             }
         )
+        envelope = self.envelopes.pop(0) if self.envelopes else self.envelope
         return ModelResult(
-            text=json.dumps(self.envelope),
+            text=json.dumps(envelope),
             model_used="stub-echo",
             prompt_hash="ph",
             response_hash="rh",
@@ -750,12 +757,14 @@ class _AssistantSession:
         events: list[Event] | None = None,
         documents: list[Any] | None = None,
         bodies: dict[uuid.UUID, Any] | None = None,
+        installed_modules: list[InstalledModule] | None = None,
     ) -> None:
         self.matter = matter
         self.history = history or []
         self.events = events or []
         self.documents = documents or []
         self.bodies = bodies or {}
+        self.installed_modules = installed_modules or []
         self.added: list[Any] = []
 
     def add(self, obj: Any) -> None:
@@ -794,6 +803,8 @@ class _AssistantSession:
             return _Scalars(self.events)
         if name == "Document":
             return _Scalars(self.documents)
+        if name == "InstalledModule":
+            return _Scalars([m for m in self.installed_modules if m.enabled])
         if name == "WorkspaceDisabledSkill":
             return _Scalars([])
         return _Scalars([])
@@ -853,6 +864,36 @@ def _make_event(matter_id: uuid.UUID) -> Event:
     return event
 
 
+def _make_document(matter_id: uuid.UUID) -> Document:
+    return Document(
+        id=uuid.uuid4(),
+        matter_id=matter_id,
+        filename="dismissal-letter.txt",
+        mime_type="text/plain",
+        size_bytes=256,
+        sha256="a" * 64,
+        tag="disclosure",
+        from_disclosure=True,
+        uploaded_by_id=uuid.uuid4(),
+    )
+
+
+def _make_document_body(document_id: uuid.UUID) -> DocumentBody:
+    return DocumentBody(
+        document_id=document_id,
+        kind="extracted",
+        extracted_text=(
+            "Acme dismissed Jasmine Khan with immediate effect. "
+            "The dismissal followed a disciplinary hearing on 10 March 2026. "
+            "The stated reason was a personal Instagram post. "
+            "The letter offered payment in lieu of notice."
+        ),
+        extraction_method="passthrough",
+        char_count=210,
+        page_count=1,
+    )
+
+
 class TestAssistantPipeline:
     """Assistant turn persists, audits, round-trips actions, gates posture."""
 
@@ -909,6 +950,42 @@ class TestAssistantPipeline:
         assert action["label"] == "Run a pre-motion premortem"
 
     @pytest.mark.asyncio
+    async def test_selected_document_summary_is_deterministic(self) -> None:
+        matter = _make_matter()
+        document = _make_document(matter.id)
+        body = _make_document_body(document.id)
+        session = _AssistantSession(
+            matter,
+            documents=[document],
+            bodies={document.id: body},
+        )
+        gateway = _AssistantFakeGateway()
+
+        _, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(
+                content="Summarise this document",
+                selected_document_ids=[document.id],
+            ),
+            gateway=gateway,
+        )
+
+        assert gateway.calls == []
+        assert "Summary of dismissal-letter.txt" in assistant_row.content
+        assert f"[doc:{document.id}]" in assistant_row.content
+        assert assistant_row.model_used == "deterministic-summary"
+        assert assistant_row.token_count == 0
+        assert assistant_row.suggested_actions[0]["type"] == "view_document"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["deterministic"] == "document_summary"
+
+    @pytest.mark.asyncio
     async def test_prompt_includes_matter_chronology_and_modules(self) -> None:
         matter = _make_matter()
         event = _make_event(matter.id)
@@ -938,6 +1015,443 @@ class TestAssistantPipeline:
         assert matter.title in prompt
         assert "Khan dismissed without notice" in prompt
         assert "letters/default-lba" in prompt or "pre_motion/default" in prompt
+
+    @pytest.mark.asyncio
+    async def test_prompt_includes_provider_agnostic_tool_registry(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        gateway = _AssistantFakeGateway()
+        installed = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="legalise.contract_review",
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={},
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        tool = assistant_pipeline.AssistantToolSpec(
+            module_id="legalise.contract_review",
+            capability_id="review",
+            label="Review contract",
+            description="Review an uploaded contract.",
+            args_schema={
+                "type": "object",
+                "properties": {"document_ids": {"type": "array"}},
+            },
+            declaration={
+                "id": "review",
+                "kind": "skill",
+                "scope": "matter",
+                "reads": ["document.body.read"],
+                "writes": ["matter.artifact.write"],
+            },
+            installed_module=installed,
+        )
+
+        with patch.object(
+            assistant_pipeline, "_load_assistant_tools", return_value=[tool]
+        ):
+            await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Review the contract"),
+                gateway=gateway,
+            )
+
+        prompt = gateway.calls[0]["prompt"]
+        assert "## Tools" in prompt
+        assert "module_id: legalise.contract_review" in prompt
+        assert "capability_id: review" in prompt
+        assert "args_schema" in prompt
+
+    @pytest.mark.asyncio
+    async def test_assistant_tool_registry_loads_latest_matter_tools(self) -> None:
+        """Registry is real InstalledModule state, not hard-coded chips.
+
+        Chat may only expose latest enabled matter-scope skill/tool/workflow
+        capabilities. Workspace/global capabilities and disabled older module
+        installs must not appear in the model-visible tool menu.
+        """
+        matter = _make_matter()
+        module_id = "legalise.contract_review"
+        old_install = InstalledModule(
+            id=uuid.uuid4(),
+            module_id=module_id,
+            version="0.9.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={
+                "name": "Old Contract Review",
+                "description": "Old description",
+                "capabilities": [
+                    {
+                        "id": "old-review",
+                        "kind": "skill",
+                        "scope": "matter",
+                    }
+                ],
+            },
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=False,
+        )
+        latest_install = InstalledModule(
+            id=uuid.uuid4(),
+            module_id=module_id,
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={
+                "name": "Contract Review",
+                "description": "Review contracts",
+                "capabilities": [
+                    {
+                        "id": "review",
+                        "kind": "skill",
+                        "scope": "matter",
+                        "reads": ["document.body.read"],
+                        "writes": ["matter.artifact.write"],
+                        "args_schema": {
+                            "type": "object",
+                            "properties": {
+                                "document_ids": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                }
+                            },
+                        },
+                        "ui": {
+                            "label": "Review contract",
+                            "description": "Review an uploaded contract.",
+                        },
+                    },
+                    {
+                        "id": "admin-only",
+                        "kind": "tool",
+                        "scope": "workspace",
+                    },
+                ],
+            },
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        session = _AssistantSession(
+            matter,
+            installed_modules=[old_install, latest_install],
+        )
+
+        tools = await assistant_pipeline._load_assistant_tools(session)
+
+        assert [(t.module_id, t.capability_id) for t in tools] == [
+            (module_id, "review")
+        ]
+        assert tools[0].label == "Review contract"
+        assert tools[0].description == "Review an uploaded contract."
+        assert tools[0].args_schema["properties"]["document_ids"]["type"] == "array"
+
+    @pytest.mark.asyncio
+    async def test_tool_call_runs_once_and_finalises_reply(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        invocation_id = uuid.uuid4()
+        gateway = _AssistantFakeGateway(
+            envelopes=[
+                {
+                    "content": "I'll run the contract review.",
+                    "suggested_actions": [],
+                    "tool_calls": [
+                        {
+                            "module_id": "legalise.contract_review",
+                            "capability_id": "review",
+                            "args": {"input": "Review the attached NDA"},
+                        }
+                    ],
+                },
+                {
+                    "content": "Contract review completed. Open the Record for the run.",
+                    "suggested_actions": [
+                        {
+                            "type": "view_audit",
+                            "label": "Open Record",
+                            "params": {"invocation_id": str(invocation_id)},
+                        }
+                    ],
+                    "tool_calls": [],
+                },
+            ]
+        )
+        installed = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="legalise.contract_review",
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={},
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        tool = assistant_pipeline.AssistantToolSpec(
+            module_id="legalise.contract_review",
+            capability_id="review",
+            label="Review contract",
+            description="Review an uploaded contract.",
+            args_schema={},
+            declaration={"id": "review", "kind": "skill", "scope": "matter"},
+            installed_module=installed,
+        )
+
+        async def _fake_dispatch(**kwargs):
+            call = kwargs["call"]
+            assert call.module_id == "legalise.contract_review"
+            assert kwargs["actor_role"] == "qualified_solicitor"
+            return {"artifact_id": "art-1", "output_chars": 120}, invocation_id
+
+        with (
+            patch.object(assistant_pipeline, "_load_assistant_tools", return_value=[tool]),
+            patch.object(assistant_pipeline, "_dispatch_assistant_tool", _fake_dispatch),
+        ):
+            _, assistant_row = await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                actor_role="qualified_solicitor",
+                request=AssistantPostRequest(content="Review the attached NDA"),
+                gateway=gateway,
+            )
+
+        assert len(gateway.calls) == 2
+        assert "## Tool result" in gateway.calls[1]["prompt"]
+        assert assistant_row.content.startswith("Contract review completed")
+        assert assistant_row.suggested_actions[0]["type"] == "view_audit"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["tool_call_count"] == 1
+        assert audit_rows[0].payload["tool_invocation_id"] == str(invocation_id)
+
+    @pytest.mark.asyncio
+    async def test_tool_loop_emits_progress_events(self) -> None:
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        invocation_id = uuid.uuid4()
+        events: list[tuple[str, dict[str, Any]]] = []
+        gateway = _AssistantFakeGateway(
+            envelopes=[
+                {
+                    "content": "I'll run the tool.",
+                    "suggested_actions": [],
+                    "tool_calls": [
+                        {
+                            "module_id": "legalise.contract_review",
+                            "capability_id": "review",
+                            "args": {},
+                        }
+                    ],
+                },
+                {
+                    "content": "Done.",
+                    "suggested_actions": [],
+                    "tool_calls": [],
+                },
+            ]
+        )
+        installed = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="legalise.contract_review",
+            version="1.0.0",
+            publisher="legalise",
+            visibility="first_party",
+            signature_status="verified",
+            signed_by="legalise",
+            install_path="<inline>",
+            manifest_snapshot={},
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        tool = assistant_pipeline.AssistantToolSpec(
+            module_id="legalise.contract_review",
+            capability_id="review",
+            label="Review contract",
+            description="Review an uploaded contract.",
+            args_schema={},
+            declaration={"id": "review", "kind": "skill", "scope": "matter"},
+            installed_module=installed,
+        )
+
+        async def _fake_dispatch(**_kwargs):
+            return {"artifact_id": "art-1"}, invocation_id
+
+        async def _capture(name: str, payload: dict[str, Any]) -> None:
+            events.append((name, payload))
+
+        with (
+            patch.object(assistant_pipeline, "_load_assistant_tools", return_value=[tool]),
+            patch.object(assistant_pipeline, "_dispatch_assistant_tool", _fake_dispatch),
+        ):
+            await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Review this contract"),
+                gateway=gateway,
+                on_event=_capture,
+            )
+
+        names = [name for name, _ in events]
+        assert names == [
+            "context.loaded",
+            "turn.accepted",
+            "model.start",
+            "tool.start",
+            "tool.end",
+            "model.start",
+            "turn.end",
+        ]
+        assert events[0][1]["tool_count"] == 1
+        assert events[4][1]["invocation_id"] == str(invocation_id)
+        assert events[5][1]["stage"] == "assistant.final"
+        assert events[-1][1]["tool_failed"] is False
+
+    def test_stream_route_emits_tool_progress_and_result(self) -> None:
+        """The UI calls the SSE route, so prove the HTTP boundary carries
+        tool progress frames through to the browser-facing stream.
+        """
+        from fastapi.testclient import TestClient
+        from app.core.auth import current_user
+        from app.main import app
+        from app.modules.assistant import router as assistant_router
+
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        user = _UserStub()
+        user.id = matter.created_by_id
+        invocation_id = uuid.uuid4()
+
+        class _SessionFactory:
+            def __call__(self):
+                return self
+
+            async def __aenter__(self):
+                return session
+
+            async def __aexit__(self, *_exc):
+                return None
+
+        async def _override_user():
+            return user
+
+        async def _fake_run_assistant_turn(
+            *,
+            session,
+            matter,
+            actor_id,
+            actor_role,
+            request,
+            on_event=None,
+        ):
+            assert request.content == "Review this contract"
+            assert actor_id == user.id
+            assert actor_role == "owner"
+            assert on_event is not None
+            await on_event(
+                "context.loaded",
+                {"document_count": 1, "chronology_count": 0, "tool_count": 1},
+            )
+            await on_event(
+                "tool.start",
+                {
+                    "module_id": "legalise.contract_review",
+                    "capability_id": "review",
+                },
+            )
+            await on_event(
+                "tool.end",
+                {
+                    "module_id": "legalise.contract_review",
+                    "capability_id": "review",
+                    "invocation_id": str(invocation_id),
+                },
+            )
+            user_row = AssistantMessageRow(
+                id=uuid.uuid4(),
+                matter_id=matter.id,
+                actor_id=actor_id,
+                role="user",
+                content=request.content,
+                suggested_actions=[],
+                created_at=datetime.now(timezone.utc),
+            )
+            assistant_row = AssistantMessageRow(
+                id=uuid.uuid4(),
+                matter_id=matter.id,
+                actor_id=actor_id,
+                role="assistant",
+                content="Contract review completed.",
+                suggested_actions=[
+                    {
+                        "type": "view_audit",
+                        "label": "Open Record",
+                        "params": {"invocation_id": str(invocation_id)},
+                    }
+                ],
+                created_at=datetime.now(timezone.utc),
+            )
+            return user_row, assistant_row
+
+        had_previous_factory = hasattr(app.state, "session_factory")
+        previous_factory = getattr(app.state, "session_factory", None)
+        app.state.session_factory = _SessionFactory()
+        app.dependency_overrides[current_user] = _override_user
+        try:
+            with patch.object(
+                assistant_router, "run_assistant_turn", _fake_run_assistant_turn
+            ):
+                client = TestClient(app)
+                with client.stream(
+                    "POST",
+                    f"/api/matters/{matter.slug}/assistant/messages/stream",
+                    json={"content": "Review this contract"},
+                ) as resp:
+                    body = "".join(resp.iter_text())
+        finally:
+            app.dependency_overrides.clear()
+            if had_previous_factory:
+                app.state.session_factory = previous_factory
+            else:
+                try:
+                    delattr(app.state, "session_factory")
+                except AttributeError:
+                    pass
+
+        assert resp.status_code == 200
+        assert "event: turn.start" in body
+        assert "event: context.loaded" in body
+        assert "event: tool.start" in body
+        assert "event: tool.end" in body
+        assert "event: result" in body
+        assert "Contract review completed." in body
+        assert str(invocation_id) in body
 
     @pytest.mark.asyncio
     async def test_c_paused_returns_409(self) -> None:
@@ -1058,6 +1572,7 @@ class TestAssistantPipeline:
             events=bulky_events,
             snippets=[],
             modules=[],
+            tools=[],
             user_content=user_msg,
             token_budget=200,
         )

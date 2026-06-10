@@ -51,7 +51,7 @@ const ORDERED_STATES: ReadonlyArray<{
   { key: "permissions_reviewed", label: "Permissions reviewed", blurb: "Permission sets + data movement acknowledged." },
   { key: "gates_reviewed", label: "Gates reviewed", blurb: "Privilege + advice-tier gates acknowledged." },
   { key: "granted", label: "Granted", blurb: "All permissions approved; ready to enable." },
-  { key: "enabled", label: "Enabled", blurb: "Skill installed and available." },
+  { key: "enabled", label: "Enabled", blurb: "Skill added and available." },
 ];
 
 const TERMINAL_FAILURE_STATES: ReadonlySet<string> = new Set([
@@ -152,7 +152,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Install review"
+        eyebrow="Add review"
         title={c.permission_card.module_name ?? c.module_id}
         subId={`ceremony ${c.ceremony_id}`}
         description="Verify the publisher, review the permissions this skill is asking for, then enable it. Each step is recorded in the audit log."
@@ -227,8 +227,8 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
         <div className="mt-8 rounded-md border border-line p-4">
           <p className="text-sm font-medium">Skill enabled</p>
           <p className="mt-1 text-sm text-muted">
-            This skill is now installed and can be enabled on your
-            matters. The install was recorded in the audit log.
+            This skill is now added and can be enabled on your
+            matters. The trust ceremony was recorded in the audit log.
           </p>
         </div>
       )}
@@ -391,7 +391,7 @@ function CapabilityChecklist({ capabilities }: { capabilities: unknown[] }) {
                 ✓
               </span>
               <span>
-                <span className="font-mono text-xs text-ink">{id}</span>
+                <span className="tech-token text-xs text-ink">{id}</span>
                 {kind && (
                   <span className="ml-2 text-xs text-muted">({kind})</span>
                 )}
@@ -468,12 +468,12 @@ function InvalidTransitionBanner({
         Invalid ceremony transition
       </p>
       <p className="mt-1 text-sm text-muted">
-        Action <span className="font-mono">{state.requestedAction}</span> is
+        Action <span className="tech-token">{state.requestedAction}</span> is
         not valid from the current state. {state.message}
       </p>
       <p className="mt-2 text-sm text-muted">
         The runtime wrote a{" "}
-        <span className="font-mono">module.ceremony.rejected</span> audit
+        <span className="tech-token">module.ceremony.rejected</span> audit
         row for this attempt.{" "}
         <a
           href={auditHref}

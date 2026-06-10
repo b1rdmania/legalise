@@ -40,7 +40,7 @@ export function ProfileChip({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="w-8 h-8 bg-ink text-paper flex items-center justify-center font-mono text-sm font-semibold">
+        <span className="w-8 h-8 bg-ink text-paper flex items-center justify-center tech-token text-sm font-semibold">
           {initial}
         </span>
         <span className="text-sm truncate max-w-[180px]">{label}</span>
@@ -51,7 +51,7 @@ export function ProfileChip({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-1 w-56 bg-paper border border-rule flex flex-col text-sm"
+        className="absolute right-0 top-full mt-1 w-56 rounded-card bg-paper border border-rule flex flex-col text-sm"
         >
           <div className="px-4 py-3 border-b border-rule">
             <div className="eyebrow-sm mb-1">Signed in as</div>

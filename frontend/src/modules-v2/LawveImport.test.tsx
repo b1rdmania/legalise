@@ -3,7 +3,7 @@
  *
  * List/search render; detail shows provenance + the scripts manual-review
  * flag; convert shows the draft trust-state + warnings + manifest. Loop v1:
- * a valid draft offers a one-click "Install this draft" CTA to admins
+ * a valid draft offers a one-click "Add this draft" CTA to admins
  * (posts the inline manifest + navigates to the trust ceremony) and a
  * softened "ask an administrator" note to non-admins — never a dead button.
  */
@@ -107,7 +107,7 @@ function draft(over: Partial<LawveDraftResult> = {}): LawveDraftResult {
       { code: "references_present", message: "References are source material, not runtime code." },
     ],
     source_provenance: { repo_url: "x", ref: "abc123sha", source_path: "y" },
-    next_steps: ["Review permissions", "Sign + install via the ceremony"],
+    next_steps: ["Review permissions", "Sign + add via the ceremony"],
     ...over,
   };
 }
@@ -150,7 +150,7 @@ describe("LawveImport", () => {
     expect(screen.getByTestId("lawve-script-flag")).toHaveTextContent(/not imported or executed/i);
   });
 
-  it("converts a prompt-only skill to a valid draft (Ready to sign, no install button)", async () => {
+  it("converts a prompt-only skill to a valid draft (Ready to sign, add CTA for admins)", async () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
     mountLawve();
@@ -163,11 +163,11 @@ describe("LawveImport", () => {
     // Manifest carries the prompt runtime.
     expect(screen.getByTestId("draft-review")).toHaveTextContent(/"runtime": "prompt"/);
     expect(screen.getByText(/Download manifest/)).toBeInTheDocument();
-    // Continuity: a valid draft is installable by an admin (default user).
+    // Continuity: a valid draft can be added by an admin (default user).
     expect(screen.getByTestId("install-draft")).toBeInTheDocument();
   });
 
-  it("installs a valid draft: posts the inline manifest + navigates to the ceremony", async () => {
+  it("adds a valid draft: posts the inline manifest + navigates to the ceremony", async () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
     const startInstall = vi
@@ -191,7 +191,7 @@ describe("LawveImport", () => {
     expect(arg.manifest?.runtime).toBe("prompt");
   });
 
-  it("hides the install button for non-admins and shows an ask-an-admin note", async () => {
+  it("hides the add button for non-admins and shows an ask-an-admin note", async () => {
     mockUser(false);
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(draft());
@@ -207,7 +207,7 @@ describe("LawveImport", () => {
   it("shows Needs licence review when an AGPL warning is present", async () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(detail());
     vi.spyOn(api, "draftLawveModule").mockResolvedValue(
-      draft({ warnings: [{ code: "license_review", message: "AGPL — review before install." }] }),
+      draft({ warnings: [{ code: "license_review", message: "AGPL — review before adding." }] }),
     );
     mountLawve();
     await waitFor(() => expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument());

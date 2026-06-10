@@ -60,8 +60,11 @@ This caught the Phase 15 first-run spec — it was reading the wrong
 endpoint for these rows.
 
 **Fix.** Read workspace-scope rows through the admin reconstruction
-view at <http://localhost:3000/admin/audit> (requires superuser, so
-run `bootstrap_admin` first per the README path).
+view at <http://localhost:3000/admin/audit>. On the local quickstart
+path, the first registered user is promoted automatically when
+`LEGALISE_DEV_AUTO_ADMIN_FIRST_USER=true`. If you disabled that flag,
+are not running in a local/dev environment, or are recovering an
+existing user, use the `bootstrap_admin` CLI below.
 
 The full scope split is in
 [`docs/spec/AUDIT_COVERAGE_MATRIX.md`](./spec/AUDIT_COVERAGE_MATRIX.md).
@@ -100,27 +103,28 @@ error: no user found for email 'you@example.com'; register first then bootstrap
 Exit code `2`.
 
 **Diagnosis.** The CLI promotes an **existing** user; it does not
-create one. The README setup path runs registration *before*
-bootstrap for exactly this reason — see step 5 vs step 6 of
-[`README.md` → Try it](../README.md#try-it).
+create one. The normal local quickstart promotes the first registered
+user automatically, so this CLI is now mainly for manual/recovery use
+or environments where `LEGALISE_DEV_AUTO_ADMIN_FIRST_USER=false`.
 
 **Fix.** Register via the signup form at <http://localhost:3000>
 first, then re-run the CLI with the same email.
 
 ---
 
-## Audit reconstruction is empty for a user I just promoted via the CLI
+## Audit reconstruction is empty for a user I just promoted
 
-**Symptom.** You ran `bootstrap_admin` for your signed-in account,
-expected `is_superuser: true`, but `/admin/audit` still 403s or you
-keep seeing the non-superuser shell.
+**Symptom.** Your account was promoted, either by first-user local
+auto-admin or by `bootstrap_admin`, but `/admin/audit` still 403s or
+you keep seeing the non-superuser shell.
 
 **Diagnosis.** `AuthProvider` caches the user object from
-`/auth/users/me`. The CLI mutates the DB row, but the React context
-still holds the pre-promotion snapshot. Caught in Phase 15 first-run.
+`/auth/users/me`. The promotion mutates the DB row, but the React
+context can still hold the pre-promotion snapshot. Caught in Phase 15
+first-run.
 
 **Fix.** Reload the browser — `AuthProvider` re-fetches on mount and
-the superuser context loads. Step 7 of the README path.
+the superuser context loads.
 
 ---
 

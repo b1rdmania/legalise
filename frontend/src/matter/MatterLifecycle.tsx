@@ -141,7 +141,7 @@ function ExportPanel({ slug }: { slug: string }) {
   const failed = job?.status === "failed" || job?.status === "cancelled";
 
   return (
-    <section className="mt-8 border border-rule p-5">
+    <section className="mt-8 rounded-card border border-rule p-5">
       <h2 className="text-sm uppercase tracking-widest text-muted">Export working pack</h2>
       <div className="mt-3 grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
         <div>
@@ -213,7 +213,7 @@ function ExportPanel({ slug }: { slug: string }) {
         href={`/matters/${encodeURIComponent(slug)}/audit?action=module.export.job.completed`}
         className="mt-3 inline-block text-xs text-muted underline underline-offset-4 hover:text-ink"
       >
-        View export activity in the Record
+        View export activity in Activity
       </a>
     </section>
   );
@@ -249,7 +249,7 @@ function ClosePanel({
   };
 
   return (
-    <section className="mt-8 border border-rule p-5">
+    <section className="mt-8 rounded-card border border-rule p-5">
       <h2 className="text-sm uppercase tracking-widest text-muted">Close matter</h2>
       <p className="mt-2 text-sm text-muted">
         Closing marks the matter inactive but is <span className="text-ink">non-destructive</span> —
@@ -319,11 +319,11 @@ function DeletePanel({ slug, isClosed }: { slug: string; isClosed: boolean }) {
 
       <label className="mt-4 block text-xs text-muted">
         Type the matter reference{" "}
-        <span className="font-mono text-ink">{slug}</span> to confirm:
+        <span className="tech-token text-ink">{slug}</span> to confirm:
         <input
           value={confirmText}
           onChange={(e) => setConfirmText(e.target.value)}
-          className="mt-1 w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-sm text-ink"
+          className="mt-1 w-full rounded-md border border-rule bg-paper px-3 py-2 tech-token text-sm text-ink"
           data-testid="delete-confirm-input"
           placeholder={slug}
         />

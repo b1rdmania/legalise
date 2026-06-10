@@ -4,25 +4,25 @@
  * Renders the v2 manifest in three sections:
  *   1. Header — name / id / version / publisher / visibility / description
  *   2. Capabilities — table of declared capabilities
- *   3. Lifecycle controls — Install CTA (always), Update + Revoke (admin)
+ *   3. Lifecycle controls — Add CTA (always), Update + Revoke (admin)
  *
  * The installed/disabled state IS derivable frontend-side via
  * listInstalledModules() — GrantsPanel already consumes it — so this
- * page shows a truthful install-status badge. No backend work
+ * page shows a truthful add-status badge. No backend work
  * required.
  *
  * Reviewer-narrow:
- *   - Install CTA POSTs to /api/modules/install and navigates to
+ *   - Add CTA POSTs to /api/modules/install and navigates to
  *     /modules/install/{ceremony_id}. The stepper UI lives in
  *     InstallCeremony.tsx — this page does NOT inline the ceremony.
  *
  * Authority gating (load-bearing — no smuggled authority):
- *   - Install   → superuser only (substrate enforces via
+ *   - Add       → superuser only (substrate enforces via
  *                 require_admin at modules.py:678)
  *   - Update    → superuser only (require_admin at modules.py:997)
  *   - Revoke    → superuser only (require_admin at modules.py:911)
  *   Non-admins see an explainer and the CTAs are hidden / disabled —
- *   we don't render an Install button that 403s.
+ *   we don't render an Add button that 403s.
  */
 
 import { useEffect, useState } from "react";
@@ -44,7 +44,7 @@ type DetailQuery =
   | { status: "ready"; entry: V2ManifestEntry }
   | { status: "error"; message: string };
 
-// Install status is best-effort: if the installed-modules fetch fails
+// Add status is best-effort: if the installed-modules fetch fails
 // (anon race, network blip) we render nothing rather than guess.
 type InstallStatus =
   | { kind: "unknown" }
@@ -217,15 +217,15 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
       const res = await revokeModuleV2(entry.module_id);
       setLife({
         kind: "info",
-        message: `Revoked. ${res.disabled_rows} installed row(s) disabled, ${res.revoked_grants} grant(s) removed.`,
+        message: `Revoked. ${res.disabled_rows} added row(s) disabled, ${res.revoked_grants} grant(s) removed.`,
       });
     } catch (err) {
       const msg = String(err);
-      // 404 = not installed; surface a friendly inline message.
+      // 404 = not added; surface a friendly inline message.
       if (/404/.test(msg) || /not.*install/i.test(msg)) {
         setLife({
           kind: "info",
-          message: "Skill is not currently installed.",
+          message: "Skill is not currently added.",
         });
       } else {
         setLife({ kind: "error", message: msg });
@@ -269,7 +269,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           <ul className="mt-2 list-disc pl-5 text-sm text-muted">
             {entry.validation_errors.map((e, i) => (
               <li key={i}>
-                <span className="font-mono">{e.path}</span>: {e.message}
+                <span className="tech-token">{e.path}</span>: {e.message}
               </li>
             ))}
           </ul>
@@ -298,7 +298,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
       {/* Manifest & signature disclosure (blueprint §4A.5 step 5).
           Collapsed by default; opens to show signer status, version,
-          install metadata, and validity. Nothing is hidden — these
+          add metadata, and validity. Nothing is hidden — these
           fields are all already returned by the substrate. */}
       <ManifestDisclosure entry={entry} installStatus={installStatus} />
 
@@ -316,7 +316,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
                 disabled={life.kind === "installing" || !entry.is_valid}
                 className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
               >
-                {life.kind === "installing" ? "Starting ceremony…" : "Install"}
+                {life.kind === "installing" ? "Starting ceremony…" : "Add skill"}
               </button>
               <button
                 type="button"
@@ -336,8 +336,8 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
             </>
           ) : (
             <p className="text-sm text-muted">
-              Install, update, and revoke require superuser. Ask your
-              workspace administrator to install this skill.
+              Add, update, and revoke require superuser. Ask your
+              workspace administrator to add this skill.
             </p>
           )}
         </div>
@@ -345,7 +345,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           <div className="mt-4 rounded-md border border-line p-3">
             <p className="text-xs text-muted">
               Paste the new v2 manifest JSON. If the new permissions
-              expand on the installed snapshot, a fresh trust ceremony
+              expand on the added snapshot, a fresh trust ceremony
               starts. Otherwise the row updates in place.
             </p>
             <textarea
@@ -353,7 +353,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
               onChange={(e) => setUpdateJson(e.target.value)}
               rows={8}
               spellCheck={false}
-              className="mt-2 w-full rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs"
+              className="mt-2 w-full rounded-md border border-line bg-paper px-3 py-2 tech-token text-xs"
               placeholder='{ "schema_version": "2.0.0", "id": "...", "version": "...", "publisher": "...", "visibility": "...", "runtime": "...", "entrypoint": {...}, "capabilities": [...] }'
             />
             <div className="mt-2 flex gap-2">
@@ -392,7 +392,7 @@ function InstallStatusBadge({ status }: { status: InstallStatus }) {
     return (
       <p className="mt-4 inline-flex items-center gap-2 border border-rule px-2 py-1 text-xs text-muted">
         <span className="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true" />
-        Not installed
+        Not added
       </p>
     );
   }
@@ -408,7 +408,7 @@ function InstallStatusBadge({ status }: { status: InstallStatus }) {
         className={"h-1.5 w-1.5 rounded-full " + (row.enabled ? "bg-ink" : "bg-seal")}
         aria-hidden="true"
       />
-      {row.enabled ? "Installed" : "Installed · disabled"}
+      {row.enabled ? "Added" : "Added · disabled"}
       <span className="text-muted">· signature {row.signature_status}</span>
     </p>
   );
@@ -420,7 +420,7 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
   return (
     <li className="bg-paper p-4">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="font-mono text-sm text-ink">{cap.id ?? "—"}</p>
+        <p className="tech-token text-sm text-ink">{cap.id ?? "—"}</p>
         {cap.scope && (
           <span className="text-[10px] uppercase tracking-widest text-muted">
             {cap.scope}
@@ -455,7 +455,7 @@ function Access({ label, items }: { label: string; items: string[] }) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="mt-0.5 font-mono text-xs text-muted">{items.join(", ")}</dd>
+      <dd className="mt-0.5 tech-token text-xs text-muted">{items.join(", ")}</dd>
     </div>
   );
 }
@@ -505,7 +505,7 @@ function ManifestDisclosure({
             hint={
               installStatus.kind === "installed"
                 ? undefined
-                : "Signature is verified at install time."
+                : "Signature is verified when a skill is added."
             }
           />
           <Field
@@ -515,11 +515,11 @@ function ManifestDisclosure({
           {installed && (
             <>
               <Field
-                label="Installed"
+                label="Added"
                 value={new Date(installed.installed_at).toLocaleString()}
               />
               <Field
-                label="Installed by"
+                label="Added by"
                 value={installed.installed_by_user_id ?? "—"}
                 mono
               />
@@ -562,7 +562,7 @@ function Field({
   return (
     <div>
       <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className={"mt-0.5 " + (mono ? "font-mono text-xs" : "text-sm")}>
+      <dd className={"mt-0.5 " + (mono ? "tech-token text-xs" : "text-sm")}>
         {value}
       </dd>
       {hint && <p className="mt-0.5 text-[11px] text-muted">{hint}</p>}

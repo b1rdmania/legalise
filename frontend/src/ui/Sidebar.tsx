@@ -73,7 +73,7 @@ function AccountBlock({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="w-7 h-7 bg-ink text-paper rounded-full flex items-center justify-center font-mono text-xs font-semibold shrink-0">
+        <span className="w-7 h-7 bg-ink text-paper rounded-full flex items-center justify-center tech-token text-xs font-semibold shrink-0">
           {initial}
         </span>
         <span className="text-sm text-ink truncate flex-1 text-left">{label}</span>
@@ -113,11 +113,7 @@ export function Sidebar({
       ? route.slug
       : null;
   const onMatterArea = matterSlug !== null;
-  const onMatterArtifacts =
-    route.name === "matterArtifacts" || route.name === "matterArtifactDetail";
   const onMatterDocumentDetail = route.name === "matterDocumentDetail";
-  const onMatterLifecycle = route.name === "matterLifecycle";
-  const onMatterAuditRoute = route.name === "matterAudit";
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   const onAudit = path.startsWith("/admin/audit");
 
@@ -152,26 +148,10 @@ export function Sidebar({
             href: `/matters/${matterSlug}/${t.key}`,
             icon: <NavIcon name={t.key} />,
             active:
-              t.key === "audit"
-                ? onMatterAuditRoute || (route.name === "detail" && matterTab === "audit")
-                : t.key === "documents"
+              t.key === "documents"
                   ? onMatterDocumentDetail || (route.name === "detail" && matterTab === "documents")
                   : route.name === "detail" && matterTab === t.key,
           })),
-          {
-            key: "artifacts",
-            label: "Signed outputs",
-            href: `/matters/${matterSlug}/artifacts`,
-            icon: <NavIcon name="artifacts" />,
-            active: onMatterArtifacts,
-          },
-          {
-            key: "lifecycle",
-            label: "Working pack",
-            href: `/matters/${matterSlug}/lifecycle`,
-            icon: <NavIcon name="lifecycle" />,
-            active: onMatterLifecycle,
-          },
         ]
       : undefined;
 

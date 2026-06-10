@@ -51,6 +51,11 @@ jobs:
       # ON so the firm-mode coverage stays green. Compose interpolates
       # it via the same ${VAR:-default} mechanism as POSTGRES_DSN.
       LEGALISE_FIRM_ROLE_GATES_ENABLED: "true"
+      # Local quickstart auto-promotes the first dev user so evaluators
+      # do not need the bootstrap CLI. The e2e suite deliberately
+      # exercises the documented bootstrap_admin operator path, so keep
+      # auto-admin disabled here.
+      LEGALISE_DEV_AUTO_ADMIN_FIRST_USER: "false"
     defaults:
       run:
         working-directory: frontend

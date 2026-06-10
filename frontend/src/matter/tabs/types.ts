@@ -1,16 +1,16 @@
 // Matter shell taxonomy (V1 — compressed matter rail).
 //
 // SIDEBAR_NAV is the core nav that renders in the matter rail.
-// Secondary/legacy surfaces (chronology, approvals, individual
-// workflow pages) remain routable for deep links but do not compete
-// with the main documents → skills → record loop.
+// Secondary/legacy surfaces (activity/audit, chronology, approvals,
+// individual workflow pages) remain routable for deep links but do not
+// compete with the main chat-led loop.
 // WORKFLOW_TABS are historical built-in skill surfaces reached from
 // the Skills page; they keep their routes for deep-linking but
 // do not surface as their own sidebar items.
 //
 // Bare /matters/{slug} lands on Chat (the assistant key).
 //
-// User-facing tab labels (Chat / Documents / Skills / Record)
+// User-facing tab labels (Chat / Files / Skills / Activity)
 // intentionally do not match the underlying URL keys
 // (assistant / documents / workflows / audit). The keys are kept
 // stable in this slice for route compatibility; they are rewired in
@@ -31,22 +31,21 @@ export type TabKey =
   | "reviews"
   | "research";
 
-// The matter loop. Order is load-bearing (DESIGN.md P19 v0.5):
-// Chat → Documents → Skills → Record. URL keys stay stable
-// (assistant/documents/workflows/audit) for route compatibility.
+// The matter loop. Chat is the product; files and skills are summoned
+// when needed. URL keys stay stable (assistant/documents/workflows)
+// for route compatibility.
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
-  { key: "documents", label: "Documents" },
+  { key: "documents", label: "Files" },
   { key: "workflows", label: "Skills" },
-  { key: "audit", label: "Record" },
 ];
 
 export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
   assistant: "Chat",
-  documents: "Documents",
+  documents: "Files",
   chronology: "Chronology",
   workflows: "Skills",
-  audit: "Record",
+  audit: "Activity",
   approvals: "Approvals",
   premotion: "Pre-Motion",
   letters: "Letters",

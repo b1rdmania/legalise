@@ -13,7 +13,7 @@ export function AuthCard({
 }) {
   return (
     <div className="max-w-md mx-auto px-4 sm:px-6 py-16">
-      <div className="eyebrow font-mono text-muted mb-4">{eyebrow}</div>
+      <div className="eyebrow tech-token text-muted mb-4">{eyebrow}</div>
       <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink mb-4 leading-[1.1]">
         {heading}
       </h1>

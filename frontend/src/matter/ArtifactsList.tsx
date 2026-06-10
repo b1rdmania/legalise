@@ -127,7 +127,7 @@ export function ArtifactsList({ slug }: { slug: string }) {
                 <tr key={r.id} className="border-t border-line">
                   <td className="px-3 py-2">
                     <span className="font-medium">{outputLabel(r.kind)}</span>
-                    <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                    <span className="mt-0.5 block tech-token text-[11px] text-muted">
                       {r.kind}
                     </span>
                   </td>
@@ -135,8 +135,8 @@ export function ArtifactsList({ slug }: { slug: string }) {
                     <SignoffBadge decision={signoffs.get(r.id)} />
                   </td>
                   <td className="px-3 py-2">
-                    <span className="font-mono text-xs">{r.module_id}</span>
-                    <span className="mt-0.5 block font-mono text-[11px] text-muted">
+                    <span className="tech-token text-xs">{r.module_id}</span>
+                    <span className="mt-0.5 block tech-token text-[11px] text-muted">
                       {r.capability_id}
                     </span>
                   </td>

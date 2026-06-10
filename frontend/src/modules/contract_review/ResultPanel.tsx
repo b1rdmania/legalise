@@ -64,7 +64,7 @@ function Accordion({
         <span>
           {title}
           {typeof count === "number" && (
-            <span className="ml-2 text-muted text-xs font-mono">({count})</span>
+            <span className="ml-2 text-muted text-xs tech-token">({count})</span>
           )}
         </span>
         <span aria-hidden>{open ? "−" : "+"}</span>
@@ -96,7 +96,7 @@ function AnalysisRow({
           {analysis.clause_id}
           {clauseTitle ? ` - ${clauseTitle}` : ""}
         </h4>
-        <span className="text-xs text-muted font-mono">
+        <span className="text-xs text-muted tech-token">
           risk {analysis.risk_score}/5 {riskBar(analysis.risk_score)}
         </span>
       </div>
@@ -156,7 +156,7 @@ function RedlineRow({ redline }: { redline: Redline }) {
       <div className="flex flex-wrap items-center gap-2">
         <h4 className="font-semibold text-ink">{redline.clause_id}</h4>
         <span
-          className={`inline-flex items-center border px-2 py-0.5 text-[11px] font-mono uppercase tracking-track2 font-bold ${pillCls[redline.priority] || pillCls.suggested}`}
+          className={`inline-flex items-center border px-2 py-0.5 text-[11px] tech-token uppercase tracking-track2 font-bold ${pillCls[redline.priority] || pillCls.suggested}`}
         >
           {labels[redline.priority] || redline.priority}
         </span>
@@ -207,7 +207,7 @@ export function ResultPanel({
           <div className="font-semibold">
             {result.parsed.title || result.document_filename}
           </div>
-          <div className="text-xs text-muted font-mono mt-1">
+          <div className="text-xs text-muted tech-token mt-1">
             {result.parsed.parties.length > 0 && (
               <>parties: {result.parsed.parties.join(" / ")} · </>
             )}

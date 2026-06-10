@@ -144,7 +144,7 @@ function ReviewRow({
       >
         <div className="min-w-0">
           <p className="text-sm text-ink">{review.kind}</p>
-          <p className="font-mono text-[11px] text-muted truncate">
+          <p className="tech-token text-[11px] text-muted truncate">
             {review.capability_id} · {review.requested_at.slice(0, 16).replace("T", " ")}
           </p>
         </div>
@@ -221,11 +221,11 @@ function ReviewScreen({
       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
         <div>
           <dt className="uppercase tracking-widest text-muted">Output hash</dt>
-          <dd className="mt-0.5 font-mono text-muted break-all">{review.artifact_hash}</dd>
+          <dd className="mt-0.5 tech-token text-muted break-all">{review.artifact_hash}</dd>
         </div>
         <div>
           <dt className="uppercase tracking-widest text-muted">Invocation</dt>
-          <dd className="mt-0.5 font-mono text-muted">{review.invocation_id}</dd>
+          <dd className="mt-0.5 tech-token text-muted">{review.invocation_id}</dd>
         </div>
         {!editable && (
           <>

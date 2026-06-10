@@ -77,6 +77,13 @@ class Settings(BaseSettings):
     firm_role_gates_enabled: bool = Field(
         default=False, alias="LEGALISE_FIRM_ROLE_GATES_ENABLED"
     )
+    # Local/eval convenience only: when true in a dev environment, the
+    # first registered user is promoted to workspace admin. Production
+    # ignores the flag so a hosted deployment cannot accidentally open
+    # an admin path through env drift.
+    dev_auto_admin_first_user: bool = Field(
+        default=False, alias="LEGALISE_DEV_AUTO_ADMIN_FIRST_USER"
+    )
 
     # Email — Resend transactional provider.
     resend_api_key: str | None = None

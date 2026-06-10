@@ -4,7 +4,7 @@
  * Hits `GET /api/matters/{slug}/artifacts/{id}` (returns ArtifactSummary
  * fields + parsed `payload`). Kind-aware rendering via ArtifactPreview.
  *
- * Deep-link to the Record: this page links to
+ * Deep-link to Activity: this page links to the legacy audit route,
  * `/matters/{slug}/audit?invocation_id=<id>`. The query-param contract
  * is preserved for signed/exported output chains.
  *
@@ -120,7 +120,7 @@ export function ArtifactDetail({
 
       {/* Sign-off status + the hero action. Author sign-off (distinct from
           supervisor review): the solicitor takes ownership of this output. */}
-      <section className="mt-8 rounded-md border border-rule bg-paper p-4" data-testid="signoff-status">
+      <section className="mt-8 rounded-card border border-rule bg-paper p-4" data-testid="signoff-status">
         <h2 className="text-sm uppercase tracking-widest text-muted">Sign-off</h2>
         {signoff === undefined ? (
           <p className="mt-2 text-sm text-muted">Checking sign-off status…</p>
@@ -173,7 +173,7 @@ export function ArtifactDetail({
       </section>
 
       {REVIEW_ELIGIBLE_KINDS.includes(a.kind) && (
-        <details className="mt-8 border border-rule p-4">
+        <details className="mt-8 rounded-card border border-rule p-4">
           <summary className="cursor-pointer text-sm uppercase tracking-widest text-muted">
             Optional separate review
           </summary>
@@ -228,16 +228,16 @@ export function ArtifactDetail({
         </summary>
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <DT label="Kind">
-            <code className="font-mono text-xs">{a.kind}</code>
+            <code className="tech-token text-xs">{a.kind}</code>
           </DT>
           <DT label="Skill source">
-            <code className="font-mono text-xs">{a.module_id}</code>
+            <code className="tech-token text-xs">{a.module_id}</code>
           </DT>
           <DT label="Permission">
-            <code className="font-mono text-xs">{a.capability_id}</code>
+            <code className="tech-token text-xs">{a.capability_id}</code>
           </DT>
           <DT label="Run id">
-            <code className="font-mono text-xs">{a.invocation_id}</code>
+            <code className="tech-token text-xs">{a.invocation_id}</code>
           </DT>
           <DT label="Size">
             <span>{a.size_bytes.toLocaleString()} bytes</span>

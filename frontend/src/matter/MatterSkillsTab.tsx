@@ -238,7 +238,7 @@ export function MatterSkillsTab({ slug }: Props) {
             </p>
           )}
           {workflows.workflows.length > 0 && (
-            <details className="border border-rule bg-paper p-4">
+            <details className="rounded-card border border-rule bg-paper p-4">
               <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">
                 Legacy built-in actions ({workflows.workflows.length})
               </summary>
@@ -286,7 +286,7 @@ export function MatterSkillsTab({ slug }: Props) {
       </div>
 
       <p className="mt-8 text-xs text-muted">
-        Workspace install, signature, and trust details live on{" "}
+        Workspace add, signature, and trust details live on{" "}
         <Link to="/skills" className="underline underline-offset-4 hover:text-ink">
           Workspace skills
         </Link>
@@ -326,7 +326,7 @@ function WorkflowRow({
   workflow: MatterWorkflowsResponse["workflows"][number];
 }) {
   return (
-    <article className="border border-rule bg-paper p-4" data-testid={`enabled-builtin-${workflow.key}`}>
+    <article className="rounded-card border border-rule bg-paper p-4" data-testid={`enabled-builtin-${workflow.key}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{workflow.title}</p>
@@ -390,13 +390,13 @@ function EnabledModuleRow({
 
   return (
     <article
-      className="border border-rule bg-paper p-4"
+      className="rounded-card border border-rule bg-paper p-4"
       data-testid={`enabled-module-${entry.module_id}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{name}</p>
-          <p className="mt-0.5 font-mono text-[11px] text-muted">
+          <p className="mt-0.5 tech-token text-[11px] text-muted">
             {entry.module_id}
           </p>
         </div>
@@ -446,13 +446,13 @@ function AvailableModuleRow({
 
   return (
     <article
-      className="border border-rule bg-paper p-4"
+      className="rounded-card border border-rule bg-paper p-4"
       data-testid={`available-module-${entry.module_id}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{name}</p>
-          <p className="mt-0.5 font-mono text-[11px] text-muted">
+          <p className="mt-0.5 tech-token text-[11px] text-muted">
             {entry.module_id}
             {publisher ? ` · ${publisher}` : ""}
           </p>
@@ -496,7 +496,7 @@ function Meta({
 }) {
   return (
     <div>
-      <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+      <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
         {label}
       </dt>
       <dd className={"mt-1 " + (tone ?? "text-ink")}>{value}</dd>
@@ -567,14 +567,14 @@ function EnableSkillModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[480px] border border-rule bg-paper p-5 shadow-xl">
+      <div className="w-full max-w-[480px] rounded-card border border-rule bg-paper p-5 shadow-xl">
         <p className="text-[11px] uppercase tracking-widest text-muted">
           Enable skill
         </p>
         <h2 id="enable-skill-title" className="mt-1 text-lg font-semibold text-ink">
           Enable {name} in this matter
         </h2>
-        <p className="mt-1 font-mono text-[11px] text-muted">{entry.module_id}</p>
+        <p className="mt-1 tech-token text-[11px] text-muted">{entry.module_id}</p>
 
         {/* Step 3 — document scope */}
         <Block label="Documents this skill will see">
@@ -599,7 +599,7 @@ function EnableSkillModal({
         <Block label="What this skill writes">
           <p className="text-sm text-ink">{shortCapabilityList(writes)}</p>
           <p className="mt-1 text-xs text-muted">
-            Outputs land in the matter Record. Per-output narrowing arrives
+            Outputs land in matter Activity. Per-output narrowing arrives
             once output-specific permissions are available.
           </p>
         </Block>

@@ -146,14 +146,14 @@ export function ResearchTab({ matter, initialCitations }: Props) {
                 No structured results returned for "{resp.query}".
               </div>
               {resp.raw_response_excerpt && (
-                <pre className="text-xs whitespace-pre-wrap border border-rule bg-wash p-4 font-mono text-prose">
+                <pre className="text-xs whitespace-pre-wrap border border-rule bg-wash p-4 tech-token text-prose">
                   {resp.raw_response_excerpt}
                 </pre>
               )}
             </div>
           ) : (
             <>
-              <div className="font-mono text-xs text-muted mb-2">
+              <div className="tech-token text-xs text-muted mb-2">
                 {resp.results.length} result{resp.results.length === 1 ? "" : "s"}
                 {resp.truncated ? " (truncated)" : ""} · {resp.model_used} ·{" "}
                 {resp.latency_ms}ms

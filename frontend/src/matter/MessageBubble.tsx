@@ -25,6 +25,9 @@ interface Props {
   onDocChip: (documentId: string) => void;
   onChronChip: (eventId: string) => void;
   onAction?: (a: SuggestedAction) => void;
+  onSources?: (message: AssistantMessage) => void;
+  onVersions?: (message: AssistantMessage) => void;
+  onRecord?: (message: AssistantMessage) => void;
   compact?: boolean;
 }
 
@@ -35,6 +38,9 @@ export function MessageBubble({
   onDocChip,
   onChronChip,
   onAction,
+  onSources,
+  onVersions,
+  onRecord,
   compact = false,
 }: Props) {
   const isUser = message.role === "user";
@@ -47,6 +53,9 @@ export function MessageBubble({
       onDocChip={onDocChip}
       onChronChip={onChronChip}
       onAction={onAction}
+      onSources={onSources}
+      onVersions={onVersions}
+      onRecord={onRecord}
       compact={compact}
     />
   );
@@ -70,10 +79,15 @@ function AssistantMessageView({
   onDocChip,
   onChronChip,
   onAction,
+  onSources,
+  onVersions,
+  onRecord,
   compact,
 }: Props) {
   const { text, citations } = extractCitations(message.content, docs, chronology);
   const sourceCount = citations.length;
+  const outputKind = outputKindForMessage(message);
+  const hasOutputRow = !compact && outputKind !== null;
   const metaSizing = compact ? "text-[10px]" : "text-[11px]";
   const proseSizing = compact ? "text-xs" : "text-[15px]";
 
@@ -87,12 +101,12 @@ function AssistantMessageView({
           " flex flex-col gap-2"
         }
       >
-        <div className={`font-mono ${metaSizing} text-muted`}>
+        <div className={`tech-token ${metaSizing} text-muted`}>
           Assistant{compact ? "" : ` · ${MODEL_LABEL}`}
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
-          {" · recorded in Record"}
+          {" · saved to Activity"}
         </div>
         <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
           {text}
@@ -107,7 +121,7 @@ function AssistantMessageView({
                   c.kind === "doc" ? onDocChip(c.id) : onChronChip(c.id)
                 }
                 title={c.full}
-                className={`inline-flex items-center border border-rule bg-paper text-ink px-2 py-0.5 font-mono ${
+                className={`inline-flex items-center border border-rule bg-paper text-ink px-2 py-0.5 tech-token ${
                   compact ? "text-[10px]" : "text-[11px]"
                 } hover:border-ink transition-colors`}
               >
@@ -120,23 +134,174 @@ function AssistantMessageView({
             ))}
           </div>
         )}
-        {!compact && message.suggested_actions.length > 0 && onAction && (
+        {!compact && message.suggested_actions.length > 0 && onAction && !hasOutputRow && (
           <div className="flex flex-wrap gap-2 pt-1">
             {message.suggested_actions.map((a, i) => (
               <button
                 key={`${a.type}-${i}`}
                 type="button"
                 onClick={() => onAction(a)}
-                className="border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors"
+                className="rounded-item border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors"
               >
                 {a.label}
               </button>
             ))}
           </div>
         )}
+        {hasOutputRow && (
+          <AssistantOutputRow
+            message={message}
+            citations={citations}
+            outputKind={outputKind}
+            onDocChip={onDocChip}
+            onAction={onAction}
+            onSources={onSources}
+            onVersions={onVersions}
+            onRecord={onRecord}
+          />
+        )}
       </div>
     </div>
   );
+}
+
+function AssistantOutputRow({
+  message,
+  citations,
+  outputKind,
+  onDocChip,
+  onAction,
+  onSources,
+  onVersions,
+  onRecord,
+}: {
+  message: AssistantMessage;
+  citations: Citation[];
+  outputKind: OutputKind;
+  onDocChip: (documentId: string) => void;
+  onAction?: (a: SuggestedAction) => void;
+  onSources?: (message: AssistantMessage) => void;
+  onVersions?: (message: AssistantMessage) => void;
+  onRecord?: (message: AssistantMessage) => void;
+}) {
+  const firstDoc = citations.find((citation) => citation.kind === "doc");
+  const primaryAction = message.suggested_actions.find(
+    (action) => !(firstDoc && action.type === "view_document"),
+  ) ?? null;
+  const summaryTitle = summaryCardTitle(message.content);
+  const outputTitle = summaryTitle
+    ? summaryTitle
+    : primaryAction
+    ? primaryAction.label
+    : firstDoc
+      ? "Document answer"
+      : "Matter answer";
+  const status =
+    citations.length > 0
+      ? `${citations.length} source${citations.length === 1 ? "" : "s"}`
+      : "draft";
+
+  return (
+    <div
+      className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-rule bg-paper px-3 py-2"
+      data-testid="assistant-output-row"
+    >
+      <span
+        aria-hidden="true"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-rule bg-paper-sunken tech-token text-[10px] font-semibold uppercase text-muted"
+      >
+        {outputKind.slice(0, 1)}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate text-sm font-semibold text-ink">{outputTitle}</span>
+          <span className="rounded-full border border-rule bg-paper-sunken px-2 py-0.5 text-[10px] font-medium uppercase tracking-track2 text-muted">
+            {status}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {firstDoc && (
+          <button
+            type="button"
+            onClick={() => onDocChip(firstDoc.id)}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Open
+          </button>
+        )}
+        {!firstDoc && primaryAction && onAction && (
+          <button
+            type="button"
+            onClick={() => onAction(primaryAction)}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Open
+          </button>
+        )}
+        {citations.length > 0 && onSources && (
+          <button
+            type="button"
+            onClick={() => onSources(message)}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Sources
+          </button>
+        )}
+        {firstDoc && onVersions && (
+          <button
+            type="button"
+            onClick={() => onVersions(message)}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Versions
+          </button>
+        )}
+        {onRecord && (
+          <button
+            type="button"
+            onClick={() => onRecord(message)}
+            className="text-muted underline underline-offset-4 hover:text-ink"
+          >
+            Activity
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type OutputKind =
+  | "Summary"
+  | "Pre-motion"
+  | "Draft letter"
+  | "Review"
+  | "Anonymise";
+
+const OUTPUT_ACTION_KIND: Partial<Record<SuggestedAction["type"], OutputKind>> = {
+  run_pre_motion: "Pre-motion",
+  draft_letter: "Draft letter",
+  review_contract: "Review",
+  anonymise_document: "Anonymise",
+};
+
+function outputKindForMessage(message: AssistantMessage): OutputKind | null {
+  if (summaryCardTitle(message.content)) return "Summary";
+  for (const action of message.suggested_actions) {
+    const kind = OUTPUT_ACTION_KIND[action.type];
+    if (kind) return kind;
+  }
+  return null;
+}
+
+function summaryCardTitle(content: string): string | null {
+  const firstLine = content
+    .split(/\r?\n/)
+    .find((line) => line.trim().length > 0)
+    ?.trim();
+  if (!firstLine) return null;
+  const match = firstLine.match(/^Summary of\s+(.+?):?$/i);
+  return match ? `Summary of ${match[1]}` : null;
 }
 
 // -- Citation extraction ---------------------------------------------------
@@ -221,7 +386,7 @@ export interface InlineAgentStep {
 export function InlineAgentStatus({ steps, compact = false }: { steps?: InlineAgentStep[]; compact?: boolean }) {
   const text = compact ? "text-[10px]" : "text-xs";
   return (
-    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 font-mono ${text} text-muted`}>
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 tech-token ${text} text-muted`}>
       <span className="text-prose">Working...</span>
       {(steps ?? []).map((s, i) => (
         <span key={i} className="inline-flex items-center gap-1">

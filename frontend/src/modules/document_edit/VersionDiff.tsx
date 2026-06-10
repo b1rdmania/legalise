@@ -106,19 +106,19 @@ export function VersionDiff({
 
       <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
         <div className="border border-rule bg-paper p-3">
-          <dt className="font-mono uppercase tracking-track2 text-muted">Added</dt>
+          <dt className="tech-token uppercase tracking-track2 text-muted">Added</dt>
           <dd className="mt-1 text-sm font-semibold text-green-900">
             {summary.insertedChars.toLocaleString()} chars
           </dd>
         </div>
         <div className="border border-rule bg-paper p-3">
-          <dt className="font-mono uppercase tracking-track2 text-muted">Removed</dt>
+          <dt className="tech-token uppercase tracking-track2 text-muted">Removed</dt>
           <dd className="mt-1 text-sm font-semibold text-red-900">
             {summary.deletedChars.toLocaleString()} chars
           </dd>
         </div>
         <div className="border border-rule bg-paper p-3">
-          <dt className="font-mono uppercase tracking-track2 text-muted">Unchanged</dt>
+          <dt className="tech-token uppercase tracking-track2 text-muted">Unchanged</dt>
           <dd className="mt-1 text-sm font-semibold text-ink">
             {summary.unchangedChars.toLocaleString()} chars
           </dd>

@@ -109,8 +109,8 @@ export function DemoLoop() {
       {handles && phase.step !== "ensuring" && (
         <div className="space-y-6">
           <div className="rounded-md border border-seal/40 bg-seal/5 p-3 text-xs text-seal" data-testid="demo-banner">
-            Demo · matter <span className="font-mono">{handles.matter_slug}</span> ·
-            model <span className="font-mono">{handles.model_id}</span>. Keyless demonstration
+            Demo · matter <span className="tech-token">{handles.matter_slug}</span> ·
+            model <span className="tech-token">{handles.model_id}</span>. Keyless demonstration
             modelled on Khan v Acme. Not legal advice. Bring a key for real providers.
           </div>
 
@@ -136,8 +136,8 @@ export function DemoLoop() {
           {/* Step 1 — run */}
           <Step n={1} title="Run a skill" done={phase.step !== "ready"}>
             <p className="text-sm text-muted">
-              The demo skill <span className="font-mono">{handles.module_id}</span> reads{" "}
-              <span className="font-mono">{handles.document_filename}</span> and writes a
+              The demo skill <span className="tech-token">{handles.module_id}</span> reads{" "}
+              <span className="tech-token">{handles.document_filename}</span> and writes a
               matter artifact — under the same privilege control, per-matter permissions, and audit as any
               real run.
             </p>

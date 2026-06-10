@@ -196,7 +196,7 @@ function Fact({
       <dt className="text-muted">{label}</dt>
       <dd
         className={
-          (mono ? "font-mono " : "") +
+          (mono ? "tech-token " : "") +
           (muted ? "text-muted" : "text-ink") +
           " break-words"
         }

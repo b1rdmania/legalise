@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNod
 import { useNavigate } from "@tanstack/react-router";
 import {
   getModulesV2,
+  documentOriginalUrl,
   listGrants,
   listAssistantMessages,
   listInstalledModules,
-  postAssistantMessage,
+  postAssistantMessageStream,
   ProviderKeyMissingError,
   ProviderUpstreamError,
+  providerKeyMissingFromBody,
   providerUpstreamMessage,
+  tryParseProviderUpstream,
   type AssistantMessage,
+  type AssistantStreamEvent,
   type ChronologyEvent,
   type GrantRow,
   type InstalledModule,
@@ -19,7 +23,7 @@ import {
   type V2ManifestEntry,
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
-import { InlineAgentStatus, MessageBubble } from "../MessageBubble";
+import { InlineAgentStatus, MessageBubble, type InlineAgentStep } from "../MessageBubble";
 import { GenericSkillRunner } from "../GenericSkillRunner";
 import {
   runnableMatterSkills,
@@ -56,30 +60,36 @@ interface AssistantTabProps {
 // Actions": not generic. Matter-shaped starters that prefill the composer.
 const SUGGESTED_BY_TYPE: Record<string, string[]> = {
   employment_tribunal: [
-    "Draft a Letter Before Action for the dismissal",
-    "Run pre-motion against the conduct framing",
+    "Stress-test the dismissal claim",
+    "Draft a letter before action",
+    "Build a chronology",
     "Summarise the witness statement",
   ],
   civil: [
-    "Draft a CPR pre-action letter",
-    "Run contract review on the NDA",
-    "Build the chronology from the documents",
+    "Stress-test this case",
+    "Draft a pre-action letter",
+    "Build a chronology",
+    "Summarise a document",
   ],
 };
 const SUGGESTED_DEFAULT = [
-  "Summarise this matter",
-  "List the documents and what they say",
-  "What deadlines should I be tracking?",
+  "Stress-test this case",
+  "Draft a letter",
+  "Build a chronology",
+  "Summarise a document",
 ];
 
-const ACTION_TARGET: Record<SuggestedAction["type"], TabKey> = {
-  run_pre_motion: "premotion",
-  draft_letter: "letters",
-  review_contract: "contract-review",
+const ACTION_TARGET: Partial<Record<SuggestedAction["type"], TabKey>> = {
   view_document: "documents",
   view_audit: "audit",
   view_chronology: "chronology",
-  anonymise_document: "documents",
+};
+
+const WORKFLOW_ACTION_PROMPT: Partial<Record<SuggestedAction["type"], string>> = {
+  run_pre_motion: "Run the pre-motion premortem now.",
+  draft_letter: "Draft the letter now.",
+  review_contract: "Run the contract review now.",
+  anonymise_document: "Anonymise the selected document now.",
 };
 
 export function AssistantTab({
@@ -91,7 +101,7 @@ export function AssistantTab({
   disabled = false,
   disabledPlaceholder,
   showDisabledFooter = true,
-  showContextRail = true,
+  showContextRail = false,
   onDisabledAction,
   onDocumentChip,
   initialDocumentId,
@@ -105,6 +115,7 @@ export function AssistantTab({
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [agentSteps, setAgentSteps] = useState<InlineAgentStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
@@ -117,6 +128,7 @@ export function AssistantTab({
   const [grantRows, setGrantRows] = useState<GrantRow[] | null>(null);
   const [activeRunnerSkill, setActiveRunnerSkill] =
     useState<RunnableMatterSkill | null>(null);
+  const [workPane, setWorkPane] = useState<AssistantWorkPaneState | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Initial fetch (skip in demo: initialMessages provided).
@@ -230,13 +242,14 @@ export function AssistantTab({
     });
   };
 
-  const onSend = async () => {
-    const content = input.trim();
+  const sendMessage = async (content: string, selectedIds = selectedDocIds) => {
+    content = content.trim();
     if (!content || pending || disabled) return;
     setError(null);
     setKeyMissingProvider(null);
     setPending(true);
     setThinking(true);
+    setAgentSteps([{ label: "Starting turn", status: "running" }]);
     const optimistic: AssistantMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
@@ -247,14 +260,26 @@ export function AssistantTab({
     setMessages((prev) => [...prev, optimistic]);
     setInput("");
     try {
-      const res = await postAssistantMessage(matter.slug, {
+      const stream = postAssistantMessageStream(matter.slug, {
         content,
-        selected_document_ids: selectedDocIds.size > 0 ? Array.from(selectedDocIds) : undefined,
+        selected_document_ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
       });
-      setMessages((prev) => {
-        const without = prev.filter((m) => m.id !== optimistic.id);
-        return [...without, res.user, res.assistant];
-      });
+      let sawResult = false;
+      for await (const event of stream) {
+        if (event.event === "error") {
+          throw streamEventError(event);
+        }
+        setAgentSteps((prev) => nextAgentSteps(prev, event));
+        if (event.event !== "result") continue;
+        sawResult = true;
+        setMessages((prev) => {
+          const without = prev.filter((m) => m.id !== optimistic.id);
+          return [...without, event.data.user, event.data.assistant];
+        });
+      }
+      if (!sawResult) {
+        throw new Error("Assistant stream ended before returning a result.");
+      }
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       if (err instanceof ProviderKeyMissingError) {
@@ -265,7 +290,12 @@ export function AssistantTab({
     } finally {
       setPending(false);
       setThinking(false);
+      setAgentSteps([]);
     }
+  };
+
+  const onSend = async () => {
+    await sendMessage(input);
   };
 
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -276,6 +306,14 @@ export function AssistantTab({
   };
 
   const dispatchAction = (a: SuggestedAction) => {
+    const workflowPrompt = WORKFLOW_ACTION_PROMPT[a.type];
+    if (workflowPrompt) {
+      const selectedIds = new Set(selectedDocIds);
+      const documentId = a.params.document_id;
+      if (documentId && docsById.has(documentId)) selectedIds.add(documentId);
+      void sendMessage(`${workflowPrompt}\n\nRequested from: ${a.label}`, selectedIds);
+      return;
+    }
     const target = ACTION_TARGET[a.type];
     if (target) setTabAndHash(target);
   };
@@ -341,21 +379,24 @@ export function AssistantTab({
     void navigate({ to: "/matters/$slug/audit", params: { slug: matter.slug } });
   };
 
+  const openAddSkill = () => {
+    void navigate({ to: "/skills/lawve" });
+  };
+
   return (
-    <div className="mx-auto grid w-full max-w-[1220px] gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="flex min-h-[620px] min-w-0 flex-col">
-        <div className="mb-5">
-          <p className="text-[11px] uppercase tracking-widest text-muted">
-            Legal project
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
+    <div
+      className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[740px] flex-col px-1"
+      data-testid="chat-led-workspace"
+    >
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="mb-6 pt-1">
+          <h1 className="max-w-2xl text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[34px]">
             {matter.title}
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Ask about the documents, or run a skill. Outputs can be signed and
-            traced in the Record.
+          <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted">
+            Ask about files, draft from the matter, or run a skill. Saved work stays attached.
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-muted">
             <span data-testid="docs-context-status">
               {docs === null
                 ? "Loading documents…"
@@ -373,17 +414,17 @@ export function AssistantTab({
             <button
               type="button"
               onClick={openRecord}
-              className="underline underline-offset-4 hover:text-ink"
+              className="underline underline-offset-4 decoration-rule hover:text-ink"
               data-testid="open-record-link"
             >
-              View Record →
+              Activity
             </button>
           </div>
         </div>
 
         {attachedDocs.length > 0 && (
           <section
-            className="mb-4 border border-rule bg-paper-sunken px-4 py-3"
+            className="mb-4 rounded-card border border-rule bg-paper-sunken px-4 py-3"
             data-testid="chat-attached-document-context"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -395,7 +436,7 @@ export function AssistantTab({
                   {attachedDocs.map((doc) => (
                     <span
                       key={doc.id}
-                      className="inline-flex max-w-full items-center gap-2 border border-rule bg-paper px-2 py-1 font-mono text-xs text-ink"
+                      className="inline-flex max-w-full items-center gap-2 rounded-item border border-rule bg-paper px-2 py-1 tech-token text-xs text-ink"
                     >
                       <span className="max-w-[360px] truncate">{doc.filename}</span>
                       <button
@@ -416,7 +457,7 @@ export function AssistantTab({
                   onClick={() => dispatchDocChip(attachedDocs[0].id)}
                   className="shrink-0 text-xs text-muted underline underline-offset-4 hover:text-ink"
                 >
-                  Open file →
+                  Preview →
                 </button>
               )}
             </div>
@@ -425,42 +466,29 @@ export function AssistantTab({
 
         <div
           ref={scrollRef}
-          className="flex-1 space-y-5 overflow-y-auto border-y border-rule py-6 lg:max-h-[62vh]"
+          className="min-h-0 flex-1 space-y-5 overflow-y-auto border-t border-rule py-5"
         >
         {!loaded && (
-          <p className="font-mono text-xs text-muted flex items-center gap-2">
+          <p className="tech-token text-xs text-muted flex items-center gap-2">
             <InlineSpinner />
             loading conversation
           </p>
         )}
         {loaded && messages.length === 0 && (
-          <div className="space-y-6 border border-rule bg-paper-sunken p-5" data-testid="chat-empty-state">
-            <div className="text-sm text-prose space-y-2">
-              <p>
-                This is the folder for <strong>{matter.title}</strong>. Ask
-                anything about the documents in here, or run a skill enabled
-                on this matter.
-              </p>
-              <p className="text-xs text-muted">
-                Sources appear as chips below each answer. Outputs you sign
-                off land in the matter Record.
-              </p>
-            </div>
-            <div>
-              <div className="eyebrow mb-2">Try one of these</div>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => onSuggestion(s)}
-                    className="border border-rule text-ink bg-paper px-3 py-1.5 text-xs font-medium hover:border-ink transition-colors text-left"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="grid gap-2 sm:grid-cols-2" data-testid="chat-empty-state">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSuggestion(s)}
+                className="group flex min-h-[44px] items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 text-left text-[14px] leading-5 text-ink transition-colors hover:border-ink hover:bg-paper-sunken"
+              >
+                <span>{s}</span>
+                <span className="text-muted transition-colors group-hover:text-ink" aria-hidden>
+                  →
+                </span>
+              </button>
+            ))}
           </div>
         )}
         {messages.map((m) => (
@@ -472,6 +500,9 @@ export function AssistantTab({
             onDocChip={dispatchDocChip}
             onChronChip={dispatchChronChip}
             onAction={dispatchAction}
+            onSources={(message) => setWorkPane({ kind: "sources", message })}
+            onVersions={(message) => setWorkPane({ kind: "versions", message })}
+            onRecord={(message) => setWorkPane({ kind: "activity", message })}
           />
         ))}
         {activeRunnerSkill && (
@@ -487,13 +518,7 @@ export function AssistantTab({
         )}
         {thinking && (
           <div className="flex justify-start">
-            <InlineAgentStatus
-              steps={[
-                { label: "Read chronology", status: "complete" },
-                { label: "Checked documents", status: "complete" },
-                { label: "Drafting answer", status: "running" },
-              ]}
-            />
+            <InlineAgentStatus steps={agentSteps} />
           </div>
         )}
         </div>
@@ -509,7 +534,7 @@ export function AssistantTab({
         {disabled ? (
           // Compact unauth state - sticky strip, attached to chat column.
           showDisabledFooter ? (
-          <div className="mt-3 sticky bottom-0 bg-paper pt-3">
+          <div className="sticky bottom-0 mt-3 bg-paper pt-3">
           <div className="border-t border-rule py-3 flex flex-wrap items-center gap-3">
             <p className="text-sm text-prose m-0 flex-1 min-w-[200px]">
               {disabledPlaceholder ?? "Create an evaluation account to use the assistant on this matter."}
@@ -542,7 +567,7 @@ export function AssistantTab({
                   type="button"
                   onClick={() => removeDoc(d.id)}
                   title={`Remove ${d.filename}`}
-                  className="inline-flex items-center gap-1.5 border border-rule bg-paper px-2 py-1 font-mono text-[11px] text-ink hover:border-ink transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-item border border-rule bg-paper px-2 py-1 tech-token text-[11px] text-ink hover:border-ink transition-colors"
                 >
                   <span className="text-muted">Document</span>
                   <span className="max-w-[180px] truncate">{d.filename}</span>
@@ -558,9 +583,9 @@ export function AssistantTab({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             disabled={pending}
-            rows={3}
-            placeholder={`Ask about ${matter.title}. Cmd/Ctrl+Enter to send.`}
-            className="w-full bg-paper border border-rule px-4 py-3 text-[15px] focus:border-ink focus:outline-none transition-colors font-sans text-ink resize-y disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed"
+            rows={2}
+            placeholder={`Ask about ${matter.title}`}
+            className="w-full resize-none rounded-item border border-rule bg-paper px-4 py-3 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:border-ink focus:outline-none disabled:cursor-not-allowed disabled:bg-wash disabled:text-muted"
           />
           <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
             {/* Left: attachment chips + workflows stub */}
@@ -568,7 +593,8 @@ export function AssistantTab({
               <button
                 type="button"
                 onClick={() => setAttachOpen((v) => !v)}
-                className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
+                data-testid="chat-documents-toggle"
+                className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
               >
                 + Documents
               </button>
@@ -578,7 +604,7 @@ export function AssistantTab({
                 aria-expanded={skillsOpen}
                 aria-haspopup="menu"
                 data-testid="chat-skills-toggle"
-                className="font-mono text-[11px] text-muted hover:text-ink transition-colors"
+                className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
               >
                 Skills{runnableSkillCount > 0 ? ` (${runnableSkillCount})` : ""}
               </button>
@@ -586,7 +612,7 @@ export function AssistantTab({
                 <div
                   role="menu"
                   aria-label="Skills enabled in this matter"
-                  className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[300px] z-10"
+                  className="absolute bottom-full left-0 mb-2 rounded-card border border-rule bg-paper p-3 w-[300px] z-10"
                   data-testid="chat-skills-popover"
                 >
                   <div className="eyebrow mb-2">Run a skill</div>
@@ -597,11 +623,11 @@ export function AssistantTab({
                         type="button"
                         onClick={() => {
                           setSkillsOpen(false);
-                          setTabAndHash("workflows");
+                          openAddSkill();
                         }}
                         className="underline underline-offset-4 hover:text-ink"
                       >
-                      Open Skills →
+                      Add a skill →
                       </button>
                     </p>
                   ) : (
@@ -614,7 +640,7 @@ export function AssistantTab({
                                 type="button"
                                 role="menuitem"
                                 onClick={() => onPickRunnerSkill(skill)}
-                                className="flex w-full items-start justify-between gap-2 border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
+                                className="flex w-full items-start justify-between gap-2 rounded-item border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
                                 data-testid={`chat-runner-skill-${skill.moduleId}-${skill.capabilityId}`}
                               >
                                 <span className="block">
@@ -639,16 +665,26 @@ export function AssistantTab({
                     type="button"
                     onClick={() => {
                       setSkillsOpen(false);
-                      setTabAndHash("workflows");
+                      openAddSkill();
                     }}
                     className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
                   >
-                    Manage skills →
+                    Add skill →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSkillsOpen(false);
+                      setTabAndHash("workflows");
+                    }}
+                    className="ml-3 mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                  >
+                    Manage matter skills →
                   </button>
                 </div>
               )}
               {attachOpen && recentDocs.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-2 border border-rule bg-paper p-3 w-[280px] z-10">
+                <div className="absolute bottom-full left-0 mb-2 rounded-card border border-rule bg-paper p-3 w-[280px] z-10">
                   <div className="eyebrow mb-2">Attach documents</div>
                   <ul className="space-y-2">
                     {recentDocs.map((d) => {
@@ -662,7 +698,7 @@ export function AssistantTab({
                               onChange={() => toggleDoc(d.id)}
                               className="mt-0.5"
                             />
-                            <span className="font-mono text-ink truncate">{d.filename}</span>
+                            <span className="tech-token text-ink truncate">{d.filename}</span>
                           </label>
                         </li>
                       );
@@ -671,7 +707,7 @@ export function AssistantTab({
                   <button
                     type="button"
                     onClick={() => setAttachOpen(false)}
-                    className="mt-3 font-mono text-[10px] text-muted hover:text-ink"
+                    className="mt-3 tech-token text-[10px] text-muted hover:text-ink"
                   >
                     Close
                   </button>
@@ -684,9 +720,9 @@ export function AssistantTab({
               <button
                 onClick={onSend}
                 disabled={pending || !input.trim()}
-                className={primaryBtn}
+                className={`${primaryBtn} min-h-[38px] px-4 py-1.5 text-[14px]`}
               >
-                {pending ? "Sending..." : "Send"}
+                {pending ? "Sending…" : "Send"}
               </button>
             </div>
           </div>
@@ -694,7 +730,16 @@ export function AssistantTab({
         )}
       </div>
 
-      {showContextRail && (
+      {workPane ? (
+        <AssistantWorkPane
+          state={workPane}
+          matter={matter}
+          docs={docs}
+          onClose={() => setWorkPane(null)}
+          onOpenDocument={dispatchDocChip}
+          onOpenRecord={openRecord}
+        />
+      ) : showContextRail ? (
         <MatterContextRail
           docs={docs}
           recentDocs={recentDocs}
@@ -709,8 +754,278 @@ export function AssistantTab({
           onOpenOutputs={openOutputs}
           onOpenPack={openWorkingPack}
         />
-      )}
+      ) : null}
     </div>
+  );
+}
+
+type AssistantWorkPaneState = {
+  kind: "sources" | "versions" | "activity";
+  message: AssistantMessage;
+};
+
+function streamEventError(event: Extract<AssistantStreamEvent, { event: "error" }>): Error {
+  const keyMissing = providerKeyMissingFromBody(event.data);
+  if (keyMissing) return keyMissing;
+  const upstream = tryParseProviderUpstream(event.data);
+  if (upstream) return upstream;
+  return new Error(event.data.message || "Assistant stream failed.");
+}
+
+function nextAgentSteps(
+  previous: InlineAgentStep[],
+  event: AssistantStreamEvent,
+): InlineAgentStep[] {
+  switch (event.event) {
+    case "context.loaded":
+      return [
+        completeStep("Loaded matter context"),
+        runningStep(
+          event.data.tool_count > 0
+            ? `Found ${event.data.tool_count} tool${event.data.tool_count === 1 ? "" : "s"}`
+            : "Reading request",
+        ),
+      ];
+    case "turn.accepted":
+      return [...completeRunning(previous), runningStep("Planning answer")];
+    case "turn.deterministic":
+      return [...completeRunning(previous), runningStep("Preparing summary")];
+    case "model.start":
+      return [
+        ...completeRunning(previous),
+        runningStep(event.data.stage === "assistant.final" ? "Writing answer" : "Asking model"),
+      ];
+    case "tool.start":
+      return [
+        ...completeRunning(previous),
+        runningStep(toolLabel(event.data.module_id, event.data.capability_id)),
+      ];
+    case "tool.end":
+      return [
+        ...completeRunning(previous),
+        completeStep(toolLabel(event.data.module_id, event.data.capability_id)),
+        runningStep("Writing answer"),
+      ];
+    case "tool.error":
+      return [
+        ...completeRunning(previous),
+        completeStep("Tool returned a recoverable error"),
+        runningStep("Writing answer"),
+      ];
+    case "turn.end":
+      return [...completeRunning(previous), runningStep("Saving reply")];
+    case "result":
+      return [...completeRunning(previous), completeStep("Saved reply")];
+    case "turn.start":
+    case "error":
+    default:
+      return previous;
+  }
+}
+
+function completeRunning(steps: InlineAgentStep[]): InlineAgentStep[] {
+  return steps.map((step) =>
+    step.status === "running" ? { ...step, status: "complete" } : step,
+  );
+}
+
+function completeStep(label: string): InlineAgentStep {
+  return { label, status: "complete" };
+}
+
+function runningStep(label: string): InlineAgentStep {
+  return { label, status: "running" };
+}
+
+function toolLabel(moduleId: string, capabilityId: string): string {
+  const moduleLabel = moduleId.split(".").at(-1)?.replace(/[-_]/g, " ") || moduleId;
+  const capabilityLabel = capabilityId.replace(/[-_]/g, " ");
+  return `Running ${moduleLabel}: ${capabilityLabel}`;
+}
+
+const DOC_CITATION_RE = /\[doc:([A-Za-z0-9_.\-]+)\]/g;
+
+function citedDocuments(
+  message: AssistantMessage,
+  docs: MatterDocument[] | null,
+): MatterDocument[] {
+  const byId = new Map((docs ?? []).map((doc) => [doc.id, doc]));
+  const seen = new Set<string>();
+  const out: MatterDocument[] = [];
+  let match: RegExpExecArray | null;
+  DOC_CITATION_RE.lastIndex = 0;
+  while ((match = DOC_CITATION_RE.exec(message.content)) !== null) {
+    const id = match[1];
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const doc = byId.get(id);
+    if (doc) out.push(doc);
+  }
+  return out;
+}
+
+function AssistantWorkPane({
+  state,
+  matter,
+  docs,
+  onClose,
+  onOpenDocument,
+  onOpenRecord,
+}: {
+  state: AssistantWorkPaneState;
+  matter: Matter;
+  docs: MatterDocument[] | null;
+  onClose: () => void;
+  onOpenDocument: (documentId: string) => void;
+  onOpenRecord: () => void;
+}) {
+  const cited = citedDocuments(state.message, docs);
+  const title =
+    state.kind === "sources"
+      ? "Sources"
+      : state.kind === "versions"
+        ? "Versions"
+        : "Activity";
+
+  return (
+    <aside
+      className="fixed inset-y-0 right-0 z-40 flex w-full max-w-[420px] flex-col border-l border-rule bg-paper shadow-panel"
+      data-testid={`assistant-work-pane-${state.kind}`}
+      aria-label={`${title} pane`}
+    >
+      <section className="flex min-h-0 flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+              Inspect
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
+              {title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink"
+            aria-label="Close work pane"
+          >
+            Close
+          </button>
+        </div>
+
+        {state.kind === "sources" && (
+          <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
+            {cited.length === 0 ? (
+              <p className="text-sm leading-6 text-muted">
+                This answer did not cite a file. Attach one above the composer
+                and ask again to keep sources close to the answer.
+              </p>
+            ) : (
+              cited.map((doc) => (
+                <DocumentPaneCard
+                  key={doc.id}
+                  doc={doc}
+                  primaryLabel="Preview"
+                  onPrimary={() => onOpenDocument(doc.id)}
+                  secondaryHref={documentOriginalUrl(doc.id)}
+                  secondaryLabel="Original"
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {state.kind === "versions" && (
+          <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
+            {cited.length === 0 ? (
+              <p className="text-sm leading-6 text-muted">
+                No cited file is attached to this answer, so there is no version
+                history to open from here.
+              </p>
+            ) : (
+              cited.map((doc) => (
+                <DocumentPaneCard
+                  key={doc.id}
+                  doc={doc}
+                  primaryLabel="Open versions"
+                  onPrimary={() => onOpenDocument(doc.id)}
+                  secondaryHref={documentOriginalUrl(doc.id)}
+                  secondaryLabel="Original file"
+                />
+              ))
+            )}
+          </div>
+        )}
+
+        {state.kind === "activity" && (
+          <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto">
+            <p className="text-sm leading-6 text-muted">
+              This answer was saved in the thread. Activity shows the assistant
+              call, file context, model, posture, and any later output events.
+            </p>
+            <button
+              type="button"
+              onClick={onOpenRecord}
+              className="inline-flex min-h-[40px] items-center rounded-md border border-ink bg-ink px-3 text-sm font-medium text-paper hover:bg-black"
+            >
+              Open Activity
+            </button>
+            <dl className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="uppercase tracking-track2 text-muted">Matter</dt>
+                <dd className="mt-1 font-semibold text-ink">{matter.title}</dd>
+              </div>
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="uppercase tracking-track2 text-muted">State</dt>
+                <dd className="mt-1 font-semibold text-ink">
+                  {matter.privilege_posture}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
+      </section>
+    </aside>
+  );
+}
+
+function DocumentPaneCard({
+  doc,
+  primaryLabel,
+  onPrimary,
+  secondaryHref,
+  secondaryLabel,
+}: {
+  doc: MatterDocument;
+  primaryLabel: string;
+  onPrimary: () => void;
+  secondaryHref?: string;
+  secondaryLabel?: string;
+}) {
+  return (
+    <article className="rounded-card border border-rule bg-paper-sunken p-3">
+      <p className="tech-token text-xs font-semibold text-ink">{doc.filename}</p>
+      <p className="mt-1 text-xs text-muted">
+        {doc.tag || "untagged"} · {doc.mime_type}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onPrimary}
+          className="rounded-md border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+        >
+          {primaryLabel}
+        </button>
+        {secondaryHref && secondaryLabel && (
+          <a
+            href={secondaryHref}
+            className="rounded-md border border-rule bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:border-ink"
+          >
+            {secondaryLabel}
+          </a>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -756,7 +1071,7 @@ function MatterContextRail({
             </p>
             <ul className="mt-3 space-y-2">
               {recentDocs.slice(0, 4).map((doc) => (
-                <li key={doc.id} className="truncate font-mono text-xs text-muted">
+                <li key={doc.id} className="truncate tech-token text-xs text-muted">
                   {doc.filename}
                 </li>
               ))}
@@ -782,10 +1097,9 @@ function MatterContextRail({
         )}
       </RailPanel>
 
-      <RailPanel eyebrow="Proof" actionLabel="Record" onAction={onOpenRecord}>
+      <RailPanel eyebrow="Activity" actionLabel="Open" onAction={onOpenRecord}>
         <p className="text-sm text-muted">
-          Every skill run writes to the matter Record. Signed outputs and the
-          working pack sit behind it.
+          Skill runs, saved outputs, and exports are visible from the matter activity.
         </p>
         <div className="mt-3 flex flex-wrap gap-3 text-xs">
           <button
@@ -793,14 +1107,14 @@ function MatterContextRail({
             onClick={onOpenOutputs}
             className="underline underline-offset-4 hover:text-ink"
           >
-            Signed outputs
+            Outputs
           </button>
           <button
             type="button"
             onClick={onOpenPack}
             className="underline underline-offset-4 hover:text-ink"
           >
-            Working pack
+            Export
           </button>
         </div>
       </RailPanel>
@@ -822,7 +1136,7 @@ function RailPanel({
   children: ReactNode;
 }) {
   return (
-    <section className="border border-rule bg-paper p-4">
+    <section className="rounded-card border border-rule bg-paper p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
         <button

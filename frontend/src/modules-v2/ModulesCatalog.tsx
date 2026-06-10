@@ -4,13 +4,13 @@
  *
  * Two distinct concepts, kept separate (ratified — no unification):
  *   1. PRIMARY: governed reference modules from the v2 registry
- *      (getModulesV2). These are what you install / trust / run. Each
- *      card shows its workspace state (Available / Installed / Installed
+ *      (getModulesV2). These are what you add / trust / run. Each
+ *      card shows its workspace state (Available / Added / Added
  *      · disabled) derived from listInstalledModules.
  *   2. SECONDARY: the open UK-legal skill library (getPublicModules) —
- *      browse only, NOT an install path. Collapsed by default.
+ *      browse only, NOT an add path. Collapsed by default.
  *
- * Enablement is per-matter: installing a module at the workspace does
+ * Enablement is per-matter: adding a module at the workspace does
  * not make it "ready everywhere" — running it is granted from a matter.
  */
 
@@ -74,12 +74,12 @@ function suiteLabel(plugin: string): string {
 
 const STATE_LABEL: Record<ModuleState, string> = {
   available: "Available",
-  installed: "Installed",
+  installed: "Added",
   disabled: "Revoked",
 };
 
 const TAB_LABEL: Record<SkillTab, string> = {
-  installed: "Installed",
+  installed: "Added",
   available: "Available",
   revoked: "Revoked",
 };
@@ -92,7 +92,7 @@ function CompatibilityBadge() {
   return (
     <span
       title="Tested against Anthropic Claude Sonnet 4.6 or newer. Legalise can support other approved model providers; the skill format is Claude-native in V1."
-      className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-muted"
+      className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 tech-token text-[9px] uppercase tracking-widest text-muted"
     >
       Tested with Claude Sonnet 4.6+
     </span>
@@ -182,7 +182,7 @@ export function ModulesCatalog() {
     return counts;
   }, [installed, modules]);
 
-  // Default to Installed if anything is installed, otherwise show
+  // Default to Added if anything is already trusted, otherwise show
   // Available so a fresh workspace lands on the discovery view.
   useEffect(() => {
     if (modules === null) return;
@@ -198,7 +198,7 @@ export function ModulesCatalog() {
         title="Skills"
         description={
           authed
-            ? "Install legal skills at the workspace, then enable them inside the matter where they should run."
+            ? "Add legal skills to the workspace, then enable them inside the matter where they should run."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -207,9 +207,9 @@ export function ModulesCatalog() {
               <>
                 <Link
                   to="/skills/lawve"
-                  className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+                  className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black"
                 >
-                  Import from Lawve
+                  Add skill
                 </Link>
                 <Link
                   to="/skills/create"
@@ -252,7 +252,7 @@ export function ModulesCatalog() {
       )}
 
       {/* Primary: reference skills (v2 registry).
-          §7 tab structure: Installed / Available / Revoked
+          §7 tab structure: Added / Available / Revoked
           (Revoked is operator-only). */}
       {authed && (
       <section>
@@ -296,7 +296,7 @@ export function ModulesCatalog() {
                     }
                   >
                     {TAB_LABEL[t]}
-                    <span className="ml-1.5 font-mono text-xs text-muted">
+                    <span className="ml-1.5 tech-token text-xs text-muted">
                       {tabCounts[t]}
                     </span>
                   </button>
@@ -314,12 +314,12 @@ export function ModulesCatalog() {
         ) : filteredModules?.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
             {tab === "installed"
-              ? "No skills installed in this workspace yet. Switch to Available to browse the registry."
+              ? "No skills added to this workspace yet. Switch to Available to browse the registry."
               : tab === "revoked"
                 ? "No skills have been revoked in this workspace."
                 : query
                   ? "No skills match that search."
-                  : "Nothing to install — all reference skills are already trusted in this workspace."}
+                  : "Nothing to add — all reference skills are already trusted in this workspace."}
           </p>
         ) : (
           <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
@@ -353,7 +353,7 @@ export function ModulesCatalog() {
                         {STATE_LABEL[st]}
                       </span>
                     </div>
-                    <p className="mt-1 font-mono text-[11px] text-muted">
+                    <p className="mt-1 tech-token text-[11px] text-muted">
                       {m.module_id}
                       {manifestStr(m, "publisher") ? ` · ${manifestStr(m, "publisher")}` : ""}
                     </p>
@@ -366,7 +366,7 @@ export function ModulesCatalog() {
                     </p>
                     <dl className="mt-3 grid grid-cols-1 gap-2 border-t border-rule pt-3 text-xs sm:grid-cols-2">
                       <div>
-                        <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+                        <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
                           Reads
                         </dt>
                         <dd className="mt-1 text-ink">
@@ -374,7 +374,7 @@ export function ModulesCatalog() {
                         </dd>
                       </div>
                       <div>
-                        <dt className="font-mono uppercase tracking-widest text-[9px] text-muted">
+                        <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
                           Writes
                         </dt>
                         <dd className="mt-1 text-ink">
@@ -384,7 +384,7 @@ export function ModulesCatalog() {
                     </dl>
                     <p className="mt-3 text-xs text-muted">
                       Running happens inside a matter after permissions are
-                      granted. Install state here is workspace-level.
+                      granted. Add state here is workspace-level.
                     </p>
                   </Link>
                 </li>
@@ -395,7 +395,7 @@ export function ModulesCatalog() {
       </section>
       )}
 
-      {/* Secondary: open skill library (browse only, not an install path) */}
+      {/* Secondary: open skill library (browse only, not an add path) */}
       <section className={authed ? "mt-10" : "mt-4"}>
         {authed ? (
           <button
@@ -416,7 +416,7 @@ export function ModulesCatalog() {
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-prose">
                 These examples come from the open legal skills library. Legalise
-                turns this kind of skill into something a firm can install, run
+                turns this kind of skill into something a firm can add, run
                 inside a matter, review, sign, and audit.
               </p>
             </div>
@@ -434,8 +434,8 @@ export function ModulesCatalog() {
           <div className="mt-3">
             {authed && (
             <p className="text-xs text-muted">
-              The open skill library — browse what's available. These are not
-              installed from here; reference skills above are the install path.
+              The open skill library — browse what's available, or use Add skill
+              to inspect and convert a Lawve skill into a governed draft.
               {skillsRepo ? (
                 <>
                   {" "}
@@ -503,7 +503,7 @@ function SkillsBySuite({ skills }: { skills: PublicModuleSkill[] }) {
                   className="bg-paper p-4"
                 >
                   <h4 className="text-sm font-medium text-ink">{s.name}</h4>
-                  <p className="mt-1 font-mono text-[11px] text-muted">{s.skill}</p>
+                  <p className="mt-1 tech-token text-[11px] text-muted">{s.skill}</p>
                   <p className="mt-2 text-sm text-muted line-clamp-2">{s.description}</p>
                 </li>
               ))}

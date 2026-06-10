@@ -130,14 +130,14 @@ export function GenericSkillRunner({
 
   return (
     <section
-      className={compact ? "border border-rule bg-paper p-3" : "border border-rule bg-paper p-4"}
+      className={compact ? "rounded-card border border-rule bg-paper p-3" : "rounded-card border border-rule bg-paper p-4"}
       data-testid={`generic-runner-${skill.moduleId}-${skill.capabilityId}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{skill.title}</p>
           <p className="mt-1 max-w-xl text-xs text-muted">
-            {skill.description || "Runs against this project and writes an output to the Record."}
+            {skill.description || "Runs against this project and writes an output to Activity."}
           </p>
         </div>
         <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
@@ -176,7 +176,7 @@ export function GenericSkillRunner({
                     checked={selectedDocIds.has(doc.id)}
                     onChange={() => toggleDoc(doc.id)}
                   />
-                  <span className="truncate font-mono text-xs">{doc.filename}</span>
+                  <span className="truncate tech-token text-xs">{doc.filename}</span>
                 </label>
               ))}
             </div>
@@ -252,7 +252,7 @@ export function GenericSkillRunner({
             value={advancedJson}
             onChange={(e) => setAdvancedJson(e.target.value)}
             rows={3}
-            className="mt-2 w-full rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs"
+            className="mt-2 w-full rounded-md border border-line bg-paper px-2 py-1 tech-token text-xs"
           />
         )}
       </details>
@@ -280,7 +280,7 @@ export function GenericSkillRunner({
           params={{ slug }}
           className="text-xs text-muted underline underline-offset-4 hover:text-ink"
         >
-          View Record →
+          View Activity →
         </Link>
       </div>
 
@@ -326,7 +326,7 @@ function RunnerResult({
               ? `${artifacts.length} outputs written`
               : "Run complete"}
         </p>
-        <p className="font-mono text-[11px] text-muted">{response.invocation_id}</p>
+        <p className="tech-token text-[11px] text-muted">{response.invocation_id}</p>
       </div>
       {artifacts.length > 0 ? (
         <div className="mt-3 space-y-4">
@@ -354,29 +354,29 @@ function RunnerResult({
                   Next step
                 </p>
                 <p className="mt-1 text-sm font-semibold text-ink">
-                  Review the output, sign it if you stand behind it, then use the Record as
+                  Review the output, sign it if you stand behind it, then use Activity as
                   the receipt.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                   <Link
                     to="/matters/$slug/artifacts/$artifactId/sign"
                     params={{ slug, artifactId: artifact.id }}
-                    className="border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                    className="rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
                   >
                     Review & sign
                   </Link>
                   <Link
                     to="/matters/$slug/artifacts/$artifactId"
                     params={{ slug, artifactId: artifact.id }}
-                    className="border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
+                    className="rounded-item border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
                   >
                     Open output
                   </Link>
                   <a
                     href={`/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(response.invocation_id)}`}
-                    className="border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
+                    className="rounded-item border border-rule bg-paper px-3 py-2 font-semibold text-ink hover:border-ink"
                   >
-                    View Record
+                    View Activity
                   </a>
                 </div>
               </div>

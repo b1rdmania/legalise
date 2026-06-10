@@ -11,6 +11,7 @@
  * behavioural delta.
  */
 
+import { lazy, Suspense } from "react";
 import {
   createRootRoute,
   createRoute,
@@ -18,6 +19,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 
+import { LoadingLine } from "../ui/primitives";
 import { AppShell } from "../app/AppShell";
 import { AppHome } from "../app/AppHome";
 import { AuthGate } from "../app/AuthGate";
@@ -32,7 +34,6 @@ import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { SignOff } from "../matter/SignOff";
 import { SignOffConfirmation } from "../matter/SignOffConfirmation";
 import { ReconstructionView } from "../matter/ReconstructionView";
-import { DocumentDetail } from "../matter/DocumentDetail";
 import { MatterLifecycle } from "../matter/MatterLifecycle";
 import { AdminUsersList } from "../admin/AdminUsersList";
 import { AdminUserDetail } from "../admin/AdminUserDetail";
@@ -51,9 +52,44 @@ import { Settings } from "../auth/Settings";
 import { MatterList } from "../matter/MatterList";
 import { NewMatter } from "../matter/NewMatter";
 import { MatterDetail } from "../matter/MatterDetail";
-import { DemoMatter } from "../demo/DemoMatter";
 import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
 import { getAuthSnapshot } from "../auth/AuthSnapshot";
+
+// ---------------------------------------------------------------------------
+// Lazy route components.
+//
+// DocumentDetail pulls in the whole document-editor stack (DocumentRichEditor
+// → Tiptap + 18 extensions + ProseMirror); DemoMatter pulls in the demo
+// snapshot fixture. Neither is needed for chat, landing, or the matters list,
+// so they load only when their route is opened — keeping ~150–200 kB gzip out
+// of the first-paint bundle. See docs/handovers/PERF_AUDIT_2026-06-06.md (#1, #3).
+// ---------------------------------------------------------------------------
+
+const DocumentDetail = lazy(() =>
+  import("../matter/DocumentDetail").then((m) => ({ default: m.DocumentDetail })),
+);
+
+const DemoMatter = lazy(() =>
+  import("../demo/DemoMatter").then((m) => ({ default: m.DemoMatter })),
+);
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <LoadingLine label="Loading…" />
+    </div>
+  );
+}
+
+// DemoMatter reads its own route params via hooks, so the three /demo routes
+// share one wrapped component.
+function DemoMatterPage() {
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <DemoMatter />
+    </Suspense>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Root: AppShell renders TopBar / Drawer / <Outlet />.
@@ -135,14 +171,10 @@ const verifyRoute = createRoute({
   }),
 });
 
-// /skills is the v2 catalog (ModulesCatalog). The earlier Modules
-// component (v1 skill enable/disable) is retained in the codebase
-// under src/modules-page/ for reference but no longer mounted on a
-// route. Importing it elsewhere still works.
-//
-// The legacy /modules path is preserved via `legacyModulesRedirect`
-// below as a router-level redirect shim (TanStack `beforeLoad`), so
-// deep links, bookmarks, and tests keep working.
+// /skills is the v2 catalog (ModulesCatalog). The legacy /modules
+// path is preserved via `legacyModulesRedirect` below as a router-level
+// redirect shim (TanStack `beforeLoad`), so deep links, bookmarks, and
+// tests keep working.
 const modulesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/skills",
@@ -176,19 +208,19 @@ const legacySubmitModuleRedirect = createRoute({
 const demoIndexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/demo",
-  component: DemoMatter,
+  component: DemoMatterPage,
 });
 
 const demoTabRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/demo/$tab",
-  component: DemoMatter,
+  component: DemoMatterPage,
 });
 
 const demoDocumentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/demo/documents/$documentId",
-  component: DemoMatter,
+  component: DemoMatterPage,
 });
 
 // ---------------------------------------------------------------------------
@@ -446,7 +478,11 @@ const matterDocumentDetailRoute = createRoute({
   }),
   component: () => {
     const { slug, documentId } = matterDocumentDetailRoute.useParams();
-    return <DocumentDetail slug={slug} documentId={documentId} />;
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <DocumentDetail slug={slug} documentId={documentId} />
+      </Suspense>
+    );
   },
 });
 

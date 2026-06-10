@@ -150,7 +150,7 @@ export function DocumentsTab({
 
   return (
     <div className="max-w-4xl">
-      <details className="mb-8 border border-rule bg-paper" open={!docs || docs.length === 0}>
+      <details className="mb-8 rounded-card border border-rule bg-paper" open={!docs || docs.length === 0}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
           Add documents
           <span className="ml-2 font-normal text-muted">
@@ -169,7 +169,7 @@ export function DocumentsTab({
               dragging ? "bg-wash" : "hover:bg-wash"
             }`}
           >
-            <span className="flex h-10 w-10 items-center justify-center border border-rule bg-paper-sunken">
+            <span className="flex h-10 w-10 items-center justify-center rounded-item border border-rule bg-paper-sunken">
               <FileUp size={18} aria-hidden="true" />
             </span>
             <span className="mt-4 text-base font-medium text-ink">
@@ -239,7 +239,7 @@ export function DocumentsTab({
       )}
       {docs && docs.length > 0 && (
         <div>
-          <div className="mb-4 grid gap-3 border border-rule bg-paper p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div className="mb-4 grid gap-3 rounded-card border border-rule bg-paper p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <div>
               <h2 className="text-xl font-semibold tracking-tight2 text-ink">
                 Documents in this project
@@ -250,24 +250,24 @@ export function DocumentsTab({
               </p>
             </div>
             <dl className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-5">
-              <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Files</dt>
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="tech-token uppercase tracking-track2 text-muted">Files</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{docs.length}</dd>
               </div>
-              <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Size</dt>
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="tech-token uppercase tracking-track2 text-muted">Size</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{formatBytes(totalBytes)}</dd>
               </div>
-              <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Open notes</dt>
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="tech-token uppercase tracking-track2 text-muted">Open notes</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{openNoteCount}</dd>
               </div>
-              <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Versions</dt>
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="tech-token uppercase tracking-track2 text-muted">Versions</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{versionCount}</dd>
               </div>
-              <div className="border border-rule bg-paper-sunken p-2">
-                <dt className="font-mono uppercase tracking-track2 text-muted">Changes</dt>
+              <div className="rounded-card border border-rule bg-paper-sunken p-2">
+                <dt className="tech-token uppercase tracking-track2 text-muted">Changes</dt>
                 <dd className="mt-1 text-sm font-semibold text-ink">{pendingEditCount}</dd>
               </div>
             </dl>
@@ -279,7 +279,7 @@ export function DocumentsTab({
             </p>
           )}
           <div
-            className="mb-4 grid gap-3 border border-rule bg-paper px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            className="mb-4 grid gap-3 rounded-card border border-rule bg-paper px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
             data-testid="document-library-controls"
           >
             <label className="text-xs font-semibold uppercase tracking-track2 text-muted">
@@ -288,7 +288,7 @@ export function DocumentsTab({
                 value={documentQuery}
                 onChange={(event) => setDocumentQuery(event.target.value)}
                 placeholder="Filename, tag, hash, source"
-                className="mt-1 min-h-[40px] w-full border border-rule bg-paper-sunken px-3 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                className="mt-1 min-h-[40px] w-full rounded-item border border-rule bg-paper-sunken px-3 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
               />
             </label>
             <div className="flex flex-wrap items-end gap-2">
@@ -336,7 +336,7 @@ export function DocumentsTab({
                   key={d.id}
                   to="/matters/$slug/documents/$documentId"
                   params={{ slug, documentId: d.id }}
-                  className="group border border-rule bg-paper p-4 transition-colors hover:border-ink hover:bg-wash"
+                  className="group rounded-card border border-rule bg-paper p-4 transition-colors hover:border-ink hover:bg-wash"
                   title={`SHA-256 ${d.sha256}`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -344,7 +344,7 @@ export function DocumentsTab({
                       <p className="truncate text-base font-semibold text-ink">
                         {d.filename}
                       </p>
-                      <p className="mt-1 truncate font-mono text-[11px] text-muted">
+                      <p className="mt-1 truncate tech-token text-[11px] text-muted">
                         {d.sha256.slice(0, 8)}
                       </p>
                     </div>
@@ -352,7 +352,7 @@ export function DocumentsTab({
                   </div>
                   <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Source
                       </dt>
                       <dd className="mt-1 text-ink">
@@ -360,13 +360,13 @@ export function DocumentsTab({
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Size
                       </dt>
                       <dd className="mt-1 text-ink">{formatBytes(d.size_bytes)}</dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Open notes
                       </dt>
                       <dd className="mt-1 text-ink">
@@ -376,7 +376,7 @@ export function DocumentsTab({
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[10px] uppercase tracking-track2 text-muted">
+                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
                         Updated
                       </dt>
                       <dd className="mt-1 text-ink">{formatDate(d.uploaded_at)}</dd>
@@ -387,13 +387,13 @@ export function DocumentsTab({
                       workStatus.map((item) => (
                         <span
                           key={item}
-                          className="border border-rule bg-paper-sunken px-2 py-1 text-xs font-medium text-ink"
+                          className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs font-medium text-ink"
                         >
                           {item}
                         </span>
                       ))
                     ) : (
-                      <span className="border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted">
+                      <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted">
                         Ready to review
                       </span>
                     )}
@@ -402,7 +402,7 @@ export function DocumentsTab({
                     <span className="text-xs leading-5 text-muted">
                       Reader, notes, versions, skills, and Record links open together.
                     </span>
-                    <span className="shrink-0 border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper group-hover:bg-black">
+                    <span className="shrink-0 rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper group-hover:bg-black">
                       Open workbench
                     </span>
                   </div>
@@ -410,7 +410,7 @@ export function DocumentsTab({
               );
             })}
             {filteredDocs?.length === 0 && (
-              <div className="border border-rule bg-paper px-4 py-6 text-sm text-muted md:col-span-2">
+              <div className="rounded-card border border-rule bg-paper px-4 py-6 text-sm text-muted md:col-span-2">
                 No documents match this search. Clear the query or switch filters.
               </div>
             )}

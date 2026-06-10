@@ -38,6 +38,7 @@ Target:
 Proof pattern:
 
 - multi-stage orchestration
+- review-panel shape (optimistic, evidence, premortem, synthesis)
 - many model calls
 - streaming
 - audit-heavy
@@ -58,6 +59,7 @@ Proof pattern:
 - external codebase import
 - document to proposed amendments
 - human accept/reject/edit loop
+- review-panel shape without user-facing agent framing
 - generated output
 - per-decision audit
 
@@ -163,4 +165,3 @@ Do:
 - build generic document-analysis capability surfaces
 - support future Mike-like services through MCP or clean service APIs
 - keep licence boundaries clean
-

@@ -4,9 +4,9 @@
  *
  * Helps a developer/operator understand what a module is, what its
  * manifest must declare, and whether a candidate manifest validates —
- * using the SAME validator as the install path (read-only; no DB write,
+ * using the SAME validator as the add-skill path (read-only; no DB write,
  * ceremony, trust, or audit). Signing stays deploy-time / CLI: this page
- * explains a module must be signed before install and points at the
+ * explains a module must be signed before adding and points at the
  * local tooling. In-app signing is a future module-DX phase.
  */
 
@@ -61,7 +61,7 @@ export function CreateModule() {
       <PageHeader
         eyebrow="Skills"
         title="Create a skill"
-        description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the install path uses — it does not install or sign."
+        description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the add-skill path uses — it does not add or sign."
       />
 
       <section>
@@ -72,7 +72,7 @@ export function CreateModule() {
           A skill is a signed, governed unit of legal work. Its manifest
           declares what it may touch; the runtime enforces those declarations on
           every call, and every run lands in the matter record. Skills are
-          installed at the workspace and enabled per matter.
+          added at the workspace and enabled per matter.
         </p>
       </section>
 
@@ -83,16 +83,16 @@ export function CreateModule() {
         <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           {REQUIRED_FIELDS.map((f) => (
             <div key={f.field}>
-              <dt className="font-mono text-xs text-ink">{f.field}</dt>
+              <dt className="tech-token text-xs text-ink">{f.field}</dt>
               <dd className="text-xs text-muted">{f.what}</dd>
             </div>
           ))}
         </dl>
         <p className="mt-3 text-xs text-muted">
-          Each permission set declares its <span className="font-mono">reads</span> /{" "}
-          <span className="font-mono">writes</span>, <span className="font-mono">gates</span>,{" "}
-          <span className="font-mono">advice_tier_max</span>, and the{" "}
-          <span className="font-mono">audit_events</span> it emits — that
+          Each permission set declares its <span className="tech-token">reads</span> /{" "}
+          <span className="tech-token">writes</span>, <span className="tech-token">gates</span>,{" "}
+          <span className="tech-token">advice_tier_max</span>, and the{" "}
+          <span className="tech-token">audit_events</span> it emits — that
           declaration is what the runtime gates and the audit trail records.
         </p>
       </section>
@@ -107,7 +107,7 @@ export function CreateModule() {
           rows={12}
           spellCheck={false}
           placeholder='{ "schema_version": "2.0.0", "id": "...", "version": "...", "publisher": "...", "visibility": "...", "runtime": "...", "entrypoint": {...}, "capabilities": [...] }'
-          className="mt-3 w-full rounded-md border border-rule bg-paper px-3 py-2 font-mono text-xs"
+          className="mt-3 w-full rounded-md border border-rule bg-paper px-3 py-2 tech-token text-xs"
           data-testid="manifest-input"
         />
         <button
@@ -129,8 +129,8 @@ export function CreateModule() {
         )}
         {result.kind === "validated" && result.result.valid && (
           <p className="mt-3 text-sm text-ink" data-testid="validate-ok">
-            Valid — this manifest passes the same checks the install path runs.
-            Sign and install it locally (below) to use it.
+            Valid — this manifest passes the same checks the add-skill path runs.
+            Sign and add it locally (below) to use it.
           </p>
         )}
         {result.kind === "validated" && !result.result.valid && (
@@ -142,7 +142,7 @@ export function CreateModule() {
             <ul className="mt-2 space-y-1 text-xs">
               {result.result.errors.map((e, i) => (
                 <li key={i}>
-                  <span className="font-mono text-muted">{e.path || "/"}</span>
+                  <span className="tech-token text-muted">{e.path || "/"}</span>
                   {" — "}
                   {e.message}
                 </li>
@@ -154,12 +154,12 @@ export function CreateModule() {
 
       <section className="mt-8">
         <h2 className="text-sm uppercase tracking-widest text-muted">
-          Sign &amp; install locally
+          Sign &amp; add locally
         </h2>
         <p className="mt-2 text-sm text-muted">
           A skill must be <span className="text-ink">signed</span> before it can
-          be installed — signing is a deploy-time / CLI step, not done in the
-          browser. Once your manifest validates, sign it and install it with the
+          be added — signing is a deploy-time / CLI step, not done in the
+          browser. Once your manifest validates, sign it and add it with the
           Legalise CLI, then it appears under Reference skills. See the
           skill-authoring docs in the repository for the exact commands.
         </p>

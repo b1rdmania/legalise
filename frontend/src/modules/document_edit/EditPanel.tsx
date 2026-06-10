@@ -105,7 +105,7 @@ export function EditPanel({
         {onClose && (
           <button
             onClick={onClose}
-            className="font-mono uppercase tracking-track2 text-[10px] text-muted hover:text-ink"
+            className="tech-token uppercase tracking-track2 text-[10px] text-muted hover:text-ink"
           >
             Close
           </button>
@@ -135,14 +135,14 @@ export function EditPanel({
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className="font-mono uppercase tracking-track2 text-[10px] text-muted">
+        <label className="tech-token uppercase tracking-track2 text-[10px] text-muted">
           Mode
         </label>
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as EditMode)}
           disabled={busy}
-          className="bg-paper border border-rule px-2 py-1.5 text-[12px] focus:border-ink focus:outline-none font-mono text-ink"
+          className="bg-paper border border-rule px-2 py-1.5 text-[12px] focus:border-ink focus:outline-none tech-token text-ink"
         >
           <option value="free-text">free-text</option>
           <option value="tighten">tighten</option>
