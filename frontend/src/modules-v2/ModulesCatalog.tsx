@@ -198,7 +198,7 @@ export function ModulesCatalog() {
         title="Skills"
         description={
           authed
-            ? "Install legal skills at the workspace, then enable them inside the matter where they should run."
+            ? "Add legal skills to the workspace, then enable them inside the matter where they should run."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -207,9 +207,9 @@ export function ModulesCatalog() {
               <>
                 <Link
                   to="/skills/lawve"
-                  className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-sm hover:border-ink"
+                  className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black"
                 >
-                  Import from Lawve
+                  Add skill
                 </Link>
                 <Link
                   to="/skills/create"
@@ -434,8 +434,8 @@ export function ModulesCatalog() {
           <div className="mt-3">
             {authed && (
             <p className="text-xs text-muted">
-              The open skill library — browse what's available. These are not
-              installed from here; reference skills above are the install path.
+              The open skill library — browse what's available, or use Add skill
+              to inspect and convert a Lawve skill into a governed draft.
               {skillsRepo ? (
                 <>
                   {" "}

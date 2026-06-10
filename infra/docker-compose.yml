@@ -79,6 +79,10 @@ services:
       # dev/eval; the e2e workflow exports true so its posture suite can
       # assert firm-mode enforcement. Same ${VAR:-default} pattern.
       LEGALISE_FIRM_ROLE_GATES_ENABLED: ${LEGALISE_FIRM_ROLE_GATES_ENABLED:-false}
+      # Local/eval only: first registered user becomes workspace admin
+      # automatically, removing the bootstrap_admin copy-paste from the
+      # two-minute demo path. Production ignores this flag in code.
+      LEGALISE_DEV_AUTO_ADMIN_FIRST_USER: ${LEGALISE_DEV_AUTO_ADMIN_FIRST_USER:-true}
       # Plugin bind-mount target; matches the volume below.
       PLUGINS_ROOT: /plugins
     ports:

@@ -143,6 +143,42 @@ async def test_dev_autoverify_emits_three_audit_rows(client) -> None:
         assert match[0].payload["triple_count"] > 0
 
 
+@pytest.mark.asyncio
+async def test_dev_first_user_can_auto_bootstrap_admin(client, monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "dev_auto_admin_first_user", True, raising=False)
+    monkeypatch.setattr(settings, "environment", "development", raising=False)
+
+    email = f"p13bd-auto-admin-{uuid.uuid4().hex[:8]}@example.com"
+    password = "phase13bd-2026"
+    resp = await client.post(
+        "/auth/register", json={"email": email, "password": password}
+    )
+    assert resp.status_code in {200, 201}
+
+    from app.main import app
+
+    factory = app.state.session_factory
+    async with factory() as session:
+        user = await session.scalar(select(User).where(User.email == email))
+        assert user is not None
+        assert user.is_superuser is True
+        assert user.role == "workspace_admin"
+
+        rows = (
+            await session.scalars(
+                select(AuditEntry).where(
+                    AuditEntry.action == "user.admin.auto_bootstrapped",
+                )
+            )
+        ).all()
+        match = [r for r in rows if r.payload.get("target_user_id") == str(user.id)]
+        assert len(match) == 1
+        assert match[0].actor_id is None
+        assert match[0].payload["reason"] == "first_dev_user"
+
+
 # ---------------------------------------------------------------------------
 # 4 + 5. Login + logout (via AuditingDatabaseStrategy)
 # ---------------------------------------------------------------------------

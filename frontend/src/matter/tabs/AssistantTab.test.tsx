@@ -60,8 +60,13 @@ function mountChat(overrides?: {
       />
     ),
   });
+  const lawveStub = createRoute({
+    getParentRoute: () => root,
+    path: "/skills/lawve",
+    component: () => <div data-testid="lawve-stub" />,
+  });
   const router = createRouter({
-    routeTree: root.addChildren([tab]),
+    routeTree: root.addChildren([tab, lawveStub]),
     history: createMemoryHistory({
       initialEntries: [`/matters/${matter.slug}/assistant`],
     }),
@@ -141,7 +146,7 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(screen.queryByTestId("chat-skill-letters")).toBeNull();
   });
 
-  it("shows the empty state and routes to the matter Skills tab when no generic skill is runnable", async () => {
+  it("shows the empty state and routes to Add skill when no generic skill is runnable", async () => {
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
@@ -151,8 +156,9 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(
       await screen.findByText(/Nothing runnable here right now/i),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Open Skills/i));
-    expect(setTabAndHash).toHaveBeenCalledWith("workflows");
+    fireEvent.click(screen.getByText(/Add a skill/i));
+    expect(await screen.findByTestId("lawve-stub")).toBeInTheDocument();
+    expect(setTabAndHash).not.toHaveBeenCalled();
   });
 
   it("exposes ambient Activity and document attachment controls in the chat shell", async () => {

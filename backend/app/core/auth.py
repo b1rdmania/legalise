@@ -25,6 +25,7 @@ from fastapi_users.authentication.strategy.db import (
 )
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyAccessTokenDatabase
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -92,6 +93,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             user.is_verified = True
             await self.user_db.update(user, {"is_verified": True})
             logger.info("auth.dev_autoverify", user_id=str(user.id))
+            await self._maybe_promote_first_dev_user(user)
             # Dev autoverify bypasses on_after_verify, so run the same
             # post-verify side effects here. Day D: seed Khan under the
             # new user so the workspace is populated on first sign-in.
@@ -106,6 +108,51 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         # so the only path that can hit this is a transient provider
         # outage, which is the right thing to surface.
         await self.request_verify(user, request)
+
+    async def _maybe_promote_first_dev_user(self, user: User) -> None:
+        from app.core.config import settings as _settings
+
+        if not _settings.dev_auto_admin_first_user:
+            return
+        if _settings.environment not in {"development", "dev", "local"}:
+            return
+
+        session = self.user_db.session
+        user_count = await session.scalar(select(func.count(User.id)))
+        if user_count != 1:
+            return
+
+        role_was = user.role
+        is_superuser_was = user.is_superuser
+        user.is_superuser = True
+        user.role = "workspace_admin"
+        await self.user_db.update(
+            user,
+            {
+                "is_superuser": True,
+                "role": "workspace_admin",
+            },
+        )
+
+        from app.core.api import audit
+
+        await audit.log(
+            session,
+            "user.admin.auto_bootstrapped",
+            actor_id=None,
+            module="core.auth",
+            resource_type="user",
+            resource_id=str(user.id),
+            payload={
+                "target_user_id": str(user.id),
+                "is_superuser_was": is_superuser_was,
+                "is_superuser_is": True,
+                "role_was": role_was,
+                "role_is": user.role,
+                "reason": "first_dev_user",
+            },
+        )
+        logger.info("auth.dev_auto_admin_first_user", user_id=str(user.id))
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None

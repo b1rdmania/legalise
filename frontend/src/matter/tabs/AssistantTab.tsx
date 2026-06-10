@@ -379,6 +379,10 @@ export function AssistantTab({
     void navigate({ to: "/matters/$slug/audit", params: { slug: matter.slug } });
   };
 
+  const openAddSkill = () => {
+    void navigate({ to: "/skills/lawve" });
+  };
+
   return (
     <div
       className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[740px] flex-col px-1"
@@ -619,11 +623,11 @@ export function AssistantTab({
                         type="button"
                         onClick={() => {
                           setSkillsOpen(false);
-                          setTabAndHash("workflows");
+                          openAddSkill();
                         }}
                         className="underline underline-offset-4 hover:text-ink"
                       >
-                      Open Skills →
+                      Add a skill →
                       </button>
                     </p>
                   ) : (
@@ -661,11 +665,21 @@ export function AssistantTab({
                     type="button"
                     onClick={() => {
                       setSkillsOpen(false);
-                      setTabAndHash("workflows");
+                      openAddSkill();
                     }}
                     className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
                   >
-                    Manage skills →
+                    Add skill →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSkillsOpen(false);
+                      setTabAndHash("workflows");
+                    }}
+                    className="ml-3 mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                  >
+                    Manage matter skills →
                   </button>
                 </div>
               )}

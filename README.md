@@ -7,6 +7,10 @@ Open a matter. Add documents. Run skills. Review outputs with
 cited sources visible. **Sign the output as a record of professional
 judgement.** Export the matter record.
 
+The demo loop is deliberately small: add a Claude-style legal skill,
+enable it on Khan v Acme, run it from chat, watch the supervised run,
+then inspect the card and signed record it leaves behind.
+
 Legalise is open source. The hosted site is a limited evaluation
 environment. Real AI workflows require your own model key. Legalise
 does not provide model access and is not for live client matters.
@@ -110,7 +114,12 @@ Disclosure-tainted chronology entries carry a CPR 31.22 implied-undertaking flag
 
 Every model call, document mutation, chronology entry, and capability denial writes one row to an audit log that the application never updates or deletes. Timestamped, hashed, tied to the matter and the actor. The Audit tab is the regulator-facing record.
 
-Append-only is enforced by convention today: the application never writes UPDATE or DELETE against `audit_entries`. Postgres-level WORM grants (REVOKE UPDATE/DELETE on the table for the app role) are a live-matter readiness gate; the current audit trail is therefore not forensically tamper-resistant against a DB superuser. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
+Append-only is enforced in the database for normal application paths:
+`audit_entries` has a Postgres trigger that rejects UPDATE and DELETE,
+and new rows are mirrored into an append-only audit hash chain. The
+remaining live-matter caveat is operational: a DB superuser can still
+bypass database controls, and external notary/anchoring is not yet part
+of the shipped loop. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
 
 No background calls. No invisible inference. If it touched the matter, it's logged.
 
@@ -144,7 +153,7 @@ The hosted evaluation environment at [legalise.dev](https://legalise.dev) is ope
 
 Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
 
-### Local fork — clone to signed-in superuser
+### Local fork — two-minute path
 
 1. **Clone.**
 
@@ -153,40 +162,62 @@ Stack: Postgres + pgvector + MinIO + Redis + Gotenberg + FastAPI + React.
    cd legalise
    ```
 
-2. **Copy env.** Every variable has a working default for the Khan v Acme demo. The only decision is whether to set a provider key (Anthropic / OpenAI) or run the keyless `stub-echo` model.
+2. **Run quickstart.** It copies `.env` if needed, ensures the
+   `claude-for-uk-legal` skill catalogue is present next to this repo,
+   and starts the compose stack.
 
    ```bash
-   cp .env.example .env
+   ./scripts/quickstart.sh
    ```
 
-3. **Bring the stack up.**
+3. **Create the first account.** Open <http://localhost:3000> and sign
+   up. In local dev, the first user is verified, seeded with Khan v
+   Acme, and promoted to workspace admin automatically. No bootstrap
+   CLI step is needed.
 
-   ```bash
-   docker compose -f infra/docker-compose.yml up --build -d
-   ```
+4. **Run the loop.** Open Khan v Acme, use Chat, and open **Skills → Add
+   skill** to inspect a Lawve skill, convert it to a governed draft, run
+   the trust ceremony, enable it on the matter, and run it from chat.
 
-4. **Check the stack with `legalise doctor`.** Inspection-only; verifies the database is reachable, migrations are current, MinIO is responding, plugins are mounted, and the v2 manifests validate.
+5. **Check the stack with `legalise doctor`.** Inspection-only; verifies
+   the database is reachable, migrations are current, MinIO is
+   responding, plugins are mounted, and the v2 manifests validate.
 
    ```bash
    docker compose -f infra/docker-compose.yml exec backend python -m app.tools.doctor
    ```
 
-   Pre-signup, `khan.demo_present` will soft-note `no users yet — seed lands on first signup`. That's expected.
+To prove the fork is healthy end-to-end without driving the UI by hand,
+run `./scripts/smoke.sh`. It executes the same Playwright first-run spec
+the CI workflow runs (truncates the local database — see the script's
+prompt).
 
-5. **Register an account.** Open <http://localhost:3000> and use the signup form. Dev-autoverify is on, so registration immediately verifies the account — no SMTP setup or email click is needed. You'll land signed in as a non-superuser; the Khan demo matter seeds on first signup.
+### Manual local path
 
-6. **Promote yourself to superuser via the bootstrap CLI.** The CLI promotes an **existing** user — run it after step 5, not before.
+If you do not want quickstart to clone the skills catalogue or start
+compose for you, the manual path is:
+
+1. Copy env.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Bring the stack up.
+
+   ```bash
+   docker compose -f infra/docker-compose.yml up -d
+   ```
+
+3. Register the first user at <http://localhost:3000>. With
+   `LEGALISE_DEV_AUTO_ADMIN_FIRST_USER=true` (the local default), that
+   user becomes the workspace admin. If you turn that flag off, run the
+   explicit bootstrap CLI after signup:
 
    ```bash
    docker compose -f infra/docker-compose.yml exec backend \
        python -m app.tools.bootstrap_admin --email you@example.com
    ```
-
-7. **Reload the browser** so `AuthProvider` re-fetches `/auth/users/me`. Superuser context loads.
-
-8. **Re-run doctor** — `khan.demo_present` should now be `ok`. The full Khan v Acme demo is wired; see [`docs/DEMO.md`](./docs/DEMO.md) for the install → grant → run → audit walkthrough.
-
-To prove the fork is healthy end-to-end without driving the UI by hand, run `./scripts/smoke.sh`. It executes the same Playwright first-run spec the CI workflow runs (truncates the local database — see the script's prompt).
 
 ### Self-hosting notes
 
