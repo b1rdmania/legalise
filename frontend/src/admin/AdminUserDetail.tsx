@@ -26,7 +26,8 @@ import {
   type UserRole,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
-import { DescItem as DT, PageHeader } from "../ui/primitives";
+import { PageHeader } from "../ui/primitives";
+import { CertCard, CertEyebrow, LedgerRow, SectionRule } from "../ui/certificate";
 
 type Query =
   | { status: "loading" }
@@ -173,21 +174,35 @@ export function AdminUserDetail({ userId }: { userId: string }) {
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader eyebrow="Workspace administration" eyebrowRight={user.role} title={user.email} subId={user.id} />
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        <DT label="Name">{user.name || "—"}</DT>
-        <DT label="Role">
-          <code className="tech-token text-xs">{user.role}</code>
-        </DT>
-        <DT label="Superuser">{user.is_superuser ? "yes" : "no"}</DT>
-        <DT label="Active">{user.is_active ? "yes" : "no"}</DT>
-        <DT label="Verified">{user.is_verified ? "yes" : "no"}</DT>
-        <DT label="Created">{user.created_at ?? "—"}</DT>
-      </dl>
+      <CertCard testid="practitioner-card">
+        <CertEyebrow
+          left="Practitioner"
+          right={user.is_superuser ? "Superuser" : undefined}
+          rightTone="ink"
+        />
+        <h2 className="mt-3 text-[22px] leading-tight tracking-tight2 text-ink">
+          {user.email}
+        </h2>
+        {user.name && <p className="mt-1 text-xs text-muted">{user.name}</p>}
+        <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+          <LedgerRow label="Role">
+            <code className="tech-token">{user.role}</code>
+          </LedgerRow>
+          <LedgerRow label="Superuser">
+            {user.is_superuser ? "yes" : "no"}
+          </LedgerRow>
+          <LedgerRow label="Active">{user.is_active ? "yes" : "no"}</LedgerRow>
+          <LedgerRow label="Verified">
+            {user.is_verified ? "yes" : "no"}
+          </LedgerRow>
+          <LedgerRow label="Created">
+            <span className="tech-token">{user.created_at ?? "—"}</span>
+          </LedgerRow>
+        </dl>
+      </CertCard>
 
       <section className="mt-10">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          Firm role controls
-        </h2>
+        <SectionRule label="Firm role controls" />
         <p className="mt-2 text-xs text-muted">
           These are deployment controls for firms that enforce role
           gates. By default the gates are dormant — hosted evaluation
@@ -198,8 +213,10 @@ export function AdminUserDetail({ userId }: { userId: string }) {
           and writes no audit row.
         </p>
         <form onSubmit={onSubmit} className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="flex flex-col text-xs text-muted">
-            <span className="mb-1">Role</span>
+          <label className="flex flex-col text-muted">
+            <span className="mb-1 text-[10px] uppercase tracking-[0.18em]">
+              Role
+            </span>
             <select
               data-testid="role-select"
               value={draftRole}

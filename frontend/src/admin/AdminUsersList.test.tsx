@@ -102,7 +102,7 @@ describe("AdminUsersList — admin", () => {
     });
   });
 
-  it("renders the user table with substrate columns + Open link", async () => {
+  it("renders the user ledger with role + Open link", async () => {
     vi.spyOn(api, "listAdminUsers").mockResolvedValue([
       makeUser({ id: "u-row", email: "row@example.com", role: "solicitor" }),
     ]);
@@ -111,13 +111,10 @@ describe("AdminUsersList — admin", () => {
     await waitFor(() => {
       expect(screen.getByText("row@example.com")).toBeInTheDocument();
     });
-    // Role appears in the table cell. Filter dropdown also has a
-    // "solicitor" option; match the row cell specifically by its
-    // monospace styling — only role cells use tech-token on this page.
-    const rowCell = Array.from(document.querySelectorAll("td.tech-token")).find(
-      (el) => el.textContent === "solicitor",
-    );
-    expect(rowCell).toBeTruthy();
+    // Role appears in the row's ledger label. Filter dropdown also has
+    // a "solicitor" option; scope to the row testid to disambiguate.
+    const row = screen.getByTestId("user-row-u-row");
+    expect(row.textContent).toContain("solicitor");
     const link = screen.getByRole("link", { name: /open/i });
     expect(link.getAttribute("href")).toBe("/admin/users/u-row");
   });

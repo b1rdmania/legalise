@@ -190,6 +190,7 @@ export function PageHeader({
   eyebrow,
   eyebrowRight,
   title,
+  whisper,
   subId,
   description,
   actions,
@@ -199,6 +200,7 @@ export function PageHeader({
   eyebrow?: string;
   eyebrowRight?: string;
   title: ReactNode;
+  whisper?: string;
   subId?: string;
   description?: ReactNode;
   actions?: ReactNode;
@@ -209,11 +211,11 @@ export function PageHeader({
     <header className="mb-8">
       {eyebrow && (
         <div className="flex items-baseline justify-between border-b border-ink pb-2">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
             {eyebrow}
           </p>
           {eyebrowRight && (
-            <p className="text-[10px] uppercase tracking-[0.25em] text-ink">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
               {eyebrowRight}
             </p>
           )}
@@ -224,15 +226,28 @@ export function PageHeader({
           <h1
             className={
               display
-                ? "font-redaction35 text-[40px] leading-none tracking-tight2 text-ink sm:text-[52px]"
+                ? "font-redaction35 text-[52px] leading-none tracking-tight2 text-ink sm:text-[64px]"
                 : "text-[26px] leading-tight tracking-tight2 text-ink sm:text-[30px]"
             }
           >
             {title}
           </h1>
+          {whisper && (
+            <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">
+              {whisper}
+            </p>
+          )}
           {subId && <p className="mt-2 tech-token text-xs text-muted">{subId}</p>}
           {description && (
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>
+            <p
+              className={
+                display
+                  ? "mt-7 max-w-xl text-sm leading-relaxed text-prose"
+                  : "mt-3 max-w-2xl text-sm leading-relaxed text-muted"
+              }
+            >
+              {description}
+            </p>
           )}
         </div>
         {actions && <div className="shrink-0 pb-1">{actions}</div>}

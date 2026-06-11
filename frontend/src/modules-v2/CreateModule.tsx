@@ -16,6 +16,7 @@ import {
   type ValidateManifestResult,
 } from "../lib/api";
 import { PageHeader } from "../ui/primitives";
+import { SectionRule } from "../ui/certificate";
 
 const REQUIRED_FIELDS: { field: string; what: string }[] = [
   { field: "schema_version", what: 'manifest schema, e.g. "2.0.0"' },
@@ -65,9 +66,7 @@ export function CreateModule() {
       />
 
       <section>
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          What a skill is
-        </h2>
+        <SectionRule label="What a skill is" />
         <p className="mt-2 text-sm text-muted">
           A skill is a signed, governed unit of legal work. Its manifest
           declares what it may touch; the runtime enforces those declarations on
@@ -77,9 +76,7 @@ export function CreateModule() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          Required manifest fields
-        </h2>
+        <SectionRule label="Required manifest fields" />
         <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           {REQUIRED_FIELDS.map((f) => (
             <div key={f.field}>
@@ -98,9 +95,7 @@ export function CreateModule() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          Validate a manifest
-        </h2>
+        <SectionRule label="Validate a manifest" />
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -153,9 +148,7 @@ export function CreateModule() {
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          Sign &amp; add locally
-        </h2>
+        <SectionRule label="Sign & add locally" />
         <p className="mt-2 text-sm text-muted">
           A skill must be <span className="text-ink">signed</span> before it can
           be added — signing is a deploy-time / CLI step, not done in the

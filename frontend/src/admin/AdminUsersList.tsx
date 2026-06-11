@@ -26,6 +26,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { PageHeader } from "../ui/primitives";
+import { LedgerLine, SectionRule } from "../ui/certificate";
 
 type Query =
   | { status: "loading" }
@@ -93,12 +94,15 @@ export function AdminUsersList() {
             : undefined
         }
         title="Users"
-        description="Every user in this workspace. Role changes happen on the per-user page; bulk operations are not exposed by the substrate."
+        whisper="The roll of practitioners"
+        description="Every practitioner admitted to this workspace, entered in the order the roll holds them. The roll records; it does not act. A role is changed on the practitioner's own page, and the substrate exposes no bulk operations."
       />
 
       <div className="mt-6 flex flex-wrap items-end gap-4">
-        <label className="flex flex-col text-xs text-muted">
-          <span className="mb-1">Role</span>
+        <label className="flex flex-col text-muted">
+          <span className="mb-1 text-[10px] uppercase tracking-[0.18em]">
+            Role
+          </span>
           <select
             data-testid="role-filter"
             value={roleFilter}
@@ -113,8 +117,10 @@ export function AdminUsersList() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col text-xs text-muted">
-          <span className="mb-1">Superuser</span>
+        <label className="flex flex-col text-muted">
+          <span className="mb-1 text-[10px] uppercase tracking-[0.18em]">
+            Superuser
+          </span>
           <select
             data-testid="superuser-filter"
             value={superFilter}
@@ -145,54 +151,47 @@ export function AdminUsersList() {
         </p>
       )}
       {q.status === "ready" && q.users.length > 0 && (
-        <div className="mt-8 overflow-x-auto rounded-md border border-line">
-          <table className="min-w-full text-sm">
-            <thead className="text-[10px] uppercase tracking-[0.18em] text-muted">
-              <tr className="border-b border-ink">
-                <th className="px-3 py-2 text-left">Email</th>
-                <th className="px-3 py-2 text-left">Role</th>
-                <th className="px-3 py-2 text-left">Superuser</th>
-                <th className="px-3 py-2 text-left">Verified</th>
-                <th className="px-3 py-2 text-left">Active</th>
-                <th className="px-3 py-2 text-left">Created</th>
-                <th className="px-3 py-2 text-right"> </th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.users.map((u) => (
-                <tr
+        <section className="mt-8">
+          <SectionRule label="The roll" right={String(q.users.length)} />
+          <div className="mt-1">
+            {q.users.map((u, i) => {
+              const flags = [
+                u.is_superuser ? "superuser" : null,
+                u.is_verified ? null : "unverified",
+                u.is_active ? null : "inactive",
+              ].filter(Boolean);
+              return (
+                <LedgerLine
                   key={u.id}
-                  className="border-t border-line"
-                  data-testid={`user-row-${u.id}`}
+                  index={i + 1}
+                  label={u.role.replaceAll("_", " ")}
+                  testid={`user-row-${u.id}`}
+                  right={
+                    <span className="flex items-baseline gap-3">
+                      <span className="tech-token text-[11px] text-muted">
+                        {u.created_at ? u.created_at.slice(0, 10) : "—"}
+                      </span>
+                      <Link
+                        to="/admin/users/$userId"
+                        params={{ userId: u.id }}
+                        className="text-sm text-muted hover:text-seal"
+                      >
+                        Open →
+                      </Link>
+                    </span>
+                  }
                 >
-                  <td className="px-3 py-2 text-sm">{u.email}</td>
-                  <td className="px-3 py-2 tech-token text-xs">{u.role}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {u.is_superuser ? "yes" : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted">
-                    {u.is_verified ? "yes" : "no"}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted">
-                    {u.is_active ? "yes" : "no"}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted">
-                    {u.created_at ? u.created_at.slice(0, 10) : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Link
-                      to="/admin/users/$userId"
-                      params={{ userId: u.id }}
-                      className="text-xs underline underline-offset-4 hover:text-seal"
-                    >
-                      Open
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <span className="text-ink">{u.email}</span>
+                  {flags.length > 0 && (
+                    <span className="ml-2 text-[11px] text-muted">
+                      {flags.join(" · ")}
+                    </span>
+                  )}
+                </LedgerLine>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );

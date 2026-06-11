@@ -2,7 +2,34 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { createMatter } from "../lib/api";
 import { navigate } from "../lib/route";
-import { ErrorCallout, Field, PageHeader } from "../ui/primitives";
+import type { ReactNode } from "react";
+import { ErrorCallout, PageHeader } from "../ui/primitives";
+
+// Ledger-label form field (DESIGN.md P27): labels carry the 0.18em
+// clerk's-ledger tier rather than the generic eyebrow-sm.
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
+        {label}
+        {hint && (
+          <span className="ml-2 normal-case tracking-normal text-xs text-muted">
+            ({hint})
+          </span>
+        )}
+      </span>
+      {children}
+    </label>
+  );
+}
 
 export function NewMatter() {
   const [form, setForm] = useState({

@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { MatterDocument } from "../lib/api";
 import { isPublicRoute, navigate, useRoute } from "../lib/route";
-import { Badge } from "../ui/primitives";
+import { CertCard, CertEyebrow, LedgerLine, LedgerRow, SectionRule } from "../ui/certificate";
 import { isTabKey, sidebarActiveFor, type TabKey } from "../matter/tabs/types";
 import { SidebarView, NavIcon, type RailItem } from "../ui/SidebarView";
 import { ChronologyTab } from "../matter/tabs/ChronologyTab";
@@ -165,10 +165,10 @@ export function DemoMatter() {
               className="mb-8 flex items-baseline justify-between gap-4 border-b border-ink pb-2"
               data-testid="demo-masthead"
             >
-              <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
                 A matter before the workspace · read-only demo
               </p>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-ink">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
                 Legalise
               </p>
             </div>
@@ -260,35 +260,23 @@ function DemoWorkflowsTab({
 
   return (
     <div className="max-w-5xl">
-      <h2 className="mb-6 text-xl font-semibold tracking-tight2 text-ink">
-        Skills in this project
-      </h2>
+      <SectionRule label="Skills in this project" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {workflows.map((w) => (
-          <section key={w.title} className="rounded-card border border-rule/60 bg-paper p-5 shadow-panel hover:border-ink transition-colors">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-lg font-semibold tracking-tight2 text-ink">{w.title}</div>
-                <p className="mt-2 text-sm text-prose leading-relaxed">{w.body}</p>
-              </div>
-              <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
-                Ready
-              </span>
-            </div>
-            <dl className="mt-5 grid gap-2 border-t border-rule pt-4 text-xs">
-              <div className="flex gap-2">
-                <dt className="w-14 shrink-0 uppercase tracking-widest text-muted">Reads</dt>
-                <dd className="text-ink">{w.reads}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-14 shrink-0 uppercase tracking-widest text-muted">Writes</dt>
-                <dd className="text-ink">{w.writes}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="w-14 shrink-0 uppercase tracking-widest text-muted">Record</dt>
-                <dd className="text-ink">{w.last}</dd>
-              </div>
+      <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
+        {workflows.map((w, i) => (
+          <CertCard key={w.title}>
+            <CertEyebrow
+              left={`Skill ${String(i + 1).padStart(2, "0")}`}
+              right="Ready"
+            />
+            <h3 className="mt-3 text-[22px] leading-tight tracking-tight2 text-ink">
+              {w.title}
+            </h3>
+            <p className="mt-1 text-xs text-muted">{w.body}</p>
+            <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+              <LedgerRow label="Reads">{w.reads}</LedgerRow>
+              <LedgerRow label="Writes">{w.writes}</LedgerRow>
+              <LedgerRow label="Record">{w.last}</LedgerRow>
             </dl>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
@@ -299,7 +287,7 @@ function DemoWorkflowsTab({
                 Open in chat
               </button>
             </div>
-          </section>
+          </CertCard>
         ))}
       </div>
 
@@ -348,61 +336,48 @@ function DemoDocumentsTab({
 
   return (
     <div className="max-w-6xl">
-      <h2 className="mb-6 text-xl font-semibold tracking-tight2 text-ink">
-        Documents in this project
-      </h2>
+      <SectionRule label="Documents in this project" />
 
-      <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="rounded-card border border-rule bg-paper">
-          <div className="border-b border-rule bg-paper-sunken px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
-              Matter files
-            </p>
-            <label className="mt-3 block text-xs text-muted">
-              <span className="sr-only">Search demo documents</span>
-              <input
-                value={fileQuery}
-                onChange={(event) => setFileQuery(event.target.value)}
-                placeholder="Search files"
-                className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
-                data-testid="demo-document-list-search"
-              />
-            </label>
-            <p className="mt-2 text-xs text-muted" data-testid="demo-document-list-count">
-              Showing {filteredDocs.length} of {docs.length} files.
-            </p>
-          </div>
-          <div>
-            {filteredDocs.map((d) => {
+      <div className="mt-5 grid gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
+        <div>
+          <label className="block text-xs text-muted">
+            <span className="sr-only">Search demo documents</span>
+            <input
+              value={fileQuery}
+              onChange={(event) => setFileQuery(event.target.value)}
+              placeholder="Search files"
+              className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+              data-testid="demo-document-list-search"
+            />
+          </label>
+          <p className="mt-2 text-xs text-muted" data-testid="demo-document-list-count">
+            Showing {filteredDocs.length} of {docs.length} files.
+          </p>
+          <div className="mt-1">
+            {filteredDocs.map((d, i) => {
               const active = d.id === inspectedDoc.id;
               return (
-                <div
-                  key={d.id}
-                  className={`border-b border-rule px-4 py-4 transition-colors ${
-                    active ? "bg-wash" : "bg-paper hover:bg-wash"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onInspect(d.id)}
-                    className="block w-full text-left"
+                <div key={d.id} className={active ? "bg-wash" : ""}>
+                  <LedgerLine
+                    index={i + 1}
+                    label={`${formatBytes(d.size_bytes)} · ${d.uploaded_at.slice(0, 10)}`}
+                    right={
+                      <a
+                        href={`/demo/documents/${encodeURIComponent(d.id)}`}
+                        className="text-sm text-muted hover:text-seal"
+                      >
+                        Open →
+                      </a>
+                    }
                   >
-                    <div className="text-sm font-semibold text-ink">{d.filename}</div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                      {d.tag && <Badge>{d.tag.toUpperCase()}</Badge>}
-                      <span>{formatBytes(d.size_bytes)}</span>
-                      <span>{d.from_disclosure ? "CPR 31" : "Upload"}</span>
-                    </div>
-                    <div className="mt-2 text-[10px] uppercase tracking-track2 text-muted">
-                      Source-ready · {d.sha256.slice(0, 8)}
-                    </div>
-                  </button>
-                  <a
-                    href={`/demo/documents/${encodeURIComponent(d.id)}`}
-                    className="mt-3 inline-flex text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-                  >
-                    Open reader →
-                  </a>
+                    <button
+                      type="button"
+                      onClick={() => onInspect(d.id)}
+                      className="block w-full truncate text-left text-sm text-ink hover:text-seal"
+                    >
+                      {d.filename}
+                    </button>
+                  </LedgerLine>
                 </div>
               );
             })}

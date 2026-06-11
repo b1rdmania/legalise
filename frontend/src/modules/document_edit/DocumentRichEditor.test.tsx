@@ -700,8 +700,14 @@ describe("DocumentRichEditor surface", () => {
     // Find is summoned, not standing.
     expect(screen.queryByTestId("document-editor-find-panel")).toBeNull();
     // Format tools are summoned from the single row.
-    fireEvent.click(screen.getByRole("button", { name: "Format" }));
-    expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
+    // Generous timeouts: tiptap mount under parallel CI load exceeds the
+    // 1s default (same class as the deflaked trio).
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Format" }, { timeout: 5000 }),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Underline" }, { timeout: 5000 }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove link" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Align left" })).toBeInTheDocument();
@@ -712,11 +718,14 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByRole("button", { name: "Download text" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download DOCX" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Copy text" }));
-    await waitFor(() => {
-      expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("The employee was dismissed."),
-      );
-    });
+    await waitFor(
+      () => {
+        expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining("The employee was dismissed."),
+        );
+      },
+      { timeout: 5000 },
+    );
     expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
       "Copied working text",
     );

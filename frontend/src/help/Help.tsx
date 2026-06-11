@@ -1,8 +1,9 @@
 /**
  * /help — one quiet screen of plain-English answers.
  *
- * Standing Order (DESIGN.md P26): masthead PageHeader, ruled Q&A list,
- * no accordions, no search. Six questions, short answers, done.
+ * Standing Order (DESIGN.md P26/P27): masthead PageHeader with whisper,
+ * ruled Q&A list with ledger-label questions (0.18em small caps), no
+ * accordions, no search. Six questions, short answers, done.
  */
 
 import type { ReactNode } from "react";
@@ -51,12 +52,18 @@ const QA: { q: string; a: ReactNode }[] = [
 export function Help() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="How the workspace works" title="Help" />
+      <PageHeader
+        eyebrow="How the workspace works"
+        title="Help"
+        whisper="Plainly stated"
+      />
       <dl>
         {QA.map(({ q, a }) => (
           <div key={q} className="border-b border-rule/60 py-5">
-            <dt className="text-sm font-semibold text-ink">{q}</dt>
-            <dd className="mt-1.5 text-sm leading-relaxed text-muted">{a}</dd>
+            <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">
+              {q}
+            </dt>
+            <dd className="mt-1.5 text-sm leading-relaxed text-prose">{a}</dd>
           </div>
         ))}
       </dl>
