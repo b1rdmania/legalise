@@ -165,6 +165,10 @@ class InstalledModuleOut(BaseModel):
     # Manifest source_url captured at install (pinned-SHA provenance);
     # "<inline>" for manifests installed without a source.
     install_path: str | None = None
+    # Supervised track record — sign-off decision counts across the
+    # workspace for this module's outputs. Derived from matter_signoffs
+    # at read time; the audit chain is the source of truth.
+    track_record: dict[str, int] = {}
 
 
 class StartInstallRequest(BaseModel):

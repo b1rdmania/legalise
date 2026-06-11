@@ -11,7 +11,6 @@ export function NewMatter() {
     cause: "s.94 ERA 1996, unfair dismissal",
     case_theory: "",
     pivot_fact: "",
-    privilege_posture: "B_mixed",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,18 +78,6 @@ export function NewMatter() {
             onChange={(e) => setForm({ ...form, pivot_fact: e.target.value })}
             className={inputCls}
           />
-        </Field>
-
-        <Field label="Privilege control">
-          <select
-            value={form.privilege_posture}
-            onChange={(e) => setForm({ ...form, privilege_posture: e.target.value })}
-            className={inputCls}
-          >
-            <option value="A_cleared">A_cleared - frontier models allowed</option>
-            <option value="B_mixed">B_mixed - default, local preferred</option>
-            <option value="C_paused">C_paused - LLM calls blocked</option>
-          </select>
         </Field>
 
         {error && <ErrorCallout message={error} />}

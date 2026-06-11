@@ -389,9 +389,6 @@ export function AssistantTab({
           <h1 className="max-w-2xl text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[34px]">
             {matter.title}
           </h1>
-          <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted">
-            Ask about files, draft from the matter, or run a skill. Saved work stays attached.
-          </p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-muted">
             <span data-testid="docs-context-status">
               {docs === null

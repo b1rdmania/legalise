@@ -216,6 +216,8 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
         </span>
       </div>
 
+      <TrackRecord record={row.track_record ?? {}} />
+
       <dl className="mt-3 space-y-1 text-[11px] text-muted">
         <div className="flex justify-between gap-3">
           <dt className="uppercase tracking-[0.18em]">Signature</dt>
@@ -266,6 +268,40 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
         </span>
       )}
     </article>
+  );
+}
+
+// Idea C — the supervised track record. What this counsel has done
+// under supervision, from the sign-off table: approvals and refusals
+// recorded with the same fidelity. The moat is the venue's, not the
+// model's.
+function TrackRecord({ record }: { record: Record<string, number> }) {
+  const signed = record.signed ?? 0;
+  const observations = record.signed_with_observations ?? 0;
+  const refused = record.rejected ?? 0;
+  const total = signed + observations + refused;
+  return (
+    <div className="mt-3 border-t border-rule pt-2">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+        Track record
+      </p>
+      {total === 0 ? (
+        <p className="mt-1 text-[11px] text-muted">
+          No supervised work signed yet.
+        </p>
+      ) : (
+        <p className="mt-1 text-[11px] text-ink">
+          {signed} signed
+          {observations > 0 && <> · {observations} with observations</>}
+          {refused > 0 && (
+            <>
+              {" · "}
+              <span className="text-seal">{refused} refused</span>
+            </>
+          )}
+        </p>
+      )}
+    </div>
   );
 }
 

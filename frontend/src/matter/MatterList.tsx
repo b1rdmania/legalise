@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { listMatters, type Matter } from "../lib/api";
+import { postureLabel } from "../lib/posture";
 import { EmptyState, ErrorCallout, PageHeader } from "../ui/primitives";
 
 function formatType(raw: string): string {
@@ -94,7 +95,7 @@ export function MatterList() {
                   <MonoPill>{m.status}</MonoPill>
                 </span>
                 <span>
-                  <MonoPill>{m.privilege_posture}</MonoPill>
+                  <MonoPill>{postureLabel(m.privilege_posture)}</MonoPill>
                 </span>
                 <span className="text-sm tech-token text-ink">
                   {m.opened_at.slice(0, 10)}

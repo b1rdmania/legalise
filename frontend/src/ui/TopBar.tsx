@@ -116,7 +116,15 @@ export function TopBar({
                     Admin
                   </a>
                 )}
-                <ProfileChip user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+                <ProfileChip
+                  user={auth.user}
+                  onSignOut={() => {
+                    // "/" first, then signOut — the AppShell auth guard
+                    // otherwise races this navigate and lands on signin.
+                    navigate("/");
+                    void auth.signOut();
+                  }}
+                />
               </>
             ) : (
               <>

@@ -13,14 +13,13 @@ import type { CurrentUser, Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, type TabKey } from "../matter/tabs/types";
 import { NavIcon, SidebarView, type RailItem, type RailPosture } from "./SidebarView";
+import { postureDot, postureLabel } from "../lib/posture";
 
-// Posture indicator — a semantic dot, not chrome colour. Cleared reads
-// positive (green), Mixed cautionary (amber), Paused locked (seal).
-const POSTURE: Record<string, RailPosture> = {
-  A_cleared: { label: "Cleared", dot: "#3F7A5A" },
-  B_mixed: { label: "Mixed", dot: "#E67E22" },
-  C_paused: { label: "Paused", dot: "#8B0000" },
-};
+// Posture indicator — a semantic dot, not chrome colour. Two
+// user-facing states (src/lib/posture.ts): Active green, Paused seal.
+function posture(p: string): RailPosture {
+  return { label: postureLabel(p), dot: postureDot(p) };
+}
 
 function AccountBlock({
   user,
@@ -172,15 +171,16 @@ export function Sidebar({
 
   const utilItems: RailItem[] = [
     { key: "settings", label: "Settings", href: "/settings/profile", icon: <NavIcon name="settings" />, active: route.name === "settings" },
-    { key: "help", label: "Help", href: "/help", icon: <NavIcon name="help" /> },
+    { key: "help", label: "Help", href: "/help", icon: <NavIcon name="help" />, active: route.name === "help" },
   ];
 
   return (
     <SidebarView
+      brandHref="/matters"
       newHref="/matters/new"
       globalItems={globalItems}
       matterTitle={matter?.title || matterSlug || undefined}
-      matterPosture={matter ? POSTURE[matter.privilege_posture] : undefined}
+      matterPosture={matter ? posture(matter.privilege_posture) : undefined}
       matterItems={matterItems}
       adminItems={adminItems}
       utilItems={utilItems}
@@ -188,7 +188,16 @@ export function Sidebar({
       onClose={onClose}
       account={
         auth.user ? (
-          <AccountBlock user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+          <AccountBlock
+            user={auth.user}
+            onSignOut={() => {
+              // Navigate to the public landing page BEFORE clearing the
+              // session — the AppShell auth guard otherwise races the
+              // post-signout navigate and bounces to /auth/signin.
+              navigate("/");
+              void auth.signOut();
+            }}
+          />
         ) : undefined
       }
     />

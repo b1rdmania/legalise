@@ -49,6 +49,7 @@ import { ResetPassword } from "../auth/ResetPassword";
 import { VerifyPending } from "../auth/VerifyPending";
 import { Verify } from "../auth/Verify";
 import { Settings } from "../auth/Settings";
+import { Help } from "../help/Help";
 import { MatterList } from "../matter/MatterList";
 import { NewMatter } from "../matter/NewMatter";
 import { MatterDetail } from "../matter/MatterDetail";
@@ -124,6 +125,15 @@ const waitlistRoute = createRoute({
 const signinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/signin",
+  // Already signed in → the form is noise; go to app home. Mirrors the
+  // __authed snapshot fast-path below (SignIn's own effect covers the
+  // case where auth is still bootstrapping at navigation time).
+  beforeLoad: () => {
+    const snap = getAuthSnapshot();
+    if (!snap.loading && snap.user) {
+      throw redirect({ to: "/matters" });
+    }
+  },
   component: () => (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignIn />),
 });
 
@@ -261,6 +271,12 @@ const matterDetailTabRoute = createRoute({
     const { slug } = matterDetailTabRoute.useParams();
     return <MatterDetail slug={slug} />;
   },
+});
+
+const helpRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/help",
+  component: Help,
 });
 
 const settingsIndexRoute = createRoute({
@@ -542,6 +558,7 @@ const routeTree = rootRoute.addChildren([
     newMatterRoute,
     matterDetailRoute,
     matterDetailTabRoute,
+    helpRoute,
     settingsIndexRoute,
     settingsProfileRoute,
     settingsKeysRoute,

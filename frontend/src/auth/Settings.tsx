@@ -51,7 +51,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
       <PageHeader
         display
-        eyebrow="Workspace settings"
+        eyebrow="Your account"
         eyebrowRight="Legalise"
         title="Settings"
       />
@@ -119,23 +119,20 @@ function SettingsProfile({
   const [name, setName] = useState(user.name ?? "");
   const [password, setPassword] = useState("");
   const [defaultModel, setDefaultModel] = useState(user.default_model_id ?? "");
-  const [defaultPosture, setDefaultPosture] = useState(user.default_privilege_posture ?? "B_mixed");
   const [error, setError] = useState<string | null>(null);
   const [busyField, setBusyField] = useState<string | null>(null);
 
   // Persisted (last-saved) values - drive the dirty flag per field.
   const [savedName, setSavedName] = useState(user.name ?? "");
   const [savedModel, setSavedModel] = useState(user.default_model_id ?? "");
-  const [savedPosture, setSavedPosture] = useState(user.default_privilege_posture ?? "B_mixed");
 
   useEffect(() => {
     setSavedName(user.name ?? "");
     setSavedModel(user.default_model_id ?? "");
-    setSavedPosture(user.default_privilege_posture ?? "B_mixed");
   }, [user]);
 
   const saveField = async (
-    field: "name" | "password" | "default_model_id" | "default_privilege_posture",
+    field: "name" | "password" | "default_model_id",
     patch: import("../lib/api").UserProfileUpdate,
   ) => {
     setBusyField(field);
@@ -144,7 +141,6 @@ function SettingsProfile({
       await updateProfile(patch);
       if (field === "name") setSavedName(name);
       if (field === "default_model_id") setSavedModel(defaultModel);
-      if (field === "default_privilege_posture") setSavedPosture(defaultPosture);
       if (field === "password") setPassword("");
       onUpdated();
     } catch (err) {
@@ -164,9 +160,10 @@ function SettingsProfile({
     setError(null);
     try {
       await deleteAccount();
-      // Soft-deleted server-side; clear the auth state and bounce home.
-      await auth.signOut();
+      // Soft-deleted server-side; bounce home BEFORE clearing the auth
+      // state so the AppShell guard doesn't race us onto signin.
       navigate("/");
+      await auth.signOut();
     } catch (err) {
       if (err instanceof AccountHasMattersError) {
         setError(
@@ -189,10 +186,7 @@ function SettingsProfile({
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Profile</h2>
-        <p className="prose-p mb-0">Visible in audit rows. Email and verification status read-only.</p>
-      </div>
+      <p className="prose-p mb-0">Visible in audit rows. Email and verification status read-only.</p>
 
       {error && <ErrorCallout message={error} />}
 
@@ -268,30 +262,6 @@ function SettingsProfile({
         <p className="text-xs text-muted mt-2">Model id used for new matters when none specified.</p>
       </div>
 
-      <div>
-        <label className="eyebrow mb-2 block">Default privilege control</label>
-        <div className="flex gap-3">
-          <select
-            value={defaultPosture}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setDefaultPosture(e.target.value)}
-            className={inputCls}
-          >
-            <option value="A_cleared">A · cleared</option>
-            <option value="B_mixed">B · mixed</option>
-            <option value="C_paused">C · paused</option>
-          </select>
-          <FieldSave
-            dirty={defaultPosture !== savedPosture}
-            busy={busyField === "default_privilege_posture"}
-            onClick={() =>
-              void saveField("default_privilege_posture", {
-                default_privilege_posture: defaultPosture,
-              })
-            }
-          />
-        </div>
-      </div>
-
       {/* Usage Plan */}
       <div>
         <div className="eyebrow mb-4 mt-12">Usage Plan</div>
@@ -327,11 +297,10 @@ function SettingsProfile({
 function SignOutButton() {
   const auth = useAuth();
   const handle = async () => {
-    try {
-      await auth.signOut();
-    } finally {
-      navigate("/auth/signin");
-    }
+    // "/" first, then signOut — landing is public, so the AppShell auth
+    // guard can't race this navigate onto signin.
+    navigate("/");
+    await auth.signOut();
   };
   return (
     <button
@@ -414,15 +383,12 @@ function SettingsKeys() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Provider keys</h2>
-        <p className="prose-p mb-0">
-          The hosted site has no shared production model key. To run real
-          model calls, bring your own Anthropic or OpenAI key. Keys are
-          encrypted and used only for your requests — Legalise does not
-          resell model access.
-        </p>
-      </div>
+      <p className="prose-p mb-0">
+        The hosted site has no shared production model key. To run real
+        model calls, bring your own Anthropic or OpenAI key. Keys are
+        encrypted and used only for your requests — Legalise does not
+        resell model access.
+      </p>
 
       {keys && <ProviderStatus hasKey={keys.length > 0} />}
 

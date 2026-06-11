@@ -109,7 +109,9 @@ test("B_mixed: solicitor sees the banner with required role + actor role", async
   await page.goto(`/matters/${matter.slug}`);
 
   await expect(page.getByTestId("posture-banner")).toBeVisible();
-  await expect(page.getByText("B_mixed")).toBeVisible();
+  await expect(
+    page.getByText(/only qualified solicitors can run skills/i),
+  ).toBeVisible();
   await expect(page.getByText("qualified_solicitor")).toBeVisible();
   // The actor's role appears verbatim.
   const bodyText = (await page.textContent("body")) ?? "";
@@ -140,8 +142,7 @@ test("C_paused: solicitor sees the paused banner", async ({ page, request }) => 
   await page.goto(`/matters/${matter.slug}`);
 
   await expect(page.getByTestId("posture-banner")).toBeVisible();
-  await expect(page.getByText(/matter is paused/i)).toBeVisible();
-  await expect(page.getByText("matter_paused")).toBeVisible();
+  await expect(page.getByText(/paused on this matter/i)).toBeVisible();
 });
 
 test("C_paused: qualified_solicitor sees the same paused banner", async ({
@@ -156,15 +157,15 @@ test("C_paused: qualified_solicitor sees the same paused banner", async ({
   await setMatterPrivilege(request, matter.slug, "C_paused");
   await page.goto(`/matters/${matter.slug}`);
   await expect(page.getByTestId("posture-banner")).toBeVisible();
-  await expect(page.getByText(/matter is paused/i)).toBeVisible();
+  await expect(page.getByText(/paused on this matter/i)).toBeVisible();
 });
 
 // ---------------------------------------------------------------------------
-// Phase 14 G admin posture-change CTA — superuser can flip back to
-// A_cleared via the inline control, and the next page load is silent.
+// Admin pause/resume toggle — superuser pauses an active matter, then
+// resumes it (C_paused → B_mixed) via the inline toggle.
 // ---------------------------------------------------------------------------
 
-test("admin posture-change CTA: B_mixed → A_cleared via inline control silences the banner", async ({
+test("admin pause/resume toggle: pause from the B_mixed banner, resume from the paused banner", async ({
   page,
   request,
 }) => {
@@ -184,19 +185,27 @@ test("admin posture-change CTA: B_mixed → A_cleared via inline control silence
   // Admin's role is "solicitor" by default (substrate doesn't auto-
   // promote role on bootstrap; is_superuser is the only flip). So
   // the B_mixed banner DOES render — per the Phase 14 C P1
-  // invariant, is_superuser doesn't satisfy posture. The Phase 14 G
-  // ChangePostureControl IS visible because the viewer is a
-  // superuser.
+  // invariant, is_superuser doesn't satisfy posture. The toggle IS
+  // visible because the viewer is a superuser.
   await expect(page.getByTestId("posture-banner")).toBeVisible();
   await expect(page.getByTestId("change-posture-control")).toBeVisible();
 
-  // Flip to A_cleared.
-  await page.getByTestId("change-posture-select").selectOption("A_cleared");
+  // Pause AI on this matter → C_paused banner.
+  await expect(page.getByTestId("change-posture-submit")).toHaveText(
+    /pause ai on this matter/i,
+  );
   await page.getByTestId("change-posture-submit").click();
+  await expect(page.getByText(/paused on this matter/i)).toBeVisible();
 
-  // Banner silenced after the matter reloads.
-  await page.waitForLoadState("networkidle");
-  await expect(page.getByTestId("posture-banner")).toHaveCount(0);
+  // Resume AI → back to B_mixed; paused copy gone, role banner back.
+  await expect(page.getByTestId("change-posture-submit")).toHaveText(
+    /resume ai/i,
+  );
+  await page.getByTestId("change-posture-submit").click();
+  await expect(page.getByText(/paused on this matter/i)).toHaveCount(0);
+  await expect(
+    page.getByText(/only qualified solicitors can run skills/i),
+  ).toBeVisible();
 });
 
 // posture_gate.check.blocked end-to-end is filed in the matrix as

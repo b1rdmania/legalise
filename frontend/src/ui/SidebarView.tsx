@@ -77,12 +77,14 @@ function UtilLink({ item }: { item: RailItem }) {
 }
 
 export function SidebarView({
+  brandHref,
   newHref,
   onNew,
   globalItems,
   matterTitle,
   matterPosture,
   matterItems,
+  matterFooter,
   adminItems,
   utilItems,
   account,
@@ -90,12 +92,14 @@ export function SidebarView({
   open,
   onClose,
 }: {
+  brandHref?: string;
   newHref?: string;
   onNew?: () => void;
   globalItems: RailItem[];
   matterTitle?: string;
   matterPosture?: RailPosture;
   matterItems?: RailItem[];
+  matterFooter?: ReactNode;
   adminItems?: RailItem[];
   utilItems: RailItem[];
   account?: ReactNode;
@@ -116,10 +120,19 @@ export function SidebarView({
         }
         aria-label="Navigation"
       >
-        {/* brand */}
-        <div className="flex items-center gap-2.5 px-4 h-[64px] border-b border-rule shrink-0">
-          <BrandMark />
-          <span className="font-redaction35 text-[21px] leading-none tracking-tight2 text-ink">Legalise.</span>
+        {/* brand — links to app home when the caller wires a brandHref */}
+        <div className="flex items-center px-4 h-[64px] border-b border-rule shrink-0">
+          {brandHref ? (
+            <a href={brandHref} aria-label="Legalise" className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
+              <BrandMark />
+              <span className="font-redaction35 text-[21px] leading-none tracking-tight2 text-ink">Legalise.</span>
+            </a>
+          ) : (
+            <span className="flex items-center gap-2.5">
+              <BrandMark />
+              <span className="font-redaction35 text-[21px] leading-none tracking-tight2 text-ink">Legalise.</span>
+            </span>
+          )}
           {closeButton && <span className="ml-auto">{closeButton}</span>}
         </div>
 
@@ -158,6 +171,7 @@ export function SidebarView({
               {matterItems.map((it) => (
                 <NavLink key={it.key} item={it} />
               ))}
+              {matterFooter}
             </>
           )}
 

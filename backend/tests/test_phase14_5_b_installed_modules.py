@@ -239,6 +239,7 @@ async def test_response_shape_excludes_secrets_and_internals(client, db_session)
         "installed_at",
         "installed_by_user_id",
         "install_path",
+        "track_record",
     }
     assert set(matching.keys()) == expected_keys
     # Never leaks the raw snapshots or signer internals.
