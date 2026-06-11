@@ -265,10 +265,32 @@ async def _persist_install(
         "audit_events": card.audit_events,
         "capabilities": card.capabilities,
     }
+    module_id = manifest.get("id", ceremony.module_id)
+    version = manifest.get("version", "0.0.0")
+
+    # Re-admission of the same (module_id, version) refreshes the existing
+    # row instead of violating the unique constraint — the new ceremony is
+    # already on the audit chain, so the re-grant is fully recorded.
+    existing = await session.scalar(
+        select(InstalledModule).where(
+            InstalledModule.module_id == module_id,
+            InstalledModule.version == version,
+        )
+    )
+    if existing is not None:
+        existing.signature_status = card.signature_status
+        existing.manifest_snapshot = manifest
+        existing.permissions_snapshot = permissions_snapshot
+        existing.install_path = manifest.get("source_url") or existing.install_path
+        existing.installed_by_user_id = user.id
+        existing.enabled = True
+        await session.flush()
+        return existing
+
     row = InstalledModule(
         id=_uuid.uuid4(),
-        module_id=manifest.get("id", ceremony.module_id),
-        version=manifest.get("version", "0.0.0"),
+        module_id=module_id,
+        version=version,
         publisher=manifest.get("publisher", "unknown"),
         visibility=manifest.get("visibility", "community"),
         signature_status=card.signature_status,

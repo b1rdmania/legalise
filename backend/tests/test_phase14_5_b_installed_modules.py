@@ -334,3 +334,51 @@ async def test_endpoint_emits_no_audit_row(client, db_session):
         )
     )
     assert leaked is None
+
+
+@pytest.mark.asyncio
+async def test_readmission_same_version_refreshes_row(client, db_session):
+    """Re-admitting the same (module_id, version) must refresh the existing
+    row (enabled=True, snapshots updated) — not 500 on the unique
+    constraint. The re-grant ceremony is already on the audit chain."""
+    from app.api.module_routes.common import _persist_install
+    from app.core.trust_ceremony import build_permission_card, Ceremony, CeremonyState
+    import uuid as _u
+
+    manifest = {
+        "id": "readmit.test-skill",
+        "version": "1.0.0",
+        "publisher": "tester",
+        "visibility": "community",
+        "capabilities": [],
+    }
+    from app.models import User
+
+    user = User(
+        id=_u.uuid4(),
+        email=f"readmit-{_u.uuid4().hex[:8]}@example.com",
+        hashed_password="x",
+        is_active=True,
+        is_verified=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    def ceremony():
+        return Ceremony(
+            id=_u.uuid4(),
+            module_id=manifest["id"],
+            manifest=manifest,
+            state=CeremonyState.ENABLED,
+            fast_path=False,
+            permission_card=build_permission_card(manifest),
+            actor_user_id=user.id,
+        )
+
+    first = await _persist_install(db_session, ceremony=ceremony(), user=user)
+    first.enabled = False
+    await db_session.flush()
+
+    second = await _persist_install(db_session, ceremony=ceremony(), user=user)
+    assert second.id == first.id  # refreshed, not duplicated
+    assert second.enabled is True
