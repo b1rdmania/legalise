@@ -327,6 +327,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: vitest
+        working-directory: frontend
+        run: npx vitest run
+
   voice-check:
     name: Voice check (no em or en dashes in chrome)
     runs-on: ubuntu-latest

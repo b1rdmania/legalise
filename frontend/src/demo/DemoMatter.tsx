@@ -171,13 +171,14 @@ export function DemoMatter() {
         </div>
         <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
             {tab === "assistant" && (
-              <div className="space-y-8">
-                <DemoStartPanel
-                  docs={documents}
-                  auditCount={DEMO_SNAPSHOT.audit.length}
-                  onOpen={setTabAndHash}
-                  onRun={() => setTabAndHash("assistant")}
-                />
+              <div className="space-y-6">
+                <p className="mx-auto w-full max-w-[760px] text-[13px] text-muted" data-testid="demo-readonly-strip">
+                  Public demo · read-only Khan v Acme ·{" "}
+                  <a href="/auth/signup" className="underline underline-offset-4 hover:text-ink">
+                    create a workspace
+                  </a>{" "}
+                  to run it yourself.
+                </p>
                 <AssistantTab
                   matter={matter}
                   docs={documents}
@@ -221,85 +222,6 @@ export function DemoMatter() {
         </main>
       </div>
     </>
-  );
-}
-
-function DemoStartPanel({
-  docs,
-  auditCount,
-  onOpen,
-  onRun,
-}: {
-  docs: MatterDocument[];
-  auditCount: number;
-  onOpen: (tab: TabKey) => void;
-  onRun: () => void;
-}) {
-  return (
-    <section className="mx-auto w-full max-w-[1220px] rounded-card border border-rule bg-paper p-5 sm:p-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-            Public demo
-          </p>
-          <h1 className="mt-2 max-w-3xl text-2xl font-semibold tracking-tight2 text-ink sm:text-3xl">
-            A legal project with documents, skills, and a record of what the AI did.
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-prose">
-            Read-only Khan v Acme. Open the project, inspect the documents,
-            run a skill, review the output, and trace it in the Record.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => onOpen("documents")}
-              className="rounded-item border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
-            >
-              View documents
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpen("workflows")}
-              className="rounded-item border border-rule bg-paper px-3 py-2 text-sm font-medium text-ink hover:border-ink"
-            >
-              View skills
-            </button>
-            <button
-              type="button"
-              onClick={onRun}
-              className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black"
-            >
-              Open the chat
-            </button>
-          </div>
-        </div>
-        <div className="grid gap-3 text-sm">
-          <DemoFact label="Documents" value={`${docs.length} loaded`} body="Matter evidence and drafts are in one folder." />
-          <DemoFact label="Skills" value="Ready" body="Skills say what they read and what they produce." />
-          <DemoFact label="Record" value={`${auditCount} entries`} body="AI work, source use, and sign-off stay traceable." />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DemoFact({
-  label,
-  value,
-  body,
-}: {
-  label: string;
-  value: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-card border border-rule bg-paper-sunken p-3">
-      <div className="tech-token text-[10px] uppercase tracking-track2 text-muted">
-        {label}
-      </div>
-      <div className="mt-1 font-semibold text-ink">{value}</div>
-      <p className="mt-1 text-xs leading-5 text-muted">{body}</p>
-    </div>
   );
 }
 
@@ -354,19 +276,9 @@ function DemoWorkflowsTab({
 
   return (
     <div className="max-w-5xl">
-      <div className="mb-8 rounded-card border border-rule bg-paper-sunken p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Skills in this project
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
-          Run a legal skill against the matter file.
-        </h2>
-        <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          Skills are added at workspace level, then enabled inside a
-          project. This public snapshot shows the ready state: what each skill
-          reads, what it produces, and where the result is recorded.
-        </p>
-      </div>
+      <h2 className="mb-6 text-xl font-semibold tracking-tight2 text-ink">
+        Skills in this project
+      </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {workflows.map((w) => (
@@ -452,19 +364,9 @@ function DemoDocumentsTab({
 
   return (
     <div className="max-w-6xl">
-      <div className="mb-6 rounded-card border border-rule bg-paper-sunken p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Documents in this project
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight2 text-ink">
-          The matter file is already loaded.
-        </h2>
-        <p className="mt-2 text-sm text-prose max-w-2xl leading-relaxed">
-          These are the sources the chat and skills can use. In your own
-          workspace, documents open in the reader, edits create versions, and
-          source citations link back here.
-        </p>
-      </div>
+      <h2 className="mb-6 text-xl font-semibold tracking-tight2 text-ink">
+        Documents in this project
+      </h2>
 
       <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="rounded-card border border-rule bg-paper">

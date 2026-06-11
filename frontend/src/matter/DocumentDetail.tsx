@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
 import {
@@ -256,7 +256,6 @@ export function DocumentDetail({
       };
     },
   });
-  const navigate = useNavigate();
   const fromTab = sourceContext.fromTab;
   const backTab: TabKey = fromTab ?? "documents";
   const backLabel =
@@ -521,7 +520,6 @@ export function DocumentDetail({
   const secondaryDocumentSkills = documentSkills.slice(1, 4);
   const reviewQueueTotal =
     pendingEdits + openComments.length + (activeEditSessions.length > 1 ? 1 : 0);
-  const citedOutputCount = documentArtifacts?.length ?? 0;
   const hasConcurrentSession = activeEditSessions.length > 1;
   const documentStateLabel = editorDirty
     ? "Unsaved working copy"
@@ -532,28 +530,6 @@ export function DocumentDetail({
         : selectedResolvedVersion
           ? `Viewing v${selectedResolvedVersion.version_number}`
           : "Ready to read";
-  const headerStatusItems = [
-    {
-      label: "Open notes",
-      value: openComments.length,
-      tone: openComments.length > 0 ? "active" : "quiet",
-    },
-    {
-      label: "Pending changes",
-      value: pendingEdits,
-      tone: pendingEdits > 0 ? "active" : "quiet",
-    },
-    {
-      label: "Versions",
-      value: versions.length,
-      tone: versions.length > 0 ? "active" : "quiet",
-    },
-    {
-      label: "Ready skills",
-      value: documentSkills.length,
-      tone: documentSkills.length > 0 ? "active" : "quiet",
-    },
-  ] as const;
   const anchoredOpenNotes: DocumentNoteHighlight[] = openComments
     .filter(
       (comment) =>
@@ -806,59 +782,6 @@ export function DocumentDetail({
     ]);
     setWorkbenchView("editor");
   };
-  const openChatWithDocument = () =>
-    void navigate({
-      to: "/matters/$slug/$tab",
-      params: { slug, tab: "assistant" },
-      search: { document: documentId },
-    });
-  const chatNextStep = {
-    eyebrow: "Return to Chat",
-    title: "Ask the next question with this file attached.",
-    body: "This document stays selected in Chat, so the next answer works from the same file.",
-    action: "Back to Chat",
-    onClick: openChatWithDocument,
-  };
-  const nextStep =
-    activeEditResult
-      ? {
-          eyebrow: "Review changes",
-          title: `${activeEditResult.pending_edits.length} redline${
-            activeEditResult.pending_edits.length === 1 ? "" : "s"
-          } ready.`,
-          body: "Review the model's suggested changes before they become a saved version.",
-          action: "Review redlines",
-          onClick: () => openWorkbenchView("redlines" as WorkbenchView),
-        }
-      : arrivedFromChat
-        ? chatNextStep
-        : primaryDocumentSkill
-          ? {
-              eyebrow: "Run a skill",
-              title: `${primaryDocumentSkill.title} is ready for this file.`,
-              body: "Run a skill with this document selected, then review the result before saving anything.",
-              action: "Run with this file",
-              onClick: () => openDocumentSkill(primaryDocumentSkill),
-            }
-          : openComments.length > 0
-            ? {
-                eyebrow: "Review notes",
-                title: `${openComments.length} open note${
-                  openComments.length === 1 ? "" : "s"
-                } on this file.`,
-                body: "Open the review notes, resolve what is done, or add a new note from selected text.",
-                action: "Open notes",
-                onClick: () =>
-                  notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }),
-              }
-            : {
-                eyebrow: "Read the file",
-                title: "Review, edit, or export this document.",
-                body: "Use the working copy to mark up the text, save a version, compare changes, or inspect the original file.",
-                action: "Open editor",
-                onClick: () => openWorkbenchView("editor" as WorkbenchView),
-              };
-
   return (
     <div className="bg-wash px-4 py-5 text-ink sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1180px]">
@@ -881,7 +804,7 @@ export function DocumentDetail({
 
         <header className="border-b border-rule pb-5">
           <div className="min-w-0">
-            <h1 className="max-w-4xl break-words text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[36px]">
+            <h1 className="max-w-4xl break-words text-[22px] font-semibold leading-[1.1] tracking-tight2 text-ink sm:text-[26px]">
               {doc.filename}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-muted">
@@ -914,43 +837,21 @@ export function DocumentDetail({
                 </>
               )}
             </div>
-            <p
-              className="mt-3 text-[13px] leading-6 text-muted"
-              data-testid="document-header-status"
-            >
-              {headerStatusItems.map((item, index) => (
-                <span key={item.label}>
-                  {index > 0 && <span aria-hidden="true"> · </span>}
-                  <span className={item.tone === "active" ? "font-semibold text-ink" : ""}>
-                    {item.value} {item.label.toLowerCase()}
-                  </span>
-                </span>
-              ))}
-            </p>
           </div>
         </header>
 
-        {arrivedFromChat && (
+        {arrivedFromChat && sourceContext.quote && (
           <p
             className="mt-4 border-l-2 border-rule bg-paper px-4 py-3 text-sm text-muted"
             data-testid="from-chat-note"
           >
-            {sourceContext.quote ? (
-              <>
-                Opened from a cited source.{" "}
-                {sourceContext.quoteFound === false
-                  ? "The model supplied a quote, but Legalise could not locate it in the extracted source body. "
-                  : sourceQuoteFoundInReader
-                    ? "The cited passage is highlighted below. "
-                    : "Legalise could not locate it in the current reader text. "}
-                Source links are for review, not proof.
-              </>
-            ) : (
-              <>
-                Opened from Chat. This document was cited or used by the output;
-                source links are for review, not proof.
-              </>
-            )}
+            Opened from a cited source.{" "}
+            {sourceContext.quoteFound === false
+              ? "The model supplied a quote, but Legalise could not locate it in the extracted source body. "
+              : sourceQuoteFoundInReader
+                ? "The cited passage is highlighted below. "
+                : "Legalise could not locate it in the current reader text. "}
+            Source links are for review, not proof.
           </p>
         )}
 
@@ -992,25 +893,24 @@ export function DocumentDetail({
                 </WorkbenchTab>
               )}
             </nav>
-            <div
-              className="flex flex-wrap items-center gap-2 text-[13px]"
-              data-testid="document-presence-strip"
-            >
-              <span className="text-ink">
-                {activeEditSessions.length > 1
-                  ? `${activeEditSessions.length} people have this file open`
-                  : "You are working in this file"}
-              </span>
-              <span className="text-muted">Edits are saved as versions.</span>
-              {activeEditSessions.slice(0, 4).map((session) => (
-                <span
-                  key={session.id}
-                  className="rounded-item border border-rule bg-paper-sunken px-2 py-0.5 text-xs text-muted"
-                >
-                  {session.user_label}
+            {activeEditSessions.length > 1 && (
+              <div
+                className="flex flex-wrap items-center gap-2 text-[13px]"
+                data-testid="document-presence-strip"
+              >
+                <span className="text-ink">
+                  {`${activeEditSessions.length} people have this file open`}
                 </span>
-              ))}
-            </div>
+                {activeEditSessions.slice(0, 4).map((session) => (
+                  <span
+                    key={session.id}
+                    className="rounded-item border border-rule bg-paper-sunken px-2 py-0.5 text-xs text-muted"
+                  >
+                    {session.user_label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[13px]">
             <Link
@@ -1473,160 +1373,9 @@ export function DocumentDetail({
 
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
             <section
-              className="rounded-card border border-ink bg-paper p-4"
+              className="rounded-card border border-rule bg-paper p-4"
               data-testid="document-next-step"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Work on this file
-              </p>
-              <h2 className="mt-2 text-lg font-semibold tracking-tight2 text-ink">
-                {nextStep.title}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-muted">{nextStep.body}</p>
-              <button
-                type="button"
-                onClick={nextStep.onClick}
-                className="mt-4 w-full rounded-item border border-ink bg-ink px-4 py-2 text-sm font-semibold text-paper hover:bg-black"
-              >
-                {nextStep.action}
-              </button>
-              <dl
-                className="mt-4 grid grid-cols-3 gap-2 text-center text-xs"
-                data-testid="document-review-board"
-              >
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Notes</dt>
-                  <dd className="mt-1 text-lg font-semibold text-ink">{openComments.length}</dd>
-                </div>
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Skills</dt>
-                  <dd className="mt-1 text-lg font-semibold text-ink">{documentSkills.length}</dd>
-                </div>
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Outputs</dt>
-                  <dd className="mt-1 text-lg font-semibold text-ink">
-                    {documentArtifacts === null ? "..." : citedOutputCount}
-                  </dd>
-                </div>
-              </dl>
-              <details
-                className="mt-4 rounded-card border border-rule bg-paper-sunken p-3"
-                data-testid="document-work-plan"
-              >
-                <summary className="cursor-pointer text-sm font-semibold text-ink">
-                  Workbench shortcuts
-                </summary>
-                <div className="mt-3 divide-y divide-rule border border-rule bg-paper">
-                  <button
-                    type="button"
-                    onClick={() => openWorkbenchView("editor")}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
-                  >
-                    <span>
-                      <span className="block font-semibold text-ink">Read and mark up</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        Select text to anchor a review note.
-                      </span>
-                    </span>
-                    <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
-                      Editor
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
-                    }
-                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
-                  >
-                    <span>
-                      <span className="block font-semibold text-ink">Review notes</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        {openComments.length === 0
-                          ? "No open notes yet."
-                          : `${openComments.length} open note${
-                              openComments.length === 1 ? "" : "s"
-                            } waiting.`}
-                      </span>
-                    </span>
-                    <span className="text-sm font-semibold text-ink">{openComments.length}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (primaryDocumentSkill) openDocumentSkill(primaryDocumentSkill);
-                    }}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm hover:bg-paper-sunken"
-                  >
-                    <span>
-                      <span className="block font-semibold text-ink">Run document skill</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        {documentSkills.length === 0
-                          ? "No document skills are ready."
-                          : `${documentSkills.length} ready for this file.`}
-                      </span>
-                    </span>
-                    <span className="text-sm font-semibold text-ink">{documentSkills.length}</span>
-                  </button>
-                  <a
-                    href={recordHref}
-                    className="flex items-center justify-between gap-3 px-3 py-3 text-sm hover:bg-paper-sunken"
-                  >
-                    <span>
-                      <span className="block font-semibold text-ink">View matter Activity</span>
-                      <span className="mt-1 block text-xs text-muted">
-                        Notes, skill runs, versions, and file access.
-                      </span>
-                    </span>
-                    <span className="text-xs font-semibold uppercase tracking-track2 text-muted">
-                      Open
-                    </span>
-                  </a>
-                </div>
-              </details>
-              <details
-                className="mt-4 rounded-card border border-rule bg-paper-sunken p-3"
-                data-testid="document-output-links"
-              >
-                <summary className="cursor-pointer text-sm font-semibold text-ink">
-                  {documentArtifacts === null
-                    ? "Checking outputs that cite this file"
-                    : citedOutputCount === 0
-                      ? "No outputs cite this file yet"
-                      : `${citedOutputCount} output${
-                          citedOutputCount === 1 ? "" : "s"
-                        } ${citedOutputCount === 1 ? "cites" : "cite"} this file`}
-                </summary>
-                {documentArtifacts && documentArtifacts.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    {documentArtifacts.slice(0, 3).map((artifact) => (
-                      <a
-                        key={artifact.id}
-                        href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifact.id)}`}
-                        className="block rounded-item border border-rule bg-paper px-3 py-2 text-sm hover:border-ink"
-                      >
-                        <span className="block font-semibold text-ink">
-                          {artifactLabel(artifact)}
-                        </span>
-                        <span className="mt-1 block text-xs text-muted">
-                          {artifact.module_id} · {artifact.created_at.replace("T", " ").slice(0, 16)}
-                        </span>
-                      </a>
-                    ))}
-                    <a
-                      href={`/matters/${encodeURIComponent(slug)}/artifacts`}
-                      className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-                    >
-                      Open all signed outputs →
-                    </a>
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm leading-6 text-muted">
-                    Run a document skill or create an output that cites this file. Related
-                    outputs appear here and in matter Activity.
-                  </p>
-                )}
-              </details>
               <details
                 className="mt-3 rounded-card border border-rule bg-paper-sunken p-3"
                 data-testid="document-review-queue"
