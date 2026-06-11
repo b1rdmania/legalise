@@ -230,6 +230,16 @@ work or was refused at the door:
 The `audit_entries` table is append-only by convention today. WORM
 enforcement (Postgres-level revocation of UPDATE/DELETE) lands v0.2.
 
+**Third-party verification.** Every audit row is hash-chained: an
+append-only `audit_chain` table links each entry to the previous one
+per matter, so the chain's head hash is the matter record's
+fingerprint — it commits to every entry beneath it. Exporting that
+head hash (or publishing it anywhere — an email, a filing, a public
+log) lets anyone later prove the record was not rewritten: if the
+trail changes, the head no longer recomputes. The verify endpoint
+(`GET /api/matters/{slug}/audit/chain`) recomputes every link from the
+raw audit rows and reports the head plus any breaks.
+
 ---
 
 ## 9. Skill provenance and approval

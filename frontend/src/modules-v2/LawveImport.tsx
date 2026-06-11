@@ -23,6 +23,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { Badge, ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { RequestSkillButton } from "./RequestSkillButton";
 
 type ListQuery =
   | { status: "loading" }
@@ -449,10 +450,22 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
               {installErr && <ErrorCallout message={installErr} compact />}
             </div>
           ) : (
-            <p className="mt-2 text-xs text-muted" data-testid="install-admin-note">
-              Adding a skill is an administrator action. Ask an administrator to
-              add this skill, or copy/download the manifest above to hand off.
-            </p>
+            <div className="mt-2" data-testid="install-admin-note">
+              <p className="text-xs text-muted">
+                Adding a skill is an administrator action. Request it here and
+                your administrator sees it on the Skills page.
+              </p>
+              <div className="mt-2">
+                <RequestSkillButton
+                  moduleId={
+                    typeof draft.manifest.id === "string" && draft.manifest.id
+                      ? draft.manifest.id
+                      : slug
+                  }
+                  source="lawve"
+                />
+              </div>
+            </div>
           )
         ) : (
           <p className="mt-2 text-xs text-muted">

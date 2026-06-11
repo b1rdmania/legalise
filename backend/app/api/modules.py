@@ -11,6 +11,7 @@ from app.api.module_routes import (
     installed_listing,
     installed_revoke,
     installed_update,
+    requests,
 )
 
 router = APIRouter()
@@ -22,5 +23,6 @@ for subrouter in (
     install_ceremony.router,
     installed_revoke.router,
     installed_update.router,
+    requests.router,
 ):
     router.include_router(subrouter)

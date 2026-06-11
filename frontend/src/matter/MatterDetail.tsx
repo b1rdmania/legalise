@@ -187,6 +187,7 @@ export function MatterDetail({ slug }: { slug: string }) {
               auditCount={audit?.length ?? 0}
               setTabAndHash={setTabAndHash}
               initialDocumentId={initialChatDocumentId}
+              onPostureChange={onPostureChange}
             />
           )}
           {tab === "documents" && (

@@ -19,7 +19,9 @@ import { Link } from "@tanstack/react-router";
 import {
   getModulesV2,
   listInstalledModules,
+  listModuleRequests,
   type InstalledModule,
+  type ModuleRequestRow,
   type V2ManifestEntry,
 } from "../lib/api";
 import { PageHeader } from "../ui/primitives";
@@ -119,6 +121,22 @@ export function ModulesCatalog() {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<SkillTab>("installed");
   const isOperator = !!auth.user?.is_superuser;
+
+  // Workspace skill requests (admin only). Derived from the audit
+  // chain server-side; section renders only when something is pending.
+  const [requests, setRequests] = useState<ModuleRequestRow[]>([]);
+  useEffect(() => {
+    if (!authed || !isOperator) return;
+    let cancelled = false;
+    listModuleRequests()
+      .then((rows) => {
+        if (!cancelled) setRequests(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [authed, isOperator]);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,6 +273,46 @@ export function ModulesCatalog() {
 
       {error && (
         <p className="text-sm text-seal">Could not load skills: {error}</p>
+      )}
+
+      {/* Requested by your workspace — admin only, only when the
+          audit chain holds pending requests. Each row links into the
+          importer where the trust ceremony starts. */}
+      {authed && isOperator && requests.length > 0 && (
+        <section className="mb-10" data-testid="skill-requests">
+          <h2 className="text-xs uppercase tracking-widest text-muted">
+            Requested by your workspace ({requests.length})
+          </h2>
+          <ul className="mt-3 divide-y divide-rule border border-rule bg-paper">
+            {requests.map((r) => (
+              <li
+                key={r.module_id}
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                data-testid={`skill-request-${r.module_id}`}
+              >
+                <div className="min-w-0">
+                  <p className="tech-token text-sm text-ink">{r.module_id}</p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {r.source ? `via ${r.source} · ` : ""}
+                    requested {new Date(r.requested_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <a
+                  href={
+                    r.source === "lawve"
+                      ? // Lawve draft ids are "lawve.{slug}"; the importer
+                        // deep-link takes the bare slug.
+                        `/skills/lawve?skill=${encodeURIComponent(r.module_id.replace(/^lawve\./, ""))}`
+                      : "/skills/lawve"
+                  }
+                  className="shrink-0 text-sm text-muted hover:text-seal"
+                >
+                  Review &amp; add →
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Primary: reference skills (v2 registry).

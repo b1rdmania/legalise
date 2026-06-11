@@ -32,6 +32,7 @@ from app.core.storage import (
     StorageWriteError,
     StorageDeleteError,
 )
+from app.core.audit_chain import verify_audit_chain
 from app.core.text_extraction import extract as extract_text
 from app.core.api import (
     PROVIDER_HTTP_EXCEPTIONS,
@@ -41,6 +42,7 @@ from app.core.api import (
     storage_write_http_exception,
 )
 from app.models import (
+    AuditChainEntry,
     AuditEntry,
     Document,
     DocumentComment,
@@ -126,6 +128,27 @@ class AuditEntryRead(BaseModel):
     payload: dict
 
     model_config = {"from_attributes": True}
+
+
+class AuditChainHeadRead(BaseModel):
+    chain_hash: str
+    scope_sequence: int
+    entry_hash: str
+
+
+class AuditChainIssueRead(BaseModel):
+    code: str
+    message: str
+    audit_entry_id: uuid.UUID | None = None
+    chain_id: int | None = None
+
+
+class AuditChainStatusRead(BaseModel):
+    verified: bool
+    scope: str
+    length: int
+    head: AuditChainHeadRead | None
+    issues: list[AuditChainIssueRead]
 
 
 class DocumentRead(BaseModel):
@@ -635,6 +658,60 @@ async def list_audit(
         .limit(limit)
     )
     return list(rows.all())
+
+
+@router.get("/{slug}/audit/chain", response_model=AuditChainStatusRead)
+async def get_audit_chain_status(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> AuditChainStatusRead:
+    """Verify this matter's audit hash chain and report its head.
+
+    Read-only: recomputes every link in the matter scope via
+    `verify_audit_chain` (the Python mirror of the PL/pgSQL recipe).
+    The head `chain_hash` is the matter record's fingerprint — export
+    it and any later verification proves the trail was not rewritten.
+    """
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    verification = await verify_audit_chain(session, matter_id=matter.id)
+
+    head_row = await session.scalar(
+        select(AuditChainEntry)
+        .where(AuditChainEntry.matter_id == matter.id)
+        .order_by(AuditChainEntry.scope_sequence.desc())
+        .limit(1)
+    )
+    head = (
+        AuditChainHeadRead(
+            chain_hash=head_row.chain_hash,
+            scope_sequence=head_row.scope_sequence,
+            entry_hash=head_row.entry_hash,
+        )
+        if head_row is not None
+        else None
+    )
+
+    return AuditChainStatusRead(
+        verified=verification.ok,
+        scope="matter",
+        length=verification.chain_entry_count,
+        head=head,
+        issues=[
+            AuditChainIssueRead(
+                code=i.code,
+                message=i.message,
+                audit_entry_id=i.audit_entry_id,
+                chain_id=i.chain_id,
+            )
+            for i in verification.issues
+        ],
+    )
 
 
 # ---------------------------------------------------------------------------

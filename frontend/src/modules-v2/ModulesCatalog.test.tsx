@@ -167,6 +167,68 @@ describe("ModulesCatalog — integrations home", () => {
     expect(screen.getByText("1. Pick a skill")).toBeInTheDocument();
   });
 
+  it("admin: shows 'Requested by your workspace' only when requests are pending", async () => {
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: "u-1",
+      email: "admin@example.com",
+      name: "admin",
+      role: "qualified_solicitor",
+      plan: "free",
+      default_model_id: null,
+      default_privilege_posture: null,
+      is_active: true,
+      is_verified: true,
+      is_superuser: true,
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    vi.spyOn(api, "listModuleRequests").mockResolvedValue([
+      {
+        module_id: "lawve.contract-review",
+        source: "lawve",
+        requested_by: "u-2",
+        requested_at: "2026-06-10T12:00:00+00:00",
+      },
+    ]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("skill-requests")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId("skill-request-lawve.contract-review"),
+    ).toBeInTheDocument();
+    // Lawve requests deep-link into the importer by bare slug.
+    const link = screen.getByText("Review & add →");
+    expect(link.getAttribute("href")).toBe(
+      "/skills/lawve?skill=contract-review",
+    );
+  });
+
+  it("admin: no requests section when nothing is pending", async () => {
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: "u-1",
+      email: "admin@example.com",
+      name: "admin",
+      role: "qualified_solicitor",
+      plan: "free",
+      default_model_id: null,
+      default_privilege_posture: null,
+      is_active: true,
+      is_verified: true,
+      is_superuser: true,
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    vi.spyOn(api, "listModuleRequests").mockResolvedValue([]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByText("Add skill")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("skill-requests")).toBeNull();
+  });
+
   it("renders without the retired open-skill-library browse section", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);

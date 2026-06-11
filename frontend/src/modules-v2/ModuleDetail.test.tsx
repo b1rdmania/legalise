@@ -224,10 +224,42 @@ describe("ModuleDetail", () => {
     expect(screen.queryByText("Add skill")).toBeNull();
     expect(screen.queryByText("Update")).toBeNull();
     expect(screen.queryByText("Revoke")).toBeNull();
-    // The substrate-truth explainer IS present.
-    expect(screen.getByText(/require superuser/i)).toBeInTheDocument();
+    // The substrate-truth explainer IS present, with an actionable
+    // request path instead of a dead end.
+    expect(screen.getByText(/administrator action/i)).toBeInTheDocument();
+    expect(screen.getByTestId("request-skill")).toBeInTheDocument();
     // And the network is never poked — no smuggled authority.
     expect(start).not.toHaveBeenCalled();
+  });
+
+  it("non-admin: Request this skill posts the request and flips to a quiet confirmation", async () => {
+    vi.spyOn(api, "getModuleV2").mockResolvedValue(MANIFEST);
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: "u-1",
+      email: "andy@example.com",
+      role: "solicitor",
+      is_superuser: false,
+    } as never);
+    const request = vi
+      .spyOn(api, "requestModule")
+      .mockResolvedValue({ ok: true });
+
+    mountAt("contract-review");
+    await waitFor(() => {
+      expect(screen.getByTestId("request-skill")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("request-skill"));
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith("contract-review", "registry");
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("request-skill-confirmation"),
+      ).toHaveTextContent(/requested — your administrator will see it/i);
+    });
+    // Button is gone — one request per visit, no spam affordance.
+    expect(screen.queryByTestId("request-skill")).toBeNull();
   });
 
   it("admin: shows Add + Update + Revoke", async () => {

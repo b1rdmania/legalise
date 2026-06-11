@@ -118,6 +118,13 @@ class Settings(BaseSettings):
 
 
 
+    # agent-kit eval adapter (POST /api/evals/agent) shared secret.
+    # Unset (the default) disables the endpoint entirely — it returns
+    # 503, mirroring how the old submissions flow gated on unset
+    # config. Set via env AGENT_KIT_SECRET; the agent-kit runner sends
+    # it in the X-Agent-Kit-Secret header.
+    agent_kit_secret: str | None = Field(default=None, alias="AGENT_KIT_SECRET")
+
     # Unit 8 — observability
     # Log format: "console" (human-readable, default) or "json" (log drain).
     log_format: str = "console"

@@ -31,7 +31,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ALL_RECONSTRUCTION_SOURCES,
+  getAuditChainStatus,
   getReconstruction,
+  type AuditChainStatus,
   type ReconstructionSource,
   type TimelineEntry,
 } from "../lib/api";
@@ -118,6 +120,24 @@ export function ReconstructionView({ slug }: { slug: string }) {
   // AT-2: client-side class facet (loaded page only) + background toggle.
   const [classFilter, setClassFilter] = useState<RowClass | null>(null);
   const [showBackground, setShowBackground] = useState(false);
+  // Hash-chain status — quiet one-liner. Null until (and unless) the
+  // endpoint reports; a fetch failure stays silent rather than adding
+  // a second error surface to the page.
+  const [chainStatus, setChainStatus] = useState<AuditChainStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAuditChainStatus(slug)
+      .then((s) => {
+        if (!cancelled) setChainStatus(s);
+      })
+      .catch(() => {
+        /* quiet line only — no error state */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   // When a precise deep-link filter is active, render the returned rows
   // flat — the user asked for an exact invocation/action, so the
@@ -319,6 +339,26 @@ export function ReconstructionView({ slug }: { slug: string }) {
               ? ` · ~${fetchState.totalEstimate} in window`
               : ""}
           </p>
+          {chainStatus &&
+            (chainStatus.verified
+              ? chainStatus.head && (
+                  <p
+                    className="mt-1 text-xs tech-token text-muted"
+                    data-testid="chain-status"
+                  >
+                    Chain verified · {chainStatus.length} link
+                    {chainStatus.length === 1 ? "" : "s"} · head{" "}
+                    {chainStatus.head.chain_hash.slice(0, 8)}
+                  </p>
+                )
+              : (
+                  <p
+                    className="mt-1 text-xs tech-token text-seal"
+                    data-testid="chain-status"
+                  >
+                    chain broken — see issues
+                  </p>
+                ))}
           {visibleEntries.length > 0 && !deepLinked && (
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {Array.from(storyCounts.entries())

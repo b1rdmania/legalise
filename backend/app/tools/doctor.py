@@ -168,6 +168,71 @@ async def check_db_audit_worm(session: AsyncSession) -> CheckResult:
     )
 
 
+async def check_audit_chain_verifies(session: AsyncSession) -> CheckResult:
+    """Recompute the audit hash chain on a bounded sample.
+
+    Bounded: verifies the scope of the most recent matter-scoped chain
+    link (one matter's chain). If no matter-scoped links exist yet, runs
+    the full verifier — at that point the only rows are the system
+    scope, which is what's left to check. No chain rows at all is a
+    soft note (fresh fork, nothing audited yet).
+    """
+    from app.core.audit_chain import verify_audit_chain
+    from app.models.audit_chain import AuditChainEntry
+
+    try:
+        latest_matter_scoped = await session.scalar(
+            select(AuditChainEntry)
+            .where(AuditChainEntry.matter_id.is_not(None))
+            .order_by(AuditChainEntry.id.desc())
+            .limit(1)
+        )
+        any_row = latest_matter_scoped or await session.scalar(
+            select(AuditChainEntry).limit(1)
+        )
+        if any_row is None:
+            return CheckResult(
+                "audit.chain_verifies",
+                "note",
+                "no audit_chain rows yet — nothing to verify",
+            )
+        if latest_matter_scoped is not None:
+            verification = await verify_audit_chain(
+                session, matter_id=latest_matter_scoped.matter_id
+            )
+            sample = f"matter scope {latest_matter_scoped.matter_id}"
+        else:
+            verification = await verify_audit_chain(session)
+            sample = "all scopes (system only)"
+    except Exception as exc:  # noqa: BLE001
+        return CheckResult(
+            "audit.chain_verifies",
+            "fail",
+            f"verifier raised: {exc.__class__.__name__}: {exc}",
+            "is migration 0030 applied? run `alembic upgrade head`",
+        )
+
+    if verification.ok:
+        return CheckResult(
+            "audit.chain_verifies",
+            "ok",
+            f"{sample}: {verification.chain_entry_count} link(s) verified",
+        )
+    first = verification.issues[0]
+    more = (
+        f" (+{len(verification.issues) - 1} more)"
+        if len(verification.issues) > 1
+        else ""
+    )
+    return CheckResult(
+        "audit.chain_verifies",
+        "fail",
+        f"{sample}: {first.code}: {first.message}{more}",
+        "the audit chain does not recompute — treat the trail as suspect "
+        "and investigate audit_chain rows for this scope",
+    )
+
+
 async def check_redis_reachable() -> CheckResult:
     try:
         import redis.asyncio as redis_asyncio
@@ -455,6 +520,7 @@ async def _run_all(*, create_bucket: bool) -> int:
         if db_ok.status == "ok":
             results.append(await check_db_migrations_current(session))
             results.append(await check_db_audit_worm(session))
+            results.append(await check_audit_chain_verifies(session))
         # Skip downstream DB-needing checks if DB is unreachable.
 
     # Redis (own client).
