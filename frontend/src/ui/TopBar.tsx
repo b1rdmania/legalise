@@ -154,6 +154,18 @@ export function TopBar({
                 >
                   GitHub
                 </a>
+                <a
+                  href="/auth/signin"
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  Sign in
+                </a>
+                <a
+                  href="/auth/signup"
+                  className="border border-rule px-3 py-1.5 text-ink transition-colors hover:border-ink hover:bg-wash"
+                >
+                  Create account
+                </a>
               </>
             )}
           </nav>
