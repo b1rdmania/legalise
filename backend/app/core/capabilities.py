@@ -376,64 +376,6 @@ async def revoke(
     await session.delete(row)
 
 
-async def auto_grant_declared_for_user(
-    session: AsyncSession,
-    *,
-    user_id: uuid.UUID,
-) -> int:
-    """Grant every declared capability of every installed skill to `user_id`.
-    Returns the number of `(plugin, skill, capability)` triples written.
-    Idempotent.
-
-    Reads per-skill `capabilities` via `declared_capabilities_for_skill` so
-    the grant set matches what `/api/modules` reports. Auto-grant and the
-    Modules listing endpoint share one resolver; they cannot drift.
-
-    v0.1 policy: declared = granted at signup. The Modules page lets the
-    user revoke any time. An explicit grant-confirmation UI lands with the
-    next workspace surface; the auto-grant keeps v0.1 end-to-end functional
-    without forcing a click-through before the first call.
-    """
-    # Lazy imports break startup cycles; this module is imported very early.
-    import json as _json
-
-    from app.api.modules import _module_json_for, _skill_paths, _plugins_root
-
-    root = _plugins_root()
-    written = 0
-    manifest_cache: dict[str, dict | None] = {}
-    for path in _skill_paths():
-        try:
-            plugin, _, skill, _filename = path.relative_to(root).parts
-        except ValueError:
-            continue
-        if plugin not in manifest_cache:
-            mj_path = _module_json_for(path)
-            if not mj_path.exists():
-                manifest_cache[plugin] = None
-                continue
-            try:
-                manifest_cache[plugin] = _json.loads(
-                    mj_path.read_text(encoding="utf-8")
-                )
-            except (ValueError, OSError):
-                manifest_cache[plugin] = None
-                continue
-        capabilities = declared_capabilities_for_skill(
-            manifest_cache[plugin], skill
-        )
-        for capability in capabilities:
-            await grant(
-                session,
-                user_id=user_id,
-                plugin=plugin,
-                skill=skill,
-                capability=capability,
-            )
-            written += 1
-    return written
-
-
 __all__ = [
     "CAPABILITY_VOCABULARY",
     "CapabilityDenied",
@@ -446,5 +388,4 @@ __all__ = [
     "grant",
     "grant_many",
     "revoke",
-    "auto_grant_declared_for_user",
 ]

@@ -192,6 +192,18 @@ export const draftLawveModule = (slug: string, overrides?: Record<string, unknow
     body: JSON.stringify(overrides ?? {}),
   }).then((r) => jsonOrThrow<LawveDraftResult>(r));
 
+export const getGithubSkill = (url: string) =>
+  apiFetch(`${API}/modules/external/github/skill?url=${encodeURIComponent(url)}`).then(
+    (r) => jsonOrThrow<LawveSkillDetail>(r),
+  );
+
+export const draftGithubModule = (url: string, overrides?: Record<string, unknown>) =>
+  apiFetch(`${API}/modules/external/github/draft`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, ...(overrides ?? {}) }),
+  }).then((r) => jsonOrThrow<LawveDraftResult>(r));
+
 // Installed-modules listing. One row per module_id
 // (most recent installed_at). Frontend uses it for the catalog
 // badge and as one AND clause in GrantsPanel.runnablePairs.
@@ -1145,66 +1157,6 @@ export const setPrivilege = (slug: string, posture: string) =>
     body: JSON.stringify({ privilege_posture: posture }),
   }).then((r) => jsonOrThrow<Matter>(r));
 
-// ----- Installed skill catalogue -----
-
-export interface ModuleSkill {
-  plugin: string;
-  skill: string;
-  name: string;
-  description: string;
-  source_url: string | null;
-  argument_hint: string | null;
-  capabilities: string[];
-  trust_posture: string | null;
-  enabled: boolean;
-}
-
-export interface ModulesResponse {
-  plugins_root: string;
-  source: {
-    repo: string | null;
-    ref: string | null;
-  };
-  skills: ModuleSkill[];
-  broken: {
-    plugin: string;
-    skill: string;
-    errors: { path: string; message: string }[];
-  }[];
-}
-
-export const getModules = () =>
-  apiFetch(`${API}/modules`).then((r) => jsonOrThrow<ModulesResponse>(r));
-
-// Public, unauth-safe view of the catalogue. No workspace state - no
-// `granted_capabilities`, no `enabled`. Backed by the same manifest
-// resolver as `getModules`. Backend sends Cache-Control: max-age=300.
-export interface PublicModuleSkill {
-  plugin: string;
-  skill: string;
-  name: string;
-  description: string;
-  declared_capabilities: string[];
-  trust_posture: string | null;
-  source_url: string | null;
-}
-
-export interface PublicModulesResponse {
-  source: {
-    repo: string | null;
-    ref: string | null;
-  };
-  skills: PublicModuleSkill[];
-  broken: {
-    plugin: string;
-    skill: string;
-    errors: { path: string; message: string }[];
-  }[];
-}
-
-export const getPublicModules = () =>
-  apiFetch(`${API}/modules/public`).then((r) => jsonOrThrow<PublicModulesResponse>(r));
-
 export class AccountHasMattersError extends Error {
   readonly matterCount: number;
   constructor(matterCount: number) {
@@ -1232,15 +1184,6 @@ export const deleteAccount = async (): Promise<void> => {
   }
   throw new Error(`deleteAccount: ${r.status} ${r.statusText}`);
 };
-
-export const getSkillBody = (plugin: string, skill: string) =>
-  apiFetch(`${API}/modules/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}`).then(async (r) => {
-    if (!r.ok) {
-      const text = await r.text();
-      throw new Error(`${r.status} ${r.statusText}: ${text}`);
-    }
-    return r.text();
-  });
 
 export interface ChronologyEvent {
   id: string;
@@ -1926,24 +1869,6 @@ export const deleteApiKey = (provider: string) =>
 
 // ----- Installed-skill catalogue extensions ------------------------------
 
-export interface BrokenManifest {
-  plugin: string;
-  skill: string;
-  errors: { path: string; message: string }[];
-}
-
-export const disableSkill = (plugin: string, skill: string) =>
-  apiFetch(
-    `${API}/workspace/skills/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}/disable`,
-    { method: "POST" },
-  ).then((r) => jsonOrThrow<{ plugin: string; skill: string; enabled: boolean }>(r));
-
-export const enableSkill = (plugin: string, skill: string) =>
-  apiFetch(
-    `${API}/workspace/skills/${encodeURIComponent(plugin)}/${encodeURIComponent(skill)}/enable`,
-    { method: "POST" },
-  ).then((r) => jsonOrThrow<{ plugin: string; skill: string; enabled: boolean }>(r));
-
 // ----- Anonymisation (folded from modules/anonymisation/api.ts) ----------
 
 export type AnonymisationEngine = "presidio" | "claude" | "auto";
@@ -2124,79 +2049,4 @@ export async function* postAssistantMessageStream(
       yield { event, data } as AssistantStreamEvent;
     }
   }
-}
-
-export const SUBMISSION_TRUST_POSTURES = [
-  "trusted",
-  "third_party",
-  "experimental",
-] as const;
-export type SubmissionTrustPosture = (typeof SUBMISSION_TRUST_POSTURES)[number];
-
-// Closed capability set — mirrors backend `ALLOWED_CAPABILITIES`
-// and schemas/module.json. Keep in sync.
-export const SUBMISSION_CAPABILITIES = [
-  "matter.read",
-  "document.body.read",
-  "document.generated.write",
-  "model.invoke",
-  "chronology.read",
-  "chronology.write",
-  "citation.write",
-  "audit.emit",
-] as const;
-export type SubmissionCapability = (typeof SUBMISSION_CAPABILITIES)[number];
-
-export interface ModuleSubmissionRequest {
-  plugin_name: string;
-  skill_name: string;
-  description: string;
-  body_markdown: string;
-  capabilities: SubmissionCapability[];
-  trust_posture: SubmissionTrustPosture;
-  submitter_handle: string;
-  submitter_contact: string;
-  turnstile_token: string;
-}
-
-export interface ModuleSubmissionResponse {
-  submission_id: string;
-  pull_request_url: string;
-  branch_name: string;
-}
-
-export interface SubmissionConfig {
-  submission_enabled: boolean;
-  turnstile_site_key: string | null;
-}
-
-export const getSubmissionConfig = () =>
-  apiFetch(`${API}/modules/submissions/config`).then((r) =>
-    jsonOrThrow<SubmissionConfig>(r),
-  );
-
-// `submitModule` returns the parsed body on success and throws an
-// `Error` whose `.message` carries the JSON error envelope from the
-// backend on failure so the UI can branch on status.
-export async function submitModule(
-  body: ModuleSubmissionRequest,
-): Promise<ModuleSubmissionResponse> {
-  const res = await apiFetch(`${API}/modules/submissions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    let detail: unknown = null;
-    try {
-      detail = await res.json();
-    } catch {
-      detail = await res.text();
-    }
-    const err = new Error(`submission failed (${res.status})`);
-    (err as Error & { status?: number; detail?: unknown }).status = res.status;
-    (err as Error & { status?: number; detail?: unknown }).detail = detail;
-    throw err;
-  }
-  return (await res.json()) as ModuleSubmissionResponse;
 }

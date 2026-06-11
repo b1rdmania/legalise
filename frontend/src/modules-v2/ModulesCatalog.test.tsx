@@ -2,9 +2,9 @@
  * Module Standalone v1 — ModulesCatalog (integrations home) tests.
  *
  * Primary = v2 registry reference modules with workspace state; the
- * public skill library is a secondary, collapsed-by-default browse (not
- * an add path). Mounts the production router so the Links + auth
- * context the page now depends on resolve.
+ * Lawve catalogue is the secondary browse + Review-&-add path. Mounts
+ * the production router so the Links + auth context the page now
+ * depends on resolve.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/rea
 import { router as productionRouter } from "../router";
 import { AuthProvider } from "../auth/AuthProvider";
 import * as api from "../lib/api";
-import type { PublicModuleSkill, V2ManifestEntry } from "../lib/api";
+import type { V2ManifestEntry } from "../lib/api";
 
 function refModule(over: Partial<V2ManifestEntry> = {}): V2ManifestEntry {
   return {
@@ -33,19 +33,6 @@ function refModule(over: Partial<V2ManifestEntry> = {}): V2ManifestEntry {
     },
     is_valid: true,
     validation_errors: [],
-    ...over,
-  };
-}
-
-function skill(over: Partial<PublicModuleSkill> = {}): PublicModuleSkill {
-  return {
-    plugin: "uk-employment-legal",
-    skill: "unfair-dismissal-screener",
-    name: "Unfair Dismissal Screener",
-    description: "Screens a dismissal against the s.94 ERA framework.",
-    declared_capabilities: ["read", "model"],
-    trust_posture: "first_party",
-    source_url: "https://github.com/b1rdmania/claude-for-uk-legal/...",
     ...over,
   };
 }
@@ -83,11 +70,6 @@ beforeEach(() => {
     is_active: true,
     is_verified: true,
     is_superuser: false,
-  });
-  vi.spyOn(api, "getPublicModules").mockResolvedValue({
-    source: { repo: "b1rdmania/claude-for-uk-legal", ref: "abc" },
-    skills: [skill()],
-    broken: [],
   });
 });
 afterEach(() => cleanup());
@@ -172,30 +154,27 @@ describe("ModulesCatalog — integrations home", () => {
     expect(screen.getByText(/No skills match/)).toBeInTheDocument();
   });
 
-  it("shows the public skill library immediately without a sign-in wall", async () => {
+  it("shows the demo path immediately without a sign-in wall", async () => {
     vi.spyOn(api, "getCurrentUser").mockRejectedValue(new Error("401"));
     vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 
     mountAt();
     await waitFor(() => {
-      expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
+      expect(screen.getByText("Open demo")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("modules-signin-prompt")).toBeNull();
-    expect(screen.getByText(/Browse legal skills/)).toBeInTheDocument();
-    expect(screen.getByText("Open demo")).toBeInTheDocument();
+    expect(screen.getByText("1. Pick a skill")).toBeInTheDocument();
   });
 
-  it("keeps the public skill library secondary + collapsed for signed-in users", async () => {
+  it("renders without the retired open-skill-library browse section", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
 
     mountAt();
     await waitFor(() => {
-      expect(screen.getByTestId("toggle-skills")).toBeInTheDocument();
+      expect(screen.getByText("Add skill")).toBeInTheDocument();
     });
-    expect(screen.queryByText("Unfair Dismissal Screener")).toBeNull();
-    fireEvent.click(screen.getByTestId("toggle-skills"));
-    expect(screen.getByText("Unfair Dismissal Screener")).toBeInTheDocument();
+    expect(screen.queryByTestId("toggle-skills")).toBeNull();
   });
 });

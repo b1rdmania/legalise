@@ -1,7 +1,7 @@
 """Assistant pipeline — assemble context, call gateway, persist + audit.
 
 One turn per request. Reads matter facts + chronology summary + selected
-or recent document bodies + installed-modules list, calls the model
+or recent document bodies + enabled-skill tool list, calls the model
 through the same gateway as every other module, parses the JSON envelope
 through `app.core.structured_output.parse_model_json`, and persists both
 user + assistant rows in one transaction.
@@ -17,18 +17,15 @@ import re
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import desc as sql_desc
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.plugin_bridge import _parse_skill_md
 from app.core.advice_boundary import AdviceBoundaryDenied
 from app.core.api import audit as audit_api
 from app.core.capabilities import CapabilityDenied
-from app.core.config import settings
 from app.core.model_gateway import PrivilegePosture, ProviderKeyMissing
 from app.core.model_gateway import gateway as model_gateway
 from app.core.phase1_runtime.exceptions import Phase1Blocked
@@ -41,7 +38,7 @@ from app.core.runtime import (
     dispatch_capability,
 )
 from app.core.structured_output import StructuredOutputError, parse_model_json
-from app.models import Document, Event, InstalledModule, Matter, WorkspaceDisabledSkill
+from app.models import Document, Event, InstalledModule, Matter
 from app.models.assistant import ROLE_ASSISTANT, ROLE_USER, AssistantMessage
 from app.models.document_body import BODY_KIND_EXTRACTED, DocumentBody
 
@@ -169,46 +166,6 @@ async def _load_document_snippets(
     return out
 
 
-def _load_installed_modules() -> list[tuple[str, str, str]]:
-    """Return `(plugin, skill, description)` for every readable SKILL.md.
-
-    Mirrors `app.api.modules._skill_paths` without the validation overhead
-    — the assistant only needs names + one-liners for prompt assembly.
-    Errors on individual manifests are silently skipped; a missing plugins
-    root returns the empty list.
-    """
-    root = Path(settings.plugins_root)
-    if not root.exists():
-        return []
-    out: list[tuple[str, str, str]] = []
-    for path in sorted(root.glob("*/skills/*/SKILL.md")):
-        try:
-            plugin, _, skill, filename = path.relative_to(root).parts
-        except ValueError:
-            continue
-        if filename != "SKILL.md":
-            continue
-        try:
-            manifest = _parse_skill_md(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        out.append((plugin, skill, manifest.description))
-    return out
-
-
-async def _enabled_modules(
-    session: AsyncSession, user_id: uuid.UUID
-) -> list[tuple[str, str, str]]:
-    installed = _load_installed_modules()
-    disabled_rows = await session.scalars(
-        select(WorkspaceDisabledSkill).where(
-            WorkspaceDisabledSkill.user_id == user_id
-        )
-    )
-    disabled = {(r.plugin, r.skill) for r in disabled_rows.all()}
-    return [t for t in installed if (t[0], t[1]) not in disabled]
-
-
 def _text(value: Any) -> str | None:
     return value if isinstance(value, str) and value.strip() else None
 
@@ -334,15 +291,6 @@ def _format_documents(snippets: list[tuple[Document, str]]) -> str:
             f"[doc:{doc.id}] {doc.filename}\n{body}"
         )
     return "\n\n".join(blocks)
-
-
-def _format_modules(modules: list[tuple[str, str, str]]) -> str:
-    if not modules:
-        return "(no installed modules)"
-    return "\n".join(
-        f"- {plugin}/{skill}: {description}"
-        for plugin, skill, description in modules
-    )
 
 
 def _format_tools(tools: list[AssistantToolSpec]) -> str:
@@ -485,12 +433,11 @@ def _assemble_prompt(
     history: list[AssistantMessage],
     events: list[Event],
     snippets: list[tuple[Document, str]],
-    modules: list[tuple[str, str, str]],
     tools: list[AssistantToolSpec],
     user_content: str,
     token_budget: int,
 ) -> str:
-    # Context budget covers history + chronology + docs + modules + matter
+    # Context budget covers history + chronology + docs + tools + matter
     # facts. The new user message and the JSON instruction are appended
     # AFTER truncation so they survive even when the budget is exhausted.
     # Matter facts are tiny and always kept verbatim. The truncation order
@@ -504,9 +451,6 @@ def _assemble_prompt(
         "",
         "## Documents",
         _format_documents(snippets),
-        "",
-        "## Installed modules",
-        _format_modules(modules),
         "",
         "## Tools",
         _format_tools(tools),
@@ -695,7 +639,6 @@ async def run_assistant_turn(
     snippets = await _load_document_snippets(
         session, matter.id, list(request.selected_document_ids)
     )
-    modules = await _enabled_modules(session, actor_id)
     tools = await _load_assistant_tools(session)
     if on_event is not None:
         await on_event(
@@ -713,7 +656,6 @@ async def run_assistant_turn(
         history=history,
         events=events,
         snippets=snippets,
-        modules=modules,
         tools=tools,
         user_content=request.content,
         token_budget=context_token_budget,

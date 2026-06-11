@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from pathlib import Path
 
-from app.adapters.plugin_bridge import PluginBridge, set_bridge
 from app.api import matters_router
 from app.api.account import router as account_router
 from app.api.auth import router as auth_router
@@ -35,7 +34,6 @@ from app.api.lawve_import import router as lawve_import_router
 from app.api.demo import router as demo_router
 from app.api.system import router as system_router
 from app.api.settings import router as settings_router
-from app.api.submissions import router as submissions_router
 from app.api.usage import router as usage_router
 from app.api.workspace import router as workspace_router
 from app.api.state_machine import router as state_machine_router
@@ -143,15 +141,6 @@ async def lifespan(app: FastAPI):
     # as `gateway.call()`. Pydantic input/output models per tool; JSON Schema
     # derived on demand via `model_json_schema()`.
     register_phase_a_tools(model_gateway)
-
-    # Wire the plugin bridge with the gateway and the plugins root.
-    plugins_root = Path(settings.plugins_root)
-    set_bridge(PluginBridge(plugins_root=plugins_root, gateway=model_gateway))
-    logger.info(
-        "legalise.startup.plugin_bridge",
-        plugins_root=str(plugins_root),
-        exists=plugins_root.exists(),
-    )
 
     # Seed the demo matter in any environment that wants the workspace to be
     # non-empty on boot. The seed function is idempotent — existing Khan is
@@ -347,13 +336,6 @@ app.include_router(system_router, prefix="/api/system", tags=["system"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
-# Submissions router MUST mount BEFORE the modules router. Both share
-# the `/api/modules` prefix; the modules router has a catch-all
-# `GET /{plugin}/{skill}` that is auth-gated and will shadow the
-# public `GET /submissions/config` if order is reversed. The
-# submissions router is an unauthenticated pre-login surface — the
-# router itself is the auth boundary (Turnstile + per-IP token bucket).
-app.include_router(submissions_router, prefix="/api/modules", tags=["submissions"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 # Lawve Skill Importer v1 — external-source browse/convert (read-only;
 # no install). Nested under /api/modules so it sits with the module

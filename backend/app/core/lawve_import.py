@@ -60,10 +60,10 @@ async def _github_get(url: str, *, as_json: bool) -> Any:
     """GET a GitHub URL (raw or API). Returns parsed JSON or text.
 
     Raises ``LawveSourceError`` on transport/HTTP failure. Uses the
-    optional submission token for a higher rate limit when present.
+    optional read token for a higher rate limit when present.
     """
     headers = {"User-Agent": "legalise-lawve-importer"}
-    token = settings.github_submission_token
+    token = settings.github_read_token
     if token and url.startswith(_API):
         headers["Authorization"] = f"Bearer {token}"
         headers["Accept"] = "application/vnd.github+json"

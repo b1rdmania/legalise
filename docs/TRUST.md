@@ -19,8 +19,9 @@ controller and accountable party.
 ## 1. What Legalise is
 
 A matter-first AI workspace with a model gateway, a privilege-posture access
-control, an audit log, and a plugin bridge to the `claude-for-uk-legal` skill
-suite. Solicitors author and review; the system drafts and records.
+control, an audit log, and a governed skill-import path (the Lawve
+catalogue or any public GitHub repo with a `SKILL.md`). Solicitors author
+and review; the system drafts and records.
 
 The trust model is built around supervised autonomy, not unsupervised
 automation. Legalise should make it clear what the AI saw, what it did, which
@@ -238,17 +239,16 @@ frontmatter (`name`, `description`, optional `argument-hint`) and a prompt
 body. Legalise exposes both through the installed-skills discovery page so a
 firm's internal tech team can review what will run before solicitors use it.
 
-Git is the approval trail. Firms fork a catalogue such as
-`claude-for-uk-legal`, review prompt changes by PR diff, merge approved
-changes, and deploy Legalise against the approved SHA. `PLUGINS_REPO_REF`
-pins the catalogue version used by the live system; bumping it is visible in
-deploy configuration, image history, and `git log`.
+Git is the approval trail. Skills import from a source repository (the
+Lawve catalogue or any public GitHub repo) at a **pinned commit SHA**
+recorded in the installed manifest's `source_url`. Reviewing a skill means
+reviewing its `SKILL.md` at that SHA; updating it is a fresh import through
+the trust ceremony, so a prompt change can never reach the runtime
+silently.
 
 Runtime provenance is separate and audited. Every skill invocation records
-`plugin.invoked` plus the gateway's `model.call`. The `plugin.invoked`
-payload carries `plugin`, `skill`, `skill_name`, `inputs`, and
-`matter_slug`, so "which skills ran against which matters?" is answerable
-from the audit log.
+`module.capability.invoked` plus the gateway's `model.call`, so "which
+skills ran against which matters?" is answerable from the audit log.
 
 What the current release does **not** yet cover: prompt-injection scanning, automated
 `SKILL.md` linting, signed manifests, organisation-level skill allowlists,
@@ -342,6 +342,7 @@ unless they prefer anonymity.
 | 2026-05-13 | First draft (v0.1 source of truth) |
 | 2026-05-13 | Sweep: "Compliant by design" → "Designed against principles"; gaps promoted to §3 (read this first); compliance table reframed as planned sequencing, not achieved assurance; insurance note added |
 | 2026-05-14 | Added §9 skill provenance and approval: Git review as approval trail, `PLUGINS_REPO_REF` pinning, and `plugin.invoked` audit provenance |
+| 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path (Lawve + GitHub) — pinned-SHA provenance, trust ceremony as the only install route |
 
 This file changes when the architecture changes. `git log docs/TRUST.md`
 is the canonical history.

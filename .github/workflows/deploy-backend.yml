@@ -12,9 +12,6 @@ name: Deploy backend (Fly.io)
 #                    `fly tokens create deploy -a legalise-backend`
 #                    from a machine with working DNS). Scope to the
 #                    legalise-backend app where possible.
-#
-# The Dockerfile clones claude-for-uk-legal at PLUGINS_REPO_REF during
-# the image build, so no plugin checkout is needed on the runner.
 
 on:
   push:

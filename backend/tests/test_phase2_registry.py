@@ -59,25 +59,6 @@ def test_ui_slot_registry_assert_raises() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_shim_from_skill_md_produces_valid_v2() -> None:
-    v2 = auto_derive_v2_from_v1(
-        source_kind="v1_skill",
-        skill_md={
-            "name": "Test Skill",
-            "description": "A test",
-            "declared_capabilities": ["matter.read", "model.invoke"],
-        },
-        plugin_id="test-plugin",
-        skill_id="test-skill",
-    )
-    is_valid, errors = validate_manifest_v2(v2)
-    assert is_valid, errors
-    assert v2["capabilities"][0]["kind"] == "skill"
-    assert v2["capabilities"][0]["scope"] == "matter"
-    assert v2["capabilities"][0]["reads"] == ["matter.read"]
-    assert "model.invoke" in v2["capabilities"][0]["writes"]
-
-
 def test_shim_from_module_json_produces_valid_v2() -> None:
     v2 = auto_derive_v2_from_v1(
         source_kind="v1_module_json",
@@ -96,22 +77,6 @@ def test_shim_from_module_json_produces_valid_v2() -> None:
     is_valid, errors = validate_manifest_v2(v2)
     assert is_valid, errors
     assert v2["capabilities"][0]["kind"] == "workflow"
-
-
-def test_shim_uses_model_access_optional_for_legacy_model_invoke() -> None:
-    """Shim must default to optional, not required, so the manifest
-    validates without a synthetic provider dependency."""
-    v2 = auto_derive_v2_from_v1(
-        source_kind="v1_skill",
-        skill_md={
-            "name": "Test",
-            "description": "",
-            "declared_capabilities": ["model.invoke"],
-        },
-        plugin_id="p",
-        skill_id="s",
-    )
-    assert v2["capabilities"][0]["model_access"] == "optional"
 
 
 def test_shim_only_includes_optional_strings_when_present() -> None:
@@ -149,20 +114,23 @@ def test_shim_invalid_source_kind_raises() -> None:
 def test_validator_rejects_unknown_ui_slot() -> None:
     """Verify the code-level UI slot check fires.
 
-    Starts from a shim-derived v2 manifest with a long-enough
-    skill_id (the capability.id regex requires 2+ chars), then
+    Starts from a shim-derived v2 manifest, then
     mutates ``ui.slot`` to an unknown value. Schema validation
     passes (no enum on ui.slot at JSON Schema level), so the
     code-level check in ``_code_level_errors`` runs and rejects."""
     m = auto_derive_v2_from_v1(
-        source_kind="v1_skill",
-        skill_md={
-            "name": "Test",
-            "description": "",
-            "declared_capabilities": [],
+        source_kind="v1_module_json",
+        payload={
+            "name": "test-plugin",
+            "version": "0.1.0",
+            "description": "...",
+            "nav": {"label": "Test", "order": 50},
+            "routes": {
+                "backend_prefix": "/api/modules/test-plugin",
+                "frontend_route": "/test-plugin",
+            },
+            "capabilities": [],
         },
-        plugin_id="test-plugin",
-        skill_id="test-skill",
     )
     m["capabilities"][0]["ui"]["slot"] = "matter.invented_slot"
     is_valid, errors = validate_manifest_v2(m)
@@ -176,9 +144,8 @@ def test_validator_rejects_unknown_ui_slot() -> None:
 
 
 def test_discovery_returns_some_modules() -> None:
-    """The live plugin checkout in the container surfaces at least
-    one module. If the checkout isn't present (e.g. local dev without
-    plugins), the list may be empty — both are fine. Just verify the
+    """Discovery walks backend/app/modules + examples/modules. The
+    list may be empty in a stripped checkout — just verify the
     return type."""
     entries = discover_modules()
     assert isinstance(entries, list)

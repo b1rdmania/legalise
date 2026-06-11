@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Added
 
+- GitHub skill importer: `/api/modules/external/github/skill` + `/draft` convert a `SKILL.md` from any public GitHub repository into a governed module draft at a pinned commit SHA — same contract as the Lawve importer, same trust ceremony, scripts never executed. The Add-a-skill page accepts a repo URL.
+
+### Removed
+
+- The filesystem plugin path: `claude-for-uk-legal` checkout (PLUGINS_ROOT bind mount + Docker build-time clone), the in-process plugin bridge, `POST /api/matters/{slug}/invoke`, the v1 `/api/modules` + `/api/modules/public` listings, the SKILL.md shim, signup auto-grant of plugin capabilities, and the public module-submissions flow (Turnstile + GitHub draft PRs). Skills now arrive exclusively by import (Lawve or GitHub) through the trust ceremony. Pre-Motion lives on as a standalone skill at `b1rdmania/pre-motion`.
+
 - Runtime capability enforcement. `workspace_skill_capability_grants` table + `require_capability` helper, wired at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). Auto-grant on signup keeps the v0.1 UX honest (declared = granted by default; user can revoke).
 - Per-skill module manifests. Schema supports per-skill `capabilities` and `trust_posture` overrides. Bridge surfaces `declared_capabilities` and `granted_capabilities` separately.
 - Bootstrap audit rows on per-user demo seed. `actor_id=NULL`, `module=seed`, `payload.kind=seed`. Idempotent across re-runs and upgrade path.

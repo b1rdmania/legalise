@@ -79,10 +79,11 @@ map — not a comparison table, not a ranking, not positioning.
   documents (server-side, not UI), per-user AES-256-GCM-encrypted
   provider keys, slug tenancy with 404-not-403 cross-user reads,
   signup auto-seeds a Khan v Acme demo matter
-- **Skills via Git:** Plugin catalogue
-  ([github.com/b1rdmania/claude-for-uk-legal](https://github.com/b1rdmania/claude-for-uk-legal))
-  rendered into the workspace at a pinned SHA. Fork-and-PR-review is
-  the approval workflow
+- **Skills via Git:** skills import from source repositories — the
+  [Lawve catalogue](https://github.com/lawve-ai/awesome-legal-skills) or
+  any public GitHub repo with a `SKILL.md` — at a pinned SHA, through
+  the trust ceremony. Reviewing the SKILL.md at that SHA is the
+  approval workflow
 
 ## Where the shapes converge
 
@@ -202,10 +203,9 @@ regulated loop:
 
 - **Fork any of the four.** Legalise's Apache-2.0 puts no
   restrictions on internal-firm forks.
-- **Submit a module to the `claude-for-uk-legal` catalogue.** Public
-  submission flow at `legalise.dev/#/modules/submit` (post-launch).
-  PRs land on
-  [github.com/b1rdmania/claude-for-uk-legal](https://github.com/b1rdmania/claude-for-uk-legal)
+- **Contribute a skill to the open catalogue.** Publish a `SKILL.md`
+  repo on GitHub (importable directly by URL), or submit it to the
+  [Lawve catalogue](https://github.com/lawve-ai/awesome-legal-skills)
   for review.
 - **Comment on the matter wire-format RFC.** Discussion thread at the
   Legalise repo. Counter-proposals, schema forks, and

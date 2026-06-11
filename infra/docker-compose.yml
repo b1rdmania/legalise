@@ -55,7 +55,7 @@ services:
     # compose interpolations below still win — env_file is the
     # catch-all for vars compose doesn't name explicitly
     # (S3_ACCESS_KEY, SESSION_SECRET, LEGALISE_KEY_ENCRYPTION_SECRET,
-    # PLUGINS_REPO_REF, etc.).
+    # etc.).
     env_file:
       - path: ../.env
         required: false
@@ -85,16 +85,11 @@ services:
       # exercise the manual bootstrap_admin operator path. Production
       # ignores this flag in code.
       LEGALISE_DEV_AUTO_ADMIN_FIRST_USER: ${LEGALISE_DEV_AUTO_ADMIN_FIRST_USER:-true}
-      # Plugin bind-mount target; matches the volume below.
-      PLUGINS_ROOT: /plugins
     ports:
       - "8000:8000"
     volumes:
       - ../backend:/app
       - matters_data:/data/matters
-      # claude-for-uk-legal checkout — read-only bind mount. PLUGINS_ROOT
-      # can be overridden via .env if the checkout lives elsewhere.
-      - ${PLUGINS_HOST_PATH:-../../claude-for-uk-legal}:/plugins:ro
       # Manifest schema — read-only bind so `modules.py` validator and
       # the capability-vocabulary parity test can both find the canonical
       # schemas/module.json from the repo root.
@@ -121,11 +116,9 @@ services:
       ENVIRONMENT: development
       # See backend block above for the env-precedence rationale.
       POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://legalise:legalise@db:5432/legalise}
-      PLUGINS_ROOT: /plugins
     volumes:
       - ../backend:/app
       - matters_data:/data/matters
-      - ${PLUGINS_HOST_PATH:-../../claude-for-uk-legal}:/plugins:ro
       - ../schemas:/schemas:ro
     depends_on:
       db:

@@ -45,7 +45,7 @@ and the record preserves what happened.
 ## 3 — Add a skill to the workspace
 
 1. Navigate to <http://localhost:3000/skills>.
-2. Pick a skill from the catalogue (the example modules **Contract Review** and **Pre-Motion** under `examples/modules/`, or a `claude-for-uk-legal` plugin skill such as **LBA Drafter**).
+2. Pick a skill from the catalogue (the example modules **Contract Review** and **Pre-Motion** under `examples/modules/`, a Lawve catalogue skill, or any public GitHub repo with a `SKILL.md` — e.g. `b1rdmania/pre-motion`).
 3. Walk the add-skill trust ceremony.
 
 Adding a skill is workspace-level trust. It does **not** make the skill

@@ -6,7 +6,7 @@
 2. **Filesystem is the source of truth.** Postgres is a fast index; `matters/[slug]/` on disk is canonical. A matter folder can be tarballed, emailed, dropped into Stella, and re-imported.
 3. **Audit everything that touches an LLM or a document.** Prompt hashes, response hashes, document hashes, user, matter, timestamp. No untracked AI inference.
 4. **Privilege posture is a first-class matter property.** It changes which model gets called, which sources can be extracted from, and which outputs filter privileged entries.
-5. **Plugins are the brains. Workspace is the UI.** Modules invoke `claude-for-uk-legal` plugins for legal logic. The workspace adds matter context, audit, document handling, and UI.
+5. **Skills are the brains. Workspace is the venue.** Legal logic arrives as imported skills (Lawve catalogue or any public GitHub repo with a SKILL.md), installed through the trust ceremony and run by the prompt runtime. The workspace adds matter context, audit, document handling, and UI.
 6. **Boring stack, ambitious composition.** Python + FastAPI + React + Postgres. The novelty lives in the composition (adversarial premortem with parallel sub-agents, multi-agent contract pipeline, privilege-aware chronology), not the framework choice.
 
 ## Stack
@@ -59,7 +59,7 @@ The contract:
 
 - Every module ships a `module.json` validated against `/schemas/module.json`, declaring name, version, nav entry, routes, plugin/env/MCP dependencies, permissions.
 - Every module imports only from `app.core.api`, the documented stable surface. Internals (`app.core.config`, `app.core.audit`, etc.) are not stable across patches.
-- Every module gets matter context, audit logging, model gateway access, plugin bridge access, and storage for free. No module re-implements those primitives.
+- Every module gets matter context, audit logging, model gateway access, and storage for free. No module re-implements those primitives.
 - Every module respects the matter's privilege posture and the audit log. These are not optional.
 
 Modules **cannot** in v0.1: bring their own database tables, define their own auth, bypass audit, ignore privilege. Items 1 and 2 relax in v0.2; items 3 and 4 are permanent.
@@ -195,14 +195,20 @@ module implementations live under `examples/modules/`.
 during early planning) was never wired up and has been deleted; there is
 no shared agent abstraction at runtime.
 
-## Plugin bridge
+## Skill importers
 
-`adapters/plugin_bridge.py` calls `claude-for-uk-legal` plugins. Two strategies, both implemented; module chooses:
+Two import paths, one contract (`app/core/lawve_import.py` +
+`app/core/github_import.py`): fetch a SKILL.md from the source, pin the
+commit SHA for provenance, convert to a manifest-v2 draft with
+conservative default permissions, validate. The draft is never
+installed by the importer — it goes through the trust ceremony, lands
+in `installed_modules`, and executes via the `prompt` runtime under the
+posture gate, capability grants, and audit chain. Imported scripts are
+never executed.
 
-1. **Direct skill execution.** Read the SKILL.md, render with matter context, call Claude directly through the model gateway. This is the fast path for v1.
-2. **MCP server invocation.** Plugins exposed as MCP servers, called from FastAPI as MCP clients. Slower to set up but cleaner for v0.2 and aligns with how Anthropic's plugin model evolves.
-
-v1 uses (1) for speed. v0.2 migrates to (2).
+The earlier filesystem plugin bridge (a `claude-for-uk-legal` checkout
+mounted at PLUGINS_ROOT, executed in-process) was removed in June 2026;
+imports are the only external-skill path.
 
 ## Audit log
 
@@ -256,7 +262,7 @@ For demo purposes, one sample matter is pre-set to local mode so visitors can se
 ## What v0.2 looks like (not in scope)
 
 - Real auth via WorkOS or Stytch
-- MCP-based plugin bridge
+- MCP-runtime skills (imported skills exposing MCP servers)
 - Vector search over matter documents
 - Discrimination quantum analysis (Vento)
 - Settlement-agreement review module

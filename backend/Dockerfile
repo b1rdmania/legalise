@@ -12,29 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Vendor the claude-for-uk-legal plugin suite at a pinned commit. Dev
-# bind-mounts a sibling checkout (see infra/docker-compose.yml); the
-# image needs its own copy because there is no sibling checkout on Fly.
-#
-# Single source of truth: the ARGs below. Build-time clone uses them
-# directly; runtime URL construction in app/api/modules.py:_source_url
-# reads PLUGINS_REPO / PLUGINS_REPO_REF from os.environ, which is why
-# we ENV them too. Do NOT also set these in fly.toml [env] — that path
-# previously drifted from this file and shipped 15 broken manifests.
-#
-# Update PLUGINS_REPO_REF when a new plugin release is needed; the build
-# will fail loudly if the ref does not exist.
-# No `.git` suffix: `git clone` accepts the bare GitHub URL, and the
-# runtime appends /blob/<sha>/<path> to build source links — `.git` in
-# the middle of those URLs 404s on GitHub.
-ARG PLUGINS_REPO=https://github.com/b1rdmania/claude-for-uk-legal
-ARG PLUGINS_REPO_REF=f8201f1da72f6485c296eff620b19db18f016b68
-ENV PLUGINS_REPO=$PLUGINS_REPO
-ENV PLUGINS_REPO_REF=$PLUGINS_REPO_REF
-RUN git clone --filter=blob:none "$PLUGINS_REPO" /plugins \
-    && git -C /plugins checkout "$PLUGINS_REPO_REF" \
-    && rm -rf /plugins/.git
-
 COPY pyproject.toml ./
 RUN pip install --upgrade pip && pip install -e .
 

@@ -12,8 +12,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters import plugin_bridge as plugin_bridge_module
-from app.adapters.plugin_bridge import SkillDisabled
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.limits import check_matter_create, check_document_upload
@@ -615,76 +613,6 @@ async def close_matter(
     append_history(matter.slug, matter.created_by_id, "matter.closed", f"{previous} → closed")
     materialise_matter(matter)
     return matter
-
-
-class PluginInvokeBody(BaseModel):
-    plugin: str
-    skill: str
-    inputs: dict = Field(default_factory=dict)
-
-
-class PluginInvokeResponse(BaseModel):
-    plugin: str
-    skill: str
-    matter_slug: str
-    response_text: str
-    model_used: str
-    token_count: int
-    latency_ms: int
-
-
-@router.post("/{slug}/invoke", response_model=PluginInvokeResponse)
-async def invoke_plugin(
-    slug: str,
-    body: PluginInvokeBody,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(current_user),
-) -> PluginInvokeResponse:
-    """Invoke a claude-for-uk-legal skill against this matter.
-
-    v0.1 direct skill rendering: SKILL.md → matter context → gateway →
-    response. Two audit rows are written: `plugin.invoked` (this layer)
-    and `model.call` (gateway). C_paused privilege posture blocks the
-    call before any network traffic.
-    """
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
-
-    bridge = plugin_bridge_module.bridge
-    if bridge is None:
-        raise HTTPException(503, "plugin bridge not initialised")
-
-    try:
-        result = await bridge.invoke(
-            session=session,
-            matter_id=matter.id,
-            actor_id=user.id,
-            plugin=body.plugin,
-            skill=body.skill,
-            inputs=body.inputs,
-        )
-    except FileNotFoundError as exc:
-        raise HTTPException(404, str(exc)) from exc
-    except SkillDisabled as exc:
-        raise HTTPException(403, str(exc)) from exc
-    except PROVIDER_HTTP_EXCEPTIONS as exc:
-        raise provider_error_http_exception(exc) from exc
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
-
-    await session.commit()
-    return PluginInvokeResponse(
-        plugin=result.plugin,
-        skill=result.skill,
-        matter_slug=result.matter_slug,
-        response_text=result.response_text,
-        model_used=result.model_used,
-        token_count=result.token_count,
-        latency_ms=result.latency_ms,
-    )
 
 
 @router.get("/{slug}/audit", response_model=list[AuditEntryRead])

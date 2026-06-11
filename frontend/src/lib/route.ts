@@ -26,7 +26,6 @@ export type Route =
   | { name: "verifyPending" }
   | { name: "verify"; token: string | null }
   | { name: "modules" }
-  | { name: "submitModule" }
   | { name: "createModule" }
   | { name: "lawveImport" }
   | { name: "demoLoop" }
@@ -77,7 +76,6 @@ export function routeFromPath(pathname: string, search: string): Route {
   // so active-state logic keeps working for old deep links and
   // bookmarks.
   if (path === "/skills" || path === "/modules") return { name: "modules" };
-  if (path === "/skills/submit" || path === "/modules/submit") return { name: "submitModule" };
   if (path === "/skills/create" || path === "/modules/create") return { name: "createModule" };
   if (path === "/skills/lawve" || path === "/modules/lawve") return { name: "lawveImport" };
 
@@ -210,7 +208,6 @@ export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "verifyPending",
   "verify",
   "modules",
-  "submitModule",
   "demo",
   "demoDocument",
   // /app is intentionally public — first-run (user_count=0) and

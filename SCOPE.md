@@ -1,6 +1,6 @@
 # Scope — Legalise v1
 
-> **Status note (2026-06-10).** This document records the v0.1 launch scope as planned. The built-in module set it describes (Pre-Motion, Letters, Contract Review, Tabular Review, Case Law) was subsequently removed from the app in the skills-as-plugins cut: the platform now ships chat + governance + the document workspace, and skills install as governed modules (see `examples/modules/` and the catalogue). Kept for history.
+> **Status note (2026-06-10).** This document records the v0.1 launch scope as planned. The built-in module set it describes (Pre-Motion, Letters, Contract Review, Tabular Review, Case Law) was subsequently removed from the app in the skills-as-plugins cut: the platform now ships chat + governance + the document workspace, and skills install as governed modules (see `examples/modules/` and the catalogue). A further cut (2026-06-11) removed the filesystem plugin path entirely — the `claude-for-uk-legal` checkout, plugin bridge, and public submissions flow are gone; skills now arrive via the Lawve catalogue or a GitHub-repo import, both through the trust ceremony. Kept for history.
 
 ## In scope
 

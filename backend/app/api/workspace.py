@@ -1,9 +1,10 @@
 """Workspace endpoints — per-user module lifecycle.
 
-v0.1 surface: enable/disable a `(plugin, skill)` pair for the current
-user. Absence in `workspace_disabled_skills` means enabled (default);
-presence means disabled. The plugin bridge consults the same table
-before invoking a skill — disabled skills raise `SkillDisabled`.
+Enable/disable a `(plugin, skill)` pair for the current user — for
+installed modules `plugin` carries the module_id. Absence in
+`workspace_disabled_skills` means enabled (default); presence means
+disabled. The assistant pipeline consults the same table when building
+the runnable-skill menu.
 
 Audit rows route through `audit.log()` with `module="module_lifecycle"`
 so the Modules-page activity surfaces in the matter-agnostic audit

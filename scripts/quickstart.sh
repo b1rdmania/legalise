@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT/infra/docker-compose.yml"
 PREBUILT_COMPOSE_FILE="$ROOT/infra/docker-compose.prebuilt.yml"
-PLUGIN_DIR="$(cd "$ROOT/.." && pwd)/claude-for-uk-legal"
 COMPOSE_ARGS=(-f "$COMPOSE_FILE")
 
 cd "$ROOT"
@@ -12,13 +11,6 @@ cd "$ROOT"
 if [ ! -f "$ROOT/.env" ]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
   echo "[quickstart] wrote .env from .env.example"
-fi
-
-if [ ! -d "$PLUGIN_DIR/.git" ]; then
-  echo "[quickstart] cloning claude-for-uk-legal skills catalogue"
-  git clone --depth 1 https://github.com/b1rdmania/claude-for-uk-legal "$PLUGIN_DIR"
-else
-  echo "[quickstart] skills catalogue present: $PLUGIN_DIR"
 fi
 
 echo "[quickstart] starting Legalise"

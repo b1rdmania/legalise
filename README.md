@@ -89,13 +89,15 @@ Supporting substrate:
 - **Activity / audit trail:** model calls, skill actions, denials, mutations,
   provider failures, and storage failures leave rows.
 
-A second module path imports prompt-only skills from the
+Skills arrive by import: the
 [`awesome-legal-skills`](https://github.com/lawve-ai/awesome-legal-skills)
-catalogue and runs them under the same governance — a `prompt` runtime
-that produces a `skill_response` artifact subject to the same sign-off
-and source-anchor handling. The first-party plugin layer where most
-legal logic lives is
-[`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal).
+(Lawve) catalogue is browsable in-app, and any public GitHub repository
+with a `SKILL.md` can be dropped in by URL (e.g.
+[`pre-motion`](https://github.com/b1rdmania/pre-motion)). Every import
+converts to a governed draft at a pinned commit SHA, passes the trust
+ceremony, and runs under the same governance — a `prompt` runtime that
+produces a `skill_response` artifact subject to the same sign-off and
+source-anchor handling.
 
 ---
 
@@ -167,9 +169,8 @@ Stack: Postgres + MinIO + Redis + Gotenberg + FastAPI + React.
    cd legalise
    ```
 
-2. **Run quickstart.** It copies `.env` if needed, ensures the
-   `claude-for-uk-legal` skill catalogue is present next to this repo,
-   and starts the compose stack.
+2. **Run quickstart.** It copies `.env` if needed and starts the
+   compose stack.
 
    ```bash
    ./scripts/quickstart.sh
@@ -234,7 +235,6 @@ compose for you, the manual path is:
 ### Self-hosting notes
 
 - If deploying your fork to Fly, change `app = "legalise-backend"` in `backend/fly.toml` before `fly deploy`.
-- The backend image vendors [`claude-for-uk-legal`](https://github.com/b1rdmania/claude-for-uk-legal) at a pinned SHA. Forks can point at their own plugin catalogue with the Docker build args `PLUGINS_REPO` and `PLUGINS_REPO_REF`.
 - GHCR images are published by `.github/workflows/container-images.yml`.
   Local quickstart uses source builds by default; set
   `LEGALISE_USE_PREBUILT_IMAGES=true` to pull the published
