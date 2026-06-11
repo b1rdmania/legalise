@@ -290,3 +290,9 @@
     box-shadow: 0 0 0 1px rgba(24, 24, 24, 0.28);
   }
 }
+
+/* Ledger entries landing during the install scan. */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: none; }
+}

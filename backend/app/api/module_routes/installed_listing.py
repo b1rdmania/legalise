@@ -51,6 +51,8 @@ async def list_installed_modules(
             sub.c.visibility,
             sub.c.signature_status,
             sub.c.permissions_snapshot,
+            sub.c.manifest_snapshot,
+            sub.c.install_path,
             sub.c.enabled,
             sub.c.installed_at,
             sub.c.installed_by_user_id,
@@ -62,6 +64,11 @@ async def list_installed_modules(
     return [
         InstalledModuleOut(
             module_id=r.module_id,
+            name=(
+                r.manifest_snapshot.get("name")
+                if isinstance(r.manifest_snapshot, dict)
+                else None
+            ),
             version=r.version,
             publisher=r.publisher,
             visibility=r.visibility,
@@ -76,6 +83,7 @@ async def list_installed_modules(
             installed_by_user_id=(
                 str(r.installed_by_user_id) if r.installed_by_user_id else None
             ),
+            install_path=r.install_path,
         )
         for r in rows
     ]

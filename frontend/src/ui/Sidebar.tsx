@@ -135,7 +135,15 @@ export function Sidebar({
         (route.name === "modules" ||
           route.name === "moduleDetail" ||
           route.name === "moduleInstall" ||
+          route.name === "lawveImport" ||
           route.name === "createModule"),
+    },
+    {
+      key: "register",
+      label: "Register",
+      href: "/register",
+      icon: <NavIcon name="audit" />,
+      active: !onMatterArea && route.name === "register",
     },
   ];
 
