@@ -192,7 +192,9 @@ export function ModulesCatalog() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-14 text-ink">
       <PageHeader
-        eyebrow={authed ? "Workspace" : "Skill library"}
+        eyebrow="The skill library"
+        eyebrowRight="Legalise"
+        display
         title="Skills"
         description={
           authed
@@ -205,7 +207,7 @@ export function ModulesCatalog() {
               <>
                 <Link
                   to="/skills/lawve"
-                  className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black"
+                  className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-seal"
                 >
                   Add skill
                 </Link>
@@ -217,7 +219,7 @@ export function ModulesCatalog() {
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center px-2 py-2 text-sm text-muted hover:text-ink"
+                  className="inline-flex items-center px-2 py-2 text-sm text-muted hover:text-seal"
                 >
                   View the register →
                 </Link>
@@ -225,7 +227,7 @@ export function ModulesCatalog() {
             ) : (
               <a
                 href="/demo"
-                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black"
+                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-seal"
               >
                 Open demo
               </a>
@@ -409,7 +411,7 @@ export function ModulesCatalog() {
             </h2>
             <Link
               to="/skills/lawve"
-              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+              className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
               Open full importer →
             </Link>

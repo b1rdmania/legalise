@@ -32,6 +32,8 @@ async def list_installed_modules(
     # one row per module without an N+1 group-by-then-fetch.
     from sqlalchemy import desc as _desc, func as _func
 
+    from app.models import MatterSignoff
+
     # `id DESC` is a deterministic tie-breaker. `installed_at` is
     # high-resolution (timestamp with
     # microseconds) so collisions are rare in practice, but window
@@ -61,6 +63,23 @@ async def list_installed_modules(
         .order_by(sub.c.module_id)
     )
     rows = (await session.execute(stmt)).all()
+
+    # Track record: sign-off decisions grouped by (module_id, decision).
+    # One query for the whole listing; rejections count with the same
+    # fidelity as approvals.
+    tr_rows = (
+        await session.execute(
+            select(
+                MatterSignoff.module_id,
+                MatterSignoff.decision,
+                _func.count().label("n"),
+            ).group_by(MatterSignoff.module_id, MatterSignoff.decision)
+        )
+    ).all()
+    track: dict[str, dict[str, int]] = {}
+    for module_id, decision, n in tr_rows:
+        track.setdefault(module_id, {})[decision] = n
+
     return [
         InstalledModuleOut(
             module_id=r.module_id,
@@ -84,6 +103,7 @@ async def list_installed_modules(
                 str(r.installed_by_user_id) if r.installed_by_user_id else None
             ),
             install_path=r.install_path,
+            track_record=track.get(r.module_id, {}),
         )
         for r in rows
     ]

@@ -389,9 +389,6 @@ export function AssistantTab({
           <h1 className="max-w-2xl text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[34px]">
             {matter.title}
           </h1>
-          <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted">
-            Ask about files, draft from the matter, or run a skill. Saved work stays attached.
-          </p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-muted">
             <span data-testid="docs-context-status">
               {docs === null
@@ -410,7 +407,7 @@ export function AssistantTab({
             <button
               type="button"
               onClick={openRecord}
-              className="underline underline-offset-4 decoration-rule hover:text-ink"
+              className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               data-testid="open-record-link"
             >
               Activity
@@ -448,7 +445,7 @@ export function AssistantTab({
                 <button
                   type="button"
                   onClick={() => dispatchDocChip(attachedDocs[0].id)}
-                  className="shrink-0 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                  className="shrink-0 text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   Preview →
                 </button>
@@ -541,7 +538,7 @@ export function AssistantTab({
               </a>
               <a
                 href="/auth/signin"
-                className="text-sm text-muted hover:text-ink transition-colors"
+                className="text-sm text-muted hover:text-seal transition-colors"
               >
                 Sign in
               </a>
@@ -616,7 +613,7 @@ export function AssistantTab({
                           setSkillsOpen(false);
                           openAddSkill();
                         }}
-                        className="underline underline-offset-4 hover:text-ink"
+                        className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                       >
                       Add a skill →
                       </button>
@@ -659,7 +656,7 @@ export function AssistantTab({
                         setSkillsOpen(false);
                         openAddSkill();
                       }}
-                      className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                      className="mt-3 text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                     >
                       Add skill →
                     </button>
@@ -670,7 +667,7 @@ export function AssistantTab({
                       setSkillsOpen(false);
                       setTabAndHash("workflows");
                     }}
-                    className="ml-3 mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                    className="ml-3 mt-3 text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     Manage matter skills →
                   </button>
@@ -712,7 +709,7 @@ export function AssistantTab({
               <button
                 onClick={onSend}
                 disabled={pending || !input.trim()}
-                className={`${primaryBtn} min-h-[44px] px-4 py-1.5 text-[14px]`}
+                className={primaryBtn + " px-4 py-1.5 text-[14px]"}
               >
                 {pending ? "Sending…" : "Send"}
               </button>
@@ -1097,14 +1094,14 @@ function MatterContextRail({
           <button
             type="button"
             onClick={onOpenOutputs}
-            className="underline underline-offset-4 hover:text-ink"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             Outputs
           </button>
           <button
             type="button"
             onClick={onOpenPack}
-            className="underline underline-offset-4 hover:text-ink"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             Export
           </button>
@@ -1135,7 +1132,7 @@ function RailPanel({
           type="button"
           onClick={onAction}
           data-testid={actionTestId}
-          className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+          className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           {actionLabel}
         </button>

@@ -550,7 +550,7 @@ function Decision({
           onClick={onApprove}
           disabled={enrolling}
           data-testid="ceremony-approve-all"
-          className="inline-flex items-center rounded-md bg-ink px-5 py-2.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center rounded-md bg-ink px-5 py-2.5 text-sm text-paper hover:bg-seal disabled:opacity-50"
         >
           {enrolling ? "Recording…" : "Approve & enable"}
         </button>

@@ -59,7 +59,7 @@ export function CreateModule() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Skills"
+        eyebrow="Author a skill"
         title="Create a skill"
         description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the add-skill path uses — it does not add or sign."
       />
@@ -114,7 +114,7 @@ export function CreateModule() {
           type="button"
           onClick={onValidate}
           disabled={result.kind === "busy" || !text.trim()}
-          className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+          className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
         >
           {result.kind === "busy" ? "Validating…" : "Validate"}
         </button>

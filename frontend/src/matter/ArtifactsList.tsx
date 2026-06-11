@@ -91,7 +91,7 @@ export function ArtifactsList({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Matter"
+        eyebrow="Signed work of the matter"
         title="Signed outputs"
         subId={slug}
       />
@@ -112,8 +112,8 @@ export function ArtifactsList({ slug }: { slug: string }) {
       {q.status === "ready" && q.rows.length > 0 && (
         <div className="mt-8 overflow-x-auto rounded-md border border-line">
           <table className="min-w-full text-sm">
-            <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
-              <tr>
+            <thead className="text-[10px] uppercase tracking-[0.18em] text-muted">
+              <tr className="border-b border-ink">
                 <th className="px-3 py-2 text-left">Output</th>
                 <th className="px-3 py-2 text-left">Sign-off</th>
                 <th className="px-3 py-2 text-left">Produced by</th>
@@ -146,7 +146,7 @@ export function ArtifactsList({ slug }: { slug: string }) {
                     <Link
                       to="/matters/$slug/artifacts/$artifactId"
                       params={{ slug, artifactId: r.id }}
-                      className="text-xs underline underline-offset-4 hover:text-seal"
+                      className="text-xs underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                     >
                       Open
                     </Link>

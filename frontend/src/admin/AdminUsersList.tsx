@@ -85,7 +85,13 @@ export function AdminUsersList() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Admin"
+        display
+        eyebrow="Workspace administration"
+        eyebrowRight={
+          q.status === "ready"
+            ? `${q.users.length} user${q.users.length === 1 ? "" : "s"}`
+            : undefined
+        }
         title="Users"
         description="Every user in this workspace. Role changes happen on the per-user page; bulk operations are not exposed by the substrate."
       />
@@ -141,8 +147,8 @@ export function AdminUsersList() {
       {q.status === "ready" && q.users.length > 0 && (
         <div className="mt-8 overflow-x-auto rounded-md border border-line">
           <table className="min-w-full text-sm">
-            <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
-              <tr>
+            <thead className="text-[10px] uppercase tracking-[0.18em] text-muted">
+              <tr className="border-b border-ink">
                 <th className="px-3 py-2 text-left">Email</th>
                 <th className="px-3 py-2 text-left">Role</th>
                 <th className="px-3 py-2 text-left">Superuser</th>
@@ -195,12 +201,11 @@ export function AdminUsersList() {
 function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Admin required</h1>
-      <p className="mt-3 text-sm text-muted">
-        The admin users surface requires superuser. Ask your workspace
-        administrator if you need access.
-      </p>
+      <PageHeader
+        eyebrow="Workspace administration"
+        title="Admin required"
+        description="The admin users surface requires superuser. Ask your workspace administrator if you need access."
+      />
     </div>
   );
 }

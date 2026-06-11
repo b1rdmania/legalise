@@ -320,7 +320,7 @@ export function DocumentsTab({
                       ))}
                     </div>
                   )}
-                  <div className="mt-3 text-right text-xs text-muted group-hover:text-ink">
+                  <div className="mt-3 text-right text-xs text-muted group-hover:text-seal">
                     Open →
                   </div>
                 </Link>

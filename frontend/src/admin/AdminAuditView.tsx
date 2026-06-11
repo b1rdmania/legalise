@@ -132,7 +132,13 @@ export function AdminAuditView() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Admin"
+        display
+        eyebrow="Workspace records"
+        eyebrowRight={
+          fetchState.status === "ready"
+            ? `${fetchState.entries.length} loaded`
+            : undefined
+        }
         title="Workspace audit"
         description="Workspace-scoped audit rows — events that are not bound to a specific matter (install ceremonies, settings key operations, admin role changes, this very view, etc.). Matter rows are reachable via the per-matter reconstruction page."
       />
@@ -274,12 +280,11 @@ export function AdminAuditView() {
 function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Admin required</h1>
-      <p className="mt-3 text-sm text-muted">
-        The workspace audit surface requires superuser. Ask your
-        workspace administrator if you need access.
-      </p>
+      <PageHeader
+        eyebrow="Workspace records"
+        title="Admin required"
+        description="The workspace audit surface requires superuser. Ask your workspace administrator if you need access."
+      />
     </div>
   );
 }

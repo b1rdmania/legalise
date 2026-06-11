@@ -264,7 +264,7 @@ function ReviewScreen({
               type="button"
               onClick={() => void act("approve")}
               disabled={busy !== null}
-              className="rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+              className="rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
             >
               {busy === "approve" ? "Approving…" : "Approve"}
             </button>

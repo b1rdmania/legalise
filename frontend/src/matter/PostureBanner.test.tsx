@@ -45,7 +45,9 @@ describe("PostureBanner — B_mixed", () => {
   it("renders for solicitor with required-role message", () => {
     render(<PostureBanner posture="B_mixed" user={user("solicitor")} />);
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
-    expect(screen.getByText(/B_mixed/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/only qualified solicitors can run skills/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/qualified_solicitor/)).toBeInTheDocument();
     // The actor's role appears verbatim — match exact "solicitor"
     // to avoid catching "qualified_solicitor" first.
@@ -106,7 +108,7 @@ describe("PostureBanner — C_paused", () => {
       />,
     );
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
-    expect(screen.getByText(/matter is paused/i)).toBeInTheDocument();
+    expect(screen.getByText(/paused on this matter/i)).toBeInTheDocument();
   });
 
   it("renders for solicitor", () => {
@@ -141,8 +143,8 @@ describe("PostureBanner — does NOT deep-link to reconstruction yet", () => {
   });
 });
 
-describe("PostureBanner — Phase 14 G admin posture-change CTA", () => {
-  it("shows change-posture control to superusers and forwards the new value", async () => {
+describe("PostureBanner — admin pause/resume toggle", () => {
+  it("shows the pause toggle to superusers on an active matter and forwards C_paused", async () => {
     const onChange = vi.fn().mockResolvedValue(undefined);
     render(
       <PostureBanner
@@ -152,26 +154,37 @@ describe("PostureBanner — Phase 14 G admin posture-change CTA", () => {
       />,
     );
     // Superuser still sees the banner (P1 from C ratification — no
-    // posture bypass) AND now sees the admin change control.
+    // posture bypass) AND now sees the admin toggle.
     expect(screen.getByTestId("posture-banner")).toBeInTheDocument();
     expect(
       screen.getByTestId("change-posture-control"),
     ).toBeInTheDocument();
-    // Default select value mirrors current posture; submit disabled.
-    const select = screen.getByTestId(
-      "change-posture-select",
-    ) as HTMLSelectElement;
-    expect(select.value).toBe("B_mixed");
     const submit = screen.getByTestId(
       "change-posture-submit",
     ) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-
-    fireEvent.change(select, { target: { value: "A_cleared" } });
-    expect(submit.disabled).toBe(false);
+    expect(submit.textContent).toMatch(/pause ai on this matter/i);
     fireEvent.click(submit);
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith("A_cleared");
+      expect(onChange).toHaveBeenCalledWith("C_paused");
+    });
+  });
+
+  it("shows Resume AI on a paused matter and forwards B_mixed", async () => {
+    const onChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PostureBanner
+        posture="C_paused"
+        user={user("solicitor", { is_superuser: true })}
+        onChangePosture={onChange}
+      />,
+    );
+    const submit = screen.getByTestId(
+      "change-posture-submit",
+    ) as HTMLButtonElement;
+    expect(submit.textContent).toMatch(/resume ai/i);
+    fireEvent.click(submit);
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith("B_mixed");
     });
   });
 

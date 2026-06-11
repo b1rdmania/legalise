@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { createMatter } from "../lib/api";
 import { navigate } from "../lib/route";
-import { ErrorCallout, Field } from "../ui/primitives";
+import { ErrorCallout, Field, PageHeader } from "../ui/primitives";
 
 export function NewMatter() {
   const [form, setForm] = useState({
@@ -11,7 +11,6 @@ export function NewMatter() {
     cause: "s.94 ERA 1996, unfair dismissal",
     case_theory: "",
     pivot_fact: "",
-    privilege_posture: "B_mixed",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,12 +34,7 @@ export function NewMatter() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-      <div className="mb-10">
-        <div className="eyebrow tech-token text-muted mb-4">MATTERS - NEW</div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
-          New matter.
-        </h1>
-      </div>
+      <PageHeader eyebrow="Open a new matter" title="New matter." />
 
       <form onSubmit={submit} className="space-y-6">
         <Field label="Title" hint="becomes the slug">
@@ -86,31 +80,19 @@ export function NewMatter() {
           />
         </Field>
 
-        <Field label="Privilege control">
-          <select
-            value={form.privilege_posture}
-            onChange={(e) => setForm({ ...form, privilege_posture: e.target.value })}
-            className={inputCls}
-          >
-            <option value="A_cleared">A_cleared - frontier models allowed</option>
-            <option value="B_mixed">B_mixed - default, local preferred</option>
-            <option value="C_paused">C_paused - LLM calls blocked</option>
-          </select>
-        </Field>
-
         {error && <ErrorCallout message={error} />}
 
         <div className="flex items-center gap-4 pt-2">
           <button
             type="submit"
             disabled={submitting || !form.title}
-            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Creating…" : "Create matter"}
           </button>
           <a
             href="/matters"
-            className="text-sm text-muted hover:text-ink transition-colors"
+            className="text-sm text-muted hover:text-seal transition-colors"
           >
             Cancel
           </a>

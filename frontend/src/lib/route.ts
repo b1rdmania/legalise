@@ -39,6 +39,7 @@ export type Route =
   // in this compatibility union so legacy consumers can keep matching
   // route.name while TanStack Router owns the actual route tree.
   | { name: "appHome" }
+  | { name: "help" }
   | { name: "moduleDetail"; moduleId: string }
   | { name: "moduleInstall"; ceremonyId: string }
   | { name: "register" }
@@ -101,6 +102,7 @@ export function routeFromPath(pathname: string, search: string): Route {
   }
 
   if (path === "/app") return { name: "appHome" };
+  if (path === "/help") return { name: "help" };
   if (path === "/admin/users") return { name: "adminUsers" };
   const adminUserMatch = path.match(/^\/admin\/users\/([^/]+)$/);
   if (adminUserMatch) return { name: "adminUserDetail", userId: adminUserMatch[1] };

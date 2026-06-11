@@ -224,7 +224,7 @@ export function MatterSkillsTab({ slug }: Props) {
             Nothing waiting. Add skills from the library.{" "}
             <Link
               to="/skills"
-              className="underline underline-offset-4 hover:text-ink"
+              className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
               Manage workspace skills →
             </Link>
@@ -244,7 +244,7 @@ export function MatterSkillsTab({ slug }: Props) {
 
       <p className="mt-8 text-xs text-muted">
         Workspace add, signature, and trust details live on{" "}
-        <Link to="/skills" className="underline underline-offset-4 hover:text-ink">
+        <Link to="/skills" className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
           Workspace skills
         </Link>
         . This page only covers what runs inside this matter.
@@ -382,7 +382,7 @@ function AvailableModuleRow({
           onClick={onEnable}
           disabled={enableDisabled}
           title={disabledReason ?? undefined}
-          className="shrink-0 rounded-md bg-ink px-3 py-1 text-xs text-paper hover:opacity-90 disabled:opacity-50"
+          className="shrink-0 rounded-md bg-ink px-3 py-1 text-xs text-paper hover:bg-seal disabled:opacity-50"
           data-testid={`enable-${entry.module_id}`}
         >
           Enable in matter
@@ -556,7 +556,7 @@ function EnableSkillModal({
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-ink disabled:opacity-50"
+            className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-seal disabled:opacity-50"
           >
             Cancel
           </button>
@@ -565,7 +565,7 @@ function EnableSkillModal({
             onClick={() => void onSubmit()}
             disabled={busy || matterCaps.length === 0}
             data-testid="enable-modal-submit"
-            className="rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+            className="rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:bg-seal disabled:opacity-50"
           >
             {busy ? "Enabling…" : "Enable"}
           </button>

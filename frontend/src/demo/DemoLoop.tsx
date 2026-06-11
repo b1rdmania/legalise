@@ -98,7 +98,8 @@ export function DemoLoop() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Demo"
+        eyebrow="A matter before the workspace · guided loop"
+        eyebrowRight="Legalise"
         title="Watch the governed loop"
         description="Watch the full supervised-autonomy loop run end to end — no provider key needed. This is a keyless demonstration matter modelled on the Khan v Acme employment dispute; real Khan remains the full workspace matter. Bring a real provider key (Settings → Keys) to run real models on your own matters."
       />
@@ -145,7 +146,7 @@ export function DemoLoop() {
               type="button"
               onClick={run}
               disabled={phase.step === "running" || phase.step !== "ready"}
-              className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+              className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper transition-colors hover:bg-seal disabled:opacity-50"
               data-testid="demo-run"
             >
               {phase.step === "running" ? "Running…" : "Run sample skill"}
@@ -165,7 +166,7 @@ export function DemoLoop() {
                 <button
                   type="button"
                   onClick={() => review(phase)}
-                  className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90"
+                  className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper transition-colors hover:bg-seal"
                   data-testid="demo-request-review"
                 >
                   Request supervisor review
@@ -187,7 +188,7 @@ export function DemoLoop() {
                 <Link
                   to="/matters/$slug/$tab"
                   params={{ slug: handles.matter_slug, tab: "approvals" }}
-                  className="underline underline-offset-4 hover:text-ink"
+                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   Open Approvals
                 </Link>{" "}

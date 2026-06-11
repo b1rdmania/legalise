@@ -22,6 +22,7 @@
 
 import { useState } from "react";
 import type { CurrentUser } from "../lib/api";
+import { posturePaused } from "../lib/posture";
 
 type Posture = "A_cleared" | "B_mixed" | "C_paused" | string;
 
@@ -41,12 +42,6 @@ interface Props {
   // posture string and is responsible for the PATCH + refetch.
   onChangePosture?: (next: Posture) => Promise<void>;
 }
-
-const ALL_POSTURES: ReadonlyArray<Posture> = [
-  "A_cleared",
-  "B_mixed",
-  "C_paused",
-];
 
 // Only `qualified_solicitor` satisfies B_mixed in the substrate.
 // `workspace_admin` / `is_superuser` is NOT a bypass —
@@ -73,11 +68,7 @@ export function PostureBanner({
     return (
       <BannerShell tone="paused" badge="C_paused" badgeLabel="Paused">
         <p className="font-medium text-ink">
-          This matter is paused. No skills can run regardless of role.
-        </p>
-        <p className="mt-1 text-sm text-muted">
-          Requires <code className="tech-token text-xs">matter_paused</code>{" "}
-          (no role satisfies — this is a hard stop).
+          AI is paused on this matter. No skills can run regardless of role.
         </p>
         {adminCanChange && (
           <ChangePostureControl
@@ -99,10 +90,9 @@ export function PostureBanner({
     if (satisfies) return null;
 
     return (
-      <BannerShell tone="mixed" badge="B_mixed" badgeLabel="Mixed">
+      <BannerShell tone="mixed" badge="B_mixed" badgeLabel="Active">
         <p className="font-medium text-ink">
-          This matter is marked <code className="tech-token text-xs">B_mixed</code>.
-          Only qualified solicitors can run skills.
+          Only qualified solicitors can run skills on this matter.
         </p>
         <p className="mt-1 text-sm text-muted">
           Requires{" "}
@@ -142,10 +132,11 @@ export function PostureBanner({
 // Banner shell — colour-coded by tone.
 // ---------------------------------------------------------------------------
 
-// Admin-only inline posture change. Wired against the existing
+// Admin-only pause/resume toggle. Wired against the existing
 // `PATCH /api/matters/{slug}/privilege` via the onChangePosture
-// callback. Banner re-renders against the new posture once the
-// parent refetches the matter.
+// callback. One action: paused matters resume to B_mixed; anything
+// else pauses to C_paused. Banner re-renders against the new posture
+// once the parent refetches the matter.
 function ChangePostureControl({
   current,
   onChange,
@@ -153,12 +144,14 @@ function ChangePostureControl({
   current: Posture;
   onChange: (next: Posture) => Promise<void>;
 }) {
-  const [next, setNext] = useState<Posture>(current);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const paused = posturePaused(current);
+  const next: Posture = paused ? "B_mixed" : "C_paused";
+  const label = paused ? "Resume AI" : "Pause AI on this matter";
+
   const onSubmit = async () => {
-    if (next === current) return;
     setErr(null);
     setSubmitting(true);
     try {
@@ -172,29 +165,14 @@ function ChangePostureControl({
 
   return (
     <div className="mt-3 flex flex-wrap items-end gap-2" data-testid="change-posture-control">
-      <label className="flex flex-col text-xs text-muted">
-        <span className="mb-1">Change privilege</span>
-        <select
-          data-testid="change-posture-select"
-          value={next}
-          onChange={(e) => setNext(e.target.value as Posture)}
-          className="rounded-md border border-line bg-paper px-3 py-1 text-sm text-ink"
-        >
-          {ALL_POSTURES.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </label>
       <button
         type="button"
         data-testid="change-posture-submit"
         onClick={onSubmit}
-        disabled={next === current || submitting}
-        className="inline-flex items-center rounded-md border border-ink px-3 py-1 text-xs text-ink hover:bg-ink hover:text-paper disabled:opacity-50"
+        disabled={submitting}
+        className="inline-flex items-center border border-ink px-3 py-1 text-xs text-ink hover:bg-seal hover:border-seal hover:text-paper transition-colors disabled:opacity-50"
       >
-        {submitting ? "Submitting…" : "Apply"}
+        {submitting ? "Submitting…" : label}
       </button>
       {err && (
         <p className="text-xs text-seal" data-testid="change-posture-error">

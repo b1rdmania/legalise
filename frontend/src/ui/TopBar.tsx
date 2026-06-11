@@ -116,7 +116,15 @@ export function TopBar({
                     Admin
                   </a>
                 )}
-                <ProfileChip user={auth.user} onSignOut={() => void auth.signOut().then(() => navigate("/"))} />
+                <ProfileChip
+                  user={auth.user}
+                  onSignOut={() => {
+                    // "/" first, then signOut — the AppShell auth guard
+                    // otherwise races this navigate and lands on signin.
+                    navigate("/");
+                    void auth.signOut();
+                  }}
+                />
               </>
             ) : (
               <>
@@ -145,6 +153,18 @@ export function TopBar({
                   className="text-ink hover:opacity-70 transition-colors"
                 >
                   GitHub
+                </a>
+                <a
+                  href="/auth/signin"
+                  className="text-muted hover:text-ink transition-colors"
+                >
+                  Sign in
+                </a>
+                <a
+                  href="/auth/signup"
+                  className="border border-rule px-3 py-1.5 text-ink transition-colors hover:border-ink hover:bg-wash"
+                >
+                  Create account
                 </a>
               </>
             )}

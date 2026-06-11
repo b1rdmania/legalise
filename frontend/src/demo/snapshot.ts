@@ -43,7 +43,7 @@ const MATTER: Matter = {
     "Ms Khan was dismissed by Acme Trading Ltd on 12 March 2026, after three years and four months of continuous service. The stated reason was conduct — a single alleged breach of the company's social-media policy — but the dismissal followed a documented grievance Ms Khan had raised six weeks earlier concerning her line manager's pattern of conduct toward female members of the warehouse team.\n\nOur case is that the conduct reason is pretextual. The real reason for dismissal falls within s.103A ERA 1996 (protected disclosure) or, in the alternative, constitutes victimisation under s.27 Equality Act 2010. The Burchell test fails on the second and third limbs: the investigator was the manager who was the subject of Ms Khan's prior grievance, and the sanction sat outside the band of reasonable responses given a clean disciplinary record and Iceland Frozen Foods proportionality.",
   pivot_fact:
     "The social-media post the respondent treats as gross misconduct was a private comment on a personal Instagram account, set to a closed audience of 47 followers, none of whom were customers, suppliers, or named in the post.",
-  privilege_posture: "B_mixed",
+  privilege_posture: "C_paused",
   default_model_id: "claude-sonnet-4-6",
   required_provider: "anthropic",
   facts: {
@@ -358,6 +358,51 @@ const AUDIT: AuditEntry[] = [
     latency_ms: 9_812,
     payload: { cells_run: 24, cells_failed: 0 },
   },
+  // The refusal scene. The solicitor pauses the matter for
+  // without-prejudice talks; a later summarise attempt is blocked by the
+  // posture gate BEFORE any content leaves the workspace — and the
+  // refusal is recorded with the same fidelity as every approval.
+  {
+    id: "audit-24",
+    timestamp: "2026-04-06T12:04:09Z",
+    actor_id: ID.user,
+    matter_id: ID.matter,
+    action: "matter.privilege.changed",
+    module: null,
+    resource_type: "matter",
+    resource_id: ID.matter,
+    model_used: null,
+    prompt_hash: null,
+    response_hash: null,
+    token_count: null,
+    latency_ms: 21,
+    payload: {
+      from: "B_mixed",
+      to: "C_paused",
+      reason: "without-prejudice settlement discussions",
+    },
+  },
+  {
+    id: "audit-25",
+    timestamp: "2026-04-06T12:05:31Z",
+    actor_id: ID.user,
+    matter_id: ID.matter,
+    action: "posture_gate.check.blocked",
+    module: "assistant",
+    resource_type: "document",
+    resource_id: ID.witness,
+    model_used: null,
+    prompt_hash: null,
+    response_hash: null,
+    token_count: null,
+    latency_ms: 3,
+    payload: {
+      requested: "model.call",
+      document: "khan-witness-statement.docx",
+      privilege_posture: "C_paused",
+      decision: "blocked before dispatch — no content left the workspace",
+    },
+  },
 ];
 
 const CHRONOLOGY: ChronologyResponse = {
@@ -576,6 +621,49 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
       },
     ],
     created_at: "2026-04-06T12:02:46Z",
+  },
+  {
+    id: "asst-msg-05",
+    role: "user",
+    content:
+      "We're going into without-prejudice settlement talks — pause all model access on this matter.",
+    suggested_actions: [],
+    created_at: "2026-04-06T12:04:02Z",
+  },
+  {
+    id: "asst-msg-06",
+    role: "assistant",
+    content:
+      "Done — privilege posture is now C_paused. Until you resume, no document content reaches any model: the gate blocks the call before dispatch, and every blocked attempt lands on the record.",
+    suggested_actions: [
+      {
+        type: "view_audit",
+        label: "See the posture change on the record",
+        params: {},
+      },
+    ],
+    created_at: "2026-04-06T12:04:09Z",
+  },
+  {
+    id: "asst-msg-07",
+    role: "user",
+    content: "summarise the witness statement",
+    suggested_actions: [],
+    created_at: "2026-04-06T12:05:28Z",
+  },
+  {
+    id: "asst-msg-08",
+    role: "assistant",
+    content:
+      "I can't — this matter is paused. The privilege gate refused the model call before any content left the workspace (C_paused, set for the settlement talks). The refusal is recorded on the matter record with the same fidelity as every approval. Resume the matter from its settings when the talks conclude.",
+    suggested_actions: [
+      {
+        type: "view_audit",
+        label: "See the blocked entry",
+        params: {},
+      },
+    ],
+    created_at: "2026-04-06T12:05:31Z",
   },
 ];
 

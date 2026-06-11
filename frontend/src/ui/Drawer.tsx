@@ -2,6 +2,7 @@ import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
+import { postureLabel } from "../lib/posture";
 
 const DEMO_HREF_UNAUTHED = "/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
@@ -31,9 +32,11 @@ export function Drawer({
   const close = () => setNavOpen(false);
 
   const onSignOut = async () => {
-    await auth.signOut();
+    // "/" first, then signOut — the AppShell auth guard otherwise races
+    // this navigate and lands on signin.
     setNavOpen(false);
     navigate("/");
+    await auth.signOut();
   };
 
   // P18 drawer item sets - match docs/DESIGN.md §P18 §"Drawer items by state".
@@ -128,7 +131,7 @@ export function Drawer({
           <div className="px-4 py-3 border-b border-rule">
             <div className="eyebrow-sm mb-1">Matter</div>
             <div className="text-[16px] font-semibold text-ink truncate">{matter.slug}</div>
-            <div className="text-xs text-muted mt-1">privilege {matter.privilege_posture}</div>
+            <div className="text-xs text-muted mt-1">AI {postureLabel(matter.privilege_posture)}</div>
           </div>
         )}
 

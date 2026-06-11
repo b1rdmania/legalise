@@ -270,7 +270,7 @@ export function GenericSkillRunner({
           type="button"
           onClick={() => void onRun()}
           disabled={!canRun || state.kind === "running"}
-          className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90 disabled:opacity-50"
+          className="rounded-md bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-seal disabled:opacity-50"
           data-testid={`generic-run-${skill.moduleId}-${skill.capabilityId}`}
         >
           {state.kind === "running" ? "Running…" : "Run skill"}
@@ -361,7 +361,7 @@ function RunnerResult({
                   <Link
                     to="/matters/$slug/artifacts/$artifactId/sign"
                     params={{ slug, artifactId: artifact.id }}
-                    className="rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                    className="rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-seal"
                   >
                     Review & sign
                   </Link>

@@ -235,7 +235,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="Skill" title={name} subId={entry.module_id} />
+      <PageHeader eyebrow="From the skill library" title={name} subId={entry.module_id} />
 
       <div className="-mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
         {version && <span>v{version}</span>}
@@ -250,7 +250,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
             href={sourceUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="underline underline-offset-4 hover:text-ink"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             source
           </a>
@@ -314,7 +314,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
                 type="button"
                 onClick={onInstall}
                 disabled={life.kind === "installing" || !entry.is_valid}
-                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:bg-seal disabled:opacity-50"
               >
                 {life.kind === "installing" ? "Starting ceremony…" : "Add skill"}
               </button>
@@ -361,7 +361,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
                 type="button"
                 onClick={onUpdate}
                 disabled={life.kind === "updating" || !updateJson.trim()}
-                className="inline-flex items-center rounded-md bg-ink px-3 py-1.5 text-paper hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center rounded-md bg-ink px-3 py-1.5 text-paper hover:bg-seal disabled:opacity-50"
               >
                 {life.kind === "updating" ? "Submitting…" : "Submit update"}
               </button>
@@ -535,7 +535,7 @@ function ManifestDisclosure({
                   href={sourceUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-sm underline underline-offset-4 hover:text-ink"
+                  className="text-sm underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   {sourceUrl}
                 </a>

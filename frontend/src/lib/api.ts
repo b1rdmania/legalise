@@ -219,6 +219,7 @@ export interface InstalledModule {
   installed_at: string;
   installed_by_user_id: string | null;
   install_path?: string | null;
+  track_record?: Record<string, number>;
 }
 
 export const listInstalledModules = () =>

@@ -11,6 +11,7 @@ import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { AuditTab } from "../matter/tabs/AuditTab";
 import { AssistantTab } from "../matter/tabs/AssistantTab";
 import { DEMO_SNAPSHOT } from "./snapshot";
+import { postureDot, postureLabel } from "../lib/posture";
 
 const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
@@ -19,14 +20,10 @@ const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
 ];
 
 // Posture indicator dot (matches ui/Sidebar.tsx). Semantic, not chrome.
-const POSTURE_DOT: Record<string, { label: string; dot: string }> = {
-  A_cleared: { label: "Cleared", dot: "#3F7A5A" },
-  B_mixed: { label: "Mixed", dot: "#E67E22" },
-  C_paused: { label: "Paused", dot: "#8B0000" },
-};
-
-const DEMO_READ_ONLY =
-  "This demo is read-only. Open a preview to look around.";
+// Two user-facing states (src/lib/posture.ts): Active / Paused.
+function posturePill(p: string): { label: string; dot: string } {
+  return { label: postureLabel(p), dot: postureDot(p) };
+}
 
 export type SearchSegment = { text: string; match: boolean };
 
@@ -85,7 +82,6 @@ export function DemoMatter() {
       ? (route.tab as TabKey)
       : "assistant";
   const [tab, setTab] = useState<TabKey>(initialTab);
-  const [flash, setFlash] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [inspectedDocId, setInspectedDocId] = useState<string | null>(null);
 
@@ -113,11 +109,6 @@ export function DemoMatter() {
     if (target !== window.location.pathname) navigate(target);
   };
 
-  const flashCta = (msg: string) => {
-    setFlash(msg);
-    window.setTimeout(() => setFlash((cur) => (cur === msg ? null : cur)), 4000);
-  };
-
   const noop = () => undefined;
 
   const matter = DEMO_SNAPSHOT.matter;
@@ -125,11 +116,8 @@ export function DemoMatter() {
 
   const [showSoF, setShowSoF] = useState(false);
 
-  const flashRO = () => flashCta(DEMO_READ_ONLY);
-  const globalItems: RailItem[] = [
-    { key: "matters", label: "Matters", icon: <NavIcon name="matters" />, onSelect: flashRO },
-    { key: "library", label: "Skill library", icon: <NavIcon name="library" />, onSelect: flashRO },
-  ];
+  // Anonymous demo rail: no Matters / Skill library / Settings / Help —
+  // they all dead-end at the sign-in wall. One quiet CTA instead.
   const matterItems: RailItem[] = [
     ...DEMO_NAV.map((t) => ({
       key: t.key,
@@ -139,21 +127,24 @@ export function DemoMatter() {
       onSelect: () => setTabAndHash(t.key),
     })),
   ];
-  const utilItems: RailItem[] = [
-    { key: "settings", label: "Settings", icon: <NavIcon name="settings" />, onSelect: flashRO },
-    { key: "help", label: "Help", icon: <NavIcon name="help" />, onSelect: flashRO },
-  ];
 
   return (
     <>
-      {flash && <FlashCta message={flash} onClose={() => setFlash(null)} />}
       <div className="min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
         <SidebarView
-          globalItems={globalItems}
+          globalItems={[]}
           matterTitle={matter.title}
-          matterPosture={POSTURE_DOT[matter.privilege_posture]}
+          matterPosture={posturePill(matter.privilege_posture)}
           matterItems={matterItems}
-          utilItems={utilItems}
+          matterFooter={
+            <a
+              href="/auth/signup"
+              className="mx-2 mt-3 block px-3 text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal transition-colors"
+            >
+              Create a workspace →
+            </a>
+          }
+          utilItems={[]}
           open={mobileNavOpen}
           onClose={() => setMobileNavOpen(false)}
         />
@@ -170,11 +161,22 @@ export function DemoMatter() {
           </button>
         </div>
         <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+            <div
+              className="mb-8 flex items-baseline justify-between gap-4 border-b border-ink pb-2"
+              data-testid="demo-masthead"
+            >
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+                A matter before the workspace · read-only demo
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-ink">
+                Legalise
+              </p>
+            </div>
             {tab === "assistant" && (
               <div className="space-y-6">
                 <p className="mx-auto w-full max-w-[760px] text-[13px] text-muted" data-testid="demo-readonly-strip">
                   Public demo · read-only Khan v Acme ·{" "}
-                  <a href="/auth/signup" className="underline underline-offset-4 hover:text-ink">
+                  <a href="/auth/signup" className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
                     create a workspace
                   </a>{" "}
                   to run it yourself.
@@ -222,24 +224,6 @@ export function DemoMatter() {
         </main>
       </div>
     </>
-  );
-}
-
-function FlashCta({ message, onClose }: { message: string; onClose: () => void }) {
-  return (
-    <div className="border-b border-rule bg-paper px-4 sm:px-6 lg:px-10 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-      <span className="tech-token uppercase tracking-track2 text-[10px] font-bold text-ink">
-        Demo
-      </span>
-      <span className="text-sm text-ink">{message}.</span>
-      <button
-        onClick={onClose}
-        className="ml-auto text-xs text-muted hover:text-ink min-h-[32px] px-2"
-        aria-label="Dismiss"
-      >
-        Dismiss
-      </button>
-    </div>
   );
 }
 
@@ -310,7 +294,7 @@ function DemoWorkflowsTab({
               <button
                 type="button"
                 onClick={() => onOpen(w.key)}
-                className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black transition-colors"
+                className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-seal transition-colors"
               >
                 Open in chat
               </button>
@@ -415,7 +399,7 @@ function DemoDocumentsTab({
                   </button>
                   <a
                     href={`/demo/documents/${encodeURIComponent(d.id)}`}
-                    className="mt-3 inline-flex text-xs text-muted underline underline-offset-4 hover:text-ink"
+                    className="mt-3 inline-flex text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     Open reader →
                   </a>
@@ -446,7 +430,7 @@ function DemoDocumentsTab({
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={`/demo/documents/${encodeURIComponent(inspectedDoc.id)}`}
-                className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal hover:border-seal"
               >
                 Open full reader
               </a>
@@ -536,7 +520,7 @@ export function DemoDocumentReader({
         </h1>
         <a
           href="/demo/documents"
-          className="mt-4 inline-flex text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="mt-4 inline-flex text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← Back to demo documents
         </a>
@@ -549,13 +533,13 @@ export function DemoDocumentReader({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <a
           href="/demo/documents"
-          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← Back to demo documents
         </a>
         <a
           href="/demo/audit"
-          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           View demo Record →
         </a>
@@ -648,7 +632,7 @@ export function DemoDocumentReader({
             <div className="mt-4 grid gap-2 text-sm">
               <a
                 href="/demo/workflows"
-                className="flex items-center justify-between rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                className="flex items-center justify-between rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-seal hover:border-seal"
               >
                 <span>Run a skill with this file</span>
                 <span aria-hidden="true">→</span>

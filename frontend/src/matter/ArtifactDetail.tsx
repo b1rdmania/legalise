@@ -97,7 +97,7 @@ export function ArtifactDetail({
           <Link
             to="/matters/$slug/artifacts"
             params={{ slug }}
-            className="underline underline-offset-4 hover:text-ink"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             ← All signed outputs
           </Link>
@@ -112,7 +112,7 @@ export function ArtifactDetail({
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Output"
+        eyebrow="A signed output"
         title={outputLabel(a.kind)}
         subId={a.id}
         description="Review the output, check its sources, and sign it when you are ready to take professional ownership."
@@ -149,7 +149,7 @@ export function ArtifactDetail({
           <Link
             to="/matters/$slug/artifacts/$artifactId/sign"
             params={{ slug, artifactId }}
-            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90"
+            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal"
             data-testid="signoff-cta"
           >
             {signoff ? "Review & sign again" : "Review & sign"}
@@ -158,7 +158,7 @@ export function ArtifactDetail({
             <Link
               to="/matters/$slug/signoffs/$signoffId"
               params={{ slug, signoffId: signoff.id }}
-              className="text-muted underline underline-offset-4 hover:text-ink"
+              className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
               View sign-off record
             </Link>
@@ -185,7 +185,7 @@ export function ArtifactDetail({
                 <Link
                   to="/matters/$slug/$tab"
                   params={{ slug, tab: "approvals" }}
-                  className="underline underline-offset-4 hover:text-ink"
+                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   Open Approvals
                 </Link>{" "}
@@ -210,7 +210,7 @@ export function ArtifactDetail({
                     }
                   }}
                   disabled={review.kind === "busy"}
-                  className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+                  className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
                 >
                   {review.kind === "busy" ? "Requesting…" : "Request review"}
                 </button>
@@ -253,13 +253,13 @@ export function ArtifactDetail({
         <Link
           to="/matters/$slug/artifacts"
           params={{ slug }}
-          className="text-muted underline underline-offset-4 hover:text-ink"
+          className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← All signed outputs
         </Link>
         <a
           href={auditHref}
-          className="text-muted underline underline-offset-4 hover:text-ink"
+          className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           See activity for this output
         </a>

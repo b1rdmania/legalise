@@ -78,7 +78,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
       ) : (
         <div className="overflow-x-auto">
           <div className="min-w-[1020px]">
-            <div className="grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 bg-paper border-b border-ink text-[10px] uppercase tracking-[0.18em] text-muted">
               <span>Timestamp</span>
               <span>Module</span>
               <span>Action</span>
@@ -108,7 +108,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
                 >
                   <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
                   <span className="text-prose truncate">{e.module ?? "-"}</span>
-                  <span className={(isBlocked ? "text-seal" : "text-ink") + " font-bold truncate"}>{e.action}</span>
+                  <span className={(isBlocked ? "text-seal line-through decoration-1" : "text-ink") + " font-bold truncate"}>{e.action}</span>
                   <span className="text-prose truncate">{e.model_used ?? "-"}</span>
                   <span className="text-ink">{e.token_count ?? "-"}</span>
                   <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "-"}</span>
@@ -239,7 +239,7 @@ function CopyButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-xs text-muted hover:text-ink transition-colors"
+      className="text-xs text-muted hover:text-seal transition-colors"
       aria-label={copied ? "Copied" : "Copy full value"}
     >
       {copied ? "Copied" : "Copy"}

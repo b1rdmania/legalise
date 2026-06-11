@@ -48,7 +48,7 @@ function QuickstartCommand() {
       <button
         type="button"
         onClick={onCopy}
-        className="shrink-0 text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+        className="shrink-0 text-xs font-medium text-muted underline underline-offset-4 decoration-rule transition-colors hover:decoration-seal hover:text-seal"
       >
         Copy
       </button>
@@ -63,31 +63,6 @@ export function Landing() {
   return (
     <div className="max-w-page mx-auto">
       <section className="relative overflow-hidden border-b border-rule">
-        <div className="relative z-20 flex justify-end gap-3 px-4 pt-4 sm:px-6 md:px-16 lg:px-24">
-          {auth.user ? (
-            <a
-              href="/matters"
-              className="border border-rule px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-wash"
-            >
-              Open workspace
-            </a>
-          ) : (
-            <>
-              <a
-                href="/auth/signin"
-                className="px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-ink"
-              >
-                Sign in
-              </a>
-              <a
-                href="/auth/signup"
-                className="border border-rule px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink hover:bg-wash"
-              >
-                Create account
-              </a>
-            </>
-          )}
-        </div>
         <div
           className="pointer-events-none absolute inset-0 z-0 hidden md:block"
           aria-hidden="true"
@@ -123,7 +98,7 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-4 mt-10">
               <button
                 onClick={onOpenDemo}
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
+                className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]"
               >
                 Open demo project
               </button>
@@ -135,7 +110,7 @@ export function Landing() {
               </a>
               <a
                 href="/skills"
-                className="text-sm text-muted hover:text-ink transition-colors"
+                className="text-sm text-muted hover:text-seal transition-colors"
               >
                 Skills
               </a>
@@ -144,7 +119,7 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-4 mt-10">
               <a
                 href="/demo"
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+                className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 Open the demo
               </a>
@@ -254,7 +229,7 @@ export function Landing() {
           <div className="mt-8 flex flex-wrap gap-4">
             <a
               href="/demo"
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
               Open the demo
             </a>
