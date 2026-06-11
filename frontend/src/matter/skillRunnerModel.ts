@@ -137,6 +137,44 @@ function capabilityHasRequiredGrantRows(
   return required.every((need) => granted.has(need));
 }
 
+
+function titleFromModuleId(moduleId: string): string {
+  const tail = moduleId.includes(".") ? moduleId.split(".").pop() ?? moduleId : moduleId;
+  return tail
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/**
+ * Installed modules that have no filesystem-catalogue entry (imported
+ * Lawve skills live only in installed_modules) get a synthetic entry
+ * built from the install-time permissions snapshot, so every surface
+ * that lists skills sees one truthful set.
+ */
+export function withInstalledEntries(
+  modules: V2ManifestEntry[],
+  installed: Map<string, InstalledModule>,
+): V2ManifestEntry[] {
+  const catalogued = new Set(modules.map((entry) => entry.module_id));
+  const synthesized: V2ManifestEntry[] = [];
+  for (const inst of installed.values()) {
+    if (catalogued.has(inst.module_id)) continue;
+    synthesized.push({
+      module_id: inst.module_id,
+      source_kind: "installed",
+      manifest: {
+        name: titleFromModuleId(inst.module_id),
+        capabilities: inst.capabilities ?? [],
+      },
+      is_valid: true,
+      validation_errors: [],
+    });
+  }
+  return synthesized.length === 0 ? modules : [...modules, ...synthesized];
+}
+
 export function runnableMatterSkills({
   modules,
   installed,

@@ -27,6 +27,7 @@ import { InlineAgentStatus, MessageBubble, type InlineAgentStep } from "../Messa
 import { GenericSkillRunner } from "../GenericSkillRunner";
 import {
   runnableMatterSkills,
+  withInstalledEntries,
   type RunnableMatterSkill,
 } from "../skillRunnerModel";
 import type { TabKey } from "./types";
@@ -179,7 +180,7 @@ export function AssistantTab({
   const runnableModuleSkills = useMemo(
     () =>
       runnableMatterSkills({
-        modules: moduleEntries,
+        modules: withInstalledEntries(moduleEntries, installedModules),
         installed: installedModules,
         grants: grantRows,
       }),
@@ -651,16 +652,18 @@ export function AssistantTab({
                       )}
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSkillsOpen(false);
-                      openAddSkill();
-                    }}
-                    className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
-                  >
-                    Add skill →
-                  </button>
+                  {runnableSkillCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSkillsOpen(false);
+                        openAddSkill();
+                      }}
+                      className="mt-3 text-xs text-muted underline underline-offset-4 hover:text-ink"
+                    >
+                      Add skill →
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {

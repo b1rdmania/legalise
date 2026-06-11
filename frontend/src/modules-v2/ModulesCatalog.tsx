@@ -25,6 +25,7 @@ import {
   type V2ManifestEntry,
 } from "../lib/api";
 import { PageHeader } from "../ui/primitives";
+import { listLawveSkills, type LawveSkillRow } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 
 type ModuleState = "available" | "installed" | "disabled";
@@ -108,6 +109,23 @@ export function ModulesCatalog() {
   const [modules, setModules] = useState<V2ManifestEntry[] | null>(null);
   const [installed, setInstalled] = useState<Map<string, InstalledModule>>(new Map());
   const [skills, setSkills] = useState<PublicModuleSkill[] | null>(null);
+  const [lawve, setLawve] = useState<LawveSkillRow[] | null>(null);
+
+  useEffect(() => {
+    if (!authed) return;
+    let cancelled = false;
+    listLawveSkills()
+      .then((res) => {
+        if (!cancelled) setLawve(res?.skills ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLawve([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed]);
   const [skillsRepo, setSkillsRepo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSkills, setShowSkills] = useState(false);
@@ -198,7 +216,7 @@ export function ModulesCatalog() {
         title="Skills"
         description={
           authed
-            ? "Add legal skills to the workspace, then enable them inside the matter where they should run."
+            ? "A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Add one from the catalogue, enable it on a matter, run it from Chat. Every run leaves a signed, auditable record."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -393,6 +411,54 @@ export function ModulesCatalog() {
           </ul>
         )}
       </section>
+      )}
+
+      {/* The stocked shelf: the open Lawve catalogue, reviewable and
+          addable in two clicks. */}
+      {authed && (
+        <section className="mt-10" data-testid="lawve-catalogue">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 className="text-xs uppercase tracking-widest text-muted">
+              Catalogue{lawve ? ` (${lawve.length})` : ""}
+            </h2>
+            <Link
+              to="/skills/lawve"
+              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+            >
+              Open full importer →
+            </Link>
+          </div>
+          {lawve == null ? (
+            <p className="mt-3 text-sm text-muted">Loading catalogue…</p>
+          ) : lawve.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">
+              Catalogue unavailable right now.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-rule rounded-card border border-rule/60 bg-paper shadow-panel">
+              {lawve.map((s) => (
+                <li key={s.slug} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink">{s.name}</p>
+                    <p className="mt-0.5 max-w-2xl truncate text-[13px] text-muted">
+                      {s.description}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted">
+                      {s.author_name ?? "unknown"}
+                      {s.license ? ` · ${s.license}` : ""}
+                    </p>
+                  </div>
+                  <a
+                    href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
+                    className="shrink-0 rounded-item border border-rule px-3 py-1.5 text-xs text-ink hover:border-ink"
+                  >
+                    Review & add →
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
 
       {/* Secondary: open skill library (browse only, not an add path) */}

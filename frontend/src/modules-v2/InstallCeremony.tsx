@@ -96,6 +96,36 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
     void refresh();
   }, [refresh]);
 
+  const onApproveAll = async () => {
+    setAdv({ kind: "running", action: "trust" });
+    try {
+      // Walk the review states in one user decision. Every step is still
+      // recorded individually in the audit log — the compression is in
+      // the clicking, not the record.
+      let current = q.status === "ready" ? q.ceremony : null;
+      for (let i = 0; i < 12 && current && !current.is_terminal; i++) {
+        const action: CeremonyAction =
+          current.state === "granted" ? "grant" : "trust";
+        current = await advanceCeremony(ceremonyId, action);
+        setQ({ status: "ready", ceremony: current });
+        if (current.state === "enabled") break;
+      }
+      setAdv({ kind: "idle" });
+    } catch (err) {
+      if (err instanceof InvalidCeremonyTransitionError) {
+        setAdv({
+          kind: "invalid_transition",
+          message: err.message,
+          requestedAction: err.requestedAction,
+          ceremonyId: err.ceremonyId,
+        });
+        void refresh();
+        return;
+      }
+      setAdv({ kind: "error", message: String(err) });
+    }
+  };
+
   const onAdvance = async (action: CeremonyAction) => {
     setAdv({ kind: "running", action });
     try {
@@ -186,16 +216,23 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
       {/* Controls */}
       {!isTerminal && (
         <div className="mt-8 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void onApproveAll()}
+            disabled={adv.kind === "running"}
+            data-testid="ceremony-approve-all"
+            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+          >
+            {adv.kind === "running" ? "Approving…" : "Approve & enable"}
+          </button>
           {!canEnable && (
             <button
               type="button"
               onClick={() => onAdvance("trust")}
               disabled={adv.kind === "running"}
-              className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-ink hover:border-ink disabled:opacity-50"
             >
-              {adv.kind === "running" && adv.action === "trust"
-                ? "Advancing…"
-                : "Continue review"}
+              Step through review
             </button>
           )}
           {canEnable && (
@@ -203,11 +240,9 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
               type="button"
               onClick={() => onAdvance("grant")}
               disabled={adv.kind === "running"}
-              className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center rounded-md border border-rule px-4 py-2 text-ink hover:border-ink disabled:opacity-50"
             >
-              {adv.kind === "running" && adv.action === "grant"
-                ? "Enabling…"
-                : "Enable skill"}
+              Enable skill
             </button>
           )}
           <button
