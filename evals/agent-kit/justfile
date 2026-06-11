@@ -1,0 +1,23 @@
+# agent-kit eval runs against the Legalise backend.
+# Requires: agent-kit installed (pip install git+https://github.com/b1rdmania/agent-kit.git@main)
+# and AGENT_KIT_SECRET exported in BOTH the backend env and this shell.
+
+endpoint := env_var_or_default("LEGALISE_EVAL_ENDPOINT", "http://localhost:8000/api/evals/agent")
+
+default:
+    @just --list
+
+# Run the dataset against a local compose backend
+run:
+    agent-kit run \
+        --dataset dataset.jsonl \
+        --endpoint {{endpoint}} \
+        --secret-env AGENT_KIT_SECRET
+
+# CI-friendly machine-readable output
+run-json:
+    agent-kit run \
+        --dataset dataset.jsonl \
+        --endpoint {{endpoint}} \
+        --secret-env AGENT_KIT_SECRET \
+        --json > results.json

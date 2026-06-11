@@ -69,6 +69,19 @@ beforeEach(() => {
   // AuthGate consults the snapshot; populate so __authed lets us through.
   // (AuthProvider runs on mount; it'll call getCurrentUser via apiFetch
   // unless we mock it.)
+  // Chain status is fetched on every mount; default to a clean chain so
+  // existing assertions stay focused. Individual tests override.
+  vi.spyOn(api, "getAuditChainStatus").mockResolvedValue({
+    verified: true,
+    scope: "matter",
+    length: 11,
+    head: {
+      chain_hash: "deadbeefcafe0123" + "0".repeat(48),
+      scope_sequence: 11,
+      entry_hash: "1".repeat(64),
+    },
+    issues: [],
+  });
   vi.spyOn(api, "getCurrentUser").mockResolvedValue({
     id: "u-1",
     email: "u@example.com",
@@ -117,6 +130,77 @@ describe("ReconstructionView — basic render", () => {
     fireEvent.click(screen.getByTestId("timeline-row-r-1").querySelector("button")!);
     expect(screen.getByText("Raw action")).toBeInTheDocument();
     expect(screen.getByText("module.capability.invoked")).toBeInTheDocument();
+  });
+});
+
+describe("ReconstructionView — chain status line", () => {
+  it("renders the quiet verified line with link count and head prefix", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [entry()],
+      next_cursor: null,
+      total_in_window_estimate: 1,
+    });
+
+    mountAt("/matters/khan/audit");
+    await waitFor(() => {
+      expect(screen.getByTestId("chain-status")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("chain-status").textContent).toBe(
+      "Chain verified · 11 links · head deadbeef",
+    );
+  });
+
+  it("renders the seal-toned broken line when verified=false", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [entry()],
+      next_cursor: null,
+      total_in_window_estimate: 1,
+    });
+    vi.spyOn(api, "getAuditChainStatus").mockResolvedValue({
+      verified: false,
+      scope: "matter",
+      length: 11,
+      head: {
+        chain_hash: "0".repeat(64),
+        scope_sequence: 11,
+        entry_hash: "1".repeat(64),
+      },
+      issues: [
+        {
+          code: "chain_hash_mismatch",
+          message: "expected x; got y",
+          audit_entry_id: null,
+          chain_id: 1,
+        },
+      ],
+    });
+
+    mountAt("/matters/khan/audit");
+    await waitFor(() => {
+      expect(screen.getByTestId("chain-status")).toBeInTheDocument();
+    });
+    const line = screen.getByTestId("chain-status");
+    expect(line.textContent).toBe("chain broken — see issues");
+    expect(line.className).toContain("text-seal");
+  });
+
+  it("renders no chain line when the endpoint fails", async () => {
+    vi.spyOn(api, "getReconstruction").mockResolvedValue({
+      entries: [entry()],
+      next_cursor: null,
+      total_in_window_estimate: 1,
+    });
+    vi.spyOn(api, "getAuditChainStatus").mockImplementation(() =>
+      Promise.reject(new Error("503")),
+    );
+
+    mountAt("/matters/khan/audit");
+    // A single non-decision row lands in the collapsed background lane,
+    // so wait for the always-visible empty-foreground marker instead.
+    await waitFor(() => {
+      expect(screen.getByTestId("no-decision-points")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("chain-status")).toBeNull();
   });
 });
 

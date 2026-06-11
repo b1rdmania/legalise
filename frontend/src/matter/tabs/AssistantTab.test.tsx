@@ -39,16 +39,19 @@ function mountChat(overrides?: {
   initialMessages?: AssistantMessage[];
   onDocumentChip?: (documentId: string) => void;
   initialDocumentId?: string | null;
+  matter?: Matter;
+  onPostureChange?: (next: string) => Promise<void>;
 }) {
   const setTabAndHash = overrides?.setTabAndHash ?? vi.fn();
   const docs = overrides?.docs ?? [];
+  const mounted = overrides?.matter ?? matter;
   const root = createRootRoute({ component: () => <Outlet /> });
   const tab = createRoute({
     getParentRoute: () => root,
     path: "/matters/$slug/assistant",
     component: () => (
       <AssistantTab
-        matter={matter}
+        matter={mounted}
         docs={docs}
         chronology={[]}
         setTabAndHash={setTabAndHash as never}
@@ -57,6 +60,7 @@ function mountChat(overrides?: {
         initialMessages={overrides?.initialMessages}
         onDocumentChip={overrides?.onDocumentChip}
         initialDocumentId={overrides?.initialDocumentId}
+        onPostureChange={overrides?.onPostureChange}
       />
     ),
   });
@@ -528,5 +532,40 @@ describe("AssistantTab — docs loading state", () => {
     expect(await screen.findByTestId("docs-context-status")).toHaveTextContent(
       /Loading documents…/i,
     );
+  });
+});
+
+describe("AssistantTab — pause affordance in the header meta line", () => {
+  it("shows Pause AI on an active matter and pauses via onPostureChange", async () => {
+    const onPostureChange = vi.fn().mockResolvedValue(undefined);
+    mountChat({ onPostureChange });
+
+    const toggle = await screen.findByTestId("chat-pause-toggle");
+    expect(toggle).toHaveTextContent("Pause AI");
+    fireEvent.click(toggle);
+    await waitFor(() => {
+      expect(onPostureChange).toHaveBeenCalledWith("C_paused");
+    });
+  });
+
+  it("shows Resume AI on a paused matter and resumes to B_mixed", async () => {
+    const onPostureChange = vi.fn().mockResolvedValue(undefined);
+    mountChat({
+      onPostureChange,
+      matter: { ...matter, privilege_posture: "C_paused" } as Matter,
+    });
+
+    const toggle = await screen.findByTestId("chat-pause-toggle");
+    expect(toggle).toHaveTextContent("Resume AI");
+    fireEvent.click(toggle);
+    await waitFor(() => {
+      expect(onPostureChange).toHaveBeenCalledWith("B_mixed");
+    });
+  });
+
+  it("hides the action when no posture plumbing is provided (demo/read-only shells)", async () => {
+    mountChat();
+    await screen.findByTestId("docs-context-status");
+    expect(screen.queryByTestId("chat-pause-toggle")).toBeNull();
   });
 });

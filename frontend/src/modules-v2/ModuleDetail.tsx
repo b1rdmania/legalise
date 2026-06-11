@@ -38,6 +38,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { PageHeader } from "../ui/primitives";
+import { RequestSkillButton } from "./RequestSkillButton";
 
 type DetailQuery =
   | { status: "loading" }
@@ -335,10 +336,14 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
               </button>
             </>
           ) : (
-            <p className="text-sm text-muted">
-              Add, update, and revoke require superuser. Ask your
-              workspace administrator to add this skill.
-            </p>
+            <div>
+              <p className="text-sm text-muted">
+                Adding a skill is an administrator action.
+              </p>
+              <div className="mt-2">
+                <RequestSkillButton moduleId={entry.module_id} source="registry" />
+              </div>
+            </div>
           )}
         </div>
         {updateOpen && isAdmin && (

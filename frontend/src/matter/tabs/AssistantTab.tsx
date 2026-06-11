@@ -23,6 +23,7 @@ import {
   type V2ManifestEntry,
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
+import { posturePaused } from "../../lib/posture";
 import { InlineAgentStatus, MessageBubble, type InlineAgentStep } from "../MessageBubble";
 import { GenericSkillRunner } from "../GenericSkillRunner";
 import {
@@ -55,6 +56,12 @@ interface AssistantTabProps {
   // route source chips into the authenticated matter document reader.
   onDocumentChip?: (documentId: string) => void;
   initialDocumentId?: string | null;
+  // Pause/resume entry point in the header meta line. Same plumbing as
+  // PostureBanner: the callback owns setPrivilege + matter refetch
+  // (MatterDetail.onPostureChange). Omitted by demo/read-only shells,
+  // which hides the action. Messaging stays with PostureBanner — this
+  // is only the always-reachable entry point.
+  onPostureChange?: (next: string) => Promise<void>;
 }
 
 // Three concrete first-actions per matter type. Per JOY.md "Suggested
@@ -101,6 +108,7 @@ export function AssistantTab({
   onDisabledAction,
   onDocumentChip,
   initialDocumentId,
+  onPostureChange,
   // back-compat — see AssistantTabProps; deliberately unused.
   auditCount: _auditCount,
   workflowsGrantedCount: _workflowsGrantedCount,
@@ -379,6 +387,24 @@ export function AssistantTab({
     void navigate({ to: "/skills/lawve" });
   };
 
+  // Pause/resume from the meta line. Mirrors PostureBanner's
+  // ChangePostureControl: paused resumes to B_mixed, anything else
+  // pauses to C_paused. The paused-state messaging itself stays with
+  // PostureBanner once the parent refetches the matter.
+  const [postureSubmitting, setPostureSubmitting] = useState(false);
+  const onTogglePause = async () => {
+    if (!onPostureChange || postureSubmitting) return;
+    const next = posturePaused(matter.privilege_posture) ? "B_mixed" : "C_paused";
+    setPostureSubmitting(true);
+    try {
+      await onPostureChange(next);
+    } catch (err) {
+      setError(formatError(err));
+    } finally {
+      setPostureSubmitting(false);
+    }
+  };
+
   return (
     <div
       className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[760px] flex-col px-1"
@@ -412,6 +438,20 @@ export function AssistantTab({
             >
               Activity
             </button>
+            {onPostureChange && !disabled && (
+              <>
+                <span aria-hidden="true">·</span>
+                <button
+                  type="button"
+                  onClick={onTogglePause}
+                  disabled={postureSubmitting}
+                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
+                  data-testid="chat-pause-toggle"
+                >
+                  {posturePaused(matter.privilege_posture) ? "Resume AI" : "Pause AI"}
+                </button>
+              </>
+            )}
           </div>
         </div>
 

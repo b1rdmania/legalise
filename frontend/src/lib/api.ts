@@ -227,6 +227,28 @@ export const listInstalledModules = () =>
     jsonOrThrow<InstalledModule[]>(r),
   );
 
+// Skill requests. The audit chain is the store — POST writes one
+// module.request.created row; GET (admin) derives the pending set
+// from those rows minus module_ids already installed and enabled.
+export interface ModuleRequestRow {
+  module_id: string;
+  source: string | null;
+  requested_by: string | null;
+  requested_at: string;
+}
+
+export const requestModule = (moduleId: string, source?: string) =>
+  apiFetch(`${API}/modules/requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ module_id: moduleId, source: source ?? null }),
+  }).then((r) => jsonOrThrow<{ ok: boolean }>(r));
+
+export const listModuleRequests = () =>
+  apiFetch(`${API}/modules/requests`).then((r) =>
+    jsonOrThrow<ModuleRequestRow[]>(r),
+  );
+
 export interface CeremonyPermissionCard {
   module_id: string;
   module_name?: string;
@@ -1152,6 +1174,35 @@ export interface AuditEntry {
 
 export const listAudit = (slug: string, limit = 50) =>
   apiFetch(`${API}/matters/${slug}/audit?limit=${limit}`).then((r) => jsonOrThrow<AuditEntry[]>(r));
+
+// Audit hash-chain verification (notary-minimal). Substrate truth:
+// GET /api/matters/{slug}/audit/chain recomputes every link in the
+// matter scope; `head.chain_hash` is the record's fingerprint.
+export interface AuditChainHead {
+  chain_hash: string;
+  scope_sequence: number;
+  entry_hash: string;
+}
+
+export interface AuditChainIssue {
+  code: string;
+  message: string;
+  audit_entry_id: string | null;
+  chain_id: number | null;
+}
+
+export interface AuditChainStatus {
+  verified: boolean;
+  scope: string;
+  length: number;
+  head: AuditChainHead | null;
+  issues: AuditChainIssue[];
+}
+
+export const getAuditChainStatus = (slug: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/audit/chain`).then((r) =>
+    jsonOrThrow<AuditChainStatus>(r),
+  );
 
 export const setPrivilege = (slug: string, posture: string) =>
   apiFetch(`${API}/matters/${slug}/privilege`, {

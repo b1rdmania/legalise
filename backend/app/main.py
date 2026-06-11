@@ -42,6 +42,7 @@ from app.api.matter_context import (
     items_router as matter_context_items_router,
 )
 from app.api.advice_boundary import router as advice_boundary_router
+from app.api.agent_evals import router as agent_evals_router
 from app.core.audit import AuditMiddleware
 from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
@@ -343,6 +344,8 @@ app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 app.include_router(lawve_import_router, prefix="/api/modules", tags=["lawve-import"])
 # Guided Demo Loop v1 — keyless end-to-end proof (own prefix, self-registered).
 app.include_router(demo_router)
+# agent-kit eval adapter — shared-secret gated; 503 until AGENT_KIT_SECRET is set.
+app.include_router(agent_evals_router, prefix="/api/evals", tags=["evals"])
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
 
 # Substrate primitives (state machine + matter context).
