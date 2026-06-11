@@ -12,6 +12,7 @@
  * older hash-router call sites.
  */
 
+import { useMemo } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { router } from "../router";
 
@@ -180,9 +181,15 @@ export function routeFromPath(pathname: string, search: string): Route {
 }
 
 export function useRoute(): Route {
-  return useRouterState({
-    select: (s) => routeFromPath(s.location.pathname, s.location.searchStr),
-  });
+  // Select PRIMITIVES, derive the Route in a memo. Selecting the derived
+  // object directly meant a fresh identity on every router-state tick
+  // (loading flags, etc.) — every useRoute consumer re-rendered, and
+  // effects keyed on [route] re-fired into a nested-update cascade
+  // ("Maximum update depth exceeded" on the matter chat page; caught by
+  // the WebKit console audit, present in every engine).
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const searchStr = useRouterState({ select: (s) => s.location.searchStr });
+  return useMemo(() => routeFromPath(pathname, searchStr), [pathname, searchStr]);
 }
 
 /**

@@ -25,6 +25,15 @@ import {
   type V2ManifestEntry,
 } from "../lib/api";
 import { PageHeader } from "../ui/primitives";
+import {
+  CertCard,
+  CertEyebrow,
+  Colophon,
+  InkBands,
+  LedgerLine,
+  LedgerRow,
+  SectionRule,
+} from "../ui/certificate";
 import { listLawveSkills, type LawveSkillRow } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -60,11 +69,6 @@ function capabilityStrings(entry: V2ManifestEntry, key: "reads" | "writes"): str
   }
   return [...out].sort();
 }
-function shortPermissionList(values: string[]): string {
-  if (values.length === 0) return "None declared";
-  if (values.length <= 2) return values.join(", ");
-  return `${values.slice(0, 2).join(", ")} +${values.length - 2}`;
-}
 const STATE_LABEL: Record<ModuleState, string> = {
   available: "Available",
   installed: "Added",
@@ -81,16 +85,6 @@ const TAB_LABEL: Record<SkillTab, string> = {
 // V1 ships a Claude-native skill format; every skill in the V2 registry
 // is tested against Sonnet 4.6+, so the badge is unconditional here.
 // When the manifest grows a compatibility field it can move to per-skill.
-function CompatibilityBadge() {
-  return (
-    <span
-      title="Tested against Anthropic Claude Sonnet 4.6 or newer. Legalise can support other approved model providers; the skill format is Claude-native in V1."
-      className="inline-flex items-center gap-1 rounded-full border border-rule px-2 py-0.5 tech-token text-[9px] uppercase tracking-widest text-muted"
-    >
-      Tested with Claude Sonnet 4.6+
-    </span>
-  );
-}
 
 export function ModulesCatalog() {
   // /modules is a public route (anyone can browse). The v2 registry +
@@ -214,6 +208,7 @@ export function ModulesCatalog() {
         eyebrowRight="Legalise"
         display
         title="Skills"
+        whisper="Instruments of practice"
         description={
           authed
             ? "A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Add one from the catalogue, enable it on a matter, run it from Chat. Every run leaves a signed, auditable record."
@@ -279,39 +274,45 @@ export function ModulesCatalog() {
           audit chain holds pending requests. Each row links into the
           importer where the trust ceremony starts. */}
       {authed && isOperator && requests.length > 0 && (
-        <section className="mb-10" data-testid="skill-requests">
-          <h2 className="text-xs uppercase tracking-widest text-muted">
-            Requested by your workspace ({requests.length})
-          </h2>
-          <ul className="mt-3 divide-y divide-rule border border-rule bg-paper">
-            {requests.map((r) => (
-              <li
+        <section className="mb-12" data-testid="skill-requests">
+          <SectionRule
+            label="Requested by your workspace"
+            right={String(requests.length)}
+          />
+          <div className="mt-1">
+            {requests.map((r, i) => (
+              <LedgerLine
                 key={r.module_id}
-                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-                data-testid={`skill-request-${r.module_id}`}
+                index={i + 1}
+                label="Requested"
+                testid={`skill-request-${r.module_id}`}
+                right={
+                  <a
+                    href={
+                      r.source === "lawve"
+                        ? // Lawve draft ids are "lawve.{slug}"; the importer
+                          // deep-link takes the bare slug.
+                          `/skills/lawve?skill=${encodeURIComponent(r.module_id.replace(/^lawve\./, ""))}`
+                        : "/skills/lawve"
+                    }
+                    className="text-sm text-muted hover:text-seal"
+                  >
+                    Review &amp; add →
+                  </a>
+                }
               >
-                <div className="min-w-0">
-                  <p className="tech-token text-sm text-ink">{r.module_id}</p>
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {r.source ? `via ${r.source} · ` : ""}
-                    requested {new Date(r.requested_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <a
-                  href={
-                    r.source === "lawve"
-                      ? // Lawve draft ids are "lawve.{slug}"; the importer
-                        // deep-link takes the bare slug.
-                        `/skills/lawve?skill=${encodeURIComponent(r.module_id.replace(/^lawve\./, ""))}`
-                      : "/skills/lawve"
-                  }
-                  className="shrink-0 text-sm text-muted hover:text-seal"
-                >
-                  Review &amp; add →
-                </a>
-              </li>
+                <span className="tech-token">{r.module_id}</span>
+                <span className="ml-2 text-[11px] text-muted">
+                  {r.source ? `via ${r.source} · ` : ""}
+                  {new Date(r.requested_at).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </LedgerLine>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
@@ -320,10 +321,12 @@ export function ModulesCatalog() {
           (Revoked is operator-only). */}
       {authed && (
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-xs uppercase tracking-widest text-muted">
-            Workspace skills
-          </h2>
+        <SectionRule
+          label="Schedule A — workspace skills"
+          right={modules ? String(modules.length) : undefined}
+        />
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+          <span aria-hidden="true" />
           {authed && modules && modules.length > 0 && (
             <input
               value={query}
@@ -386,70 +389,58 @@ export function ModulesCatalog() {
                   : "Nothing to add — all reference skills are already trusted in this workspace."}
           </p>
         ) : (
-          <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
-            {filteredModules?.map((m) => {
+          <ul className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {filteredModules?.map((m, i) => {
               const st = stateOf(m.module_id);
               const caps = capCount(m);
               const reads = capabilityStrings(m, "reads");
               const writes = capabilityStrings(m, "writes");
               return (
-                <li key={m.module_id} className="bg-paper p-4 hover:bg-wash transition-colors">
+                <li key={m.module_id}>
                   <Link
                     to="/skills/$moduleId"
                     params={{ moduleId: m.module_id }}
-                    className="block"
+                    className="block transition-opacity hover:opacity-80"
                   >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h3 className="text-sm font-medium text-ink">
+                    <CertCard tone={st === "disabled" ? "seal" : "ink"}>
+                      <CertEyebrow
+                        left={`Skill ${String(i + 1).padStart(2, "0")}`}
+                        right={
+                          <span data-testid={`module-state-${m.module_id}`}>
+                            {STATE_LABEL[st]}
+                          </span>
+                        }
+                        rightTone={
+                          st === "available"
+                            ? "muted"
+                            : st === "installed"
+                              ? "ink"
+                              : "seal"
+                        }
+                      />
+                      <h3 className="mt-3 text-[22px] leading-tight tracking-tight2 text-ink">
                         {manifestStr(m, "name") ?? m.module_id}
                       </h3>
-                      <span
-                        className={
-                          "shrink-0 text-[10px] uppercase tracking-widest " +
-                          (st === "available"
-                            ? "text-muted"
-                            : st === "installed"
-                              ? "text-ink"
-                              : "text-seal")
-                        }
-                        data-testid={`module-state-${m.module_id}`}
-                      >
-                        {STATE_LABEL[st]}
-                      </span>
-                    </div>
-                    <p className="mt-1 tech-token text-[11px] text-muted">
-                      {m.module_id}
-                      {manifestStr(m, "publisher") ? ` · ${manifestStr(m, "publisher")}` : ""}
-                    </p>
-                    <div className="mt-2">
-                      <CompatibilityBadge />
-                    </div>
-                    <p className="mt-2 text-xs text-muted">
-                      {caps} permission set{caps === 1 ? "" : "s"}
-                      {!m.is_valid ? " · manifest invalid" : ""}
-                    </p>
-                    <dl className="mt-3 grid grid-cols-1 gap-2 border-t border-rule pt-3 text-xs sm:grid-cols-2">
-                      <div>
-                        <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
-                          Reads
-                        </dt>
-                        <dd className="mt-1 text-ink">
-                          {shortPermissionList(reads)}
-                        </dd>
+                      <p className="mt-1 text-xs text-muted">
+                        {manifestStr(m, "publisher")
+                          ? `${manifestStr(m, "publisher")} (chambers) · `
+                          : ""}
+                        <span className="tech-token">{m.module_id}</span>
+                      </p>
+                      <div className="mt-4 space-y-2">
+                        <InkBands label="Reads" values={reads} />
+                        <InkBands label="Writes" values={writes} />
                       </div>
-                      <div>
-                        <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
-                          Writes
-                        </dt>
-                        <dd className="mt-1 text-ink">
-                          {shortPermissionList(writes)}
-                        </dd>
-                      </div>
-                    </dl>
-                    <p className="mt-3 text-xs text-muted">
-                      Running happens inside a matter after permissions are
-                      granted. Add state here is workspace-level.
-                    </p>
+                      <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+                        <LedgerRow label="Permission sets">
+                          {caps}
+                          {!m.is_valid ? " · manifest invalid" : ""}
+                        </LedgerRow>
+                        <LedgerRow label="Tested with">
+                          Claude Sonnet 4.6+
+                        </LedgerRow>
+                      </dl>
+                    </CertCard>
                   </Link>
                 </li>
               );
@@ -462,18 +453,18 @@ export function ModulesCatalog() {
       {/* The stocked shelf: the open Lawve catalogue, reviewable and
           addable in two clicks. */}
       {authed && (
-        <section className="mt-10" data-testid="lawve-catalogue">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-xs uppercase tracking-widest text-muted">
-              Catalogue{lawve ? ` (${lawve.length})` : ""}
-            </h2>
-            <Link
-              to="/skills/lawve"
-              className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-            >
-              Open full importer →
-            </Link>
-          </div>
+        <section className="mt-12" data-testid="lawve-catalogue">
+          <SectionRule
+            label="Schedule B — the open catalogue"
+            right={
+              <Link
+                to="/skills/lawve"
+                className="normal-case tracking-normal text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              >
+                Open full importer →
+              </Link>
+            }
+          />
           {lawve == null ? (
             <p className="mt-3 text-sm text-muted">Loading catalogue…</p>
           ) : lawve.length === 0 ? (
@@ -481,29 +472,33 @@ export function ModulesCatalog() {
               Catalogue unavailable right now.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-rule rounded-card border border-rule/60 bg-paper shadow-panel">
-              {lawve.map((s) => (
-                <li key={s.slug} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink">{s.name}</p>
-                    <p className="mt-0.5 max-w-2xl truncate text-[13px] text-muted">
-                      {s.description}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-muted">
-                      {s.author_name ?? "unknown"}
-                      {s.license ? ` · ${s.license}` : ""}
-                    </p>
-                  </div>
-                  <a
-                    href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
-                    className="shrink-0 rounded-item border border-rule px-3 py-1.5 text-xs text-ink hover:border-ink"
-                  >
-                    Review & add →
-                  </a>
-                </li>
+            <div className="mt-1">
+              {lawve.map((s, i) => (
+                <LedgerLine
+                  key={s.slug}
+                  index={i + 1}
+                  label={s.license ?? "licence ?"}
+                  right={
+                    <a
+                      href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
+                      className="text-sm text-muted hover:text-seal"
+                    >
+                      Review &amp; add →
+                    </a>
+                  }
+                >
+                  <span className="text-ink">{s.name}</span>
+                  <span className="ml-2 hidden text-[12px] text-muted sm:inline">
+                    {s.author_name ?? "unknown"}
+                  </span>
+                </LedgerLine>
               ))}
-            </ul>
+            </div>
           )}
+          <Colophon>
+            Skills hold no standing until admitted — review, signature,
+            permissions, gates, then the register.
+          </Colophon>
         </section>
       )}
     </div>

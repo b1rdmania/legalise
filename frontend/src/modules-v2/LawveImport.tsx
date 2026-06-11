@@ -22,7 +22,8 @@ import {
   type LawveSkillRow,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
-import { Badge, ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { LedgerLine, SectionRule } from "../ui/certificate";
 import { RequestSkillButton } from "./RequestSkillButton";
 
 type ListQuery =
@@ -155,6 +156,7 @@ export function LawveImport() {
       <PageHeader
         eyebrow="Admission — instruct new counsel"
         title="Add a skill"
+        whisper="Before the registrar"
         description="Import a skill from the Lawve catalogue or any public GitHub repository. A skill cannot be added until it is converted, validated, signed, and trusted — and imported scripts are never executed."
       />
 
@@ -174,7 +176,7 @@ export function LawveImport() {
               }}
               className="mb-4"
             >
-              <label className="text-[11px] uppercase tracking-widest text-muted">
+              <label className="text-[10px] uppercase tracking-[0.18em] text-muted">
                 From a GitHub repository
               </label>
               <div className="mt-1 flex gap-2">
@@ -198,7 +200,7 @@ export function LawveImport() {
                 Needs a SKILL.md at the repo root (or pass a /tree/&lt;ref&gt;/&lt;path&gt; URL).
               </p>
             </form>
-            <label className="text-[11px] uppercase tracking-widest text-muted">
+            <label className="text-[10px] uppercase tracking-[0.18em] text-muted">
               From the Lawve catalogue
             </label>
             <input
@@ -231,31 +233,41 @@ export function LawveImport() {
               <span className="text-muted">{filtered.length} of {skills.length}</span>
             </div>
 
-            <ul className="mt-4 space-y-px bg-rule border border-rule">
-              {filtered.map((s) => (
+            {/* The catalogue ledger — index, licence, name + author, chevron.
+                Same scan rhythm as the register's admission lists. */}
+            <ul className="mt-4">
+              {filtered.map((s, i) => (
                 <li key={s.slug}>
                   <button
                     type="button"
                     onClick={() => openSkill(s.slug)}
                     className={
-                      "block w-full bg-paper p-4 text-left hover:bg-wash transition-colors " +
-                      (selected?.slug === s.slug ? "ring-1 ring-ink" : "")
+                      "group block w-full text-left " +
+                      (selected?.slug === s.slug ? "bg-wash" : "")
                     }
                     data-testid={`lawve-card-${s.slug}`}
                   >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-sm font-medium text-ink">{s.name}</span>
-                      <span className="shrink-0 text-[10px] uppercase tracking-widest text-muted">
-                        {s.license ?? "licence?"}
+                    <LedgerLine
+                      index={i + 1}
+                      label={s.license ?? "licence ?"}
+                      right={
+                        <span
+                          aria-hidden="true"
+                          className="text-sm text-muted group-hover:text-seal"
+                        >
+                          →
+                        </span>
+                      }
+                    >
+                      <span className="text-ink group-hover:text-seal">
+                        {s.name}
                       </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted line-clamp-2">{s.description}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-muted">
-                      <span>{s.author_name ?? "unknown"}</span>
-                      {s.version && <span>· {s.version}</span>}
-                      {s.has_scripts && <Badge>scripts</Badge>}
-                      {s.has_references && <Badge>refs</Badge>}
-                    </div>
+                      <span className="ml-2 hidden text-[12px] text-muted sm:inline">
+                        {s.author_name ?? "unknown"}
+                        {s.has_scripts ? " · scripts" : ""}
+                        {s.has_references ? " · refs" : ""}
+                      </span>
+                    </LedgerLine>
                   </button>
                 </li>
               ))}
@@ -271,7 +283,10 @@ export function LawveImport() {
             )}
             {selected && (
               <div data-testid="lawve-detail">
-                <h2 className="text-lg font-bold tracking-tight2">{selected.name}</h2>
+                <SectionRule label="The instrument under review" />
+                <h2 className="mt-3 text-[22px] leading-tight tracking-tight2 text-ink">
+                  {selected.name}
+                </h2>
                 <p className="mt-1 text-xs text-muted">
                   {selected.author_name ?? "unknown"} · {selected.version ?? "—"} ·{" "}
                   {selected.license ?? "licence unknown"}
@@ -297,7 +312,7 @@ export function LawveImport() {
                 )}
 
                 <details className="mt-3">
-                  <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted">
+                  <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted">
                     SKILL.md
                   </summary>
                   <pre className="mt-2 max-h-[30vh] overflow-auto rounded-md border border-rule bg-paper px-2 py-1 text-[11px] whitespace-pre-wrap">
@@ -373,19 +388,18 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
   };
 
   return (
-    <div className="mt-5 border-t border-rule pt-4" data-testid="draft-review">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm uppercase tracking-widest text-muted">Skill draft</h3>
-        <span
-          className={
-            "rounded-full border px-2 py-0.5 text-xs " +
-            (draft.valid ? "border-ink text-ink" : "border-seal/50 text-seal")
-          }
-          data-testid="draft-trust-state"
-        >
-          {trustState(draft)}
-        </span>
-      </div>
+    <div className="mt-6" data-testid="draft-review">
+      <SectionRule
+        label="Skill draft"
+        right={
+          <span
+            className={draft.valid ? "text-ink" : "text-seal"}
+            data-testid="draft-trust-state"
+          >
+            {trustState(draft)}
+          </span>
+        }
+      />
 
       {draft.warnings.length > 0 && (
         <ul className="mt-3 space-y-1 text-xs">
@@ -427,7 +441,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
           admin-gated (the ceremony's enable step is require_admin), so
           non-admins get a clear ask rather than a dead button. */}
       <div className="mt-4 border-t border-rule pt-3">
-        <p className="text-xs uppercase tracking-widest text-muted">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
           Imported skill → skill draft → trust ceremony → added skill → enable per matter
         </p>
         {draft.valid ? (

@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { listMatters, type Matter } from "../lib/api";
 import { postureLabel } from "../lib/posture";
 import { EmptyState, ErrorCallout, PageHeader } from "../ui/primitives";
+import { LedgerLine, SectionRule } from "../ui/certificate";
 
 function formatType(raw: string): string {
   if (!raw) return "-";
@@ -9,14 +10,6 @@ function formatType(raw: string): string {
     .split("_")
     .map((p) => (p.length === 0 ? p : p[0].toUpperCase() + p.slice(1)))
     .join(" ");
-}
-
-function MonoPill({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-item border border-rule px-2 py-0.5 tech-token uppercase text-[10px] tracking-track2 font-bold text-ink">
-      {children}
-    </span>
-  );
 }
 
 export function MatterList() {
@@ -34,8 +27,14 @@ export function MatterList() {
       <PageHeader
         display
         eyebrow="Matters before the workspace"
-        eyebrowRight={matters ? `${matters.length} matters` : undefined}
+        eyebrowRight={
+          matters
+            ? `${matters.length} matter${matters.length === 1 ? "" : "s"}`
+            : undefined
+        }
         title="Matters"
+        whisper="The cause list"
+        description="Every matter this workspace holds, entered in the order it was opened. An entry records the matter's type, whether it stands open or closed, and the posture of its privilege. Open an entry to take up the matter."
         actions={
           <a
             href="/matters/new"
@@ -50,8 +49,8 @@ export function MatterList() {
 
       {matters && matters.length === 0 && (
         <EmptyState
-          title="No matters yet"
-          body="Create your first matter to begin."
+          title="Nothing entered"
+          body="The cause list holds no matters yet. Open one to make the first entry."
           action={
             <a
               href="/matters/new"
@@ -64,49 +63,44 @@ export function MatterList() {
       )}
 
       {matters && matters.length > 0 && (
-        <div className="border-t border-rule overflow-x-auto">
-          <div className="min-w-[860px]">
-            <div className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-3 bg-paper border-b border-ink text-[10px] uppercase tracking-[0.18em] text-muted">
-              <span>Matter</span>
-              <span>Type</span>
-              <span>Status</span>
-              <span>Privilege</span>
-              <span>Opened</span>
-              <span>Retention</span>
-            </div>
-            {matters.map((m) => (
+        <section>
+          <SectionRule
+            label="Schedule of matters"
+            right={String(matters.length)}
+          />
+          <div className="mt-1">
+            {matters.map((m, i) => (
               <a
                 key={m.id}
                 href={`/matters/${m.slug}/assistant`}
-                className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-4 border-b border-rule hover:bg-wash transition-colors items-center"
+                className="block transition-colors hover:bg-wash"
               >
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-ink truncate">
-                    {m.title}
-                  </span>
-                  <span className="block text-xs tech-token text-muted truncate mt-1">
+                <LedgerLine
+                  index={i + 1}
+                  label={formatType(m.matter_type)}
+                  right={
+                    <span className="flex items-baseline gap-3">
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-ink">
+                        {m.status}
+                      </span>
+                      <span className="hidden text-[10px] uppercase tracking-[0.18em] text-muted sm:inline">
+                        {postureLabel(m.privilege_posture)}
+                      </span>
+                      <span className="tech-token text-[11px] text-muted">
+                        {m.opened_at.slice(0, 10)}
+                      </span>
+                    </span>
+                  }
+                >
+                  <span className="text-ink">{m.title}</span>
+                  <span className="ml-2 hidden tech-token text-[11px] text-muted sm:inline">
                     {m.slug}
                   </span>
-                </span>
-                <span className="text-sm text-prose truncate">
-                  {formatType(m.matter_type)}
-                </span>
-                <span>
-                  <MonoPill>{m.status}</MonoPill>
-                </span>
-                <span>
-                  <MonoPill>{postureLabel(m.privilege_posture)}</MonoPill>
-                </span>
-                <span className="text-sm tech-token text-ink">
-                  {m.opened_at.slice(0, 10)}
-                </span>
-                <span className="text-sm tech-token text-muted">
-                  {m.retention_until ? m.retention_until.slice(0, 10) : "-"}
-                </span>
+                </LedgerLine>
               </a>
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

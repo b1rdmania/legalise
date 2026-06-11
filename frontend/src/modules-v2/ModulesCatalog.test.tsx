@@ -100,8 +100,10 @@ describe("ModulesCatalog — integrations home", () => {
     expect(
       screen.getByTestId("module-state-examples.contract-review"),
     ).toHaveTextContent(/added/i);
-    expect(screen.getByText("document.body.read")).toBeInTheDocument();
-    expect(screen.getByText("matter.artifact.write")).toBeInTheDocument();
+    // Permissions render as ink bands (P27 certificate anatomy); the
+    // values live in the title attribute for hover/inspection.
+    expect(screen.getAllByTitle("document.body.read").length).toBeGreaterThan(0);
+    expect(screen.getAllByTitle("matter.artifact.write").length).toBeGreaterThan(0);
     expect(screen.getByText("Add skill")).toBeInTheDocument();
     expect(screen.getByText("Create skill")).toBeInTheDocument();
   });

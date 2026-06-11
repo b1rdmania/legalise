@@ -1586,3 +1586,28 @@ Deliberate divergences from the artist pass: the 64–88px monument is reserved 
 P26 deliberate divergences (2026-06-11 audit reconciliation): the demo and the matter chat shell carry the ruled-eyebrow idiom hand-rolled (`demo-masthead`), not the PageHeader primitive — their P22 chat-shell contract has no header block to convert; recorded, not drift. The AuditTab blocked-row strike (`line-through decoration-1` on seal refusal rows) is ratified — it is the artwork's struck-entry move on an already-seal row. Navigation-shaped bg-ink buttons ("View the register", "Working pack", "Open Activity", "Create account") keep ink hover: they go somewhere, they don't commit anything. `primaryBtn` is the single source of commit styling (hover:bg-seal); do not fork inline copies.
 
 P25 reconciliation (2026-06-11, hardening): the editor's More overflow now reads Save & download DOCX / Copy text / Download text / N words / Print / PDF / Reset — word count and print joined deliberately with the tracked-changes build (word count lives in the overflow, NOT the command bar, preserving the strip). The command bar gains exactly one conditional control: "Redlines (N)", rendered only when proposed edits exist. Inline tracked changes (struck deletions in seal, underlined insertions, per-change accept/refuse) are the document surface's first-class review idiom; the suggested-edits rail remains the fallback for unanchorable edits.
+
+---
+
+## P27 — The register idiom, everywhere (page-body anatomy)
+
+Source: our own `/register` page (CounselRegister.tsx) — ratified by Andy 2026-06-11 with screenshot: "I really like these headers and this type layout"; sub-pages (explicitly /skills) judged weak because P25/P26 stripped chrome and added mastheads but left page BODIES as generic card grids. P27 re-anatomies the bodies: content renders as certificates and ledger entries, placed like a clerk filled them in.
+
+What we lift (from CounselRegister.tsx, exact):
+- Monument masthead: ruled eyebrow row (`border-b border-ink pb-2`, both sides `text-[10px] uppercase tracking-[0.3em]`, left muted / right ink), then `font-redaction35 leading-none tracking-tight2` headline, then a whispered subline (`mt-2 text-[11px] uppercase tracking-[0.3em] text-muted`), then a REAL serif prose paragraph (`mt-8 max-w-xl text-sm leading-relaxed text-prose`) that states what the page IS — not a one-line description.
+- Certificate card: `border border-ink/70 bg-paper p-5` (seal/40 border only for revoked/refused). Anatomy top-to-bottom: index eyebrow row (`COUNSEL 01` left / category right, both `text-[10px] uppercase tracking-[0.25em] text-muted`), title `text-[22px] leading-tight tracking-tight2`, sub-line `mt-1 text-xs text-muted`, ink bands (`h-2.5 bg-ink`, width from content length, gap-1), divider `border-t border-rule pt-3`, dot scale (`tracking-[0.25em]`) with right small-caps label, then label/value ledger rows: `dl space-y-1 text-[11px] text-muted`, each row `flex justify-between gap-3`, dt `uppercase tracking-[0.18em]`, value right-aligned.
+- Ledger row (for list pages; same anatomy as the admission scan): index `tech-token w-10 text-[11px] text-muted` (0001…), label `w-40 text-[10px] uppercase tracking-[0.18em] text-muted`, value `flex-1 text-sm text-ink`, right-aligned mark/figure, rows divided `border-b border-rule/60 py-2.5`.
+- Closing colophon line: `border-t border-rule pt-3 text-[10px] uppercase tracking-[0.2em] text-muted` — one institutional sentence, only where it earns its place.
+
+Exact values (copy, do not approximate):
+| Property | Value | Notes |
+|---|---|---|
+| PageHeader display tier (P27 revision) | `font-redaction35 text-[52px] sm:text-[64px] leading-none tracking-tight2` | up from 40/52; /register keeps its 64/88 monument |
+| PageHeader gains `whisper` prop | rendered `mt-2 text-[11px] uppercase tracking-[0.3em] text-muted` under the title | section homes only |
+| Section-home description | becomes the serif prose paragraph (`max-w-xl text-sm leading-relaxed text-prose`) | write copy that states what the page IS in the register's voice |
+| Card → certificate | `border border-ink/70 bg-paper p-5`, index eyebrow row, 22px title, ledger dl rows | replaces rounded-card/shadow-panel card bodies on section pages |
+| List → ledger | scan-row anatomy above | tables may stay tables but adopt the ledger header + row rhythm |
+| Eyebrow tracking | masthead row `tracking-[0.3em]`; card-level eyebrows `tracking-[0.25em]`; dl labels `tracking-[0.18em]` | three tiers, never mixed |
+
+Where it lands: ModulesCatalog (workspace skills + Lawve catalogue + requested-skills as certificates/ledger), MatterList (ledger rhythm + certificate-grade row typography), Settings, AdminUsersList, AdminAuditView, LawveImport, ModuleDetail, Help, AppHome, CreateModule. NOT touched: matter chat shell (P22), document editor (P25), InstallCeremony + CounselRegister (already the reference).
+Deliberate divergences: none yet — filled by the post-build audit.

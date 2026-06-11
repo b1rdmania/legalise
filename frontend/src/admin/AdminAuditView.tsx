@@ -30,6 +30,7 @@ import {
 import { useAuth } from "../auth/AuthProvider";
 import { adminAuditRoute } from "../router";
 import { PageHeader } from "../ui/primitives";
+import { SectionRule } from "../ui/certificate";
 
 type FetchState =
   | { status: "loading" }
@@ -51,11 +52,11 @@ const WORKSPACE_BOUND_SOURCES: ReadonlySet<ReconstructionSource> = new Set([
 function sourceTone(source: ReconstructionSource): string {
   switch (source) {
     case "audit":
-      return "bg-ink/10 text-ink";
+      return "text-muted";
     case "state_machine":
-      return "bg-amber-500/15 text-amber-700";
+      return "text-amber-700";
     case "advice_boundary":
-      return "bg-seal/10 text-seal";
+      return "text-seal";
   }
 }
 
@@ -134,18 +135,24 @@ export function AdminAuditView() {
       <PageHeader
         display
         eyebrow="Workspace records"
-        eyebrowRight={
+        eyebrowRight="Legalise"
+        title="Workspace audit"
+        whisper="The workspace record"
+        description="What the workspace did when no matter was before it — admission ceremonies, settings key operations, role changes, and the viewing of this very page. Entries bound to a matter live with the matter; nothing renders here that the audit chain does not hold."
+      />
+
+      <SectionRule
+        label="The record"
+        right={
           fetchState.status === "ready"
             ? `${fetchState.entries.length} loaded`
             : undefined
         }
-        title="Workspace audit"
-        description="Workspace-scoped audit rows — events that are not bound to a specific matter (install ceremonies, settings key operations, admin role changes, this very view, etc.). Matter rows are reachable via the per-matter reconstruction page."
       />
 
       {(invocationFilter || actionFilter) && (
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="text-xs uppercase tracking-widest text-muted">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
             Filtered by
           </span>
           {invocationFilter && (
@@ -174,7 +181,7 @@ export function AdminAuditView() {
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-widest text-muted">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
           Sources
         </span>
         {ALL_RECONSTRUCTION_SOURCES.map((s) => {
@@ -227,12 +234,11 @@ export function AdminAuditView() {
       )}
       {fetchState.status === "ready" && (
         <>
-          <p className="mt-6 text-xs text-muted">
-            {fetchState.entries.length} loaded
-            {fetchState.totalEstimate > fetchState.entries.length
-              ? ` · ~${fetchState.totalEstimate} in window`
-              : ""}
-          </p>
+          {fetchState.totalEstimate > fetchState.entries.length && (
+            <p className="mt-6 text-xs text-muted">
+              ~{fetchState.totalEstimate} in window
+            </p>
+          )}
 
           {fetchState.entries.length === 0 ? (
             <p
@@ -244,7 +250,7 @@ export function AdminAuditView() {
                 : "No workspace audit rows yet."}
             </p>
           ) : (
-            <ol className="mt-4 space-y-3">
+            <ol className="mt-4">
               {fetchState.entries.map((e) => (
                 <TimelineRow key={`${e.source}::${e.source_row_id}`} entry={e} />
               ))}
@@ -319,30 +325,30 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
   const tone = sourceTone(entry.source);
   return (
     <li
-      className="rounded-md border border-line p-3"
+      className="border-b border-rule/60"
       data-testid={`admin-timeline-row-${entry.source_row_id}`}
     >
       <button
         type="button"
-        className="flex w-full items-start justify-between gap-3 text-left"
+        className="flex w-full items-baseline justify-between gap-3 py-2.5 text-left"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
         <div className="flex flex-1 flex-wrap items-baseline gap-3">
           <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${tone}`}
+            className={`w-28 shrink-0 text-[10px] uppercase tracking-[0.18em] ${tone}`}
             data-testid="row-source-pill"
           >
             {SOURCE_LABEL[entry.source]}
           </span>
-          <code className="tech-token text-sm">{entry.action}</code>
+          <code className="tech-token text-sm text-ink">{entry.action}</code>
         </div>
-        <span className="shrink-0 text-xs tech-token text-muted">
+        <span className="shrink-0 tech-token text-[11px] text-muted">
           {entry.occurred_at.replace("T", " ").slice(0, 19)}
         </span>
       </button>
       {expanded && (
-        <div className="mt-3 space-y-2">
+        <div className="mb-3 space-y-2">
           <Block label="payload" data={entry.payload} />
           <Block label="refs" data={entry.refs} />
         </div>
@@ -355,15 +361,19 @@ function Block({ label, data }: { label: string; data: Record<string, unknown> }
   if (!data || Object.keys(data).length === 0) {
     return (
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted">{label}</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+          {label}
+        </p>
         <p className="mt-1 text-xs text-muted">empty</p>
       </div>
     );
   }
   return (
     <div>
-      <p className="text-xs uppercase tracking-widest text-muted">{label}</p>
-      <pre className="mt-1 max-h-[40vh] overflow-auto rounded-md border border-line bg-paper px-2 py-1 text-xs">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+        {label}
+      </p>
+      <pre className="mt-1 max-h-[40vh] overflow-auto border border-rule bg-paper px-2 py-1 text-xs">
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>

@@ -20,6 +20,7 @@ import {
   inputCls,
   primaryBtn,
 } from "../ui/primitives";
+import { SectionRule } from "../ui/certificate";
 
 export type SettingsTab = "profile" | "keys" | "preferences";
 
@@ -54,6 +55,8 @@ export function Settings({ tab }: { tab: SettingsTab }) {
         eyebrow="Your account"
         eyebrowRight="Legalise"
         title="Settings"
+        whisper="Your account at the registry"
+        description="The account holds your profile, your provider keys, and your defaults. Your name appears in audit rows; key changes are themselves recorded."
       />
       <div className="flex flex-col lg:flex-row gap-10">
         <aside className="lg:w-64 shrink-0 lg:border-r lg:border-rule lg:pr-6">
@@ -63,9 +66,9 @@ export function Settings({ tab }: { tab: SettingsTab }) {
                 key={item.key}
                 href={`/settings/${item.key}`}
                 className={
-                  "py-2 lg:py-2 px-3 lg:px-4 text-sm transition-colors lg:border-l-2 -mb-px lg:-ml-px " +
+                  "py-2 lg:py-2 px-3 lg:px-4 text-[10px] uppercase tracking-[0.18em] transition-colors lg:border-l-2 -mb-px lg:-ml-px " +
                   (tab === item.key
-                    ? "text-ink font-semibold lg:border-ink lg:bg-wash"
+                    ? "text-ink lg:border-ink lg:bg-wash"
                     : "text-muted hover:text-ink lg:border-transparent")
                 }
               >
@@ -186,7 +189,12 @@ function SettingsProfile({
 
   return (
     <div className="flex flex-col gap-8">
-      <p className="prose-p mb-0">Visible in audit rows. Email and verification status read-only.</p>
+      <div>
+        <SectionRule label="Profile" />
+        <p className="prose-p mb-0 mt-3">
+          Visible in audit rows. Email and verification status read-only.
+        </p>
+      </div>
 
       {error && <ErrorCallout message={error} />}
 
@@ -263,21 +271,23 @@ function SettingsProfile({
       </div>
 
       {/* Usage Plan */}
-      <div>
-        <div className="eyebrow mb-4 mt-12">Usage Plan</div>
-        <div className="text-sm font-semibold text-ink capitalize">{planLabel}</div>
+      <div className="mt-12">
+        <SectionRule label="Usage Plan" />
+        <div className="mt-4 text-sm font-semibold text-ink capitalize">{planLabel}</div>
       </div>
 
       {/* Actions */}
-      <div>
-        <div className="eyebrow mb-4 mt-12">Actions</div>
-        <SignOutButton />
+      <div className="mt-12">
+        <SectionRule label="Actions" />
+        <div className="mt-4">
+          <SignOutButton />
+        </div>
       </div>
 
       {/* Danger zone */}
-      <div>
-        <div className="eyebrow mb-4 mt-12 text-seal">Danger zone</div>
-        <p className="text-sm text-muted mb-4">
+      <div className="mt-12">
+        <SectionRule label="Danger zone" />
+        <p className="mt-4 text-sm text-muted mb-4">
           Deleting your account removes all matters and audit history. This action cannot be undone.
         </p>
         <button
@@ -383,12 +393,15 @@ function SettingsKeys() {
 
   return (
     <div className="flex flex-col gap-8">
-      <p className="prose-p mb-0">
+      <div>
+        <SectionRule label="Provider keys" />
+        <p className="prose-p mb-0 mt-3">
         The hosted site has no shared production model key. To run real
         model calls, bring your own Anthropic or OpenAI key. Keys are
         encrypted and used only for your requests — Legalise does not
         resell model access.
-      </p>
+        </p>
+      </div>
 
       {keys && <ProviderStatus hasKey={keys.length > 0} />}
 
@@ -428,8 +441,8 @@ function SettingsKeys() {
         </div>
       )}
 
-      <form className="flex flex-col gap-6 border-t border-rule pt-8" onSubmit={submit}>
-        <h3 className="text-lg font-semibold text-ink">Add or replace a key</h3>
+      <form className="flex flex-col gap-6 pt-8" onSubmit={submit}>
+        <SectionRule label="Add or replace a key" />
         <p className="text-xs text-muted -mt-3">
           Saving a key writes a <span className="tech-token">user.key.configured</span> audit
           row and switches your model calls from the keyless demo model to your provider.
@@ -494,7 +507,7 @@ function ProviderStatus({ hasKey }: { hasKey: boolean }) {
 function SettingsPreferences() {
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="text-xl font-bold tracking-tight2 text-ink mb-2">Preferences</h2>
+      <SectionRule label="Preferences" />
       <div className="bg-wash p-6 border-l-4 border-ink">
         <div className="eyebrow-sm mb-2">ROADMAP - v0.2</div>
         <p className="prose-p mb-0">

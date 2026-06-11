@@ -37,7 +37,13 @@ import {
   type V2ManifestEntry,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
-import { PageHeader } from "../ui/primitives";
+import {
+  CertCard,
+  CertEyebrow,
+  InkBands,
+  LedgerRow,
+  SectionRule,
+} from "../ui/certificate";
 import { RequestSkillButton } from "./RequestSkillButton";
 
 type DetailQuery =
@@ -166,6 +172,10 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
   const description = asString((entry.manifest as Record<string, unknown>).description);
   const sourceUrl = asString((entry.manifest as Record<string, unknown>).source_url);
   const caps = capabilitiesOf(entry);
+  const reads = [...new Set(caps.flatMap((c) => c.reads ?? []))].sort();
+  const writes = [...new Set(caps.flatMap((c) => c.writes ?? []))].sort();
+  const installedRow = installStatus.kind === "installed" ? installStatus.row : null;
+  const revoked = installedRow !== null && !installedRow.enabled;
   const isAdmin = auth.user?.is_superuser === true;
 
   const onInstall = async () => {
@@ -236,78 +246,99 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="From the skill library" title={name} subId={entry.module_id} />
-
-      <div className="-mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-        {version && <span>v{version}</span>}
-        {publisher && <span>by {publisher}</span>}
-        {visibility && (
-          <span className="rounded-sm border border-line px-1.5 py-0.5 text-xs">
-            {visibility}
-          </span>
-        )}
-        {sourceUrl && (
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-          >
-            source
-          </a>
-        )}
+      {/* Masthead — ruled eyebrow row; the certificate below is the hero. */}
+      <div className="flex items-baseline justify-between border-b border-ink pb-2">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
+          From the skill library
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
+          Legalise
+        </p>
       </div>
 
-      <InstallStatusBadge status={installStatus} />
-
       {description && (
-        <p className="mt-6 text-muted">{description}</p>
+        <p className="mt-8 max-w-xl text-sm leading-relaxed text-prose">
+          {description}
+        </p>
       )}
 
-      {!entry.is_valid && (
-        <div className="mt-6 rounded-md border border-seal/40 bg-seal/5 px-4 py-3">
-          <p className="text-sm font-medium text-seal">Manifest invalid</p>
-          <ul className="mt-2 list-disc pl-5 text-sm text-muted">
-            {entry.validation_errors.map((e, i) => (
-              <li key={i}>
-                <span className="tech-token">{e.path}</span>: {e.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* What this module needs access to — capabilities framed as a
-          permission summary rather than a raw manifest table. Raw
-          identifiers stay available in small mono so nothing is hidden. */}
-      <section className="mt-10">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          What this skill needs access to
-        </h2>
-        {caps.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">
-            No permissions declared.
+      {/* The certificate — this page is the skill's entry, stated the way
+          the register states it. Every field below is already held by the
+          manifest or the installed row; nothing is invented. */}
+      <div className="mt-8">
+        <CertCard tone={revoked ? "seal" : "ink"} testid="skill-certificate">
+          <CertEyebrow
+            left="Skill"
+            right={visibility ? visibility.replaceAll("_", " ") : undefined}
+          />
+          <h1
+            className={
+              "mt-3 text-[22px] leading-tight tracking-tight2 " +
+              (revoked ? "text-seal line-through decoration-1" : "text-ink")
+            }
+          >
+            {name}
+          </h1>
+          <p className="mt-1 text-xs text-muted">
+            {publisher ? `${publisher} (chambers) · ` : ""}
+            <span className="tech-token">{entry.module_id}</span>
           </p>
-        ) : (
-          <ul className="mt-3 space-y-px bg-rule border border-rule">
-            {caps.map((c, i) => (
-              <CapabilityCard key={c.id ?? i} cap={c} />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Manifest & signature disclosure (blueprint §4A.5 step 5).
-          Collapsed by default; opens to show signer status, version,
-          add metadata, and validity. Nothing is hidden — these
-          fields are all already returned by the substrate. */}
-      <ManifestDisclosure entry={entry} installStatus={installStatus} />
+          <div className="mt-4 space-y-2">
+            <InkBands label="Reads" values={reads} />
+            <InkBands label="Writes" values={writes} />
+          </div>
+          <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+            <LedgerRow label="Permission sets">
+              {caps.length}
+              {!entry.is_valid ? " · manifest invalid" : ""}
+            </LedgerRow>
+            <LedgerRow
+              label="Signature"
+              tone={
+                installedRow &&
+                (installedRow.signature_status === "verified" ||
+                  installedRow.signature_status === "structure_verified")
+                  ? "ink"
+                  : "muted"
+              }
+            >
+              {(installedRow?.signature_status ?? "not yet inspected").replaceAll(
+                "_",
+                " ",
+              )}
+            </LedgerRow>
+            {version && <LedgerRow label="Version">v{version}</LedgerRow>}
+            {installStatus.kind !== "unknown" && (
+              <LedgerRow
+                label="Standing"
+                tone={revoked ? "seal" : installedRow ? "ink" : "muted"}
+              >
+                {installedRow
+                  ? installedRow.enabled
+                    ? "Added"
+                    : "Added · disabled"
+                  : "Not added"}
+              </LedgerRow>
+            )}
+            {sourceUrl && (
+              <LedgerRow label="Source">
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="tech-token hover:underline"
+                >
+                  {sourceUrl.replace(/^https?:\/\//, "")}
+                </a>
+              </LedgerRow>
+            )}
+          </dl>
+        </CertCard>
+      </div>
 
       {/* Lifecycle controls */}
-      <section className="mt-10">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          Lifecycle
-        </h2>
+      <section className="mt-6">
+        <SectionRule label="Lifecycle" />
         <div className="mt-3 flex flex-wrap items-center gap-3">
           {isAdmin ? (
             <>
@@ -387,35 +418,48 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
           <p className="mt-3 text-sm text-muted">{life.message}</p>
         )}
       </section>
-    </div>
-  );
-}
 
-function InstallStatusBadge({ status }: { status: InstallStatus }) {
-  if (status.kind === "unknown") return null;
-  if (status.kind === "not_installed") {
-    return (
-      <p className="mt-4 inline-flex items-center gap-2 border border-rule px-2 py-1 text-xs text-muted">
-        <span className="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true" />
-        Not added
-      </p>
-    );
-  }
-  const { row } = status;
-  return (
-    <p
-      className={
-        "mt-4 inline-flex items-center gap-2 border px-2 py-1 text-xs " +
-        (row.enabled ? "border-ink text-ink" : "border-seal/40 text-seal")
-      }
-    >
-      <span
-        className={"h-1.5 w-1.5 rounded-full " + (row.enabled ? "bg-ink" : "bg-seal")}
-        aria-hidden="true"
-      />
-      {row.enabled ? "Added" : "Added · disabled"}
-      <span className="text-muted">· signature {row.signature_status}</span>
-    </p>
+      {!entry.is_valid && (
+        <div className="mt-6 rounded-md border border-seal/40 bg-seal/5 px-4 py-3">
+          <p className="text-sm font-medium text-seal">Manifest invalid</p>
+          <ul className="mt-2 list-disc pl-5 text-sm text-muted">
+            {entry.validation_errors.map((e, i) => (
+              <li key={i}>
+                <span className="tech-token">{e.path}</span>: {e.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* What this module needs access to — capabilities framed as a
+          permission summary rather than a raw manifest table. Raw
+          identifiers stay available in small mono so nothing is hidden. */}
+      <section className="mt-10">
+        <SectionRule
+          label="What this skill needs access to"
+          right={caps.length > 0 ? String(caps.length) : undefined}
+        />
+        {caps.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No permissions declared.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-px bg-rule border border-rule">
+            {caps.map((c, i) => (
+              <CapabilityCard key={c.id ?? i} cap={c} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Manifest & signature disclosure (blueprint §4A.5 step 5).
+          Collapsed by default; opens to show signer status, version,
+          add metadata, and validity. Nothing is hidden — these
+          fields are all already returned by the substrate. */}
+      <ManifestDisclosure entry={entry} installStatus={installStatus} />
+
+    </div>
   );
 }
 
@@ -427,7 +471,7 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
       <div className="flex items-baseline justify-between gap-3">
         <p className="tech-token text-sm text-ink">{cap.id ?? "—"}</p>
         {cap.scope && (
-          <span className="text-[10px] uppercase tracking-widest text-muted">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
             {cap.scope}
           </span>
         )}
@@ -436,7 +480,7 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
         {reads.length > 0 && <Access label="Reads" items={reads} />}
         {writes.length > 0 && <Access label="Writes" items={writes} />}
         <div>
-          <dt className="text-xs uppercase tracking-widest text-muted">Network</dt>
+          <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">Network</dt>
           <dd className="mt-0.5 text-muted">
             {cap.external_network
               ? "Needs external network access"
@@ -445,7 +489,7 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
         </div>
         {cap.advice_tier_max && (
           <div>
-            <dt className="text-xs uppercase tracking-widest text-muted">
+            <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">
               Max advice tier
             </dt>
             <dd className="mt-0.5 text-muted">{cap.advice_tier_max}</dd>
@@ -459,7 +503,7 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
 function Access({ label, items }: { label: string; items: string[] }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">{label}</dt>
       <dd className="mt-0.5 tech-token text-xs text-muted">{items.join(", ")}</dd>
     </div>
   );
@@ -490,7 +534,7 @@ function ManifestDisclosure({
         data-testid="manifest-disclosure-toggle"
         className="flex w-full items-center justify-between border-b border-rule pb-2 text-left"
       >
-        <h2 className="text-sm uppercase tracking-widest text-muted">
+        <h2 className="text-[10px] uppercase tracking-[0.25em] text-muted">
           Manifest &amp; signature
         </h2>
         <span aria-hidden="true" className="text-xs text-muted">
@@ -532,7 +576,7 @@ function ManifestDisclosure({
           )}
           {sourceUrl && (
             <div className="sm:col-span-2">
-              <dt className="text-xs uppercase tracking-widest text-muted">
+              <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">
                 Source
               </dt>
               <dd className="mt-0.5">
@@ -566,7 +610,7 @@ function Field({
 }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-widest text-muted">{label}</dt>
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">{label}</dt>
       <dd className={"mt-0.5 " + (mono ? "tech-token text-xs" : "text-sm")}>
         {value}
       </dd>

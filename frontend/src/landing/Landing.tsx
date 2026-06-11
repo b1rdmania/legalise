@@ -2,6 +2,7 @@ import { Github } from "lucide-react";
 import { navigate } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
 import { Footer } from "../ui/Footer";
+import { SectionRule } from "../ui/certificate";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 
@@ -145,8 +146,8 @@ export function Landing() {
 
       <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
         <div className="max-w-page mx-auto">
-          <div className="eyebrow text-muted mb-3">How it works</div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
+          <SectionRule label="How it works" />
+          <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
             Six steps, and a record of every one.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
@@ -155,7 +156,7 @@ export function Landing() {
                 key={s.title}
                 className="bg-paper p-6 md:p-8 hover:bg-wash transition-colors"
               >
-                <div className="tech-token text-xs text-muted mb-4">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-muted mb-4">
                   {String(i + 1).padStart(2, "0")} / 06
                 </div>
                 <h3 className="text-lg font-bold text-ink mb-3 tracking-tight2">
@@ -173,8 +174,8 @@ export function Landing() {
         className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-20"
       >
         <div className="max-w-4xl">
-          <div className="eyebrow text-muted mb-6">What we are building</div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-8 leading-tight">
+          <SectionRule label="What we are building" />
+          <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-8 leading-tight">
             Infrastructure a regulated firm could inspect, insure, and explain.
           </h2>
           <div className="grid gap-8 md:grid-cols-2 text-base leading-relaxed text-prose">
@@ -218,8 +219,8 @@ export function Landing() {
 
       <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16">
         <div className="max-w-3xl">
-          <div className="eyebrow text-muted mb-5">Try it</div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight2 text-ink leading-tight">
+          <SectionRule label="Try it" />
+          <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink leading-tight">
             See a Khan v Acme demo matter with documents, skills, and a record.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-prose">
