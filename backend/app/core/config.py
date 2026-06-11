@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -105,27 +105,17 @@ class Settings(BaseSettings):
     # Matter filesystem materialisation
     matters_root: str = "/data/matters"
 
-    # claude-for-uk-legal plugin suite checkout. Bind-mounted into the
-    # backend container in dev (see infra/docker-compose.yml).
-    plugins_root: str = "/plugins"
-    plugins_repo: str | None = "https://github.com/b1rdmania/claude-for-uk-legal"
-    plugins_repo_ref: str | None = "f8201f1da72f6485c296eff620b19db18f016b68"
+    # Optional GitHub token for the external skill importers (Lawve,
+    # GitHub-repo). Read-only use: raises the API rate limit. Accepts the
+    # legacy GITHUB_SUBMISSION_TOKEN env name so existing deployments
+    # keep working after the submissions flow was removed.
+    github_read_token: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "GITHUB_READ_TOKEN", "GITHUB_SUBMISSION_TOKEN"
+        ),
+    )
 
-    # Public module submission flow. Opens a draft PR on
-    # `b1rdmania/claude-for-uk-legal` via a fine-grained PAT scoped to that
-    # repo only. PAT owner MUST be `b1rdmania` — NOT `ziggythebot`. The
-    # endpoint degrades to 503 when the token is unset so the surface
-    # cannot accidentally hit GitHub without a configured PAT. Turnstile
-    # site/secret keys gate the unauthenticated POST against bots; in-memory
-    # token bucket adds defense in depth on a single Fly instance. Redis
-    # rate-limiting is v0.2 per docs/ROADMAP.md.
-    submission_enabled: bool = True
-    github_submission_token: str | None = None
-    github_submission_repo: str = "b1rdmania/claude-for-uk-legal"
-    github_submission_base_branch: str = "main"
-    turnstile_site_key: str | None = None
-    turnstile_secret_key: str | None = None
-    submission_rate_limit_per_hour: int = 5
 
 
     # Unit 8 — observability

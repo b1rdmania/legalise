@@ -60,9 +60,6 @@ jobs:
       # DEV_ENVIRONMENTS allowlist is `{development, dev, local}`. The
       # tests rely on the dev-mode auto-verify path.
       ENVIRONMENT: development
-      # The modules tests tolerate an empty PLUGINS_ROOT but coverage is
-      # stronger with the real plugin suite checked out alongside.
-      PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
       # The dev container bind-mounts the repo-root schemas dir; CI
       # places it where modules.py + the parity test will find it.
       SCHEMAS_PATH: ${{ github.workspace }}/schemas
@@ -83,12 +80,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check out claude-for-uk-legal at pinned ref
-        run: |
-          PLUGINS_REPO_REF=$(grep -E '^ARG PLUGINS_REPO_REF=' backend/Dockerfile | head -1 | sed 's/.*=//')
-          git clone --filter=blob:none https://github.com/b1rdmania/claude-for-uk-legal.git claude-for-uk-legal
-          git -C claude-for-uk-legal checkout "$PLUGINS_REPO_REF"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -159,7 +150,6 @@ jobs:
 
     env:
       ENVIRONMENT: development
-      PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
       SCHEMAS_PATH: ${{ github.workspace }}/schemas
       MATTERS_ROOT: ${{ github.workspace }}/_matters
       # MinIO-backed storage for this job.
@@ -172,12 +162,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check out claude-for-uk-legal at pinned ref
-        run: |
-          PLUGINS_REPO_REF=$(grep -E '^ARG PLUGINS_REPO_REF=' backend/Dockerfile | head -1 | sed 's/.*=//')
-          git clone --filter=blob:none https://github.com/b1rdmania/claude-for-uk-legal.git claude-for-uk-legal
-          git -C claude-for-uk-legal checkout "$PLUGINS_REPO_REF"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -264,7 +248,6 @@ jobs:
       TEST_DATABASE_URL: postgresql+asyncpg://legalise:legalise@localhost:5432/legalise_test
       REDIS_URL: redis://localhost:6379/0
       ENVIRONMENT: development
-      PLUGINS_ROOT: ${{ github.workspace }}/claude-for-uk-legal
       SCHEMAS_PATH: ${{ github.workspace }}/schemas
       MATTERS_ROOT: ${{ github.workspace }}/_matters
       # Local storage — no MinIO required for the worker smoke.
@@ -273,12 +256,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check out claude-for-uk-legal at pinned ref
-        run: |
-          PLUGINS_REPO_REF=$(grep -E '^ARG PLUGINS_REPO_REF=' backend/Dockerfile | head -1 | sed 's/.*=//')
-          git clone --filter=blob:none https://github.com/b1rdmania/claude-for-uk-legal.git claude-for-uk-legal
-          git -C claude-for-uk-legal checkout "$PLUGINS_REPO_REF"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5

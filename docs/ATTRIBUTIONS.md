@@ -17,9 +17,11 @@ named where load-bearing.
 - **counsel-mvp** (internal prototype) — the four-stage redliner pattern
   used in Contract Review (parser / analyst / redliner / summariser)
   is a port from the counsel-mvp pipeline.
-- **claude-for-uk-legal** ([github.com/b1rdmania/claude-for-uk-legal](https://github.com/b1rdmania/claude-for-uk-legal), Apache-2.0)
-  — the SKILL.md catalogue shape that Legalise renders into the workspace.
-  Same maintainer; same project family.
+- **pre-motion** ([github.com/b1rdmania/pre-motion](https://github.com/b1rdmania/pre-motion), Apache-2.0)
+  — the adversarial-premortem skill, importable into the workspace via the
+  GitHub skill importer. Same maintainer; same project family.
+- **awesome-legal-skills** ([github.com/lawve-ai/awesome-legal-skills](https://github.com/lawve-ai/awesome-legal-skills))
+  — the Lawve open legal-skills catalogue Legalise browses and imports from.
 
 ## Backend runtime dependencies
 

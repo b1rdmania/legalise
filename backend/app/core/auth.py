@@ -206,43 +206,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 resource_id=str(matter.id),
                 payload={"user_id": str(user.id), "matter_slug": matter.slug},
             )
-        except Exception as exc:
-            logger.warning(
-                "auth.user.demo_seed_failed",
-                user_id=str(user.id),
-                error=str(exc),
-            )
-
-        # Auto-grant declared capabilities for every installed plugin's
-        # skills. v0.1 policy: declared = granted; the workspace user
-        # can revoke from the Modules page. Wrapped so a manifest read
-        # failure cannot block registration.
-        try:
-            from app.core.capabilities import auto_grant_declared_for_user
-
-            session = self.user_db.session
-            count = await auto_grant_declared_for_user(session, user_id=user.id)
-            logger.info(
-                "auth.user.capabilities_auto_granted",
-                user_id=str(user.id),
-                triples=count,
-            )
-            # Audit row.
-            from app.core.api import audit
-
-            await audit.log(
-                session,
-                "auth.user.capabilities_auto_granted",
-                actor_id=None,  # system-acting
-                module="core.auth",
-                resource_type="user",
-                resource_id=str(user.id),
-                payload={"user_id": str(user.id), "triple_count": count},
-            )
             await session.commit()
         except Exception as exc:
             logger.warning(
-                "auth.user.capabilities_auto_grant_failed",
+                "auth.user.demo_seed_failed",
                 user_id=str(user.id),
                 error=str(exc),
             )

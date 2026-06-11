@@ -1,9 +1,12 @@
-"""Lawve Skill Importer v1 — external-source endpoints.
+"""External skill importer endpoints (Lawve + GitHub).
 
 `/api/modules/external/lawve/...` — browse + inspect Lawve skills and
-convert one into a Legalise module DRAFT. Authed. Read-only: no DB
-writes, no audit rows, no install. The draft must still be signed +
-installed through the existing trust ceremony.
+convert one into a Legalise module DRAFT.
+`/api/modules/external/github/...` — inspect + convert a SKILL.md from
+any public GitHub repository (the generic drop-in path).
+
+Authed. Read-only: no DB writes, no audit rows, no install. The draft
+must still be signed + installed through the existing trust ceremony.
 """
 
 from __future__ import annotations
@@ -12,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import current_user
+from app.core.github_import import build_github_draft, get_remote_skill
 from app.core.lawve_import import (
     LawveSourceError,
     build_draft,
@@ -81,4 +85,45 @@ async def draft_lawve_module(
         )
     if result is None:
         raise HTTPException(404, f"lawve skill not found: {slug}")
+    return result
+
+
+class GitHubSkillRequest(BaseModel):
+    url: str
+
+
+class GitHubDraftRequest(DraftRequest):
+    url: str
+
+
+@router.get("/external/github/skill")
+async def get_github_skill(url: str, user: User = Depends(current_user)) -> dict:
+    try:
+        detail = await get_remote_skill(url)
+    except LawveSourceError as exc:
+        raise HTTPException(
+            502,
+            detail={"error": "github_source_unavailable", "message": str(exc)},
+        )
+    if detail is None:
+        raise HTTPException(404, f"no SKILL.md found at: {url}")
+    return detail
+
+
+@router.post("/external/github/draft")
+async def draft_github_module(
+    body: GitHubDraftRequest,
+    user: User = Depends(current_user),
+) -> dict:
+    overrides = body.model_dump(exclude_none=True)
+    url = overrides.pop("url")
+    try:
+        result = await build_github_draft(url, overrides)
+    except LawveSourceError as exc:
+        raise HTTPException(
+            502,
+            detail={"error": "github_source_unavailable", "message": str(exc)},
+        )
+    if result is None:
+        raise HTTPException(404, f"no SKILL.md found at: {url}")
     return result

@@ -132,13 +132,9 @@ fly deploy
 
 **SESSION_SECRET** must be set on the live deploy. The dev default `change-me-in-deployment` is a tripwire — auth-stub cookies signed with it are forgeable.
 
-**`GITHUB_SUBMISSION_TOKEN` token-owner is load-bearing.** The PAT must be issued from `b1rdmania` — not `ziggythebot`. Fine-grained, scoped to `b1rdmania/claude-for-uk-legal` only, with `contents:write` + `pull_requests:write`. 90-day expiry; calendar the rotation. If the wrong owner is used the draft PR opens against the wrong account namespace and the audit trail becomes inconsistent with `PEERS.md` peer framing.
-
-**Turnstile keys** are required only when `submission_enabled=true`. Provision them now so the flag flip is one config change, not a re-deploy. `VITE_TURNSTILE_SITE_KEY` on the Pages project must match the backend's `TURNSTILE_SITE_KEY` exactly.
+**`GITHUB_READ_TOKEN` is optional.** Read-only PAT (no scopes needed for public repos) that raises the GitHub API rate limit for the skill importers. The legacy `GITHUB_SUBMISSION_TOKEN` env name still works.
 
 UK region (`lhr` = London Heathrow). Single-region deployment for v0.1; HA / multi-region is v0.5+.
-
-**Plugin suite vendoring.** `backend/Dockerfile` clones `claude-for-uk-legal` at a pinned commit SHA into `/plugins` during the image build. Bump `PLUGINS_REPO_REF` in the Dockerfile when a new plugin release is needed; the build fails loudly if the ref doesn't exist. Dev compose still bind-mounts a sibling checkout — both paths land at `PLUGINS_ROOT=/plugins`.
 
 **Matter filesystem materialisation is ephemeral on Fly.** `MATTERS_ROOT=/data/matters` writes inside the machine; redeploys wipe it. The DB is the source of truth and the matter folders are derivable, so this is acceptable for the demo. If operators want the matter tree to survive redeploys, attach a Fly Volume and mount it at `/data/matters` — `fly volumes create matters_data --region lhr --size 1`.
 

@@ -11,7 +11,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  draftGithubModule,
   draftLawveModule,
+  getGithubSkill,
   getLawveSkill,
   listLawveSkills,
   startInstall,
@@ -45,6 +47,8 @@ export function LawveImport() {
   const [scriptsOnly, setScriptsOnly] = useState(false);
   const [refsOnly, setRefsOnly] = useState(false);
   const [selected, setSelected] = useState<LawveSkillDetail | null>(null);
+  const [ghUrl, setGhUrl] = useState("");
+  const [selectedGhUrl, setSelectedGhUrl] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [draft, setDraft] = useState<LawveDraftResult | null>(null);
   const [drafting, setDrafting] = useState(false);
@@ -104,8 +108,25 @@ export function LawveImport() {
     setSelecting(true);
     setDetailErr(null);
     setDraft(null);
+    setSelectedGhUrl(null);
     try {
       setSelected(await getLawveSkill(slug));
+    } catch (err) {
+      setDetailErr(String(err));
+    } finally {
+      setSelecting(false);
+    }
+  };
+
+  const openGithub = async () => {
+    const url = ghUrl.trim();
+    if (!url) return;
+    setSelecting(true);
+    setDetailErr(null);
+    setDraft(null);
+    try {
+      setSelected(await getGithubSkill(url));
+      setSelectedGhUrl(url);
     } catch (err) {
       setDetailErr(String(err));
     } finally {
@@ -116,7 +137,11 @@ export function LawveImport() {
   const convert = async (slug: string) => {
     setDrafting(true);
     try {
-      setDraft(await draftLawveModule(slug));
+      setDraft(
+        selectedGhUrl
+          ? await draftGithubModule(selectedGhUrl)
+          : await draftLawveModule(slug),
+      );
     } catch (err) {
       setDetailErr(String(err));
     } finally {
@@ -128,8 +153,8 @@ export function LawveImport() {
     <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
       <PageHeader
         eyebrow="Skills"
-        title="Lawve skill import"
-        description="Import open legal-AI skills from lawve-ai/awesome-legal-skills into Legalise as governed skill drafts. A Lawve skill cannot be added until it is converted, validated, signed, and trusted — and imported scripts are never executed."
+        title="Add a skill"
+        description="Import a skill from the Lawve catalogue or any public GitHub repository. A skill cannot be added until it is converted, validated, signed, and trusted — and imported scripts are never executed."
       />
 
       {q.status === "error" && (
@@ -141,6 +166,40 @@ export function LawveImport() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1.1fr]">
           {/* List + filters */}
           <div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void openGithub();
+              }}
+              className="mb-4"
+            >
+              <label className="text-[11px] uppercase tracking-widest text-muted">
+                From a GitHub repository
+              </label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  value={ghUrl}
+                  onChange={(e) => setGhUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo"
+                  className="w-full rounded-md border border-rule bg-paper px-3 py-2 text-sm"
+                  data-testid="github-url"
+                />
+                <button
+                  type="submit"
+                  disabled={!ghUrl.trim() || selecting}
+                  className="shrink-0 rounded-md border border-rule px-3 py-2 text-sm hover:border-ink disabled:opacity-50"
+                  data-testid="github-fetch"
+                >
+                  Fetch
+                </button>
+              </div>
+              <p className="mt-1 text-[11px] text-muted">
+                Needs a SKILL.md at the repo root (or pass a /tree/&lt;ref&gt;/&lt;path&gt; URL).
+              </p>
+            </form>
+            <label className="text-[11px] uppercase tracking-widest text-muted">
+              From the Lawve catalogue
+            </label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}

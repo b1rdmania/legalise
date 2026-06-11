@@ -41,7 +41,6 @@ import { AdminAuditView } from "../admin/AdminAuditView";
 import { Landing } from "../landing/Landing";
 import { Manifesto } from "../landing/Manifesto";
 import { Waitlist } from "../landing/Waitlist";
-import { SubmitModule } from "../landing/SubmitModule";
 import { SignIn } from "../auth/SignIn";
 import { SignUp } from "../auth/SignUp";
 import { ForgotPassword } from "../auth/ForgotPassword";
@@ -186,21 +185,6 @@ const legacyModulesRedirect = createRoute({
   path: "/modules",
   beforeLoad: () => {
     throw redirect({ to: "/skills" });
-  },
-  component: () => null,
-});
-
-const submitModuleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/skills/submit",
-  component: SubmitModule,
-});
-
-const legacySubmitModuleRedirect = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/modules/submit",
-  beforeLoad: () => {
-    throw redirect({ to: "/skills/submit" });
   },
   component: () => null,
 });
@@ -542,8 +526,6 @@ const routeTree = rootRoute.addChildren([
   verifyRoute,
   modulesRoute,
   legacyModulesRedirect,
-  submitModuleRoute,
-  legacySubmitModuleRedirect,
   demoIndexRoute,
   demoDocumentRoute,
   demoTabRoute,

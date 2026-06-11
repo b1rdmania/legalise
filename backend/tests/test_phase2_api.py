@@ -98,16 +98,3 @@ async def test_v2_endpoints_require_auth(client) -> None:
         # fastapi-users returns 401 for unauthenticated requests when
         # the dependency chain hits current_user.
         assert resp.status_code in (401, 403), f"{path} did not require auth: {resp.status_code}"
-
-
-@pytest.mark.asyncio
-async def test_v1_modules_endpoint_still_functions(client) -> None:
-    """Phase 2 must not break the legacy /api/modules endpoint."""
-    await _register_and_login(client)
-    resp = await client.get("/api/modules")
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    # Legacy shape.
-    assert "plugins_root" in body
-    assert "source" in body
-    assert "skills" in body

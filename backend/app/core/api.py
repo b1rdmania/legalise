@@ -11,7 +11,6 @@ Modules should import only from this file:
         get_matter,
         audit,
         model_gateway,
-        plugin_bridge,
         storage,
     )
 
@@ -24,7 +23,6 @@ Status (R3, Day 4):
 - `get_matter`     — wired to a slug-based lookup.
 - `require_matter` — placeholder; FastAPI dependency lands when modules
                      get their own routers (Day 5).
-- `plugin_bridge`  — placeholder; lands Day 5 with the first plugin invoke.
 - `storage`        — placeholder; lands with MinIO/R2 wiring (Day 5+).
 """
 
@@ -43,7 +41,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
-from app.adapters import plugin_bridge as _plugin_bridge_module
 from app.core.model_gateway import PrivilegePaused, gateway as _gateway
 from app.core.user_keys import ProviderKeyMissing, ProviderUpstreamError
 from app.models import AuditEntry, Matter
@@ -344,33 +341,6 @@ async def audit_failure(
 model_gateway = _gateway
 
 
-# Plugin bridge
-# -------------
-# Modules call `plugin_bridge.invoke(...)` to dispatch a
-# `claude-for-uk-legal` skill against a matter. The bridge object itself
-# is initialised at app startup (`main.lifespan`); modules read it via
-# this attribute at call time.
-
-def _get_plugin_bridge():
-    return _plugin_bridge_module.bridge
-
-
-class _PluginBridgeProxy:
-    """Module-friendly facade: forwards attribute access to whichever
-    PluginBridge instance is currently registered. This avoids a stale
-    None reference if a module imports `plugin_bridge` before lifespan
-    has run."""
-
-    def __getattr__(self, name):
-        bridge = _get_plugin_bridge()
-        if bridge is None:
-            raise RuntimeError("plugin bridge not initialised — call from a request, not at import")
-        return getattr(bridge, name)
-
-
-plugin_bridge = _PluginBridgeProxy()
-
-
 # Storage
 # -------
 # S3-compatible blob storage (MinIO in dev, R2 in cloud). Lands when
@@ -390,6 +360,5 @@ __all__ = [
     "provider_error_http_exception",
     "storage_write_http_exception",
     "model_gateway",
-    "plugin_bridge",
     "storage",
 ]

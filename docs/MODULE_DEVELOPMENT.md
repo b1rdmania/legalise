@@ -29,7 +29,6 @@ A module-shaped extension can:
 - Add a new section in the matter detail view.
 - Read matter context (parties, facts, documents, posture).
 - Call the model gateway with audit logging built in.
-- Invoke `claude-for-uk-legal` skills via the plugin bridge.
 - Render output in the matter detail view.
 - Persist module-specific data in `Matter.metadata` JSONB or in the
   materialised matter folder.
@@ -42,9 +41,6 @@ defensible to a UK regulator — a module **should**:
 - Route every LLM call through `app.core.api.model_gateway` rather than calling
   Anthropic/OpenAI SDKs directly. The gateway is where audit logging and
   privilege-posture enforcement live.
-- Route every plugin skill invocation through `app.core.api.plugin_bridge`
-  rather than executing prompts inline. The bridge writes the `plugin.invoked`
-  audit row.
 - Read matter context from the documented helpers below rather than reaching
   into `app.models.Matter` directly.
 - Refuse to operate on matters where `privilege_posture == "C_paused"`. The
@@ -120,7 +116,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.api import audit, model_gateway, plugin_bridge
+from app.core.api import audit, model_gateway
 from app.core.auth import current_user
 from app.core.db import get_session
 from app.models import Matter, User
@@ -138,8 +134,8 @@ async def do_thing(
     # ... call gateway, write audit, etc.
 ```
 
-**Note on `app.core.api`.** Today `app.core.api` re-exports `audit`,
-`model_gateway`, and `plugin_bridge` — those are wired and usable.
+**Note on `app.core.api`.** Today `app.core.api` re-exports `audit` and
+`model_gateway` — those are wired and usable.
 `require_matter` and `storage` exist as `None` placeholders awaiting the v0.2
 lifecycle work; don't import them in new code. Use FastAPI's normal
 `Depends(get_session)` + a `select(Matter)` query in the meantime, as the
@@ -176,7 +172,6 @@ from app.core.api import (
     # Wired and usable today:
     audit,                 # `await audit.log(action, matter_id=..., payload=...)`
     model_gateway,         # `await model_gateway.call(matter_id, prompt, ...)`
-    plugin_bridge,         # `await plugin_bridge.invoke(plugin, skill, matter_id, inputs)`
     get_matter,            # async helper to fetch a Matter by slug
 
     # Placeholders awaiting v0.2 lifecycle work — do NOT import yet:
@@ -185,10 +180,9 @@ from app.core.api import (
 )
 ```
 
-The wired three (`audit`, `model_gateway`, `plugin_bridge`) are what
-Pre-Motion, Letters, and the modules endpoint already use. Their shape is
-unlikely to change drastically before v0.2, but **this is not a stability
-promise** — see the banner at the top.
+The wired pair (`audit`, `model_gateway`) is what the built-in surfaces
+already use. Their shape is unlikely to change drastically before v0.2,
+but **this is not a stability promise** — see the banner at the top.
 
 ## Frontend conventions
 
@@ -207,14 +201,14 @@ docker compose -f infra/docker-compose.yml up
 ```
 
 Audit entries from your module appear in the audit-trail section of the
-matter detail page. Every `model_gateway.call` and `plugin_bridge.invoke`
+matter detail page. Every `model_gateway.call`
 writes a row automatically.
 
 ## What's stable, what isn't
 
 | Surface | v0.1 status |
 |---|---|
-| `app.core.api.audit` / `.model_gateway` / `.plugin_bridge` / `.get_matter` | Wired and usable; shape unlikely to break before v0.2 but no formal stability commitment |
+| `app.core.api.audit` / `.model_gateway` / `.get_matter` | Wired and usable; shape unlikely to break before v0.2 but no formal stability commitment |
 | `app.core.api.require_matter` / `.storage` | Placeholders — `None` — do not import |
 | `schemas/module.json` | Declarative only in v0.1; v0.2 reads it for discovery + policy |
 | `Matter`, `Document`, `Event`, `AuditEntry` model shapes | Stable, additive only |

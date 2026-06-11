@@ -42,8 +42,9 @@ Shipped surfaces:
 - **Audit reconstruction.** Ordered timeline merged from audit, state-machine,
   and advice-boundary sources, with decision events in the foreground lane.
 - **Module catalogue + add-skill trust ceremony** with declared/granted capabilities,
-  per-skill trust posture, `module.json` schema validation, public submission
-  flow that opens a draft PR against `claude-for-uk-legal`.
+  per-skill trust posture, `module.json` schema validation. (The public
+  submission flow and the filesystem plugin path were removed 2026-06-11;
+  skills now arrive via the Lawve catalogue or GitHub-repo import.)
 - **fastapi-users cookie sessions** + email verification.
 - Smoke evals + real-DB E2E coverage across auth, chronology, modules,
   matters, documents, audit, workspace skills, capabilities,
@@ -82,7 +83,7 @@ foundations are either shipped or explicitly deferred by reviewer sign-off:
   `LEGALISE_KEY_ENCRYPTION_SECRET` across encrypted `user_api_keys`.
 - **Observability with scrubbing.** Error and job telemetry without prompts,
   responses, or document text.
-- **Chronology-write capability wiring.** v0.1 enforces capabilities at five boundaries (plugin bridge, model gateway, tool invocation, document body read, citation writes). The chronology-mutation boundary is unwired because no module-driven chronology write endpoint exists yet. v0.2 lands that endpoint and gates it on `chronology.write` via the same `plugin` + `skill` query-param pattern.
+- **Chronology-write capability wiring.** Capabilities are enforced at the model gateway, tool invocation, document body read, and citation-write boundaries. The chronology-mutation boundary is unwired because no module-driven chronology write endpoint exists yet. v0.2 lands that endpoint and gates it on `chronology.write` via the same `plugin` + `skill` query-param pattern.
 - **Provider-native structured output and tool calling.** v0.1 uses
   `backend/app/core/structured_output.py::parse_model_json` as an
   internal helper. v0.2 moves the gateway to provider-native schemas
@@ -107,7 +108,7 @@ foundations are either shipped or explicitly deferred by reviewer sign-off:
 Other work already on the roadmap:
 
 - Enterprise SSO via WorkOS or Stytch (Microsoft 365, Google Workspace, SAML, SCIM)
-- MCP-based plugin bridge replacing direct skill rendering
+- MCP-runtime skills (imported skills exposing MCP servers)
 - Vector search over matter documents (pgvector + ingest pipeline)
 - Real audit-log export with hash chain; WORM enforcement on `audit_entries`
 - Status page at `status.legalise.dev`

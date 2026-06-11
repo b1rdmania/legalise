@@ -62,7 +62,7 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   // ---------------------------------------------------------------
   // 2. Register first account via the real form. Dev-autoverify is
   //    on, so the chain (registered → verified → demo_seeded →
-  //    capabilities_auto_granted) lands inline.
+  //    demo_seeded) lands inline.
   // ---------------------------------------------------------------
   const user = await registerUser(request, "p15-first-run");
   // Sign the page in via the real UI form so cookies land in the
@@ -75,7 +75,7 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   // Substrate scope split (backend/app/core/auth.py:147-156):
   //   - auth.user.demo_seeded is matter-scoped (passes
   //     matter_id=matter.id because Khan was just created).
-  //   - auth.user.registered / .verified / .capabilities_auto_granted
+  //   - auth.user.registered / .verified
   //     land at workspace scope (matter_id IS NULL). Those rows can
   //     only be read by a superuser via /admin/audit/reconstruction;
   //     they're asserted further down once bootstrap has promoted
@@ -117,15 +117,10 @@ test("first-run journey: register → bootstrap CLI → auth refresh → install
   await signIn(request, user);
   await expectWorkspaceAuditRow(request, "user.admin.bootstrapped");
 
-  // Now that we have superuser, assert the three workspace-scoped
-  // auth rows from registration (see note above the matter
-  // assertion).
+  // Now that we have superuser, assert the workspace-scoped auth
+  // rows from registration (see note above the matter assertion).
   await expectWorkspaceAuditRow(request, "auth.user.registered");
   await expectWorkspaceAuditRow(request, "auth.user.verified");
-  await expectWorkspaceAuditRow(
-    request,
-    "auth.user.capabilities_auto_granted",
-  );
 
   // ---------------------------------------------------------------
   // 5. EXPLICIT AUTH REFRESH. AuthProvider caches the user object;

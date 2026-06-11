@@ -7,8 +7,8 @@
  *      (getModulesV2). These are what you add / trust / run. Each
  *      card shows its workspace state (Available / Added / Added
  *      · disabled) derived from listInstalledModules.
- *   2. SECONDARY: the open UK-legal skill library (getPublicModules) —
- *      browse only, NOT an add path. Collapsed by default.
+ *   2. SECONDARY: the Lawve catalogue (listLawveSkills) — the open
+ *      legal skills library, with a Review-&-add path per skill.
  *
  * Enablement is per-matter: adding a module at the workspace does
  * not make it "ready everywhere" — running it is granted from a matter.
@@ -18,10 +18,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   getModulesV2,
-  getPublicModules,
   listInstalledModules,
   type InstalledModule,
-  type PublicModuleSkill,
   type V2ManifestEntry,
 } from "../lib/api";
 import { PageHeader } from "../ui/primitives";
@@ -65,14 +63,6 @@ function shortPermissionList(values: string[]): string {
   if (values.length <= 2) return values.join(", ");
   return `${values.slice(0, 2).join(", ")} +${values.length - 2}`;
 }
-function suiteLabel(plugin: string): string {
-  return plugin
-    .replace(/-legal$/, "")
-    .split("-")
-    .map((w) => (w === "uk" ? "UK" : w.charAt(0).toUpperCase() + w.slice(1)))
-    .join(" ");
-}
-
 const STATE_LABEL: Record<ModuleState, string> = {
   available: "Available",
   installed: "Added",
@@ -108,7 +98,6 @@ export function ModulesCatalog() {
   const authed = !!auth.user;
   const [modules, setModules] = useState<V2ManifestEntry[] | null>(null);
   const [installed, setInstalled] = useState<Map<string, InstalledModule>>(new Map());
-  const [skills, setSkills] = useState<PublicModuleSkill[] | null>(null);
   const [lawve, setLawve] = useState<LawveSkillRow[] | null>(null);
 
   useEffect(() => {
@@ -126,9 +115,7 @@ export function ModulesCatalog() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
-  const [skillsRepo, setSkillsRepo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showSkills, setShowSkills] = useState(false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<SkillTab>("installed");
   const isOperator = !!auth.user?.is_superuser;
@@ -152,13 +139,6 @@ export function ModulesCatalog() {
         })
         .catch(() => undefined);
     }
-    getPublicModules()
-      .then((res) => {
-        if (cancelled) return;
-        setSkills(res.skills);
-        setSkillsRepo(res.source.repo);
-      })
-      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -460,77 +440,6 @@ export function ModulesCatalog() {
           )}
         </section>
       )}
-
-      {/* Secondary: open skill library (browse only, not an add path) */}
-      <section className={authed ? "mt-10" : "mt-4"}>
-        {authed ? (
-          <button
-            type="button"
-            onClick={() => setShowSkills((v) => !v)}
-            className="text-xs uppercase tracking-widest text-muted hover:text-ink"
-            data-testid="toggle-skills"
-            aria-expanded={showSkills}
-          >
-            {showSkills ? "Hide" : "Browse"} open skill library
-            {skills ? ` (${skills.length})` : ""}
-          </button>
-        ) : (
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xs uppercase tracking-widest text-muted">
-                Browse legal skills{skills ? ` (${skills.length})` : ""}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-prose">
-                These examples come from the open legal skills library. Legalise
-                turns this kind of skill into something a firm can add, run
-                inside a matter, review, sign, and audit.
-              </p>
-            </div>
-            <a
-              href="https://github.com/lawve-ai/awesome-legal-skills"
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-            >
-              View source
-            </a>
-          </div>
-        )}
-        {(showSkills || !authed) && (
-          <div className="mt-3">
-            {authed && (
-            <p className="text-xs text-muted">
-              The open skill library — browse what's available, or use Add skill
-              to inspect and convert a Lawve skill into a governed draft.
-              {skillsRepo ? (
-                <>
-                  {" "}
-                  <a
-                    href={
-                      skillsRepo.startsWith("http")
-                        ? skillsRepo
-                        : `https://github.com/${skillsRepo}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-ink"
-                  >
-                    {skillsRepo.replace(/^https?:\/\/github\.com\//, "")}
-                  </a>
-                </>
-              ) : null}
-            </p>
-            )}
-            {skills === null ? (
-              <p className="mt-3 text-sm text-muted">Loading skills…</p>
-            ) : skills.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">No skills in the library yet.</p>
-            ) : (
-              <SkillsBySuite skills={skills} />
-            )}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
@@ -540,42 +449,6 @@ function DemoStep({ title, body }: { title: string; body: string }) {
     <div className="bg-paper p-4">
       <h2 className="text-sm font-semibold text-ink">{title}</h2>
       <p className="mt-2 text-sm leading-relaxed text-prose">{body}</p>
-    </div>
-  );
-}
-
-function SkillsBySuite({ skills }: { skills: PublicModuleSkill[] }) {
-  const groups = new Map<string, PublicModuleSkill[]>();
-  for (const s of skills) {
-    const arr = groups.get(s.plugin) ?? [];
-    arr.push(s);
-    groups.set(s.plugin, arr);
-  }
-  const suites = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-  return (
-    <div className="mt-4 space-y-6">
-      {suites.map(([plugin, suiteSkills]) => (
-        <section key={plugin}>
-          <h3 className="text-[11px] uppercase tracking-widest text-muted border-b border-rule pb-2">
-            {suiteLabel(plugin)}
-          </h3>
-          <ul className="mt-3 grid grid-cols-1 gap-px bg-rule border border-rule sm:grid-cols-2">
-            {suiteSkills
-              .slice()
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((s) => (
-                <li
-                  key={`${s.plugin}/${s.skill}`}
-                  className="bg-paper p-4"
-                >
-                  <h4 className="text-sm font-medium text-ink">{s.name}</h4>
-                  <p className="mt-1 tech-token text-[11px] text-muted">{s.skill}</p>
-                  <p className="mt-2 text-sm text-muted line-clamp-2">{s.description}</p>
-                </li>
-              ))}
-          </ul>
-        </section>
-      ))}
     </div>
   );
 }

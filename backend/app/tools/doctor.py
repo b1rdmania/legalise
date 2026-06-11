@@ -282,30 +282,22 @@ def check_s3_bucket_present(*, create_bucket: bool) -> CheckResult:
     )
 
 
-def check_plugins_root_mounted() -> CheckResult:
+def check_registry_discovery() -> CheckResult:
     from app.core.registry import discover_modules
 
     try:
         discovered = discover_modules()
     except Exception as exc:  # noqa: BLE001
         return CheckResult(
-            "plugins.root_mounted",
+            "registry.discovery",
             "fail",
             f"registry discovery failed: {exc.__class__.__name__}: {exc}",
-            "is PLUGINS_HOST_PATH pointed at claude-for-uk-legal?",
-        )
-    if not discovered:
-        return CheckResult(
-            "plugins.root_mounted",
-            "fail",
-            f"no modules discovered under {settings.plugins_root}",
-            "clone claude-for-uk-legal next to this repo or set "
-            "PLUGINS_HOST_PATH and re-`compose up`",
+            "check backend/app/modules and examples/modules manifests",
         )
     return CheckResult(
-        "plugins.root_mounted",
+        "registry.discovery",
         "ok",
-        f"{len(discovered)} module(s) discovered under {settings.plugins_root}",
+        f"{len(discovered)} module(s) discovered",
     )
 
 
@@ -475,7 +467,7 @@ async def _run_all(*, create_bucket: bool) -> int:
         results.append(check_s3_bucket_present(create_bucket=create_bucket))
 
     # Plugin substrate.
-    results.append(check_plugins_root_mounted())
+    results.append(check_registry_discovery())
     results.append(check_manifests_valid())
 
     # Khan demo — only meaningful if DB was reachable.

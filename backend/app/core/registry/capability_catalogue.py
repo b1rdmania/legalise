@@ -31,13 +31,6 @@ def _to_v2(entry: DiscoveredModule) -> dict[str, Any]:
             source_kind="v1_module_json",
             payload=entry.payload,
         )
-    if entry.source_kind == "v1_skill":
-        return auto_derive_v2_from_v1(
-            source_kind="v1_skill",
-            skill_md=entry.payload,
-            plugin_id=entry.extra.get("plugin_id"),
-            skill_id=entry.extra.get("skill_id"),
-        )
     raise ValueError(f"unknown source_kind: {entry.source_kind!r}")
 
 
