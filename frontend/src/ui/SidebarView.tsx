@@ -126,26 +126,25 @@ export function SidebarView({
         {/* New CTA — top of rail */}
         {(newHref || onNew) && (
           newHref ? (
-            <a href={newHref} className="mx-3 mt-3 mb-1 flex items-center justify-center gap-2 min-h-[40px] rounded-item bg-ink text-paper font-redaction20 text-[11px] font-bold uppercase tracking-track1 hover:bg-black transition-colors">
+            <a href={newHref} className="mx-3 mt-4 mb-2 flex items-center justify-center gap-2 min-h-[40px] rounded-item bg-ink text-paper text-[13px] font-medium hover:bg-black transition-colors">
               <PlusIcon /> New matter
             </a>
           ) : (
-            <button type="button" onClick={onNew} className="mx-3 mt-3 mb-1 flex items-center justify-center gap-2 min-h-[40px] rounded-item bg-ink text-paper font-redaction20 text-[11px] font-bold uppercase tracking-track1 hover:bg-black transition-colors">
+            <button type="button" onClick={onNew} className="mx-3 mt-4 mb-2 flex items-center justify-center gap-2 min-h-[40px] rounded-item bg-ink text-paper text-[13px] font-medium hover:bg-black transition-colors">
               <PlusIcon /> New matter
             </button>
           )
         )}
 
         <nav className="flex-1 overflow-y-auto py-2" aria-label="Workspace sections">
-          <SectionLabel>Workspace</SectionLabel>
+          <div className="pt-3" aria-hidden="true" />
           {globalItems.map((it) => (
             <NavLink key={it.key} item={it} />
           ))}
 
           {matterItems && matterItems.length > 0 && (
             <>
-              <div className="px-3 pt-5 pb-1.5">
-                <div className="text-[10px] font-semibold uppercase tracking-widest text-muted mb-1.5">Matter</div>
+              <div className="px-3 pt-7 pb-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-ink leading-snug break-words">{matterTitle}</span>
                   {matterPosture && (

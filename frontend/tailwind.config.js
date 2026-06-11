@@ -36,9 +36,9 @@ export default {
         // See docs/DESIGN.md P21. Used by the matter workspace only;
         // Landing/auth keep paper #FFFFFF.
         canvas: '#E8E8E8',
-        panel: '#F5F5F5',
-        'panel-hover': '#EBEBEB',
-        'panel-sel': '#E2E2E2',
+        panel: '#FAFAFA',
+        'panel-hover': '#F3F3F3',
+        'panel-sel': '#E6E6E6',
         'panel-2': '#F7F7F7',
       },
       maxWidth: {

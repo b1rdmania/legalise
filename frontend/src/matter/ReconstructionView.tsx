@@ -253,11 +253,6 @@ export function ReconstructionView({ slug }: { slug: string }) {
           <p className="text-xs uppercase tracking-widest text-muted">Matter record</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight2">What happened here</h1>
           <p className="mt-1 text-xs tech-token text-muted">{slug}</p>
-          <p className="mt-3 max-w-2xl text-sm text-muted">
-            Skills run, documents referenced, outputs written, sign-offs,
-            reviews, and blocked attempts. Raw audit sources are still here,
-            but they sit behind Advanced details.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <a

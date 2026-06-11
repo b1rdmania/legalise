@@ -83,7 +83,7 @@ export function TopBar({
                 <a
                   href="/matters"
                   className={
-                    "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                    "transition-colors " + (isList ? "text-ink font-semibold" : "text-ink hover:opacity-70")
                   }
                 >
                   Matters
@@ -91,7 +91,7 @@ export function TopBar({
                 <a
                   href="/skills"
                   className={
-                    "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                    "transition-colors " + (isModules ? "text-ink font-semibold" : "text-ink hover:opacity-70")
                   }
                 >
                   Skills
@@ -99,7 +99,7 @@ export function TopBar({
                 <a
                   href="/settings/profile"
                   className={
-                    "transition-colors " + (route.name === "settings" ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                    "transition-colors " + (route.name === "settings" ? "text-ink font-semibold" : "text-ink hover:opacity-70")
                   }
                 >
                   Settings
@@ -110,7 +110,7 @@ export function TopBar({
                     data-testid="admin-nav-anchor"
                     className={
                       "transition-colors " +
-                      (isAdmin ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                      (isAdmin ? "text-ink font-semibold" : "text-ink hover:opacity-70")
                     }
                   >
                     Admin
@@ -124,7 +124,7 @@ export function TopBar({
                   href={DEMO_HREF_UNAUTHED}
                   className={
                     "transition-colors " +
-                    (isDemo ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                    (isDemo ? "text-ink font-semibold" : "text-ink hover:opacity-70")
                   }
                 >
                   Demo
@@ -133,7 +133,7 @@ export function TopBar({
                   href="/skills"
                   className={
                     "transition-colors " +
-                    (isModules ? "text-ink font-semibold" : "text-ink hover:text-seal")
+                    (isModules ? "text-ink font-semibold" : "text-ink hover:opacity-70")
                   }
                 >
                   Skills
@@ -142,7 +142,7 @@ export function TopBar({
                   href="https://github.com/b1rdmania/legalise"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-ink hover:text-seal transition-colors"
+                  className="text-ink hover:opacity-70 transition-colors"
                 >
                   GitHub
                 </a>

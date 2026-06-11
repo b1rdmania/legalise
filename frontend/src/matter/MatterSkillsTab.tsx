@@ -159,18 +159,9 @@ export function MatterSkillsTab({ slug }: Props) {
   return (
     <section>
       <header className="mb-6">
-        <p className="text-xs uppercase tracking-widest text-muted">
-          Matter skills
-        </p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight2 text-ink">
-          What you can run on this matter
+        <h2 className="text-xl font-semibold tracking-tight2 text-ink">
+          Skills
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-prose">
-          Each skill below names what it reads, what it writes, and when
-          it last ran here. Enabling a skill on this matter is a
-          matter-scoped decision — workspace trust is inherited, not
-          re-asked.
-        </p>
       </header>
 
       {error && (
@@ -314,7 +305,7 @@ function EnabledModuleRow({
 
   return (
     <article
-      className="rounded-card border border-rule bg-paper p-4"
+      className="rounded-card border border-rule/60 bg-paper shadow-panel p-4"
       data-testid={`enabled-module-${entry.module_id}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -370,7 +361,7 @@ function AvailableModuleRow({
 
   return (
     <article
-      className="rounded-card border border-rule bg-paper p-4"
+      className="rounded-card border border-rule/60 bg-paper shadow-panel p-4"
       data-testid={`available-module-${entry.module_id}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -491,7 +482,7 @@ function EnableSkillModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[480px] rounded-card border border-rule bg-paper p-5 shadow-xl">
+      <div className="w-full max-w-[480px] rounded-card border border-rule/60 bg-paper shadow-panel p-5 shadow-xl">
         <p className="text-[11px] uppercase tracking-widest text-muted">
           Enable skill
         </p>

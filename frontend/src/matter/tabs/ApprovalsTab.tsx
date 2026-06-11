@@ -59,8 +59,6 @@ export function ApprovalsTab({ slug }: { slug: string }) {
   return (
     <div className="max-w-3xl">
       <p className="text-sm text-muted">
-        A produced output enters human review here; a reviewer records a
-        decision and the audit trail reconstructs the chain.{" "}
         <span className="text-ink">
           "Approved in Legalise" records that a human reviewed an output —
           it is not legal advice certification or SRA approval.

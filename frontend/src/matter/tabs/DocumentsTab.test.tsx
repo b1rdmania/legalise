@@ -70,29 +70,23 @@ describe("DocumentsTab — document ingress", () => {
       />,
     );
 
-    expect(screen.getAllByText("Open notes").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("1 note")).toBeInTheDocument();
+    // P26 minimal list: statuses appear only when non-zero; chrome is gone.
+    expect(screen.getByText("1 open note")).toBeInTheDocument();
     expect(screen.getByText("3 saved versions")).toBeInTheDocument();
     expect(screen.getByText("2 pending changes")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Documents in this project" })).toBeInTheDocument();
-    expect(screen.getByText("Open workbench")).toBeInTheDocument();
-    expect(screen.getAllByText("Files")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("1K")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("Versions")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("Changes")[0]).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Documents" })).toBeInTheDocument();
+    expect(screen.queryByText("Open workbench")).toBeNull();
+    expect(screen.queryByText("Ready to review")).toBeNull();
   });
 
   it("searches and filters the document library without opening files", async () => {
     render(<DocumentsTab slug="khan" docs={sampleDocs} onUpload={vi.fn()} />);
 
-    expect(screen.getByText("Showing 2 of 2 documents.")).toBeInTheDocument();
-
-    await userEvent.type(screen.getByPlaceholderText("Filename, tag, hash, source"), "dismissal");
+    await userEvent.type(screen.getByPlaceholderText("Search files"), "dismissal");
     expect(screen.queryByText("witness.docx")).not.toBeInTheDocument();
     expect(screen.getByText("dismissal-letter.pdf")).toBeInTheDocument();
-    expect(screen.getByText("Showing 1 of 2 documents.")).toBeInTheDocument();
 
-    await userEvent.clear(screen.getByPlaceholderText("Filename, tag, hash, source"));
+    await userEvent.clear(screen.getByPlaceholderText("Search files"));
     await userEvent.click(screen.getByRole("button", { name: "With notes" }));
     expect(screen.getByText("witness.docx")).toBeInTheDocument();
     expect(screen.queryByText("dismissal-letter.pdf")).not.toBeInTheDocument();

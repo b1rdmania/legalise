@@ -119,11 +119,8 @@ export function DocumentsTab({
   const inputCls =
     "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
   const totalBytes = docs?.reduce((total, d) => total + d.size_bytes, 0) ?? 0;
-  const disclosureCount = docs?.filter((d) => d.from_disclosure).length ?? 0;
   const openNoteCount =
     docs?.reduce((total, d) => total + (d.open_comment_count ?? 0), 0) ?? 0;
-  const versionCount =
-    docs?.reduce((total, d) => total + (d.version_count ?? 0), 0) ?? 0;
   const pendingEditCount =
     docs?.reduce((total, d) => total + (d.pending_edit_count ?? 0), 0) ?? 0;
   const filteredDocs =
@@ -153,9 +150,6 @@ export function DocumentsTab({
       <details className="mb-8 rounded-card border border-rule bg-paper" open={!docs || docs.length === 0}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
           Add documents
-          <span className="ml-2 font-normal text-muted">
-            PDFs, Word files, or text; each upload is hashed and recorded.
-          </span>
         </summary>
         <div className="grid gap-px border-t border-rule bg-rule md:grid-cols-[1.4fr_1fr]">
           <label
@@ -174,9 +168,6 @@ export function DocumentsTab({
             </span>
             <span className="mt-4 text-base font-medium text-ink">
               Drop files here, or click to browse
-            </span>
-            <span className="mt-1 text-sm text-muted">
-              Extraction and audit trail are automatic.
             </span>
             <input
               type="file"
@@ -239,58 +230,28 @@ export function DocumentsTab({
       )}
       {docs && docs.length > 0 && (
         <div>
-          <div className="mb-4 grid gap-3 rounded-card border border-rule bg-paper p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight2 text-ink">
-                Documents in this project
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                Open a file to read, edit, compare versions, and keep review notes
-                with the matter record.
-              </p>
-            </div>
-            <dl className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-5">
-              <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Files</dt>
-                <dd className="mt-1 text-sm font-semibold text-ink">{docs.length}</dd>
-              </div>
-              <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Size</dt>
-                <dd className="mt-1 text-sm font-semibold text-ink">{formatBytes(totalBytes)}</dd>
-              </div>
-              <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Open notes</dt>
-                <dd className="mt-1 text-sm font-semibold text-ink">{openNoteCount}</dd>
-              </div>
-              <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Versions</dt>
-                <dd className="mt-1 text-sm font-semibold text-ink">{versionCount}</dd>
-              </div>
-              <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Changes</dt>
-                <dd className="mt-1 text-sm font-semibold text-ink">{pendingEditCount}</dd>
-              </div>
-            </dl>
-          </div>
-          {disclosureCount > 0 && (
-            <p className="mb-3 border-l-2 border-rule bg-paper px-3 py-2 text-sm text-muted">
-              {disclosureCount} disclosure document{disclosureCount === 1 ? "" : "s"} marked
-              as CPR 31 material.
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-tight2 text-ink">
+              Documents
+            </h2>
+            <p className="text-[13px] text-muted">
+              {docs.length} file{docs.length === 1 ? "" : "s"} · {formatBytes(totalBytes)}
+              {openNoteCount > 0 ? ` · ${openNoteCount} open note${openNoteCount === 1 ? "" : "s"}` : ""}
+              {pendingEditCount > 0 ? ` · ${pendingEditCount} pending change${pendingEditCount === 1 ? "" : "s"}` : ""}
             </p>
-          )}
+          </div>
           <div
-            className="mb-4 grid gap-3 rounded-card border border-rule bg-paper px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            className="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
             data-testid="document-library-controls"
           >
-            <label className="text-xs font-semibold uppercase tracking-track2 text-muted">
-              Search documents
-              <input
+            <label className="sr-only" htmlFor="document-search">Search documents</label>
+            <input
+                id="document-search"
                 value={documentQuery}
                 onChange={(event) => setDocumentQuery(event.target.value)}
-                placeholder="Filename, tag, hash, source"
-                className="mt-1 min-h-[40px] w-full rounded-item border border-rule bg-paper-sunken px-3 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                placeholder="Search files"
+                className="min-h-[40px] w-full rounded-item border border-rule bg-paper px-3 font-sans text-sm text-ink outline-none focus:border-ink"
               />
-            </label>
             <div className="flex flex-wrap items-end gap-2">
               {[
                 ["all", "All"],
@@ -313,9 +274,6 @@ export function DocumentsTab({
                 </button>
               ))}
             </div>
-            <p className="text-xs text-muted md:col-span-2">
-              Showing {filteredDocs?.length ?? 0} of {docs.length} document{docs.length === 1 ? "" : "s"}.
-            </p>
           </div>
           <div
             className="grid gap-3 md:grid-cols-2"
@@ -336,7 +294,7 @@ export function DocumentsTab({
                   key={d.id}
                   to="/matters/$slug/documents/$documentId"
                   params={{ slug, documentId: d.id }}
-                  className="group rounded-card border border-rule bg-paper p-4 transition-colors hover:border-ink hover:bg-wash"
+                  className="group rounded-card border border-rule/60 bg-paper p-5 shadow-panel transition-colors hover:border-ink"
                   title={`SHA-256 ${d.sha256}`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -344,67 +302,26 @@ export function DocumentsTab({
                       <p className="truncate text-base font-semibold text-ink">
                         {d.filename}
                       </p>
-                      <p className="mt-1 truncate tech-token text-[11px] text-muted">
-                        {d.sha256.slice(0, 8)}
+                      <p className="mt-1 truncate text-[13px] text-muted">
+                        {d.from_disclosure ? "CPR 31 disclosure" : "Upload"} · {formatBytes(d.size_bytes)} · {formatDate(d.uploaded_at)}
                       </p>
                     </div>
                     <Badge>{typeLabel}</Badge>
                   </div>
-                  <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
-                        Source
-                      </dt>
-                      <dd className="mt-1 text-ink">
-                        {d.from_disclosure ? "CPR 31 disclosure" : "Upload"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
-                        Size
-                      </dt>
-                      <dd className="mt-1 text-ink">{formatBytes(d.size_bytes)}</dd>
-                    </div>
-                    <div>
-                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
-                        Open notes
-                      </dt>
-                      <dd className="mt-1 text-ink">
-                        {openNotes
-                          ? plural(openNotes, "note")
-                          : "None"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="tech-token text-[10px] uppercase tracking-track2 text-muted">
-                        Updated
-                      </dt>
-                      <dd className="mt-1 text-ink">{formatDate(d.uploaded_at)}</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-4 flex flex-wrap gap-2" aria-label={`Workbench status for ${d.filename}`}>
-                    {workStatus.length > 0 ? (
-                      workStatus.map((item) => (
+                  {workStatus.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2" aria-label={`Workbench status for ${d.filename}`}>
+                      {workStatus.map((item) => (
                         <span
                           key={item}
-                          className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs font-medium text-ink"
+                          className="rounded-item bg-paper-sunken px-2 py-1 text-xs font-medium text-ink"
                         >
                           {item}
                         </span>
-                      ))
-                    ) : (
-                      <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-xs text-muted">
-                        Ready to review
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-5 flex items-center justify-between border-t border-rule pt-3">
-                    <span className="text-xs leading-5 text-muted">
-                      Reader, notes, versions, skills, and Record links open together.
-                    </span>
-                    <span className="shrink-0 rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper group-hover:bg-black">
-                      Open workbench
-                    </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 text-right text-xs text-muted group-hover:text-ink">
+                    Open →
                   </div>
                 </Link>
               );

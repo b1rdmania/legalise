@@ -282,7 +282,7 @@ function DemoWorkflowsTab({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {workflows.map((w) => (
-          <section key={w.title} className="rounded-card border border-rule bg-paper p-5 hover:border-ink transition-colors">
+          <section key={w.title} className="rounded-card border border-rule/60 bg-paper p-5 shadow-panel hover:border-ink transition-colors">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="text-lg font-semibold tracking-tight2 text-ink">{w.title}</div>

@@ -130,7 +130,7 @@ export function GenericSkillRunner({
 
   return (
     <section
-      className={compact ? "rounded-card border border-rule bg-paper p-3" : "rounded-card border border-rule bg-paper p-4"}
+      className={compact ? "rounded-card border border-rule/60 bg-paper shadow-panel p-3" : "rounded-card border border-rule/60 bg-paper shadow-panel p-4"}
       data-testid={`generic-runner-${skill.moduleId}-${skill.capabilityId}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

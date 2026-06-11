@@ -24,7 +24,7 @@ export function ChronologyTab({
       {chron.events.length === 0 && (
         <EmptyState
           title="No events yet"
-          body="Upload dated documents on the Documents tab. Chronology events are extracted from each document body and appear here with their source. Live extraction lands in v0.2."
+          body="Upload dated documents on the Documents tab. Chronology events are extracted from each document body and appear here with their source."
         />
       )}
 
