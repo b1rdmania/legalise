@@ -35,6 +35,24 @@ const DECISIONS: { value: SignoffDecision; label: string; help: string }[] = [
 
 const REASONING_REQUIRED: SignoffDecision[] = ["signed_with_observations", "rejected"];
 
+// A 403 {error: "author_cannot_sign"} arrives as a generic Error whose
+// message embeds the JSON body. Surface the server's plain-English
+// message instead of the raw envelope; everything else falls through to
+// String(err) and the standard error callout.
+function signoffErrorMessage(err: unknown): string {
+  const raw = String(err);
+  if (raw.includes("author_cannot_sign")) {
+    const body = raw.slice(raw.indexOf("{"));
+    try {
+      const detail = (JSON.parse(body) as { detail?: { message?: unknown } }).detail;
+      if (detail && typeof detail.message === "string") return detail.message;
+    } catch {
+      // fall through to raw
+    }
+  }
+  return raw;
+}
+
 // Quiet source-coverage note near the affirmation. Advisory only — never
 // blocks signing (a hard block would be false precision for legacy and
 // non-document outputs). Surfaces zero-sources and quote-not-found as
@@ -114,7 +132,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
         params: { slug, signoffId: signoff.id },
       });
     } catch (err) {
-      setSubmitErr(String(err));
+      setSubmitErr(signoffErrorMessage(err));
       setSubmitting(false);
     }
   };

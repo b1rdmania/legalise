@@ -1,30 +1,42 @@
 """Manifest signature verification.
 
-A *structural* signature verifier — the trust ceremony gets a clean
-four-state outcome (structure_verified / unsigned / invalid /
-unknown_publisher) without depending on the sigstore Python library or
-a real signing pipeline. The top status is deliberately named
-``structure_verified``, not ``verified``: it asserts shape and
-publisher-registry membership only, never cryptographic provenance. Real cryptographic chain verification (sigstore Rekor lookup
-+ X.509 chain + OIDC identity claim) is sigstore-hardening backlog;
-the API contract here is designed so the verifier implementation can
-swap without touching callers.
+Two tiers of verification:
+
+1. **Cryptographic (ed25519)** — when the publisher has a registered
+   ed25519 public key in ``app.core.publishers`` and the manifest
+   carries a signature, the signature is verified over the manifest's
+   canonical hash. Outcome: ``VERIFIED`` (valid) or ``INVALID``.
+2. **Structural** — when the publisher has no registered key, the
+   verifier falls back to shape checks only (signature present and
+   plausible, publisher in registry, ``signed_by`` matches). Outcome:
+   ``STRUCTURE_VERIFIED`` — deliberately not named ``verified``,
+   because it asserts shape and registry membership, never provenance.
+
+The five-state outcome (verified / structure_verified / unsigned /
+invalid / unknown_publisher) is stable; callers branch on status
+strings and never need to know which tier produced them.
 """
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from app.core.publishers import is_verified_publisher
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric import ed25519
+
+from app.core.publishers import is_verified_publisher, publisher_signing_key
 
 
 class SignatureStatus(str, Enum):
     """Possible outcomes of ``verify_manifest_signature``."""
 
+    VERIFIED = "verified"
     STRUCTURE_VERIFIED = "structure_verified"
     UNSIGNED = "unsigned"
     INVALID = "invalid"
@@ -36,7 +48,7 @@ class SignatureResult:
     """Outcome of a signature check.
 
     Trust ceremony branches on ``status``:
-    - ``structure_verified`` → fast path (3 steps)
+    - ``verified`` / ``structure_verified`` → fast path (3 steps)
     - everything else → full path (7 steps)
     """
 
@@ -46,11 +58,17 @@ class SignatureResult:
     notes: str = ""
 
 
+# Fields stripped from the manifest before hashing, so the signature
+# is computed over the *unsigned* canonical content. Must match the
+# signer (scripts/sign_manifest.py).
+SIGNATURE_FIELDS = ("signature", "signed_by")
+
+
 def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     """Stable canonical-JSON SHA-256 hash of a manifest.
 
     Used for: (a) detecting tampering between install time and
-    invocation time, (b) sigstore signing input, (c) audit row
+    invocation time, (b) ed25519 signing input, (c) audit row
     provenance.
 
     Sorts keys recursively and uses compact separators so the same
@@ -63,6 +81,48 @@ def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def manifest_signing_digest(manifest: dict[str, Any]) -> bytes:
+    """The exact bytes that get ed25519-signed for a manifest.
+
+    Byte contract (must match ``scripts/sign_manifest.py``):
+
+    1. Remove ``signature`` and ``signed_by`` from a copy of the
+       manifest (top level only).
+    2. Canonicalise: ``json.dumps(..., sort_keys=True,
+       separators=(",", ":"))``, UTF-8 encoded.
+    3. SHA-256 the canonical bytes.
+    4. The ed25519 message is the **raw 32-byte digest**
+       (``bytes.fromhex(compute_manifest_hash(unsigned))``), not the
+       hex string and not the canonical JSON itself.
+    """
+    unsigned = {k: v for k, v in manifest.items() if k not in SIGNATURE_FIELDS}
+    return bytes.fromhex(compute_manifest_hash(unsigned))
+
+
+def _verify_ed25519(
+    manifest: dict[str, Any],
+    signature_b64: str,
+    public_key_b64: str,
+) -> tuple[bool, str]:
+    """Verify an ed25519 manifest signature. Returns (ok, note)."""
+    try:
+        public_key_bytes = base64.b64decode(public_key_b64, validate=True)
+        public_key = ed25519.Ed25519PublicKey.from_public_bytes(
+            public_key_bytes
+        )
+    except (binascii.Error, ValueError) as exc:
+        return False, f"registered publisher key is malformed: {exc}"
+    try:
+        signature_bytes = base64.b64decode(signature_b64, validate=True)
+    except binascii.Error:
+        return False, "signature is not valid base64"
+    try:
+        public_key.verify(signature_bytes, manifest_signing_digest(manifest))
+    except InvalidSignature:
+        return False, "ed25519 signature does not match manifest content"
+    return True, "ed25519 signature verified against registered publisher key"
+
+
 def verify_manifest_signature(
     manifest: dict[str, Any],
     *,
@@ -71,25 +131,28 @@ def verify_manifest_signature(
     """Verify a manifest's signature against the verified-publisher
     registry.
 
-    Current implementation is structural — it does not perform real
-    cryptographic verification. The four outcomes:
+    The five outcomes:
 
     - ``UNSIGNED``: ``signature`` is None or empty. Manifest may still
       install via the unverified full-path ceremony with explicit
       user trust.
     - ``UNKNOWN_PUBLISHER``: the manifest's ``publisher`` field is not
       in ``app.core.publishers``. Same fallback as UNSIGNED.
-    - ``INVALID``: ``signature`` is present but malformed (not a
-      hex/base64 string of plausible length, or ``signed_by`` doesn't
-      match the publisher).
-    - ``STRUCTURE_VERIFIED``: ``signature`` is present, structurally
-      valid, the publisher is verified, and ``signed_by`` matches.
-
-    Note: this does NOT verify cryptographic provenance — the status
-    name says exactly what was checked. A publisher-key mismatch
-    returns INVALID; a forged signature with correct shape returns
-    STRUCTURE_VERIFIED. Real verification via the sigstore Rekor
-    transparency log lands with sigstore hardening.
+    - ``INVALID``: ``signature`` is present but malformed, or
+      ``signed_by`` doesn't match the publisher, or — when the
+      publisher has a registered ed25519 key — the signature fails
+      cryptographic verification over the manifest's signing digest
+      (see ``manifest_signing_digest`` for the exact byte contract).
+    - ``VERIFIED``: the publisher has a registered ed25519 public key
+      and the manifest's base64 signature cryptographically verifies
+      over the canonical manifest digest. This is real provenance:
+      only the holder of the publisher's private key could have
+      produced it.
+    - ``STRUCTURE_VERIFIED``: the publisher has **no** registered key;
+      the signature is present, structurally plausible, the publisher
+      is in the registry, and ``signed_by`` matches. Shape only —
+      a forged signature with correct shape still passes, which is
+      why the status name says exactly what was checked.
     """
     publisher = manifest.get("publisher")
     signed_by = manifest.get("signed_by")
@@ -144,22 +207,36 @@ def verify_manifest_signature(
             ),
         )
 
-    # Structural pass.
-    # TODO(sigstore-hardening): wire sigstore Rekor lookup + X.509 chain
-    # verification + OIDC identity claim check here, and introduce a
-    # true VERIFIED status at that point. Until then the strongest
-    # status this verifier can honestly return is STRUCTURE_VERIFIED.
+    # Cryptographic tier: publisher has a registered ed25519 key.
+    public_key_b64 = publisher_signing_key(publisher)
+    if public_key_b64 is not None:
+        ok, note = _verify_ed25519(
+            manifest, effective_signature, public_key_b64
+        )
+        return SignatureResult(
+            status=SignatureStatus.VERIFIED if ok else SignatureStatus.INVALID,
+            publisher=publisher,
+            signed_by=signed_by or publisher,
+            notes=note,
+        )
+
+    # Structural tier: no registered key, shape checks only.
     return SignatureResult(
         status=SignatureStatus.STRUCTURE_VERIFIED,
         publisher=publisher,
         signed_by=signed_by or publisher,
-        notes="structural verification only; cryptographic check is sigstore-hardening backlog",
+        notes=(
+            "structural verification only; publisher has no registered "
+            "ed25519 key"
+        ),
     )
 
 
 __all__ = [
     "SignatureStatus",
     "SignatureResult",
+    "SIGNATURE_FIELDS",
     "compute_manifest_hash",
+    "manifest_signing_digest",
     "verify_manifest_signature",
 ]

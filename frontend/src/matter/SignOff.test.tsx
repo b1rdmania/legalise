@@ -123,6 +123,27 @@ describe("SignOff", () => {
     await waitFor(() => expect(screen.getByTestId("signoff-no-sources")).toBeInTheDocument());
   });
 
+  it("renders the plain-English message for a 403 author_cannot_sign", async () => {
+    // The API helper throws a generic Error whose message embeds the
+    // FastAPI body; the screen surfaces detail.message, not the envelope.
+    vi.spyOn(api, "createSignoff").mockRejectedValue(
+      new Error(
+        '403 Forbidden: {"detail":{"error":"author_cannot_sign","message":' +
+          '"This workspace requires a second pair of eyes: you prepared this output, so someone else must sign it. You can still reject your own draft."}}',
+      ),
+    );
+    mountSign();
+    await waitFor(() => expect(screen.getByTestId("signoff-artifact")).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId("signoff-affirm"));
+    fireEvent.click(screen.getByTestId("signoff-submit"));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/requires a second pair of eyes/i),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/author_cannot_sign/)).not.toBeInTheDocument();
+  });
+
   it("requires reasoning for sign-with-observations", async () => {
     mountSign();
     await waitFor(() => expect(screen.getByTestId("signoff-artifact")).toBeInTheDocument());

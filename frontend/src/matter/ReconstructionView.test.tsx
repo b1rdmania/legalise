@@ -296,18 +296,26 @@ describe("ReconstructionView — source chips", () => {
 
     mountAt("/matters/khan/audit");
     // Initial render fires getReconstruction with no include filter
-    // (all three sources).
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
+    // (all three sources). Generous timeouts: the full production
+    // router + AuthProvider mount can exceed vitest's 1s default under
+    // parallel CI load (this test failed repeatedly in CI, never alone).
+    await waitFor(
+      () => {
+        expect(spy).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 5000 },
+    );
     expect(spy.mock.calls[0]?.[1]?.include).toBeUndefined();
 
     // Toggle "advice_boundary" off.
-    fireEvent.click(screen.getByTestId("source-chip-advice_boundary"));
+    fireEvent.click(await screen.findByTestId("source-chip-advice_boundary", {}, { timeout: 5000 }));
 
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledTimes(2);
-    });
+    await waitFor(
+      () => {
+        expect(spy).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 5000 },
+    );
     const lastCall = spy.mock.calls[1]?.[1];
     expect(lastCall?.include).toEqual(["audit", "state_machine"]);
   });

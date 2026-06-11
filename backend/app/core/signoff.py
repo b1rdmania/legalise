@@ -3,9 +3,11 @@
 The author sign-off gate: a solicitor records that they reviewed an
 AI-prepared work product and stand behind it (``signed``), stand behind it
 with noted points (``signed_with_observations``), or do not
-(``rejected``). The signer may be the artifact author — this is the
-sole-practitioner / small-firm hero loop, not supervisor review. No
+(``rejected``). By default the signer may be the artifact author — this is
+the sole-practitioner / small-firm hero loop, not supervisor review. No
 qualified-solicitor role wall: every signed-in user signs as themselves.
+Deployments that need four-eyes set ``SIGNOFF_AUTHOR_MUST_DIFFER``, which
+blocks self-*signing* only (self-rejection is always permitted).
 
 Each sign-off emits an ``output.*`` audit row in the caller's session so
 it commits with the row and surfaces in matter reconstruction (the
@@ -27,6 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit
+from app.core.config import settings
 from app.core.matter_artifacts import load_artifact_bytes
 from app.models import (
     MatterArtifact,
@@ -63,6 +66,11 @@ class ReasoningRequired(SignoffError):
     """signed_with_observations / rejected require reasoning (422)."""
 
 
+class AuthorCannotSign(SignoffError):
+    """SIGNOFF_AUTHOR_MUST_DIFFER is on and the signer authored the
+    artifact (403). Rejection of one's own work is always allowed."""
+
+
 def compute_signoff_hash(artifact: MatterArtifact) -> str:
     """sha256 (hex) of canonical JSON ``{artifact_id, kind, payload}``.
 
@@ -92,13 +100,17 @@ async def create_signoff(
 ) -> MatterSignoff:
     """Record one author sign-off over ``artifact``. Caller commits.
 
-    Append-only: never mutates a prior sign-off. Any signed-in user may
-    sign (author included) — there is no reviewer≠author rule and no role
-    gate here; that separation belongs to supervisor review. The record
-    states the relationship instead of hiding it: ``signer_is_author``
+    Append-only: never mutates a prior sign-off. By default any signed-in
+    user may sign (author included) — the sole-practitioner hero loop. The
+    record states the relationship instead of hiding it: ``signer_is_author``
     is computed against the artifact's ``created_by_id`` and written
     into the audit payload, so a self-signed output reads as exactly
     that in the Activity Trail and any export.
+
+    When ``settings.signoff_author_must_differ`` is on (deployable
+    four-eyes), the author may not *sign* their own output
+    (``AuthorCannotSign``, 403) — rejecting it stays allowed, because
+    refusal is always permitted.
     """
     if decision not in SIGNOFF_DECISIONS:
         raise InvalidSignoffDecision(f"unknown decision '{decision}'")
@@ -107,8 +119,19 @@ async def create_signoff(
     if decision in SIGNOFF_REASONING_REQUIRED and not clean_reasoning:
         raise ReasoningRequired(f"decision '{decision}' requires reasoning")
 
-    artifact_hash = compute_signoff_hash(artifact)
     signer_is_author = artifact.created_by_id == user.id
+    if (
+        settings.signoff_author_must_differ
+        and signer_is_author
+        and decision in (SIGNOFF_SIGNED, SIGNOFF_SIGNED_WITH_OBSERVATIONS)
+    ):
+        raise AuthorCannotSign(
+            "This workspace requires a second pair of eyes: you prepared "
+            "this output, so someone else must sign it. You can still "
+            "reject your own draft."
+        )
+
+    artifact_hash = compute_signoff_hash(artifact)
     signoff = MatterSignoff(
         matter_id=matter.id,
         artifact_id=artifact.id,

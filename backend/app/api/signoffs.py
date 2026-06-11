@@ -3,7 +3,9 @@
 Three endpoints under ``/api/matters/{slug}/signoffs``:
 
 - ``POST``        — sign an artifact (signed / signed_with_observations /
-                    rejected). The signer may be the author.
+                    rejected). The signer may be the author unless
+                    ``SIGNOFF_AUTHOR_MUST_DIFFER`` is set (403
+                    ``author_cannot_sign``; self-rejection always allowed).
 - ``GET``         — list sign-offs on this matter (newest first), each
                     flagged ``is_current`` (latest per artifact).
 - ``GET /{id}``   — one sign-off (for the confirmation / deep-link page,
@@ -30,6 +32,7 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_artifacts import ArtifactBytesUnavailable
 from app.core.signoff import (
+    AuthorCannotSign,
     InvalidSignoffDecision,
     ReasoningRequired,
     create_signoff,
@@ -173,6 +176,11 @@ async def create_signoff_endpoint(
     except ReasoningRequired as exc:
         raise HTTPException(
             status_code=422, detail={"error": "reasoning_required", "message": str(exc)}
+        )
+    except AuthorCannotSign as exc:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "author_cannot_sign", "message": str(exc)},
         )
     except ArtifactBytesUnavailable as exc:
         raise HTTPException(

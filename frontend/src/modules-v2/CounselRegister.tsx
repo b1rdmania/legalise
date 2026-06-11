@@ -165,7 +165,11 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
   const tier = adviceTier(row);
   const tierIdx = TIERS.indexOf(tier as (typeof TIERS)[number]);
   const src = sourceRef(row);
-  const verified = row.signature_status === "structure_verified";
+  // "verified" = real ed25519 provenance; "structure_verified" = shape-only
+  // check against the publisher registry. Both carry standing on the register.
+  const verified =
+    row.signature_status === "verified" ||
+    row.signature_status === "structure_verified";
   const revoked = !row.enabled;
   const admitted = new Date(row.installed_at);
 

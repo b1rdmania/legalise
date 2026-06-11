@@ -124,10 +124,15 @@ describe("GrantsPanel — create", () => {
     });
 
     render(<GrantsPanel slug="khan" />);
-    await waitFor(() => {
-      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
-    });
-    fireEvent.change(screen.getByLabelText(/Skill/i), {
+    // Generous timeouts: this test failed under parallel CI load (1s
+    // default), never alone.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    fireEvent.change(await screen.findByLabelText(/Skill/i, {}, { timeout: 5000 }), {
       target: { value: "contract-review" },
     });
     fireEvent.change(screen.getByLabelText(/Permission/i), {
@@ -135,20 +140,33 @@ describe("GrantsPanel — create", () => {
     });
     fireEvent.click(screen.getByText("Enable"));
 
-    await waitFor(() => {
-      expect(create).toHaveBeenCalledWith("khan", {
-        module_id: "contract-review",
-        capability_id: "review",
-      });
-    });
+    await waitFor(
+      () => {
+        expect(create).toHaveBeenCalledWith("khan", {
+          module_id: "contract-review",
+          capability_id: "review",
+        });
+      },
+      { timeout: 5000 },
+    );
     // After the create resolves the list refreshes via the second
-    // listGrants spy return.
-    expect(listGrants).toHaveBeenCalledTimes(2);
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Enabled\. This skill may now use that permission/i),
-      ).toBeInTheDocument();
-    });
+    // listGrants spy return. The refresh fires in a microtask AFTER
+    // createGrant's promise resolves, so a synchronous count assertion
+    // here races it under load — wait for it.
+    await waitFor(
+      () => {
+        expect(listGrants).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 5000 },
+    );
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/Enabled\. This skill may now use that permission/i),
+        ).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
   });
 
   it("offers installed inline modules that are not in the v2 registry catalog", async () => {
@@ -226,10 +244,15 @@ describe("GrantsPanel — create", () => {
     );
 
     render(<GrantsPanel slug="khan" />);
-    await waitFor(() => {
-      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
-    });
-    fireEvent.change(screen.getByLabelText(/Skill/i), {
+    // Generous timeouts: this test failed under parallel CI load (1s
+    // default), never alone.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    fireEvent.change(await screen.findByLabelText(/Skill/i, {}, { timeout: 5000 }), {
       target: { value: "contract-review" },
     });
     fireEvent.change(screen.getByLabelText(/Permission/i), {
@@ -258,10 +281,15 @@ describe("GrantsPanel — create", () => {
     );
 
     render(<GrantsPanel slug="khan" />);
-    await waitFor(() => {
-      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
-    });
-    fireEvent.change(screen.getByLabelText(/Skill/i), {
+    // Generous timeouts: this test failed under parallel CI load (1s
+    // default), never alone.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    fireEvent.change(await screen.findByLabelText(/Skill/i, {}, { timeout: 5000 }), {
       target: { value: "contract-review" },
     });
     fireEvent.change(screen.getByLabelText(/Permission/i), {
@@ -291,10 +319,15 @@ describe("GrantsPanel — create", () => {
     });
 
     render(<GrantsPanel slug="khan" />);
-    await waitFor(() => {
-      expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
-    });
-    fireEvent.change(screen.getByLabelText(/Skill/i), {
+    // Generous timeouts: this test failed under parallel CI load (1s
+    // default), never alone.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Enable a permission/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+    fireEvent.change(await screen.findByLabelText(/Skill/i, {}, { timeout: 5000 }), {
       target: { value: "contract-review" },
     });
     fireEvent.change(screen.getByLabelText(/Permission/i), {

@@ -240,6 +240,7 @@ compose for you, the manual path is:
   `LEGALISE_USE_PREBUILT_IMAGES=true` to pull the published
   backend/frontend images instead.
 - Common setup errors and their fixes live in [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md).
+- Backup and disaster recovery (sources of truth, Neon PITR, pg_dump cron, restore scenarios, post-restore verification) lives in [`docs/OPERATIONS.md`](./docs/OPERATIONS.md).
 
 ## Status
 
