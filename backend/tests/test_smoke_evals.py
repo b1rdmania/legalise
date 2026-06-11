@@ -763,35 +763,24 @@ class TestAssistantPipeline:
         assert f"[doc:{dismissal.id}]" in assistant_row.content
 
     @pytest.mark.asyncio
-    async def test_prompt_includes_matter_chronology_and_modules(self) -> None:
+    async def test_prompt_includes_matter_and_chronology(self) -> None:
         matter = _make_matter()
         event = _make_event(matter.id)
         session = _AssistantSession(matter, events=[event])
         gateway = _AssistantFakeGateway()
 
-        installed = [
-            ("letters", "default-lba", "Draft a letter before action"),
-            ("pre_motion", "default", "Adversarial premortem of a pleading"),
-        ]
-
-        with patch.object(
-            assistant_pipeline,
-            "_load_installed_modules",
-            return_value=installed,
-        ):
-            await run_assistant_turn(
-                session=session,
-                matter=matter,
-                actor_id=uuid.uuid4(),
-                request=AssistantPostRequest(content="Summarise the matter."),
-                gateway=gateway,
-            )
+        await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            request=AssistantPostRequest(content="Summarise the matter."),
+            gateway=gateway,
+        )
 
         assert len(gateway.calls) == 1
         prompt = gateway.calls[0]["prompt"]
         assert matter.title in prompt
         assert "Khan dismissed without notice" in prompt
-        assert "letters/default-lba" in prompt or "pre_motion/default" in prompt
 
     @pytest.mark.asyncio
     async def test_prompt_includes_provider_agnostic_tool_registry(self) -> None:

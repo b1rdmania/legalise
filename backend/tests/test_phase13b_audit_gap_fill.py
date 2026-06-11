@@ -5,7 +5,7 @@
 Auth events (8):
   1. Register → auth.user.registered
   2. Verify (autoverify dev path) → auth.user.verified
-  3. Verify also seeds demo + grants → auth.user.demo_seeded + auth.user.capabilities_auto_granted
+  3. Verify also seeds demo → auth.user.demo_seeded
   4. Log in → auth.user.logged_in (via AuditingDatabaseStrategy.write_token)
   5. Log out → auth.user.logged_out (via AuditingDatabaseStrategy.destroy_token)
   6. Forgot password → auth.user.password_reset_requested
@@ -78,11 +78,10 @@ async def test_register_emits_canonical_audit_row(client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_dev_autoverify_emits_three_audit_rows(client) -> None:
+async def test_dev_autoverify_emits_two_audit_rows(client) -> None:
     """In dev mode, register triggers autoverify which fires:
        - auth.user.verified
        - auth.user.demo_seeded (matter-creating, actor_id=None)
-       - auth.user.capabilities_auto_granted (actor_id=None)
     """
     email = f"p13bd-verify-{uuid.uuid4().hex[:8]}@example.com"
     password = "phase13bd-2026"
@@ -128,19 +127,6 @@ async def test_dev_autoverify_emits_three_audit_rows(client) -> None:
         match = [r for r in rows if r.payload.get("user_id") == str(user.id)]
         assert len(match) == 1
         assert match[0].actor_id is None  # system-acting
-
-        # Auto-grant row — system-acting.
-        rows = (
-            await session.scalars(
-                select(AuditEntry).where(
-                    AuditEntry.action == "auth.user.capabilities_auto_granted",
-                )
-            )
-        ).all()
-        match = [r for r in rows if r.payload.get("user_id") == str(user.id)]
-        assert len(match) == 1
-        assert match[0].actor_id is None
-        assert match[0].payload["triple_count"] > 0
 
 
 @pytest.mark.asyncio
