@@ -26,6 +26,7 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
+import type { Node as ProseMirrorNode } from "prosemirror-model";
 
 import {
   commitDocumentWorkingDraft,
@@ -163,6 +164,232 @@ function reviewNoteDecorationsExtension(noteHighlights: DocumentNoteHighlight[])
                     );
                   });
                 });
+              });
+              return DecorationSet.create(state.doc, decorations);
+            },
+          },
+        }),
+      ];
+    },
+  });
+}
+
+// ----- Inline tracked changes (proposed document_edits rows) --------------
+//
+// AI/skill-proposed edits arrive as (deleted_text, inserted_text,
+// context_before, context_after) rows. We anchor each one in the live
+// document with the same whitespace-normalised search the review notes
+// use, then decorate: deletion struck through in seal, insertion as an
+// underlined inline widget, with compact accept/reject controls. Edits
+// that cannot be anchored stay in the rail listing — never dropped.
+
+export type DocumentProposedEdit = {
+  id: string;
+  deletedText: string;
+  insertedText: string;
+  contextBefore: string;
+  contextAfter: string;
+  rationale?: string | null;
+};
+
+export type ProposedEditLocation =
+  | { kind: "replace"; from: number; to: number }
+  | { kind: "insert"; pos: number };
+
+type TrackChangesPluginState = {
+  edits: DocumentProposedEdit[];
+  visible: boolean;
+};
+
+type TrackChangeHandlers = {
+  resolve: (edit: DocumentProposedEdit, action: "accept" | "reject") => void;
+};
+
+const TRACK_CHANGES_PLUGIN_KEY = new PluginKey<TrackChangesPluginState>(
+  "legaliseTrackChanges",
+);
+
+export function locateProposedEditInDoc(
+  doc: ProseMirrorNode,
+  edit: DocumentProposedEdit,
+  options?: { strict?: boolean },
+): ProposedEditLocation | null {
+  const deleted = edit.deletedText ?? "";
+  const deletedNeedle = deleted.trim().replace(/\s+/g, " ");
+  let located: ProposedEditLocation | null = null;
+
+  if (deletedNeedle.length >= 3) {
+    // Most specific anchor first; bare deleted text last. First match
+    // wins — the same policy the backend resolver applies. Strict mode
+    // (used when APPLYING text, not just decorating) requires the full
+    // context anchor: a bare-needle match after a neighbouring accept
+    // could land on the wrong occurrence while the server, applying to
+    // untouched base_text, lands on the right one.
+    const anchors = options?.strict
+      ? [`${edit.contextBefore ?? ""}${deleted}${edit.contextAfter ?? ""}`]
+      : [
+          `${edit.contextBefore ?? ""}${deleted}${edit.contextAfter ?? ""}`,
+          `${edit.contextBefore ?? ""}${deleted}`,
+          deleted,
+        ];
+    for (const anchor of anchors) {
+      if (located) break;
+      doc.descendants((node, position) => {
+        if (located) return false;
+        if (!node.isText || !node.text) return true;
+        const anchorRange = findNormalizedRanges(node.text, anchor)[0];
+        if (!anchorRange) return true;
+        const slice = node.text.slice(anchorRange.start, anchorRange.end);
+        const inner = findNormalizedRanges(slice, deleted)[0];
+        if (!inner) return true;
+        located = {
+          kind: "replace",
+          from: position + anchorRange.start + inner.start,
+          to: position + anchorRange.start + inner.end,
+        };
+        return false;
+      });
+    }
+    return located;
+  }
+
+  // Deletions under three characters cannot be anchored safely; they
+  // fall back to the rail listing.
+  if (deletedNeedle.length > 0) return null;
+
+  // Pure insertion: anchor on the surrounding context.
+  doc.descendants((node, position) => {
+    if (located) return false;
+    if (!node.isText || !node.text) return true;
+    const beforeRange = findNormalizedRanges(node.text, edit.contextBefore)[0];
+    if (beforeRange) {
+      located = { kind: "insert", pos: position + beforeRange.end };
+      return false;
+    }
+    const afterRange = findNormalizedRanges(node.text, edit.contextAfter)[0];
+    if (afterRange) {
+      located = { kind: "insert", pos: position + afterRange.start };
+      return false;
+    }
+    return true;
+  });
+  return located;
+}
+
+function applyProposedEditToEditor(
+  activeEditor: Editor,
+  edit: DocumentProposedEdit,
+): boolean {
+  const located = locateProposedEditInDoc(activeEditor.state.doc, edit, {
+    strict: true,
+  });
+  if (!located) return false;
+  const inserted = (edit.insertedText ?? "").replace(/\s+/g, " ");
+  return activeEditor
+    .chain()
+    .command(({ tr, state }) => {
+      if (located.kind === "replace") {
+        if (inserted.trim()) {
+          tr.replaceWith(located.from, located.to, state.schema.text(inserted));
+        } else {
+          tr.delete(located.from, located.to);
+        }
+        return true;
+      }
+      if (!inserted.trim()) return false;
+      tr.insert(located.pos, state.schema.text(inserted));
+      return true;
+    })
+    .run();
+}
+
+function trackChangeWidget(
+  edit: DocumentProposedEdit,
+  handlersRef: { current: TrackChangeHandlers | null },
+): HTMLElement {
+  const wrap = window.document.createElement("span");
+  wrap.className = "legalise-track-change";
+  wrap.dataset.trackEditId = edit.id;
+  if (edit.rationale) wrap.title = edit.rationale;
+  const inserted = (edit.insertedText ?? "").replace(/\s+/g, " ").trim();
+  if (inserted) {
+    const ins = window.document.createElement("span");
+    ins.className = "legalise-track-insert";
+    ins.textContent = inserted;
+    wrap.append(ins);
+  }
+  const controls = window.document.createElement("span");
+  controls.className = "legalise-track-controls";
+  const makeButton = (
+    label: string,
+    glyph: string,
+    action: "accept" | "reject",
+  ) => {
+    const button = window.document.createElement("button");
+    button.type = "button";
+    button.className =
+      action === "accept" ? "legalise-track-accept" : "legalise-track-reject";
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.textContent = glyph;
+    // mousedown (not click) so the editor selection is not stolen first.
+    button.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handlersRef.current?.resolve(edit, action);
+    });
+    return button;
+  };
+  controls.append(
+    makeButton("Accept change", "✓", "accept"),
+    makeButton("Reject change", "✕", "reject"),
+  );
+  wrap.append(controls);
+  return wrap;
+}
+
+function trackChangesDecorationsExtension(handlersRef: {
+  current: TrackChangeHandlers | null;
+}) {
+  return Extension.create({
+    name: "legaliseTrackChanges",
+    addProseMirrorPlugins() {
+      return [
+        new Plugin<TrackChangesPluginState>({
+          key: TRACK_CHANGES_PLUGIN_KEY,
+          state: {
+            init: () => ({ edits: [], visible: true }),
+            apply(transaction, previous) {
+              return transaction.getMeta(TRACK_CHANGES_PLUGIN_KEY) ?? previous;
+            },
+          },
+          props: {
+            decorations(state) {
+              const pluginState = TRACK_CHANGES_PLUGIN_KEY.getState(state);
+              if (!pluginState?.visible || pluginState.edits.length === 0) {
+                return DecorationSet.empty;
+              }
+              const decorations: Decoration[] = [];
+              pluginState.edits.forEach((edit) => {
+                const located = locateProposedEditInDoc(state.doc, edit);
+                if (!located) return;
+                if (located.kind === "replace") {
+                  decorations.push(
+                    Decoration.inline(located.from, located.to, {
+                      class: "legalise-track-delete",
+                      "data-track-edit-id": edit.id,
+                    }),
+                  );
+                }
+                const widgetPos =
+                  located.kind === "replace" ? located.to : located.pos;
+                decorations.push(
+                  Decoration.widget(
+                    widgetPos,
+                    () => trackChangeWidget(edit, handlersRef),
+                    { side: 1, key: `legalise-track-${edit.id}` },
+                  ),
+                );
               });
               return DecorationSet.create(state.doc, decorations);
             },
@@ -506,6 +733,8 @@ export function DocumentRichEditor({
   sourceLabel,
   sourceHighlight,
   noteHighlights = [],
+  proposedEdits = [],
+  onResolveProposedEdit,
   selectedQuote,
   selectedQuoteAnchored,
   onCreateNoteFromSelection,
@@ -523,6 +752,11 @@ export function DocumentRichEditor({
   sourceLabel: string;
   sourceHighlight?: string | null;
   noteHighlights?: DocumentNoteHighlight[];
+  proposedEdits?: DocumentProposedEdit[];
+  onResolveProposedEdit?: (
+    editId: string,
+    action: "accept" | "reject",
+  ) => Promise<void>;
   selectedQuote?: string;
   selectedQuoteAnchored?: boolean;
   onCreateNoteFromSelection?: () => void;
@@ -550,6 +784,9 @@ export function DocumentRichEditor({
   const [originalImportState, setOriginalImportState] = useState<OriginalImportState>("idle");
   const [draftBaselineText, setDraftBaselineText] = useState(initialText);
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
+  const [redlinesVisible, setRedlinesVisible] = useState(true);
+  const [trackBusy, setTrackBusy] = useState(false);
+  const [trackNotice, setTrackNotice] = useState<string | null>(null);
   const findInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
@@ -582,6 +819,15 @@ export function DocumentRichEditor({
     [noteHighlightsKey],
   );
   const findExtension = useMemo(() => findDecorationsExtension(), []);
+  const trackHandlersRef = useRef<TrackChangeHandlers | null>(null);
+  const trackChangesExtension = useMemo(
+    () => trackChangesDecorationsExtension(trackHandlersRef),
+    [],
+  );
+  const proposedEditsKey = useMemo(
+    () => proposedEdits.map((edit) => edit.id).join("|"),
+    [proposedEdits],
+  );
   async function persistWorkingDraft(
     editorJson: TiptapNode,
     plainText: string,
@@ -685,6 +931,7 @@ export function DocumentRichEditor({
         }),
         findExtension,
         reviewNoteExtension,
+        trackChangesExtension,
         Table.configure({ resizable: true }),
         TableRow,
         TableHeader,
@@ -970,6 +1217,92 @@ export function DocumentRichEditor({
     }
   }, [activeFindIndex, editor, findMatches.length, findQuery]);
 
+  // A fresh batch of proposed edits always starts visible.
+  useEffect(() => {
+    setRedlinesVisible(true);
+  }, [proposedEditsKey]);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.view.dispatch(
+      editor.state.tr.setMeta(TRACK_CHANGES_PLUGIN_KEY, {
+        edits: proposedEdits,
+        visible: redlinesVisible,
+      } satisfies TrackChangesPluginState),
+    );
+    // proposedEditsKey stands in for the array identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, proposedEditsKey, redlinesVisible]);
+
+  const anchoredProposedEditCount = useMemo(() => {
+    if (!editor || proposedEdits.length === 0) return 0;
+    return proposedEdits.filter((edit) =>
+      locateProposedEditInDoc(editor.state.doc, edit),
+    ).length;
+    // plainText tracks document changes; proposedEditsKey tracks the list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, proposedEditsKey, plainText]);
+
+  async function resolveProposedEditInline(
+    edit: DocumentProposedEdit,
+    action: "accept" | "reject",
+  ) {
+    if (!editor || !onResolveProposedEdit || trackBusy) return;
+    setTrackBusy(true);
+    setError(null);
+    try {
+      await onResolveProposedEdit(edit.id, action);
+      if (action === "accept") {
+        const applied = applyProposedEditToEditor(editor, edit);
+        if (!applied) {
+          setTrackNotice(
+            "Accepted on the record. The text could not be applied in place " +
+              "here — it lands when the final redline is decided.",
+          );
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTrackBusy(false);
+    }
+  }
+
+  // "Accept all" / "Reject all" still resolve one edit at a time so each
+  // decision lands as its own audit row — and they only touch edits the
+  // user can SEE inline (anchored). Unanchored edits stay pending in the
+  // suggested-edits rail; one click never decides an unseen change. The
+  // anchor is re-checked per iteration because applying one edit can
+  // unanchor the next.
+  async function resolveAllProposedEdits(action: "accept" | "reject") {
+    if (!editor || !onResolveProposedEdit || trackBusy) return;
+    setTrackBusy(true);
+    setError(null);
+    try {
+      for (const edit of [...proposedEdits]) {
+        if (!locateProposedEditInDoc(editor.state.doc, edit)) continue;
+        await onResolveProposedEdit(edit.id, action);
+        if (action === "accept") {
+          const applied = applyProposedEditToEditor(editor, edit);
+          if (!applied) {
+            setTrackNotice(
+              "Some accepted changes could not be applied in place — they " +
+                "land when the final redline is decided.",
+            );
+          }
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTrackBusy(false);
+    }
+  }
+
+  trackHandlersRef.current = {
+    resolve: (edit, action) => void resolveProposedEditInline(edit, action),
+  };
+
   async function save(): Promise<DocumentVersionRead | null> {
     if (!editor || !canSave) return null;
     setSaving(true);
@@ -1236,6 +1569,21 @@ export function DocumentRichEditor({
           >
             Find
           </button>
+          {proposedEdits.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setRedlinesVisible((current) => !current)}
+              aria-pressed={redlinesVisible}
+              data-testid="document-editor-redlines-toggle"
+              className={`inline-flex h-8 items-center rounded-item border px-3 text-xs ${
+                redlinesVisible
+                  ? "border-ink bg-paper text-ink"
+                  : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
+              }`}
+            >
+              Redlines ({proposedEdits.length})
+            </button>
+          )}
           <span className="ml-2 inline-flex items-center gap-2 text-xs text-muted">
             <span
               className={`h-2 w-2 rounded-full ${
@@ -1289,6 +1637,20 @@ export function DocumentRichEditor({
                   className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
                 >
                   Download text
+                </button>
+                <span
+                  className="inline-flex h-8 items-center px-2 text-xs text-muted"
+                  data-testid="document-editor-word-count"
+                >
+                  {documentStatsFromText(plainText).words.toLocaleString()} words
+                </span>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  disabled={!plainText.trim()}
+                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
+                >
+                  Print / PDF
                 </button>
                 <button
                   type="button"
@@ -1582,6 +1944,39 @@ export function DocumentRichEditor({
               Match {findPositionLabel}: {findPreview}
             </p>
           )}
+        </div>
+        )}
+        {redlinesVisible && proposedEdits.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2 text-xs text-muted"
+          data-testid="document-editor-redlines-panel"
+        >
+          <span>
+            {proposedEdits.length} proposed change
+            {proposedEdits.length === 1 ? "" : "s"}
+            {anchoredProposedEditCount < proposedEdits.length
+              ? ` · ${proposedEdits.length - anchoredProposedEditCount} not anchored in this text — review in the suggested-edits list`
+              : ""}
+            {trackNotice ? ` · ${trackNotice}` : ""}
+          </span>
+          <span className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => void resolveAllProposedEdits("accept")}
+              disabled={trackBusy || !onResolveProposedEdit}
+              className="inline-flex h-7 items-center rounded-item border border-ink bg-ink px-2.5 text-xs text-paper hover:bg-seal disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
+            >
+              {trackBusy ? "Working…" : "Accept all"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void resolveAllProposedEdits("reject")}
+              disabled={trackBusy || !onResolveProposedEdit}
+              className="inline-flex h-7 items-center rounded-item border border-rule bg-paper px-2.5 text-xs text-muted hover:border-seal hover:text-seal disabled:opacity-40"
+            >
+              Reject all
+            </button>
+          </span>
         </div>
         )}
       </div>

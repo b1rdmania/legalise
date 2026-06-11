@@ -15,6 +15,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import type { TabKey } from "./tabs/types";
 import { MATTER_TAB_LABELS, isTabKey } from "./tabs/types";
 import {
+  acceptEdit,
+  ConflictError,
   createDocumentComment,
   documentOriginalUrl,
   documentVersionDocxUrl,
@@ -32,6 +34,7 @@ import {
   listDocuments,
   listInstalledModules,
   readArtifact,
+  rejectEdit,
   reopenDocumentComment,
   resolveDocumentComment,
   startDocumentEditSession,
@@ -63,6 +66,7 @@ import {
   DocumentRichEditor,
   findNormalizedRange,
   type DocumentNoteHighlight,
+  type DocumentProposedEdit,
   type TiptapNode,
 } from "../modules/document_edit/DocumentRichEditor";
 import { GenericSkillRunner } from "./GenericSkillRunner";
@@ -541,6 +545,67 @@ export function DocumentDetail({
       quote: comment.quote_text ?? "",
       status: comment.status,
     }));
+  // Inline tracked changes: pending AI-proposed edits rendered as
+  // in-document decorations the supervisor resolves one by one.
+  const proposedInlineEdits: DocumentProposedEdit[] = (
+    activeEditResult?.pending_edits ?? []
+  )
+    .filter((edit) => edit.status === "pending")
+    .map((edit) => ({
+      id: edit.id,
+      deletedText: edit.deleted_text,
+      insertedText: edit.inserted_text,
+      contextBefore: edit.context_before,
+      contextAfter: edit.context_after,
+      rationale: edit.rationale,
+    }));
+  const resolveProposedEdit = async (
+    editId: string,
+    action: "accept" | "reject",
+  ) => {
+    const markResolved = (status: string) =>
+      setActiveEditResult((current) =>
+        current
+          ? {
+              ...current,
+              pending_edits: current.pending_edits.map((edit) =>
+                edit.id === editId ? { ...edit, status } : edit,
+              ),
+            }
+          : current,
+      );
+    try {
+      const res = action === "accept" ? await acceptEdit(editId) : await rejectEdit(editId);
+      markResolved(res.edit.status);
+      if (res.new_version) {
+        // Last pending edit on the proposal version — the backend has
+        // closed it into a new resolved version. Refresh the working
+        // text the same way the wholesale flow does.
+        loadBody();
+      }
+      loadVersions();
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        // Another tab resolved it first — and we cannot know which way.
+        // Drop it from the pending list rather than guess; the refreshed
+        // body/version state carries the truth.
+        setActiveEditResult((current) =>
+          current
+            ? {
+                ...current,
+                pending_edits: current.pending_edits.filter(
+                  (edit) => edit.id !== editId,
+                ),
+              }
+            : current,
+        );
+        loadBody();
+        loadVersions();
+        return;
+      }
+      throw err;
+    }
+  };
   const confirmDiscardEditorChanges = () =>
     !editorDirty || window.confirm("Discard unsaved document edits?");
   const openWorkbenchView = (next: WorkbenchView) => {
@@ -1030,6 +1095,11 @@ export function DocumentDetail({
                   </button>
                 </div>
                 <TrackedChangesView
+                  // Re-key when inline (in-editor) resolutions land so the
+                  // rail copy of the edit list never goes stale.
+                  key={activeEditResult.pending_edits
+                    .map((edit) => `${edit.id}:${edit.status}`)
+                    .join("|")}
                   result={activeEditResult}
                   onResolved={() => {
                     loadBody();
@@ -1176,6 +1246,8 @@ export function DocumentDetail({
                       sourceLabel={editorSourceLabel}
                       sourceHighlight={currentReaderQuote}
                       noteHighlights={anchoredOpenNotes}
+                      proposedEdits={proposedInlineEdits}
+                      onResolveProposedEdit={resolveProposedEdit}
                       selectedQuote={selectedQuote || undefined}
                       selectedQuoteAnchored={Boolean(selectedAnchor)}
                       onCreateNoteFromSelection={startNoteFromCurrentSelection}

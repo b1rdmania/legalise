@@ -176,6 +176,67 @@
     padding: 0 0.08em;
   }
 
+  /* Inline tracked changes — proposed AI/skill edits. Deletion struck in
+     seal (a deletion being proposed, not decoration); insertion underlined
+     in ink. Controls appear on hover of the change; always on touch. */
+  .legalise-document-editor .legalise-track-delete {
+    color: #8B0000;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+
+  .legalise-document-editor .legalise-track-insert {
+    color: #181818;
+    text-decoration: underline;
+    text-decoration-color: #181818;
+    text-underline-offset: 3px;
+    padding: 0 0.05em;
+  }
+
+  .legalise-document-editor .legalise-track-controls {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 4px;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    vertical-align: baseline;
+  }
+
+  .legalise-document-editor .legalise-track-change:hover .legalise-track-controls,
+  .legalise-document-editor
+    .legalise-track-delete:hover
+    + .legalise-track-change
+    .legalise-track-controls {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .legalise-document-editor .legalise-track-controls {
+      opacity: 1;
+    }
+  }
+
+  .legalise-document-editor .legalise-track-controls button {
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    color: #181818;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+
+  .legalise-document-editor .legalise-track-controls .legalise-track-accept:hover {
+    background: #8B0000;
+    border-color: #8B0000;
+    color: #FFFFFF;
+  }
+
+  .legalise-document-editor .legalise-track-controls .legalise-track-reject:hover {
+    border-color: #8B0000;
+    color: #8B0000;
+  }
+
   .legalise-document-editor ul[data-type="taskList"] {
     list-style: none;
     margin: 0 0 1.25rem;
@@ -295,4 +356,34 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(2px); }
   to   { opacity: 1; transform: none; }
+}
+
+/* Print / PDF — document content only, serif body, no app chrome. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .legalise-document-editor,
+  .legalise-document-editor * {
+    visibility: visible;
+  }
+
+  .legalise-document-editor {
+    border: none !important;
+    box-shadow: none !important;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 12pt;
+    left: 0;
+    line-height: 1.6;
+    min-height: auto !important;
+    padding: 0 !important;
+    position: absolute;
+    top: 0;
+    width: 100% !important;
+  }
+
+  .legalise-document-editor .legalise-track-controls {
+    display: none !important;
+  }
 }
