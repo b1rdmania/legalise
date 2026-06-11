@@ -223,9 +223,13 @@ async def test_response_shape_excludes_secrets_and_internals(client, db_session)
     rows = resp.json()
     matching = next((r for r in rows if r["module_id"] == module_id), None)
     assert matching is not None
-    # Documented fields present.
+    # Documented fields present. `name` (manifest display name) and
+    # `install_path` (the manifest's public source_url, pinned-SHA
+    # provenance for the register) were added for the Counsel Register —
+    # both come from the manifest the user already reviewed, not secrets.
     expected_keys = {
         "module_id",
+        "name",
         "version",
         "publisher",
         "visibility",
@@ -234,12 +238,12 @@ async def test_response_shape_excludes_secrets_and_internals(client, db_session)
         "enabled",
         "installed_at",
         "installed_by_user_id",
+        "install_path",
     }
     assert set(matching.keys()) == expected_keys
-    # Never leaks manifest / permissions / install_path.
+    # Never leaks the raw snapshots or signer internals.
     assert "manifest_snapshot" not in matching
     assert "permissions_snapshot" not in matching
-    assert "install_path" not in matching
     assert "signed_by" not in matching
 
 
