@@ -1527,3 +1527,30 @@ Exact values:
 
 Where it lands: `matter/tabs/AssistantTab.tsx` (workPane state + `AssistantWorkPane`), `matter/DocumentDetail.tsx` (editor route).
 Deliberate divergences (2026-06-10 audit): the pane surface is an inline `<aside>`, not `ui/Drawer` (same slide-over behaviour). Pane contents: **sources** renders real cited-document cards (parsed from `[doc:id]`); **versions** and **activity** are link-out gateways this slice (cards + "Open versions" / "Open Activity"), not embedded timelines — embedding the version timeline and a lite record view in-pane is the next P24 increment, tracked, not drift.
+
+---
+
+## P25 — Minimal document surface (strip pass)
+
+Source: MikeOS / Notion / Craft document surfaces via prior Mobbin passes (web, 2026-06-11); direct audit of the shipped surface (14 chrome strata before document text at 1440×900). Direction: "strip, don't dress" — one headline per page, eyebrows die, explainer copy only on empty states.
+
+What we lift:
+- The document is the page. Everything that narrates the page instead of doing work is removed, not restyled.
+- One toolbar row; secondary actions live in one overflow; find is summoned (Cmd/Ctrl+F), not standing.
+- Counters never render at zero. Presence chrome only when a second person is actually present.
+
+Exact values (copy, do not approximate):
+| Property | Value | Notes |
+|---|---|---|
+| Filename h1 | `text-[22px] sm:text-[26px]` | was 30/36 — the filename is wayfinding, not a hero |
+| Meta line | state dot · tag · disclosure/uploaded · size · vN | ONE line; the zero-counter row (`document-header-status`) is deleted |
+| "Opened from Chat…" note | render ONLY when a cited quote exists (highlight/not-found info) | generic narration variant deleted |
+| Presence strip | render ONLY when `activeEditSessions.length > 1` | "You are working in this file · Edits are saved as versions" deleted |
+| Right rail lecture card | DELETED (`document-next-step`, `document-review-board`, `document-work-plan`, `document-output-links`) | functional rail sections stay: review queue, skill runner, suggested edits, state rail, review notes |
+| Editor command bar | ONE row: Page/Wide · Format toggle · Find toggle · Save · ⋯ menu (Copy text, Download DOCX, Text export, Reset) | "Working copy" heading + source meta deleted; second + third toolbar rows deleted |
+| Save status | inline dot + `Saved · vN` (or draft-state label) right of toolbar | "Every save creates a new version." + words/chars/blocks strip deleted |
+| Find panel | hidden by default; opens via toolbar toggle or Cmd/Ctrl+F (focuses input) | was permanently open |
+| Shortcut hint line | DELETED ("Cmd/Ctrl+S saves · Cmd/Ctrl+F finds") | discoverable, not narrated |
+
+Where it lands: `matter/DocumentDetail.tsx`, `modules/document_edit/DocumentRichEditor.tsx`.
+Deliberate divergences from the strip list: the rail's *functional* panels (notes, skill runner, redlines, state rail) survive — the cut is narration and zero-counters, not work surfaces. "Ask about this file" survives as one button in the command bar.

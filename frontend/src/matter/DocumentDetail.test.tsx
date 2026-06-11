@@ -278,24 +278,15 @@ describe("DocumentDetail", () => {
     // The editor is the hero — source text opens directly in the
     // editable document surface without metadata disclosure first.
     expect(screen.getByTestId("document-editor")).toBeInTheDocument();
-    expect(screen.getByText(/pypdf · 23 chars · 3 pages/)).toBeInTheDocument();
     expect(screen.getByText("Ready to read")).toBeInTheDocument();
-    expect(screen.getByTestId("document-header-status")).toHaveTextContent(
-      "0 open notes · 0 pending changes · 0 versions · 0 ready skills",
-    );
+    // P25: narration chrome is gone — no zero-counter row, no lecture card,
+    // no counter board, no shortcuts accordion, no outputs accordion.
+    expect(screen.queryByTestId("document-header-status")).toBeNull();
+    expect(screen.queryByTestId("document-review-board")).toBeNull();
+    expect(screen.queryByTestId("document-work-plan")).toBeNull();
+    expect(screen.queryByTestId("document-output-links")).toBeNull();
+    expect(screen.queryByText("Work on this file")).toBeNull();
     expect(screen.getByTestId("document-state-rail")).toBeInTheDocument();
-    expect(screen.getByTestId("document-next-step")).toHaveTextContent(
-      "Review, edit, or export this document.",
-    );
-    expect(screen.getByTestId("document-review-board")).toHaveTextContent("Notes");
-    expect(screen.getByTestId("document-review-board")).toHaveTextContent("Skills");
-    expect(screen.getByTestId("document-review-board")).toHaveTextContent("Outputs");
-    expect(await screen.findByTestId("document-output-links")).toHaveTextContent(
-      "No outputs cite this file yet",
-    );
-    expect(screen.getByTestId("document-work-plan")).toHaveTextContent(
-      "Run document skill",
-    );
     expect(screen.getByText("Suggest edits")).toBeInTheDocument();
     expect(screen.getByTestId("document-workbench-tabs")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Read" })).toBeInTheDocument();
@@ -342,60 +333,7 @@ describe("DocumentDetail", () => {
     const pdf = screen.getByTestId("document-download-edited-pdf");
     expect(pdf).toHaveTextContent("Download PDF");
     expect(pdf.getAttribute("href")).toContain("/documents/doc-1/versions/v-2/pdf");
-    expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
-  });
-
-  it("links signed outputs that cite this document", async () => {
-    vi.spyOn(api, "listDocuments").mockResolvedValue([doc()]);
-    vi.spyOn(api, "getDocumentBody").mockResolvedValue(body());
-    vi.spyOn(api, "listArtifacts").mockResolvedValue([
-      {
-        id: "art-1",
-        matter_id: "m-1",
-        module_id: "demo.guided-skill",
-        capability_id: "summarise",
-        invocation_id: "inv-1",
-        kind: "skill_response",
-        created_by_id: "u-1",
-        created_at: "2026-06-03T10:00:00",
-        size_bytes: 123,
-      },
-    ]);
-    vi.spyOn(api, "readArtifact").mockResolvedValue({
-      id: "art-1",
-      matter_id: "m-1",
-      module_id: "demo.guided-skill",
-      capability_id: "summarise",
-      invocation_id: "inv-1",
-      kind: "skill_response",
-      created_by_id: "u-1",
-      created_at: "2026-06-03T10:00:00",
-      size_bytes: 123,
-      payload: {
-        output: "Summary",
-        source_anchors: [
-          {
-            id: "a1",
-            source_type: "document",
-            document_id: "doc-1",
-            filename: "claim-form.pdf",
-          },
-        ],
-      },
-    });
-
-    mount();
-
-    const links = await screen.findByTestId("document-output-links");
-    expect(links).toHaveTextContent("1 output cites this file");
-    const attached = await screen.findByTestId("document-attached-outputs");
-    expect(attached).toHaveTextContent("Work from this file");
-    expect(attached).toHaveTextContent("1 signed output cites this document.");
-    expect(within(attached).getByRole("link", { name: /skill response/i })).toHaveAttribute(
-      "href",
-      "/matters/khan/artifacts/art-1",
-    );
-    expect(screen.getAllByRole("link", { name: /skill response/i })).toHaveLength(2);
+    expect(screen.getByText("Viewing saved version v2")).toBeInTheDocument();
   });
 
   it("shows original file actions for uploaded versions in the version record", async () => {
@@ -449,7 +387,7 @@ describe("DocumentDetail", () => {
     ]);
 
     const { container } = mount();
-    await screen.findByText(/Viewing saved version v3/);
+    await screen.findByText("Viewing saved version v3");
     await expectEditorText(container, "Second saved body");
     expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
       "/documents/doc-1/versions/v-3/docx",
@@ -471,7 +409,7 @@ describe("DocumentDetail", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "v2" }));
     await waitFor(() => {
-      expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+      expect(screen.getByText("Viewing saved version v2")).toBeInTheDocument();
     });
     await expectEditorText(container, "First saved body");
     expect(screen.getByTestId("document-download-edited-docx").getAttribute("href")).toContain(
@@ -484,7 +422,7 @@ describe("DocumentDetail", () => {
     fireEvent.click(screen.getByRole("button", { name: "Versions" }));
     fireEvent.click(screen.getByRole("button", { name: "Extracted text" }));
     await waitFor(() => {
-      expect(screen.getByText(/python-docx · 13 chars · 1 pages/)).toBeInTheDocument();
+      // P25: extraction meta cut from chrome
     });
     await expectEditorText(container, "Original body");
     expect(screen.queryByTestId("document-download-edited-docx")).toBeNull();
@@ -688,9 +626,6 @@ describe("DocumentDetail", () => {
     fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
 
     expect(await screen.findByTestId("generic-runner-result")).toHaveTextContent("Output written");
-    expect(screen.getByTestId("document-output-links")).toHaveTextContent(
-      "1 output cites this file",
-    );
   });
 
   it("runs a ready document skill against a selected passage", async () => {
@@ -1070,7 +1005,7 @@ describe("DocumentDetail", () => {
     ]);
 
     mount();
-    await screen.findByText(/Viewing saved version v2/);
+    await screen.findByText("Viewing saved version v2");
     fireEvent.click(screen.getByRole("button", { name: "Versions" }));
 
     expect(screen.getByRole("heading", { name: "Saved versions" })).toBeInTheDocument();
@@ -1124,7 +1059,7 @@ describe("DocumentDetail", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "draft-v2.txt" })).toBeInTheDocument();
     });
-    expect(screen.getByText(/Viewing saved version v2/)).toBeInTheDocument();
+    expect(screen.getByText("Viewing saved version v2")).toBeInTheDocument();
   });
 
   it("restores a prior saved version and refreshes active document content", async () => {
@@ -1301,15 +1236,13 @@ describe("DocumentDetail", () => {
     });
 
     mount("doc-1", "?from=assistant");
-    await waitFor(() => {
-      expect(screen.getByTestId("from-chat-note")).toBeInTheDocument();
-    });
     // Smart back reflects the arrived-from tab.
-    expect(screen.getByTestId("document-back-link")).toHaveTextContent(/Back to Chat/i);
-    expect(screen.getByTestId("document-next-step")).toHaveTextContent(
-      /Ask the next question with this file attached/i,
-    );
-    expect(screen.getByRole("button", { name: "Back to Chat" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("document-back-link")).toHaveTextContent(/Back to Chat/i);
+    });
+    // P25: no narration note without a cited quote, and no lecture card.
+    expect(screen.queryByTestId("from-chat-note")).toBeNull();
+    expect(screen.queryByText(/Ask the next question with this file attached/i)).toBeNull();
   });
 
   it("highlights a cited quote when opened from an output source link", async () => {

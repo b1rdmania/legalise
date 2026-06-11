@@ -538,6 +538,7 @@ export function DocumentRichEditor({
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
   const [findQuery, setFindQuery] = useState("");
+  const [findOpen, setFindOpen] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
   const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
@@ -911,7 +912,6 @@ export function DocumentRichEditor({
     [noteHighlights, plainText],
   );
   const locatedNoteCount = noteAnchorSummaries.filter((note) => note.located).length;
-  const stats = useMemo(() => documentStatsFromText(plainText), [plainText]);
   const workingDiffParts = useMemo(
     () => buildVersionDiff(draftBaselineText, plainText),
     [draftBaselineText, plainText],
@@ -1177,8 +1177,11 @@ export function DocumentRichEditor({
       const key = event.key.toLowerCase();
       if (key === "f") {
         event.preventDefault();
-        findInputRef.current?.focus();
-        findInputRef.current?.select();
+        setFindOpen(true);
+        requestAnimationFrame(() => {
+          findInputRef.current?.focus();
+          findInputRef.current?.select();
+        });
       }
       if (key === "s") {
         event.preventDefault();
@@ -1195,81 +1198,19 @@ export function DocumentRichEditor({
         className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur"
         data-testid="document-editor-command-bar"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-[220px]">
-            <h2 className="text-[15px] font-semibold text-ink">Working copy</h2>
-            <p className="mt-1 text-xs text-muted">
-              {sourceLabel}
-              {latestVersionNumber ? ` · latest v${latestVersionNumber}` : ""}
-            </p>
+        <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 text-[13px]">
+          <div
+            className="flex items-center gap-1 border-r border-rule pr-2"
+            aria-label="Document view"
+            data-testid="document-editor-view-mode"
+          >
+            <ViewModeButton active={canvasMode === "page"} onClick={() => setCanvasMode("page")}>
+              Page
+            </ViewModeButton>
+            <ViewModeButton active={canvasMode === "wide"} onClick={() => setCanvasMode("wide")}>
+              Wide
+            </ViewModeButton>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
-            <div
-              className="mr-1 flex items-center gap-1 border-r border-rule pr-2"
-              aria-label="Document view"
-              data-testid="document-editor-view-mode"
-            >
-              <ViewModeButton active={canvasMode === "page"} onClick={() => setCanvasMode("page")}>
-                Page
-              </ViewModeButton>
-              <ViewModeButton active={canvasMode === "wide"} onClick={() => setCanvasMode("wide")}>
-                Wide
-              </ViewModeButton>
-            </div>
-            <button
-              type="button"
-              onClick={reset}
-              disabled={!dirty || saving}
-              className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={() => void copyWorkingText()}
-              disabled={!plainText.trim()}
-              className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-            >
-              Copy text
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              disabled={!canSave}
-              className="inline-flex h-8 items-center rounded-item border border-ink bg-ink px-3 text-xs text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void saveAndDownloadDocx()}
-              disabled={!canDownloadDocx}
-              className="inline-flex h-8 items-center rounded-item border border-rule bg-paper px-3 text-xs text-ink hover:border-ink disabled:border-rule disabled:text-muted disabled:opacity-50"
-            >
-              {downloadingDocx ? "Preparing…" : dirty ? "Save & download" : "Download DOCX"}
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-rule bg-paper-sunken px-4 py-2 text-xs text-muted">
-          <span className="inline-flex items-center gap-2">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                draftSaveState === "error"
-                  ? "bg-red-700"
-                  : dirty
-                    ? "bg-amber-500"
-                    : "bg-emerald-700"
-              }`}
-              aria-hidden="true"
-            />
-            {editorStatusLabel}. Every save creates a new version.
-          </span>
-          <span className="tech-token uppercase tracking-track2" data-testid="document-editor-stats">
-            {stats.words.toLocaleString()} words · {stats.chars.toLocaleString()} chars ·{" "}
-            {stats.blocks.toLocaleString()} blocks
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-2">
           <button
             type="button"
             onClick={() => setFormatOpen((current) => !current)}
@@ -1280,13 +1221,85 @@ export function DocumentRichEditor({
           </button>
           <button
             type="button"
-            onClick={downloadWorkingText}
-            disabled={!plainText.trim()}
-            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
+            onClick={() => {
+              setFindOpen((current) => {
+                const next = !current;
+                if (next) {
+                  requestAnimationFrame(() => findInputRef.current?.focus());
+                }
+                return next;
+              });
+            }}
+            aria-expanded={findOpen}
+            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink"
           >
-            Text export
+            Find
           </button>
-          <span className="ml-auto text-xs text-muted">Cmd/Ctrl+S saves · Cmd/Ctrl+F finds</span>
+          <span className="ml-2 inline-flex items-center gap-2 text-xs text-muted">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                draftSaveState === "error"
+                  ? "bg-red-700"
+                  : dirty
+                    ? "bg-amber-500"
+                    : "bg-emerald-700"
+              }`}
+              aria-hidden="true"
+            />
+            {editorStatusLabel}
+          </span>
+          {sourceLabel?.startsWith("Viewing saved version") && (
+            <span className="text-xs text-muted">{sourceLabel}</span>
+          )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={save}
+              disabled={!canSave}
+              className="inline-flex h-8 items-center rounded-item border border-ink bg-ink px-3 text-xs text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
+            >
+              {saving ? "Saving…" : "Save version"}
+            </button>
+            <details className="relative" data-testid="document-editor-more">
+              <summary className="inline-flex h-8 cursor-pointer list-none items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink">
+                More
+              </summary>
+              <div className="absolute right-0 z-20 mt-1 grid min-w-44 gap-1 rounded-card border border-rule bg-paper p-1.5 shadow-panel">
+                <button
+                  type="button"
+                  onClick={() => void saveAndDownloadDocx()}
+                  disabled={!canDownloadDocx}
+                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
+                >
+                  {downloadingDocx ? "Preparing…" : dirty ? "Save & download DOCX" : "Download DOCX"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void copyWorkingText()}
+                  disabled={!plainText.trim()}
+                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
+                >
+                  Copy text
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadWorkingText}
+                  disabled={!plainText.trim()}
+                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
+                >
+                  Download text
+                </button>
+                <button
+                  type="button"
+                  onClick={reset}
+                  disabled={!dirty || saving}
+                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
+                >
+                  Reset
+                </button>
+              </div>
+            </details>
+          </div>
         </div>
         {formatOpen && (
         <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-2">
@@ -1504,6 +1517,7 @@ export function DocumentRichEditor({
           <span className="ml-auto text-xs text-muted">Formatting tools</span>
         </div>
         )}
+        {(findOpen || findQuery.trim()) && (
         <div
           className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2.5"
           data-testid="document-editor-find-panel"
@@ -1568,6 +1582,7 @@ export function DocumentRichEditor({
             </p>
           )}
         </div>
+        )}
       </div>
 
       {copiedMessage && (
@@ -1812,18 +1827,14 @@ export function DocumentRichEditor({
       <div className="grid min-h-[620px] lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="border-b border-rule bg-paper px-5 py-5 lg:border-b-0 lg:border-r">
           <div className="space-y-5">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Source passage
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                {sourceHighlight
-                  ? sourceRange
-                    ? "Located in this version."
-                    : "Not located in this version."
-                  : "No cited passage selected."}
-              </p>
-              {sourceHighlight && (
+            {sourceHighlight && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  Source passage
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted">
+                  {sourceRange ? "Located in this version." : "Not located in this version."}
+                </p>
                 <button
                   type="button"
                   onClick={() => setFindQuery(sourceHighlight)}
@@ -1831,8 +1842,8 @@ export function DocumentRichEditor({
                 >
                   Search cited text
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             {selectedQuote && (
               <div
                 className="border border-ink bg-paper p-3"
@@ -1867,6 +1878,7 @@ export function DocumentRichEditor({
                 )}
               </div>
             )}
+            {noteHighlights.length > 0 && (
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
                 Review notes
@@ -1885,10 +1897,9 @@ export function DocumentRichEditor({
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="mt-2 text-sm text-muted">No anchored notes yet.</p>
-              )}
+              ) : null}
             </div>
+            )}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
                 Outline

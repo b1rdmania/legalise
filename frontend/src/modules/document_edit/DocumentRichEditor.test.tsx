@@ -672,7 +672,7 @@ describe("DocumentRichEditor surface", () => {
     expect(screen.getByTestId("document-editor")).toHaveTextContent("Shared draft saved · r3");
   });
 
-  it("renders grouped document editing controls on a page canvas", async () => {
+  it("renders a single-row command bar with summoned format tools (P25)", async () => {
     Object.assign(window.navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
@@ -687,25 +687,23 @@ describe("DocumentRichEditor surface", () => {
       />,
     );
 
-    expect(screen.getByTestId("document-editor")).toHaveTextContent("Document editor");
     expect(screen.getByTestId("document-editor-canvas")).toBeInTheDocument();
+    // P25: no narration chrome.
+    expect(screen.queryByText("Working copy")).toBeNull();
+    expect(screen.queryByText(/Every save creates a new version/)).toBeNull();
+    expect(screen.queryByText(/Cmd\/Ctrl\+S saves/)).toBeNull();
+    expect(screen.queryByTestId("document-editor-stats")).toBeNull();
+    // Find is summoned, not standing.
+    expect(screen.queryByTestId("document-editor-find-panel")).toBeNull();
+    // Format tools are summoned from the single row.
+    fireEvent.click(screen.getByRole("button", { name: "Format" }));
     expect(await screen.findByRole("button", { name: "Underline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove link" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Ink text" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Red text" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove text colour" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Align left" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Align centre" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Align right" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload image" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Insert image URL" })).toBeInTheDocument();
-    expect(screen.getByTestId("document-image-upload-input")).toHaveAttribute(
-      "accept",
-      "image/png,image/jpeg,image/webp,image/gif",
-    );
     expect(screen.getByRole("button", { name: "Insert table" })).toBeInTheDocument();
-    expect(screen.getByTestId("document-editor-stats")).toHaveTextContent("words");
+    // Secondary actions live in the single More overflow.
     expect(screen.getByRole("button", { name: "Copy text" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download text" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download DOCX" })).toBeDisabled();
@@ -768,6 +766,7 @@ describe("DocumentRichEditor surface", () => {
     expect(await screen.findByTestId("document-editor-canvas")).toHaveTextContent(
       "Existing text.",
     );
+    fireEvent.click(screen.getByRole("button", { name: "Format" }));
     const file = new File(["diagram"], "diagram.png", { type: "image/png" });
     fireEvent.change(screen.getByTestId("document-image-upload-input"), {
       target: { files: [file] },
@@ -802,6 +801,7 @@ describe("DocumentRichEditor surface", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("button", { name: "Find" }));
     fireEvent.change(await screen.findByLabelText("Find"), {
       target: { value: "Clause" },
     });
@@ -842,9 +842,10 @@ describe("DocumentRichEditor surface", () => {
       />,
     );
 
-    const find = await screen.findByLabelText("Find");
+    expect(screen.queryByLabelText("Find")).toBeNull(); // hidden until summoned
     fireEvent.keyDown(window, { key: "f", metaKey: true });
-    expect(find).toHaveFocus();
+    const find = await screen.findByLabelText("Find");
+    await waitFor(() => expect(find).toHaveFocus());
   });
 
   it("surfaces the selected passage as a review-note action", async () => {
