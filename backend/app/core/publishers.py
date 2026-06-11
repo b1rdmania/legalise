@@ -27,6 +27,11 @@ class PublisherInfo:
     display_name: str
     trust_root: str
     notes: str = ""
+    # Optional ed25519 public key: base64-encoded raw 32-byte key.
+    # When present, ``verify_manifest_signature`` upgrades from
+    # structural checking to real cryptographic verification for this
+    # publisher's manifests. None keeps the structural-only path.
+    ed25519_public_key: str | None = None
 
 
 # First-party + dev/test publishers. Hardcoded for now.
@@ -62,6 +67,16 @@ def is_verified_publisher(publisher_id: str) -> bool:
     return publisher_id in _VERIFIED
 
 
+def publisher_signing_key(publisher_id: str) -> str | None:
+    """Base64 raw ed25519 public key for a publisher, or None.
+
+    None means the publisher has no registered signing key and its
+    manifests can only reach STRUCTURE_VERIFIED, never VERIFIED.
+    """
+    info = _VERIFIED.get(publisher_id)
+    return info.ed25519_public_key if info else None
+
+
 def publisher_info(publisher_id: str) -> PublisherInfo | None:
     """Return the PublisherInfo for a verified publisher, or None."""
     return _VERIFIED.get(publisher_id)
@@ -75,6 +90,7 @@ def all_verified_publishers() -> list[PublisherInfo]:
 __all__ = [
     "PublisherInfo",
     "is_verified_publisher",
+    "publisher_signing_key",
     "publisher_info",
     "all_verified_publishers",
 ]

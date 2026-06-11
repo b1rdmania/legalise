@@ -240,6 +240,144 @@ async def test_signoff_emits_output_signed_audit(client) -> None:
     assert "output.signed" in actions
 
 
+# --- Author≠signer rule (SIGNOFF_AUTHOR_MUST_DIFFER) -----------------------
+
+
+def test_author_must_differ_defaults_off() -> None:
+    # Default False preserves the sole-practitioner hero loop
+    # (author self-sign, covered by test_author_can_sign_own_output).
+    from app.core.config import Settings
+
+    assert Settings().signoff_author_must_differ is False
+
+
+@pytest.mark.asyncio
+async def test_author_must_differ_blocks_self_sign(client, monkeypatch) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "signoff_author_must_differ", True, raising=False)
+    email = await _register_and_login(client)
+    slug, artifact_id = await _seed_matter_with_artifact(email)
+
+    for decision, reasoning in (
+        ("signed", None),
+        ("signed_with_observations", "Para 2 needs a second look."),
+    ):
+        resp = await client.post(
+            f"/api/matters/{slug}/signoffs",
+            json={
+                "artifact_id": artifact_id,
+                "decision": decision,
+                **({"reasoning": reasoning} if reasoning else {}),
+            },
+        )
+        assert resp.status_code == 403, resp.text
+        detail = resp.json()["detail"]
+        assert detail["error"] == "author_cannot_sign"
+        assert "someone else" in detail["message"]
+
+    # No sign-off row and no output.* audit row from the blocked attempts.
+    from app.main import app
+    from app.models import MatterSignoff
+
+    factory = app.state.session_factory
+    async with factory() as session:
+        matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+        signoffs = (
+            await session.execute(
+                select(MatterSignoff).where(MatterSignoff.matter_id == matter.id)
+            )
+        ).scalars().all()
+        assert signoffs == []
+        actions = set(
+            (
+                await session.execute(
+                    select(AuditEntry.action).where(AuditEntry.matter_id == matter.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert not any(a.startswith("output.") for a in actions)
+
+
+@pytest.mark.asyncio
+async def test_author_must_differ_still_allows_self_rejection(client, monkeypatch) -> None:
+    # Refusal is always permitted: the rule blocks taking ownership of
+    # your own work, not refusing to.
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "signoff_author_must_differ", True, raising=False)
+    email = await _register_and_login(client)
+    slug, artifact_id = await _seed_matter_with_artifact(email)
+
+    resp = await client.post(
+        f"/api/matters/{slug}/signoffs",
+        json={
+            "artifact_id": artifact_id,
+            "decision": "rejected",
+            "reasoning": "I do not stand behind this draft.",
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["decision"] == "rejected"
+    assert body["signer_is_author"] is True
+
+    # The rejection audit row lands as normal — the rule changes nothing
+    # about what a permitted decision records.
+    from app.main import app
+
+    factory = app.state.session_factory
+    async with factory() as session:
+        matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+        actions = set(
+            (
+                await session.execute(
+                    select(AuditEntry.action).where(AuditEntry.matter_id == matter.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+    assert "output.sign_rejected" in actions
+    assert "output.signed" not in actions
+
+
+@pytest.mark.asyncio
+async def test_author_must_differ_allows_non_author_signer(client, monkeypatch) -> None:
+    # Service-level: with the rule on, a different user signing someone
+    # else's artifact is allowed (matters are owner-only at the API layer,
+    # so the four-eyes path exercises the service directly).
+    from app.core.config import settings
+    from app.core.signoff import create_signoff
+
+    monkeypatch.setattr(settings, "signoff_author_must_differ", True, raising=False)
+    author = await _register_and_login(client)
+    slug, artifact_id = await _seed_matter_with_artifact(author)
+    reviewer = await _register_and_login(client)
+
+    from app.main import app
+
+    factory = app.state.session_factory
+    async with factory() as session:
+        matter = await session.scalar(select(Matter).where(Matter.slug == slug))
+        artifact = await session.scalar(
+            select(MatterArtifact).where(MatterArtifact.id == uuid.UUID(artifact_id))
+        )
+        reviewer_user = await session.scalar(select(User).where(User.email == reviewer))
+        signoff = await create_signoff(
+            session,
+            matter=matter,
+            artifact=artifact,
+            user=reviewer_user,
+            decision="signed",
+        )
+        await session.commit()
+        assert signoff.signer_id == reviewer_user.id
+        assert artifact.created_by_id != reviewer_user.id
+
+
 @pytest.mark.asyncio
 async def test_non_owner_superuser_cannot_sign_someone_elses_output(client) -> None:
     # Professional sign-off is personal ownership, not an admin override.

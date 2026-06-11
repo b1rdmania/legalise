@@ -77,6 +77,15 @@ class Settings(BaseSettings):
     firm_role_gates_enabled: bool = Field(
         default=False, alias="LEGALISE_FIRM_ROLE_GATES_ENABLED"
     )
+    # Author≠signer rule (deployable four-eyes). When true, a signer may
+    # not sign (signed / signed_with_observations) an artifact they
+    # authored — a second account must take ownership. Rejecting your own
+    # work stays allowed: refusal is always permitted. Default False
+    # preserves the sole-practitioner hero loop (author self-sign,
+    # labelled via signer_is_author rather than hidden).
+    signoff_author_must_differ: bool = Field(
+        default=False, alias="SIGNOFF_AUTHOR_MUST_DIFFER"
+    )
     # Local/eval convenience only: when true in a dev environment, the
     # first registered user is promoted to workspace admin. Production
     # ignores the flag so a hosted deployment cannot accidentally open

@@ -28,7 +28,10 @@ automation. Legalise should make it clear what the AI saw, what it did, which
 permission allowed it, which human remained accountable, and what record would
 be available to a firm, insurer, client, or regulator afterwards. The audit log
 is the receipt for that supervision model; it is not a claim that v0.1 is a
-regulated practice system.
+regulated practice system. Firms that need a four-eyes rule can deploy with
+`SIGNOFF_AUTHOR_MUST_DIFFER` set, which blocks an author from signing their
+own output (rejecting it stays allowed) — off by default so a sole
+practitioner can still sign their own work as themselves.
 
 ## 2. What Legalise is not
 
@@ -260,8 +263,17 @@ Runtime provenance is separate and audited. Every skill invocation records
 `module.capability.invoked` plus the gateway's `model.call`, so "which
 skills ran against which matters?" is answerable from the audit log.
 
+Manifest signatures come in two honest grades. `verified` means the
+manifest carries an ed25519 signature that cryptographically checks out
+against the publisher's registered public key — only the holder of that
+publisher's private key could have produced it. `structure_verified` means
+shape-only: the signature is present and plausible, the publisher is in
+the registry, and `signed_by` matches — but no cryptography was performed
+and a well-formed forgery would pass. The status string says exactly which
+check ran; publishers without a registered key can never reach `verified`.
+
 What the current release does **not** yet cover: prompt-injection scanning, automated
-`SKILL.md` linting, signed manifests, organisation-level skill allowlists,
+`SKILL.md` linting, organisation-level skill allowlists,
 or per-workspace enable/disable policy. Those are v0.2 concerns.
 
 ---
