@@ -962,6 +962,7 @@ export function DocumentRichEditor({
     );
     if (findQuery.trim().length >= 3 && findMatches.length > 0) {
       window.requestAnimationFrame(() => {
+        if (editor.isDestroyed) return;
         editor.view.dom
           .querySelector('[data-find-match="active"]')
           ?.scrollIntoView({ block: "center", inline: "nearest" });
