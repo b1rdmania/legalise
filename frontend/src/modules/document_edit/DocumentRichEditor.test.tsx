@@ -565,7 +565,9 @@ describe("DocumentRichEditor surface", () => {
     );
 
     expect(await screen.findByText("Server draft wording.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save version" }));
+    const saveButton = screen.getByRole("button", { name: "Save version" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: "version-2" }));
@@ -660,7 +662,9 @@ describe("DocumentRichEditor surface", () => {
     );
 
     expect(await screen.findByText("Server draft wording.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save version" }));
+    const saveButton = screen.getByRole("button", { name: "Save version" });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+    fireEvent.click(saveButton);
 
     expect(await screen.findByTestId("document-server-draft-error")).toHaveTextContent(
       "The shared draft changed before this version save.",
