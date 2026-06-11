@@ -1267,8 +1267,17 @@ describe("DocumentDetail", () => {
       expect(screen.getByTestId("from-chat-note")).toHaveTextContent(
         /cited passage is highlighted/i,
       );
-    });
-    expect(container.querySelector("mark")).not.toBeNull();
+    }, { timeout: 5000 });
+    // The <mark> is painted by Tiptap/ProseMirror, whose editor view
+    // mounts in an effect AFTER the React commit that renders the
+    // from-chat note — under parallel CI load the highlight can land a
+    // tick later than the note. Wait for it explicitly.
+    await waitFor(
+      () => {
+        expect(container.querySelector("mark")).not.toBeNull();
+      },
+      { timeout: 5000 },
+    );
   });
 
   it("warns when a source quote was not located in the extracted source body", async () => {
