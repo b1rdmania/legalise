@@ -190,7 +190,6 @@ describe("AssistantTab — in-chat skill picker", () => {
     });
 
     const context = await screen.findByTestId("chat-attached-document-context");
-    expect(context).toHaveTextContent(/Asking about/i);
     expect(context).toHaveTextContent("witness-statement.docx");
     expect(screen.getByTitle("Remove witness-statement.docx")).toBeInTheDocument();
   });

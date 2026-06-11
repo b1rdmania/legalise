@@ -94,7 +94,6 @@ export function ArtifactsList({ slug }: { slug: string }) {
         eyebrow="Matter"
         title="Signed outputs"
         subId={slug}
-        description="Drafts and signed material produced on this matter. Open an output to review sources, sign it, or trace how it was made."
       />
 
       {q.status === "loading" && (

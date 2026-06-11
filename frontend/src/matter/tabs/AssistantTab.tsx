@@ -419,15 +419,12 @@ export function AssistantTab({
 
         {attachedDocs.length > 0 && (
           <section
-            className="mb-4 rounded-card border border-rule bg-paper-sunken px-4 py-3"
+            className="mb-4 border-t border-rule py-2"
             data-testid="chat-attached-document-context"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-widest text-muted">
-                  Asking about
-                </p>
-                <div className="mt-1 flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2">
                   {attachedDocs.map((doc) => (
                     <span
                       key={doc.id}
@@ -552,7 +549,7 @@ export function AssistantTab({
           </div>
           ) : null
         ) : (
-          <div className="mt-3 sticky bottom-0 bg-paper pt-3">
+          <div className="sticky bottom-0 bg-paper pt-2">
           {/* Context attachments as chips ABOVE the composer */}
           {attachedDocs.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
@@ -562,11 +559,10 @@ export function AssistantTab({
                   type="button"
                   onClick={() => removeDoc(d.id)}
                   title={`Remove ${d.filename}`}
-                  className="inline-flex items-center gap-1.5 rounded-item border border-rule bg-paper px-2 py-1 tech-token text-[11px] text-ink hover:border-ink transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors"
                 >
-                  <span className="text-muted">Document</span>
-                  <span className="max-w-[180px] truncate">{d.filename}</span>
-                  <span className="text-muted ml-1" aria-hidden>x</span>
+                  <span className="max-w-[200px] truncate">{d.filename}</span>
+                  <span aria-hidden>×</span>
                 </button>
               ))}
             </div>
@@ -607,10 +603,9 @@ export function AssistantTab({
                 <div
                   role="menu"
                   aria-label="Skills enabled in this matter"
-                  className="absolute bottom-full left-0 mb-2 rounded-card border border-rule bg-paper p-3 w-[300px] z-10"
+                  className="absolute bottom-full left-0 mb-2 rounded-item border border-rule bg-paper p-2 w-[300px] z-10"
                   data-testid="chat-skills-popover"
                 >
-                  <div className="eyebrow mb-2">Run a skill</div>
                   {runnableSkillCount === 0 ? (
                     <p className="text-xs text-muted">
                       Nothing runnable here right now.{" "}
@@ -635,7 +630,7 @@ export function AssistantTab({
                                 type="button"
                                 role="menuitem"
                                 onClick={() => onPickRunnerSkill(skill)}
-                                className="flex w-full items-start justify-between gap-2 rounded-item border border-rule px-2 py-1.5 text-left text-xs hover:border-ink"
+                                className="flex w-full items-start justify-between gap-2 rounded-item px-2 py-1.5 text-left text-xs hover:bg-panel-hover"
                                 data-testid={`chat-runner-skill-${skill.moduleId}-${skill.capabilityId}`}
                               >
                                 <span className="block">
@@ -679,8 +674,7 @@ export function AssistantTab({
                 </div>
               )}
               {attachOpen && recentDocs.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-2 rounded-card border border-rule bg-paper p-3 w-[280px] z-10">
-                  <div className="eyebrow mb-2">Attach documents</div>
+                <div className="absolute bottom-full left-0 mb-2 rounded-item border border-rule bg-paper p-2 w-[280px] z-10">
                   <ul className="space-y-2">
                     {recentDocs.map((d) => {
                       const checked = selectedDocIds.has(d.id);
@@ -715,7 +709,7 @@ export function AssistantTab({
               <button
                 onClick={onSend}
                 disabled={pending || !input.trim()}
-                className={`${primaryBtn} min-h-[38px] px-4 py-1.5 text-[14px]`}
+                className={`${primaryBtn} min-h-[44px] px-4 py-1.5 text-[14px]`}
               >
                 {pending ? "Sending…" : "Send"}
               </button>

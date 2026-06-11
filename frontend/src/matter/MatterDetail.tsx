@@ -169,7 +169,7 @@ export function MatterDetail({ slug }: { slug: string }) {
   return (
     <div className="flex-1 min-w-0">
         <div className="flex">
-        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-10">
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-12 py-12">
           {error && matter && <ErrorCallout message={error} compact />}
           {matter && (
             <PostureBanner

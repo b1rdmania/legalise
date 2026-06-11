@@ -227,7 +227,7 @@ function BannerShell({
   return (
     <div
       data-testid="posture-banner"
-      className={`mb-6 rounded-md border px-4 py-3 ${toneClasses}`}
+      className={`mb-6 rounded-card border px-4 py-3 ${toneClasses}`}
     >
       <div className="flex items-start gap-3">
         <span

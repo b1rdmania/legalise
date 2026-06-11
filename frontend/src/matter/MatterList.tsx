@@ -29,7 +29,7 @@ export function MatterList() {
   }, []);
 
   return (
-    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-14">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1] mb-1">

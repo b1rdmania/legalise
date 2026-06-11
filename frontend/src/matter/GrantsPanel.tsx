@@ -589,11 +589,6 @@ export function GrantsPanel({
           <h3 className="text-xs uppercase tracking-widest text-muted">
             Available skills
           </h3>
-          <p className="mt-2 text-xs text-muted">
-            These skills are added, enabled, and fully permitted on this
-            matter. Readiness shows the provider-key boundary before a run
-            starts.
-          </p>
           <ul className="mt-3 space-y-3">
             {runnablePairs.map((p) => (
               <li

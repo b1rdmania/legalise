@@ -13,11 +13,12 @@ import type {
 // - Citations: small bordered chips BELOW the assistant paragraph (not inline).
 // - Suggestions: compact outline buttons below the assistant paragraph.
 
-const MODEL_LABEL = "Claude Sonnet 4.6";
 
-function modelLabel(message: AssistantMessage): string {
+function modelLabel(message: AssistantMessage): string | null {
+  // The model is a settings choice, not per-message chrome; only the
+  // honesty case (no model at all) earns a token in the meta line.
   if (message.model_used === "deterministic-summary") return "extract, no model";
-  return MODEL_LABEL;
+  return null;
 }
 
 interface Props {
@@ -107,7 +108,7 @@ function AssistantMessageView({
         }
       >
         <div className={`tech-token ${metaSizing} text-muted`}>
-          Assistant{compact ? "" : ` · ${modelLabel(message)}`}
+          Assistant{!compact && modelLabel(message) ? ` · ${modelLabel(message)}` : ""}
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
