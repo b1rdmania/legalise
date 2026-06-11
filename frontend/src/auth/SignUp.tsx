@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { navigate } from "../lib/route";
 import { useAuth } from "./AuthProvider";
-import { AuthCard } from "./AuthCard";
-import { ErrorCallout, Field, inputCls, primaryBtn } from "../ui/primitives";
+import { AuthCard, LedgerField } from "./AuthCard";
+import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
 
 export function SignUp() {
   const auth = useAuth();
@@ -34,12 +34,12 @@ export function SignUp() {
 
   return (
     <AuthCard
-      eyebrow="AUTH - SIGN UP"
+      eyebrow="Before the registrar"
       heading="Sign up"
       intro="Create a workspace. You'll add an Anthropic or OpenAI key after email verification."
     >
       <form className="flex flex-col gap-6" onSubmit={submit}>
-        <Field label="Name" hint="optional - shown in audit rows">
+        <LedgerField label="Name" hint="optional - shown in audit rows">
           <input
             type="text"
             autoComplete="name"
@@ -47,8 +47,8 @@ export function SignUp() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             className={inputCls}
           />
-        </Field>
-        <Field label="Email">
+        </LedgerField>
+        <LedgerField label="Email">
           <input
             type="email"
             autoComplete="email"
@@ -57,8 +57,8 @@ export function SignUp() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             className={inputCls}
           />
-        </Field>
-        <Field label="Password" hint="at least 8 characters">
+        </LedgerField>
+        <LedgerField label="Password" hint="at least 8 characters">
           <input
             type="password"
             autoComplete="new-password"
@@ -68,7 +68,7 @@ export function SignUp() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             className={inputCls}
           />
-        </Field>
+        </LedgerField>
         {error && <ErrorCallout message={error} />}
         <button type="submit" disabled={busy} className={primaryBtn}>
           {busy ? "Creating account…" : "Create account"}

@@ -1471,22 +1471,22 @@ export function DocumentDetail({
               data-testid="document-next-step"
             >
               <details
-                className="mt-3 rounded-card border border-rule bg-paper-sunken p-3"
+                className="mt-3"
                 data-testid="document-review-queue"
                 open={reviewQueueTotal > 0}
               >
-                <summary className="cursor-pointer text-sm font-semibold text-ink">
+                <summary className="cursor-pointer border-b border-ink pb-2 text-[10px] uppercase tracking-[0.25em] text-muted">
                   {reviewQueueTotal === 0
                     ? "Nothing waiting in the review queue"
                     : `${reviewQueueTotal} review item${
                         reviewQueueTotal === 1 ? "" : "s"
                       } waiting`}
                 </summary>
-                <div className="mt-3 grid gap-2 text-sm">
+                <div className="mt-1 grid text-sm">
                   <button
                     type="button"
                     onClick={() => openWorkbenchView(activeEditResult ? "redlines" : "versions")}
-                    className="flex items-center justify-between rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                    className="flex items-baseline justify-between border-b border-rule/60 py-2.5 text-left hover:text-seal"
                   >
                     <span>Proposed redlines</span>
                     <span className="font-semibold text-ink">{pendingEdits}</span>
@@ -1496,7 +1496,7 @@ export function DocumentDetail({
                     onClick={() =>
                       notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" })
                     }
-                    className="flex items-center justify-between rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                    className="flex items-baseline justify-between border-b border-rule/60 py-2.5 text-left hover:text-seal"
                   >
                     <span>Open review notes</span>
                     <span className="font-semibold text-ink">{openComments.length}</span>
@@ -1504,13 +1504,13 @@ export function DocumentDetail({
                   <button
                     type="button"
                     onClick={() => openWorkbenchView("versions")}
-                    className="flex items-center justify-between rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                    className="flex items-baseline justify-between border-b border-rule/60 py-2.5 text-left hover:text-seal"
                   >
                     <span>Saved versions</span>
                     <span className="font-semibold text-ink">{versions.length}</span>
                   </button>
                   {activeEditSessions.length > 1 && (
-                    <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                    <p className="mt-3 border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
                       Another session is open. Coordinate before saving a new version.
                     </p>
                   )}
@@ -1525,7 +1525,7 @@ export function DocumentDetail({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
                     Document skills
                   </p>
                   <h2 className="mt-1 text-sm font-semibold text-ink">
@@ -1535,7 +1535,7 @@ export function DocumentDetail({
                     Skills use the same project runner as Chat, with {doc.filename} already in context.
                   </p>
                 </div>
-                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
                   {documentSkills.length === 0
                     ? "No skills"
                     : `${documentSkills.length} ready`}
@@ -1610,7 +1610,7 @@ export function DocumentDetail({
                               "Runs against this document and writes an output to Activity."}
                           </span>
                         </span>
-                        <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                        <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
                           Recommended
                         </span>
                       </span>
@@ -1623,17 +1623,17 @@ export function DocumentDetail({
                     </button>
                   )}
                   {secondaryDocumentSkills.length > 0 && (
-                    <details className="rounded-card border border-rule bg-paper-sunken p-3">
-                      <summary className="cursor-pointer text-sm font-medium text-ink">
+                    <details>
+                      <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted hover:text-ink">
                         More document skills ({secondaryDocumentSkills.length})
                       </summary>
-                      <div className="mt-3 space-y-2">
+                      <div className="mt-1">
                         {secondaryDocumentSkills.map((skill) => (
                           <button
                             key={`${skill.moduleId}:${skill.capabilityId}`}
                             type="button"
                             onClick={() => openDocumentSkill(skill)}
-                            className="w-full rounded-item border border-rule bg-paper px-3 py-2 text-left hover:border-ink"
+                            className="w-full border-b border-rule/60 py-2.5 text-left hover:text-seal"
                           >
                             <span className="block text-sm font-semibold text-ink">
                               {skill.title}
@@ -1667,13 +1667,13 @@ export function DocumentDetail({
               <summary className="cursor-pointer list-none">
                 <span className="flex items-start justify-between gap-3">
                   <span>
-                    <span className="block text-sm font-semibold text-ink">Suggest edits</span>
+                    <span className="block text-[10px] uppercase tracking-[0.25em] text-muted">Suggest edits</span>
                     <span className="mt-1 block text-sm leading-6 text-muted">
                       Ask the model to propose redlines. Nothing changes until you review and save.
                     </span>
                   </span>
                   {activeEditResult && (
-                    <span className="shrink-0 rounded-item border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                    <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-ink">
                       Ready
                     </span>
                   )}
@@ -1686,7 +1686,7 @@ export function DocumentDetail({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
                         Redlines ready
                       </p>
                       <p className="mt-1 text-sm font-semibold text-ink">
@@ -1738,41 +1738,41 @@ export function DocumentDetail({
               <summary className="cursor-pointer list-none">
                 <span className="flex items-start justify-between gap-3">
                   <span>
-                    <span className="block text-sm font-semibold text-ink">File state</span>
+                    <span className="block text-[10px] uppercase tracking-[0.25em] text-muted">File state</span>
                     <span className="mt-1 block text-sm leading-6 text-muted">
                       Versions, people, redaction, and file details.
                     </span>
                   </span>
-                  <span className="shrink-0 rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
                     v{latestVersion?.version_number ?? 1}
                   </span>
                 </span>
               </summary>
-              <dl className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Pending</dt>
-                  <dd className="mt-1 text-lg font-semibold text-ink">{pendingEdits}</dd>
+              <dl className="mt-4 space-y-1 text-[11px] text-muted">
+                <div className="flex justify-between gap-3 border-b border-rule/60 py-1">
+                  <dt className="uppercase tracking-[0.18em]">Pending</dt>
+                  <dd className="font-semibold text-ink">{pendingEdits}</dd>
                 </div>
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Accepted</dt>
-                  <dd className="mt-1 text-lg font-semibold text-ink">{acceptedEdits}</dd>
+                <div className="flex justify-between gap-3 border-b border-rule/60 py-1">
+                  <dt className="uppercase tracking-[0.18em]">Accepted</dt>
+                  <dd className="font-semibold text-ink">{acceptedEdits}</dd>
                 </div>
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Rejected</dt>
-                  <dd className="mt-1 text-lg font-semibold text-ink">{rejectedEdits}</dd>
+                <div className="flex justify-between gap-3 border-b border-rule/60 py-1">
+                  <dt className="uppercase tracking-[0.18em]">Rejected</dt>
+                  <dd className="font-semibold text-ink">{rejectedEdits}</dd>
                 </div>
               </dl>
               <div className="mt-4 space-y-3 text-sm">
-                <details className="rounded-card border border-rule bg-paper-sunken p-3" open={hasConcurrentSession}>
-                  <summary className="cursor-pointer font-medium text-ink">
+                <details open={hasConcurrentSession}>
+                  <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted hover:text-ink">
                     Editing now · {activeEditSessions.length || 1} active
                   </summary>
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-1">
                     {activeEditSessions.length > 0 ? (
                       activeEditSessions.map((session) => (
                         <div
                           key={session.id}
-                          className="flex items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 py-2 text-sm"
+                          className="flex items-baseline justify-between gap-3 border-b border-rule/60 py-2.5 text-sm"
                         >
                           <span className="font-medium text-ink">{session.user_label}</span>
                           <span className="text-xs text-muted">
@@ -1781,18 +1781,18 @@ export function DocumentDetail({
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-muted">You are editing this document.</p>
+                      <p className="py-2 text-sm text-muted">You are editing this document.</p>
                     )}
                     {hasConcurrentSession && (
-                      <p className="border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                      <p className="mt-3 border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
                         Another session is active. Agree who saves the next version before applying edits.
                       </p>
                     )}
                   </div>
                 </details>
 
-                <details className="rounded-card border border-rule bg-paper-sunken p-3">
-                  <summary className="cursor-pointer font-medium text-ink">
+                <details>
+                  <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted hover:text-ink">
                     Redaction
                   </summary>
                   <p className="mt-3 text-sm text-muted">
@@ -1808,16 +1808,16 @@ export function DocumentDetail({
                   </div>
                 </details>
 
-                <div className="rounded-card border border-rule bg-paper-sunken p-3">
+                <div>
                   <button
                     type="button"
                     onClick={() => setShowDetails((v) => !v)}
                     aria-expanded={showDetails}
                     data-testid="document-details-toggle"
-                    className="flex w-full items-center justify-between text-left font-medium text-ink"
+                    className="flex w-full items-baseline justify-between text-left text-[10px] uppercase tracking-[0.18em] text-muted hover:text-ink"
                   >
                     <span>File details</span>
-                    <span aria-hidden="true" className="text-xs text-muted">
+                    <span aria-hidden="true" className="normal-case tracking-normal text-xs text-muted">
                       {showDetails ? "Hide" : "Show"}
                     </span>
                   </button>
@@ -1853,32 +1853,32 @@ export function DocumentDetail({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-ink">Review notes</h2>
+                  <h2 className="text-[10px] uppercase tracking-[0.25em] text-muted">Review notes</h2>
                   <p className="mt-1 text-sm leading-6 text-muted">
                     Mark points for human review. Select text in the editor to anchor a note
                     to the current document body.
                   </p>
                 </div>
-                <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
                   {openComments.length} open
                 </span>
               </div>
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Open</dt>
-                  <dd className="mt-1 text-base font-semibold text-ink">
+              <dl className="mt-3 space-y-1 text-[11px] text-muted">
+                <div className="flex justify-between gap-3 border-b border-rule/60 py-1">
+                  <dt className="uppercase tracking-[0.18em]">Open</dt>
+                  <dd className="font-semibold text-ink">
                     {openComments.length}
                   </dd>
                 </div>
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Anchored</dt>
-                  <dd className="mt-1 text-base font-semibold text-ink">
+                <div className="flex justify-between gap-3 border-b border-rule/60 py-1">
+                  <dt className="uppercase tracking-[0.18em]">Anchored</dt>
+                  <dd className="font-semibold text-ink">
                     {anchoredComments.length}
                   </dd>
                 </div>
-                <div className="rounded-card border border-rule bg-paper-sunken p-2">
-                  <dt className="uppercase tracking-track2 text-muted">Resolved</dt>
-                  <dd className="mt-1 text-base font-semibold text-ink">
+                <div className="flex justify-between gap-3 border-b border-rule/60 py-1">
+                  <dt className="uppercase tracking-[0.18em]">Resolved</dt>
+                  <dd className="font-semibold text-ink">
                     {resolvedComments.length}
                   </dd>
                 </div>
@@ -1887,7 +1887,7 @@ export function DocumentDetail({
                 <summary className="cursor-pointer list-none">
                   <span className="flex items-start justify-between gap-3">
                     <span>
-                      <span className="block text-sm font-semibold text-ink">Add note</span>
+                      <span className="block text-[10px] uppercase tracking-[0.18em] text-ink">Add note</span>
                       <span className="mt-1 block text-xs leading-5 text-muted">
                         {selectedQuote
                           ? "Use the selected passage below, or edit the quote before saving."
@@ -1895,11 +1895,11 @@ export function DocumentDetail({
                       </span>
                     </span>
                     {selectedAnchor ? (
-                      <span className="rounded-item border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                      <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-ink">
                         Anchored
                       </span>
                     ) : (
-                      <span className="text-xs font-semibold text-muted">Open</span>
+                      <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">Open</span>
                     )}
                   </span>
                 </summary>
@@ -1909,7 +1909,7 @@ export function DocumentDetail({
                       className="rounded-card border border-rule bg-paper p-3 text-sm"
                       data-testid="document-selected-quote"
                     >
-                      <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
                         Selected passage
                       </p>
                       <p className="mt-2 max-h-24 overflow-hidden leading-6 text-muted">
@@ -1940,7 +1940,7 @@ export function DocumentDetail({
                       </div>
                     </div>
                   )}
-                  <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
+                  <label className="grid gap-1 text-[10px] uppercase tracking-[0.18em] text-muted">
                     Quote
                     <textarea
                       value={commentQuote}
@@ -1950,7 +1950,7 @@ export function DocumentDetail({
                       className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
                     />
                   </label>
-                  <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
+                  <label className="grid gap-1 text-[10px] uppercase tracking-[0.18em] text-muted">
                     Note
                     <textarea
                       value={commentBody}
@@ -1976,7 +1976,7 @@ export function DocumentDetail({
                   <p className="text-sm text-muted">No review notes yet.</p>
                 )}
                 {openComments.length > 0 && (
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                  <p className="border-b border-rule/60 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
                     Open notes
                   </p>
                 )}
@@ -1986,11 +1986,11 @@ export function DocumentDetail({
                     className="rounded-card border border-rule bg-paper p-3 text-sm"
                   >
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
                         Open note
                       </span>
                       {comment.anchor_start !== null && comment.anchor_end !== null && (
-                        <span className="rounded-item border border-ink bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-ink">
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-ink">
                           Anchored
                         </span>
                       )}
@@ -2009,7 +2009,7 @@ export function DocumentDetail({
                     )}
                     {editingCommentId === comment.id ? (
                       <div className="space-y-2">
-                        <label className="grid gap-1 text-xs font-semibold uppercase tracking-track2 text-muted">
+                        <label className="grid gap-1 text-[10px] uppercase tracking-[0.18em] text-muted">
                           Edit note
                           <textarea
                             value={editingCommentBody}
@@ -2064,8 +2064,8 @@ export function DocumentDetail({
                   </article>
                 ))}
                 {resolvedComments.length > 0 && (
-                  <details className="rounded-card border border-rule bg-paper-sunken p-3">
-                    <summary className="cursor-pointer text-sm font-medium text-muted">
+                  <details>
+                    <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted hover:text-ink">
                       Resolved notes ({resolvedComments.length})
                     </summary>
                     <div className="mt-3 space-y-2">

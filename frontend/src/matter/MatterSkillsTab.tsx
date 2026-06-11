@@ -20,6 +20,7 @@ import {
   type V2ManifestEntry,
 } from "../lib/api";
 import { GenericSkillRunner } from "./GenericSkillRunner";
+import { CertEyebrow, SectionRule } from "../ui/certificate";
 import {
   manifestCapabilities,
   manifestText,
@@ -164,12 +165,6 @@ export function MatterSkillsTab({ slug }: Props) {
 
   return (
     <section>
-      <header className="mb-6">
-        <h2 className="text-xl font-semibold tracking-tight2 text-ink">
-          Skills
-        </h2>
-      </header>
-
       {error && (
         <p className="mb-4 text-sm text-seal" data-testid="matter-skills-error">
           {error}
@@ -207,7 +202,7 @@ export function MatterSkillsTab({ slug }: Props) {
           ))}
           {runnableSkills.length === 0 && enabledModules.length === 0 && (
             <p className="text-sm text-muted">
-              No skills are enabled on this matter yet.
+              No skills hold standing in this matter yet.
             </p>
           )}
         </div>
@@ -221,7 +216,8 @@ export function MatterSkillsTab({ slug }: Props) {
         />
         {availableModules.length === 0 ? (
           <p className="mt-3 text-sm text-muted" data-testid="available-empty">
-            Nothing waiting. Add skills from the library.{" "}
+            Nothing awaits enablement here. Skills trusted in the workspace
+            appear in this section.{" "}
             <Link
               to="/skills"
               className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
@@ -266,11 +262,19 @@ export function MatterSkillsTab({ slug }: Props) {
   );
 }
 
-function SectionHeader({ title, hint }: { title: string; hint: string }) {
+function SectionHeader({
+  title,
+  hint,
+  right,
+}: {
+  title: string;
+  hint: string;
+  right?: string;
+}) {
   return (
-    <div className="border-b border-rule pb-2">
-      <h3 className="text-sm uppercase tracking-widest text-muted">{title}</h3>
-      <p className="mt-1 text-xs text-muted">{hint}</p>
+    <div>
+      <SectionRule label={title} right={right} />
+      <p className="mt-2 text-xs text-muted">{hint}</p>
     </div>
   );
 }
@@ -310,31 +314,27 @@ function EnabledModuleRow({
 
   return (
     <article
-      className="rounded-card border border-rule/60 bg-paper shadow-panel p-4"
+      className="border border-rule/60 bg-paper p-4"
       data-testid={`enabled-module-${entry.module_id}`}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <CertEyebrow left="Skill" right="Needs setup" />
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{name}</p>
           <p className="mt-0.5 tech-token text-[11px] text-muted">
             {entry.module_id}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-            Needs setup
-          </span>
-          <button
-            type="button"
-            onClick={onRevoke}
-            disabled={revoking}
-            className="rounded-md px-3 py-1 text-xs text-muted hover:text-seal disabled:opacity-50"
-          >
-            {revoking ? "Revoking…" : "Revoke"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onRevoke}
+          disabled={revoking}
+          className="shrink-0 px-3 py-1 text-xs text-muted hover:text-seal disabled:opacity-50"
+        >
+          {revoking ? "Revoking…" : "Revoke"}
+        </button>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
+      <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-rule pt-3 text-[11px] sm:grid-cols-3">
         <Meta label="Reads" value={friendlyCapabilitySummary(reads)} />
         <Meta label="Writes" value={friendlyCapabilitySummary(writes)} />
         <Meta label="Status" value="Needs setup" />
@@ -366,15 +366,15 @@ function AvailableModuleRow({
 
   return (
     <article
-      className="rounded-card border border-rule/60 bg-paper shadow-panel p-4"
+      className="border border-rule/60 bg-paper p-4"
       data-testid={`available-module-${entry.module_id}`}
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
+      <CertEyebrow left="Skill" right={publisher ?? undefined} />
+      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{name}</p>
           <p className="mt-0.5 tech-token text-[11px] text-muted">
             {entry.module_id}
-            {publisher ? ` · ${publisher}` : ""}
           </p>
         </div>
         <button
@@ -388,7 +388,7 @@ function AvailableModuleRow({
           Enable in matter
         </button>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-3 text-[11px] sm:grid-cols-3">
+      <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-rule pt-3 text-[11px] sm:grid-cols-3">
         <Meta label="Reads" value={friendlyCapabilitySummary(reads)} />
         <Meta label="Writes" value={friendlyCapabilitySummary(writes)} />
         <Meta label="Project actions" value={String(matterCaps.length)} />
@@ -416,7 +416,7 @@ function Meta({
 }) {
   return (
     <div>
-      <dt className="tech-token uppercase tracking-widest text-[9px] text-muted">
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">
         {label}
       </dt>
       <dd className={"mt-1 " + (tone ?? "text-ink")}>{value}</dd>
@@ -488,7 +488,7 @@ function EnableSkillModal({
       }}
     >
       <div className="w-full max-w-[480px] rounded-card border border-rule/60 bg-paper shadow-panel p-5 shadow-xl">
-        <p className="text-[11px] uppercase tracking-widest text-muted">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
           Enable skill
         </p>
         <h2 id="enable-skill-title" className="mt-1 text-lg font-semibold text-ink">
@@ -584,7 +584,7 @@ function Block({
 }) {
   return (
     <section className="mt-4 border-t border-rule pt-3">
-      <p className="text-[11px] uppercase tracking-widest text-muted">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
         {label}
       </p>
       <div className="mt-2">{children}</div>
@@ -595,7 +595,7 @@ function Block({
 function Pair({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-widest text-muted">
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">
         {label}
       </dt>
       <dd className="mt-0.5 text-xs text-ink">{value}</dd>

@@ -3,8 +3,8 @@ import type { ChangeEvent, FormEvent } from "react";
 import { navigate } from "../lib/route";
 import { requestVerifyToken } from "../lib/api";
 import { useAuth } from "./AuthProvider";
-import { AuthCard } from "./AuthCard";
-import { ErrorCallout, Field, inputCls, primaryBtn } from "../ui/primitives";
+import { AuthCard, LedgerField } from "./AuthCard";
+import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
 
 type ResendState = "idle" | "sending" | "sent" | "error";
 
@@ -58,9 +58,9 @@ export function SignIn() {
   };
 
   return (
-    <AuthCard eyebrow="AUTH - SIGN IN" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
+    <AuthCard eyebrow="The workspace" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
       <form className="flex flex-col gap-6" onSubmit={submit}>
-        <Field label="Email" htmlFor="signin-email">
+        <LedgerField label="Email" htmlFor="signin-email">
           <input
             id="signin-email"
             name="email"
@@ -71,8 +71,8 @@ export function SignIn() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             className={inputCls}
           />
-        </Field>
-        <Field label="Password" htmlFor="signin-password">
+        </LedgerField>
+        <LedgerField label="Password" htmlFor="signin-password">
           <input
             id="signin-password"
             name="password"
@@ -83,7 +83,7 @@ export function SignIn() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             className={inputCls}
           />
-        </Field>
+        </LedgerField>
         {error && <ErrorCallout message={error} />}
         {needsVerify && (
           <div className="rounded-md border border-rule bg-wash p-4 text-sm">

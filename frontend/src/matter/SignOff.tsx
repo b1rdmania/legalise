@@ -4,7 +4,9 @@
  * The hero gate: a solicitor reads an AI-prepared output and takes
  * professional ownership of it — "do you stand behind this output?" Full
  * surface, not a modal: the output on one side, the decision + reasoning +
- * an explicit "I have reviewed this" affirmation on the other.
+ * an explicit "I have reviewed this" affirmation on the other. Reads as
+ * executing an instrument (DESIGN.md P27): SectionRule "The instrument"
+ * over the artifact's CertCard summary, "The decision" over the controls.
  *
  * This is author sign-off — the signer may be the artifact author. It is
  * NOT supervisor review (that's the firm-mode path under Approvals). Copy
@@ -21,7 +23,23 @@ import {
   type SignoffDecision,
 } from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
-import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { ErrorCallout, LoadingLine } from "../ui/primitives";
+import { CertCard, CertEyebrow, SectionRule } from "../ui/certificate";
+
+function outputLabel(kind: string): string {
+  switch (kind) {
+    case "findings_pack":
+      return "Findings pack";
+    case "motion_draft":
+      return "Draft motion";
+    case "evidence_list":
+      return "Evidence list";
+    case "skill_response":
+      return "Skill response";
+    default:
+      return kind.replace(/_/g, " ");
+  }
+}
 
 const DECISIONS: { value: SignoffDecision; label: string; help: string }[] = [
   { value: "signed", label: "Sign", help: "I have reviewed this and I stand behind it." },
@@ -72,7 +90,7 @@ function SignoffCoverage({ payload }: { payload: Record<string, unknown> }) {
   const quoteMissing = anchors.some((a) => a.quote_found_in_source === false);
   const zero = anchors.length === 0;
   return (
-    <div className="mt-4 rounded-md border border-line px-3 py-2 text-xs" data-testid="signoff-source-coverage">
+    <div className="mt-4 border border-line px-3 py-2 text-xs" data-testid="signoff-source-coverage">
       <p className="font-medium text-ink">Source coverage</p>
       {zero ? (
         <p className="mt-1 text-seal" data-testid="signoff-no-sources">
@@ -147,34 +165,37 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 text-ink">
-      <PageHeader
-        eyebrow="Professional sign-off"
-        title="Review and sign this output"
-        description="You are taking professional ownership of this AI-prepared output. Read it, then record your decision. The exact output is hashed and pinned to your signature."
-      />
-
       {artifact === null ? (
         <LoadingLine label="loading output" />
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr]">
-          {/* The output under review */}
+          {/* The instrument under execution (DESIGN.md P27): the artifact
+              summary as a certificate, the payload below it. */}
           <section>
-            <h2 className="text-xs uppercase tracking-widest text-muted">
-              Prepared output — {artifact.kind}
-            </h2>
-            <p className="mt-1 text-[11px] text-muted">
-              Prepared by <span className="tech-token">{artifact.module_id}</span> ·{" "}
-              <span className="tech-token">{artifact.capability_id}</span>. The output
-              payload below is hashed and pinned on sign — this is what your
-              signature attaches to.
-            </p>
+            <SectionRule label="The instrument" />
+            <div className="mt-4">
+              <CertCard>
+                <CertEyebrow left="Output" right={artifact.kind} />
+                <h2 className="mt-3 text-[22px] leading-tight tracking-tight2">
+                  {outputLabel(artifact.kind)}
+                </h2>
+                <p className="mt-1 text-xs text-muted">
+                  Prepared by <span className="tech-token">{artifact.module_id}</span> ·{" "}
+                  <span className="tech-token">{artifact.capability_id}</span>. The output
+                  payload below is hashed and pinned on sign — this is what your
+                  signature attaches to.
+                </p>
+              </CertCard>
+            </div>
             <div data-testid="signoff-artifact">
               <ArtifactPreview payload={artifact.payload} kindHint={artifact.kind} matterSlug={slug} />
             </div>
           </section>
 
           {/* The decision desk */}
-          <section className="lg:sticky lg:top-6 self-start rounded-md border border-rule bg-paper p-4">
+          <section className="lg:sticky lg:top-6 self-start">
+            <SectionRule label="The decision" />
+            <div className="mt-4 border border-rule bg-paper p-4">
             <h2 className="text-sm font-medium">Do you stand behind this output?</h2>
 
             <div className="mt-3 space-y-2">
@@ -182,7 +203,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
                 <label
                   key={d.value}
                   className={
-                    "block cursor-pointer rounded-md border p-3 text-sm " +
+                    "block cursor-pointer border p-3 text-sm " +
                     (decision === d.value ? "border-ink" : "border-rule hover:border-ink/50")
                   }
                 >
@@ -203,7 +224,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
             </div>
 
             <div className="mt-4">
-              <label className="text-xs uppercase tracking-widest text-muted">
+              <label className="text-[10px] uppercase tracking-[0.18em] text-muted">
                 Reasoning {reasoningNeeded ? "(required)" : "(optional)"}
               </label>
               <textarea
@@ -211,7 +232,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
                 onChange={(e) => setReasoning(e.target.value)}
                 rows={4}
                 placeholder="What did you change, what would you change, or why are you signing despite it? This becomes part of the permanent record."
-                className="mt-1 w-full rounded-md border border-rule bg-paper px-3 py-2 text-sm"
+                className="mt-1 w-full border border-rule bg-paper px-3 py-2 text-sm"
                 data-testid="signoff-reasoning"
               />
             </div>
@@ -236,7 +257,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
               type="button"
               onClick={submit}
               disabled={!canSubmit}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
+              className="mt-4 inline-flex w-full items-center justify-center bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
               data-testid="signoff-submit"
             >
               {submitting
@@ -258,6 +279,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
                 Cancel
               </Link>
             </p>
+            </div>
           </section>
         </div>
       )}

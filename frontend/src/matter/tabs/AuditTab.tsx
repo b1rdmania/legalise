@@ -51,7 +51,7 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
   return (
     <div>
       <div className="flex items-center gap-3 px-4 py-3 border-b border-t border-rule bg-paper text-[11px] tech-token">
-        <span className="text-muted uppercase tracking-track2 text-[9px]">Filter</span>
+        <span className="text-muted uppercase tracking-[0.18em] text-[10px]">Filter</span>
         <select
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
@@ -102,17 +102,17 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
                   className={
-                    "w-full text-left grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 border-b border-rule transition-colors tech-token text-[11px] items-center " +
+                    "w-full text-left grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-2.5 border-b border-rule/60 transition-colors text-[11px] items-baseline " +
                     (isSelected ? "bg-wash" : "hover:bg-wash")
                   }
                 >
-                  <span className="text-ink">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
-                  <span className="text-prose truncate">{e.module ?? "-"}</span>
-                  <span className={(isBlocked ? "text-seal line-through decoration-1" : "text-ink") + " font-bold truncate"}>{e.action}</span>
-                  <span className="text-prose truncate">{e.model_used ?? "-"}</span>
-                  <span className="text-ink">{e.token_count ?? "-"}</span>
-                  <span className="text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "-"}</span>
-                  <span className="text-muted truncate">{(e.prompt_hash ?? "-").slice(0, 8)}</span>
+                  <span className="tech-token text-muted">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted truncate">{e.module ?? "-"}</span>
+                  <span className={"tech-token truncate " + (isBlocked ? "text-seal line-through decoration-1" : "text-ink")}>{e.action}</span>
+                  <span className="tech-token text-prose truncate">{e.model_used ?? "-"}</span>
+                  <span className="tech-token text-ink">{e.token_count ?? "-"}</span>
+                  <span className="tech-token text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "-"}</span>
+                  <span className="tech-token text-muted truncate">{(e.prompt_hash ?? "-").slice(0, 8)}</span>
                 </button>
               );
             })}

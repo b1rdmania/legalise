@@ -1,15 +1,19 @@
 /**
  * /matters/:slug/signoffs/:signoffId — sign-off confirmation / record.
  *
- * Renders the sign-off exactly as it sits in the permanent record:
- * signer, timestamp, decision, reasoning, the pinned artifact hash. Loads
- * by id so a reload / deep-link is stable. Copy stays inside the boundary.
+ * Renders the sign-off exactly as it sits in the permanent record — the
+ * executed certificate (DESIGN.md P27): a CertCard with the decision as
+ * the eyebrow's right mark (rejected carries the seal), then signer,
+ * timestamp, output, reasoning, and the pinned artifact hash as ledger
+ * rows. Loads by id so a reload / deep-link is stable. Copy stays
+ * inside the boundary.
  */
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { getSignoff, type Signoff } from "../lib/api";
-import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
+import { ErrorCallout, LoadingLine } from "../ui/primitives";
+import { CertCard, CertEyebrow, LedgerRow } from "../ui/certificate";
 
 const DECISION_LABEL: Record<string, string> = {
   signed: "Signed",
@@ -56,40 +60,65 @@ export function SignOffConfirmation({
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-12 text-ink">
-      <PageHeader
-        eyebrow="Sign-off record"
-        title={rejected ? "Draft rejected — recorded" : "Signed in Legalise"}
-        description={
-          rejected
+      {/* The executed certificate. Seal tone only for a rejection — the
+          one refused state this record can hold. */}
+      <CertCard tone={rejected ? "seal" : "ink"} testid="signoff-record">
+        <CertEyebrow
+          left="Sign-off record"
+          right={DECISION_LABEL[signoff.decision] ?? signoff.decision}
+          rightTone={rejected ? "seal" : "ink"}
+        />
+        <h1 className="mt-3 text-[22px] leading-tight tracking-tight2">
+          {rejected ? "Draft rejected — recorded" : "Signed in Legalise"}
+        </h1>
+        <p className="mt-1 text-xs text-muted">
+          {rejected
             ? "This draft was not signed. The decision and reasoning are part of the matter's permanent audit trail."
-            : "This records your professional ownership of the output. It is permanent and forms part of the matter's audit trail."
-        }
-      />
+            : "This records your professional ownership of the output. It is permanent and forms part of the matter's audit trail."}
+        </p>
 
-      <dl className="mt-6 divide-y divide-rule rounded-md border border-rule" data-testid="signoff-record">
-        <Row label="Decision">
-          <span className="font-medium">{DECISION_LABEL[signoff.decision] ?? signoff.decision}</span>
-          {!signoff.is_current && (
-            <span className="ml-2 text-[11px] text-muted">(superseded by a later sign-off)</span>
-          )}
-        </Row>
-        <Row label="Signed by">
-          {signoff.signer_email ?? signoff.signer_id}
-          {signoff.signer_is_author && (
-            <span className="ml-2 text-[11px] text-muted">(author — self-signed, not independent review)</span>
-          )}
-        </Row>
-        <Row label="When">{signoff.signed_at.replace("T", " ").slice(0, 19)}</Row>
-        <Row label="Output">
-          <span className="tech-token text-xs">
-            {signoff.kind} · {signoff.module_id} / {signoff.capability_id}
-          </span>
-        </Row>
-        {signoff.reasoning && <Row label="Reasoning">{signoff.reasoning}</Row>}
-        <Row label="Output hash (pinned)">
-          <span className="break-all tech-token text-[11px]">{signoff.artifact_hash}</span>
-        </Row>
-      </dl>
+        <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+          <LedgerRow label="Signed by" tone="ink">
+            {signoff.signer_email ?? signoff.signer_id}
+          </LedgerRow>
+          <LedgerRow label="When">
+            {signoff.signed_at.replace("T", " ").slice(0, 19)}
+          </LedgerRow>
+          <LedgerRow label="Output">
+            <span className="tech-token">
+              {signoff.kind} · {signoff.module_id} / {signoff.capability_id}
+            </span>
+          </LedgerRow>
+        </dl>
+
+        {(signoff.signer_is_author || !signoff.is_current) && (
+          <p className="mt-2 text-[11px] text-muted">
+            {signoff.signer_is_author &&
+              "Author — self-signed, not independent review. "}
+            {!signoff.is_current && "Superseded by a later sign-off."}
+          </p>
+        )}
+
+        {signoff.reasoning && (
+          <div className="mt-3 border-t border-rule pt-3">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+              Reasoning
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-ink">
+              {signoff.reasoning}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-3 border-t border-rule pt-3">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+            Output hash (pinned)
+          </p>
+          <p className="mt-1 break-all tech-token text-[11px]">
+            {signoff.artifact_hash}
+          </p>
+        </div>
+      </CertCard>
 
       <p className="mt-4 text-xs text-muted">
         The output hash pins the exact payload that was signed — the record cannot
@@ -114,15 +143,6 @@ export function SignOffConfirmation({
           See it in Activity →
         </Link>
       </div>
-    </div>
-  );
-}
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-4">
-      <dt className="w-40 shrink-0 text-xs uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="text-sm">{children}</dd>
     </div>
   );
 }
