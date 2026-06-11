@@ -2,8 +2,8 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { requestVerifyToken } from "../lib/api";
 import { useAuth } from "./AuthProvider";
-import { AuthCard } from "./AuthCard";
-import { ErrorCallout, Field, inputCls, primaryBtn } from "../ui/primitives";
+import { AuthCard, LedgerField } from "./AuthCard";
+import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
 
 export function VerifyPending() {
   const auth = useAuth();
@@ -29,7 +29,7 @@ export function VerifyPending() {
 
   return (
     <AuthCard
-      eyebrow="AUTH - VERIFY EMAIL"
+      eyebrow="Before the registrar"
       heading="Check your inbox"
       intro="We sent a verification link to your email. Click it to activate your account."
     >
@@ -37,7 +37,7 @@ export function VerifyPending() {
         <p className="prose-p mb-0">A new link is on its way.</p>
       ) : (
         <form className="flex flex-col gap-6" onSubmit={resend}>
-          <Field label="Email" hint="resend the link if needed">
+          <LedgerField label="Email" hint="resend the link if needed">
             <input
               type="email"
               required
@@ -45,7 +45,7 @@ export function VerifyPending() {
               onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               className={inputCls}
             />
-          </Field>
+          </LedgerField>
           {error && <ErrorCallout message={error} />}
           <button type="submit" disabled={busy || !email} className={primaryBtn}>
             {busy ? "Sending…" : "Resend link"}
@@ -53,7 +53,7 @@ export function VerifyPending() {
         </form>
       )}
       <p className="text-sm text-muted mt-6">
-        <a href="/auth/signin" className="hover:text-ink underline">
+        <a href="/auth/signin" className="hover:text-seal underline">
           Back to sign in
         </a>
       </p>

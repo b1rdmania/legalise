@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { FileUp } from "lucide-react";
 import type { MatterDocument } from "../../lib/api";
 import { UploadError } from "../../lib/api";
-import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { LedgerLine, SectionRule } from "../../ui/certificate";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -119,10 +120,6 @@ export function DocumentsTab({
   const inputCls =
     "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
   const totalBytes = docs?.reduce((total, d) => total + d.size_bytes, 0) ?? 0;
-  const openNoteCount =
-    docs?.reduce((total, d) => total + (d.open_comment_count ?? 0), 0) ?? 0;
-  const pendingEditCount =
-    docs?.reduce((total, d) => total + (d.pending_edit_count ?? 0), 0) ?? 0;
   const filteredDocs =
     docs?.filter((d) => {
       const query = documentQuery.trim().toLowerCase();
@@ -230,18 +227,12 @@ export function DocumentsTab({
       )}
       {docs && docs.length > 0 && (
         <div>
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="text-xl font-semibold tracking-tight2 text-ink">
-              Documents
-            </h2>
-            <p className="text-[13px] text-muted">
-              {docs.length} file{docs.length === 1 ? "" : "s"} · {formatBytes(totalBytes)}
-              {openNoteCount > 0 ? ` · ${openNoteCount} open note${openNoteCount === 1 ? "" : "s"}` : ""}
-              {pendingEditCount > 0 ? ` · ${pendingEditCount} pending change${pendingEditCount === 1 ? "" : "s"}` : ""}
-            </p>
-          </div>
+          <SectionRule
+            label="Documents"
+            right={`${docs.length} file${docs.length === 1 ? "" : "s"} · ${formatBytes(totalBytes)}`}
+          />
           <div
-            className="mb-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            className="mb-4 mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
             data-testid="document-library-controls"
           >
             <label className="sr-only" htmlFor="document-search">Search documents</label>
@@ -275,12 +266,8 @@ export function DocumentsTab({
               ))}
             </div>
           </div>
-          <div
-            className="grid gap-3 md:grid-cols-2"
-            data-testid="document-library-cards"
-          >
-            {filteredDocs?.map((d) => {
-              const typeLabel = deriveType(d);
+          <div data-testid="document-library-cards">
+            {filteredDocs?.map((d, i) => {
               const openNotes = d.open_comment_count ?? 0;
               const versions = d.version_count ?? 0;
               const pendingEdits = d.pending_edit_count ?? 0;
@@ -290,46 +277,50 @@ export function DocumentsTab({
                 pendingEdits > 0 ? plural(pendingEdits, "pending change") : null,
               ].filter(Boolean);
               return (
-                <Link
+                <LedgerLine
                   key={d.id}
-                  to="/matters/$slug/documents/$documentId"
-                  params={{ slug, documentId: d.id }}
-                  className="group rounded-card border border-rule/60 bg-paper p-5 shadow-panel transition-colors hover:border-ink"
-                  title={`SHA-256 ${d.sha256}`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-base font-semibold text-ink">
-                        {d.filename}
-                      </p>
-                      <p className="mt-1 truncate text-[13px] text-muted">
-                        {d.from_disclosure ? "CPR 31 disclosure" : "Upload"} · {formatBytes(d.size_bytes)} · {formatDate(d.uploaded_at)}
-                      </p>
-                    </div>
-                    <Badge>{typeLabel}</Badge>
-                  </div>
-                  {workStatus.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2" aria-label={`Workbench status for ${d.filename}`}>
-                      {workStatus.map((item) => (
+                  index={i + 1}
+                  label={`${formatBytes(d.size_bytes)} · ${formatDate(d.uploaded_at)}`}
+                  right={
+                    <span className="flex items-baseline gap-3">
+                      {workStatus.length > 0 && (
                         <span
-                          key={item}
-                          className="rounded-item bg-paper-sunken px-2 py-1 text-xs font-medium text-ink"
+                          className="flex items-baseline gap-1.5 text-[11px] text-muted"
+                          aria-label={`Workbench status for ${d.filename}`}
                         >
-                          {item}
+                          {workStatus.map((item, j) => (
+                            <Fragment key={item}>
+                              {j > 0 && <span aria-hidden="true">·</span>}
+                              <span>{item}</span>
+                            </Fragment>
+                          ))}
                         </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-3 text-right text-xs text-muted group-hover:text-seal">
-                    Open →
-                  </div>
-                </Link>
+                      )}
+                      <Link
+                        to="/matters/$slug/documents/$documentId"
+                        params={{ slug, documentId: d.id }}
+                        className="text-sm text-muted hover:text-seal"
+                      >
+                        Open →
+                      </Link>
+                    </span>
+                  }
+                >
+                  <Link
+                    to="/matters/$slug/documents/$documentId"
+                    params={{ slug, documentId: d.id }}
+                    className="block truncate text-left text-sm text-ink hover:text-seal"
+                    title={`SHA-256 ${d.sha256}`}
+                  >
+                    {d.filename}
+                  </Link>
+                </LedgerLine>
               );
             })}
             {filteredDocs?.length === 0 && (
-              <div className="rounded-card border border-rule bg-paper px-4 py-6 text-sm text-muted md:col-span-2">
+              <p className="px-1 py-5 text-sm text-muted">
                 No documents match this search. Clear the query or switch filters.
-              </div>
+              </p>
             )}
           </div>
         </div>

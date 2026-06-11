@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { resetPassword } from "../lib/api";
-import { AuthCard } from "./AuthCard";
-import { ErrorCallout, Field, inputCls, primaryBtn } from "../ui/primitives";
+import { AuthCard, LedgerField } from "./AuthCard";
+import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
 
 export function ResetPassword({ token }: { token: string | null }) {
   const [password, setPassword] = useState("");
@@ -31,11 +31,11 @@ export function ResetPassword({ token }: { token: string | null }) {
   if (!token) {
     return (
       <AuthCard
-        eyebrow="AUTH - RESET PASSWORD"
+        eyebrow="The workspace"
         heading="Missing token"
         intro="This page expects a one-time token from the reset email link."
       >
-        <a href="/auth/forgot" className="text-sm text-muted hover:text-ink">
+        <a href="/auth/forgot" className="text-sm text-muted hover:text-seal">
           Request a new reset link
         </a>
       </AuthCard>
@@ -45,7 +45,7 @@ export function ResetPassword({ token }: { token: string | null }) {
   if (done) {
     return (
       <AuthCard
-        eyebrow="AUTH - RESET PASSWORD"
+        eyebrow="The workspace"
         heading="Password updated"
         intro="Your new password is set. Sign in to continue."
       >
@@ -58,12 +58,12 @@ export function ResetPassword({ token }: { token: string | null }) {
 
   return (
     <AuthCard
-      eyebrow="AUTH - RESET PASSWORD"
+      eyebrow="The workspace"
       heading="Choose a new password"
       intro="At least 8 characters. The reset link expires soon, so finish here."
     >
       <form className="flex flex-col gap-6" onSubmit={submit}>
-        <Field label="New password">
+        <LedgerField label="New password">
           <input
             type="password"
             autoComplete="new-password"
@@ -73,7 +73,7 @@ export function ResetPassword({ token }: { token: string | null }) {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             className={inputCls}
           />
-        </Field>
+        </LedgerField>
         {error && <ErrorCallout message={error} />}
         <button type="submit" disabled={busy} className={primaryBtn}>
           {busy ? "Updating…" : "Update password"}

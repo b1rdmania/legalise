@@ -19,7 +19,8 @@ import {
   type SupervisorReview,
 } from "../../lib/api";
 import { ArtifactPreview } from "../ArtifactPreview";
-import { Badge, EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
+import { LedgerLine, SectionRule } from "../../ui/certificate";
 
 type Query =
   | { status: "loading" }
@@ -79,12 +80,13 @@ export function ApprovalsTab({ slug }: { slug: string }) {
 
       {pending.length > 0 && (
         <section className="mt-8">
-          <h3 className="text-xs uppercase tracking-widest text-muted">Pending</h3>
-          <ul className="mt-3 space-y-px bg-rule border border-rule">
-            {pending.map((r) => (
+          <SectionRule label="Pending" right={String(pending.length)} />
+          <ul className="mt-1">
+            {pending.map((r, i) => (
               <ReviewRow
                 key={r.id}
                 review={r}
+                index={i + 1}
                 open={openId === r.id}
                 onToggle={() => setOpenId(openId === r.id ? null : r.id)}
                 slug={slug}
@@ -100,12 +102,13 @@ export function ApprovalsTab({ slug }: { slug: string }) {
 
       {decided.length > 0 && (
         <section className="mt-8">
-          <h3 className="text-xs uppercase tracking-widest text-muted">Decided</h3>
-          <ul className="mt-3 space-y-px bg-rule border border-rule">
-            {decided.map((r) => (
+          <SectionRule label="Decided" right={String(decided.length)} />
+          <ul className="mt-1">
+            {decided.map((r, i) => (
               <ReviewRow
                 key={r.id}
                 review={r}
+                index={i + 1}
                 open={openId === r.id}
                 onToggle={() => setOpenId(openId === r.id ? null : r.id)}
                 slug={slug}
@@ -121,40 +124,59 @@ export function ApprovalsTab({ slug }: { slug: string }) {
 
 function ReviewRow({
   review,
+  index,
   open,
   onToggle,
   slug,
   onDecided,
 }: {
   review: SupervisorReview;
+  index: number;
   open: boolean;
   onToggle: () => void;
   slug: string;
   onDecided: () => void;
 }) {
   const isPending = review.state === "pending";
+  // Seal at rest only for refusals — a rejected review is the record
+  // testifying against the output.
+  const stateTone = review.state === "rejected" ? "text-seal" : "text-muted";
   return (
-    <li className="bg-paper p-4">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 text-left"
+    <li className="bg-paper">
+      <LedgerLine
+        index={index}
+        label={review.capability_id}
+        right={
+          <span className="flex items-baseline gap-3">
+            <span className="tech-token text-[11px] text-muted">
+              {review.requested_at.slice(0, 16).replace("T", " ")}
+            </span>
+            <span
+              className={`text-[10px] uppercase tracking-[0.18em] ${stateTone}`}
+            >
+              {STATE_LABEL[review.state] ?? review.state}
+            </span>
+          </span>
+        }
       >
-        <div className="min-w-0">
-          <p className="text-sm text-ink">{review.kind}</p>
-          <p className="tech-token text-[11px] text-muted truncate">
-            {review.capability_id} · {review.requested_at.slice(0, 16).replace("T", " ")}
-          </p>
-        </div>
-        <Badge>{STATE_LABEL[review.state] ?? review.state}</Badge>
-      </button>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="block w-full truncate text-left text-sm text-ink hover:text-seal"
+        >
+          {review.kind}
+        </button>
+      </LedgerLine>
       {open && (
-        <ReviewScreen
-          review={review}
-          slug={slug}
-          editable={isPending}
-          onDecided={onDecided}
-        />
+        <div className="pb-4">
+          <ReviewScreen
+            review={review}
+            slug={slug}
+            editable={isPending}
+            onDecided={onDecided}
+          />
+        </div>
       )}
     </li>
   );
@@ -218,21 +240,21 @@ function ReviewScreen({
 
       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
         <div>
-          <dt className="uppercase tracking-widest text-muted">Output hash</dt>
+          <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">Output hash</dt>
           <dd className="mt-0.5 tech-token text-muted break-all">{review.artifact_hash}</dd>
         </div>
         <div>
-          <dt className="uppercase tracking-widest text-muted">Invocation</dt>
+          <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">Invocation</dt>
           <dd className="mt-0.5 tech-token text-muted">{review.invocation_id}</dd>
         </div>
         {!editable && (
           <>
             <div>
-              <dt className="uppercase tracking-widest text-muted">Decision</dt>
+              <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">Decision</dt>
               <dd className="mt-0.5 text-ink">{STATE_LABEL[review.state]}</dd>
             </div>
             <div>
-              <dt className="uppercase tracking-widest text-muted">Note</dt>
+              <dt className="text-[10px] uppercase tracking-[0.18em] text-muted">Note</dt>
               <dd className="mt-0.5 text-muted">{review.note || "—"}</dd>
             </div>
           </>
@@ -248,7 +270,7 @@ function ReviewScreen({
 
       {editable && (
         <div className="mt-4">
-          <label className="block text-xs uppercase tracking-widest text-muted">
+          <label className="block text-[10px] uppercase tracking-[0.18em] text-muted">
             Note
             <textarea
               value={note}

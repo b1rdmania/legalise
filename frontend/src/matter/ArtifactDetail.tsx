@@ -3,6 +3,9 @@
  *
  * Hits `GET /api/matters/{slug}/artifacts/{id}` (returns ArtifactSummary
  * fields + parsed `payload`). Kind-aware rendering via ArtifactPreview.
+ * The header block is the artifact's certificate (DESIGN.md P27): a
+ * CertCard with the kind eyebrow, 22px title, and a ledger of
+ * created / prepared-by / sign-off status / pinned hash.
  *
  * Deep-link to Activity: this page links to the legacy audit route,
  * `/matters/{slug}/audit?invocation_id=<id>`. The query-param contract
@@ -22,7 +25,8 @@ import {
   type Signoff,
 } from "../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
-import { DescItem as DT, PageHeader } from "../ui/primitives";
+import { DescItem as DT } from "../ui/primitives";
+import { CertCard, CertEyebrow, LedgerRow, SectionRule } from "../ui/certificate";
 
 type Query =
   | { status: "loading" }
@@ -111,17 +115,58 @@ export function ArtifactDetail({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader
-        eyebrow="A signed output"
-        title={outputLabel(a.kind)}
-        subId={a.id}
-        description="Review the output, check its sources, and sign it when you are ready to take professional ownership."
-      />
+      {/* The artifact's certificate header — its entry in the record
+          (DESIGN.md P27). Inner surface: the matter shell owns the page,
+          so the header is a CertCard, not a masthead. */}
+      <CertCard testid="artifact-cert">
+        <CertEyebrow left="Output" right={a.kind} />
+        <h1 className="mt-3 text-[22px] leading-tight tracking-tight2">
+          {outputLabel(a.kind)}
+        </h1>
+        <p className="mt-1 tech-token text-[11px] text-muted">{a.id}</p>
+        <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+          <LedgerRow label="Created">
+            {a.created_at.replace("T", " ").slice(0, 19)}
+          </LedgerRow>
+          <LedgerRow label="Prepared by">
+            <span className="tech-token">
+              {a.module_id} · {a.capability_id}
+            </span>
+          </LedgerRow>
+          <LedgerRow
+            label="Sign-off"
+            tone={
+              signoff == null
+                ? "muted"
+                : signoff.decision === "rejected"
+                  ? "seal"
+                  : "ink"
+            }
+          >
+            {signoff === undefined
+              ? "Checking…"
+              : signoff === null
+                ? "Draft — unsigned"
+                : signoff.decision === "rejected"
+                  ? "Rejected"
+                  : signoff.decision === "signed_with_observations"
+                    ? "Signed with observations"
+                    : "Signed"}
+          </LedgerRow>
+          {signoff != null && (
+            <LedgerRow label="Hash (pinned)">
+              <span className="tech-token" title={signoff.artifact_hash}>
+                {signoff.artifact_hash}
+              </span>
+            </LedgerRow>
+          )}
+        </dl>
+      </CertCard>
 
       {/* Sign-off status + the hero action. Author sign-off (distinct from
           supervisor review): the solicitor takes ownership of this output. */}
-      <section className="mt-8 rounded-card border border-rule bg-paper p-4" data-testid="signoff-status">
-        <h2 className="text-sm uppercase tracking-widest text-muted">Sign-off</h2>
+      <section className="mt-10" data-testid="signoff-status">
+        <SectionRule label="Sign-off" />
         {signoff === undefined ? (
           <p className="mt-2 text-sm text-muted">Checking sign-off status…</p>
         ) : signoff === null ? (
@@ -149,7 +194,7 @@ export function ArtifactDetail({
           <Link
             to="/matters/$slug/artifacts/$artifactId/sign"
             params={{ slug, artifactId }}
-            className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal"
+            className="inline-flex items-center bg-ink px-4 py-2 text-sm text-paper hover:bg-seal"
             data-testid="signoff-cta"
           >
             {signoff ? "Review & sign again" : "Review & sign"}
@@ -166,16 +211,14 @@ export function ArtifactDetail({
         </div>
       </section>
 
-      <section className="mt-8">
-        <h2 className="text-sm uppercase tracking-widest text-muted">
-          Output
-        </h2>
+      <section className="mt-10">
+        <SectionRule label="The output" />
         <ArtifactPreview payload={a.payload} kindHint={a.kind} matterSlug={slug} />
       </section>
 
       {REVIEW_ELIGIBLE_KINDS.includes(a.kind) && (
-        <details className="mt-8 rounded-card border border-rule p-4">
-          <summary className="cursor-pointer text-sm uppercase tracking-widest text-muted">
+        <details className="mt-8 border border-rule p-4">
+          <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted">
             Optional separate review
           </summary>
           <div className="mt-3">
@@ -210,7 +253,7 @@ export function ArtifactDetail({
                     }
                   }}
                   disabled={review.kind === "busy"}
-                  className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
+                  className="mt-3 inline-flex items-center bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
                 >
                   {review.kind === "busy" ? "Requesting…" : "Request review"}
                 </button>
@@ -224,7 +267,7 @@ export function ArtifactDetail({
       )}
 
       <details className="mt-8 border border-line bg-paper-sunken p-4">
-        <summary className="cursor-pointer text-sm uppercase tracking-widest text-muted">
+        <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted">
           Technical record
         </summary>
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">

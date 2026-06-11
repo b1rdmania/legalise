@@ -2,9 +2,14 @@
  * Outputs list page — `/matters/{slug}/artifacts`.
  *
  * Hits `GET /api/matters/{slug}/artifacts` and renders the list as a
- * table, with a per-row sign-off badge (Draft / Signed / Signed
- * (obs.) / Rejected) derived from current sign-offs. The substrate
- * returns rows desc by created_at, so no client-side sort is needed.
+ * ledger (DESIGN.md P27): each artifact is a numbered LedgerLine with
+ * its kind as the 0.18em label and the current sign-off status as a
+ * small-caps mark on the right (Draft / Signed / Signed · obs. /
+ * Rejected) derived from current sign-offs. The substrate returns rows
+ * desc by created_at, so no client-side sort is needed.
+ *
+ * This is an inner matter surface — the matter shell owns the page, so
+ * there is no masthead here, only the SectionRule + ledger anatomy.
  *
  * Audit-trail deep-links live on artifact detail, not on this list.
  * Reads do NOT emit audit (substrate-verified at artifacts.py).
@@ -13,7 +18,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { listArtifacts, listSignoffs, type ArtifactSummary } from "../lib/api";
-import { PageHeader } from "../ui/primitives";
+import { LedgerLine, SectionRule } from "../ui/certificate";
 
 type Query =
   | { status: "loading" }
@@ -38,24 +43,35 @@ function outputLabel(kind: string): string {
   }
 }
 
-function SignoffBadge({ decision }: { decision: string | undefined }) {
-  if (decision === "signed" || decision === "signed_with_observations") {
-    return (
-      <span className="inline-flex items-center rounded-full border border-ink px-2 py-0.5 text-[11px] text-ink">
-        {decision === "signed_with_observations" ? "Signed (obs.)" : "Signed"}
-      </span>
-    );
-  }
-  if (decision === "rejected") {
-    return (
-      <span className="inline-flex items-center rounded-full border border-seal/50 px-2 py-0.5 text-[11px] text-seal">
-        Rejected
-      </span>
-    );
-  }
+// Small-caps sign-off mark for the ledger's right column. Signed states
+// read in ink; rejected carries the seal; unsigned drafts stay muted.
+function SignoffMark({
+  id,
+  decision,
+}: {
+  id: string;
+  decision: string | undefined;
+}) {
+  const label =
+    decision === "signed"
+      ? "Signed"
+      : decision === "signed_with_observations"
+        ? "Signed · obs."
+        : decision === "rejected"
+          ? "Rejected"
+          : "Draft";
+  const tone =
+    decision === "rejected"
+      ? "text-seal"
+      : decision
+        ? "text-ink"
+        : "text-muted";
   return (
-    <span className="inline-flex items-center rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-      Draft
+    <span
+      className={"text-[10px] uppercase tracking-[0.18em] " + tone}
+      data-testid={`signoff-badge-${id}`}
+    >
+      {label}
     </span>
   );
 }
@@ -90,71 +106,56 @@ export function ArtifactsList({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <PageHeader
-        eyebrow="Signed work of the matter"
-        title="Signed outputs"
-        subId={slug}
+      <SectionRule
+        label="Signed outputs"
+        right={q.status === "ready" ? String(q.rows.length) : undefined}
       />
 
       {q.status === "loading" && (
-        <p className="mt-8 text-sm text-muted">Loading signed outputs…</p>
+        <p className="mt-4 text-sm text-muted">Loading signed outputs…</p>
       )}
       {q.status === "error" && (
-        <p className="mt-8 text-sm text-seal">
+        <p className="mt-4 text-sm text-seal">
           Could not load signed outputs: {q.message}
         </p>
       )}
       {q.status === "ready" && q.rows.length === 0 && (
-        <p className="mt-8 text-sm text-muted">
+        <p className="mt-4 text-sm text-muted">
           No signed outputs yet on this matter. Run a skill to produce one.
         </p>
       )}
       {q.status === "ready" && q.rows.length > 0 && (
-        <div className="mt-8 overflow-x-auto rounded-md border border-line">
-          <table className="min-w-full text-sm">
-            <thead className="text-[10px] uppercase tracking-[0.18em] text-muted">
-              <tr className="border-b border-ink">
-                <th className="px-3 py-2 text-left">Output</th>
-                <th className="px-3 py-2 text-left">Sign-off</th>
-                <th className="px-3 py-2 text-left">Produced by</th>
-                <th className="px-3 py-2 text-left">Created</th>
-                <th className="px-3 py-2 text-right"> </th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.rows.map((r) => (
-                <tr key={r.id} className="border-t border-line">
-                  <td className="px-3 py-2">
-                    <span className="font-medium">{outputLabel(r.kind)}</span>
-                    <span className="mt-0.5 block tech-token text-[11px] text-muted">
-                      {r.kind}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2" data-testid={`signoff-badge-${r.id}`}>
-                    <SignoffBadge decision={signoffs.get(r.id)} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className="tech-token text-xs">{r.module_id}</span>
-                    <span className="mt-0.5 block tech-token text-[11px] text-muted">
-                      {r.capability_id}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted">
-                    {r.created_at.slice(0, 19).replace("T", " ")}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <Link
-                      to="/matters/$slug/artifacts/$artifactId"
-                      params={{ slug, artifactId: r.id }}
-                      className="text-xs underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-                    >
-                      Open
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-1">
+          {q.rows.map((r, i) => (
+            <LedgerLine
+              key={r.id}
+              index={i + 1}
+              label={r.kind}
+              right={
+                <span className="flex items-baseline gap-3">
+                  <SignoffMark id={r.id} decision={signoffs.get(r.id)} />
+                  <span className="hidden tech-token text-[11px] text-muted sm:inline">
+                    {r.created_at.slice(0, 10)}
+                  </span>
+                  <Link
+                    to="/matters/$slug/artifacts/$artifactId"
+                    params={{ slug, artifactId: r.id }}
+                    className="text-[11px] text-muted hover:text-seal"
+                  >
+                    Open →
+                  </Link>
+                </span>
+              }
+            >
+              <span className="text-ink">{outputLabel(r.kind)}</span>
+              <span className="ml-2 hidden tech-token text-[11px] text-muted sm:inline">
+                {r.module_id}
+              </span>
+              <span className="ml-1 hidden tech-token text-[11px] text-muted sm:inline">
+                {r.capability_id}
+              </span>
+            </LedgerLine>
+          ))}
         </div>
       )}
     </div>

@@ -71,14 +71,14 @@ function ChronologyTable({
         return (
           <div
             key={e.id}
-            className="relative h-[22px] grid grid-cols-[110px_50px_1fr_220px] gap-4 items-center px-4 hover:bg-wash transition-colors text-[11px] tech-token border-b border-rule"
+            className="relative grid grid-cols-[110px_50px_1fr_220px] gap-4 items-baseline px-4 py-2.5 hover:bg-wash transition-colors text-[11px] tech-token border-b border-rule/60"
           >
             <div
               className="absolute right-0 top-0 bottom-0 bg-[#00A35C]/15 pointer-events-none"
               style={{ width: sigBarWidth }}
               aria-hidden="true"
             />
-            <span className="text-ink z-10 font-bold">{e.event_date}</span>
+            <span className="text-ink z-10">{e.event_date}</span>
             <span className="text-muted z-10">{e.significance}</span>
             {e.redacted ? (
               <span className="text-seal italic z-10 truncate">{e.description}</span>
