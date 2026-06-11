@@ -110,12 +110,12 @@ describe("InstallCeremony — advance actions", () => {
 
     mountAt("/skills/install/cer-1");
     await waitFor(() => {
-      expect(screen.getByText("Continue review")).toBeInTheDocument();
+      expect(screen.getByText("Step through review")).toBeInTheDocument();
     });
 
     expect(screen.queryByText("Enable skill")).toBeNull();
 
-    fireEvent.click(screen.getByText("Continue review"));
+    fireEvent.click(screen.getByText("Step through review"));
     await waitFor(() => {
       expect(advance).toHaveBeenCalledWith("cer-1", "trust");
     });
@@ -134,7 +134,7 @@ describe("InstallCeremony — advance actions", () => {
       expect(screen.getByText("Enable skill")).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("Continue review")).toBeNull();
+    expect(screen.queryByText("Step through review")).toBeNull();
 
     fireEvent.click(screen.getByText("Enable skill"));
     await waitFor(() => {
@@ -215,7 +215,7 @@ describe("InstallCeremony — terminal failures", () => {
         screen.getByText(/ceremony terminated/i),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByText("Continue review")).toBeNull();
+    expect(screen.queryByText("Step through review")).toBeNull();
     expect(screen.queryByText("Enable skill")).toBeNull();
     expect(screen.queryByText("Reject")).toBeNull();
   });

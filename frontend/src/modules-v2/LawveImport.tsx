@@ -65,6 +65,21 @@ export function LawveImport() {
   }, []);
 
   const skills = q.status === "ready" ? q.skills : [];
+
+  // Deep-link preselect: /skills/lawve?skill=<slug> (the stocked
+  // library on /skills links straight to a skill's review pane).
+  useEffect(() => {
+    if (q.status !== "ready" || selected || selecting) return;
+    const slug =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("skill")
+        : null;
+    if (slug && q.skills.some((s) => s.slug === slug)) {
+      void openSkill(slug);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.status]);
+
   const licenses = useMemo(
     () => [...new Set(skills.map((s) => s.license).filter((l): l is string => !!l))].sort(),
     [skills],

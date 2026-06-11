@@ -25,6 +25,7 @@ import {
   manifestText,
   runnableMatterSkills,
   shortCapabilityList,
+  withInstalledEntries,
 } from "./skillRunnerModel";
 
 interface Props {
@@ -117,6 +118,11 @@ export function MatterSkillsTab({ slug }: Props) {
   // it on this matter. Grants are per (module_id, capability)
   // tuple, so any presence implies the skill has been enabled at least
   // partially.)
+  const allModules = useMemo(
+    () => withInstalledEntries(modules, installed),
+    [modules, installed],
+  );
+
   const grantedModuleIds = useMemo(() => {
     const set = new Set<string>();
     for (const g of grants ?? []) set.add(g.plugin);
@@ -125,16 +131,16 @@ export function MatterSkillsTab({ slug }: Props) {
 
   const enabledModules = useMemo(
     () =>
-      modules.filter((m) => {
+      allModules.filter((m) => {
         const inst = installed.get(m.module_id);
         return inst?.enabled === true && grantedModuleIds.has(m.module_id);
       }),
-    [modules, installed, grantedModuleIds],
+    [allModules, installed, grantedModuleIds],
   );
 
   const runnableSkills = useMemo(
-    () => runnableMatterSkills({ modules, installed, grants }),
-    [modules, installed, grants],
+    () => runnableMatterSkills({ modules: allModules, installed, grants }),
+    [allModules, installed, grants],
   );
 
   const runnableModuleIds = useMemo(
@@ -149,11 +155,11 @@ export function MatterSkillsTab({ slug }: Props) {
 
   const availableModules = useMemo(
     () =>
-      modules.filter((m) => {
+      allModules.filter((m) => {
         const inst = installed.get(m.module_id);
         return inst?.enabled === true && !grantedModuleIds.has(m.module_id);
       }),
-    [modules, installed, grantedModuleIds],
+    [allModules, installed, grantedModuleIds],
   );
 
   return (
@@ -201,8 +207,7 @@ export function MatterSkillsTab({ slug }: Props) {
           ))}
           {runnableSkills.length === 0 && enabledModules.length === 0 && (
             <p className="text-sm text-muted">
-              No skills are enabled in this matter yet. Pick one from
-              Available to enable below.
+              No skills are enabled on this matter yet.
             </p>
           )}
         </div>
@@ -216,7 +221,7 @@ export function MatterSkillsTab({ slug }: Props) {
         />
         {availableModules.length === 0 ? (
           <p className="mt-3 text-sm text-muted" data-testid="available-empty">
-            Everything trusted in the workspace is already enabled here.{" "}
+            Nothing waiting. Add skills from the library.{" "}
             <Link
               to="/skills"
               className="underline underline-offset-4 hover:text-ink"
