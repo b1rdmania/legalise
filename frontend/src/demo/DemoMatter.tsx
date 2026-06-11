@@ -170,11 +170,22 @@ export function DemoMatter() {
           </button>
         </div>
         <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+            <div
+              className="mb-8 flex items-baseline justify-between gap-4 border-b border-ink pb-2"
+              data-testid="demo-masthead"
+            >
+              <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+                A matter before the workspace · read-only demo
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-ink">
+                Legalise
+              </p>
+            </div>
             {tab === "assistant" && (
               <div className="space-y-6">
                 <p className="mx-auto w-full max-w-[760px] text-[13px] text-muted" data-testid="demo-readonly-strip">
                   Public demo · read-only Khan v Acme ·{" "}
-                  <a href="/auth/signup" className="underline underline-offset-4 hover:text-ink">
+                  <a href="/auth/signup" className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
                     create a workspace
                   </a>{" "}
                   to run it yourself.
@@ -234,7 +245,7 @@ function FlashCta({ message, onClose }: { message: string; onClose: () => void }
       <span className="text-sm text-ink">{message}.</span>
       <button
         onClick={onClose}
-        className="ml-auto text-xs text-muted hover:text-ink min-h-[32px] px-2"
+        className="ml-auto text-xs text-muted hover:text-seal min-h-[32px] px-2"
         aria-label="Dismiss"
       >
         Dismiss
@@ -310,7 +321,7 @@ function DemoWorkflowsTab({
               <button
                 type="button"
                 onClick={() => onOpen(w.key)}
-                className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black transition-colors"
+                className="bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-seal transition-colors"
               >
                 Open in chat
               </button>
@@ -415,7 +426,7 @@ function DemoDocumentsTab({
                   </button>
                   <a
                     href={`/demo/documents/${encodeURIComponent(d.id)}`}
-                    className="mt-3 inline-flex text-xs text-muted underline underline-offset-4 hover:text-ink"
+                    className="mt-3 inline-flex text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     Open reader →
                   </a>
@@ -446,7 +457,7 @@ function DemoDocumentsTab({
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={`/demo/documents/${encodeURIComponent(inspectedDoc.id)}`}
-                className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal hover:border-seal"
               >
                 Open full reader
               </a>
@@ -536,7 +547,7 @@ export function DemoDocumentReader({
         </h1>
         <a
           href="/demo/documents"
-          className="mt-4 inline-flex text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="mt-4 inline-flex text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← Back to demo documents
         </a>
@@ -549,13 +560,13 @@ export function DemoDocumentReader({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <a
           href="/demo/documents"
-          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← Back to demo documents
         </a>
         <a
           href="/demo/audit"
-          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           View demo Record →
         </a>
@@ -648,7 +659,7 @@ export function DemoDocumentReader({
             <div className="mt-4 grid gap-2 text-sm">
               <a
                 href="/demo/workflows"
-                className="flex items-center justify-between rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-black"
+                className="flex items-center justify-between rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-seal hover:border-seal"
               >
                 <span>Run a skill with this file</span>
                 <span aria-hidden="true">→</span>

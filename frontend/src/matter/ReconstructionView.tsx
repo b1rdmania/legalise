@@ -44,6 +44,7 @@ import {
   type RowClass,
 } from "./auditClassify";
 import { humanActionLabel } from "./auditHumanLabel";
+import { PageHeader } from "../ui/primitives";
 
 // Class filter chips (AT-2). No `artifact` chip — artifacts are not an
 // audit class; they surface as the chain output node (AT-3). `system`
@@ -248,27 +249,27 @@ export function ReconstructionView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted">Matter record</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight2">What happened here</h1>
-          <p className="mt-1 text-xs tech-token text-muted">{slug}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href={`/matters/${encodeURIComponent(slug)}/artifacts`}
-            className="inline-flex items-center rounded-item border border-rule px-3 py-2 text-sm hover:border-ink"
-          >
-            Signed outputs
-          </a>
-          <a
-            href={`/matters/${encodeURIComponent(slug)}/lifecycle`}
-            className="inline-flex items-center bg-ink px-3 py-2 text-sm text-paper hover:opacity-90"
-          >
-            Working pack
-          </a>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="The matter record"
+        eyebrowRight={slug}
+        title="What happened here"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`/matters/${encodeURIComponent(slug)}/artifacts`}
+              className="inline-flex items-center rounded-item border border-rule px-3 py-2 text-sm hover:border-ink"
+            >
+              Signed outputs
+            </a>
+            <a
+              href={`/matters/${encodeURIComponent(slug)}/lifecycle`}
+              className="inline-flex items-center bg-ink px-3 py-2 text-sm text-paper hover:opacity-90"
+            >
+              Working pack
+            </a>
+          </div>
+        }
+      />
 
       {/* Active query-param filters */}
       {(invocationFilter || actionFilter) && (
@@ -387,7 +388,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
                   <button
                     type="button"
                     onClick={() => setShowBackground((v) => !v)}
-                    className="text-xs uppercase tracking-widest text-muted hover:text-ink"
+                    className="text-xs uppercase tracking-widest text-muted hover:text-seal"
                     data-testid="toggle-background"
                     aria-expanded={showBackground}
                   >
@@ -544,7 +545,7 @@ function InvocationChain({
               <span className="uppercase tracking-widest text-muted">Output</span>{" "}
               <a
                 href={`/matters/${encodeURIComponent(slug)}/artifacts/${encodeURIComponent(artifactId)}`}
-                className="tech-token underline underline-offset-4 hover:text-ink"
+                className="tech-token underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
                 artifact {artifactId.slice(0, 8)}…
               </a>

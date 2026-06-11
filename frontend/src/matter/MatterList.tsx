@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { listMatters, type Matter } from "../lib/api";
-import { EmptyState, ErrorCallout } from "../ui/primitives";
+import { EmptyState, ErrorCallout, PageHeader } from "../ui/primitives";
 
 function formatType(raw: string): string {
   if (!raw) return "-";
@@ -30,22 +30,20 @@ export function MatterList() {
 
   return (
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-14">
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1] mb-1">
-            Matters
-          </h1>
-          {matters && (
-            <p className="text-sm text-muted">{matters.length} matters</p>
-          )}
-        </div>
-        <a
-          href="/matters/new"
-          className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
-        >
-          New matter
-        </a>
-      </div>
+      <PageHeader
+        display
+        eyebrow="Matters before the workspace"
+        eyebrowRight={matters ? `${matters.length} matters` : undefined}
+        title="Matters"
+        actions={
+          <a
+            href="/matters/new"
+            className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+          >
+            New matter
+          </a>
+        }
+      />
 
       {error && <ErrorCallout message={error} />}
 
@@ -56,7 +54,7 @@ export function MatterList() {
           action={
             <a
               href="/matters/new"
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
               New matter
             </a>
@@ -67,7 +65,7 @@ export function MatterList() {
       {matters && matters.length > 0 && (
         <div className="border-t border-rule overflow-x-auto">
           <div className="min-w-[860px]">
-            <div className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[2fr_160px_120px_140px_120px_120px] gap-4 px-4 py-3 bg-paper border-b border-ink text-[10px] uppercase tracking-[0.18em] text-muted">
               <span>Matter</span>
               <span>Type</span>
               <span>Status</span>

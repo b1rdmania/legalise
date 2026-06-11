@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { createMatter } from "../lib/api";
 import { navigate } from "../lib/route";
-import { ErrorCallout, Field } from "../ui/primitives";
+import { ErrorCallout, Field, PageHeader } from "../ui/primitives";
 
 export function NewMatter() {
   const [form, setForm] = useState({
@@ -35,12 +35,7 @@ export function NewMatter() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-      <div className="mb-10">
-        <div className="eyebrow tech-token text-muted mb-4">MATTERS - NEW</div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
-          New matter.
-        </h1>
-      </div>
+      <PageHeader eyebrow="Open a new matter" title="New matter." />
 
       <form onSubmit={submit} className="space-y-6">
         <Field label="Title" hint="becomes the slug">
@@ -104,13 +99,13 @@ export function NewMatter() {
           <button
             type="submit"
             disabled={submitting || !form.title}
-            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Creating…" : "Create matter"}
           </button>
           <a
             href="/matters"
-            className="text-sm text-muted hover:text-ink transition-colors"
+            className="text-sm text-muted hover:text-seal transition-colors"
           >
             Cancel
           </a>

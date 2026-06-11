@@ -1554,3 +1554,33 @@ Exact values (copy, do not approximate):
 
 Where it lands: `matter/DocumentDetail.tsx`, `modules/document_edit/DocumentRichEditor.tsx`.
 Deliberate divergences from the strip list: the rail's *functional* panels (notes, skill runner, redlines, state rail) survive — the cut is narration and zero-counters, not work surfaces. "Ask about this file" survives as one button in the command bar.
+
+---
+
+## P26 — Standing Order rollout (masthead + oxblood)
+
+Source: the Standing Order artist pass (`legalise-standing-register.png` + philosophy doc, 2026-06-11) as shipped on `/register` and `/skills/install/*`; ratified by Andy ("roll that branding out on every page everywhere we touch... a bit more liberal with oxblood flourishes").
+
+What we lift:
+- Every page opens like a page from the register: a ruled eyebrow line, then the headline in Redaction display. The eyebrow names the jurisdiction of the page; the optional right-hand counterpart is institutional ("Legalise", a matter slug, a count).
+- Oxblood (`seal`, #8B0000) graduates from "only where something happened" to the colour of *intent*: it appears on hover for textual links and commit actions, and at rest only for refusals/failures/signatures. Never for decoration at rest.
+- Tables read as ledgers: letterspaced small-cap column headers over a hairline ink rule.
+
+Exact values (copy, do not approximate):
+| Property | Value | Notes |
+|---|---|---|
+| Masthead (all pages) | `PageHeader` primitive with `eyebrow` (ruled row: `border-b border-ink pb-2`, eyebrow `text-[10px] uppercase tracking-[0.25em] text-muted`, optional `eyebrowRight` same but `text-ink`) | hand-rolled h1 headers are converted, not restyled in place |
+| Title — standard tier | `text-[26px] sm:text-[30px] leading-tight tracking-tight2` (normal weight) | detail pages, sub-pages |
+| Title — display tier | `display` prop → `font-redaction35 text-[40px] sm:text-[52px] leading-none tracking-tight2` | section homes ONLY: Matters, Skill library, Register, Settings, Admin Users, Admin Audit, Demo |
+| Eyebrow copy idiom | jurisdictional, lowercase-feel small caps: "Matters before the workspace", "The register of AI counsel · series 1", "Admission", "Workspace records" | not nav breadcrumbs |
+| Textual link hover | `text-muted hover:text-seal` (or `text-ink hover:text-seal` for inline links) | replaces `hover:text-ink` on textual links/“→” links; nav rail + tab switchers KEEP ink hover |
+| Commit-action hover | primary `bg-ink` buttons that commit something (Approve, Sign, Save version, New matter, Send) → `hover:bg-seal` | replaces `hover:bg-black`/`hover:opacity-90` on commit buttons only; neutral/secondary buttons keep `hover:border-ink` |
+| Table/ledger headers | `text-[10px] uppercase tracking-[0.18em] text-muted` over `border-b border-ink` on the header row | sortable headers get `hover:text-seal cursor-pointer` |
+| Row hover | `hover:bg-wash` stays | no red at rest in rows |
+| Underlined links | `underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal` | prose links |
+| Seal at rest | ONLY: refusal/blocked rows, terminal failures, signature seals, revoked entries | unchanged from the philosophy |
+
+Where it lands: `ui/primitives.tsx::PageHeader` (the masthead), then every routed page per the rollout clusters (matter / skills / settings+admin / demo+landing).
+Deliberate divergences from the artist pass: the 64–88px monument is reserved for `/register`; product pages cap at 52px so the masthead reads as a heading, not a poster. Chat composer and editor toolbar keep their P22/P25 contracts — P26 touches their link/commit hovers only.
+
+P26 deliberate divergences (2026-06-11 audit reconciliation): the demo and the matter chat shell carry the ruled-eyebrow idiom hand-rolled (`demo-masthead`), not the PageHeader primitive — their P22 chat-shell contract has no header block to convert; recorded, not drift. The AuditTab blocked-row strike (`line-through decoration-1` on seal refusal rows) is ratified — it is the artwork's struck-entry move on an already-seal row. Navigation-shaped bg-ink buttons ("View the register", "Working pack", "Open Activity", "Create account") keep ink hover: they go somewhere, they don't commit anything. `primaryBtn` is the single source of commit styling (hover:bg-seal); do not fork inline copies.

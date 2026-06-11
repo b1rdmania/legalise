@@ -152,7 +152,7 @@ export function LawveImport() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Skills"
+        eyebrow="Admission — instruct new counsel"
         title="Add a skill"
         description="Import a skill from the Lawve catalogue or any public GitHub repository. A skill cannot be added until it is converted, validated, signed, and trusted — and imported scripts are never executed."
       />
@@ -281,7 +281,7 @@ export function LawveImport() {
                     href={selected.provenance.repo_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="underline hover:text-ink"
+                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     {selected.repo}
                   </a>{" "}
@@ -308,7 +308,7 @@ export function LawveImport() {
                   type="button"
                   onClick={() => convert(selected.slug)}
                   disabled={drafting}
-                  className="mt-4 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+                  className="mt-4 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
                   data-testid="convert-draft"
                 >
                   {drafting ? "Converting…" : "Convert to skill draft"}
@@ -436,7 +436,7 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
                 type="button"
                 onClick={install}
                 disabled={installing}
-                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+                className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
                 data-testid="install-draft"
               >
                 {installing ? "Starting ceremony…" : "Add this draft"}

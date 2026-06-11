@@ -60,7 +60,7 @@ function ChronologyTable({
   return (
     <div className="border-t border-rule overflow-x-auto">
       <div className="min-w-[720px]">
-        <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
+        <div className="grid grid-cols-[110px_50px_1fr_220px] gap-4 px-4 py-2 bg-paper border-b border-ink text-[10px] uppercase tracking-[0.18em] text-muted">
           <span>Date</span>
           <span>Sig</span>
           <span>Event</span>

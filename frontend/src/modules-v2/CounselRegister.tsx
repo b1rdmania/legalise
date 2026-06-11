@@ -134,7 +134,7 @@ export function CounselRegister() {
           </p>
           <Link
             to="/skills/lawve"
-            className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90"
+            className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal"
           >
             Instruct your first counsel
           </Link>

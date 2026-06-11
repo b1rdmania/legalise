@@ -100,7 +100,7 @@ export function SignOffConfirmation({
         <Link
           to="/matters/$slug/artifacts/$artifactId"
           params={{ slug, artifactId: signoff.artifact_id }}
-          className="text-muted underline underline-offset-4 hover:text-ink"
+          className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← Back to output
         </Link>
@@ -108,7 +108,7 @@ export function SignOffConfirmation({
           to="/matters/$slug/audit"
           params={{ slug }}
           search={{ invocation_id: signoff.invocation_id }}
-          className="text-muted underline underline-offset-4 hover:text-ink"
+          className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           data-testid="signoff-trail-link"
         >
           See it in Activity →

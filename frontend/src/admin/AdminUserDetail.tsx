@@ -116,7 +116,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
         <p className="mt-3 text-sm">
           <Link
             to="/admin/users"
-            className="underline underline-offset-4 hover:text-ink"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             ← All users
           </Link>
@@ -171,7 +171,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="Admin · user" title={user.email} subId={user.id} />
+      <PageHeader eyebrow="Workspace administration" eyebrowRight={user.role} title={user.email} subId={user.id} />
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <DT label="Name">{user.name || "—"}</DT>
@@ -222,7 +222,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
             disabled={
               isSelf || !draftRole || roleUnchanged || m.kind === "submitting"
             }
-            className="inline-flex items-center rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:bg-seal transition-colors disabled:opacity-50"
           >
             {m.kind === "submitting" ? "Submitting…" : "Change role"}
           </button>
@@ -271,7 +271,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
       <section className="mt-10">
         <Link
           to="/admin/users"
-          className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           ← All users
         </Link>
@@ -283,12 +283,11 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">Admin</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">Admin required</h1>
-      <p className="mt-3 text-sm text-muted">
-        Per-user admin surface requires superuser. Ask your workspace
-        administrator if you need access.
-      </p>
+      <PageHeader
+        eyebrow="Workspace administration"
+        title="Admin required"
+        description="Per-user admin surface requires superuser. Ask your workspace administrator if you need access."
+      />
     </div>
   );
 }

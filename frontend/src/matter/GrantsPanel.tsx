@@ -606,7 +606,7 @@ export function GrantsPanel({
                     className={`rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-widest ${
                       p.readiness.disabled
                         ? "border-amber-500/40 bg-amber-50 text-amber-900"
-                        : "border-line bg-paper-sunken text-muted"
+                        : "border-line text-muted"
                     }`}
                   >
                     {p.readiness.disabled ? "Needs setup" : "Ready"}
@@ -627,7 +627,7 @@ export function GrantsPanel({
       )}
 
       <details
-        className="mt-6 rounded-md border border-line bg-paper-sunken p-4"
+        className="mt-6 rounded-md border border-line p-4"
         open={setupOpen}
         onToggle={(e) => setSetupOpen(e.currentTarget.open)}
       >
@@ -661,8 +661,8 @@ export function GrantsPanel({
         {grants.status === "ready" && grants.grants.length > 0 && (
           <div className="mt-4 overflow-x-auto rounded-md border border-line bg-paper">
             <table className="min-w-full text-sm">
-              <thead className="bg-paper-sunken text-xs uppercase tracking-widest text-muted">
-                <tr>
+              <thead className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                <tr className="border-b border-ink">
                   <th className="px-3 py-2 text-left">Skill source</th>
                   <th className="px-3 py-2 text-left">Skill</th>
                   <th className="px-3 py-2 text-left">Permission</th>
@@ -773,7 +773,7 @@ export function GrantsPanel({
                 !selectedCap ||
                 createState.kind === "submitting"
               }
-              className="inline-flex items-center rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center rounded-md bg-ink px-4 py-1.5 text-sm text-paper hover:bg-seal disabled:opacity-50"
             >
               {createState.kind === "submitting" ? "Enabling…" : "Enable"}
             </button>

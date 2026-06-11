@@ -1624,7 +1624,7 @@ export function DocumentRichEditor({
               <button
                 type="button"
                 onClick={onCreateNoteFromSelection}
-                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
               >
                 Add review note
               </button>
@@ -1872,7 +1872,7 @@ export function DocumentRichEditor({
                   <button
                     type="button"
                     onClick={onCreateNoteFromSelection}
-                    className="mt-2 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                    className="mt-2 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
                   >
                     Add review note
                   </button>
@@ -1966,7 +1966,7 @@ export function DocumentRichEditor({
                     <button
                       type="button"
                       onClick={onCreateNoteFromSelection}
-                      className="bg-ink px-2 py-1 text-xs font-semibold text-paper hover:bg-black"
+                      className="bg-ink px-2 py-1 text-xs font-semibold text-paper hover:bg-seal"
                     >
                       Add note
                     </button>

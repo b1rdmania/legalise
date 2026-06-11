@@ -433,7 +433,7 @@ export function DocumentDetail({
           <Link
             to="/matters/$slug/$tab"
             params={{ slug, tab: "documents" }}
-            className="underline underline-offset-4 hover:text-ink"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             ← All documents
           </Link>
@@ -789,14 +789,14 @@ export function DocumentDetail({
           <Link
             to="/matters/$slug/$tab"
             params={{ slug, tab: backTab }}
-            className="text-[13px] text-muted underline underline-offset-4 decoration-rule hover:text-ink"
+            className="text-[13px] text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             data-testid="document-back-link"
           >
             {backLabel}
           </Link>
           <a
             href={recordHref}
-            className="text-[13px] text-muted underline underline-offset-4 decoration-rule hover:text-ink"
+            className="text-[13px] text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             Activity
           </a>
@@ -917,7 +917,7 @@ export function DocumentDetail({
               to="/matters/$slug/$tab"
               params={{ slug, tab: "assistant" }}
               search={{ document: documentId }}
-              className="inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-black"
+              className="inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-seal"
               data-testid="document-ask-chat-link"
             >
               Ask about this file
@@ -1284,7 +1284,7 @@ export function DocumentDetail({
                     type="button"
                     disabled={versionUploadBusy}
                     onClick={submitVersionUpload}
-                    className="rounded-item border border-ink bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-item border border-ink bg-ink px-4 py-2 text-sm font-medium text-paper hover:bg-seal disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {versionUploadBusy ? "Uploading..." : "Upload version"}
                   </button>
@@ -1493,7 +1493,7 @@ export function DocumentDetail({
                   <Link
                     to="/matters/$slug/$tab"
                     params={{ slug, tab: "workflows" }}
-                    className="mt-2 inline-block underline underline-offset-4 hover:text-ink"
+                    className="mt-2 inline-block underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     Open project Skills →
                   </Link>
@@ -1556,7 +1556,7 @@ export function DocumentDetail({
                     <Link
                       to="/matters/$slug/$tab"
                       params={{ slug, tab: "workflows" }}
-                      className="text-xs text-muted underline underline-offset-4 hover:text-ink"
+                      className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                     >
                       See all skills →
                     </Link>
@@ -1609,7 +1609,7 @@ export function DocumentDetail({
                     <button
                       type="button"
                       onClick={() => openWorkbenchView("redlines")}
-                      className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                      className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
                     >
                       Review redlines
                     </button>
@@ -1838,7 +1838,7 @@ export function DocumentDetail({
                           <button
                             type="button"
                             onClick={() => openDocumentSkill(primaryDocumentSkill, true)}
-                            className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black"
+                            className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
                           >
                             Run skill on passage
                           </button>
@@ -1871,7 +1871,7 @@ export function DocumentDetail({
                     type="button"
                     disabled={commentBusy}
                     onClick={submitComment}
-                    className="w-full rounded-item border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-item border border-ink bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-seal disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Save note
                   </button>
@@ -1907,7 +1907,7 @@ export function DocumentDetail({
                         <button
                           type="button"
                           onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
-                          className="mt-2 text-xs font-medium text-ink underline underline-offset-4 hover:text-muted"
+                          className="mt-2 text-xs font-medium text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                         >
                           Find in document
                         </button>
@@ -1929,7 +1929,7 @@ export function DocumentDetail({
                             type="button"
                             disabled={commentBusy}
                             onClick={() => submitCommentEdit(comment.id)}
-                            className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Save changes
                           </button>
@@ -1953,7 +1953,7 @@ export function DocumentDetail({
                           type="button"
                           disabled={commentBusy}
                           onClick={() => startEditingComment(comment)}
-                          className="underline underline-offset-4 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                          className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Edit
                         </button>
@@ -1961,7 +1961,7 @@ export function DocumentDetail({
                           type="button"
                           disabled={commentBusy}
                           onClick={() => resolveComment(comment.id)}
-                          className="underline underline-offset-4 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                          className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Resolve
                         </button>
@@ -1997,7 +1997,7 @@ export function DocumentDetail({
                               <button
                                 type="button"
                                 onClick={() => jumpToCommentQuote(comment.quote_text ?? "")}
-                                className="font-medium text-ink underline underline-offset-4 hover:text-muted"
+                                className="font-medium text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                               >
                                 Find in document
                               </button>
@@ -2006,7 +2006,7 @@ export function DocumentDetail({
                               type="button"
                               disabled={commentBusy}
                               onClick={() => reopenComment(comment.id)}
-                              className="font-medium text-ink underline underline-offset-4 hover:text-muted disabled:cursor-not-allowed disabled:text-muted"
+                              className="font-medium text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:cursor-not-allowed disabled:text-muted"
                             >
                               Reopen
                             </button>

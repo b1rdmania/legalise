@@ -76,7 +76,7 @@ export function SignUp() {
       </form>
       <p className="text-sm text-muted mt-6">
         Already have an account?{" "}
-        <a href="/auth/signin" className="text-ink hover:text-muted underline">
+        <a href="/auth/signin" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
           Sign in
         </a>
         .

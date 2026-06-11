@@ -4,7 +4,7 @@ export const inputCls =
   "bg-paper border border-rule rounded-item px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
 
 export const primaryBtn =
-  "bg-ink text-paper rounded-item px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
+  "bg-ink text-paper rounded-item px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
 
 // Inline banner for the canonical `provider_key_missing` 422 error.
 // Border + text tokens only. No fill, no radius, no shadow. The deep
@@ -182,35 +182,60 @@ export function DescItem({
 // editorial only). eyebrow + h1 + optional mono sub-id + optional
 // description + optional right-aligned actions slot. `children` renders
 // below the header for an optional metadata strip.
+// Standing Order masthead (DESIGN.md P26). Every page opens like a page
+// from the register: a ruled eyebrow line (letterspaced small caps left,
+// optional counterpart right), then the headline in Redaction display.
+// `display` escalates to the monument tier for section homes.
 export function PageHeader({
   eyebrow,
+  eyebrowRight,
   title,
   subId,
   description,
   actions,
+  display = false,
   children,
 }: {
   eyebrow?: string;
+  eyebrowRight?: string;
   title: ReactNode;
   subId?: string;
   description?: ReactNode;
   actions?: ReactNode;
+  display?: boolean;
   children?: ReactNode;
 }) {
   return (
     <header className="mb-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          {eyebrow && (
-            <p className="text-[11px] uppercase tracking-widest text-muted">{eyebrow}</p>
-          )}
-          <h1 className="mt-1 text-2xl font-bold tracking-tight2 text-ink">{title}</h1>
-          {subId && <p className="mt-1 tech-token text-xs text-muted">{subId}</p>}
-          {description && (
-            <p className="mt-2 max-w-2xl text-sm text-muted">{description}</p>
+      {eyebrow && (
+        <div className="flex items-baseline justify-between border-b border-ink pb-2">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+            {eyebrow}
+          </p>
+          {eyebrowRight && (
+            <p className="text-[10px] uppercase tracking-[0.25em] text-ink">
+              {eyebrowRight}
+            </p>
           )}
         </div>
-        {actions && <div className="shrink-0">{actions}</div>}
+      )}
+      <div className="mt-5 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1
+            className={
+              display
+                ? "font-redaction35 text-[40px] leading-none tracking-tight2 text-ink sm:text-[52px]"
+                : "text-[26px] leading-tight tracking-tight2 text-ink sm:text-[30px]"
+            }
+          >
+            {title}
+          </h1>
+          {subId && <p className="mt-2 tech-token text-xs text-muted">{subId}</p>}
+          {description && (
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>
+          )}
+        </div>
+        {actions && <div className="shrink-0 pb-1">{actions}</div>}
       </div>
       {children}
     </header>

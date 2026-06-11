@@ -16,6 +16,7 @@ import {
   ErrorCallout,
   Field,
   LoadingLine,
+  PageHeader,
   inputCls,
   primaryBtn,
 } from "../ui/primitives";
@@ -48,11 +49,12 @@ export function Settings({ tab }: { tab: SettingsTab }) {
 
   return (
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
-      <div className="mb-10">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight2 text-ink leading-[1.1]">
-          Settings
-        </h1>
-      </div>
+      <PageHeader
+        display
+        eyebrow="Workspace settings"
+        eyebrowRight="Legalise"
+        title="Settings"
+      />
       <div className="flex flex-col lg:flex-row gap-10">
         <aside className="lg:w-64 shrink-0 lg:border-r lg:border-rule lg:pr-6">
           <nav className="flex lg:flex-col gap-1 border-b lg:border-b-0 border-rule lg:border-0">
@@ -99,7 +101,7 @@ function FieldSave({
       type="button"
       disabled={!dirty || busy}
       onClick={onClick}
-      className="bg-ink text-paper px-5 hover:bg-black transition-colors text-sm font-medium disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed min-h-[44px] shrink-0"
+      className="bg-ink text-paper px-5 hover:bg-seal transition-colors text-sm font-medium disabled:bg-wash disabled:text-muted disabled:cursor-not-allowed min-h-[44px] shrink-0"
     >
       {busy ? "Saving" : "Save"}
     </button>
@@ -431,7 +433,7 @@ function SettingsKeys() {
       {keys && keys.length > 0 && (
         <div className="border border-rule overflow-x-auto">
           <div className="min-w-[480px]">
-            <div className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 text-muted bg-paper border-b border-rule tech-token uppercase tracking-track2 text-[9px]">
+            <div className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 bg-paper border-b border-ink text-[10px] uppercase tracking-[0.18em] text-muted">
               <span>Provider</span>
               <span>Created</span>
               <span>Last used</span>

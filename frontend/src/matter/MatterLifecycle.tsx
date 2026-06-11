@@ -58,7 +58,7 @@ export function MatterLifecycle({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Matter"
+        eyebrow="The matter's lifecycle"
         title="Working pack"
         subId={matter.slug}
         description="Download the governed matter record, then close or delete only if needed. Exporting the working pack is the normal final step."
@@ -171,7 +171,7 @@ function ExportPanel({ slug }: { slug: string }) {
           type="button"
           onClick={start}
           disabled={starting || inProgress}
-          className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
           data-testid="start-export"
         >
           {starting ? "Starting…" : inProgress ? "Export running…" : "Start export"}
@@ -211,7 +211,7 @@ function ExportPanel({ slug }: { slug: string }) {
 
       <a
         href={`/matters/${encodeURIComponent(slug)}/audit?action=module.export.job.completed`}
-        className="mt-3 inline-block text-xs text-muted underline underline-offset-4 hover:text-ink"
+        className="mt-3 inline-block text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
       >
         View export activity in Activity
       </a>

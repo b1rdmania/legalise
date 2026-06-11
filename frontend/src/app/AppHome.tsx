@@ -29,6 +29,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { getBootstrapState, type BootstrapState } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
+import { PageHeader } from "../ui/primitives";
 
 const BOOTSTRAP_CLI = "python -m app.tools.bootstrap_admin <email>";
 const BOOTSTRAP_PATH = "backend/app/tools/bootstrap_admin.py";
@@ -91,21 +92,16 @@ export function AppHome() {
 function FirstRunEmptyState() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">
-        Fresh workspace
-      </p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">No accounts yet</h1>
-      <p className="mt-4 text-muted">
-        Register the first account to begin. In the local quickstart,
-        that account is verified, seeded with Khan v Acme, and promoted
-        to workspace admin automatically. Deployments that disable
-        auto-admin will show the host-side bootstrap CLI command after
-        signup.
-      </p>
+      <PageHeader
+        eyebrow="Fresh workspace"
+        eyebrowRight="Legalise"
+        title="No accounts yet"
+        description="Register the first account to begin. In the local quickstart, that account is verified, seeded with Khan v Acme, and promoted to workspace admin automatically. Deployments that disable auto-admin will show the host-side bootstrap CLI command after signup."
+      />
       <div className="mt-8 flex items-center gap-3">
         <Link
           to="/auth/signup"
-          className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:opacity-90"
+          className="inline-flex items-center rounded-md bg-ink px-4 py-2 text-paper hover:bg-seal transition-colors"
         >
           Register first account
         </Link>
@@ -113,7 +109,7 @@ function FirstRunEmptyState() {
           href="https://github.com/b1rdmania/legalise#readme"
           target="_blank"
           rel="noreferrer noopener"
-          className="text-sm text-muted hover:text-ink underline underline-offset-4"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
           Read the open-core README
         </a>
@@ -129,18 +125,12 @@ function FirstRunEmptyState() {
 function BootstrapRequiredState() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
-      <p className="text-xs uppercase tracking-widest text-muted">
-        Bootstrap required
-      </p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight2">
-        Administrator not yet bootstrapped
-      </h1>
-      <p className="mt-4 text-muted">
-        Accounts exist in this workspace but no administrator has been
-        designated yet. Run the bootstrap command on the host to promote
-        an existing user. This step is deliberately host-side; the UI does
-        not expose a self-promotion path.
-      </p>
+      <PageHeader
+        eyebrow="Bootstrap required"
+        eyebrowRight="Legalise"
+        title="Administrator not yet bootstrapped"
+        description="Accounts exist in this workspace but no administrator has been designated yet. Run the bootstrap command on the host to promote an existing user. This step is deliberately host-side; the UI does not expose a self-promotion path."
+      />
       <pre className="mt-6 overflow-x-auto rounded-md border border-line bg-paper-sunken px-4 py-3 text-sm tech-token">
         <code>{BOOTSTRAP_CLI}</code>
       </pre>

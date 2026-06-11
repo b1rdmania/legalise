@@ -48,7 +48,7 @@ function QuickstartCommand() {
       <button
         type="button"
         onClick={onCopy}
-        className="shrink-0 text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-ink"
+        className="shrink-0 text-xs font-medium text-muted underline underline-offset-4 decoration-rule transition-colors hover:decoration-seal hover:text-seal"
       >
         Copy
       </button>
@@ -123,7 +123,7 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-4 mt-10">
               <button
                 onClick={onOpenDemo}
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px]"
+                className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]"
               >
                 Open demo project
               </button>
@@ -135,7 +135,7 @@ export function Landing() {
               </a>
               <a
                 href="/skills"
-                className="text-sm text-muted hover:text-ink transition-colors"
+                className="text-sm text-muted hover:text-seal transition-colors"
               >
                 Skills
               </a>
@@ -144,7 +144,7 @@ export function Landing() {
             <div className="flex flex-wrap items-center gap-4 mt-10">
               <a
                 href="/demo"
-                className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+                className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 Open the demo
               </a>
@@ -254,7 +254,7 @@ export function Landing() {
           <div className="mt-8 flex flex-wrap gap-4">
             <a
               href="/demo"
-              className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+              className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
               Open the demo
             </a>

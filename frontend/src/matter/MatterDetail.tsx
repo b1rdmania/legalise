@@ -136,7 +136,7 @@ export function MatterDetail({ slug }: { slug: string }) {
         <ErrorCallout message={error} />
         <a
           href="/matters"
-          className="text-sm text-muted hover:text-ink transition-colors"
+          className="text-sm text-muted hover:text-seal transition-colors"
         >
           Back to matters
         </a>
@@ -204,7 +204,7 @@ export function MatterDetail({ slug }: { slug: string }) {
             <div className="space-y-8">
               <MatterSkillsTab slug={matter.slug} />
               <details className="border-t border-rule pt-6">
-                <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted hover:text-ink">
+                <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted hover:text-seal">
                   Permissions detail
                 </summary>
                 <p className="mt-2 text-xs text-muted">

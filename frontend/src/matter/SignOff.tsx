@@ -130,7 +130,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
   return (
     <div className="mx-auto max-w-6xl px-6 py-10 text-ink">
       <PageHeader
-        eyebrow="Sign-off"
+        eyebrow="Professional sign-off"
         title="Review and sign this output"
         description="You are taking professional ownership of this AI-prepared output. Read it, then record your decision. The exact output is hashed and pinned to your signature."
       />
@@ -218,7 +218,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
               type="button"
               onClick={submit}
               disabled={!canSubmit}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:opacity-90 disabled:opacity-50"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal disabled:opacity-50"
               data-testid="signoff-submit"
             >
               {submitting
@@ -235,7 +235,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
               <Link
                 to="/matters/$slug/artifacts/$artifactId"
                 params={{ slug, artifactId }}
-                className="underline underline-offset-4 hover:text-ink"
+                className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
                 Cancel
               </Link>
