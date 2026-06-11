@@ -1623,6 +1623,18 @@ async function resolutionJsonOrThrow<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface PendingEditsResponse {
+  version: EditInstructionResponse["version"] | null;
+  pending_edits: EditInstructionResponse["pending_edits"];
+}
+
+// Pending redlines survive reload: the substrate stores proposed edits
+// in document_edits; this rehydrates them on document open.
+export const getPendingEdits = (documentId: string) =>
+  apiFetch(`${API}/documents/${encodeURIComponent(documentId)}/edits/pending`).then(
+    (r) => jsonOrThrow<PendingEditsResponse>(r),
+  );
+
 export const acceptEdit = (editId: string) =>
   apiFetch(`${API}/documents/edits/${editId}/accept`, { method: "POST" }).then(
     (r) => resolutionJsonOrThrow<EditResolutionResponse>(r),

@@ -29,6 +29,7 @@ import {
   getDocumentBody,
   getDocumentEditSessions,
   getDocumentVersions,
+  getPendingEdits,
   listGrants,
   listArtifacts,
   listDocuments,
@@ -322,6 +323,27 @@ export function DocumentDetail({
     loadBody();
     loadComments();
     loadVersions();
+    // Rehydrate pending redlines: the substrate stores proposed edits in
+    // document_edits, so they must survive a reload, not just the session
+    // that ran the instruction. A later in-session run replaces this.
+    getPendingEdits(documentId)
+      .then((res) => {
+        if (res.version && res.pending_edits.length > 0) {
+          setActiveEditResult((current) =>
+            current
+              ? current
+              : {
+                  version: res.version!,
+                  pending_edits: res.pending_edits,
+                  model_used: "",
+                  model_notes: "",
+                  instruction_hash: "",
+                  parse_ok: true,
+                },
+          );
+        }
+      })
+      .catch(() => undefined);
     getAnonymisation(documentId)
       .then(setAnon)
       .catch(() => setAnon(null));

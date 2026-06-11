@@ -257,3 +257,5 @@ Honest gaps, so nobody assumes them:
   in backend memory (for example a skill-add ceremony mid-flight) do not
   survive a machine restart. This is harmless: no committed data is
   involved — restart the add flow from the beginning.
+
+- No multi-tenancy: one deployment is one workspace (deliberate beta scope; see README Status). Teams needing separation run one deployment each.

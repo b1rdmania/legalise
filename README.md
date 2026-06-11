@@ -295,7 +295,15 @@ Evaluation release. Honest about what's in and what isn't.
   cannot bypass the controls unnoticed.
 - Sigstore-level signature verification on installed modules is
   structural today; cryptographic chain verification is hardening
-  backlog.
+  backlog. (Registered-publisher ed25519 verification ships as the
+  `verified` grade; the registry of publisher keys is still small.)
+- Single workspace by design. There is no organisation or multi-tenant
+  model in the beta: one deployment is one workspace, the admin flag is
+  the only privileged role, and matters are owner-scoped. This is a
+  deliberate scope decision, not an accident — a tenancy model (who is
+  the tenant: a firm, a team, a chambers?) changes the data model and
+  deserves its own design pass rather than complicating the beta.
+  Self-hosters who need separation today run one deployment per team.
 - Hosted evaluation limits on storage, workflow runs, active jobs,
   generated artefacts, and public module submissions.
 - Configurable prompt shroud before cloud-model dispatch.
