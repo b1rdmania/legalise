@@ -29,6 +29,7 @@ import { CreateModule } from "../modules-v2/CreateModule";
 import { LawveImport } from "../modules-v2/LawveImport";
 import { DemoLoop } from "../demo/DemoLoop";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
+import { CounselRegister } from "../modules-v2/CounselRegister";
 import { ArtifactsList } from "../matter/ArtifactsList";
 import { ArtifactDetail } from "../matter/ArtifactDetail";
 import { SignOff } from "../matter/SignOff";
@@ -365,6 +366,12 @@ const legacyModuleDetailRedirect = createRoute({
   component: () => null,
 });
 
+const counselRegisterRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: "/register",
+  component: CounselRegister,
+});
+
 const moduleInstallRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: "/skills/install/$ceremonyId",
@@ -546,7 +553,8 @@ const routeTree = rootRoute.addChildren([
     demoLoopRoute,
     moduleDetailRoute,
     legacyModuleDetailRedirect,
-    moduleInstallRoute,
+    counselRegisterRoute,
+  moduleInstallRoute,
     legacyModuleInstallRedirect,
     matterAuditRoute,
     matterArtifactsRoute,

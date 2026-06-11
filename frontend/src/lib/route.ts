@@ -41,6 +41,7 @@ export type Route =
   | { name: "appHome" }
   | { name: "moduleDetail"; moduleId: string }
   | { name: "moduleInstall"; ceremonyId: string }
+  | { name: "register" }
   | { name: "matterAudit"; slug: string }
   | { name: "matterArtifacts"; slug: string }
   | { name: "matterArtifactDetail"; slug: string; artifactId: string }
@@ -104,11 +105,12 @@ export function routeFromPath(pathname: string, search: string): Route {
   const adminUserMatch = path.match(/^\/admin\/users\/([^/]+)$/);
   if (adminUserMatch) return { name: "adminUserDetail", userId: adminUserMatch[1] };
 
-  const moduleInstallMatch = path.match(/^\/modules\/install\/([^/]+)$/);
+  const moduleInstallMatch = path.match(/^\/(?:skills|modules)\/install\/([^/]+)$/);
   if (moduleInstallMatch) {
     return { name: "moduleInstall", ceremonyId: moduleInstallMatch[1] };
   }
-  const moduleDetailMatch = path.match(/^\/modules\/([^/]+)$/);
+  if (path === "/register") return { name: "register" };
+  const moduleDetailMatch = path.match(/^\/(?:skills|modules)\/([^/]+)$/);
   if (moduleDetailMatch) {
     return { name: "moduleDetail", moduleId: moduleDetailMatch[1] };
   }

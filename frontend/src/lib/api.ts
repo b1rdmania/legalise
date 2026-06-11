@@ -209,6 +209,7 @@ export const draftGithubModule = (url: string, overrides?: Record<string, unknow
 // badge and as one AND clause in GrantsPanel.runnablePairs.
 export interface InstalledModule {
   module_id: string;
+  name?: string | null;
   version: string;
   publisher: string;
   visibility: string;
@@ -217,6 +218,7 @@ export interface InstalledModule {
   enabled: boolean;
   installed_at: string;
   installed_by_user_id: string | null;
+  install_path?: string | null;
 }
 
 export const listInstalledModules = () =>

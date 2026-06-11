@@ -215,6 +215,12 @@ export function ModulesCatalog() {
                 >
                   Create skill
                 </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center px-2 py-2 text-sm text-muted hover:text-ink"
+                >
+                  View the register →
+                </Link>
               </>
             ) : (
               <a

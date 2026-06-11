@@ -153,6 +153,7 @@ class ValidateManifestResponse(BaseModel):
 
 class InstalledModuleOut(BaseModel):
     module_id: str
+    name: str | None = None
     version: str
     publisher: str
     visibility: str
@@ -161,6 +162,9 @@ class InstalledModuleOut(BaseModel):
     enabled: bool
     installed_at: str  # ISO-8601
     installed_by_user_id: str | None
+    # Manifest source_url captured at install (pinned-SHA provenance);
+    # "<inline>" for manifests installed without a source.
+    install_path: str | None = None
 
 
 class StartInstallRequest(BaseModel):
