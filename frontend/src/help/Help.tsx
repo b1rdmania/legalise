@@ -53,7 +53,6 @@ export function Help() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="How the workspace works"
         title="Help"
         whisper="Plainly stated"
       />

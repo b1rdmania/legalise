@@ -172,7 +172,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
-      <PageHeader eyebrow="Workspace administration" eyebrowRight={user.role} title={user.email} subId={user.id} />
+      <PageHeader title={user.email} subId={user.id} />
 
       <CertCard testid="practitioner-card">
         <CertEyebrow
@@ -301,7 +301,6 @@ function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <PageHeader
-        eyebrow="Workspace administration"
         title="Admin required"
         description="Per-user admin surface requires superuser. Ask your workspace administrator if you need access."
       />

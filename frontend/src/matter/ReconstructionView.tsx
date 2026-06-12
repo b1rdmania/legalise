@@ -270,8 +270,6 @@ export function ReconstructionView({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="The matter record"
-        eyebrowRight={slug}
         title="What happened here"
         actions={
           <div className="flex flex-wrap gap-2">

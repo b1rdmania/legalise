@@ -93,8 +93,6 @@ function FirstRunEmptyState() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <PageHeader
-        eyebrow="Fresh workspace"
-        eyebrowRight="Legalise"
         title="No accounts yet"
         description="Register the first account to begin. In the local quickstart, that account is verified, seeded with Khan v Acme, and promoted to workspace admin automatically. Deployments that disable auto-admin will show the host-side bootstrap CLI command after signup."
       />
@@ -126,8 +124,6 @@ function BootstrapRequiredState() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <PageHeader
-        eyebrow="Bootstrap required"
-        eyebrowRight="Legalise"
         title="Administrator not yet bootstrapped"
         description="Accounts exist in this workspace but no administrator has been designated yet. Run the bootstrap command on the host to promote an existing user. This step is deliberately host-side; the UI does not expose a self-promotion path."
       />

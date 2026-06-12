@@ -27,7 +27,6 @@ export function ForgotPassword() {
   if (sent) {
     return (
       <AuthCard
-        eyebrow="The workspace"
         heading="Check your email"
         intro="If an account exists for that address, a reset link is on its way."
       >
@@ -40,7 +39,6 @@ export function ForgotPassword() {
 
   return (
     <AuthCard
-      eyebrow="The workspace"
       heading="Reset your password"
       intro="Enter your account email. We'll send a one-time reset link."
     >

@@ -53,7 +53,8 @@ export type Route =
   | { name: "matterDocumentDetail"; slug: string; documentId: string }
   | { name: "matterLifecycle"; slug: string }
   | { name: "adminUsers" }
-  | { name: "adminUserDetail"; userId: string };
+  | { name: "adminUserDetail"; userId: string }
+  | { name: "adminAudit" };
 
 function parseQuery(search: string): URLSearchParams {
   const q = search.indexOf("?");
@@ -110,6 +111,9 @@ export function routeFromPath(pathname: string, search: string): Route {
 
   if (path === "/app") return { name: "appHome" };
   if (path === "/help") return { name: "help" };
+  // Missing from the shim until P30 — /admin/audit fell through to
+  // {name:"landing"}, which is CHROMELESS, so the page lost the sidebar.
+  if (path === "/admin/audit") return { name: "adminAudit" };
   if (path === "/admin/users") return { name: "adminUsers" };
   const adminUserMatch = path.match(/^\/admin\/users\/([^/]+)$/);
   if (adminUserMatch) return { name: "adminUserDetail", userId: adminUserMatch[1] };

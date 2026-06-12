@@ -93,17 +93,8 @@ export function CounselRegister() {
   }, [auth.user]);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-14 text-ink">
-      <div className="flex items-baseline justify-between border-b border-ink pb-2">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
-          The register of AI counsel · series 1
-        </p>
-        <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
-          Legalise
-        </p>
-      </div>
-
-      <h1 className="mt-8 font-redaction35 text-[64px] leading-none tracking-tight2 sm:text-[88px]">
+    <div className="max-w-4xl px-6 py-14 text-ink">
+      <h1 className="font-redaction35 text-[64px] leading-none tracking-tight2 sm:text-[88px]">
         Standing
       </h1>
       <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">

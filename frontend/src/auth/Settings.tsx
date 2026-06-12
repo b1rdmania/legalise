@@ -52,8 +52,6 @@ export function Settings({ tab }: { tab: SettingsTab }) {
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
       <PageHeader
         display
-        eyebrow="Your account"
-        eyebrowRight="Legalise"
         title="Settings"
         whisper="Your account at the registry"
         description="The account holds your profile, your provider keys, and your defaults. Your name appears in audit rows; key changes are themselves recorded."

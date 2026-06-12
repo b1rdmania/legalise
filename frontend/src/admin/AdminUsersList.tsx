@@ -87,12 +87,6 @@ export function AdminUsersList() {
     <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
       <PageHeader
         display
-        eyebrow="Workspace administration"
-        eyebrowRight={
-          q.status === "ready"
-            ? `${q.users.length} user${q.users.length === 1 ? "" : "s"}`
-            : undefined
-        }
         title="Users"
         whisper="The roll of practitioners"
         description="Every practitioner admitted to this workspace, entered in the order the roll holds them. The roll records; it does not act. A role is changed on the practitioner's own page, and the substrate exposes no bulk operations."
@@ -201,7 +195,6 @@ function AdminRequiredShell() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
       <PageHeader
-        eyebrow="Workspace administration"
         title="Admin required"
         description="The admin users surface requires superuser. Ask your workspace administrator if you need access."
       />

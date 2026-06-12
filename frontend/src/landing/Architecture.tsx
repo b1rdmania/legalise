@@ -70,17 +70,9 @@ export function Architecture() {
   return (
     <div className="max-w-page mx-auto">
       <div className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
-        {/* Masthead */}
+        {/* Masthead — the monument carries the page alone (P30). */}
         <header>
-          <div className="flex items-baseline justify-between border-b border-ink pb-2">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
-              Legalise · Architecture
-            </p>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
-              Open source · Apache 2.0
-            </p>
-          </div>
-          <h1 className="mt-10 font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
+          <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
             Standing
           </h1>
           <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">
