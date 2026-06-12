@@ -91,7 +91,7 @@ export function AppHome() {
 
 function FirstRunEmptyState() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="No accounts yet"
         description="Register the first account to begin. In the local quickstart, that account is verified, seeded with Khan v Acme, and promoted to workspace admin automatically. Deployments that disable auto-admin will show the host-side bootstrap CLI command after signup."
@@ -122,7 +122,7 @@ function FirstRunEmptyState() {
 
 function BootstrapRequiredState() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Administrator not yet bootstrapped"
         description="Accounts exist in this workspace but no administrator has been designated yet. Run the bootstrap command on the host to promote an existing user. This step is deliberately host-side; the UI does not expose a self-promotion path."
@@ -186,7 +186,7 @@ function CenteredLoader({ label }: { label: string }) {
 
 function CenteredError({ message }: { message: string }) {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
+    <div className="page-shell">
       <h1 className="text-2xl font-bold tracking-tight2">Could not load workspace state</h1>
       <p className="mt-4 text-sm text-muted">{message}</p>
       <p className="mt-4 text-sm text-muted">

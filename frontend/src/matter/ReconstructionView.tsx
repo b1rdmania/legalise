@@ -268,7 +268,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
   }, [visibleEntries]);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="What happened here"
         actions={

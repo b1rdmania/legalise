@@ -105,7 +105,7 @@ export function ArtifactsList({ slug }: { slug: string }) {
   }, [slug]);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <SectionRule
         label="Signed outputs"
         right={q.status === "ready" ? String(q.rows.length) : undefined}

@@ -43,14 +43,14 @@ export function SignOffConfirmation({
 
   if (err) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-12">
+      <div className="page-shell">
         <ErrorCallout message={`Sign-off not found: ${err}`} />
       </div>
     );
   }
   if (signoff === null) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-12">
+      <div className="page-shell">
         <LoadingLine label="loading sign-off record" />
       </div>
     );
@@ -59,7 +59,7 @@ export function SignOffConfirmation({
   const rejected = signoff.decision === "rejected";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12 text-ink">
+    <div className="page-shell">
       {/* The executed certificate. Seal tone only for a rejection — the
           one refused state this record can hold. */}
       <CertCard tone={rejected ? "seal" : "ink"} testid="signoff-record">

@@ -34,7 +34,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
 
   if (auth.loading || !auth.user) {
     return (
-      <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+      <div className="page-shell">
         <LoadingLine label="loading account" />
       </div>
     );
@@ -49,7 +49,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
   ];
 
   return (
-    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+    <div className="page-shell">
       <PageHeader
         display
         title="Settings"

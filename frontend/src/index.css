@@ -387,3 +387,13 @@
     display: none !important;
   }
 }
+
+@layer components {
+  /* P32 — the one page shell. Every routed workspace page sits in this
+     geometry: left-aligned, one width, one gutter, one vertical rhythm.
+     Pages cap inner content (forms, prose) themselves; the shell and
+     its rules stay constant. */
+  .page-shell {
+    @apply max-w-5xl px-6 sm:px-10 py-12 text-ink;
+  }
+}

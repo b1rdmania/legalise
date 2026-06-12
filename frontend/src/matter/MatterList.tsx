@@ -23,7 +23,7 @@ export function MatterList() {
   }, []);
 
   return (
-    <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-14">
+    <div className="page-shell">
       <PageHeader
         display
         title="Matters"

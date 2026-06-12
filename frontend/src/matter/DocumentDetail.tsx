@@ -446,14 +446,14 @@ export function DocumentDetail({
 
   if (q.status === "loading") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <LoadingLine label="loading document" />
       </div>
     );
   }
   if (q.status === "not_found") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <h1 className="text-xl font-bold tracking-tight2">Document not found</h1>
         <p className="mt-3 text-sm">
           <Link
@@ -469,7 +469,7 @@ export function DocumentDetail({
   }
   if (q.status === "error") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <ErrorCallout message={q.message} />
       </div>
     );

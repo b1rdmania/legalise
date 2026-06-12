@@ -157,7 +157,7 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
 
   if (loadErr) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-12">
+      <div className="page-shell">
         <ErrorCallout message={`Artifact not found: ${loadErr}`} />
       </div>
     );

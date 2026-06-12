@@ -40,14 +40,14 @@ export function MatterLifecycle({ slug }: { slug: string }) {
 
   if (error && !matter) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <ErrorCallout message={error} />
       </div>
     );
   }
   if (!matter) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <LoadingLine label="loading matter" />
       </div>
     );
@@ -56,7 +56,7 @@ export function MatterLifecycle({ slug }: { slug: string }) {
   const isClosed = matter.status === "closed";
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Working pack"
         subId={matter.slug}

@@ -93,7 +93,7 @@ export function CounselRegister() {
   }, [auth.user]);
 
   return (
-    <div className="max-w-4xl px-6 py-14 text-ink">
+    <div className="page-shell">
       <h1 className="font-redaction35 text-[64px] leading-none tracking-tight2 sm:text-[88px]">
         Standing
       </h1>

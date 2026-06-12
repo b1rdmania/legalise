@@ -152,7 +152,7 @@ export function LawveImport() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Add a skill"
         whisper="Before the registrar"
