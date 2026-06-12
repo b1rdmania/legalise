@@ -9,14 +9,16 @@ check — SQLSTATE ``42501`` (insufficient_privilege) — *before* the trigger
 even fires. That guarantee survives a future migration accidentally dropping
 the trigger.
 
-This suite is OPT-IN. It runs only when ``TEST_APP_ROLE_DATABASE_URL`` points
-at a Postgres connection authenticated as the unprivileged ``legalise_app``
-role against a database where 0011 + the role split have been applied. The
-single-role CI used by the rest of the suite cannot exercise this path (one
-role = no privilege boundary), so absent the env var the tests skip cleanly.
+This suite runs only when ``TEST_APP_ROLE_DATABASE_URL`` points at a Postgres
+connection authenticated as the unprivileged ``legalise_app`` role against a
+database where 0011 + the role split have been applied. CI provisions exactly
+that (the backend job creates ``legalise_app`` before migrations and applies
+``infra/postgres-roles.sql`` after them), so these tests run for real on every
+CI build. Local single-role dev leaves the var unset and the tests skip
+cleanly — the local posture is unchanged.
 
-Stand the harness up with ``infra/verify-worm-role-split.sh`` (which exports
-the var and invokes pytest), or point the var at any role-split DB.
+Stand a local harness up with ``infra/verify-worm-role-split.sh`` (disposable
+mode), or point the var at any role-split DB.
 """
 
 from __future__ import annotations
@@ -80,6 +82,20 @@ async def test_app_role_can_insert_audit_row() -> None:
                 ),
                 _probe_row(),
             )
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_app_role_can_select_audit_rows() -> None:
+    """The app role must still be able to READ the audit trail."""
+    engine = await _app_engine()
+    try:
+        async with engine.connect() as conn:
+            result = await conn.execute(
+                sa.text("SELECT count(*) FROM audit_entries")
+            )
+            assert result.scalar_one() >= 0
     finally:
         await engine.dispose()
 

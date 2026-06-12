@@ -63,11 +63,14 @@ reading the architecture.
 - **Retention is recorded, not enforced.** Every matter has a
   `retention_until` field; nothing actively sweeps and deletes when that
   date passes.
-- **Audit WORM is trigger-enforced, not yet role-enforced.** A Postgres
-  trigger rejects UPDATE and DELETE on `audit_entries`, and every row is
-  hash-chained so any out-of-band rewrite is detectable. The remaining
-  work is operational: split the migration and application database
-  roles so the REVOKE on the app role takes effect.
+- **Audit WORM role split is exercised in CI, not yet enabled on the
+  hosted deployment.** A Postgres trigger rejects UPDATE and DELETE on
+  `audit_entries`, and every row is hash-chained so any out-of-band
+  rewrite is detectable. The second layer — a database role split where
+  the application role loses UPDATE/DELETE on `audit_entries` by
+  grant — is provisioned and asserted on every CI build (a build fails
+  if the app role can mutate audit rows). Turning it on for the hosted
+  stack is an operational switch; the runbook is in `OPERATIONS.md`.
 - **Application-layer encryption of stored prompts/responses is not yet
   implemented.** We rely on Neon/Fly/R2 at-rest encryption defaults.
 - **One deployment is one workspace.** There is no organisation or
@@ -230,10 +233,19 @@ work or was refused at the door:
   The trade-off is transactional integrity: semantic rows commit
   only when the semantic operation commits.
 
-The `audit_entries` table is append-only by enforcement: a Postgres
-trigger rejects UPDATE and DELETE on every row. The remaining hardening
-is operational, not code: split the migration and application database
-roles so the app role also loses UPDATE/DELETE by grant.
+The `audit_entries` table is append-only by enforcement, in two
+independent layers. First, a Postgres trigger rejects UPDATE and DELETE
+on every row, whatever role issues them. Second, a database role split
+(`infra/postgres-roles.sql`) removes UPDATE/DELETE on `audit_entries`
+from the application role by grant, so a mutation is refused at the
+privilege check before the trigger even runs. The role split is
+exercised in CI on every build: the backend job provisions the
+`legalise_app` role, runs the migrations and grants, and fails the
+build if that role can update or delete an audit row
+(`infra/verify-worm-role-split.sh` plus
+`backend/tests/test_audit_worm_role_split.py`). Operational adoption on
+a production deployment is a connection-string switch, documented in
+`OPERATIONS.md`.
 
 **Third-party verification.** Every audit row is hash-chained: an
 append-only `audit_chain` table links each entry to the previous one
@@ -367,6 +379,7 @@ unless they prefer anonymity.
 | 2026-05-14 | Added §9 skill provenance and approval: Git review as approval trail, `PLUGINS_REPO_REF` pinning, and `plugin.invoked` audit provenance |
 | 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path (Lawve + GitHub) — pinned-SHA provenance, trust ceremony as the only install route |
 | 2026-06-12 | Currency pass: audit WORM recorded as trigger-enforced with hash chain (role split remains); object storage and durable jobs removed from §3 gaps (shipped); single-workspace scope added to §3; Pre-Motion audit-row count corrected; R2 v0.2 marker dropped |
+| 2026-06-12 | §3/§8: WORM role split now exercised in CI on every build (provisioned role, REVOKE asserted, build fails if the app role can mutate audit rows); production adoption runbook added to `OPERATIONS.md` |
 
 This file changes when the architecture changes. `git log docs/TRUST.md`
 is the canonical history.

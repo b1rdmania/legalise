@@ -259,3 +259,58 @@ Honest gaps, so nobody assumes them:
   involved — restart the add flow from the beginning.
 
 - No multi-tenancy: one deployment is one workspace (deliberate beta scope; see README Status). Teams needing separation run one deployment each.
+
+---
+
+## 6. Enabling the WORM role split in production
+
+The audit trail's second enforcement layer — the application database
+role losing UPDATE/DELETE on `audit_entries` by grant — is provisioned
+and asserted on every CI build (the backend job fails if the app role
+can mutate an audit row). Local dev stays single-role on purpose.
+Enabling it on a deployment is a connection-string switch:
+
+1. **Create the roles** in the Postgres cluster (Neon: connect as the
+   project owner) and apply the canonical grants:
+
+   ```sh
+   psql "$OWNER_DSN" \
+     -v app_pw="'<app password>'" -v migrate_pw="'<migrate password>'" \
+     -f infra/postgres-roles.sql
+   ```
+
+   The script is idempotent: it creates `legalise_app` and
+   `legalise_migrate` if absent, grants the app role full read/write on
+   the schema, and revokes UPDATE/DELETE on `audit_entries`. For a
+   database not named `legalise`, add `-v dbname=<name>`.
+
+2. **Point the app at the app role.** On Fly, swap the runtime secret to
+   the `legalise_app` DSN:
+
+   ```sh
+   fly secrets set --app legalise-backend \
+     POSTGRES_DSN="postgresql+asyncpg://legalise_app:<app password>@<host>/legalise"
+   ```
+
+   Migrations (`alembic upgrade head` in the deploy path) keep using the
+   privileged `legalise_migrate` DSN — migrations do DDL, the app does
+   not.
+
+3. **Verify before trusting it.** Run the same assertion CI runs, against
+   the live cluster:
+
+   ```sh
+   VERIFY_MODE=existing \
+     APP_DSN="postgres://legalise_app:<app password>@<host>/legalise" \
+     ADMIN_DSN="$OWNER_DSN" \
+     infra/verify-worm-role-split.sh
+   ```
+
+   It appends one probe audit row, then confirms the app role can
+   INSERT and SELECT but gets `42501 insufficient_privilege` on UPDATE
+   and DELETE, and that the 0011 trigger still catches a privileged
+   role.
+
+Rollback is the same secret swap in reverse: point `POSTGRES_DSN` back
+at the original role. The trigger layer holds either way; the role
+split is the belt on top of the braces.

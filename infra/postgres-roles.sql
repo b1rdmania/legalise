@@ -22,6 +22,14 @@
 
 \set ON_ERROR_STOP on
 
+-- Target database name. Defaults to the production name (`legalise`); CI
+-- points it at its own service DB:
+--   psql -v dbname=legalise_test -f infra/postgres-roles.sql
+\if :{?dbname}
+\else
+    \set dbname legalise
+\endif
+
 -- ---------------------------------------------------------------------------
 -- 1. Roles (created LOGIN-less if they don't exist; password set separately).
 -- ---------------------------------------------------------------------------
@@ -47,7 +55,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 2. Migration role — full DDL/DML authority (used only by `alembic upgrade`).
 -- ---------------------------------------------------------------------------
-GRANT CONNECT ON DATABASE legalise TO legalise_migrate;
+GRANT CONNECT ON DATABASE :"dbname" TO legalise_migrate;
 GRANT ALL ON SCHEMA public TO legalise_migrate;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO legalise_migrate;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO legalise_migrate;
@@ -59,7 +67,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 -- ---------------------------------------------------------------------------
 -- 3. App role — read/write everywhere EXCEPT mutation of audit_entries.
 -- ---------------------------------------------------------------------------
-GRANT CONNECT ON DATABASE legalise TO legalise_app;
+GRANT CONNECT ON DATABASE :"dbname" TO legalise_app;
 GRANT USAGE ON SCHEMA public TO legalise_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO legalise_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO legalise_app;
