@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Day D signup auto-seed eval.
+"""Signup auto-seed eval.
 
 Asserts that registering a new user → completing verification (or, in dev,
 hitting the autoverify path) lands the user in a workspace where the Khan
-v Acme demo matter is already populated with its two seeded documents and
-seven chronology events.
+v Acme demo matter is already populated with its three seeded documents
+and seven chronology events.
 
 Also asserts slug tenancy Option A: two independently-registered users
 both hold a matter at slug `khan-v-acme-trading-2026`, and neither can
@@ -75,8 +75,8 @@ def _signup_login(opener, email: str, password: str) -> None:
 
 def main() -> int:
     suffix = uuid.uuid4().hex[:8]
-    a_email = f"eval-seed-a-{suffix}@legalise.test"
-    b_email = f"eval-seed-b-{suffix}@legalise.test"
+    a_email = f"eval-seed-a-{suffix}@evals.legalise.dev"
+    b_email = f"eval-seed-b-{suffix}@evals.legalise.dev"
     pw = "Password-1234-abcdEFGH"
 
     a = _opener()
@@ -101,13 +101,14 @@ def main() -> int:
     for label, opener in (("A", a), ("B", b)):
         status, body = _req(opener, "GET", f"{API}/matters/{KHAN_SLUG}/documents")
         assert status == 200, f"{label} GET documents expected 200, got {status}"
-        assert isinstance(body, list) and len(body) == 2, (
-            f"{label} expected 2 seeded documents, got {len(body) if isinstance(body, list) else body}"
+        assert isinstance(body, list) and len(body) == 3, (
+            f"{label} expected 3 seeded documents, got {len(body) if isinstance(body, list) else body}"
         )
         filenames = sorted(d["filename"] for d in body)
         assert filenames == sorted([
             "khan-dismissal-letter.pdf",
             "witness-statement-khan.docx",
+            "synthetic-mutual-nda.docx",
         ]), f"{label} document filenames drift: {filenames}"
         disclosure_count = sum(1 for d in body if d.get("from_disclosure"))
         assert disclosure_count == 1, (
@@ -157,7 +158,7 @@ def main() -> int:
     assert status == 401, f"anonymous GET expected 401, got {status} {body}"
 
     print("OK — signup auto-seed checks passed:")
-    print("  · register → autoverify → Khan present (matter, 2 docs, 7 events, CPR gate)")
+    print("  · register → autoverify → Khan present (matter, 3 docs, 7 events, CPR gate)")
     print("  · slug tenancy Option A: two users hold the same slug independently")
     print("  · cross-user write leak: A's posture flip does not touch B's row")
     return 0
