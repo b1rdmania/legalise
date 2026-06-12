@@ -92,7 +92,7 @@ jobs:
         working-directory: backend
         run: |
           pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev,anonymisation]"
 
       - name: Verify uv lockfile is in sync with pyproject
         working-directory: backend
@@ -174,7 +174,7 @@ jobs:
         working-directory: backend
         run: |
           pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev,anonymisation]"
 
       - name: Start MinIO
         run: |
@@ -268,7 +268,7 @@ jobs:
         working-directory: backend
         run: |
           pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev,anonymisation]"
 
       - name: Run alembic migrations against the test DB
         working-directory: backend

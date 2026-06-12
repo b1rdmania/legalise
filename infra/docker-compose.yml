@@ -46,6 +46,8 @@ services:
     profiles: ["local-models"]
 
   backend:
+    # backend/Dockerfile installs the optional `anonymisation` extra
+    # (Presidio + spaCy + model) — the dev/demo image is batteries-included.
     build: ../backend
     # Read repo-root .env so values a forker sets in their copy of
     # .env.example actually reach the container. Without this, the
