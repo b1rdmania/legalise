@@ -202,7 +202,7 @@ export function ModulesCatalog() {
   }, [modules, tab, tabCounts.installed, tabCounts.available]);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-14 text-ink">
+    <div className="page-shell">
       <PageHeader
         display
         title="Skills"

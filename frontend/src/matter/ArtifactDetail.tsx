@@ -87,14 +87,14 @@ export function ArtifactDetail({
 
   if (q.status === "loading") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12 text-sm text-muted">
+      <div className="page-shell text-sm text-muted">
         Loading artifact…
       </div>
     );
   }
   if (q.status === "error") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <h1 className="text-xl font-bold tracking-tight2">Output not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
         <p className="mt-4 text-sm">
@@ -114,7 +114,7 @@ export function ArtifactDetail({
   const auditHref = `/matters/${encodeURIComponent(slug)}/audit?invocation_id=${encodeURIComponent(a.invocation_id)}`;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
+    <div className="page-shell">
       {/* The artifact's certificate header — its entry in the record
           (DESIGN.md P27). Inner surface: the matter shell owns the page,
           so the header is a CertCard, not a masthead. */}

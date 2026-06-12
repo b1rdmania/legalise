@@ -51,7 +51,7 @@ const QA: { q: string; a: ReactNode }[] = [
 
 export function Help() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Help"
         whisper="Plainly stated"

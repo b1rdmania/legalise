@@ -84,7 +84,7 @@ export function AdminUsersList() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader
         display
         title="Users"
@@ -193,7 +193,7 @@ export function AdminUsersList() {
 
 function AdminRequiredShell() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Admin required"
         description="The admin users surface requires superuser. Ask your workspace administrator if you need access."

@@ -150,14 +150,14 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
   if (q.status === "loading") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12 text-sm text-muted">
+      <div className="page-shell text-sm text-muted">
         Loading skill…
       </div>
     );
   }
   if (q.status === "error") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <h1 className="text-xl font-bold tracking-tight2">Skill not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
@@ -245,7 +245,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
+    <div className="page-shell">
       {/* Masthead — ruled eyebrow row; the certificate below is the hero. */}
       <div className="flex items-baseline justify-between border-b border-ink pb-2">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted">

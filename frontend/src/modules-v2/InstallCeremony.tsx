@@ -312,14 +312,14 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
 
   if (phase.kind === "loading") {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-14 text-sm text-muted">
+      <div className="page-shell text-sm text-muted">
         Opening the record…
       </div>
     );
   }
   if (phase.kind === "error" || !ceremony) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-14">
+      <div className="page-shell">
         <h1 className="text-xl font-bold tracking-tight2">Ceremony not found</h1>
         <p className="mt-3 text-sm text-muted">
           {phase.kind === "error" ? phase.message : "No ceremony loaded."}
@@ -333,7 +333,7 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
   const refused = phase.kind === "refused";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-14 text-ink">
+    <div className="page-shell">
       <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
         The register of AI counsel — admission
       </p>

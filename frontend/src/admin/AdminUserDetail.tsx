@@ -104,7 +104,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   }
   if (q.status === "loading") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12 text-sm text-muted">
+      <div className="page-shell text-sm text-muted">
         Loading user…
       </div>
     );
@@ -112,7 +112,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   if (q.status === "admin_required") return <AdminRequiredShell />;
   if (q.status === "not_found") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <h1 className="text-xl font-bold tracking-tight2">User not found</h1>
         <p className="mt-3 text-sm">
           <Link
@@ -127,7 +127,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   }
   if (q.status === "error") {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="page-shell">
         <h1 className="text-xl font-bold tracking-tight2">Could not load user</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
@@ -171,7 +171,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader title={user.email} subId={user.id} />
 
       <CertCard testid="practitioner-card">
@@ -299,7 +299,7 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
 function AdminRequiredShell() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Admin required"
         description="Per-user admin surface requires superuser. Ask your workspace administrator if you need access."

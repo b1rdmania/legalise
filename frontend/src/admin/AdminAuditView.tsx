@@ -131,7 +131,7 @@ export function AdminAuditView() {
   }
 
   return (
-    <div className="max-w-4xl px-6 py-12 text-ink">
+    <div className="page-shell">
       <PageHeader
         display
         title="Workspace audit"
@@ -283,7 +283,7 @@ export function AdminAuditView() {
 
 function AdminRequiredShell() {
   return (
-    <div className="max-w-2xl px-6 py-16 text-ink">
+    <div className="page-shell">
       <PageHeader
         title="Admin required"
         description="The workspace audit surface requires superuser. Ask your workspace administrator if you need access."

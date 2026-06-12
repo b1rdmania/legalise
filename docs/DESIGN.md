@@ -1659,3 +1659,13 @@ Source: Andy's demo walk, 2026-06-12 (screenshots). The verdict: the demo is a t
 
 Where it lands: matter/auditNarrate.ts (new), matter/tabs/AuditTab.tsx, matter/MessageBubble.tsx, matter/tabs/AssistantTab.tsx (spacing only), demo/snapshot.ts, demo/DemoMatter.tsx.
 Deliberate divergences: the demo document page does NOT mount the real editor stack (ProseMirror, ~200 kB lazy) — the demo is read-only by design; it borrows the P25 reading anatomy instead.
+
+---
+
+## P32 — One shell
+
+Source: Andy, 2026-06-12 — "the alignment, the size of the header, the left and right, and the borders on every single page are completely different." Audit found ~46 page wrappers across 8 geometries (max-w-2xl/3xl/4xl/5xl/page · py-12/14/16 · centered and left mixed since P30).
+
+The rule: every routed workspace page sits in `.page-shell` (index.css): `max-w-5xl px-6 sm:px-10 py-12 text-ink`, left-aligned. Pages cap inner content (forms, prose) themselves; the shell and its section rules stay constant. Header tiers unchanged (P27: monument for section homes, standard for sub-pages).
+
+NOT touched: the matter chat shell (P22 geometry), the document editor surface (P25 measure), TopBar, the demo shell, marketing pages (P28 own grid).

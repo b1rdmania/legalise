@@ -60,7 +60,7 @@ export function NewMatter() {
     "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
+    <div className="page-shell">
       <PageHeader title="New matter." />
 
       <form onSubmit={submit} className="space-y-6">
