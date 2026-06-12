@@ -125,12 +125,12 @@ export function SidebarView({
           {brandHref ? (
             <a href={brandHref} aria-label="Legalise" className="flex items-center gap-2.5 hover:opacity-70 transition-opacity">
               <BrandMark />
-              <span className="font-redaction35 text-[21px] leading-none tracking-tight2 text-ink">Legalise.</span>
+              <span className="font-redaction35 text-[26px] leading-none tracking-tight2 text-ink">Legalise.</span>
             </a>
           ) : (
             <span className="flex items-center gap-2.5">
               <BrandMark />
-              <span className="font-redaction35 text-[21px] leading-none tracking-tight2 text-ink">Legalise.</span>
+              <span className="font-redaction35 text-[26px] leading-none tracking-tight2 text-ink">Legalise.</span>
             </span>
           )}
           {closeButton && <span className="ml-auto">{closeButton}</span>}

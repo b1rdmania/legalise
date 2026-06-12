@@ -73,23 +73,32 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)}M`;
 }
 
+// The demo gains one surface the workspace tabs don't have: the cause
+// list, so the rail reads like a real workspace (P33).
+type DemoTab = TabKey | "matters";
+
+function demoTabFromRoute(routeTab: string | undefined): DemoTab | null {
+  if (routeTab === "matters") return "matters";
+  if (routeTab && isTabKey(routeTab)) return routeTab as TabKey;
+  return null;
+}
+
 export function DemoMatter() {
   const route = useRoute();
-  const initialTab: TabKey =
+  const initialTab: DemoTab =
     route.name === "demoDocument"
       ? "documents"
-      : route.name === "demo" && route.tab && isTabKey(route.tab)
-      ? (route.tab as TabKey)
-      : "assistant";
-  const [tab, setTab] = useState<TabKey>(initialTab);
+      : (route.name === "demo" && demoTabFromRoute(route.tab)) || "assistant";
+  const [tab, setTab] = useState<DemoTab>(initialTab);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [inspectedDocId, setInspectedDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (route.name === "demoDocument") {
       setTab("documents");
-    } else if (route.name === "demo" && route.tab && isTabKey(route.tab)) {
-      setTab(route.tab as TabKey);
+    } else if (route.name === "demo" && route.tab) {
+      const next = demoTabFromRoute(route.tab);
+      if (next) setTab(next);
     } else if (route.name === "demo" && !route.tab) {
       setTab("assistant");
     }
@@ -102,7 +111,7 @@ export function DemoMatter() {
     }
   }, [route]);
 
-  const setTabAndHash = (next: TabKey) => {
+  const setTabAndHash = (next: DemoTab) => {
     setTab(next);
     setMobileNavOpen(false);
     const target = `/demo/${next}`;
@@ -116,14 +125,24 @@ export function DemoMatter() {
 
   const [showSoF, setShowSoF] = useState(false);
 
-  // Anonymous demo rail: no Matters / Skill library / Settings / Help —
-  // they all dead-end at the sign-in wall. One quiet CTA instead.
+  // P33: the rail reads like the real workspace — a Matters section
+  // above the open matter. Settings / Help still stay out (they
+  // dead-end at the sign-in wall); one quiet CTA instead.
+  const globalItems: RailItem[] = [
+    {
+      key: "matters",
+      label: "Matters",
+      icon: <NavIcon name="matters" />,
+      active: tab === "matters",
+      onSelect: () => setTabAndHash("matters"),
+    },
+  ];
   const matterItems: RailItem[] = [
     ...DEMO_NAV.map((t) => ({
       key: t.key,
       label: t.label,
       icon: <NavIcon name={t.key} />,
-      active: sidebarActiveFor(tab) === t.key,
+      active: tab !== "matters" && sidebarActiveFor(tab as TabKey) === t.key,
       onSelect: () => setTabAndHash(t.key),
     })),
   ];
@@ -132,7 +151,8 @@ export function DemoMatter() {
     <>
       <div className="min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
         <SidebarView
-          globalItems={[]}
+          brandHref="/"
+          globalItems={globalItems}
           matterTitle={matter.title}
           matterPosture={posturePill(matter.privilege_posture)}
           matterItems={matterItems}
@@ -161,17 +181,9 @@ export function DemoMatter() {
           </button>
         </div>
         <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
-            <div
-              className="mb-8 flex items-baseline justify-between gap-4 border-b border-ink pb-2"
-              data-testid="demo-masthead"
-            >
-              <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
-                A matter before the workspace · read-only demo
-              </p>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
-                Legalise
-              </p>
-            </div>
+            {tab === "matters" && route.name !== "demoDocument" && (
+              <DemoMattersTab onOpenKhan={() => setTabAndHash("assistant")} />
+            )}
             {tab === "assistant" && (
               <div className="space-y-6">
                 <p className="mx-auto w-full max-w-[760px] text-[13px] text-muted" data-testid="demo-readonly-strip">
@@ -227,6 +239,107 @@ export function DemoMatter() {
   );
 }
 
+// -- Matters (the cause list, demo variant) ---------------------------------
+// The rail reads like a real workspace: several matters, one open. The
+// other entries expand in place — honest detail without pretending the
+// demo follows more than one matter end to end.
+
+const OTHER_MATTERS: Array<{
+  title: string;
+  matter_type: string;
+  opened: string;
+  posture: "Active" | "Paused";
+  note: string;
+}> = [
+  {
+    title: "Reyes v Brightline Logistics Ltd",
+    matter_type: "employment_tribunal",
+    opened: "2026-03-18",
+    posture: "Paused",
+    note: "Paused for without-prejudice talks. The gate is holding model access closed; every blocked attempt would land on this matter's record.",
+  },
+  {
+    title: "Okafor — director's loan account dispute",
+    matter_type: "civil",
+    opened: "2026-05-07",
+    posture: "Active",
+    note: "Documents uploaded, chronology built, letter before action in draft awaiting review and sign-off.",
+  },
+];
+
+function DemoMattersTab({ onOpenKhan }: { onOpenKhan: () => void }) {
+  const [expanded, setExpanded] = useState<number | null>(null);
+  return (
+    <div className="max-w-5xl">
+      <SectionRule label="The cause list" right="3 matters" />
+      <div className="mt-5">
+        <LedgerLine
+          index={1}
+          label="employment_tribunal"
+          right={
+            <span className="text-[10px] uppercase tracking-[0.18em] text-ink">
+              Active · open
+            </span>
+          }
+        >
+          <button
+            type="button"
+            onClick={onOpenKhan}
+            className="text-left text-sm text-ink underline-offset-4 hover:text-seal hover:underline"
+          >
+            Khan v Acme Trading Ltd
+          </button>
+        </LedgerLine>
+        {OTHER_MATTERS.map((m, i) => (
+          <div key={m.title}>
+            <LedgerLine
+              index={i + 2}
+              label={m.matter_type}
+              right={
+                <span
+                  className={
+                    "text-[10px] uppercase tracking-[0.18em] " +
+                    (m.posture === "Paused" ? "text-seal" : "text-muted")
+                  }
+                >
+                  {m.posture}
+                </span>
+              }
+            >
+              <button
+                type="button"
+                onClick={() => setExpanded(expanded === i ? null : i)}
+                className="text-left text-sm text-ink underline-offset-4 hover:text-seal hover:underline"
+              >
+                {m.title}
+              </button>
+            </LedgerLine>
+            {expanded === i && (
+              <div className="border-b border-rule/60 bg-wash px-14 py-3 text-sm leading-relaxed text-prose">
+                {m.note}
+                <span className="mt-1 block text-xs text-muted">
+                  Opened {m.opened}. The public demo follows Khan v Acme end to
+                  end; this matter is here so the workspace reads true.
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="mt-8 border-t border-rule pt-4 text-xs text-muted">
+        In a workspace this list is yours.{" "}
+        <a
+          href="/auth/signup"
+          className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+        >
+          Create a workspace
+        </a>{" "}
+        to open your own matters.
+      </p>
+    </div>
+  );
+}
+
 function DemoWorkflowsTab({
   onOpen,
 }: {
@@ -260,9 +373,16 @@ function DemoWorkflowsTab({
 
   return (
     <div className="max-w-5xl">
-      <SectionRule label="Skills in this project" />
+      <SectionRule label="Skills in this project" right="2 admitted" />
+      <p className="mt-5 max-w-xl text-sm leading-relaxed text-prose">
+        A skill is a small piece of legal work: review an NDA, test a claim,
+        draft a letter. Each one declares what it may read and write before
+        it is allowed to run, and everything it does lands on the matter
+        record. These two are admitted on Khan v Acme — run either from
+        chat.
+      </p>
 
-      <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         {workflows.map((w, i) => (
           <CertCard key={w.title}>
             <CertEyebrow
@@ -291,10 +411,31 @@ function DemoWorkflowsTab({
         ))}
       </div>
 
-      <p className="mt-8 border-t border-rule pt-4 text-xs text-muted">
-        Installation and setup stay behind the scenes in this public demo. The
-        previews show the outputs and record trail without asking you to sign in.
-      </p>
+      <div className="mt-10">
+        <SectionRule label="How a skill arrives" right="Admission" />
+        <div className="mt-4">
+          <LedgerLine index={1} label="Import">
+            Point the workspace at any public GitHub repo with a SKILL.md, or
+            pick one from the Lawve catalogue. It is read at a pinned commit.
+          </LedgerLine>
+          <LedgerLine index={2} label="Admission">
+            A live scan checks the manifest, permissions, and source, then
+            halts at one human decision: approve and enable, or refuse.
+          </LedgerLine>
+          <LedgerLine index={3} label="Run">
+            Enable it on a matter and run it from chat. Output, sources, and
+            sign-off land on the record.
+          </LedgerLine>
+        </div>
+        <p className="mt-6 text-sm text-prose">
+          <a
+            href="/skills"
+            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            Browse the public skill library →
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
