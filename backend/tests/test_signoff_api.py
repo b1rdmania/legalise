@@ -237,6 +237,16 @@ async def test_signoff_emits_output_signed_audit(client) -> None:
             .scalars()
             .all()
         )
+        # M13: the decision payload always carries the review-window
+        # fields. No open-event here → review_seconds None, no flag.
+        signed_row = await session.scalar(
+            select(AuditEntry).where(
+                AuditEntry.matter_id == matter.id,
+                AuditEntry.action == "output.signed",
+            )
+        )
+        assert signed_row.payload["review_seconds"] is None
+        assert signed_row.payload["implausible_speed"] is False
     assert "output.signed" in actions
 
 

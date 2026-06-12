@@ -116,6 +116,8 @@ describe("ArtifactsList", () => {
           signer_is_author: true,
           signed_at: "2026-05-29T13:00:00",
           is_current: true,
+          review_seconds: 600,
+          implausible_speed: false,
         },
       ],
     });

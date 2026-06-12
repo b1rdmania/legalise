@@ -169,6 +169,13 @@ class InstalledModuleOut(BaseModel):
     # workspace for this module's outputs. Derived from matter_signoffs
     # at read time; the audit chain is the source of truth.
     track_record: dict[str, int] = {}
+    # Median review latency (seconds) across this module's sign-offs
+    # with a derivable review window (M13). None when no decision has
+    # an output.review.opened row — renders "—", never 0.
+    track_median_review_seconds: int | None = None
+    # How many decisions the median is over. Sub-n=30 carries the
+    # honesty label in the UI ("n=4 — too few to mean much").
+    track_review_latency_n: int = 0
 
 
 class StartInstallRequest(BaseModel):

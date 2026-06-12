@@ -60,10 +60,20 @@ const ARTIFACT = {
 beforeEach(() => {
   vi.restoreAllMocks();
   vi.spyOn(api, "readArtifact").mockResolvedValue(ARTIFACT as never);
+  vi.spyOn(api, "openSignoffReview").mockResolvedValue({
+    artifact_id: "art-1",
+    recorded: true,
+  });
 });
 afterEach(() => cleanup());
 
 describe("SignOff", () => {
+  it("records the review-window open when the artifact loads (M13)", async () => {
+    mountSign();
+    await waitFor(() => expect(screen.getByTestId("signoff-artifact")).toBeInTheDocument());
+    expect(api.openSignoffReview).toHaveBeenCalledWith("khan", "art-1");
+  });
+
   it("gates submit on the affirmation, then signs and navigates", async () => {
     const createSignoff = vi
       .spyOn(api, "createSignoff")

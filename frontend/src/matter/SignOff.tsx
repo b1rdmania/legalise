@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   createSignoff,
+  openSignoffReview,
   readArtifact,
   type ArtifactRead,
   type SignoffDecision,
@@ -125,7 +126,14 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
   useEffect(() => {
     let cancelled = false;
     readArtifact(slug, artifactId)
-      .then((a) => !cancelled && setArtifact(a))
+      .then((a) => {
+        if (cancelled) return;
+        setArtifact(a);
+        // M13: opening the sign surface starts the review window
+        // (output.review.opened, idempotent — first open wins).
+        // Fire-and-forget: a failed open never blocks the review.
+        openSignoffReview(slug, artifactId).catch(() => undefined);
+      })
       .catch((err: unknown) => !cancelled && setLoadErr(String(err)));
     return () => {
       cancelled = true;

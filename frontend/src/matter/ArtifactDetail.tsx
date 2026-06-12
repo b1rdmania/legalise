@@ -17,6 +17,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
+  formatReviewDuration,
   listSignoffs,
   readArtifact,
   requestReview,
@@ -199,6 +200,15 @@ export function ArtifactDetail({
             {signoff.signer_is_author && " (author)"} · {signoff.signed_at.slice(0, 10)}
           </p>
         )}
+        {/* M13: the implausible-speed marker rides wherever the
+            signature renders. Recorded, not blocked. */}
+        {signoff != null &&
+          signoff.implausible_speed &&
+          signoff.review_seconds !== null && (
+            <p className="mt-1 text-[11px] text-seal" data-testid="signoff-implausible-speed">
+              signed in {formatReviewDuration(signoff.review_seconds)}
+            </p>
+          )}
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
           <Link
             to="/matters/$slug/artifacts/$artifactId/sign"

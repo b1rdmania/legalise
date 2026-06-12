@@ -312,6 +312,10 @@ async def test_response_shape_excludes_secrets_and_internals(client, db_session)
         "installed_by_user_id",
         "install_path",
         "track_record",
+        # M13 supervision legibility: median review latency + its n,
+        # both derived from audit rows at read time - not secrets.
+        "track_median_review_seconds",
+        "track_review_latency_n",
     }
     assert set(matching.keys()) == expected_keys
     # Never leaks the raw snapshots or signer internals.

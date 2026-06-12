@@ -80,6 +80,43 @@ async def list_installed_modules(
     for module_id, decision, n in tr_rows:
         track.setdefault(module_id, {})[decision] = n
 
+    # Median review latency per module (M13): the review window is the
+    # signer's first output.review.opened audit row → the sign-off's
+    # signed_at, derived at read time per the spec. Sign-offs without an
+    # open-event (legacy / direct API) simply don't contribute — the
+    # median is over the decisions that have a derivable window.
+    import statistics
+
+    from app.core.signoff import review_latency_seconds, review_opened_at_map
+
+    so_rows = (
+        await session.execute(
+            select(
+                MatterSignoff.module_id,
+                MatterSignoff.signer_id,
+                MatterSignoff.artifact_id,
+                MatterSignoff.signed_at,
+            )
+        )
+    ).all()
+    opened = await review_opened_at_map(
+        session, pairs={(r.signer_id, r.artifact_id) for r in so_rows}
+    )
+    latencies_by_module: dict[str, list[int]] = {}
+    for r in so_rows:
+        latency = review_latency_seconds(
+            opened.get((r.signer_id, r.artifact_id)), r.signed_at
+        )
+        if latency is not None:
+            latencies_by_module.setdefault(r.module_id, []).append(latency)
+    median_by_module = {
+        module_id: int(statistics.median(values))
+        for module_id, values in latencies_by_module.items()
+    }
+    latency_n_by_module = {
+        module_id: len(values) for module_id, values in latencies_by_module.items()
+    }
+
     return [
         InstalledModuleOut(
             module_id=r.module_id,
@@ -104,6 +141,8 @@ async def list_installed_modules(
             ),
             install_path=r.install_path,
             track_record=track.get(r.module_id, {}),
+            track_median_review_seconds=median_by_module.get(r.module_id),
+            track_review_latency_n=latency_n_by_module.get(r.module_id, 0),
         )
         for r in rows
     ]

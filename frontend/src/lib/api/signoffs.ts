@@ -76,7 +76,36 @@ export interface Signoff {
   signer_is_author: boolean;
   signed_at: string;
   is_current: boolean;
+  // Review window (M13): seconds between the signer's first open of the
+  // sign surface and the decision. null = no open-event (legacy) —
+  // render "—", never 0.
+  review_seconds: number | null;
+  // Recorded at sign time against the artifact's word count. Recorded,
+  // not blocked — surfaces show a seal-toned "signed in 94s" note.
+  implausible_speed: boolean;
 }
+
+// Plain-English review duration. null/undefined renders "—" (a missing
+// open-event is not a 0-second review).
+export function formatReviewDuration(
+  seconds: number | null | undefined,
+): string {
+  if (seconds === null || seconds === undefined) return "—";
+  if (seconds < 120) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 120) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round((minutes / 60) * 10) / 10;
+  return `${hours} hours`;
+}
+
+// Record the first open of an artifact's sign surface (starts the
+// review window; idempotent server-side — first open wins).
+export const openSignoffReview = (slug: string, artifactId: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}/signoffs/review-open`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ artifact_id: artifactId }),
+  }).then((r) => jsonOrThrow<{ artifact_id: string; recorded: boolean }>(r));
 
 export const createSignoff = (
   slug: string,
