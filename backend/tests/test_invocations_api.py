@@ -1,22 +1,42 @@
-"""Phase 10 — POST /api/matters/{slug}/invocations endpoint tests.
+"""POST /api/matters/{slug}/invocations — vertical slice + error paths.
 
-13 endpoint tests covering:
+Merged from test_phase6_vertical_slice.py + test_phase10_invocations_api.py
+(test-slim Phase 3).
 
-- Auth: non-owner; archived matter
-- Module/capability resolution: not installed; disabled; capability_id missing
+ONE full vertical slice walks the entire install → advance → grant →
+invoke loop end-to-end (the Phase 6 acceptance bar): seeded Khan matter,
+trust ceremony on the verified fast path, HTTP grant (incl. idempotent
+re-post), HTTP invoke, advice-boundary decision row, WORM artifact on
+storage, model.invoked cost columns, and the reconstruction timeline
+with canonical events in chronological order.
+
+The per-error-path endpoint tests sit around it:
+
+- Auth: non-owner 404; archived matter 404
+- Module/capability resolution: not installed 404; disabled 409;
+  capability_id missing 404
 - Decision #7: scope + kind rejection BEFORE dispatch (workspace
-  scope; provider kind)
+  scope 422; provider kind 422)
 - Error translation: PostureBlocked → 403; CapabilityDenied → 403;
   ValueError invalid_args → 422; ProviderKeyMissing → 422;
   ProviderUpstreamError → 502
-- Reconstruction integration: happy-path emits the canonical audit
-  chain
+
+Dedup note: the phase10 happy-path reconstruction-integration test
+duplicated the vertical slice's reconstruction step (same failure
+mode: canonical audit chain missing after a successful invoke) and was
+dropped in the merge.
 
 Phase1Blocked → 403 and generic-RuntimeError → 500 paths are not
 exercised here. Phase1Blocked propagation through Contract Review +
 Pre-Motion is covered indirectly by the Phase 6/9 negatives. The
 generic-500 path is an untested branch — flagged for a future pass
 if a real call site hits it.
+
+The provider call is stubbed at the model-gateway seam — deterministic
+canned findings keep the tests reproducible without a real model API
+key. Every other code path is production: install ceremony, grant
+lifecycle, advice-boundary substrate, artifact storage, reconstruction
+view.
 """
 
 from __future__ import annotations
@@ -33,14 +53,17 @@ from app.core.model_gateway import (
     ProviderKeyMissing,
     ProviderUpstreamError,
 )
+from app.core.seed import KHAN_SLUG
 from app.core.trust_ceremony import clear_ceremonies
 from app.models import (
+    AdviceBoundaryDecision,
     AuditEntry,
+    Document,
     InstalledModule,
     Matter,
+    MatterArtifact,
     PRIVILEGE_CLEARED,
     PRIVILEGE_MIXED,
-    SCOPE_TYPE_MATTER,
     STATUS_ARCHIVED,
     STATUS_OPEN,
     User,
@@ -54,6 +77,12 @@ from app.models import (
 
 
 def _verified_manifest(name: str) -> dict:
+    """Load the on-disk signed manifest for the install endpoint.
+
+    The manifest can be at one of two paths depending on the runtime
+    layout: repo root (host run) or under /app/examples (container
+    run, where the examples tree gets copied in).
+    """
     candidates = [
         Path(__file__).resolve().parents[2] / "examples" / "modules" / name / "module.json",
         Path(f"/app/examples/modules/{name}/module.json"),
@@ -113,9 +142,50 @@ def stub_gateway(monkeypatch):
     return gateway_singleton
 
 
+def _stub_findings_json() -> str:
+    return json.dumps(
+        {
+            "findings": [
+                {
+                    "clause_id": "5.2",
+                    "severity": "high",
+                    "comment": "Indemnity is uncapped and one-way.",
+                    "citation": "clause 5.2 of NDA",
+                },
+                {
+                    "clause_id": "8.1",
+                    "severity": "medium",
+                    "comment": "Term auto-renews without notice window.",
+                    "citation": "clause 8.1 of NDA",
+                },
+            ]
+        }
+    )
+
+
+@pytest.fixture
+def stub_gateway_two_findings(monkeypatch):
+    """Vertical-slice stub: two deterministic findings + a fixed token
+    count so the slice can assert the audit cost columns exactly."""
+    from app.core.api import model_gateway as gateway_singleton
+
+    async def _stub_call(**kwargs):
+        return ModelResult(
+            text=_stub_findings_json(),
+            model_used="anthropic",
+            prompt_hash="x" * 64,
+            response_hash="x" * 64,
+            token_count=1850,
+            latency_ms=120,
+        )
+
+    monkeypatch.setattr(gateway_singleton, "call", _stub_call)
+    return gateway_singleton
+
+
 async def _register_admin_solicitor(client) -> str:
-    email = f"p10ep-{uuid.uuid4().hex[:8]}@example.com"
-    password = "phase10-2026"
+    email = f"inv-{uuid.uuid4().hex[:8]}@example.com"
+    password = "invocations-2026"
     await client.post(
         "/auth/register", json={"email": email, "password": password}
     )
@@ -167,8 +237,8 @@ async def _make_a_cleared_matter(client, user_email: str) -> tuple[str, uuid.UUI
         )
         m = Matter(
             id=uuid.uuid4(),
-            slug=f"p10ep-{uuid.uuid4().hex[:8]}",
-            title="P10 Endpoint Test",
+            slug=f"inv-{uuid.uuid4().hex[:8]}",
+            title="Invocations Endpoint Test",
             matter_type="employment_tribunal",
             status=STATUS_OPEN,
             privilege_posture=PRIVILEGE_CLEARED,
@@ -178,7 +248,7 @@ async def _make_a_cleared_matter(client, user_email: str) -> tuple[str, uuid.UUI
         session.add(m)
         await session.flush()
         # Also need a document to invoke against.
-        from app.models import Document, DocumentBody
+        from app.models import DocumentBody
         doc = Document(
             id=uuid.uuid4(),
             matter_id=m.id,
@@ -219,13 +289,286 @@ async def _grant_review_caps(client, slug: str) -> None:
 
 async def _resolve_doc_id(matter_id: uuid.UUID) -> uuid.UUID:
     from app.main import app
-    from app.models import Document
     factory = app.state.session_factory
     async with factory() as session:
         doc = await session.scalar(
             select(Document).where(Document.matter_id == matter_id)
         )
         return doc.id
+
+
+# ---------------------------------------------------------------------------
+# THE vertical slice — install → advance → grant → invoke, end to end
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_contract_review_vertical_slice(
+    client, stub_gateway_two_findings, captured_audit_failures
+) -> None:
+    """The Phase 6 acceptance bar walks end-to-end.
+
+    1. Register a user (auto-seeded with the Khan v Acme matter).
+    2. Promote to superuser so module install passes the admin gate.
+    3. Read the NDA document from the seeded matter.
+    4. Install the `examples.contract-review` module via the trust
+       ceremony — 3 trusts + 1 grant on the verified fast path.
+    5. Confirm InstalledModule row written.
+    6. Confirm WorkspaceSkillCapabilityGrant rows landed (via the real
+       HTTP grant endpoint, incl. idempotent re-post).
+    7. Invoke the `review` capability against the NDA over HTTP.
+    8. Confirm advice_boundary_decision row written with matter scope.
+    9. Confirm matter_artifacts row written + the JSON object stored.
+    10. Confirm model.invoked audit row carries cost columns.
+    11. Pull the reconstruction view; assert the canonical audit +
+        advice-boundary events all appear in chronological order.
+    """
+    clear_ceremonies()
+
+    email = f"inv-vs-{uuid.uuid4().hex[:8]}@example.com"
+    password = "invocations-2026"
+    await client.post(
+        "/auth/register", json={"email": email, "password": password}
+    )
+
+    from app.main import app
+    factory = app.state.session_factory
+
+    # Promote to superuser so the module install gate passes, AND
+    # to qualified_solicitor so the Phase 8 posture gate passes on
+    # the default-posture (B_mixed) Khan v Acme matter.
+    async with factory() as session:
+        user = await session.scalar(select(User).where(User.email == email))
+        user.is_superuser = True
+        user.role = "qualified_solicitor"
+        await session.commit()
+        user_id = user.id
+
+    await client.post(
+        "/auth/login",
+        data={"username": email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+
+    # ------- (1) confirm Khan v Acme + NDA are seeded -------
+    async with factory() as session:
+        matter = await session.scalar(
+            select(Matter).where(
+                Matter.slug == KHAN_SLUG, Matter.created_by_id == user_id
+            )
+        )
+        assert matter is not None, "Khan v Acme matter must be seeded"
+        nda = await session.scalar(
+            select(Document).where(
+                Document.matter_id == matter.id,
+                Document.filename == "synthetic-mutual-nda.docx",
+            )
+        )
+        assert nda is not None, "Synthetic NDA must be on the matter"
+        matter_id = matter.id
+        nda_id = nda.id
+        matter_slug = matter.slug
+
+    # ------- (2) install the contract-review module via ceremony -------
+    manifest = _verified_manifest("contract_review")
+
+    install_resp = await client.post(
+        "/api/modules/install",
+        json={"source": "manifest", "manifest": manifest},
+    )
+    assert install_resp.status_code == 201, install_resp.text
+    ceremony_id = install_resp.json()["ceremony_id"]
+
+    # Verified fast path: 3 trusts + 1 grant.
+    for _ in range(3):
+        r = await client.post(
+            f"/api/modules/install/{ceremony_id}/advance",
+            json={"action": "trust"},
+        )
+        assert r.status_code == 200, r.text
+    final = await client.post(
+        f"/api/modules/install/{ceremony_id}/advance",
+        json={"action": "grant"},
+    )
+    assert final.status_code == 200
+    assert final.json()["state"] == "enabled"
+
+    # ------- (3) confirm InstalledModule, then grant capabilities -------
+    # Phase 7: the user-facing grant surface is real. The vertical
+    # slice now walks the public HTTP endpoint between install and
+    # invoke — no fixture writes grant rows directly any more.
+    async with factory() as session:
+        installed = await session.scalar(
+            select(InstalledModule).where(
+                InstalledModule.module_id == "examples.contract-review",
+                InstalledModule.version == "1.0.0",
+            )
+        )
+        assert installed is not None
+        assert installed.signature_status == "structure_verified"
+
+    # POST /api/matters/{slug}/grants — real HTTP grant.
+    grant_resp = await client.post(
+        f"/api/matters/{matter_slug}/grants",
+        json={
+            "module_id": "examples.contract-review",
+            "capability_id": "review",
+        },
+    )
+    assert grant_resp.status_code == 201, grant_resp.text
+    grant_body = grant_resp.json()
+    assert grant_body["was_idempotent_noop"] is False
+    granted_capabilities = {g["capability"] for g in grant_body["grants"]}
+    assert "matter.document.read" in granted_capabilities
+    assert "matter.artifact.write" in granted_capabilities
+
+    # Idempotent re-post returns 200 with the same row ids and zero
+    # new audit rows (Phase 7 v2 Decision #4).
+    redo = await client.post(
+        f"/api/matters/{matter_slug}/grants",
+        json={
+            "module_id": "examples.contract-review",
+            "capability_id": "review",
+        },
+    )
+    assert redo.status_code == 200, redo.text
+    assert redo.json()["was_idempotent_noop"] is True
+    assert {g["id"] for g in redo.json()["grants"]} == {
+        g["id"] for g in grant_body["grants"]
+    }
+
+    async with factory() as session:
+        grants = (
+            await session.scalars(
+                select(WorkspaceSkillCapabilityGrant).where(
+                    WorkspaceSkillCapabilityGrant.user_id == user_id,
+                    WorkspaceSkillCapabilityGrant.plugin == "examples.contract-review",
+                )
+            )
+        ).all()
+        assert len(grants) == 2
+
+    # ------- (4) invoke the capability via the real HTTP endpoint -------
+    # Phase 10: install + grant + INVOKE all walk through public HTTP
+    # endpoints. No direct Python imports of capability functions.
+    invoke_resp = await client.post(
+        f"/api/matters/{matter_slug}/invocations",
+        json={
+            "module_id": "examples.contract-review",
+            "capability_id": "review",
+            "args": {"document_id": str(nda_id)},
+        },
+    )
+    assert invoke_resp.status_code == 200, invoke_resp.text
+    invoke_body = invoke_resp.json()
+    invocation_id = uuid.UUID(invoke_body["invocation_id"])
+    assert invoke_body["module_id"] == "examples.contract-review"
+    assert invoke_body["capability_id"] == "review"
+    assert invoke_body["matter_id"] == str(matter_id)
+    assert invoke_body["result"]["findings_count"] == 2
+
+    # ------- (5) confirm advice_boundary_decision row -------
+    async with factory() as session:
+        decisions = (
+            await session.scalars(
+                select(AdviceBoundaryDecision).where(
+                    AdviceBoundaryDecision.output_id == str(invocation_id),
+                )
+            )
+        ).all()
+        assert len(decisions) == 1
+        decision = decisions[0]
+        assert decision.status == "completed"
+        assert decision.to_tier == "draft_advice"
+        assert decision.gate_state.get("matter_id") == str(matter_id)
+        assert decision.module_id == "examples.contract-review"
+
+    # ------- (6) confirm matter_artifacts row + stored object -------
+    async with factory() as session:
+        artifact = await session.scalar(
+            select(MatterArtifact).where(
+                MatterArtifact.invocation_id == invocation_id,
+                MatterArtifact.kind == "findings_pack",
+            )
+        )
+        assert artifact is not None
+        assert artifact.size_bytes > 0
+        # LMF-1: artifacts live in object storage; storage_path is a key.
+        from app.core.storage import get_storage_backend
+        raw = get_storage_backend().get_bytes(artifact.storage_path)
+        parsed = json.loads(raw.decode("utf-8"))
+        assert isinstance(parsed["findings"], list)
+        assert len(parsed["findings"]) == 2
+        assert parsed["findings"][0]["clause_id"] == "5.2"
+
+    # ------- (7) confirm model.invoked carries provider/model + tokens -------
+    # Phase 10 adapter mapping (Decision #4 v3):
+    #   tokens_in   = gateway result.token_count (combined)
+    #   tokens_out  = 0 (sentinel; honest until providers split)
+    #   cost_micros = None (gateway doesn't price yet)
+    #   currency    = None (paired)
+    # See PHASE_10_INVOKE_ENDPOINT_BUILD_PLAN.md Decision #4.
+    async with factory() as session:
+        model_row = await session.scalar(
+            select(AuditEntry).where(
+                AuditEntry.action == "model.invoked",
+                AuditEntry.matter_id == matter_id,
+            )
+        )
+        assert model_row is not None
+        assert model_row.cost_micros is None
+        assert model_row.currency is None
+        assert model_row.tokens_in == 1850
+        assert model_row.tokens_out == 0
+        assert model_row.provider == "anthropic"
+        assert model_row.model_id == "claude-opus-4-7"
+
+    # ------- (8) pull reconstruction view + assert canonical timeline -------
+    recon = await client.get(
+        f"/api/matters/{matter_slug}/audit/reconstruction?limit=500"
+    )
+    assert recon.status_code == 200, recon.text
+    entries = recon.json()["entries"]
+    actions_by_source = {
+        "audit": [e["action"] for e in entries if e["source"] == "audit"],
+        "advice_boundary": [
+            e["action"] for e in entries if e["source"] == "advice_boundary"
+        ],
+        "state_machine": [
+            e["action"] for e in entries if e["source"] == "state_machine"
+        ],
+    }
+
+    # Capability invocation + completion + model + artifact-related
+    # audit rows must all appear.
+    audit_actions = set(actions_by_source["audit"])
+    assert "module.capability.invoked" in audit_actions
+    assert "module.capability.completed" in audit_actions
+    assert "model.invoked" in audit_actions
+    assert "module.grant.created" in audit_actions
+
+    # Advice-boundary decision appears under its own source.
+    assert "advice_boundary.decision.completed" in actions_by_source[
+        "advice_boundary"
+    ]
+
+    # Reconstruction view itself emits audit.reconstruction.viewed —
+    # check we did. (After the GET above runs, the row is written.)
+    recon2 = await client.get(
+        f"/api/matters/{matter_slug}/audit/reconstruction?limit=500"
+    )
+    assert recon2.status_code == 200
+    audit2 = [
+        e["action"] for e in recon2.json()["entries"] if e["source"] == "audit"
+    ]
+    assert "audit.reconstruction.viewed" in audit2
+
+    # ------- (9) timeline order is monotonic by occurred_at -------
+    for prev, nxt in zip(entries, entries[1:]):
+        assert prev["occurred_at"] <= nxt["occurred_at"], (
+            f"timeline not monotonic: {prev['action']} ({prev['occurred_at']}) "
+            f"-> {nxt['action']} ({nxt['occurred_at']})"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -237,8 +580,8 @@ async def _resolve_doc_id(matter_id: uuid.UUID) -> uuid.UUID:
 async def test_invoke_non_owner_404(client, stub_gateway) -> None:
     """Stranger gets uniform 404; never leak which matters exist."""
     # User A creates a matter.
-    email_a = f"p10-owner-{uuid.uuid4().hex[:8]}@example.com"
-    password = "phase10-2026"
+    email_a = f"inv-owner-{uuid.uuid4().hex[:8]}@example.com"
+    password = "invocations-2026"
     await client.post(
         "/auth/register", json={"email": email_a, "password": password}
     )
@@ -261,7 +604,7 @@ async def test_invoke_non_owner_404(client, stub_gateway) -> None:
         slug = m.slug
 
     # Stranger logs in.
-    email_b = f"p10-stranger-{uuid.uuid4().hex[:8]}@example.com"
+    email_b = f"inv-stranger-{uuid.uuid4().hex[:8]}@example.com"
     await client.post(
         "/auth/register", json={"email": email_b, "password": password}
     )
@@ -472,8 +815,8 @@ async def test_invoke_provider_kind_rejected_when_scope_is_matter(
 
 
 # ---------------------------------------------------------------------------
-# Error translation — PostureBlocked, CapabilityDenied, Phase1Blocked,
-# ValueError, ProviderKeyMissing, ProviderUpstreamError
+# Error translation — PostureBlocked, CapabilityDenied, ValueError,
+# ProviderKeyMissing, ProviderUpstreamError
 # ---------------------------------------------------------------------------
 
 
@@ -482,8 +825,8 @@ async def test_invoke_posture_block_returns_403(
     client, stub_gateway, captured_audit_failures
 ) -> None:
     """B_mixed matter + non-solicitor → 403 posture_gate_blocked."""
-    email = f"p10post-{uuid.uuid4().hex[:8]}@example.com"
-    password = "phase10-2026"
+    email = f"inv-post-{uuid.uuid4().hex[:8]}@example.com"
+    password = "invocations-2026"
     await client.post(
         "/auth/register", json={"email": email, "password": password}
     )
@@ -506,7 +849,7 @@ async def test_invoke_posture_block_returns_403(
     async with factory() as session:
         m = Matter(
             id=uuid.uuid4(),
-            slug=f"p10pb-{uuid.uuid4().hex[:8]}",
+            slug=f"inv-pb-{uuid.uuid4().hex[:8]}",
             title="B_mixed posture test",
             matter_type="employment_tribunal",
             status=STATUS_OPEN,
@@ -516,7 +859,7 @@ async def test_invoke_posture_block_returns_403(
         )
         session.add(m)
         await session.flush()
-        from app.models import Document, DocumentBody
+        from app.models import DocumentBody
         doc = Document(
             id=uuid.uuid4(),
             matter_id=m.id,
@@ -685,44 +1028,3 @@ async def test_invoke_provider_upstream_error_returns_502(
     assert detail["error"] == "provider_upstream_error"
     assert detail["provider"] == "anthropic"
     assert detail["code"] == "provider_rate_limited"
-
-
-# ---------------------------------------------------------------------------
-# Reconstruction integration
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_invoke_completes_then_reconstruction_includes_canonical_events(
-    client, stub_gateway
-) -> None:
-    """Happy path via HTTP — reconstruction picks up the canonical
-    audit chain naturally."""
-    email = await _register_admin_solicitor(client)
-    await _install_contract_review(client)
-    slug, matter_id = await _make_a_cleared_matter(client, email)
-    await _grant_review_caps(client, slug)
-    doc_id = await _resolve_doc_id(matter_id)
-
-    resp = await client.post(
-        f"/api/matters/{slug}/invocations",
-        json={
-            "module_id": "examples.contract-review",
-            "capability_id": "review",
-            "args": {"document_id": str(doc_id)},
-        },
-    )
-    assert resp.status_code == 200
-
-    recon = await client.get(
-        f"/api/matters/{slug}/audit/reconstruction?limit=500"
-    )
-    assert recon.status_code == 200
-    audit_actions = {
-        e["action"] for e in recon.json()["entries"]
-        if e["source"] == "audit"
-    }
-    assert "module.capability.invoked" in audit_actions
-    assert "module.capability.completed" in audit_actions
-    assert "model.invoked" in audit_actions
-    assert "module.grant.created" in audit_actions

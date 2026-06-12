@@ -1,19 +1,32 @@
-"""Phase 6 R2 — reviewer-found regressions.
+"""Runtime tests — dispatcher, provider adapter, and capability
+enforcement inside a running module.
 
-Three P1s and one P2 from the first Phase 6 ratification pass:
+Merged from test_phase10_runtime.py + test_phase6_r2_fixes.py
+(test-slim Phase 3). Coverage:
 
+Dispatcher + adapter (Phase 10):
+1. Entrypoint resolution succeeds for a well-formed manifest
+2. Missing python_module → EntrypointResolutionError
+3. Missing entry attribute → EntrypointResolutionError
+4. Adapter populates all seven ProviderResponse fields
+5. Adapter passes the real gateway kwargs (Phase 10 v3 redline)
+6. **Adapter does NOT trip the gateway's legacy workspace-scope
+   model.invoke check** — the load-bearing v3 regression
+
+Module-level governance (Phase 6 R2/R3 reviewer regressions):
 - P1 #1: write_artifact must not overwrite an existing WORM artifact
-  file. The path is now keyed by row id, not (invocation_id, kind).
-- P1 #2: review_contract must enforce per-user grants at the
-  read + write boundaries via require_capability — not "assume the
-  host already checked".
-- P1 #3: review_contract takes actor_role via an InvocationContext
-  populated by a trusted caller; the module cannot self-assert
-  qualified_solicitor.
-- P2: review_contract reads the document's extracted text into the
-  prompt instead of substituting a placeholder. (Smoke-level: the
-  test asserts the document text shows up in the prompt builder
-  output.)
+- P1 #2: per-user grants enforced at the read + write boundaries
+- P1 #3: module cannot self-assert (smuggle) an elevated actor_role
+- P2: prompt embeds the document's extracted text, never a placeholder
+- R3: grants are matter-scoped; cross-matter grants deny before the
+  provider call; workspace vs matter scope checks are strict; legacy
+  NULL-snapshot grants never satisfy a matter-scoped check
+
+Dedup notes: the adapter's ProviderKeyMissing / ProviderUpstreamError
+propagation tests were dropped — the same failure modes are asserted
+end-to-end through the adapter by the HTTP error-translation tests in
+test_invocations_api.py (422 provider_key_missing / 502
+provider_upstream_error).
 """
 
 from __future__ import annotations
@@ -21,32 +34,43 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 
 import pytest
 from sqlalchemy import select
 
 from app.core.capabilities import CapabilityDenied
 from app.core.matter_artifacts import write_artifact
+from app.core.model_gateway import ModelResult
+from app.core.runtime import (
+    EntrypointResolutionError,
+    InvocationContext,
+    ProviderResponse,
+    _find_capability_declaration,
+    dispatch_capability,
+    make_provider_call,
+)
 from app.models import (
-    BODY_KIND_VALUES,
     Document,
     DocumentBody,
+    InstalledModule,
     Matter,
     MatterArtifact,
     PRIVILEGE_CLEARED,
-    PRIVILEGE_MIXED,
     STATUS_OPEN,
     User,
     WorkspaceSkillCapabilityGrant,
 )
 
 
-# Helpers shared with the vertical-slice test.
-async def _make_user(db_session, *, role: str = "solicitor") -> User:
+# ---------------------------------------------------------------------------
+# Shared fixtures/helpers
+# ---------------------------------------------------------------------------
+
+
+async def _make_user(db_session, *, role: str = "qualified_solicitor") -> User:
     user = User(
         id=uuid.uuid4(),
-        email=f"p6-r2-{uuid.uuid4().hex[:8]}@example.com",
+        email=f"runtime-{uuid.uuid4().hex[:8]}@example.com",
         hashed_password="x" * 32,
         is_active=True,
         is_verified=True,
@@ -59,15 +83,15 @@ async def _make_user(db_session, *, role: str = "solicitor") -> User:
 
 
 async def _make_matter(db_session, user) -> Matter:
-    # R2 tests target grant/role mechanics, NOT posture. We use
-    # A_cleared so the Phase 8 posture gate passes regardless of
-    # the user's default 'solicitor' role and the test's actual
-    # concern (missing grant, wrong matter, smuggled role) fires.
-    # Posture-specific behaviour is covered by test_phase8_posture_gate.py.
+    # Governance tests here target grant/role mechanics, NOT posture.
+    # A_cleared makes the Phase 8 posture gate pass regardless of role
+    # so each test's actual concern (missing grant, wrong matter,
+    # smuggled role) fires. Posture-specific behaviour is covered by
+    # test_posture_gate.py.
     matter = Matter(
         id=uuid.uuid4(),
-        slug=f"r2-{uuid.uuid4().hex[:8]}",
-        title="R2 Test",
+        slug=f"runtime-{uuid.uuid4().hex[:8]}",
+        title="Runtime Test",
         matter_type="employment_tribunal",
         status=STATUS_OPEN,
         privilege_posture=PRIVILEGE_CLEARED,
@@ -124,7 +148,340 @@ async def _stub_provider(prompt, *, system):
     return _StubResponse(text=json.dumps({"findings": []}))
 
 
-# -------------------- P1 #1 — artifact write does not overwrite --------------------
+# ---------------------------------------------------------------------------
+# Entrypoint resolution
+# ---------------------------------------------------------------------------
+
+
+def _stub_installed(
+    *,
+    module_id: str = "examples.contract-review",
+    python_module: str = "examples.modules.contract_review",
+    entry: str = "ContractReviewModule",
+    capabilities: list | None = None,
+) -> InstalledModule:
+    """Build an InstalledModule shell with a manifest snapshot for
+    unit tests. Not saved to DB."""
+    caps = capabilities if capabilities is not None else [
+        {"id": "review", "kind": "skill", "scope": "matter"}
+    ]
+    return InstalledModule(
+        id=uuid.uuid4(),
+        module_id=module_id,
+        version="1.0.0",
+        publisher="legalise",
+        visibility="example",
+        signature_status="structure_verified",
+        signed_by="legalise",
+        install_path="<inline>",
+        manifest_snapshot={
+            "id": module_id,
+            "entrypoint": {
+                "python_module": python_module,
+                "entry": entry,
+            },
+            "capabilities": caps,
+        },
+        permissions_snapshot={},
+        installed_by_user_id=uuid.uuid4(),
+        enabled=True,
+    )
+
+
+def test_find_capability_declaration_returns_matching_capability() -> None:
+    installed = _stub_installed()
+    cap = _find_capability_declaration(
+        installed.manifest_snapshot, "review"
+    )
+    assert cap is not None
+    assert cap["id"] == "review"
+
+
+def test_find_capability_declaration_returns_none_for_unknown() -> None:
+    installed = _stub_installed()
+    assert (
+        _find_capability_declaration(installed.manifest_snapshot, "ghost")
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_dispatch_resolves_entrypoint(db_session) -> None:
+    """Real reference module resolves cleanly. Exercises the import +
+    instantiate + invoke wiring without asserting on the result (the
+    capability would itself need posture+grants set up; the unit
+    test isolates the dispatcher concern)."""
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    installed = _stub_installed()
+
+    # We're testing entrypoint resolution; the real review_contract
+    # would need posture+grants. So we monkey the entry class to a
+    # stub via the manifest entry name. Use Pre-Motion's class which
+    # accepts the same invoke signature; bypass-test by checking the
+    # ValueError it raises for an unknown capability id.
+    installed.manifest_snapshot["entrypoint"]["entry"] = "PreMotionModule"
+    installed.manifest_snapshot["entrypoint"]["python_module"] = (
+        "examples.modules.pre_motion"
+    )
+    context = InvocationContext(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        invocation_id=uuid.uuid4(),
+    )
+
+    async def _noop(prompt, *, system=None):
+        return ProviderResponse(
+            text="{}",
+            model_id="m",
+            provider="p",
+            tokens_in=0,
+            tokens_out=0,
+            cost_micros=None,
+            currency=None,
+        )
+
+    # Pre-Motion exposes draft_motion only — asking for "review"
+    # makes the module raise ValueError. That confirms dispatch
+    # imported the module and called invoke().
+    with pytest.raises(ValueError, match="unknown capability"):
+        await dispatch_capability(
+            db_session,
+            installed_module=installed,
+            capability_declaration={
+                "id": "review",
+                "kind": "skill",
+                "scope": "matter",
+            },
+            matter=matter,
+            context=context,
+            args={},
+            provider_call=_noop,
+        )
+
+
+@pytest.mark.asyncio
+async def test_dispatch_missing_python_module_raises(db_session) -> None:
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    installed = _stub_installed(python_module="not.a.real.module")
+    context = InvocationContext(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        invocation_id=uuid.uuid4(),
+    )
+
+    async def _noop(prompt, *, system=None):
+        ...
+
+    with pytest.raises(EntrypointResolutionError, match="cannot import"):
+        await dispatch_capability(
+            db_session,
+            installed_module=installed,
+            capability_declaration={"id": "review", "kind": "skill", "scope": "matter"},
+            matter=matter,
+            context=context,
+            args={},
+            provider_call=_noop,
+        )
+
+
+@pytest.mark.asyncio
+async def test_dispatch_missing_entry_attribute_raises(db_session) -> None:
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    installed = _stub_installed(entry="NoSuchClass")
+    context = InvocationContext(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        invocation_id=uuid.uuid4(),
+    )
+
+    async def _noop(prompt, *, system=None):
+        ...
+
+    with pytest.raises(EntrypointResolutionError, match="no attribute"):
+        await dispatch_capability(
+            db_session,
+            installed_module=installed,
+            capability_declaration={"id": "review", "kind": "skill", "scope": "matter"},
+            matter=matter,
+            context=context,
+            args={},
+            provider_call=_noop,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Provider adapter — make_provider_call
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_adapter_maps_all_seven_provider_response_fields(
+    db_session, monkeypatch
+) -> None:
+    """The load-bearing adapter test: the seven ProviderResponse
+    fields are populated from the gateway's ModelResult per the
+    Decision #4 v3 mapping table."""
+    from app.core.api import model_gateway as gateway_singleton
+
+    captured: dict = {}
+
+    async def _stub_call(**kwargs):
+        captured.update(kwargs)
+        return ModelResult(
+            text="MODEL TEXT",
+            model_used="anthropic",
+            prompt_hash="h" * 64,
+            response_hash="r" * 64,
+            token_count=4321,
+            latency_ms=100,
+        )
+
+    monkeypatch.setattr(gateway_singleton, "call", _stub_call)
+
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    invocation_id = uuid.uuid4()
+
+    call = make_provider_call(
+        session=db_session,
+        matter=matter,
+        actor_user_id=user.id,
+        module_id="examples.contract-review",
+        capability_id="review",
+        invocation_id=invocation_id,
+    )
+
+    response = await call("test prompt", system="test system")
+
+    assert isinstance(response, ProviderResponse)
+    assert response.text == "MODEL TEXT"
+    assert response.model_id == matter.default_model_id  # "claude-opus-4-7"
+    assert response.provider == "anthropic"
+    assert response.tokens_in == 4321
+    # Sentinel — keeps audit token_count = tokens_in + tokens_out
+    # equal to the gateway's combined count.
+    assert response.tokens_out == 0
+    # Gateway doesn't price; paired None.
+    assert response.cost_micros is None
+    assert response.currency is None
+
+
+@pytest.mark.asyncio
+async def test_adapter_payload_does_not_trip_legacy_model_invoke_check(
+    db_session, monkeypatch
+) -> None:
+    """Reviewer Phase 10 v3 load-bearing regression. At
+    model_gateway.py:364-378 the gateway runs a workspace-scope
+    require_capability('model.invoke') check when ``payload`` carries
+    BOTH 'plugin' and 'skill'. Phase 7's grant lifecycle never
+    creates such a workspace grant — so the adapter MUST NOT put
+    'plugin' or 'skill' in payload, or both reference modules
+    would fail immediately.
+
+    Assert by capturing the exact payload the adapter forwards.
+    """
+    from app.core.api import model_gateway as gateway_singleton
+
+    captured_payload: dict = {}
+
+    async def _stub_call(**kwargs):
+        nonlocal captured_payload
+        captured_payload = kwargs.get("payload") or {}
+        return ModelResult(
+            text="x",
+            model_used="anthropic",
+            prompt_hash="x" * 64,
+            response_hash="x" * 64,
+            token_count=10,
+            latency_ms=1,
+        )
+
+    monkeypatch.setattr(gateway_singleton, "call", _stub_call)
+
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    invocation_id = uuid.uuid4()
+
+    call = make_provider_call(
+        session=db_session,
+        matter=matter,
+        actor_user_id=user.id,
+        module_id="examples.contract-review",
+        capability_id="review",
+        invocation_id=invocation_id,
+    )
+    await call("p", system="s")
+
+    # The two keys the gateway looks at must NOT be present.
+    assert "plugin" not in captured_payload, (
+        "adapter forwarded 'plugin' in payload — trips the legacy "
+        "workspace-scope model.invoke check"
+    )
+    assert "skill" not in captured_payload, (
+        "adapter forwarded 'skill' in payload — trips the legacy "
+        "workspace-scope model.invoke check"
+    )
+    # The keys Phase 10 explicitly intends ARE present.
+    assert captured_payload.get("capability_id") == "review"
+    assert captured_payload.get("invocation_id") == str(invocation_id)
+
+
+@pytest.mark.asyncio
+async def test_adapter_passes_correct_gateway_kwargs(
+    db_session, monkeypatch
+) -> None:
+    """Pin to the actual ModelGateway.call signature (Phase 10 v3
+    redline). The kwargs the adapter sends MUST be the names the
+    gateway accepts: ``model``, ``caller_module``, ``payload``."""
+    from app.core.api import model_gateway as gateway_singleton
+
+    captured: dict = {}
+
+    async def _stub_call(**kwargs):
+        captured.update(kwargs)
+        return ModelResult(
+            text="x",
+            model_used="anthropic",
+            prompt_hash="x" * 64,
+            response_hash="x" * 64,
+            token_count=10,
+            latency_ms=1,
+        )
+
+    monkeypatch.setattr(gateway_singleton, "call", _stub_call)
+
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    invocation_id = uuid.uuid4()
+
+    call = make_provider_call(
+        session=db_session,
+        matter=matter,
+        actor_user_id=user.id,
+        module_id="examples.contract-review",
+        capability_id="review",
+        invocation_id=invocation_id,
+    )
+    await call("p", system="s")
+
+    # Real gateway kwargs (model_gateway.py:320).
+    assert captured["model"] == matter.default_model_id
+    assert captured["caller_module"] == "examples.contract-review"
+    assert captured["matter_id"] == matter.id
+    assert captured["actor_id"] == user.id
+    assert captured["prompt"] == "p"
+    assert captured["system"] == "s"
+    # NOT-EXIST kwargs that v1/v2 hallucinated.
+    assert "requested_model" not in captured
+    assert "module" not in captured
+
+
+# ---------------------------------------------------------------------------
+# P1 #1 — artifact write does not overwrite (Phase 6 R2)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -132,7 +489,7 @@ async def test_duplicate_write_does_not_alter_original_file(db_session) -> None:
     """Reviewer R2 P1 #1: a second write with the same
     (invocation_id, kind) MUST NOT overwrite the original file
     before the DB UNIQUE constraint rejects it."""
-    user = await _make_user(db_session)
+    user = await _make_user(db_session, role="solicitor")
     matter = await _make_matter(db_session, user)
     invocation_id = uuid.uuid4()
 
@@ -191,7 +548,9 @@ async def test_duplicate_write_does_not_alter_original_file(db_session) -> None:
     assert rows[0].id == original_id
 
 
-# -------------------- P1 #2 — grants are enforced at runtime --------------------
+# ---------------------------------------------------------------------------
+# P1 #2 — grants are enforced at runtime (Phase 6 R2)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -204,7 +563,7 @@ async def test_missing_read_grant_blocks_with_no_artifact(db_session) -> None:
         review_contract,
     )
 
-    user = await _make_user(db_session)
+    user = await _make_user(db_session, role="solicitor")
     matter = await _make_matter(db_session, user)
     doc = await _make_document(db_session, matter, text="some NDA text")
     # NB: NO grants inserted.
@@ -242,7 +601,7 @@ async def test_missing_write_grant_blocks_after_read(db_session) -> None:
         review_contract,
     )
 
-    user = await _make_user(db_session)
+    user = await _make_user(db_session, role="solicitor")
     matter = await _make_matter(db_session, user)
     doc = await _make_document(db_session, matter, text="some NDA text")
     # Grant ONLY the read — scoped to this matter (Phase 6 R3).
@@ -286,7 +645,9 @@ async def test_missing_write_grant_blocks_after_read(db_session) -> None:
     assert artifact is None
 
 
-# -------------------- P1 #3 — module cannot self-assert role --------------------
+# ---------------------------------------------------------------------------
+# P1 #3 — module cannot self-assert role (Phase 6 R2)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -354,7 +715,9 @@ async def test_module_cannot_smuggle_actor_role(db_session) -> None:
     )
 
 
-# -------------------- P2 — document text is actually in the prompt --------------------
+# ---------------------------------------------------------------------------
+# P2 — document text is actually in the prompt (Phase 6 R2)
+# ---------------------------------------------------------------------------
 
 
 def test_prompt_contains_document_text() -> None:
@@ -387,7 +750,9 @@ def test_prompt_handles_missing_extraction() -> None:
     assert "no extracted text" in prompt
 
 
-# -------------------- R3 — grants must be matter-scoped --------------------
+# ---------------------------------------------------------------------------
+# R3 — grants must be matter-scoped (Phase 6 R3)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -403,7 +768,7 @@ async def test_cross_matter_grant_does_not_authorize_other_matter(
     )
     from app.models import AuditEntry
 
-    user = await _make_user(db_session)
+    user = await _make_user(db_session, role="solicitor")
     matter_a = await _make_matter(db_session, user)
     matter_b = await _make_matter(db_session, user)
     # Document lives on matter B (the target the test will try to invoke against).
@@ -494,7 +859,7 @@ async def test_workspace_broad_and_matter_scoped_checks_are_strict(
     now includes scope."""
     from app.core.capabilities import require_capability
 
-    user = await _make_user(db_session)
+    user = await _make_user(db_session, role="solicitor")
     matter = await _make_matter(db_session, user)
 
     # One workspace-scope grant and one matter-scope grant for the
@@ -568,7 +933,7 @@ async def test_legacy_grant_does_not_satisfy_matter_scoped_check(
     that: NULL snapshot != matching matter_id."""
     from app.core.capabilities import require_capability
 
-    user = await _make_user(db_session)
+    user = await _make_user(db_session, role="solicitor")
     matter = await _make_matter(db_session, user)
     db_session.add(
         WorkspaceSkillCapabilityGrant(

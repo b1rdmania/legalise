@@ -736,3 +736,66 @@ async def test_matter_context_then_advice_boundary(db_session) -> None:
     assert advice_completed is not None
     assert advice_completed.module == "core.advice_boundary"
     assert advice_completed.payload["output_id"] == str(item.id)
+
+
+# ---------------------------------------------------------------------------
+# HTTP trust boundary — role derivation (Reviewer P1#1)
+#
+# Moved from test_phase1_security_fixes.py (test-slim Phase 3). The HTTP
+# endpoint derives the actor role from User.is_superuser; the client can
+# never assert a role in the request body. The runtime/programmatic API
+# above accepts actor_role by design — internal callers have already
+# verified it.
+#
+# The two require_admin unit tests that lived alongside these were
+# dropped: the admin-403 failure mode (non-superuser blocked with
+# `admin_required`) is covered at the endpoint level by the admin API
+# tests (test_phase11_admin_role.py and friends); the unit asserted no
+# distinct failure mode.
+# ---------------------------------------------------------------------------
+
+
+def test_http_actor_role_derived_from_is_superuser() -> None:
+    """P1#1: superuser → workspace_admin, everyone else →
+    any_authenticated. The role comes from the User row, never the
+    request."""
+    from app.api.advice_boundary import _derive_actor_role
+    from app.models import User
+
+    def _user(is_superuser: bool) -> User:
+        return User(
+            id=uuid.uuid4(),
+            email="x@x",
+            hashed_password="x" * 32,
+            is_active=True,
+            is_verified=True,
+            is_superuser=is_superuser,
+        )
+
+    assert _derive_actor_role(_user(True)) == "workspace_admin"
+    assert _derive_actor_role(_user(False)) == "any_authenticated"
+
+
+def test_check_request_drops_actor_role_field() -> None:
+    """Reviewer P1#1: the CheckRequest model no longer has actor_role.
+    Pydantic by default ignores extra fields, so even if a client
+    sends actor_role in the body, it never reaches the gate."""
+    from app.api.advice_boundary import CheckRequest
+
+    body = CheckRequest(
+        output_id="o",
+        requested_tier="draft_advice",
+    )
+    # No actor_role attribute on the model.
+    assert not hasattr(body, "actor_role")
+
+    # Extra fields supplied by client are ignored — model still
+    # parses without raising.
+    body_with_extra = CheckRequest.model_validate(
+        {
+            "output_id": "o",
+            "requested_tier": "draft_advice",
+            "actor_role": "qualified_solicitor",  # client-supplied
+        }
+    )
+    assert not hasattr(body_with_extra, "actor_role")
