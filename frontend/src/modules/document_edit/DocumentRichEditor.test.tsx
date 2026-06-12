@@ -726,8 +726,16 @@ describe("DocumentRichEditor surface", () => {
       },
       { timeout: 5000 },
     );
-    expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
-      "Copied working text",
+    // The status line renders from a state update after the clipboard
+    // promise resolves — assert inside a wait or it races under
+    // parallel CI load (the PR #184 deflake class).
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
+          "Copied working text",
+        );
+      },
+      { timeout: 5000 },
     );
   });
 
@@ -894,13 +902,21 @@ describe("DocumentRichEditor surface", () => {
     fireEvent.click(within(ribbon).getByRole("button", { name: "Run skill" }));
     expect(onRunSkillFromSelection).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Copy passage" }));
-    await waitFor(() => {
-      expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
-        "single social-media post",
-      );
-    });
-    expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
-      "Copied selected passage",
+    await waitFor(
+      () => {
+        expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
+          "single social-media post",
+        );
+      },
+      { timeout: 5000 },
+    );
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("document-editor-copy-status")).toHaveTextContent(
+          "Copied selected passage",
+        );
+      },
+      { timeout: 5000 },
     );
     fireEvent.click(within(ribbon).getByRole("button", { name: "Add review note" }));
     expect(onCreateNoteFromSelection).toHaveBeenCalledTimes(1);
