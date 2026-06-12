@@ -5,13 +5,13 @@ token count and latency. Privilege posture gates which provider can serve the
 call:
 
     A_cleared  →  frontier or local — caller's choice
-    B_mixed    →  local preferred when an Ollama URL is reachable;
-                  frontier permitted with explicit consent
+    B_mixed    →  local served when an Ollama provider is registered and a
+                  frontier model id is requested; frontier otherwise
     C_paused   →  no LLM calls at all — raises PrivilegePaused
 
-v0.1 ships the routing + audit logic plus a deterministic stub provider so
-the rest of the workspace can run end-to-end without API keys. Real Anthropic
-/ OpenAI / Ollama HTTP wiring lands Week 1 Day 5 (`provider_anthropic.py` etc.)
+Real provider wiring lives in `app/providers/` (Anthropic / OpenAI / Ollama);
+the deterministic stub provider keeps the workspace runnable end-to-end
+without API keys.
 """
 
 from __future__ import annotations
@@ -47,9 +47,8 @@ def provider_for_model(model_id: str | None) -> str | None:
     """Map a model id to the provider name registered with the gateway.
 
     Returns None for keyless models (`stub-echo`, ollama-served local
-    models, anything else). Shared between `_select_provider` and the
-    SSE preflight in `pre_motion/router.py` so a model-id rename can't
-    let the two drift.
+    models, anything else). Shared between `_select_provider` and any
+    caller-side preflight so a model-id rename can't let the two drift.
     """
     if not model_id:
         return None

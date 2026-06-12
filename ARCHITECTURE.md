@@ -159,22 +159,31 @@ matters/example-v-respondent-2026/
 core/model_gateway.py
 
 class ModelGateway:
-  def call(matter_id, prompt, *, model=None, posture=None, ...) -> Response
+  def call(*, session, matter_id, actor_id, prompt, model=None, ...) -> ModelResult
 
   Logic:
-  1. Resolve model:
-     - If matter has privilege_posture == C_paused → refuse.
-     - If matter has privilege_posture == B_mixed AND default_model is cloud → optionally route to local; require explicit override.
-     - If matter has privilege_posture == A_cleared → use default (cloud OK).
-     - Override via `model` argument always wins (with audit entry recording the override).
-  2. Call provider.
-  3. Log AuditEntry with prompt hash, response hash, model, tokens, latency.
-  4. Return Response.
+  1. Resolve posture authoritatively from the matter row in the DB when
+     matter_id is given. A caller-supplied posture argument is honoured
+     only for tooling/tests with no matter; if both are provided, the
+     DB value wins (closes the read-then-flip TOCTOU window).
+     - C_paused → refuse (raises PrivilegePaused).
+     - B_mixed → if an Ollama provider is registered and the requested
+       model is a frontier id (claude-*/gpt-*), route to the local model.
+       The `model` argument does not override this.
+     - A_cleared → route by the requested model's provider; unrecognised
+       ids fall back to the deterministic stub-echo provider.
+  2. Resolve keys: anthropic/openai calls use the caller's own stored key
+     (BYO, AES-256-GCM at rest); the server-key fallback is dev-only.
+  3. Call provider.
+  4. Log AuditEntry with prompt hash, response hash, model, tokens, latency.
+  5. Return ModelResult.
 
 Providers:
 - AnthropicProvider: async Anthropic SDK
 - OpenAIProvider: async OpenAI SDK
 - OllamaProvider: async HTTP to local Ollama instance
+- StubProvider ("stub-echo"): deterministic keyless fallback so the
+  workspace runs end-to-end without API keys
 ```
 
 All LLM calls go through the gateway. There is no direct SDK import in any module.

@@ -13,9 +13,9 @@ expectations ("I have 100 messages today"), and avoids the edge case where a
 burst at 23:59 rolls into the next window 1 minute later. All counts are
 recomputed from Postgres on each call — no Redis counter, no cache.
 
-``active_jobs`` is defined here as the canonical constant but enforced inside
-``backend/app/core/jobs.py`` (Unit 2). This module does not double-enforce it.
-Import it from here if you need the value elsewhere.
+``active_jobs`` is canonical here (``get_limits().active_jobs``) but enforced
+inside ``backend/app/core/jobs.py``, which reads it via ``get_limits()`` at
+call time. This module does not double-enforce it.
 """
 
 from __future__ import annotations
@@ -38,8 +38,8 @@ if TYPE_CHECKING:
 # Canonical limit values
 # ---------------------------------------------------------------------------
 
-# Active jobs: owned by Unit 2 (jobs.py). Defined here so it is a single
-# source of truth. jobs.py imports and enforces this constant directly.
+# Active jobs: enforced by jobs.py, which reads `get_limits().active_jobs`
+# at call time. Defined here so the env-resolved value has one home.
 ACTIVE_JOBS_LIMIT: int = int(os.environ.get("LEGALISE_LIMIT_ACTIVE_JOBS", "3"))
 
 
@@ -76,8 +76,8 @@ class Limits:
             os.environ.get("LEGALISE_LIMIT_WORKFLOW_RUNS_PER_DAY", "50")
         )
     )
-    # active_jobs — canonical value is ACTIVE_JOBS_LIMIT above. Unit 2
-    # enforces this; we store it here for reference only.
+    # active_jobs — seeded from ACTIVE_JOBS_LIMIT above; jobs.py enforces
+    # it via get_limits().active_jobs.
     active_jobs: int = field(
         default_factory=lambda: ACTIVE_JOBS_LIMIT
     )
@@ -260,9 +260,12 @@ async def check_module_submission(user_id: uuid.UUID | None, session: AsyncSessi
     """Raise 429 if the limit is 0 (disabled) or if the user has hit the
     per-day submission cap.
 
-    Module submissions are unauthenticated — user_id may be None.  When
-    user_id is None and the limit is > 0, this check is skipped (the IP
-    rate-limit in submissions.py still applies).  When the limit is 0, all
+    The public module-submission flow was removed (skills now arrive only
+    by import — Lawve or GitHub — through the trust ceremony), so nothing
+    in the app calls this today; the limit defaults to 0 and the usage
+    endpoint still reports it.  Kept for a future re-enable.  When
+    user_id is None and the limit is > 0, this check is skipped (any IP
+    rate-limit belongs to the calling route).  When the limit is 0, all
     submissions are blocked regardless of auth state.
     """
     from app.models.audit import AuditEntry

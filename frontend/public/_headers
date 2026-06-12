@@ -1,0 +1,17 @@
+# Cloudflare Pages headers for legalise.dev.
+#
+# CSP notes:
+# - script-src: 'self' for the Vite bundle + unpkg.com for the
+#   lottie-player web component (pinned @2.0.3 with SRI in index.html).
+# - style-src 'unsafe-inline': React inline style attributes.
+# - connect-src: same-origin /api in local preview; api.legalise.dev on
+#   the split deploy (REST + SSE).
+# - worker-src 'self' blob:: pdf.js renders documents in a worker.
+# - img-src blob: data:: docx/pdf previews materialise images locally.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' https://api.legalise.dev; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY

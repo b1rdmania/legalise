@@ -97,8 +97,8 @@ land, they will be boring libraries, not invented in-house.
 | Frontend data fetching / cache | Hand-rolled `useEffect` + per-component loading/error state | TanStack Query (`@tanstack/react-query` is already a dependency, just not consumed yet) |
 | Tables (audit, documents, citations) | Hand-rolled grid + headers | TanStack Table once sorting/filtering/column visibility become real |
 | Frontend routing | Hash router | TanStack Router migration when the route surface grows |
-| Long-running workflow runs | durable jobs (`POST … /export` → job row; `GET /jobs/{id}/events` SSE status transport) | `arq` + Redis + a `jobs` table, with `POST /run -> job_id`, `GET /jobs/{id}/events`. Not invented in-house |
-| Rate limiting | In-memory per-IP token bucket on `POST /api/modules/submit` | Cloudflare-level rate limiting + Turnstile; `slowapi` if we keep it app-side |
+| Long-running workflow runs | `arq` + Redis worker (`app/worker.py`) + a `jobs` table; `POST … /export` → job row; `GET /jobs/{id}/events` SSE status transport | Broader job coverage as more surfaces go durable. Not invented in-house |
+| Rate limiting | Per-user daily limits (`app/core/limits.py`) + per-IP auth-surface throttle (`app/core/rate_limit.py`), both recomputed from Postgres | Cloudflare-level rate limiting in front; `slowapi` if app-side throttling spreads beyond auth |
 | Error shape on the frontend | Per-component string handling, action-shaped prefixes piped through `ErrorCallout` | Single `ApiError` class; `jsonOrThrow` throws it; `ErrorCallout` consumes it |
 | Audit action vocabulary | Free-typed strings at emit sites | A `backend/app/core/audit_actions.py` constants module, validated against the emitted set in a test |
 | Module discovery | In `backend/app/api/modules.py` alongside HTTP shaping | Extracted into `backend/app/core/module_catalogue.py` so the API module is just response shaping |

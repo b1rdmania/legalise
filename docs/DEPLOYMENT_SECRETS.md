@@ -109,24 +109,22 @@ Checklist:
 
 ---
 
-## Turnstile And GitHub Module Submission
+## GitHub Skill Import
 
-Default launch posture: disabled.
+The public module-submission flow (Turnstile widget + GitHub draft PRs)
+was removed; skills arrive only by import (Lawve or a GitHub repo URL at
+a pinned SHA) through the trust ceremony. No Turnstile keys exist.
 
-If enabled:
+Optional:
 
-- `SUBMISSION_ENABLED=true`
-- `TURNSTILE_SITE_KEY`
-- `TURNSTILE_SECRET_KEY`
-- `GITHUB_SUBMISSION_TOKEN`
-- `GITHUB_SUBMISSION_REPO=b1rdmania/claude-for-uk-legal`
-- `GITHUB_SUBMISSION_BASE_BRANCH=main`
-- `LEGALISE_LIMIT_MODULE_SUBMISSIONS_PER_DAY=1`
+- `GITHUB_READ_TOKEN` — read-only PAT (no scopes needed for public
+  repos) that raises the GitHub API rate limit for the skill importers.
+  The legacy `GITHUB_SUBMISSION_TOKEN` env name still works as an alias.
 
-If not intentionally enabled:
+Checklist:
 
-- set `LEGALISE_LIMIT_MODULE_SUBMISSIONS_PER_DAY=0`.
-- omit `GITHUB_SUBMISSION_TOKEN`.
+- `LEGALISE_LIMIT_MODULE_SUBMISSIONS_PER_DAY` stays at its default of 0
+  (submissions disabled; the usage endpoint reports the value).
 
 ---
 

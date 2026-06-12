@@ -110,9 +110,7 @@ fly secrets set \
   EMAIL_FROM="Legalise <no-reply@legalise.dev>" \
   EMAIL_VERIFY_URL_BASE="https://legalise.dev/#/auth/verify" \
   PASSWORD_RESET_URL_BASE="https://legalise.dev/#/auth/reset" \
-  GITHUB_SUBMISSION_TOKEN="github_pat_..." \
-  TURNSTILE_SITE_KEY="0x4AAA..." \
-  TURNSTILE_SECRET_KEY="0x4AAA..."
+  REDIS_URL="redis://..."
 
 fly deploy
 ```
@@ -150,7 +148,6 @@ Connect the GitHub repo to Cloudflare Pages:
 - **Build output directory:** `frontend/dist`
 - **Environment variables:**
   - `VITE_API_BASE_URL=https://api.legalise.dev/api`
-  - `VITE_TURNSTILE_SITE_KEY=<same value as TURNSTILE_SITE_KEY on the backend>` — required for the public module submission flow widget. If `submission_enabled=false` at launch, the page never renders the widget and this var is unused; provision it anyway so the flag flip is a config change, not a Pages re-deploy.
 
 `npm ci` (not `npm install`) is deliberate: it builds against the committed `frontend/package-lock.json` exactly, refusing to mutate it. This is the right shape for a reproducible deploy. If you see "missing lockfile" errors on Cloudflare Pages, the lockfile is not committed — `git status` to confirm and `git add frontend/package-lock.json`.
 
@@ -217,7 +214,7 @@ fly status --app legalise-gotenberg     # expect: no public IPs, no services
 
 If `fly ips list` shows any IP, the deploy picked up an unintended services block — `fly ips release` and re-deploy with the config above.
 
-**Fallback if sidecar is yellow on demo day.** Strip the EXPORT PDF button via a frontend feature flag and ship without PDF. PDF is an experience nicety, not a correctness gap — the Pre-Motion brief is already fully rendered in-page and forensically captured in the audit log.
+**Fallback if sidecar is yellow on demo day.** Ship without PDF export. PDF is an experience nicety, not a correctness gap — document versions render in-page and every invocation is captured in the audit log.
 
 ### 6. DNS wiring
 
@@ -233,9 +230,9 @@ The deploy is only green when **every line below** returns the expected output. 
 # 1. Backend liveness + DB connectivity. Expect status=ok, database=ok.
 curl -s https://api.legalise.dev/health | jq .
 
-# 2. Plugin suite shipped in the image. Expect a non-empty array including
-# "lba-drafter" and "cpr-letter-drafter".
-fly ssh console --app legalise-backend -C 'ls /plugins/uk-employment-legal/skills /plugins/uk-litigation-legal/skills'
+# 2. Both Fly process groups are up. Expect one `app` machine (HTTP) and
+# one `worker` machine (arq job queue) in `started` state.
+fly status --app legalise-backend
 
 # 3. Seeded Khan matter present. The committed fly.toml sets
 # ENVIRONMENT=demo, which runs the idempotent seed on every boot. Expect
@@ -259,14 +256,14 @@ curl -sI -X OPTIONS https://api.legalise.dev/api/matters \
   -H "Access-Control-Request-Method: GET" | head -10
 ```
 
-#### 7a. SSE-disconnect-during-Contract-Review smoke
+#### 7a. Durable export-job smoke
 
-The Contract Review pipeline streams stage frames over SSE and runs the
-work as a `BackgroundTask` on the same request. v0.1 has no `arq` / Redis
-job runner (locked for v0.2 in `docs/ROADMAP.md`). This
-smoke step exists to surface job-runner brittleness — orphaned tasks,
-leaked DB sessions, half-written audit rows — before launch instead of
-during it.
+Long-running work (working-pack export, PDF generation) runs on an `arq`
+worker process dequeuing from Redis — the `worker` process group in
+`backend/fly.toml`. Redis carries job ids only, never matter content.
+This smoke step exists to surface job-runner brittleness — orphaned
+tasks, leaked DB sessions, half-written audit rows, a stopped worker
+machine — before launch instead of during it.
 
 Run against the seeded Khan matter:
 
@@ -276,29 +273,29 @@ curl -s \
   -X POST \
   https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/export
 
-# 2. Poll GET /api/matters/{slug}/jobs/{job_id} until terminal.
+# 2. Poll GET /api/matters/{slug}/export/{export_job_id} until terminal.
 sleep 30
 
 # 3. Tail the backend logs for the matter slug. Expect to see no
 # 'asyncio Task was destroyed but it is pending' warnings.
 fly logs --app legalise-backend | grep -E "khan-v-acme-trading-2026|asyncio|Task was destroyed" | tail -40
 
-# 4. Verify the audit log via the API. Expect at least one terminal row
-# for the contract_review module for this matter.
+# 4. Verify the audit log via the API. Expect export-shaped rows for
+# this matter (the export endpoints require an authenticated session —
+# run with the session cookie from a logged-in demo user).
 curl -s https://api.legalise.dev/api/matters/khan-v-acme-trading-2026/audit \
-  | jq '[.[] | select(.module == "contract_review")] | .[-3:]'
+  | jq '[.[] | select(.action | test("export"))] | .[-3:]'
 ```
 
 **Green state — all four must hold:**
-- The job reaches a terminal state via `GET /api/matters/{slug}/jobs/{job_id}`.
+- The job reaches a terminal state via `GET /api/matters/{slug}/export/{export_job_id}`.
 - No `asyncio Task was destroyed but it is pending` warning in logs.
 - No `SQLAlchemy DBAPIError` or `connection already closed` in logs
   (the worker DB session must close cleanly).
 - Re-running the smoke from step 1 creates a fresh job.
 
-**If any of the above fail, do not promote to launch.** This is the
-signal that `arq` + Redis (the locked v0.2 direction) needs to land before
-v0.1 ships, not after. Surface to Andy.
+**If any of the above fail, do not promote to launch.** A red here means
+the worker process group or Redis wiring is broken. Surface to Andy.
 
 **Manual click-through after the curls pass:**
 - Visit `https://legalise.dev/`.
