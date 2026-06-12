@@ -8,7 +8,7 @@ import {
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { Extension, type Content } from "@tiptap/core";
+import { type Content } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
@@ -24,8 +24,6 @@ import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
-import { Plugin, PluginKey } from "prosemirror-state";
-import { Decoration, DecorationSet } from "prosemirror-view";
 
 import {
   commitDocumentWorkingDraft,
@@ -83,6 +81,18 @@ import {
 export { locateProposedEditInDoc } from "./trackedChanges";
 export type { DocumentProposedEdit, ProposedEditLocation } from "./trackedChanges";
 
+import {
+  FIND_DECORATIONS_PLUGIN_KEY,
+  findDecorationsExtension,
+  type FindDecorationState,
+} from "./findDecorations";
+import {
+  reviewNoteDecorationsExtension,
+  type DocumentNoteHighlight,
+} from "./reviewNotes";
+
+export type { DocumentNoteHighlight } from "./reviewNotes";
+
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
 type WorkingDiffPart = ReturnType<typeof buildVersionDiff>[number];
@@ -94,101 +104,6 @@ const EDITOR_TEXT_COLORS = [
   { label: "Blue text", value: "#245B8A" },
 ] as const;
 const SHARED_DRAFT_POLL_MS = 15_000;
-
-type FindDecorationState = {
-  activeIndex: number;
-  query: string;
-};
-export type DocumentNoteHighlight = {
-  id: string;
-  label: string;
-  quote: string;
-  status: "open" | "resolved";
-};
-const FIND_DECORATIONS_PLUGIN_KEY = new PluginKey<FindDecorationState>(
-  "legaliseDocumentFind",
-);
-
-function findDecorationsExtension() {
-  return Extension.create({
-    name: "legaliseDocumentFind",
-    addProseMirrorPlugins() {
-      return [
-        new Plugin<FindDecorationState>({
-          key: FIND_DECORATIONS_PLUGIN_KEY,
-          state: {
-            init: () => ({ query: "", activeIndex: 0 }),
-            apply(transaction, previous) {
-              return transaction.getMeta(FIND_DECORATIONS_PLUGIN_KEY) ?? previous;
-            },
-          },
-          props: {
-            decorations(state) {
-              const pluginState = FIND_DECORATIONS_PLUGIN_KEY.getState(state);
-              const query = pluginState?.query?.trim() ?? "";
-              if (query.length < 3) return DecorationSet.empty;
-              const decorations: Decoration[] = [];
-              let matchIndex = 0;
-              state.doc.descendants((node, position) => {
-                if (!node.isText || !node.text) return;
-                findNormalizedRanges(node.text, query).forEach((range) => {
-                  const isActive = matchIndex === pluginState?.activeIndex;
-                  decorations.push(
-                    Decoration.inline(position + range.start, position + range.end, {
-                      class: isActive
-                        ? "legalise-find-match legalise-find-match-active"
-                        : "legalise-find-match",
-                      "data-find-match": isActive ? "active" : "true",
-                    }),
-                  );
-                  matchIndex += 1;
-                });
-              });
-              return DecorationSet.create(state.doc, decorations);
-            },
-          },
-        }),
-      ];
-    },
-  });
-}
-
-function reviewNoteDecorationsExtension(noteHighlights: DocumentNoteHighlight[]) {
-  return Extension.create({
-    name: "legaliseReviewNotes",
-    addProseMirrorPlugins() {
-      return [
-        new Plugin({
-          key: new PluginKey("legaliseReviewNotes"),
-          props: {
-            decorations(state) {
-              const decorations: Decoration[] = [];
-              state.doc.descendants((node, position) => {
-                if (!node.isText || !node.text) return;
-                noteHighlights.forEach((note) => {
-                  findNormalizedRanges(node.text ?? "", note.quote).forEach((range) => {
-                    decorations.push(
-                      Decoration.inline(position + range.start, position + range.end, {
-                        class:
-                          note.status === "resolved"
-                            ? "legalise-review-note-resolved"
-                            : "legalise-review-note-open",
-                        "data-review-note-id": note.id,
-                        title: note.label,
-                      }),
-                    );
-                  });
-                });
-              });
-              return DecorationSet.create(state.doc, decorations);
-            },
-          },
-        }),
-      ];
-    },
-  });
-}
-
 
 function ToolbarButton({
   active,
