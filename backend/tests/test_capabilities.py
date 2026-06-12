@@ -1,16 +1,25 @@
 """Runtime capability-enforcement tests.
 
-Two layers, mirroring the auth-login pattern:
+Layers, mirroring the auth-login pattern:
 
-1. **Helper-level**: `require_capability`, `grant`, `revoke`, `list_granted`
+1. **Grammar (pure unit)**: `is_valid_capability_string`,
+   `assert_capability_string`, `capability_scope` — folded in from
+   test_phase2_capability_grammar.py (test-slim Phase 3). Schema↔runtime
+   vocabulary parity stays in test_capability_vocabulary_schema.py.
+2. **Helper-level**: `require_capability`, `grant`, `revoke`, `list_granted`
    exercised directly against a `db_session`. Skips cleanly when DB is
    unreachable.
-2. **HTTP wire-through**: a module-attributed document body read 403s
+3. **Grant table v2 shape**: the migration-0015 columns
+   (capability_version / granted_at_module_version /
+   granted_permissions_snapshot) — folded in from
+   test_phase2_grants_v2.py. Its v1-grant-still-resolves happy path was
+   merged into `test_require_capability_succeeds_when_granted` (same
+   behaviour); its unique-constraint test duplicated
+   `test_grant_is_idempotent` and was dropped.
+4. **HTTP wire-through**: a module-attributed document body read 403s
    when the capability is missing.
-3. **Auto-grant on signup**: register a user, assert the declared
-   capabilities of installed plugins materialised as grant rows.
 
-All DB-backed; the suite skips at conftest level when Postgres at
+All DB-backed parts skip at conftest level when Postgres at
 `TEST_DATABASE_URL` is unreachable.
 """
 
@@ -22,13 +31,92 @@ import pytest
 from sqlalchemy import select
 
 from app.core.capabilities import (
+    CAPABILITY_VOCABULARY,
     CapabilityDenied,
+    assert_capability_string,
+    capability_scope,
     grant,
+    is_valid_capability_string,
     list_granted,
     require_capability,
     revoke,
 )
 from app.models import User, WorkspaceSkillCapabilityGrant
+
+
+# ---------------------------------------------------------------------------
+# Grammar (pure unit — no DB)
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_v1_strings_are_valid() -> None:
+    for cap in CAPABILITY_VOCABULARY:
+        assert is_valid_capability_string(cap), cap
+
+
+def test_v2_grammar_strings_are_valid() -> None:
+    valid = [
+        "matter.documents.body.read",
+        "matter.context.legalise_memory.facts.write",
+        "matter.context.companies_house.write",
+        "matter.state.intake.transition",
+        "matter.events.read",
+        "workspace.providers.invoke",
+        "workspace.intake.prospects.write",
+        "global.registry.read",
+        # Single deepest segment (3 parts).
+        "matter.notes.write",
+    ]
+    for cap in valid:
+        assert is_valid_capability_string(cap), cap
+
+
+def test_invalid_capability_strings_rejected() -> None:
+    invalid = [
+        "",  # empty
+        "just_one_part",  # one segment
+        "two.parts",  # missing required action segment
+        "foo.bar.baz",  # scope not in matter|workspace|global
+        "matter.",  # trailing dot
+        ".matter.read",  # leading dot
+        "MATTER.documents.read",  # uppercase scope
+        "matter..read",  # empty middle segment
+        "matter.documents-with-hyphen.read",  # hyphens not allowed in segment
+    ]
+    for cap in invalid:
+        assert not is_valid_capability_string(cap), cap
+
+
+def test_non_string_inputs_rejected() -> None:
+    assert not is_valid_capability_string(None)  # type: ignore[arg-type]
+    assert not is_valid_capability_string(123)  # type: ignore[arg-type]
+    assert not is_valid_capability_string([])  # type: ignore[arg-type]
+
+
+def test_assert_capability_string_raises_on_invalid() -> None:
+    with pytest.raises(ValueError, match="invalid capability"):
+        assert_capability_string("foo.bar.baz")
+
+
+def test_assert_capability_string_passes_for_valid() -> None:
+    # Should not raise.
+    assert_capability_string("matter.read")
+    assert_capability_string("matter.documents.body.read")
+
+
+def test_capability_scope_for_v2_grammar() -> None:
+    assert capability_scope("matter.documents.body.read") == "matter"
+    assert capability_scope("workspace.providers.invoke") == "workspace"
+    assert capability_scope("global.registry.read") == "global"
+
+
+def test_capability_scope_for_legacy_v1_returns_none() -> None:
+    """Legacy v1 strings have no canonical scope — `matter.read` looks
+    like it has a scope but the dot count is just 2 (not v2 grammar
+    shape), so it falls into the legacy bucket and returns None."""
+    assert capability_scope("matter.read") is None
+    assert capability_scope("model.invoke") is None
+    assert capability_scope("document.body.read") is None
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +181,19 @@ async def test_require_capability_succeeds_when_granted(db_session) -> None:
         capability="model.invoke",
     )
 
+    # Legacy/v1 shape (merged from test_phase2_grants_v2): `grant`
+    # writes NULL for the migration-0015 columns, and the grant still
+    # resolves through require_capability above.
+    row = await db_session.scalar(
+        select(WorkspaceSkillCapabilityGrant).where(
+            WorkspaceSkillCapabilityGrant.user_id == user.id,
+        )
+    )
+    assert row is not None
+    assert row.capability_version is None
+    assert row.granted_at_module_version is None
+    assert row.granted_permissions_snapshot is None
+
 
 @pytest.mark.asyncio
 async def test_grant_is_idempotent(db_session) -> None:
@@ -143,6 +244,85 @@ async def test_list_granted_returns_capability_slugs(db_session) -> None:
     await db_session.flush()
     got = await list_granted(db_session, user.id, "p", "s")
     assert got == {"matter.read", "model.invoke", "citation.write"}
+
+
+# ---------------------------------------------------------------------------
+# Grant table v2 shape (migration 0015) — from test_phase2_grants_v2.py
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_v2_grant_with_full_snapshot_resolves(db_session) -> None:
+    """A v2 grant populates all three Phase 2 fields. require_capability
+    treats it identically to a legacy grant — the new fields are
+    read by Phase 4 grant-lifecycle, not by the runtime check."""
+    user = await _make_user(db_session)
+    grant_row = WorkspaceSkillCapabilityGrant(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        plugin="legalise-matter-memory",
+        skill="default",
+        capability="matter.context.legalise_memory.facts.write",
+        capability_version="2.0.0",
+        granted_at_module_version="1.0.0",
+        granted_permissions_snapshot={
+            "reads": ["matter.context.legalise_memory.facts.read"],
+            "writes": ["matter.context.legalise_memory.facts.write"],
+            "gates": ["privilege_posture"],
+            "advice_tier_max": "draft_advice",
+        },
+    )
+    db_session.add(grant_row)
+    await db_session.flush()
+
+    # Resolves.
+    await require_capability(
+        db_session,
+        user_id=user.id,
+        plugin="legalise-matter-memory",
+        skill="default",
+        capability="matter.context.legalise_memory.facts.write",
+    )
+
+    # Snapshot is queryable.
+    row = await db_session.scalar(
+        select(WorkspaceSkillCapabilityGrant).where(
+            WorkspaceSkillCapabilityGrant.user_id == user.id,
+        )
+    )
+    assert row is not None
+    assert row.capability_version == "2.0.0"
+    assert row.granted_at_module_version == "1.0.0"
+    snap = row.granted_permissions_snapshot
+    assert snap is not None
+    assert snap["advice_tier_max"] == "draft_advice"
+    assert "matter.context.legalise_memory.facts.read" in snap["reads"]
+
+
+@pytest.mark.asyncio
+async def test_widened_capability_column_accepts_v2_grammar_strings(
+    db_session,
+) -> None:
+    """The capability column widened from VARCHAR(64) to VARCHAR(256)
+    so v2 grammar strings fit. Confirm a 50+ char string writes + reads."""
+    user = await _make_user(db_session)
+    long_cap = "matter.context.legalise_memory.accepted_facts.write"
+    assert len(long_cap) > 40
+    await grant(
+        db_session,
+        user_id=user.id,
+        plugin="legalise-matter-memory",
+        skill="default",
+        capability=long_cap,
+    )
+    await db_session.flush()
+    await require_capability(
+        db_session,
+        user_id=user.id,
+        plugin="legalise-matter-memory",
+        skill="default",
+        capability=long_cap,
+    )
 
 
 # ---------------------------------------------------------------------------

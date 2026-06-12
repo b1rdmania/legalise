@@ -58,7 +58,7 @@ The load-bearing decisions:
 1. **Real signed manifest** (today: structural verifier; sigstore
    crypto lands later).
 2. **End-to-end acceptance test** at
-   `backend/tests/test_phase6_vertical_slice.py` is the contract —
+   `backend/tests/test_invocations_api.py` is the contract —
    it walks install → grant → invoke → reconstruct in one function
    against a real Postgres.
 3. **Synchronous; no new infrastructure.** If timeouts hurt, that's

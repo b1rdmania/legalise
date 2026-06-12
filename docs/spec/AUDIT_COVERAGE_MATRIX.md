@@ -78,16 +78,16 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | --- | --- | --- |
 | `module.capability.invoked` | e2e-covered | `e2e/first-run.spec.ts` |
 | `model.call` | e2e-covered | `e2e/first-run.spec.ts` (stub-echo) |
-| `model.invoked` | pytest-covered | `backend/tests/test_phase10_invoke_endpoint*.py` (the audit_cost helper emits; e2e asserts the parent invocation chain, not this row by name) |
+| `model.invoked` | pytest-covered | `backend/tests/test_invocations_api.py` (the audit_cost helper emits; e2e asserts the parent invocation chain, not this row by name) |
 | `module.capability.completed` | e2e-covered | `e2e/first-run.spec.ts` |
 | `advice_boundary.check.completed` | pytest-covered | `backend/tests/test_phase9_pre_motion_vertical_slice.py` (first-run's stub-echo capability may not drive the gate; substrate test pins the row) |
 | `advice_boundary.check.blocked` | not-coverable-yet (15-#2) | `backend/tests/test_phase9_pre_motion_vertical_slice.py` |
 | `advice_boundary.check.denied` | not-coverable-yet (15-#2) | same |
 | `advice_boundary.check.failed` | not-coverable-yet (15-#2) | same |
-| `posture_gate.check.blocked` | pytest-covered | `backend/tests/test_phase8_posture_gate*.py` (UI banner tested separately in `posture.spec.ts`; producing the row from an end-to-end UI flow requires installing a module + granting + posture mismatch — not staged in the e2e env yet) |
-| `module.capability.denied` | pytest-covered | `backend/tests/test_phase10_invoke_endpoint*.py` |
-| `module.<plugin>.model.key_missing` | pytest-covered | `backend/tests/test_phase10_invoke_endpoint*.py::test_provider_key_missing_envelope` |
-| `model.call.error` | not-coverable-yet (15-#3) | `backend/tests/test_phase10_invoke_endpoint*.py::test_provider_upstream_error_envelope` |
+| `posture_gate.check.blocked` | pytest-covered | `backend/tests/test_posture_gate.py` (UI banner tested separately in `posture.spec.ts`; producing the row from an end-to-end UI flow requires installing a module + granting + posture mismatch — not staged in the e2e env yet) |
+| `module.capability.denied` | pytest-covered | `backend/tests/test_invocations_api.py` |
+| `module.<plugin>.model.key_missing` | pytest-covered | `backend/tests/test_invocations_api.py::test_invoke_provider_key_missing_returns_422` |
+| `model.call.error` | not-coverable-yet (15-#3) | `backend/tests/test_invocations_api.py::test_invoke_provider_upstream_error_returns_502` |
 
 ### Reconstruction
 
@@ -117,7 +117,7 @@ Filed for future product / operator surfaces. Pytest is the substrate-side cover
 
 ### 15-#3 — `model.call.error` needs deterministic provider upstream failure
 
-The substrate's `ProviderUpstreamError` handler emits `model.call.error`. Producing it from the UI requires the provider to return a real error; the stub-echo path never fails. **Pytest covers:** `test_phase10_invoke_endpoint*.py`. **What unblocks:** a real-but-faulting provider in test mode (substrate change), or a documented operator path to force a provider response. Neither is in scope for Phase 15.
+The substrate's `ProviderUpstreamError` handler emits `model.call.error`. Producing it from the UI requires the provider to return a real error; the stub-echo path never fails. **Pytest covers:** `test_invocations_api.py`. **What unblocks:** a real-but-faulting provider in test mode (substrate change), or a documented operator path to force a provider response. Neither is in scope for Phase 15.
 
 ### 15-#4 — `module.updated` workflow needs a second manifest version
 
