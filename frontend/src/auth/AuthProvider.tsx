@@ -6,6 +6,7 @@ import {
   signout,
   signup,
   type CurrentUser,
+  type SignupCapture,
 } from "../lib/api";
 import { setAuthSnapshot } from "./AuthSnapshot";
 
@@ -16,7 +17,12 @@ export type AuthState = {
   refresh: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    name?: string,
+    capture?: SignupCapture,
+  ) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -74,8 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const doSignUp = useCallback(
-    async (email: string, password: string, name = "") => {
-      await signup(email, password, name);
+    async (email: string, password: string, name = "", capture: SignupCapture = {}) => {
+      await signup(email, password, name, capture);
       // Backend may auto-login on register (cookie set). Either way refresh.
       await refresh();
     },

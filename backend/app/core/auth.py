@@ -61,6 +61,23 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = settings.session_secret
     verification_token_secret = settings.session_secret
 
+    async def create(self, user_create, safe: bool = False, request: Request | None = None) -> User:
+        """Gate 4 demand capture: derive email_domain + domain_class
+        SERVER-SIDE from the registered address (never client-supplied —
+        UserCreate does not expose these fields), then delegate to the
+        stock fastapi-users create. persona / signup_channel arrive
+        already allowlist-normalised by the UserCreate validators.
+        """
+        from app.core.demand_capture import classify_email_domain
+
+        user = await super().create(user_create, safe=safe, request=request)
+        domain, domain_class = classify_email_domain(user.email)
+        if domain is not None:
+            user = await self.user_db.update(
+                user, {"email_domain": domain, "domain_class": domain_class}
+            )
+        return user
+
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
         # Never log raw email — PII.
         # user_id is the durable handle; admins join via the users table.

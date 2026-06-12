@@ -241,7 +241,61 @@ top of the store-level backups.
 
 ---
 
-## 5. What is not covered yet
+## 5. Launch instrumentation
+
+Demand evidence for launch day (Gate 4), so the 90-day questions get
+answered with counts, not anecdotes.
+
+### 5.1 Tagged launch URLs
+
+Every link we post carries a channel tag. Locked vocabulary — these
+four, nothing else (the backend allowlists and drops anything unknown):
+
+| Channel | URL to post |
+|---|---|
+| Hacker News | `https://legalise.dev/?c=hn` |
+| LinkedIn | `https://legalise.dev/?c=li` |
+| X | `https://legalise.dev/?c=x` |
+| Conferences / talks | `https://legalise.dev/?c=conf` |
+
+The tag is remembered client-side for the session
+(`frontend/src/lib/channel.ts`) and stored on the user row at signup
+(`users.signup_channel`). Untagged signups read as `untagged` — that is
+the honest bucket, don't backfill it.
+
+Signup also captures an **optional** self-reported persona (practising
+solicitor / in-house / legal ops / engineer / other) and derives the
+email domain server-side, classed `firm-like` vs `generic` (heuristic
+consumer-provider list in `backend/app/core/demand_capture.py`). All
+optional, no dark patterns.
+
+### 5.2 The launch-funnel endpoint
+
+Operator-facing, superuser-only, JSON by design:
+
+```bash
+curl -s --cookie "$SESSION_COOKIE" \
+  https://api.legalise.dev/api/admin/launch-funnel | jq
+```
+
+Returns signup counts by persona / domain-class / channel, plus
+golden-loop counts (matters created and outputs signed by non-seed
+users; the auto-seeded Khan copy is excluded from "matters created").
+
+### 5.3 Issue provenance
+
+GitHub issues self-identify via optional labels
+`provenance:practitioner` / `provenance:builder` / `provenance:firm`
+(see CONTRIBUTING). Counted manually — the server holds no GitHub
+token:
+
+```bash
+gh issue list --label provenance:practitioner
+```
+
+---
+
+## 6. What is not covered yet
 
 Honest gaps, so nobody assumes them:
 
@@ -262,7 +316,7 @@ Honest gaps, so nobody assumes them:
 
 ---
 
-## 6. Enabling the WORM role split in production
+## 7. Enabling the WORM role split in production
 
 The audit trail's second enforcement layer — the application database
 role losing UPDATE/DELETE on `audit_entries` by grant — is provisioned

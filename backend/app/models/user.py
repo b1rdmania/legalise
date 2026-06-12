@@ -36,6 +36,15 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     default_privilege_posture: Mapped[str | None] = mapped_column(
         String(16), nullable=True, default="B_mixed"
     )
+    # Gate 4 demand capture (see app/core/demand_capture.py). persona and
+    # signup_channel are optional self-reported signup fields; email_domain
+    # + domain_class are derived server-side from the email address at
+    # registration. All nullable — rows created before instrumentation (or
+    # via scripts/seed) simply read as "unknown" in the funnel.
+    persona: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    signup_channel: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    email_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    domain_class: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

@@ -74,11 +74,31 @@ export const signin = (email: string, password: string) =>
 export const signout = () =>
   apiFetch(`${AUTH}/logout`, { method: "POST" }).then((r) => authJsonOrThrow<unknown>(r));
 
-export const signup = (email: string, password: string, name: string = "") =>
+// Optional demand-capture fields (Gate 4). Both honest and optional:
+// persona is self-reported; channel is the ?c= launch tag (see
+// src/lib/channel.ts). Backend allowlists both — invalid values are
+// dropped server-side, never a signup failure.
+export interface SignupCapture {
+  persona?: string | null;
+  channel?: string | null;
+}
+
+export const signup = (
+  email: string,
+  password: string,
+  name: string = "",
+  capture: SignupCapture = {},
+) =>
   apiFetch(`${AUTH}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({
+      email,
+      password,
+      name,
+      ...(capture.persona ? { persona: capture.persona } : {}),
+      ...(capture.channel ? { channel: capture.channel } : {}),
+    }),
   }).then((r) => authJsonOrThrow<CurrentUser>(r));
 
 export const forgotPassword = (email: string) =>
