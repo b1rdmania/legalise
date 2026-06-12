@@ -55,6 +55,13 @@ jobs:
       # the same `legalise_test` database on localhost.
       POSTGRES_DSN: postgresql+psycopg://legalise:legalise@localhost:5432/legalise_test
       TEST_DATABASE_URL: postgresql+asyncpg://legalise:legalise@localhost:5432/legalise_test
+      # WORM role split (CI-only provisioning; local dev stays single-role).
+      # The unprivileged app-role connection used by
+      # tests/test_audit_worm_role_split.py — those tests skip when this is
+      # unset, and run for real here because the steps below create the
+      # legalise_app role before migrations and apply infra/postgres-roles.sql
+      # after them.
+      TEST_APP_ROLE_DATABASE_URL: postgresql+asyncpg://legalise_app:legalise_app_ci@localhost:5432/legalise_test
       # `development` matches the docker-compose dev env. The email
       # module fails closed on `test` (no RESEND_API_KEY) because the
       # DEV_ENVIRONMENTS allowlist is `{development, dev, local}`. The
@@ -110,9 +117,42 @@ jobs:
           assert v >= (44, 0), f'cryptography {cryptography.__version__} below 44.0 floor'
           "
 
+      # ------------------------------------------------------------------
+      # WORM role split (gate 3). Three steps, CI-only — local docker-compose
+      # dev deliberately stays single-role:
+      #   1. Create the legalise_app role BEFORE migrations, so the
+      #      conditional REVOKE inside alembic 0011 fires on the real
+      #      migration path (it is a no-op when the role is absent).
+      #   2. After migrations, apply the canonical grants script
+      #      (infra/postgres-roles.sql) so the app role can read/write the
+      #      full migrated schema — minus UPDATE/DELETE on audit_entries.
+      #   3. Run the verify harness in `existing` mode: the job FAILS here
+      #      if the app role can UPDATE or DELETE audit_entries.
+      # ------------------------------------------------------------------
+      - name: Create app role so the 0011 REVOKE fires during migration
+        env:
+          PGPASSWORD: legalise
+        run: |
+          psql -h localhost -p 5432 -U legalise -d legalise_test -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE legalise_app WITH LOGIN PASSWORD 'legalise_app_ci';"
+
       - name: Run alembic migrations against the test DB
         working-directory: backend
         run: python -m alembic upgrade head
+
+      - name: Apply WORM role-split grants (infra/postgres-roles.sql)
+        env:
+          PGPASSWORD: legalise
+        run: |
+          psql -h localhost -p 5432 -U legalise -d legalise_test \
+            -v dbname=legalise_test -f infra/postgres-roles.sql
+
+      - name: Verify WORM role split (fails if app role can mutate audit_entries)
+        env:
+          VERIFY_MODE: existing
+          APP_DSN: postgres://legalise_app:legalise_app_ci@localhost:5432/legalise_test
+          ADMIN_DSN: postgres://legalise:legalise@localhost:5432/legalise_test
+        run: infra/verify-worm-role-split.sh
 
       - name: pytest
         working-directory: backend
