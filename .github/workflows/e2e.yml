@@ -56,6 +56,12 @@ jobs:
       # exercises the documented bootstrap_admin operator path, so keep
       # auto-admin disabled here.
       LEGALISE_DEV_AUTO_ADMIN_FIRST_USER: "false"
+      # The e2e suite registers many users from one runner IP per hour;
+      # the auth abuse throttle (gate 1, PR #219) would 429 it. 0
+      # disables per-route, exactly as production operators can.
+      LEGALISE_RATE_LIMIT_REGISTER_PER_HOUR: "0"
+      LEGALISE_RATE_LIMIT_REQUEST_VERIFY_TOKEN_PER_HOUR: "0"
+      LEGALISE_RATE_LIMIT_FORGOT_PASSWORD_PER_HOUR: "0"
     defaults:
       run:
         working-directory: frontend

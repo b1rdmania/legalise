@@ -62,7 +62,10 @@ def route_limit(route: str) -> int:
     """Resolved per-hour limit for a route (env override read per call —
     cheap, and keeps tests free of process-lifetime singletons)."""
     suffix, default = RATE_LIMITED_ROUTES[route]
-    return int(os.environ.get(f"LEGALISE_RATE_LIMIT_{suffix}_PER_HOUR", str(default)))
+    # Compose passthrough sets the var to "" when the host leaves it
+    # unset (${VAR:-}); empty means "use the in-code default".
+    value = os.environ.get(f"LEGALISE_RATE_LIMIT_{suffix}_PER_HOUR")
+    return int(value) if value else default
 
 
 def client_ip(request: Request) -> str:
