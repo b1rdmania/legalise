@@ -696,7 +696,7 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
     id: "asst-msg-04",
     role: "assistant",
     content:
-      "12 March 2026. Acme dismissed Ms Khan citing a social-media policy breach [chron:ev-05]. That date is the EDT for limitation purposes; ACAS Day A was filed on 2 May, so the s.207B extended ET1 deadline lands on 3 July 2026.",
+      "12 March 2026. Acme dismissed Ms Khan citing a social-media policy breach [chron:ev-05]. That date is the EDT for limitation purposes; ACAS Day A was filed on 2 May, so the s.207B extended ET1 deadline lands on 3 July 2026. Check the dates against the source documents before relying on them.",
     suggested_actions: [
       {
         type: "view_chronology",
