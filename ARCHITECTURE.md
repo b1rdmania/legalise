@@ -231,6 +231,10 @@ Three matter-level states. Each module reads the posture and behaves accordingly
 
 Posture is mutable but every change creates an AuditEntry.
 
+## Advice boundary
+
+Every imported-skill run passes through the advice-boundary gate. Chat tool calls and `POST /api/invocations` both dispatch via `core.runtime.dispatch_capability`; prompt-runtime capabilities (the only kind skills import as) run `core.prompt_runtime.run_prompt_capability`, which calls `core.advice_boundary.check()` per invocation and raises `AdviceBoundaryDenied` on denial — a 403 from the invocations endpoint, a refusal message in chat. Tier vocabulary, transition rules (no skipping supervised review, no transition out of approved final advice), the initial-tier cap, and the manifest's `declared_tier_max` are enforced unconditionally; the per-tier role requirement additionally gates on `LEGALISE_FIRM_ROLE_GATES_ENABLED`. Every check writes an `AdviceBoundaryDecision` row, surfaced through audit reconstruction. (Its Phase 1 sibling, the generic state-machine primitive, is dormant in v0.1 and parked in `backend/contrib/state_machine/` until the v0.2 output-lifecycle work revives it.)
+
 ## CPR 31.22 gate
 
 Document upload form asks "from disclosure?" If yes, captures the proceedings reference. Chronology module refuses to extract from a document marked `from_disclosure=true` unless the matter is the same proceedings (recorded on the matter).

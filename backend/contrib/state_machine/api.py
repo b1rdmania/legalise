@@ -31,7 +31,7 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.matter_access import resolve_owned_open_matter
 from app.core.phase1_runtime import Phase1Blocked, Phase1Failed
-from app.core.state_machine import (
+from contrib.state_machine import (
     DefinitionNotFoundError,
     InstanceNotFoundError,
     InvalidDefinitionError,

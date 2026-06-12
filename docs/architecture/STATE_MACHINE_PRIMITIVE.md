@@ -1,5 +1,7 @@
 # State Machine Primitive
 
+> **Status (2026-06-12): DORMANT.** No v0.1 request path transitions through this primitive, so the runtime, registry, and HTTP API are parked in `backend/contrib/state_machine/` (out of the app import graph; the `/api/state-machine` routes are unmounted) and its tests in `backend/tests/dormant/`. The `StateMachine*` models and migrations stay live — audit reconstruction reads the tables. The v0.2 output-lifecycle roadmap item revives it. This document is the spec for that revival.
+
 The state-machine primitive is a generic substrate service. It lets modules declare states and transitions without hardcoding legal-domain workflows into core.
 
 It is consumed by first-party modules such as `legalise-intake` and `legalise-output-lifecycle`, and by future firm-private operational modules.

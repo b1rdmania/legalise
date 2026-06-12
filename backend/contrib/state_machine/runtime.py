@@ -39,7 +39,7 @@ from app.core.phase1_runtime import (
     audit_phase1,
     check_or_block,
 )
-from app.core.state_machine.registry import (
+from contrib.state_machine.registry import (
     DefinitionNotFoundError,
     available_transitions,
     find_transition,
