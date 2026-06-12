@@ -154,7 +154,6 @@ export function LawveImport() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Admission — instruct new counsel"
         title="Add a skill"
         whisper="Before the registrar"
         description="Import a skill from the Lawve catalogue or any public GitHub repository. A skill cannot be added until it is converted, validated, signed, and trusted — and imported scripts are never executed."

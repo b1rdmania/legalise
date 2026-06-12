@@ -182,13 +182,11 @@ export function DescItem({
 // editorial only). eyebrow + h1 + optional mono sub-id + optional
 // description + optional right-aligned actions slot. `children` renders
 // below the header for an optional metadata strip.
-// Standing Order masthead (DESIGN.md P26). Every page opens like a page
-// from the register: a ruled eyebrow line (letterspaced small caps left,
-// optional counterpart right), then the headline in Redaction display.
+// Standing Order masthead (DESIGN.md P26, revised P30): the headline in
+// Redaction display carries the page alone — the ruled eyebrow row was
+// cut 2026-06-12 (it only repeated the page name above the monument).
 // `display` escalates to the monument tier for section homes.
 export function PageHeader({
-  eyebrow,
-  eyebrowRight,
   title,
   whisper,
   subId,
@@ -197,8 +195,6 @@ export function PageHeader({
   display = false,
   children,
 }: {
-  eyebrow?: string;
-  eyebrowRight?: string;
   title: ReactNode;
   whisper?: string;
   subId?: string;
@@ -209,19 +205,7 @@ export function PageHeader({
 }) {
   return (
     <header className="mb-8">
-      {eyebrow && (
-        <div className="flex items-baseline justify-between border-b border-ink pb-2">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
-            {eyebrow}
-          </p>
-          {eyebrowRight && (
-            <p className="text-[10px] uppercase tracking-[0.3em] text-ink">
-              {eyebrowRight}
-            </p>
-          )}
-        </div>
-      )}
-      <div className="mt-5 flex items-end justify-between gap-4">
+      <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h1
             className={

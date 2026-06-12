@@ -98,8 +98,6 @@ export function DemoLoop() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="A matter before the workspace · guided loop"
-        eyebrowRight="Legalise"
         title="Watch the governed loop"
         description="Watch the full supervised-autonomy loop run end to end — no provider key needed. This is a keyless demonstration matter modelled on the Khan v Acme employment dispute; real Khan remains the full workspace matter. Bring a real provider key (Settings → Keys) to run real models on your own matters."
       />

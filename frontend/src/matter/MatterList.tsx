@@ -26,12 +26,6 @@ export function MatterList() {
     <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-14">
       <PageHeader
         display
-        eyebrow="Matters before the workspace"
-        eyebrowRight={
-          matters
-            ? `${matters.length} matter${matters.length === 1 ? "" : "s"}`
-            : undefined
-        }
         title="Matters"
         whisper="The cause list"
         description="Every matter this workspace holds, entered in the order it was opened. An entry records the matter's type, whether it stands open or closed, and the posture of its privilege. Open an entry to take up the matter."

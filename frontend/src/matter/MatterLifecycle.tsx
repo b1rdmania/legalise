@@ -58,7 +58,6 @@ export function MatterLifecycle({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="The matter's lifecycle"
         title="Working pack"
         subId={matter.slug}
         description="Download the governed matter record, then close or delete only if needed. Exporting the working pack is the normal final step."

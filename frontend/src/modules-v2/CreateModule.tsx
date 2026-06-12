@@ -60,7 +60,6 @@ export function CreateModule() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12 text-ink">
       <PageHeader
-        eyebrow="Author a skill"
         title="Create a skill"
         description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the add-skill path uses — it does not add or sign."
       />

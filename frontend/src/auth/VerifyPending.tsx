@@ -29,7 +29,6 @@ export function VerifyPending() {
 
   return (
     <AuthCard
-      eyebrow="Before the registrar"
       heading="Check your inbox"
       intro="We sent a verification link to your email. Click it to activate your account."
     >

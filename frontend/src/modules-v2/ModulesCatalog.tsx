@@ -204,8 +204,6 @@ export function ModulesCatalog() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-14 text-ink">
       <PageHeader
-        eyebrow="The skill library"
-        eyebrowRight="Legalise"
         display
         title="Skills"
         whisper="Instruments of practice"

@@ -131,11 +131,9 @@ export function AdminAuditView() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 text-ink">
+    <div className="max-w-4xl px-6 py-12 text-ink">
       <PageHeader
         display
-        eyebrow="Workspace records"
-        eyebrowRight="Legalise"
         title="Workspace audit"
         whisper="The workspace record"
         description="What the workspace did when no matter was before it — admission ceremonies, settings key operations, role changes, and the viewing of this very page. Entries bound to a matter live with the matter; nothing renders here that the audit chain does not hold."
@@ -285,9 +283,8 @@ export function AdminAuditView() {
 
 function AdminRequiredShell() {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16 text-ink">
+    <div className="max-w-2xl px-6 py-16 text-ink">
       <PageHeader
-        eyebrow="Workspace records"
         title="Admin required"
         description="The workspace audit surface requires superuser. Ask your workspace administrator if you need access."
       />

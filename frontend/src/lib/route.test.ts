@@ -24,6 +24,10 @@ describe("routeFromPath", () => {
     expect(routeFromPath("/about", "")).toEqual({ name: "about" });
   });
 
+  it("/admin/audit → adminAudit (P30: was falling through to landing, losing the shell)", () => {
+    expect(routeFromPath("/admin/audit", "")).toEqual({ name: "adminAudit" });
+  });
+
   it("/auth/signin → signin", () => {
     expect(routeFromPath("/auth/signin", "")).toEqual({ name: "signin" });
   });

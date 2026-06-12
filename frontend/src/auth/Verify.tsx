@@ -49,7 +49,6 @@ export function Verify({ token }: { token: string | null }) {
   if (status === "ok") {
     return (
       <AuthCard
-        eyebrow="Before the registrar"
         heading="Email verified"
         intro="Your account is active. Open your workspace to get started."
       >

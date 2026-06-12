@@ -34,7 +34,6 @@ export function SignUp() {
 
   return (
     <AuthCard
-      eyebrow="Before the registrar"
       heading="Sign up"
       intro="Create a workspace. You'll add an Anthropic or OpenAI key after email verification."
     >

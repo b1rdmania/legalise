@@ -61,7 +61,7 @@ export function NewMatter() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-      <PageHeader eyebrow="Open a new matter" title="New matter." />
+      <PageHeader title="New matter." />
 
       <form onSubmit={submit} className="space-y-6">
         <Field label="Title" hint="becomes the slug">
