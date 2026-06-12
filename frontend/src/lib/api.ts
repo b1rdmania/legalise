@@ -2029,7 +2029,7 @@ export const getAnonymisationMapping = (documentId: string): Promise<MappingRead
 
 export interface SuggestedAction {
   type: "view_document" | "view_audit" | "view_chronology"
-      | "anonymise_document";
+      | "anonymise_document" | "view_signed_output";
   label: string;
   params: Record<string, string>;
 }

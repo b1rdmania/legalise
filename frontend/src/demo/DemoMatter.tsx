@@ -11,6 +11,7 @@ import { ChronologyTab } from "../matter/tabs/ChronologyTab";
 import { AuditTab } from "../matter/tabs/AuditTab";
 import { AssistantTab } from "../matter/tabs/AssistantTab";
 import { DEMO_SNAPSHOT } from "./snapshot";
+import { DemoSignedOutput } from "./DemoSignedOutput";
 import { postureDot, postureLabel } from "../lib/posture";
 
 const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
@@ -73,12 +74,14 @@ function formatBytes(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)}M`;
 }
 
-// The demo gains one surface the workspace tabs don't have: the cause
-// list, so the rail reads like a real workspace (P33).
-type DemoTab = TabKey | "matters";
+// The demo gains two surfaces the workspace tabs don't have: the cause
+// list (P33) and the signed output (P34), so the loop closes on a
+// signature, not just a summary.
+type DemoTab = TabKey | "matters" | "signed";
 
 function demoTabFromRoute(routeTab: string | undefined): DemoTab | null {
   if (routeTab === "matters") return "matters";
+  if (routeTab === "signed") return "signed";
   if (routeTab && isTabKey(routeTab)) return routeTab as TabKey;
   return null;
 }
@@ -206,6 +209,7 @@ export function DemoMatter() {
                   showDisabledFooter={false}
                   showContextRail={false}
                   onDisabledAction={() => setTabAndHash("workflows")}
+                  onOpenSignedOutput={() => setTabAndHash("signed")}
                   onDocumentChip={(documentId) =>
                     navigate(`/demo/documents/${encodeURIComponent(documentId)}`)
                   }
@@ -231,6 +235,9 @@ export function DemoMatter() {
             )}
             {tab === "workflows" && (
               <DemoWorkflowsTab onOpen={setTabAndHash} />
+            )}
+            {tab === "signed" && route.name !== "demoDocument" && (
+              <DemoSignedOutput />
             )}
             {tab === "audit" && <AuditTab audit={DEMO_SNAPSHOT.audit} matter={matter} />}
         </main>
@@ -352,6 +359,7 @@ function DemoWorkflowsTab({
     reads: string;
     writes: string;
     last: string;
+    track: string;
   }> = [
     {
       key: "assistant",
@@ -360,6 +368,7 @@ function DemoWorkflowsTab({
       reads: "dismissal letter",
       writes: "summary card",
       last: "Ready in demo",
+      track: "Signed 14 · with observations 3 · refused 1",
     },
     {
       key: "assistant",
@@ -368,6 +377,7 @@ function DemoWorkflowsTab({
       reads: "witness statement",
       writes: "redacted copy",
       last: "Preview available",
+      track: "Signed 6 · with observations 1 · refused 0",
     },
   ];
 
@@ -398,6 +408,18 @@ function DemoWorkflowsTab({
               <LedgerRow label="Writes">{w.writes}</LedgerRow>
               <LedgerRow label="Record">{w.last}</LedgerRow>
             </dl>
+            {/* P34: what sign-off did with this skill's output so far. */}
+            <dl
+              className="mt-3 space-y-1 border-t border-rule pt-3 text-[11px] text-muted"
+              data-testid="demo-skill-track-record"
+            >
+              <LedgerRow label="Track record" tone="ink">
+                {w.track}
+              </LedgerRow>
+            </dl>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+              Seeded demo record
+            </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
@@ -527,6 +549,28 @@ function DemoDocumentsTab({
                 No demo files match this search.
               </p>
             )}
+            {/* P34: the signed output lives with the files — work the
+                matter produced, with a name behind it. */}
+            <LedgerLine
+              index={docs.length + 1}
+              label="signed output"
+              right={
+                <a
+                  href="/demo/signed"
+                  className="text-sm text-muted hover:text-seal"
+                >
+                  Open →
+                </a>
+              }
+              testid="demo-files-signed-output"
+            >
+              <a
+                href="/demo/signed"
+                className="block w-full truncate text-left text-sm text-ink hover:text-seal"
+              >
+                Summary of witness-statement-khan.docx — signed by R. Patel
+              </a>
+            </LedgerLine>
           </div>
         </div>
 

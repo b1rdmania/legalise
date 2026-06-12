@@ -30,6 +30,7 @@ const ID = {
   citationBurchell: "55555555-5555-5555-5555-555555555501",
   citationIceland: "55555555-5555-5555-5555-555555555502",
   citationPolkey: "55555555-5555-5555-5555-555555555503",
+  signedOutput: "66666666-6666-6666-6666-666666666601",
 };
 
 const MATTER: Matter = {
@@ -442,6 +443,50 @@ const AUDIT: AuditEntry[] = [
     latency_ms: 3_912,
     payload: { document: "witness-statement-khan.docx" },
   },
+  // The sign-off scene (P34). A supervising solicitor reviews the
+  // summary, accepts one tracked change, and signs. The signature is
+  // the product claim — it lands on the record like everything else.
+  {
+    id: "audit-28",
+    timestamp: "2026-04-06T16:05:12Z",
+    actor_id: ID.user,
+    matter_id: ID.matter,
+    action: "document.edit.accepted",
+    module: "documents",
+    resource_type: "document",
+    resource_id: ID.witness,
+    model_used: null,
+    prompt_hash: null,
+    response_hash: null,
+    token_count: null,
+    latency_ms: 26,
+    payload: {
+      anchor: "to a closed audience of",
+      deleted: "roughly fifty followers",
+      inserted: "47 approved followers",
+    },
+  },
+  {
+    id: "audit-29",
+    timestamp: "2026-04-06T16:08:44Z",
+    actor_id: ID.user,
+    matter_id: ID.matter,
+    action: "output.signed",
+    module: "assistant",
+    resource_type: "artifact",
+    resource_id: ID.signedOutput,
+    model_used: null,
+    prompt_hash: null,
+    response_hash: "qr89st01",
+    token_count: null,
+    latency_ms: 41,
+    payload: {
+      signer: "R. Patel",
+      signer_is_author: false,
+      decision: "signed",
+      artifact_kind: "skill_response",
+    },
+  },
 ];
 
 const CHRONOLOGY: ChronologyResponse = {
@@ -739,6 +784,29 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
       },
     ],
     created_at: "2026-04-06T14:22:41Z",
+  },
+  // The close (P34): the summary goes up for sign-off. The signed
+  // output is the climax — the thing the product's name promises.
+  {
+    id: "asst-msg-13",
+    role: "user",
+    content: "Put the summary up for sign-off.",
+    suggested_actions: [],
+    created_at: "2026-04-06T14:24:02Z",
+  },
+  {
+    id: "asst-msg-14",
+    role: "assistant",
+    content:
+      "Done. The summary is with R. Patel, the supervising solicitor, for review. She is not the author, so her signature counts. Once she signs, the signed output and her name land on the record.",
+    suggested_actions: [
+      {
+        type: "view_signed_output",
+        label: "See the signed output",
+        params: {},
+      },
+    ],
+    created_at: "2026-04-06T14:24:06Z",
   },
 ];
 

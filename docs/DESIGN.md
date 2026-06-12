@@ -1677,3 +1677,11 @@ NOT touched: the matter chat shell (P22 geometry), the document editor surface (
 Source: Andy's demo walk #2, 2026-06-12. Items: the demo masthead eyebrow row (the last survivor of P30's cull) goes; the sidebar wordmark links home and grows (21→26px); the rail gains a Matters cause-list so the shell reads like a real workspace (Khan open + two companions that expand in place with honest posture notes — the demo still follows one matter end to end and says so); the demo Skills tab explains itself (what a skill is, the admitted certificates, How a skill arrives: import → admission → run, link to /skills).
 
 The back rule, app-wide: detail / form / error pages carry ONE affordance — a quiet `← {Parent}` text link, first element inside the page shell, top-left, styled exactly as DocumentDetail's reference link (text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal). List/home pages carry nothing. Drawers keep the top-right X. Auth flows stay stack-shaped. No page may be a dead end — error branches included.
+
+---
+
+## P34 — The demo signs its work
+
+Source: external audit, 2026-06-12 — the demo proved admission and refusal but never showed a sign-off, the claim in the product's name. The demo now closes on a signed output: the chat puts the summary up for sign-off, the record gains `document.edit.accepted` and `output.signed` (signer R. Patel, not the author), and `/demo/signed` renders the artifact — the summary with one struck deletion in seal and one underlined insertion (the P25 tracked-changes language, static), then the signature block as ledger rows and a quiet link to the record.
+
+Also: the demo skill certificates carry a Track record row (signed / with observations / refused, labelled "seeded demo record"), and the hero says what a skill is in passing. Where it lands: demo/snapshot.ts, demo/DemoSignedOutput.tsx, demo/DemoMatter.tsx, matter/auditNarrate.ts, landing/Landing.tsx.
