@@ -7,7 +7,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
 import { type Content } from "@tiptap/core";
 
 import {
@@ -79,11 +78,17 @@ import {
 export type { DocumentNoteHighlight } from "./reviewNotes";
 
 import { documentEditorExtensions } from "./editorExtensions";
+import { FormatToolbar, ViewModeButton } from "./editorChrome";
 import {
-  FormatToolbar,
-  renderWorkingDiffParts,
-  ViewModeButton,
-} from "./editorChrome";
+  DraftNotices,
+  EditorSideRail,
+  FindPanel,
+  RedlinesPanel,
+  ReviewMapPanel,
+  SelectionBubbleMenu,
+  SelectionRibbon,
+  WorkingDiffPanel,
+} from "./EditorPanels";
 
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
@@ -1005,103 +1010,27 @@ export function DocumentRichEditor({
           />
         )}
         {(findOpen || findQuery.trim()) && (
-        <div
-          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2.5"
-          data-testid="document-editor-find-panel"
-        >
-          <label
-            htmlFor={`find-${documentId}`}
-            className="text-xs font-semibold uppercase tracking-track2 text-muted"
-          >
-            Find
-          </label>
-          <input
-            ref={findInputRef}
-            id={`find-${documentId}`}
-            type="search"
-            value={findQuery}
-            onChange={(event) => setFindQuery(event.target.value)}
-            onKeyDown={handleFindKeyDown}
-            placeholder="Search this document"
-            className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
+          <FindPanel
+            documentId={documentId}
+            findInputRef={findInputRef}
+            findQuery={findQuery}
+            setFindQuery={setFindQuery}
+            onFindKeyDown={handleFindKeyDown}
+            matchCount={findMatches.length}
+            moveFind={moveFind}
+            findPositionLabel={findPositionLabel}
+            findPreview={findPreview}
           />
-          <span className="text-xs text-muted" data-testid="document-editor-find-count">
-            {findQuery.trim().length >= 3
-              ? `${findMatches.length} match${findMatches.length === 1 ? "" : "es"}`
-              : "Type 3+ characters"}
-          </span>
-          <button
-            type="button"
-            onClick={() => moveFind(-1)}
-            disabled={findMatches.length === 0}
-            className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => moveFind(1)}
-            disabled={findMatches.length === 0}
-            className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Next
-          </button>
-          {findMatches.length > 0 && (
-            <span className="text-xs text-muted" data-testid="document-editor-find-position">
-              {findPositionLabel}
-            </span>
-          )}
-          {findQuery && (
-            <button
-              type="button"
-              onClick={() => setFindQuery("")}
-              className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-            >
-              Clear
-            </button>
-          )}
-          {findPreview && (
-            <p
-              className="basis-full text-xs leading-5 text-muted"
-              data-testid="document-editor-find-preview"
-            >
-              Match {findPositionLabel}: {findPreview}
-            </p>
-          )}
-        </div>
         )}
         {redlinesVisible && proposedEdits.length > 0 && (
-        <div
-          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2 text-xs text-muted"
-          data-testid="document-editor-redlines-panel"
-        >
-          <span>
-            {proposedEdits.length} proposed change
-            {proposedEdits.length === 1 ? "" : "s"}
-            {anchoredProposedEditCount < proposedEdits.length
-              ? ` · ${proposedEdits.length - anchoredProposedEditCount} not anchored in this text — review in the suggested-edits list`
-              : ""}
-            {trackNotice ? ` · ${trackNotice}` : ""}
-          </span>
-          <span className="ml-auto flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => void resolveAllProposedEdits("accept")}
-              disabled={trackBusy || !onResolveProposedEdit}
-              className="inline-flex h-7 items-center rounded-item border border-ink bg-ink px-2.5 text-xs text-paper hover:bg-seal disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
-            >
-              {trackBusy ? "Working…" : "Accept all"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void resolveAllProposedEdits("reject")}
-              disabled={trackBusy || !onResolveProposedEdit}
-              className="inline-flex h-7 items-center rounded-item border border-rule bg-paper px-2.5 text-xs text-muted hover:border-seal hover:text-seal disabled:opacity-40"
-            >
-              Reject all
-            </button>
-          </span>
-        </div>
+          <RedlinesPanel
+            proposedEditCount={proposedEdits.length}
+            anchoredProposedEditCount={anchoredProposedEditCount}
+            trackNotice={trackNotice}
+            trackBusy={trackBusy}
+            canResolve={Boolean(onResolveProposedEdit)}
+            onResolveAll={resolveAllProposedEdits}
+          />
         )}
       </div>
 
@@ -1114,187 +1043,47 @@ export function DocumentRichEditor({
         </p>
       )}
       {selectedQuote && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-ink bg-paper px-5 py-3"
-          data-testid="document-editor-selection-ribbon"
-        >
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-track2 text-ink">
-              Selected passage
-            </p>
-            <p className="mt-1 max-w-3xl truncate text-sm text-muted">{selectedQuote}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void copySelectedQuote()}
-              className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-            >
-              Copy
-            </button>
-            <button
-              type="button"
-              onClick={() => setFindQuery(selectedQuote)}
-              className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-            >
-              Find in document
-            </button>
-            {onCreateNoteFromSelection && (
-              <button
-                type="button"
-                onClick={onCreateNoteFromSelection}
-                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
-              >
-                Add review note
-              </button>
-            )}
-            {onRunSkillFromSelection && (
-              <button
-                type="button"
-                onClick={onRunSkillFromSelection}
-                className="border border-ink bg-paper px-3 py-2 text-xs font-semibold text-ink hover:bg-paper-sunken"
-              >
-                Run skill
-              </button>
-            )}
-          </div>
-        </div>
+        <SelectionRibbon
+          selectedQuote={selectedQuote}
+          onCopySelectedQuote={copySelectedQuote}
+          onFindInDocument={() => setFindQuery(selectedQuote)}
+          onCreateNoteFromSelection={onCreateNoteFromSelection}
+          onRunSkillFromSelection={onRunSkillFromSelection}
+        />
       )}
-      {draftSaveState === "error" && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
-          data-testid="document-server-draft-error"
-        >
-          <span>
-            {draftConflict ??
-              "Shared draft could not be saved. The browser copy is preserved locally; try saving again before leaving this file."}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              loadSharedDraftFromServer({
-                allowWordImport: false,
-                reloadedMessage: "Shared draft reloaded",
-              }).catch((err) => {
-                setDraftSaveState("error");
-                setError(err instanceof Error ? err.message : String(err));
-              })
-            }
-            className="border border-amber-900 bg-paper px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
-          >
-            Reload shared draft
-          </button>
-        </div>
-      )}
-      {remoteDraftNotice && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-paper-sunken px-5 py-2 text-xs leading-5 text-muted"
-          data-testid="document-remote-draft-notice"
-        >
-          <span>{remoteDraftNotice}</span>
-          <button
-            type="button"
-            onClick={() =>
-              loadSharedDraftFromServer({
-                allowWordImport: false,
-                reloadedMessage: "Shared draft reloaded",
-              }).catch((err) => {
-                setRemoteDraftNotice(null);
-                setError(err instanceof Error ? err.message : String(err));
-              })
-            }
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-semibold text-ink hover:border-ink"
-          >
-            Reload shared draft
-          </button>
-        </div>
-      )}
-      {originalImportState === "loading" && (
-        <p className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
-          Importing Word structure into the editable working copy...
-        </p>
-      )}
-      {originalImportState === "ready" && (
-        <p
-          className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted"
-          data-testid="document-word-import-ready"
-        >
-          Word structure imported into the shared draft. Save a version when the edit is ready.
-        </p>
-      )}
-      {originalImportState === "error" && (
-        <p
-          className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
-          data-testid="document-word-import-fallback"
-        >
-          Word structure could not be imported here, so the editor is using extracted text.
-        </p>
-      )}
-      {localDraft && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-amber-50 px-5 py-3 text-sm text-ink"
-          data-testid="document-local-draft-banner"
-        >
-          <span>
-            Unsaved local draft from{" "}
-            {new Date(localDraft.savedAt).toLocaleString()}. Restore it or discard it.
-          </span>
-          <span className="flex gap-2">
-            <button
-              type="button"
-              onClick={restoreLocalDraft}
-              className="border border-ink bg-paper px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink hover:text-paper"
-            >
-              Restore draft
-            </button>
-            <button
-              type="button"
-              onClick={discardLocalDraft}
-              className="border border-rule bg-paper px-3 py-1.5 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
-            >
-              Discard
-            </button>
-          </span>
-        </div>
-      )}
+      <DraftNotices
+        draftSaveError={draftSaveState === "error"}
+        draftConflict={draftConflict}
+        onReloadAfterError={() =>
+          loadSharedDraftFromServer({
+            allowWordImport: false,
+            reloadedMessage: "Shared draft reloaded",
+          }).catch((err) => {
+            setDraftSaveState("error");
+            setError(err instanceof Error ? err.message : String(err));
+          })
+        }
+        remoteDraftNotice={remoteDraftNotice}
+        onReloadAfterNotice={() =>
+          loadSharedDraftFromServer({
+            allowWordImport: false,
+            reloadedMessage: "Shared draft reloaded",
+          }).catch((err) => {
+            setRemoteDraftNotice(null);
+            setError(err instanceof Error ? err.message : String(err));
+          })
+        }
+        originalImportState={originalImportState}
+        localDraft={localDraft}
+        onRestoreLocalDraft={restoreLocalDraft}
+        onDiscardLocalDraft={discardLocalDraft}
+      />
       {showWorkingDiff && (
-        <div
-          className="border-b border-rule bg-paper px-5 py-3"
-          data-testid="document-working-diff"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Unsaved changes
-              </p>
-              <p className="mt-1 text-sm text-ink">
-                Review the working copy before saving it as a new document version.
-              </p>
-            </div>
-            <dl className="flex flex-wrap gap-2 text-xs">
-              <div className="border border-rule bg-paper-sunken px-3 py-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Added</dt>
-                <dd className="mt-1 font-semibold text-green-900">
-                  {workingDiffSummary.insertedChars.toLocaleString()} chars
-                </dd>
-              </div>
-              <div className="border border-rule bg-paper-sunken px-3 py-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Removed</dt>
-                <dd className="mt-1 font-semibold text-red-900">
-                  {workingDiffSummary.deletedChars.toLocaleString()} chars
-                </dd>
-              </div>
-            </dl>
-          </div>
-          <details className="mt-3 border border-rule bg-paper-sunken">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink">
-              Preview redline before saving
-            </summary>
-            <div className="max-h-[260px] overflow-auto border-t border-rule bg-paper p-4 text-sm leading-7">
-              {renderWorkingDiffParts(workingDiffParts)}
-            </div>
-          </details>
-        </div>
+        <WorkingDiffPanel
+          workingDiffParts={workingDiffParts}
+          insertedChars={workingDiffSummary.insertedChars}
+          deletedChars={workingDiffSummary.deletedChars}
+        />
       )}
       {error && (
         <p className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
@@ -1302,205 +1091,38 @@ export function DocumentRichEditor({
         </p>
       )}
       {noteAnchorSummaries.length > 0 && (
-        <div
-          className="border-b border-rule bg-paper px-5 py-3"
-          data-testid="document-editor-review-map"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Review map
-              </p>
-              <p className="mt-1 text-sm text-ink">
-                {locatedNoteCount} of {noteAnchorSummaries.length} note anchor
-                {noteAnchorSummaries.length === 1 ? "" : "s"} located in this working copy.
-              </p>
-            </div>
-            <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              Anchored notes
-            </span>
-          </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {noteAnchorSummaries.map((note) => (
-              <button
-                key={note.id}
-                type="button"
-                onClick={() => setFindQuery(note.quote)}
-                className={`min-w-[220px] max-w-[280px] border px-3 py-2 text-left text-xs leading-5 ${
-                  note.located
-                    ? "border-ink bg-paper text-ink"
-                    : "border-amber-300 bg-amber-50 text-amber-950"
-                }`}
-              >
-                <span className="block font-semibold">{note.label}</span>
-                <span className="mt-1 block max-h-10 overflow-hidden text-muted">
-                  {note.quote}
-                </span>
-                <span className="mt-2 block tech-token uppercase tracking-track2">
-                  {note.located ? "Located" : "Not located"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ReviewMapPanel
+          noteAnchorSummaries={noteAnchorSummaries}
+          locatedNoteCount={locatedNoteCount}
+          onJumpToNote={setFindQuery}
+        />
       )}
       <div className="grid min-h-[620px] lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="border-b border-rule bg-paper px-5 py-5 lg:border-b-0 lg:border-r">
-          <div className="space-y-5">
-            {sourceHighlight && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                  Source passage
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  {sourceRange ? "Located in this version." : "Not located in this version."}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setFindQuery(sourceHighlight)}
-                  className="mt-2 text-xs font-medium text-ink underline underline-offset-4 hover:text-muted"
-                >
-                  Search cited text
-                </button>
-              </div>
-            )}
-            {selectedQuote && (
-              <div
-                className="border border-ink bg-paper p-3"
-                data-testid="document-editor-selected-passage"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-ink">
-                    Selected passage
-                  </p>
-                  <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
-                    {selectedQuoteAnchored ? "Anchored" : "Unanchored"}
-                  </span>
-                </div>
-                <p className="mt-2 max-h-28 overflow-hidden text-xs leading-5 text-muted">
-                  {selectedQuote}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void copySelectedQuote()}
-                  className="mt-3 w-full border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-                >
-                  Copy passage
-                </button>
-                {onCreateNoteFromSelection && (
-                  <button
-                    type="button"
-                    onClick={onCreateNoteFromSelection}
-                    className="mt-2 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
-                  >
-                    Add review note
-                  </button>
-                )}
-              </div>
-            )}
-            {noteHighlights.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Review notes
-              </p>
-              {noteHighlights.length > 0 ? (
-                <div className="mt-2 space-y-2" data-testid="document-editor-note-rail">
-                  {noteHighlights.map((note) => (
-                    <button
-                      key={note.id}
-                      type="button"
-                      onClick={() => setFindQuery(note.quote)}
-                      className="block w-full border border-rule bg-paper px-3 py-2 text-left text-xs leading-5 text-muted hover:border-ink hover:text-ink"
-                    >
-                      <span className="block font-medium text-ink">{note.label}</span>
-                      <span className="mt-1 block max-h-10 overflow-hidden">{note.quote}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            )}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Outline
-              </p>
-              {outlineItems.length > 0 ? (
-                <nav className="mt-2 space-y-1" aria-label="Document outline">
-                  {outlineItems.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setFindQuery(item.query)}
-                      className="block w-full border-l border-transparent py-1 pl-2 text-left text-xs leading-5 text-muted hover:border-ink hover:text-ink"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
-              ) : (
-                <p className="mt-2 text-sm text-muted">No outline yet.</p>
-              )}
-            </div>
-          </div>
-        </aside>
+        <EditorSideRail
+          sourceHighlight={sourceHighlight}
+          sourceLocated={Boolean(sourceRange)}
+          selectedQuote={selectedQuote}
+          selectedQuoteAnchored={selectedQuoteAnchored}
+          onCopySelectedQuote={copySelectedQuote}
+          onCreateNoteFromSelection={onCreateNoteFromSelection}
+          noteHighlights={noteHighlights}
+          outlineItems={outlineItems}
+          onFind={setFindQuery}
+        />
         <div
           className="bg-[linear-gradient(180deg,#f7f7f4_0%,#efefea_100%)] px-4 py-8 sm:px-8 sm:py-10"
           data-testid="document-editor-canvas"
         >
           <div className={`mx-auto ${canvasMaxWidth}`}>
             {editor && (
-              <BubbleMenu
+              <SelectionBubbleMenu
                 editor={editor}
-                shouldShow={({ editor: bubbleEditor }) =>
-                  selectedEditorText(bubbleEditor).length >= 3
-                }
-                options={{ placement: "top", offset: 8 }}
-              >
-                <div
-                  className="flex items-center gap-1 border border-ink bg-paper px-1.5 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
-                  data-testid="document-editor-selection-menu"
-                >
-                  <button
-                    type="button"
-                    onClick={() => void copyEditorSelection()}
-                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={highlightEditorSelection}
-                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                  >
-                    Highlight
-                  </button>
-                  <button
-                    type="button"
-                    onClick={setEditorLink}
-                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                  >
-                    Link
-                  </button>
-                  {onCreateNoteFromSelection && (
-                    <button
-                      type="button"
-                      onClick={onCreateNoteFromSelection}
-                      className="bg-ink px-2 py-1 text-xs font-semibold text-paper hover:bg-seal"
-                    >
-                      Add note
-                    </button>
-                  )}
-                  {onRunSkillFromSelection && (
-                    <button
-                      type="button"
-                      onClick={onRunSkillFromSelection}
-                      className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                    >
-                      Run skill
-                    </button>
-                  )}
-                </div>
-              </BubbleMenu>
+                onCopyEditorSelection={copyEditorSelection}
+                onHighlightSelection={highlightEditorSelection}
+                onSetLink={setEditorLink}
+                onCreateNoteFromSelection={onCreateNoteFromSelection}
+                onRunSkillFromSelection={onRunSkillFromSelection}
+              />
             )}
             <EditorContent editor={editor} />
           </div>
