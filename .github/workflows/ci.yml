@@ -141,7 +141,19 @@ jobs:
               print(path)
           PY
           mapfile -t pytest_files < /tmp/backend-pytest-files.txt
-          python -m pytest -x -vv --durations=20 --timeout=60 --timeout-method=thread "${pytest_files[@]}"
+          # Coverage published as a CI artifact (test-slim order Phase 4 /
+          # audit item C2) so the suite's reallocation is visible, not
+          # asserted. Per-shard reports; combine offline if needed.
+          python -m pytest -x -vv --durations=20 --timeout=60 --timeout-method=thread \
+            --cov=app --cov-report=xml:coverage-${PYTEST_SHARD}.xml --cov-report=term:skip-covered \
+            "${pytest_files[@]}"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-${{ matrix.shard }}
+          path: backend/coverage-*.xml
+          retention-days: 30
 
   # ---------------------------------------------------------------------------
   # MinIO smoke — exercises the S3StorageBackend (boto3 path) against a real
