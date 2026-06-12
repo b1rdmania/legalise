@@ -1,10 +1,13 @@
-"""Installed-modules listing endpoint.
+"""Modules API — catalogue (v2) and installed-modules listing.
 
-Pins ``GET /api/modules/installed`` returning one row per module_id
-(most recent by installed_at). Powers the catalog "Installed vX.Y"
-badge and the GrantsPanel runnable-pair AND-gate.
+Merged from test_phase2_api.py + test_phase14_5_b_installed_modules.py.
 
-No audit emission: reads don't audit.
+Covers:
+- GET /api/modules/v2 — list discovered modules
+- GET /api/modules/v2/capabilities — flat capability catalogue
+- GET /api/modules/v2/{module_id} — single module detail
+- GET /api/modules/installed — one row per module_id (most recent by
+  installed_at), closed DTO surface, no audit emission on reads.
 """
 
 from __future__ import annotations
@@ -15,28 +18,97 @@ from datetime import datetime, timedelta, UTC
 import pytest
 from sqlalchemy import select
 
-from app.models import (
-    InstalledModule,
-    Matter,
-    User,
-)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+from app.models import InstalledModule
 
 
 async def _register_and_login(client) -> str:
-    email = f"p145b-{uuid.uuid4().hex[:8]}@example.com"
-    pw = "p145b-pwd-2026"
-    await client.post("/auth/register", json={"email": email, "password": pw})
-    await client.post(
+    email = f"modapi-{uuid.uuid4().hex[:8]}@example.com"
+    password = "modules-api-test-2026"
+    reg = await client.post(
+        "/auth/register",
+        json={"email": email, "password": password},
+    )
+    assert reg.status_code == 201, reg.text
+    login = await client.post(
         "/auth/login",
-        data={"username": email, "password": pw},
+        data={"username": email, "password": password},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
+    assert login.status_code == 204
     return email
+
+
+# ---------------------------------------------------------------------------
+# v2 manifest endpoints
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_v2_modules_endpoint(client) -> None:
+    await _register_and_login(client)
+    resp = await client.get("/api/modules/v2")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert "modules" in body
+    assert "ui_slots" in body
+    assert isinstance(body["modules"], list)
+    assert isinstance(body["ui_slots"], list)
+    # Every entry has the expected shape.
+    for entry in body["modules"]:
+        assert "module_id" in entry
+        assert "source_kind" in entry
+        assert entry["source_kind"] in (
+            "v2",
+            "v1_module_json",
+            "v1_skill",
+        )
+        assert "manifest" in entry
+        assert "is_valid" in entry
+        assert "validation_errors" in entry
+
+
+@pytest.mark.asyncio
+async def test_list_v2_capabilities_endpoint(client) -> None:
+    await _register_and_login(client)
+    resp = await client.get("/api/modules/v2/capabilities")
+    assert resp.status_code == 200, resp.text
+    caps = resp.json()
+    assert isinstance(caps, list)
+    for cap in caps:
+        assert "module_id" in cap
+        assert "capability_id" in cap
+        assert "kind" in cap
+        assert "scope" in cap
+        assert "reads" in cap
+        assert "writes" in cap
+
+
+@pytest.mark.asyncio
+async def test_get_v2_module_not_found(client) -> None:
+    await _register_and_login(client)
+    resp = await client.get("/api/modules/v2/nonexistent-module-id-12345")
+    assert resp.status_code == 404, resp.text
+    body = resp.json()
+    assert body["detail"]["error"] == "module_not_found"
+
+
+@pytest.mark.asyncio
+async def test_v2_endpoints_require_auth(client) -> None:
+    """All three v2 endpoints must require an authenticated user."""
+    for path in (
+        "/api/modules/v2",
+        "/api/modules/v2/capabilities",
+        "/api/modules/v2/some-module",
+    ):
+        resp = await client.get(path)
+        # fastapi-users returns 401 for unauthenticated requests when
+        # the dependency chain hits current_user.
+        assert resp.status_code in (401, 403), f"{path} did not require auth: {resp.status_code}"
+
+
+# ---------------------------------------------------------------------------
+# Installed-modules listing
+# ---------------------------------------------------------------------------
 
 
 def _make_installed_row(

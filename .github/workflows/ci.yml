@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [pre-round2, round2-and-later]
+        shard: [shard-a, shard-b]
 
     services:
       postgres:
@@ -123,11 +123,20 @@ jobs:
           import os
           from pathlib import Path
 
+          # Computed split: cut where the cumulative line count crosses half,
+          # so renames/deletions never strand a hard-coded boundary file.
           files = sorted(Path("tests").glob("test_*.py"))
-          boundary = Path("tests/test_phase3_phase4_round2_fixes.py")
-          index = files.index(boundary)
+          lines = [sum(1 for _ in p.open()) for p in files]
+          total = sum(lines)
+          cum = 0
+          split = len(files)
+          for i, n in enumerate(lines):
+              cum += n
+              if cum >= total / 2:
+                  split = i + 1
+                  break
           shard = os.environ["PYTEST_SHARD"]
-          selected = files[:index] if shard == "pre-round2" else files[index:]
+          selected = files[:split] if shard == "shard-a" else files[split:]
           for path in selected:
               print(path)
           PY

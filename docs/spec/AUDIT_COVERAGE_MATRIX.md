@@ -59,7 +59,7 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | `module.publisher.checked` | e2e-covered | `e2e/first-run.spec.ts` |
 | `module.permissions.reviewed` | e2e-covered | `e2e/first-run.spec.ts` |
 | `module.enabled` | e2e-covered | `e2e/first-run.spec.ts` |
-| `module.denied` | pytest-covered | `backend/tests/test_phase3_trust_ceremony*.py` (e2e env has no deterministic reject-path scenario yet) |
+| `module.denied` | pytest-covered | `backend/tests/test_trust_ceremony.py` (e2e env has no deterministic reject-path scenario yet) |
 | `module.ceremony.rejected` | e2e-covered | `e2e/failure-paths.spec.ts` (invalid-transition path) |
 | `module.updated` | pytest-covered (15-#4) | `backend/tests/test_phase4_modules*.py` |
 | `module.disabled` | e2e-covered | `e2e/failure-paths.spec.ts` (revoke triggers it) |
