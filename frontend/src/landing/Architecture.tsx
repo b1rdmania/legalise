@@ -36,6 +36,128 @@ const CITATIONS: { label: string; href: string }[] = [
   { label: "Apache 2.0", href: `${REPO}/blob/master/LICENSE` },
 ];
 
+/** Bordered figure with a clerk's caption — the page's only image chrome. */
+function Figure({
+  src,
+  alt,
+  index,
+  caption,
+}: {
+  src: string;
+  alt: string;
+  index: number;
+  caption: string;
+}) {
+  return (
+    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
+      <img src={src} alt={alt} className="block w-full border border-rule/60" loading="lazy" />
+      <figcaption className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+        Fig. {String(index).padStart(2, "0")} · {caption}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** The matter spine, drawn flat: six stations over one record rail.
+ * Ink hairlines; the gate's tick is the one seal mark — refusals land
+ * on the record like everything else. */
+function SpineDiagram() {
+  const stations = [
+    "DOCUMENTS",
+    "THE MATTER",
+    "THE GATE",
+    "THE MODEL",
+    "OUTPUT",
+    "SIGN-OFF",
+  ];
+  const W = 720;
+  const boxW = 96;
+  const boxH = 34;
+  const y = 28;
+  const railY = 132;
+  const gap = (W - stations.length * boxW) / (stations.length - 1);
+  return (
+    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-4">
+      <svg viewBox={`0 0 ${W} 170`} role="img" aria-label="The matter spine: documents, matter, gate, model, output, and sign-off, each writing to one hash-chained record" className="block w-full">
+        {stations.map((label, i) => {
+          const x = i * (boxW + gap);
+          const cx = x + boxW / 2;
+          const isGate = label === "THE GATE";
+          return (
+            <g key={label}>
+              <rect
+                x={x + 0.5}
+                y={y + 0.5}
+                width={boxW}
+                height={boxH}
+                fill="none"
+                stroke={isGate ? "#8B0000" : "#181818"}
+                strokeWidth="1"
+              />
+              <text
+                x={cx}
+                y={y + boxH / 2 + 3}
+                textAnchor="middle"
+                fontSize="9"
+                letterSpacing="1.5"
+                fill="#181818"
+                fontFamily="ui-monospace, monospace"
+              >
+                {label}
+              </text>
+              {i < stations.length - 1 && (
+                <line
+                  x1={x + boxW}
+                  y1={y + boxH / 2}
+                  x2={x + boxW + gap}
+                  y2={y + boxH / 2}
+                  stroke="#181818"
+                  strokeWidth="1"
+                />
+              )}
+              {/* every station writes down to the record */}
+              <line
+                x1={cx}
+                y1={y + boxH}
+                x2={cx}
+                y2={railY}
+                stroke={isGate ? "#8B0000" : "#9b9b93"}
+                strokeWidth="1"
+                strokeDasharray={isGate ? undefined : "2 3"}
+              />
+            </g>
+          );
+        })}
+        <text
+          x={stations.indexOf("THE GATE") * (boxW + gap) + boxW / 2 + 6}
+          y={railY - 8}
+          fontSize="8"
+          letterSpacing="1.2"
+          fill="#8B0000"
+          fontFamily="ui-monospace, monospace"
+        >
+          REFUSALS TOO
+        </text>
+        <line x1="0" y1={railY + 0.5} x2={W} y2={railY + 0.5} stroke="#181818" strokeWidth="1.5" />
+        <text
+          x={W / 2}
+          y={railY + 22}
+          textAnchor="middle"
+          fontSize="9"
+          letterSpacing="2"
+          fill="#181818"
+          fontFamily="ui-monospace, monospace"
+        >
+          THE RECORD · HASH-CHAINED · EXPORTABLE
+        </text>
+      </svg>
+      <figcaption className="px-1 pt-3 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+        Fig. 02 · The matter spine · every station writes to one record
+      </figcaption>
+    </figure>
+  );
+}
+
 function Prose({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-6 max-w-3xl space-y-5 text-base leading-relaxed text-prose">
@@ -78,12 +200,30 @@ export function Architecture() {
           <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">
             over capability
           </p>
-          <p className="mt-8 max-w-xl text-sm leading-relaxed text-prose">
-            This page sets out how Legalise is built and why. Read it in one
-            sitting. The short version: every legal AI product can do the
-            work. Almost none can prove what it did, under whose supervision,
-            and what it was refused.
-          </p>
+          <div className="mt-8 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
+            <p>
+              This started as an experiment on a problem that, possibly,
+              nobody has. Regulators seem comfortable enough with the big
+              AI-led platforms firms already use. To say nothing of the grey
+              area of every other solicitor running litigation questions
+              through a personal GPT or Claude account.
+            </p>
+            <p>
+              The question I am actually chasing: what shape would AI take,
+              integrated at the base of a new SRA-regulated firm, or a
+              sandbox for one, that regulators and PI insurers would be
+              comfortable with? And underneath that: where is AI strong,
+              where is it weak, where must human expertise stay in the loop,
+              and how is responsibility for the decisions that matter
+              actually held?
+            </p>
+            <p>
+              What I have built is bigger than I intended, because every
+              stone I overturned needed more surface or more backend. It is
+              not a finished product. It is an open experiment, and it
+              welcomes contributors.
+            </p>
+          </div>
         </header>
 
         <Section label="01 · The thesis" title="Capability is a commodity. Standing is the institution.">
@@ -106,7 +246,28 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="02 · The mapping" title="The primitives are the profession's, made mechanical.">
+        <Section label="02 · Design and data" title="Model-agnostic by design. Claude-tight for the demo.">
+          <Prose>
+            <p>
+              The architecture was drawn model-agnostic from the start. The
+              gateway treats providers as commodities, and the original build
+              ran against local models, GPT, DeepSeek, and Claude
+              interchangeably. For the demonstration, that breadth added more
+              complexity than it earned, so the working build is honed
+              tightly to Anthropic and the Claude skills format.
+            </p>
+            <p>
+              That choice has a known cost: demo traffic touches Anthropic's
+              API, with the data questions that carries. This is a proof of
+              concept and the trade is deliberate. A firm building a shell
+              around this substrate can tune it to run entirely on local
+              models as they strengthen. At that point it is viable for no
+              client data to leave the building.
+            </p>
+          </Prose>
+        </Section>
+
+        <Section label="03 · The mapping" title="The primitives are the profession's, made mechanical.">
           <Prose>
             <p>
               Each primitive in the system is the direct, enforced counterpart
@@ -132,9 +293,15 @@ export function Architecture() {
               cannot edit.
             </p>
           </Prose>
+          <Figure
+            src="/architecture/fig-certificates.png"
+            alt="Two skills rendered as certificates in the demo workspace, each declaring what it reads and writes"
+            index={1}
+            caption="Skills in a matter, rendered as their certificates"
+          />
         </Section>
 
-        <Section label="03 · The matter spine" title="Matter-first, not prompt-first.">
+        <Section label="04 · The matter spine" title="Matter-first, not prompt-first.">
           <Prose>
             <p>
               The unit of work is not a prompt. It is a matter. Documents,
@@ -152,9 +319,10 @@ export function Architecture() {
               reconstructed from a chat history.
             </p>
           </Prose>
+          <SpineDiagram />
         </Section>
 
-        <Section label="04 · Admission" title="Skills arrive by ceremony, not by upload.">
+        <Section label="05 · Admission" title="Skills arrive by ceremony, not by upload.">
           <Prose>
             <p>
               Any public GitHub repository with a SKILL.md can be proposed. The
@@ -171,9 +339,30 @@ export function Architecture() {
               parses and a document someone put their name to.
             </p>
           </Prose>
+          {/* A real capability from examples/modules/contract_review —
+              what a skill declares before it is allowed to exist. */}
+          <div className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
+            <pre className="tech-token overflow-x-auto whitespace-pre border border-rule/60 bg-wash p-4 text-[11px] leading-5 text-prose">
+{`{
+  "id": "review",
+  "kind": "skill",
+  "scope": "matter",
+  "reads":  ["matter.document.read"],
+  "writes": ["matter.artifact.write"],
+  "gates":  ["privilege_posture"],
+  "model_access": "required",
+  "external_network": false,
+  "data_movement": { "local_only": true, "external_destinations": [] },
+  "advice_tier_max": "draft_advice"
+}`}
+            </pre>
+            <p className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+              A capability from the contract-review manifest · declared, checked, then admitted
+            </p>
+          </div>
         </Section>
 
-        <Section label="05 · The gate" title="The gate refuses, and the record keeps the refusal.">
+        <Section label="06 · The gate" title="The gate refuses, and the record keeps the refusal.">
           <Prose>
             <p>
               Every matter carries a privilege posture: a declared state that
@@ -192,9 +381,15 @@ export function Architecture() {
               read, in public, and the record keeps it.
             </p>
           </Prose>
+          <Figure
+            src="/architecture/fig-refusal-chat.png"
+            alt="The demo chat: the matter is paused mid-conversation, a summarise request is refused by the gate, then resumed and re-run successfully"
+            index={3}
+            caption="The refusal, in conversation · pause, refusal, resume, success"
+          />
         </Section>
 
-        <Section label="06 · The record" title="Audit is not the product. Audit is the receipt.">
+        <Section label="07 · The record" title="Audit is not the product. Audit is the receipt.">
           <Prose>
             <p>
               Every model call writes an audit row. Every matter mutation writes
@@ -211,9 +406,15 @@ export function Architecture() {
               protection, and what did it produce.
             </p>
           </Prose>
+          <Figure
+            src="/architecture/fig-refusal-record.png"
+            alt="The matter record with the blocked entry struck in seal red and its detail drawer open, leading with a plain-English account"
+            index={4}
+            caption="The blocked entry on the record, struck and kept"
+          />
         </Section>
 
-        <Section label="07 · Sign-off" title="Supervised practice, with a track record.">
+        <Section label="08 · Sign-off" title="Supervised practice, with a track record.">
           <Prose>
             <p>
               Every output is a draft until a named human reviews it, changes it
@@ -232,7 +433,7 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="08 · The stack" title="Boring stack, ambitious composition." >
+        <Section label="09 · The stack" title="Boring stack, ambitious composition." >
           <Prose>
             <p>
               Python, FastAPI, Postgres, React. Nothing on this list will
@@ -259,7 +460,7 @@ export function Architecture() {
           </div>
         </Section>
 
-        <Section label="09 · Honesty" title="What is not solved.">
+        <Section label="10 · Honesty" title="What is not solved.">
           <Prose>
             <p>
               The hosted site is an evaluation environment, not a practice
@@ -282,6 +483,19 @@ export function Architecture() {
               review explicit and recorded. It does not make review optional,
               and it never will. That constraint is the product surface, not
               an aspiration.
+            </p>
+            <p>
+              If any of this is wrong, or you can break it, the repository is
+              open:{" "}
+              <a
+                href={`${REPO}/issues`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+              >
+                issues and contributions welcome
+              </a>
+              .
             </p>
           </Prose>
         </Section>
