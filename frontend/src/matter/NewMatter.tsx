@@ -61,6 +61,14 @@ export function NewMatter() {
 
   return (
     <div className="page-shell">
+      <p className="mb-6">
+        <a
+          href="/matters"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+        >
+          ← Matters
+        </a>
+      </p>
       <PageHeader title="New matter." />
 
       <form onSubmit={submit} className="space-y-6">
@@ -117,12 +125,6 @@ export function NewMatter() {
           >
             {submitting ? "Creating…" : "Create matter"}
           </button>
-          <a
-            href="/matters"
-            className="text-sm text-muted hover:text-seal transition-colors"
-          >
-            Cancel
-          </a>
         </div>
       </form>
     </div>

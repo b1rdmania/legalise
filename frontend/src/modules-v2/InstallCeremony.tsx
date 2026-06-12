@@ -310,16 +310,29 @@ export function InstallCeremony({ ceremonyId }: { ceremonyId: string }) {
     }
   };
 
+  const backLink = (
+    <p className="mb-6">
+      <Link
+        to="/skills"
+        className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+      >
+        ← Skills
+      </Link>
+    </p>
+  );
+
   if (phase.kind === "loading") {
     return (
-      <div className="page-shell text-sm text-muted">
-        Opening the record…
+      <div className="page-shell">
+        {backLink}
+        <p className="text-sm text-muted">Opening the record…</p>
       </div>
     );
   }
   if (phase.kind === "error" || !ceremony) {
     return (
       <div className="page-shell">
+        {backLink}
         <h1 className="text-xl font-bold tracking-tight2">Ceremony not found</h1>
         <p className="mt-3 text-sm text-muted">
           {phase.kind === "error" ? phase.message : "No ceremony loaded."}

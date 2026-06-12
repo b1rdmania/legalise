@@ -133,13 +133,15 @@ export function MatterDetail({ slug }: { slug: string }) {
   if (error && !matter) {
     return (
       <div className="max-w-page mx-auto px-4 sm:px-6 lg:px-10 py-12">
+        <p className="mb-6">
+          <a
+            href="/matters"
+            className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            ← Matters
+          </a>
+        </p>
         <ErrorCallout message={error} />
-        <a
-          href="/matters"
-          className="text-sm text-muted hover:text-seal transition-colors"
-        >
-          Back to matters
-        </a>
       </div>
     );
   }

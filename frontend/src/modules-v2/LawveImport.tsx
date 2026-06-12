@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   draftGithubModule,
   draftLawveModule,
@@ -153,6 +153,14 @@ export function LawveImport() {
 
   return (
     <div className="page-shell">
+      <p className="mb-6">
+        <Link
+          to="/skills"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+        >
+          ← Skills
+        </Link>
+      </p>
       <PageHeader
         title="Add a skill"
         whisper="Before the registrar"

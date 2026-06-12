@@ -59,6 +59,14 @@ export function CreateModule() {
 
   return (
     <div className="page-shell">
+      <p className="mb-6">
+        <a
+          href="/skills"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+        >
+          ← Skills
+        </a>
+      </p>
       <PageHeader
         title="Create a skill"
         description="Build your own Legalise skill. This page explains the manifest and validates a candidate against the same rules the add-skill path uses — it does not add or sign."
