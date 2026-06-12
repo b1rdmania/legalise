@@ -79,6 +79,31 @@ export const getAdminReconstruction = (
   ).then((r) => jsonOrThrow<ReconstructionResponse>(r));
 };
 
+// E2 supervision diagnostic (M13): per-signer decision counts,
+// scrutiny rate and median review latency, derived from audit rows
+// (the rubber-stamp detector). Superuser-only.
+export interface SupervisionSignerRow {
+  signer_id: string;
+  signer_email: string | null;
+  signed: number;
+  signed_with_observations: number;
+  rejected: number;
+  total: number;
+  scrutiny_rate: number;
+  median_review_seconds: number | null;
+  latency_n: number;
+}
+
+export interface SupervisionResponse {
+  signers: SupervisionSignerRow[];
+  healthy_band: [number, number];
+}
+
+export const getAdminSupervision = (): Promise<SupervisionResponse> =>
+  apiFetch(`${API}/admin/audit/supervision`).then((r) =>
+    jsonOrThrow<SupervisionResponse>(r),
+  );
+
 export const getReconstruction = (
   slug: string,
   opts: ReconstructionOptions = {},

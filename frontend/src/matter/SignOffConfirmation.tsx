@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { getSignoff, type Signoff } from "../lib/api";
+import { formatReviewDuration, getSignoff, type Signoff } from "../lib/api";
 import { ErrorCallout, LoadingLine } from "../ui/primitives";
 import { CertCard, CertEyebrow, LedgerRow } from "../ui/certificate";
 
@@ -89,7 +89,26 @@ export function SignOffConfirmation({
               {signoff.kind} · {signoff.module_id} / {signoff.capability_id}
             </span>
           </LedgerRow>
+          {/* The review window, stated plainly (M13). "—" = no
+              open-event on record (legacy sign-off), never 0. */}
+          <LedgerRow label="Reviewed" tone={signoff.implausible_speed ? "seal" : undefined}>
+            <span data-testid="signoff-review-duration">
+              {formatReviewDuration(signoff.review_seconds)}
+            </span>
+          </LedgerRow>
         </dl>
+
+        {signoff.review_seconds !== null && !signoff.implausible_speed && (
+          <p className="mt-2 text-[11px] text-muted" data-testid="signoff-reviewed-line">
+            Reviewed for {formatReviewDuration(signoff.review_seconds)}.
+          </p>
+        )}
+        {signoff.implausible_speed && signoff.review_seconds !== null && (
+          <p className="mt-2 text-[11px] text-seal" data-testid="signoff-implausible-speed">
+            Signed in {formatReviewDuration(signoff.review_seconds)} — faster than a
+            plausible read of this output. Recorded, not blocked.
+          </p>
+        )}
 
         {(signoff.signer_is_author || !signoff.is_current) && (
           <p className="mt-2 text-[11px] text-muted">

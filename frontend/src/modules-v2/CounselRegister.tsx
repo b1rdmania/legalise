@@ -15,7 +15,11 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { listInstalledModules, type InstalledModule } from "../lib/api";
+import {
+  formatReviewDuration,
+  listInstalledModules,
+  type InstalledModule,
+} from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 
 const TIERS = [
@@ -211,7 +215,11 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
         </span>
       </div>
 
-      <TrackRecord record={row.track_record ?? {}} />
+      <TrackRecord
+        record={row.track_record ?? {}}
+        medianReviewSeconds={row.track_median_review_seconds ?? null}
+        latencyN={row.track_review_latency_n ?? 0}
+      />
 
       <dl className="mt-3 space-y-1 text-[11px] text-muted">
         <div className="flex justify-between gap-3">
@@ -270,7 +278,20 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
 // under supervision, from the sign-off table: approvals and refusals
 // recorded with the same fidelity. The moat is the venue's, not the
 // model's.
-function TrackRecord({ record }: { record: Record<string, number> }) {
+// A track record with fewer than this many decisions carries the
+// honesty label — sub-n=30 medians are anecdotes, not statistics
+// (docs/spec/SUPERVISION_LEGIBILITY_M13.md).
+const TRACK_RECORD_HONEST_N = 30;
+
+export function TrackRecord({
+  record,
+  medianReviewSeconds = null,
+  latencyN = 0,
+}: {
+  record: Record<string, number>;
+  medianReviewSeconds?: number | null;
+  latencyN?: number;
+}) {
   const signed = record.signed ?? 0;
   const observations = record.signed_with_observations ?? 0;
   const refused = record.rejected ?? 0;
@@ -285,16 +306,30 @@ function TrackRecord({ record }: { record: Record<string, number> }) {
           No supervised work signed yet.
         </p>
       ) : (
-        <p className="mt-1 text-[11px] text-ink">
-          {signed} signed
-          {observations > 0 && <> · {observations} with observations</>}
-          {refused > 0 && (
-            <>
-              {" · "}
-              <span className="text-seal">{refused} refused</span>
-            </>
-          )}
-        </p>
+        <>
+          <p className="mt-1 text-[11px] text-ink">
+            {signed} signed
+            {observations > 0 && <> · {observations} with observations</>}
+            {refused > 0 && (
+              <>
+                {" · "}
+                <span className="text-seal">{refused} refused</span>
+              </>
+            )}
+          </p>
+          {/* Median review latency — evidence of attention, not proof
+              of quality. "—" = no derivable review window yet. */}
+          <p className="mt-1 text-[11px] text-muted" data-testid="track-record-latency">
+            median review{" "}
+            {medianReviewSeconds === null
+              ? "—"
+              : formatReviewDuration(medianReviewSeconds)}{" "}
+            · n={latencyN}
+            {latencyN < TRACK_RECORD_HONEST_N && (
+              <span data-testid="track-record-low-n"> — too few to mean much</span>
+            )}
+          </p>
+        </>
       )}
     </div>
   );

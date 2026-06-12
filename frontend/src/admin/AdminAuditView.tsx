@@ -23,8 +23,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ALL_RECONSTRUCTION_SOURCES,
   AdminRequiredError,
+  formatReviewDuration,
   getAdminReconstruction,
+  getAdminSupervision,
   type ReconstructionSource,
+  type SupervisionResponse,
   type TimelineEntry,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
@@ -70,6 +73,7 @@ export function AdminAuditView() {
   // disabled.
   const [sources, setSources] = useState<ReconstructionSource[]>(["audit"]);
   const [fetchState, setFetchState] = useState<FetchState>({ status: "loading" });
+  const [supervision, setSupervision] = useState<SupervisionResponse | null>(null);
 
   const loadPage = useCallback(
     async (cursor: string | null) => {
@@ -123,6 +127,19 @@ export function AdminAuditView() {
     void loadPage(null);
   }, [auth.loading, auth.user, loadPage]);
 
+  // E2 supervision diagnostic — loaded once per visit; quietly absent
+  // on failure (the record below is the primary surface).
+  useEffect(() => {
+    if (auth.loading || !auth.user || !auth.user.is_superuser) return;
+    let cancelled = false;
+    getAdminSupervision()
+      .then((s) => !cancelled && setSupervision(s))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.loading, auth.user]);
+
   if (!auth.loading && auth.user && !auth.user.is_superuser) {
     return <AdminRequiredShell />;
   }
@@ -138,6 +155,72 @@ export function AdminAuditView() {
         whisper="The workspace record"
         description="What the workspace did when no matter was before it — admission ceremonies, settings key operations, role changes, and the viewing of this very page. Entries bound to a matter live with the matter; nothing renders here that the audit chain does not hold."
       />
+
+      {/* E2 — supervision per signer (M13): rejection + observations
+          rate and median review latency, from existing audit rows.
+          The rubber-stamp detector the economics analysis specifies. */}
+      {supervision !== null &&
+        Array.isArray(supervision.signers) &&
+        supervision.signers.length > 0 && (
+        <section className="mb-10" data-testid="supervision-diagnostic">
+          <SectionRule
+            label="Supervision"
+            right={`${supervision.signers.length} signer${
+              supervision.signers.length === 1 ? "" : "s"
+            }`}
+          />
+          <table className="mt-4 w-full border-collapse text-left text-xs">
+            <thead>
+              <tr className="border-b border-rule text-[10px] uppercase tracking-[0.18em] text-muted">
+                <th className="py-2 pr-3 font-normal">Signer</th>
+                <th className="py-2 pr-3 font-normal">Signed</th>
+                <th className="py-2 pr-3 font-normal">Observations</th>
+                <th className="py-2 pr-3 font-normal">Refused</th>
+                <th className="py-2 pr-3 font-normal">Scrutiny rate</th>
+                <th className="py-2 font-normal">Median review</th>
+              </tr>
+            </thead>
+            <tbody>
+              {supervision.signers.map((s) => {
+                const [lo, hi] = supervision.healthy_band ?? [0.02, 0.3];
+                const outOfBand =
+                  s.total > 0 && (s.scrutiny_rate < lo || s.scrutiny_rate > hi);
+                return (
+                  <tr
+                    key={s.signer_id}
+                    className="border-b border-rule/60"
+                    data-testid={`supervision-row-${s.signer_id}`}
+                  >
+                    <td className="py-2 pr-3 text-ink">
+                      {s.signer_email ?? s.signer_id}
+                    </td>
+                    <td className="py-2 pr-3">{s.signed}</td>
+                    <td className="py-2 pr-3">{s.signed_with_observations}</td>
+                    <td className={"py-2 pr-3" + (s.rejected > 0 ? " text-seal" : "")}>
+                      {s.rejected}
+                    </td>
+                    <td className={"py-2 pr-3" + (outOfBand ? " text-seal" : " text-ink")}>
+                      {Math.round(s.scrutiny_rate * 100)}%
+                    </td>
+                    <td className="py-2">
+                      {s.median_review_seconds === null
+                        ? "—"
+                        : formatReviewDuration(s.median_review_seconds)}{" "}
+                      <span className="text-muted">· n={s.latency_n}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="mt-2 text-[11px] text-muted">
+            Scrutiny rate = (refused + with observations) / total. The economics
+            analysis names 2–30% as the healthy band; 0% over a real n reads as
+            rubber-stamping. Latency is evidence of attention, not proof of
+            quality. “—” = no review window on record.
+          </p>
+        </section>
+      )}
 
       <SectionRule
         label="The record"

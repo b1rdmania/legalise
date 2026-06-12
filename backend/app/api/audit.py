@@ -394,3 +394,142 @@ async def get_admin_reconstruction(
         next_cursor=page.next_cursor,
         total_in_window_estimate=page.total_in_window_estimate,
     )
+
+
+# ---------------------------------------------------------------------------
+# E2 — the rubber-stamp detector (docs/spec/SUPERVISION_LEGIBILITY_M13.md)
+# ---------------------------------------------------------------------------
+#
+# Per-signer supervision diagnostic, derived entirely from existing
+# audit rows (the decision rows output.signed / _with_observations /
+# sign_rejected plus the output.review.opened window-start rows). The
+# economics analysis names a healthy scrutiny band of 2–30% — a signer
+# whose rejection+observations rate sits at 0% over a real n is
+# rubber-stamping; one far above is reviewing work that should not have
+# shipped. The endpoint reports; it does not judge.
+
+
+class SupervisionSignerRow(BaseModel):
+    signer_id: str
+    signer_email: str | None
+    signed: int
+    signed_with_observations: int
+    rejected: int
+    total: int
+    # (rejected + with-observations) / total, 0..1.
+    scrutiny_rate: float
+    # Median review latency across this signer's decisions that have a
+    # derivable window (open-event present). None when none do.
+    median_review_seconds: int | None
+    # How many decisions the median is over — honesty about thin data.
+    latency_n: int
+
+
+class SupervisionResponse(BaseModel):
+    signers: list[SupervisionSignerRow]
+    # The economics analysis's healthy scrutiny band, for the UI to
+    # cite rather than restate.
+    healthy_band: tuple[float, float] = (0.02, 0.30)
+
+
+@admin_router.get("/supervision", response_model=SupervisionResponse)
+async def get_supervision_diagnostic(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> SupervisionResponse:
+    import statistics
+
+    from sqlalchemy import func
+
+    from app.core.signoff import (
+        REVIEW_OPENED_ACTION,
+        SIGNOFF_ACTION_BY_DECISION,
+        review_latency_seconds,
+    )
+    from app.models import AuditEntry
+
+    _require_superuser(user)
+
+    action_by_decision = SIGNOFF_ACTION_BY_DECISION
+    decision_by_action = {v: k for k, v in action_by_decision.items()}
+
+    decision_rows = (
+        await session.execute(
+            select(
+                AuditEntry.actor_id,
+                AuditEntry.action,
+                AuditEntry.timestamp,
+                AuditEntry.payload,
+            ).where(AuditEntry.action.in_(decision_by_action.keys()))
+        )
+    ).all()
+
+    open_rows = (
+        await session.execute(
+            select(
+                AuditEntry.actor_id,
+                AuditEntry.resource_id,
+                func.min(AuditEntry.timestamp),
+            )
+            .where(
+                AuditEntry.action == REVIEW_OPENED_ACTION,
+                AuditEntry.resource_type == "matter_artifact",
+            )
+            .group_by(AuditEntry.actor_id, AuditEntry.resource_id)
+        )
+    ).all()
+    opened_at = {
+        (actor_id, resource_id): ts for actor_id, resource_id, ts in open_rows
+    }
+
+    counts: dict[uuid.UUID, dict[str, int]] = {}
+    latencies: dict[uuid.UUID, list[int]] = {}
+    for actor_id, action, ts, payload in decision_rows:
+        if actor_id is None:
+            continue
+        decision = decision_by_action[action]
+        counts.setdefault(actor_id, {})[decision] = (
+            counts.get(actor_id, {}).get(decision, 0) + 1
+        )
+        artifact_id = (
+            payload.get("artifact_id") if isinstance(payload, dict) else None
+        )
+        latency = review_latency_seconds(
+            opened_at.get((actor_id, artifact_id)), ts
+        )
+        if latency is not None:
+            latencies.setdefault(actor_id, []).append(latency)
+
+    emails: dict[uuid.UUID, str] = {}
+    if counts:
+        email_rows = await session.execute(
+            select(User.id, User.email).where(User.id.in_(counts.keys()))
+        )
+        emails = {uid: email for uid, email in email_rows.all()}
+
+    signers: list[SupervisionSignerRow] = []
+    for actor_id, by_decision in counts.items():
+        signed = by_decision.get("signed", 0)
+        observations = by_decision.get("signed_with_observations", 0)
+        rejected = by_decision.get("rejected", 0)
+        total = signed + observations + rejected
+        signer_latencies = latencies.get(actor_id, [])
+        signers.append(
+            SupervisionSignerRow(
+                signer_id=str(actor_id),
+                signer_email=emails.get(actor_id),
+                signed=signed,
+                signed_with_observations=observations,
+                rejected=rejected,
+                total=total,
+                scrutiny_rate=(observations + rejected) / total if total else 0.0,
+                median_review_seconds=(
+                    int(statistics.median(signer_latencies))
+                    if signer_latencies
+                    else None
+                ),
+                latency_n=len(signer_latencies),
+            )
+        )
+    signers.sort(key=lambda r: (-r.total, r.signer_id))
+    return SupervisionResponse(signers=signers)

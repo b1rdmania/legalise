@@ -54,6 +54,12 @@ function spyAdminMe() {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  // E2 supervision diagnostic loads alongside the record; default to
+  // empty (the section hides itself) unless a test overrides it.
+  vi.spyOn(api, "getAdminSupervision").mockResolvedValue({
+    signers: [],
+    healthy_band: [0.02, 0.3],
+  });
   globalThis.fetch = vi.fn(() =>
     Promise.resolve(
       new Response(
@@ -153,6 +159,41 @@ describe("AdminAuditView — superuser", () => {
     expect(ab.disabled).toBe(true);
     // Tooltip names the substrate constraint.
     expect(sm.getAttribute("title")).toMatch(/matter-bound by substrate/);
+  });
+
+  it("renders the E2 supervision diagnostic table per signer", async () => {
+    spyAdminMe();
+    vi.spyOn(api, "getAdminReconstruction").mockResolvedValue({
+      entries: [],
+      next_cursor: null,
+      total_in_window_estimate: 0,
+    });
+    vi.spyOn(api, "getAdminSupervision").mockResolvedValue({
+      signers: [
+        {
+          signer_id: "u-1",
+          signer_email: "solicitor@example.com",
+          signed: 9,
+          signed_with_observations: 1,
+          rejected: 0,
+          total: 10,
+          scrutiny_rate: 0.1,
+          median_review_seconds: 840,
+          latency_n: 10,
+        },
+      ],
+      healthy_band: [0.02, 0.3],
+    });
+
+    mountAt("/admin/audit");
+    await waitFor(() => {
+      expect(screen.getByTestId("supervision-diagnostic")).toBeInTheDocument();
+    });
+    const row = screen.getByTestId("supervision-row-u-1");
+    expect(row).toHaveTextContent("solicitor@example.com");
+    expect(row).toHaveTextContent("10%"); // scrutiny rate in the healthy band
+    expect(row).toHaveTextContent("14 minutes");
+    expect(row).toHaveTextContent("n=10");
   });
 
   it("substrate 403 → renders Admin required shell", async () => {

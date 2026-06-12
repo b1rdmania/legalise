@@ -145,6 +145,11 @@ export interface InstalledModule {
   installed_by_user_id: string | null;
   install_path?: string | null;
   track_record?: Record<string, number>;
+  // Median review latency (seconds) over sign-offs with a derivable
+  // review window (M13); null when none — render "—", never 0.
+  track_median_review_seconds?: number | null;
+  // How many decisions the median is over (sub-n=30 gets the honesty label).
+  track_review_latency_n?: number;
 }
 
 export const listInstalledModules = () =>

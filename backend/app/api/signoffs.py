@@ -38,6 +38,8 @@ from app.core.signoff import (
     create_signoff,
     current_signoff_ids,
     list_signoffs,
+    record_review_opened,
+    review_annotations,
 )
 from app.models import MatterArtifact, MatterSignoff, User
 from app.models.matter import STATUS_ARCHIVED, Matter
@@ -67,6 +69,14 @@ class SignoffRead(BaseModel):
     signer_is_author: bool
     signed_at: str
     is_current: bool
+    # Review window (M13): seconds between the signer's first open of
+    # the sign surface (output.review.opened audit row) and the
+    # decision. None when no open-event exists (legacy sign-offs) —
+    # surfaces render "—", never 0.
+    review_seconds: int | None = None
+    # Recorded at sign time against the artifact's word count
+    # (docs/spec/SUPERVISION_LEGIBILITY_M13.md). Recorded, not blocked.
+    implausible_speed: bool = False
 
 
 class SignoffListResponse(BaseModel):
@@ -91,6 +101,8 @@ def _to_read(
     is_current: bool,
     signer_email: str | None,
     signer_is_author: bool,
+    review_seconds: int | None = None,
+    implausible_speed: bool = False,
 ) -> SignoffRead:
     return SignoffRead(
         id=str(s.id),
@@ -108,6 +120,8 @@ def _to_read(
         signer_is_author=signer_is_author,
         signed_at=s.signed_at.isoformat() if s.signed_at else "",
         is_current=is_current,
+        review_seconds=review_seconds,
+        implausible_speed=implausible_speed,
     )
 
 
@@ -189,13 +203,66 @@ async def create_signoff_endpoint(
         )
 
     await session.commit()
+    annotations = await review_annotations(session, [signoff])
+    review_seconds, implausible_speed = annotations.get(signoff.id, (None, False))
     # A newly created sign-off is always the current one for its artifact.
     return _to_read(
         signoff,
         is_current=True,
         signer_email=user.email,
         signer_is_author=artifact.created_by_id == user.id,
+        review_seconds=review_seconds,
+        implausible_speed=implausible_speed,
     )
+
+
+class ReviewOpenBody(BaseModel):
+    artifact_id: str
+
+
+class ReviewOpenResponse(BaseModel):
+    artifact_id: str
+    # True when this call recorded the first open; False when an
+    # earlier open already holds the window's start (idempotent).
+    recorded: bool
+
+
+@router.post("/{slug}/signoffs/review-open", response_model=ReviewOpenResponse)
+async def review_open_endpoint(
+    slug: str,
+    body: ReviewOpenBody,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ReviewOpenResponse:
+    """Record the first open of an artifact's sign surface (M13).
+
+    Called by the sign page when it loads its artifact. Idempotent per
+    signer+artifact: the first open wins and starts the review window;
+    repeat opens write nothing.
+    """
+    matter = await _load_matter_or_404(session, slug=slug, user=user)
+    try:
+        artifact_uuid = uuid.UUID(body.artifact_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="artifact_id is not a valid uuid")
+
+    artifact = await session.scalar(
+        select(MatterArtifact).where(
+            MatterArtifact.id == artifact_uuid,
+            MatterArtifact.matter_id == matter.id,
+        )
+    )
+    if artifact is None:
+        raise HTTPException(
+            status_code=404, detail=f"artifact not found on matter: {body.artifact_id}"
+        )
+
+    recorded = await record_review_opened(
+        session, matter=matter, artifact=artifact, user=user
+    )
+    if recorded:
+        await session.commit()
+    return ReviewOpenResponse(artifact_id=str(artifact.id), recorded=recorded)
 
 
 @router.get("/{slug}/signoffs", response_model=SignoffListResponse)
@@ -209,6 +276,7 @@ async def list_signoffs_endpoint(
     current = current_signoff_ids(signoffs)
     emails = await _signer_emails(session, {s.signer_id for s in signoffs})
     authors = await _artifact_authors(session, {s.artifact_id for s in signoffs})
+    annotations = await review_annotations(session, signoffs)
     return SignoffListResponse(
         matter_id=str(matter.id),
         signoffs=[
@@ -217,6 +285,8 @@ async def list_signoffs_endpoint(
                 is_current=s.id in current,
                 signer_email=emails.get(s.signer_id),
                 signer_is_author=authors.get(s.artifact_id) == s.signer_id,
+                review_seconds=annotations.get(s.id, (None, False))[0],
+                implausible_speed=annotations.get(s.id, (None, False))[1],
             )
             for s in signoffs
         ],
@@ -255,9 +325,13 @@ async def get_signoff_endpoint(
     )
     emails = await _signer_emails(session, {signoff.signer_id})
     authors = await _artifact_authors(session, {signoff.artifact_id})
+    annotations = await review_annotations(session, [signoff])
+    review_seconds, implausible_speed = annotations.get(signoff.id, (None, False))
     return _to_read(
         signoff,
         is_current=(latest == signoff.id),
         signer_email=emails.get(signoff.signer_id),
         signer_is_author=authors.get(signoff.artifact_id) == signoff.signer_id,
+        review_seconds=review_seconds,
+        implausible_speed=implausible_speed,
     )
