@@ -589,7 +589,7 @@ def _tool_failure_message(exc: Exception) -> str:
         return "I couldn't run that skill because the advice boundary blocked it."
     if isinstance(exc, (CapabilityNotDeclared, EntrypointResolutionError, ValueError)):
         return f"I couldn't run that skill: {exc}"
-    return "I couldn't run that skill. Check the Record for the failed run."
+    return "I couldn't run that skill. Check Activity for the failed run."
 
 
 def _final_tool_prompt(
@@ -616,7 +616,7 @@ def _final_tool_prompt(
             ),
             "",
             "Write the final assistant reply as JSON only. Do not request another tool. "
-            "Mention the useful result and include a suggested action to view the Record "
+            "Mention the useful result and include a suggested action to view Activity "
             "when the run produced an invocation_id.",
         ]
     )
@@ -837,12 +837,12 @@ async def run_assistant_turn(
             except StructuredOutputError:
                 content_out = (
                     "The skill ran, but I couldn't structure the final reply. "
-                    "Open the Record to inspect the run."
+                    "Open Activity to inspect the run."
                 )
                 actions = [
                     SuggestedAction(
                         type="view_audit",
-                        label="Open Record",
+                        label="Open Activity",
                         params={"invocation_id": str(tool_invocation_id)},
                     )
                 ]
@@ -867,7 +867,7 @@ async def run_assistant_turn(
             actions = [
                 SuggestedAction(
                     type="view_audit",
-                    label="Open Record",
+                    label="Open Activity",
                     params={},
                 )
             ]
