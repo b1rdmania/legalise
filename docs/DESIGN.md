@@ -1669,3 +1669,11 @@ Source: Andy, 2026-06-12 — "the alignment, the size of the header, the left an
 The rule: every routed workspace page sits in `.page-shell` (index.css): `max-w-5xl px-6 sm:px-10 py-12 text-ink`, left-aligned. Pages cap inner content (forms, prose) themselves; the shell and its section rules stay constant. Header tiers unchanged (P27: monument for section homes, standard for sub-pages).
 
 NOT touched: the matter chat shell (P22 geometry), the document editor surface (P25 measure), TopBar, the demo shell, marketing pages (P28 own grid).
+
+---
+
+## P33 — The demo reads like a workspace; one way back
+
+Source: Andy's demo walk #2, 2026-06-12. Items: the demo masthead eyebrow row (the last survivor of P30's cull) goes; the sidebar wordmark links home and grows (21→26px); the rail gains a Matters cause-list so the shell reads like a real workspace (Khan open + two companions that expand in place with honest posture notes — the demo still follows one matter end to end and says so); the demo Skills tab explains itself (what a skill is, the admitted certificates, How a skill arrives: import → admission → run, link to /skills).
+
+The back rule, app-wide: detail / form / error pages carry ONE affordance — a quiet `← {Parent}` text link, first element inside the page shell, top-left, styled exactly as DocumentDetail's reference link (text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal). List/home pages carry nothing. Drawers keep the top-right X. Auth flows stay stack-shaped. No page may be a dead end — error branches included.
