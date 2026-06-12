@@ -1,4 +1,9 @@
-"""Phase 3 — install API tests (HTTP-level)."""
+"""Module install / revoke / update API tests (HTTP-level).
+
+Merged from test_phase3_install_api.py + test_phase4_revoke_update_api.py.
+Both files rebuilt the full ceremony scaffold (verified manifest, admin
+registration, drive-to-enabled walk) — shared once here.
+"""
 
 from __future__ import annotations
 
@@ -11,15 +16,23 @@ from app.core.trust_ceremony import clear_ceremonies
 from app.models import InstalledModule, User
 
 
-TEST_EMAIL_PREFIX = "p3-install"
+TEST_PREFIX = "install-api"
+PASSWORD = "install-api-test-2026"
 
 
-def _verified_manifest() -> dict:
+# ---------------------------------------------------------------------------
+# Shared scaffold
+# ---------------------------------------------------------------------------
+
+
+def _verified_manifest(
+    module_id: str = "legalise.test-install", version: str = "1.0.0"
+) -> dict:
     return {
         "schema_version": "2.0.0",
-        "id": "legalise.test-install",
-        "name": "Phase 3 Install Test",
-        "version": "1.0.0",
+        "id": module_id,
+        "name": "Install API Test",
+        "version": version,
         "publisher": "legalise",
         "signed_by": "legalise",
         "signature": "x" * 64,
@@ -35,7 +48,10 @@ def _verified_manifest() -> dict:
                 "writes": ["citation.write"],
                 "model_access": "none",
                 "external_network": False,
-                "data_movement": {"local_only": True, "external_destinations": []},
+                "data_movement": {
+                    "local_only": True,
+                    "external_destinations": [],
+                },
                 "gates": ["privilege_posture"],
                 "ui": {"slot": "matter.workflows", "label": "Test"},
                 "streaming_mode": "sync",
@@ -47,14 +63,12 @@ def _verified_manifest() -> dict:
 
 
 async def _register_admin(client) -> str:
-    """Register a superuser via the auth flow + flip is_superuser."""
-    from app.core.db import get_session
-
-    email = f"{TEST_EMAIL_PREFIX}-{uuid.uuid4().hex[:8]}@example.com"
-    password = "phase3-install-2026"
+    """Register a superuser via the auth flow + flip is_superuser, then
+    log in. Returns the email."""
+    email = f"{TEST_PREFIX}-{uuid.uuid4().hex[:8]}@example.com"
     reg = await client.post(
         "/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": PASSWORD},
     )
     assert reg.status_code == 201, reg.text
 
@@ -72,7 +86,7 @@ async def _register_admin(client) -> str:
 
     login = await client.post(
         "/auth/login",
-        data={"username": email, "password": password},
+        data={"username": email, "password": PASSWORD},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert login.status_code == 204
@@ -80,20 +94,47 @@ async def _register_admin(client) -> str:
 
 
 async def _register_regular_user(client) -> str:
-    email = f"{TEST_EMAIL_PREFIX}-reg-{uuid.uuid4().hex[:8]}@example.com"
-    password = "phase3-install-2026"
+    email = f"{TEST_PREFIX}-reg-{uuid.uuid4().hex[:8]}@example.com"
     reg = await client.post(
         "/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": PASSWORD},
     )
     assert reg.status_code == 201, reg.text
     login = await client.post(
         "/auth/login",
-        data={"username": email, "password": password},
+        data={"username": email, "password": PASSWORD},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert login.status_code == 204
     return email
+
+
+async def _install_via_ceremony(client, manifest) -> str:
+    """Drive the install ceremony to enabled. Returns the module_id."""
+    clear_ceremonies()
+    start = await client.post(
+        "/api/modules/install",
+        json={"source": "manifest", "manifest": manifest},
+    )
+    assert start.status_code == 201, start.text
+    ceremony_id = start.json()["ceremony_id"]
+    for _ in range(3):
+        r = await client.post(
+            f"/api/modules/install/{ceremony_id}/advance",
+            json={"action": "trust"},
+        )
+        assert r.status_code == 200
+    r = await client.post(
+        f"/api/modules/install/{ceremony_id}/advance",
+        json={"action": "grant"},
+    )
+    assert r.status_code == 200
+    return manifest["id"]
+
+
+# ---------------------------------------------------------------------------
+# Install
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -209,7 +250,10 @@ async def test_reject_install_does_not_persist(client) -> None:
     await _register_admin(client)
     start_resp = await client.post(
         "/api/modules/install",
-        json={"source": "manifest", "manifest": _verified_manifest()},
+        json={
+            "source": "manifest",
+            "manifest": _verified_manifest("legalise.reject-test"),
+        },
     )
     ceremony_id = start_resp.json()["ceremony_id"]
     resp = await client.post(
@@ -228,7 +272,7 @@ async def test_reject_install_does_not_persist(client) -> None:
     async with factory() as session:
         row = await session.scalar(
             select(InstalledModule).where(
-                InstalledModule.module_id == "legalise.test-install",
+                InstalledModule.module_id == "legalise.reject-test",
             )
         )
         assert row is None
@@ -275,5 +319,156 @@ async def test_advance_requires_admin(client) -> None:
     resp = await client.post(
         f"/api/modules/install/{ceremony_id}/advance",
         json={"action": "trust"},
+    )
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Revoke
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_revoke_not_installed_returns_404(client) -> None:
+    await _register_admin(client)
+    resp = await client.post("/api/modules/nope.module/revoke")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_revoke_requires_admin(client) -> None:
+    await _register_regular_user(client)
+    resp = await client.post("/api/modules/anything.module/revoke")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_revoke_disables_installed_module(client) -> None:
+    """Install a module, revoke it, verify it's disabled."""
+    await _register_admin(client)
+    manifest = _verified_manifest("legalise.revoke-test")
+    await _install_via_ceremony(client, manifest)
+
+    resp = await client.post(
+        f"/api/modules/{manifest['id']}/revoke",
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["module_id"] == manifest["id"]
+    assert body["disabled_rows"] >= 1
+
+    # Confirm the row is disabled.
+    from app.main import app
+
+    factory = app.state.session_factory
+    async with factory() as session:
+        row = await session.scalar(
+            select(InstalledModule).where(
+                InstalledModule.module_id == manifest["id"]
+            )
+        )
+        assert row is not None
+        assert row.enabled is False
+
+
+# ---------------------------------------------------------------------------
+# Update
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_not_installed_returns_404(client) -> None:
+    await _register_admin(client)
+    resp = await client.post(
+        "/api/modules/nope.module/update",
+        json={"new_manifest": _verified_manifest("nope.module")},
+    )
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_no_expansion_updates_in_place(client) -> None:
+    """Install v1.0.0, update to v1.0.1 with identical permissions →
+    no ceremony, row updated."""
+    await _register_admin(client)
+    manifest_v1 = _verified_manifest("legalise.update-test", "1.0.0")
+    await _install_via_ceremony(client, manifest_v1)
+
+    manifest_v2 = _verified_manifest("legalise.update-test", "1.0.1")
+    resp = await client.post(
+        f"/api/modules/{manifest_v1['id']}/update",
+        json={"new_manifest": manifest_v2},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["expansion_detected"] is False
+    assert body["ceremony_id"] is None
+    assert body["new_version"] == "1.0.1"
+
+
+@pytest.mark.asyncio
+async def test_update_with_expansion_starts_new_ceremony(client) -> None:
+    """Install with no external_network, update with external_network=True →
+    expansion detected, new ceremony started."""
+    await _register_admin(client)
+    manifest_v1 = _verified_manifest("legalise.expand-test", "1.0.0")
+    await _install_via_ceremony(client, manifest_v1)
+
+    manifest_v2 = _verified_manifest("legalise.expand-test", "1.1.0")
+    manifest_v2["capabilities"][0]["external_network"] = True
+    manifest_v2["capabilities"][0]["data_movement"][
+        "external_destinations"
+    ] = ["api.example.com"]
+
+    resp = await client.post(
+        f"/api/modules/{manifest_v1['id']}/update",
+        json={"new_manifest": manifest_v2},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["expansion_detected"] is True
+    assert body["ceremony_id"] is not None
+    assert body["expansion_report"]["external_network_added"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_module_id_mismatch_rejected(client) -> None:
+    await _register_admin(client)
+    manifest_v1 = _verified_manifest("legalise.mismatch-test", "1.0.0")
+    await _install_via_ceremony(client, manifest_v1)
+
+    wrong = _verified_manifest("legalise.different-id", "2.0.0")
+    resp = await client.post(
+        f"/api/modules/{manifest_v1['id']}/update",
+        json={"new_manifest": wrong},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["error"] == "module_id_mismatch"
+
+
+@pytest.mark.asyncio
+async def test_update_invalid_manifest_rejected(client) -> None:
+    await _register_admin(client)
+    manifest_v1 = _verified_manifest("legalise.invalid-test", "1.0.0")
+    await _install_via_ceremony(client, manifest_v1)
+
+    bad = _verified_manifest("legalise.invalid-test", "1.1.0")
+    bad["capabilities"][0]["kind"] = "wizard"
+
+    resp = await client.post(
+        f"/api/modules/{manifest_v1['id']}/update",
+        json={"new_manifest": bad},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["error"] == "invalid_manifest"
+
+
+@pytest.mark.asyncio
+async def test_update_requires_admin(client) -> None:
+    """Non-admin cannot trigger update."""
+    await _register_regular_user(client)
+    resp = await client.post(
+        "/api/modules/anything.module/update",
+        json={"new_manifest": _verified_manifest("anything.module")},
     )
     assert resp.status_code == 403

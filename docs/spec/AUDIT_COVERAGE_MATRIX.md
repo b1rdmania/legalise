@@ -21,10 +21,10 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | `auth.user.verified` | e2e-covered | `e2e/first-run.spec.ts` |
 | `auth.user.demo_seeded` | e2e-covered | `e2e/first-run.spec.ts` + `e2e/smoke.spec.ts` |
 | `auth.user.capabilities_auto_granted` | e2e-covered | `e2e/first-run.spec.ts` |
-| `auth.user.logged_in` | pytest-covered | `backend/tests/test_phase13b_audit_gap_fill.py::test_login_and_logout_emit_canonical_audit` |
+| `auth.user.logged_in` | pytest-covered | `backend/tests/test_audit_coverage.py::test_login_and_logout_emit_canonical_audit` |
 | `auth.user.logged_out` | pytest-covered | same |
-| `auth.user.password_reset_requested` | not-coverable-yet (15-#1) | `backend/tests/test_phase13b_audit_gap_fill.py::test_forgot_password_emits_audit` |
-| `auth.user.password_reset_completed` | not-coverable-yet (15-#1) | `backend/tests/test_phase13b_audit_gap_fill.py::test_reset_password_emits_audit` |
+| `auth.user.password_reset_requested` | not-coverable-yet (15-#1) | `backend/tests/test_audit_coverage.py::test_forgot_password_emits_audit` |
+| `auth.user.password_reset_completed` | not-coverable-yet (15-#1) | `backend/tests/test_audit_coverage.py::test_reset_password_emits_audit` |
 | `auth.user.profile_updated` | e2e-covered | `e2e/first-run.spec.ts` (PATCH default model step) |
 | `user.admin.bootstrapped` | e2e-covered | `e2e/first-run.spec.ts` (real Phase 12 CLI) |
 
@@ -59,7 +59,7 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | `module.publisher.checked` | e2e-covered | `e2e/first-run.spec.ts` |
 | `module.permissions.reviewed` | e2e-covered | `e2e/first-run.spec.ts` |
 | `module.enabled` | e2e-covered | `e2e/first-run.spec.ts` |
-| `module.denied` | pytest-covered | `backend/tests/test_phase3_trust_ceremony*.py` (e2e env has no deterministic reject-path scenario yet) |
+| `module.denied` | pytest-covered | `backend/tests/test_trust_ceremony.py` (e2e env has no deterministic reject-path scenario yet) |
 | `module.ceremony.rejected` | e2e-covered | `e2e/failure-paths.spec.ts` (invalid-transition path) |
 | `module.updated` | pytest-covered (15-#4) | `backend/tests/test_phase4_modules*.py` |
 | `module.disabled` | e2e-covered | `e2e/failure-paths.spec.ts` (revoke triggers it) |
@@ -78,23 +78,23 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | --- | --- | --- |
 | `module.capability.invoked` | e2e-covered | `e2e/first-run.spec.ts` |
 | `model.call` | e2e-covered | `e2e/first-run.spec.ts` (stub-echo) |
-| `model.invoked` | pytest-covered | `backend/tests/test_phase10_invoke_endpoint*.py` (the audit_cost helper emits; e2e asserts the parent invocation chain, not this row by name) |
+| `model.invoked` | pytest-covered | `backend/tests/test_invocations_api.py` (the audit_cost helper emits; e2e asserts the parent invocation chain, not this row by name) |
 | `module.capability.completed` | e2e-covered | `e2e/first-run.spec.ts` |
 | `advice_boundary.check.completed` | pytest-covered | `backend/tests/test_phase9_pre_motion_vertical_slice.py` (first-run's stub-echo capability may not drive the gate; substrate test pins the row) |
 | `advice_boundary.check.blocked` | not-coverable-yet (15-#2) | `backend/tests/test_phase9_pre_motion_vertical_slice.py` |
 | `advice_boundary.check.denied` | not-coverable-yet (15-#2) | same |
 | `advice_boundary.check.failed` | not-coverable-yet (15-#2) | same |
-| `posture_gate.check.blocked` | pytest-covered | `backend/tests/test_phase8_posture_gate*.py` (UI banner tested separately in `posture.spec.ts`; producing the row from an end-to-end UI flow requires installing a module + granting + posture mismatch — not staged in the e2e env yet) |
-| `module.capability.denied` | pytest-covered | `backend/tests/test_phase10_invoke_endpoint*.py` |
-| `module.<plugin>.model.key_missing` | pytest-covered | `backend/tests/test_phase10_invoke_endpoint*.py::test_provider_key_missing_envelope` |
-| `model.call.error` | not-coverable-yet (15-#3) | `backend/tests/test_phase10_invoke_endpoint*.py::test_provider_upstream_error_envelope` |
+| `posture_gate.check.blocked` | pytest-covered | `backend/tests/test_posture_gate.py` (UI banner tested separately in `posture.spec.ts`; producing the row from an end-to-end UI flow requires installing a module + granting + posture mismatch — not staged in the e2e env yet) |
+| `module.capability.denied` | pytest-covered | `backend/tests/test_invocations_api.py` |
+| `module.<plugin>.model.key_missing` | pytest-covered | `backend/tests/test_invocations_api.py::test_invoke_provider_key_missing_returns_422` |
+| `model.call.error` | not-coverable-yet (15-#3) | `backend/tests/test_invocations_api.py::test_invoke_provider_upstream_error_returns_502` |
 
 ### Reconstruction
 
 | Action | Coverage | Test |
 | --- | --- | --- |
 | `audit.reconstruction.viewed` (scope=matter) | e2e-covered | `e2e/first-run.spec.ts` |
-| `audit.reconstruction.viewed` (scope=workspace) | pytest-covered | `backend/tests/test_phase14_5_c_admin_reconstruction.py::test_emits_unified_payload_shape_with_workspace_scope` |
+| `audit.reconstruction.viewed` (scope=workspace) | pytest-covered | `backend/tests/test_admin_api.py::test_emits_unified_payload_shape_with_workspace_scope` |
 
 ### Admin
 
@@ -109,7 +109,7 @@ Filed for future product / operator surfaces. Pytest is the substrate-side cover
 
 ### 15-#1 — password reset flow needs a deterministic token loop
 
-`auth.user.password_reset_requested` + `auth.user.password_reset_completed` emit via fastapi-users forgot/reset endpoints. The reset token is sent by email; no in-band surface exposes it to a test runner without intercepting the mail transport. **Pytest covers:** `test_phase13b_audit_gap_fill.py::test_forgot_password_emits_audit` + `test_reset_password_emits_audit`. **What unblocks:** an admin endpoint that lists pending reset tokens, or a stubbed mailer test runners can read.
+`auth.user.password_reset_requested` + `auth.user.password_reset_completed` emit via fastapi-users forgot/reset endpoints. The reset token is sent by email; no in-band surface exposes it to a test runner without intercepting the mail transport. **Pytest covers:** `test_audit_coverage.py::test_forgot_password_emits_audit` + `test_reset_password_emits_audit`. **What unblocks:** an admin endpoint that lists pending reset tokens, or a stubbed mailer test runners can read.
 
 ### 15-#2 — advice-boundary blocked/denied/failed paths need an escalation scenario
 
@@ -117,7 +117,7 @@ Filed for future product / operator surfaces. Pytest is the substrate-side cover
 
 ### 15-#3 — `model.call.error` needs deterministic provider upstream failure
 
-The substrate's `ProviderUpstreamError` handler emits `model.call.error`. Producing it from the UI requires the provider to return a real error; the stub-echo path never fails. **Pytest covers:** `test_phase10_invoke_endpoint*.py`. **What unblocks:** a real-but-faulting provider in test mode (substrate change), or a documented operator path to force a provider response. Neither is in scope for Phase 15.
+The substrate's `ProviderUpstreamError` handler emits `model.call.error`. Producing it from the UI requires the provider to return a real error; the stub-echo path never fails. **Pytest covers:** `test_invocations_api.py`. **What unblocks:** a real-but-faulting provider in test mode (substrate change), or a documented operator path to force a provider response. Neither is in scope for Phase 15.
 
 ### 15-#4 — `module.updated` workflow needs a second manifest version
 

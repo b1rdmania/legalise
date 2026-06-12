@@ -7,7 +7,7 @@ HTTP API is unmounted and the code lives in
 IDOR enforcement of that API (cross-user UUID access returns 404,
 owner_ref resolution forces the caller's id, archived matters 404)
 plus the admin gate on definition registration. Split out of
-``tests/test_phase1_security_fixes.py`` — the P1#1 (advice boundary)
+``tests/test_advice_boundary.py`` — the P1#1 (advice boundary)
 and P1#3 (matter context) halves of that file remain live.
 
 Revived by: the v0.2 output-lifecycle roadmap item, together with

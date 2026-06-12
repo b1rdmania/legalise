@@ -161,3 +161,48 @@ class TestErrorMessageContent:
         assert "deploy release step" in msg
         assert "rev_a" in msg
         assert "rev_b" in msg
+
+
+# ---------------------------------------------------------------------------
+# App-wide hygiene greps (moved from test_phase5_carryover_tidy.py)
+# ---------------------------------------------------------------------------
+
+import re
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+APP_ROOT = REPO_ROOT / "backend" / "app"
+
+
+def test_no_datetime_utcnow_in_app() -> None:
+    """No ``datetime.utcnow()`` left under ``backend/app/``.
+
+    The deprecation warning at runtime is ugly and the timezone-naive
+    return value risks silent UTC bugs as model defaults move through
+    SQLAlchemy. Phase 5 swept this to ``datetime.now(UTC)`` everywhere.
+    """
+    offenders: list[str] = []
+    pattern = re.compile(r"\bdatetime\.utcnow\s*\(")
+    for py in APP_ROOT.rglob("*.py"):
+        if pattern.search(py.read_text(encoding="utf-8")):
+            offenders.append(str(py.relative_to(REPO_ROOT)))
+    assert not offenders, (
+        f"Found {len(offenders)} files still using datetime.utcnow():\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+def test_no_http_422_unprocessable_entity_in_app() -> None:
+    """No ``HTTP_422_UNPROCESSABLE_ENTITY`` left under ``backend/app/``.
+
+    FastAPI 1.x renamed it to ``HTTP_422_UNPROCESSABLE_CONTENT``.
+    """
+    offenders: list[str] = []
+    needle = "HTTP_422_UNPROCESSABLE_ENTITY"
+    for py in APP_ROOT.rglob("*.py"):
+        if needle in py.read_text(encoding="utf-8"):
+            offenders.append(str(py.relative_to(REPO_ROOT)))
+    assert not offenders, (
+        f"Found {len(offenders)} files still using {needle}:\n  "
+        + "\n  ".join(offenders)
+    )

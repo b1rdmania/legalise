@@ -3,7 +3,7 @@
 POST + DELETE + GET, all under the strict matter-access predicate.
 
 The vertical-slice integration test
-(``test_phase6_vertical_slice``) covers the happy path end-to-end;
+(``test_invocations_api`` (vertical slice)) covers the happy path end-to-end;
 this file isolates and pins the edge cases:
 
 POST:

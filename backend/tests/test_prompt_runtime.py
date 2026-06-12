@@ -112,7 +112,7 @@ def test_schema_rejects_prompt_without_instructions() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Invocation harness (mirrors test_phase10_invocations_api.py)
+# Invocation harness (mirrors test_invocations_api.py)
 # ---------------------------------------------------------------------------
 
 
