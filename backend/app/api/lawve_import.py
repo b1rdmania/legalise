@@ -5,8 +5,11 @@ convert one into a Legalise module DRAFT.
 `/api/modules/external/github/...` — inspect + convert a SKILL.md from
 any public GitHub repository (the generic drop-in path).
 
-Authed. Read-only: no DB writes, no audit rows, no install. The draft
-must still be signed + installed through the existing trust ceremony.
+Catalogue BROWSING (the two lawve GETs) is public: it serves the open
+Lawve catalogue — public GitHub data behind a small TTL cache — so the
+anonymous /skills page can stock its shelf. Conversion to a draft stays
+authed, and the draft must still be signed + installed through the
+existing trust ceremony. No DB writes, no audit rows on the read path.
 """
 
 from __future__ import annotations
@@ -42,7 +45,7 @@ class DraftRequest(BaseModel):
 
 
 @router.get("/external/lawve/skills")
-async def list_lawve_skills(user: User = Depends(current_user)) -> dict:
+async def list_lawve_skills() -> dict:
     try:
         return await list_skills()
     except LawveSourceError as exc:
@@ -53,7 +56,7 @@ async def list_lawve_skills(user: User = Depends(current_user)) -> dict:
 
 
 @router.get("/external/lawve/skills/{slug}")
-async def get_lawve_skill(slug: str, user: User = Depends(current_user)) -> dict:
+async def get_lawve_skill(slug: str) -> dict:
     try:
         detail = await get_skill(slug)
     except LawveSourceError as exc:
