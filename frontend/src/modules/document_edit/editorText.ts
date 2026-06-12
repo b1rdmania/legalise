@@ -196,10 +196,25 @@ function draftStorageKey(documentId: string): string {
   return `legalise.documentDraft.${documentId}`;
 }
 
-export function readDocumentLocalDraft(documentId: string): DocumentLocalDraft | null {
-  if (typeof window === "undefined") return null;
+// localStorage can be absent (SSR, some test environments) or throw
+// (private browsing, storage quota, disabled by policy). Every access
+// goes through this guard; in particular nothing may touch storage
+// again inside a catch path — that was a route-collapsing crash.
+function safeStorage(): Storage | null {
   try {
-    const raw = window.localStorage.getItem(draftStorageKey(documentId));
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function readDocumentLocalDraft(documentId: string): DocumentLocalDraft | null {
+  const storage = safeStorage();
+  if (!storage) return null;
+  const key = draftStorageKey(documentId);
+  try {
+    const raw = storage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<DocumentLocalDraft>;
     if (
@@ -208,22 +223,40 @@ export function readDocumentLocalDraft(documentId: string): DocumentLocalDraft |
       typeof parsed.plainText !== "string" ||
       typeof parsed.savedAt !== "string"
     ) {
-      window.localStorage.removeItem(draftStorageKey(documentId));
+      try {
+        storage.removeItem(key);
+      } catch {
+        // unwritable storage — nothing to clean
+      }
       return null;
     }
     return parsed as DocumentLocalDraft;
   } catch {
-    window.localStorage.removeItem(draftStorageKey(documentId));
+    try {
+      storage.removeItem(key);
+    } catch {
+      // unwritable storage — nothing to clean
+    }
     return null;
   }
 }
 
 export function writeDocumentLocalDraft(draft: DocumentLocalDraft): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(draftStorageKey(draft.documentId), JSON.stringify(draft));
+  const storage = safeStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(draftStorageKey(draft.documentId), JSON.stringify(draft));
+  } catch {
+    // quota / private mode — the draft simply isn't persisted
+  }
 }
 
 export function clearDocumentLocalDraft(documentId: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(draftStorageKey(documentId));
+  const storage = safeStorage();
+  if (!storage) return;
+  try {
+    storage.removeItem(draftStorageKey(documentId));
+  } catch {
+    // unwritable storage — nothing to clean
+  }
 }
