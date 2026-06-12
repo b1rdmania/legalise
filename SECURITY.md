@@ -26,7 +26,7 @@ In scope:
 
 - the open-source Legalise repository
 - the hosted legalise.dev evaluation environment
-- authentication, provider-key storage, matter access control, audit, storage, job execution, upload validation, and module capability enforcement
+- authentication (including per-IP rate limiting on register / verification / password-reset), provider-key storage, matter access control, audit, storage, job execution, upload validation, and module capability enforcement
 
 Out of scope:
 

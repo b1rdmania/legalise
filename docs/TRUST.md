@@ -287,6 +287,13 @@ SameSite=Lax), email verification via Resend, and password reset via
 one-time token. Sessions are backed by a server-side `access_token`
 table — revocation is real, not just client-side.
 
+**Abuse throttling.** The unauthenticated auth surface is per-IP rate
+limited at the application layer: 5 registrations and 10
+verification-email / password-reset requests per IP per hour, counted
+via a sliding window recomputed from Postgres (no Redis counter, so the
+limit holds across instances). Throttled requests return 429, and the
+first rejection in a window writes an `auth.rate_limited` audit row.
+
 **Bring-your-own provider keys.** Each user adds their Anthropic or
 OpenAI key under Settings → API keys. The privilege-aware model gateway
 reads the user's key for every call on their matters. Server-side keys

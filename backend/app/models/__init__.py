@@ -38,6 +38,7 @@ from app.models.matter import (
 from app.models.document import Document, TAG_VALUES
 from app.models.event import Event
 from app.models.audit import AuditEntry
+from app.models.auth_throttle import AuthThrottleEvent
 from app.models.audit_chain import (
     AUDIT_CHAIN_SCOPE_MATTER,
     AUDIT_CHAIN_SCOPE_SYSTEM,
@@ -252,4 +253,6 @@ __all__ = [
     "REVIEW_TERMINAL_STATES",
     "REVIEW_STATE_VALUES",
     "REVIEW_ELIGIBLE_KINDS",
+    # Auth rate limiting.
+    "AuthThrottleEvent",
 ]
