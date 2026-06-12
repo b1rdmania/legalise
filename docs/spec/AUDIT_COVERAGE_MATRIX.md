@@ -21,10 +21,10 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | `auth.user.verified` | e2e-covered | `e2e/first-run.spec.ts` |
 | `auth.user.demo_seeded` | e2e-covered | `e2e/first-run.spec.ts` + `e2e/smoke.spec.ts` |
 | `auth.user.capabilities_auto_granted` | e2e-covered | `e2e/first-run.spec.ts` |
-| `auth.user.logged_in` | pytest-covered | `backend/tests/test_phase13b_audit_gap_fill.py::test_login_and_logout_emit_canonical_audit` |
+| `auth.user.logged_in` | pytest-covered | `backend/tests/test_audit_coverage.py::test_login_and_logout_emit_canonical_audit` |
 | `auth.user.logged_out` | pytest-covered | same |
-| `auth.user.password_reset_requested` | not-coverable-yet (15-#1) | `backend/tests/test_phase13b_audit_gap_fill.py::test_forgot_password_emits_audit` |
-| `auth.user.password_reset_completed` | not-coverable-yet (15-#1) | `backend/tests/test_phase13b_audit_gap_fill.py::test_reset_password_emits_audit` |
+| `auth.user.password_reset_requested` | not-coverable-yet (15-#1) | `backend/tests/test_audit_coverage.py::test_forgot_password_emits_audit` |
+| `auth.user.password_reset_completed` | not-coverable-yet (15-#1) | `backend/tests/test_audit_coverage.py::test_reset_password_emits_audit` |
 | `auth.user.profile_updated` | e2e-covered | `e2e/first-run.spec.ts` (PATCH default model step) |
 | `user.admin.bootstrapped` | e2e-covered | `e2e/first-run.spec.ts` (real Phase 12 CLI) |
 
@@ -94,7 +94,7 @@ Discipline: a row is marked `e2e-covered` only if a spec file actually exists an
 | Action | Coverage | Test |
 | --- | --- | --- |
 | `audit.reconstruction.viewed` (scope=matter) | e2e-covered | `e2e/first-run.spec.ts` |
-| `audit.reconstruction.viewed` (scope=workspace) | pytest-covered | `backend/tests/test_phase14_5_c_admin_reconstruction.py::test_emits_unified_payload_shape_with_workspace_scope` |
+| `audit.reconstruction.viewed` (scope=workspace) | pytest-covered | `backend/tests/test_admin_api.py::test_emits_unified_payload_shape_with_workspace_scope` |
 
 ### Admin
 
@@ -109,7 +109,7 @@ Filed for future product / operator surfaces. Pytest is the substrate-side cover
 
 ### 15-#1 — password reset flow needs a deterministic token loop
 
-`auth.user.password_reset_requested` + `auth.user.password_reset_completed` emit via fastapi-users forgot/reset endpoints. The reset token is sent by email; no in-band surface exposes it to a test runner without intercepting the mail transport. **Pytest covers:** `test_phase13b_audit_gap_fill.py::test_forgot_password_emits_audit` + `test_reset_password_emits_audit`. **What unblocks:** an admin endpoint that lists pending reset tokens, or a stubbed mailer test runners can read.
+`auth.user.password_reset_requested` + `auth.user.password_reset_completed` emit via fastapi-users forgot/reset endpoints. The reset token is sent by email; no in-band surface exposes it to a test runner without intercepting the mail transport. **Pytest covers:** `test_audit_coverage.py::test_forgot_password_emits_audit` + `test_reset_password_emits_audit`. **What unblocks:** an admin endpoint that lists pending reset tokens, or a stubbed mailer test runners can read.
 
 ### 15-#2 — advice-boundary blocked/denied/failed paths need an escalation scenario
 
