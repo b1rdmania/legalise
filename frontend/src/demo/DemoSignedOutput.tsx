@@ -79,8 +79,8 @@ export function DemoSignedOutput() {
             See output.signed on the record →
           </a>
         </p>
-        {/* The loop's last line is a way to reach the builder — the demo's
-            one ask (premortem item: capture at the final scene). */}
+        {/* The loop's last line is a way to reach the builder — the
+            demo's one ask. */}
         <p className="mt-6 border-t border-rule pt-4 text-sm text-prose" data-testid="demo-capture-line">
           Supervise work product in a real firm? Tell me where this breaks,
           twenty minutes:{" "}

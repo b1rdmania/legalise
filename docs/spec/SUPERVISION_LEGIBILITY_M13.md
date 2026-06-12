@@ -1,6 +1,6 @@
 # Supervision made legible (M12 + M13)
 
-Date: 2026-06-12. Closes diligence gates G-A3/G-A4 — "the premise flaw":
+Date: 2026-06-12. The premise flaw this closes:
 review effort is recorded but invisible, so shallow signing privately
 dominates for any output needing more than ~40 minutes of real review.
 The fix is not enforcement. It is legibility: make the cost of review
