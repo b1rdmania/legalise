@@ -43,7 +43,9 @@ const MATTER: Matter = {
     "Ms Khan was dismissed by Acme Trading Ltd on 12 March 2026, after three years and four months of continuous service. The stated reason was conduct — a single alleged breach of the company's social-media policy — but the dismissal followed a documented grievance Ms Khan had raised six weeks earlier concerning her line manager's pattern of conduct toward female members of the warehouse team.\n\nOur case is that the conduct reason is pretextual. The real reason for dismissal falls within s.103A ERA 1996 (protected disclosure) or, in the alternative, constitutes victimisation under s.27 Equality Act 2010. The Burchell test fails on the second and third limbs: the investigator was the manager who was the subject of Ms Khan's prior grievance, and the sanction sat outside the band of reasonable responses given a clean disciplinary record and Iceland Frozen Foods proportionality.",
   pivot_fact:
     "The social-media post the respondent treats as gross misconduct was a private comment on a personal Instagram account, set to a closed audience of 47 followers, none of whom were customers, suppliers, or named in the post.",
-  privilege_posture: "C_paused",
+  // The thread walks pause → refusal → resume; the matter ends resumed
+  // so the rail shows Active and the loop reads complete (P29 §3).
+  privilege_posture: "B_mixed",
   default_model_id: "claude-sonnet-4-6",
   required_provider: "anthropic",
   facts: {
@@ -403,6 +405,43 @@ const AUDIT: AuditEntry[] = [
       decision: "blocked before dispatch — no content left the workspace",
     },
   },
+  // Resume + the re-run that now succeeds — the loop closes on the record.
+  {
+    id: "audit-26",
+    timestamp: "2026-04-06T14:21:08Z",
+    actor_id: ID.user,
+    matter_id: ID.matter,
+    action: "matter.privilege.changed",
+    module: null,
+    resource_type: "matter",
+    resource_id: ID.matter,
+    model_used: null,
+    prompt_hash: null,
+    response_hash: null,
+    token_count: null,
+    latency_ms: 19,
+    payload: {
+      from: "C_paused",
+      to: "B_mixed",
+      reason: "settlement talks concluded",
+    },
+  },
+  {
+    id: "audit-27",
+    timestamp: "2026-04-06T14:22:41Z",
+    actor_id: ID.user,
+    matter_id: ID.matter,
+    action: "document.summarise",
+    module: "assistant",
+    resource_type: "document",
+    resource_id: ID.witness,
+    model_used: "claude-sonnet-4-6",
+    prompt_hash: "gh78ij90",
+    response_hash: "op67qr89",
+    token_count: 1_842,
+    latency_ms: 3_912,
+    payload: { document: "witness-statement-khan.docx" },
+  },
 ];
 
 const CHRONOLOGY: ChronologyResponse = {
@@ -612,7 +651,7 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
     id: "asst-msg-04",
     role: "assistant",
     content:
-      "12 March 2026. Acme dismissed Ms Khan citing a social-media policy breach — see [chron:ev-05]. That date is the EDT for limitation purposes; ACAS Day A was filed on 2 May, so the s.207B extended ET1 deadline lands on 3 July 2026.",
+      "12 March 2026. Acme dismissed Ms Khan citing a social-media policy breach [chron:ev-05]. That date is the EDT for limitation purposes; ACAS Day A was filed on 2 May, so the s.207B extended ET1 deadline lands on 3 July 2026.",
     suggested_actions: [
       {
         type: "view_chronology",
@@ -634,11 +673,11 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
     id: "asst-msg-06",
     role: "assistant",
     content:
-      "Done — privilege posture is now C_paused. Until you resume, no document content reaches any model: the gate blocks the call before dispatch, and every blocked attempt lands on the record.",
+      "Done, the matter is paused. Until you resume it, no document content reaches any model: the gate blocks the call before it is sent, and every blocked attempt lands on the record.",
     suggested_actions: [
       {
         type: "view_audit",
-        label: "See the posture change on the record",
+        label: "See the pause on the record",
         params: {},
       },
     ],
@@ -655,15 +694,51 @@ const ASSISTANT_MESSAGES: AssistantMessage[] = [
     id: "asst-msg-08",
     role: "assistant",
     content:
-      "I can't — this matter is paused. The privilege gate refused the model call before any content left the workspace (C_paused, set for the settlement talks). The refusal is recorded on the matter record with the same fidelity as every approval. Resume the matter from its settings when the talks conclude.",
+      "I can't. This matter is paused, so the gate refused the model call before any content left the workspace. The refusal is recorded with the same fidelity as every approval. Resume the matter when the talks conclude.",
     suggested_actions: [
       {
         type: "view_audit",
-        label: "See the blocked entry",
+        label: "See the refusal on the record",
         params: {},
       },
     ],
     created_at: "2026-04-06T12:05:31Z",
+  },
+  {
+    id: "asst-msg-09",
+    role: "user",
+    content: "Talks concluded — resume the matter.",
+    suggested_actions: [],
+    created_at: "2026-04-06T14:21:08Z",
+  },
+  {
+    id: "asst-msg-10",
+    role: "assistant",
+    content:
+      "Resumed. Model access is back on for this matter, and the pause, the blocked attempt, and this resumption are all on the record.",
+    suggested_actions: [],
+    created_at: "2026-04-06T14:21:12Z",
+  },
+  {
+    id: "asst-msg-11",
+    role: "user",
+    content: "summarise the witness statement",
+    suggested_actions: [],
+    created_at: "2026-04-06T14:22:30Z",
+  },
+  {
+    id: "asst-msg-12",
+    role: "assistant",
+    content:
+      `Summary of witness-statement-khan.docx: Ms Khan says the Instagram post treated as gross misconduct was made from a private account, outside working hours, to a closed audience of 47 [doc:${ID.witness}]. She had raised a grievance about her line manager six weeks before the dismissal, and the same manager chaired the disciplinary meeting. Nothing in the statement suggests any customer, supplier, or colleague saw the post.`,
+    suggested_actions: [
+      {
+        type: "view_audit",
+        label: "Open the Record",
+        params: {},
+      },
+    ],
+    created_at: "2026-04-06T14:22:41Z",
   },
 ];
 

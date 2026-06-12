@@ -42,7 +42,7 @@ describe("DemoMatter document search", () => {
     expect(demoDocumentMatches(doc, "witness")).toBe(false);
   });
 
-  it("shows a no-sign-in document workbench rail in the public reader", () => {
+  it("renders the stripped public reader: title, document body, facts — no workbench chrome", () => {
     const docs = [
       {
         id: "doc-1",
@@ -61,23 +61,13 @@ describe("DemoMatter document search", () => {
     render(<DemoDocumentReader documentId="doc-1" docs={docs} />);
 
     expect(screen.getByRole("heading", { name: "dismissal-letter.pdf" })).toBeInTheDocument();
-    expect(screen.getByTestId("demo-document-workbench-rail")).toHaveTextContent(
-      "This file is ready to use.",
-    );
-    expect(screen.getByTestId("demo-document-workbench-rail").closest("aside")).toHaveClass(
-      "order-1",
-    );
-    expect(screen.getByTestId("demo-document-reader").closest("section")).toHaveClass(
-      "order-2",
-    );
-    expect(screen.getByRole("link", { name: /Run a skill with this file/i })).toHaveAttribute(
-      "href",
-      "/demo/workflows",
-    );
-    expect(screen.getByRole("link", { name: /View the Record/i })).toHaveAttribute(
-      "href",
-      "/demo/audit",
-    );
+    expect(screen.getByTestId("demo-document-reader")).toBeInTheDocument();
+    // P29 §3: the workbench rail and lecture list are gone.
+    expect(screen.queryByTestId("demo-document-workbench-rail")).not.toBeInTheDocument();
+    expect(screen.queryByText(/What happens in the workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Run a skill with this file/i })).not.toBeInTheDocument();
+    // Facts render as plain rows, humanised.
+    expect(screen.getByText("PDF")).toBeInTheDocument();
     expect(screen.queryByText(/sign in/i)).not.toBeInTheDocument();
   });
 });

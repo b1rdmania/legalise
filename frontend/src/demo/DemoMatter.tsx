@@ -402,21 +402,12 @@ function DemoDocumentsTab({
                 Extracted text preview. Skills and source chips point back to this reader.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <a
-                href={`/demo/documents/${encodeURIComponent(inspectedDoc.id)}`}
-                className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal hover:border-seal"
-              >
-                Open full reader
-              </a>
-              <button
-                type="button"
-                onClick={() => navigate("/demo/workflows")}
-                className="rounded-item border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-              >
-                View skills
-              </button>
-            </div>
+            <a
+              href={`/demo/documents/${encodeURIComponent(inspectedDoc.id)}`}
+              className="rounded-item border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal hover:border-seal"
+            >
+              Open full reader
+            </a>
           </div>
           <div className="border-b border-rule bg-paper-sunken px-5 py-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -456,9 +447,6 @@ function DemoDocumentsTab({
                 <span key={`${index}-${segment.text.slice(0, 8)}`}>{segment.text}</span>
               ),
             )}
-          </div>
-          <div className="border-t border-rule px-5 py-4 text-xs leading-5 text-muted">
-            Original files, extracted text, edit versions, redactions, and record links live on this document surface in the working product.
           </div>
         </section>
       </div>
@@ -503,188 +491,131 @@ export function DemoDocumentReader({
     );
   }
 
+  // P29 §3: the reading surface, stripped to the P25 anatomy — back link,
+  // title, one meta line, the document, facts as ledger rows at the foot.
+  // No workbench panel, no lecture list, no chip salad.
   return (
-    <div className="mx-auto max-w-[1160px]">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-[820px]">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <a
           href="/demo/documents"
           className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
-          ← Back to demo documents
+          ← Files
         </a>
-        <a
-          href="/demo/audit"
-          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-        >
-          View demo Record →
-        </a>
+        <label className="min-w-[200px] text-xs text-muted">
+          <span className="sr-only">Search document</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search this document"
+            className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+            data-testid="demo-document-search"
+          />
+        </label>
       </div>
 
-      <header className="rounded-card border border-rule bg-paper px-5 py-5 sm:px-6">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-          Demo document
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight2 text-ink sm:text-4xl">
           {doc.filename}
         </h1>
-        <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-          {doc.tag && (
-            <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
-              {doc.tag}
-            </span>
-          )}
-          <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
-            {doc.from_disclosure ? "CPR 31 disclosure" : "uploaded"}
-          </span>
-          <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
-            {formatBytes(doc.size_bytes)}
-          </span>
-          <span className="rounded-item border border-rule bg-paper-sunken px-2 py-1">
-            source-ready
-          </span>
-        </div>
+        <p className="mt-2 text-xs text-muted">
+          {[
+            doc.tag,
+            doc.from_disclosure ? "CPR 31 disclosure" : "uploaded",
+            formatBytes(doc.size_bytes),
+            doc.uploaded_at.slice(0, 10),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {query.trim() && (
+          <p className="mt-2 text-xs text-muted" data-testid="demo-document-search-count">
+            {matchCount
+              ? `${matchCount} match${matchCount === 1 ? "" : "es"}`
+              : "No matches"}
+          </p>
+        )}
       </header>
 
-      <main className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="order-2 min-h-[680px] rounded-card border border-rule bg-paper lg:order-1">
-          <div className="border-b border-rule px-5 py-3">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-ink">Extracted text</h2>
-                <p className="mt-0.5 text-xs text-muted">
-                  Read-only public sample. Search it like a project file.
-                </p>
-              </div>
-              <label className="min-w-[220px] text-xs text-muted">
-                <span className="sr-only">Search document</span>
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search document"
-                  className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
-                  data-testid="demo-document-search"
-                />
-              </label>
-            </div>
-            {query.trim() && (
-              <p className="mt-2 text-xs text-muted" data-testid="demo-document-search-count">
-                {matchCount
-                  ? `${matchCount} match${matchCount === 1 ? "" : "es"}`
-                  : "No matches"}
-              </p>
-            )}
-          </div>
-          <div
-            className="px-7 py-7 text-[16px] leading-8 text-ink whitespace-pre-wrap sm:px-10"
-            data-testid="demo-document-reader"
-          >
-            {searchSegments.map((segment, index) =>
-              segment.match ? (
-                <mark
-                  key={`${segment.text}-${index}`}
-                  className="bg-[#FFF4B8] px-0.5"
-                  data-testid="demo-document-search-match"
-                >
-                  {segment.text}
-                </mark>
-              ) : (
-                <span key={`${index}-${segment.text.slice(0, 8)}`}>{segment.text}</span>
-              ),
-            )}
-          </div>
-        </section>
+      <div
+        className="mt-8 border-t border-rule pt-8 text-[16px] leading-8 text-ink whitespace-pre-wrap"
+        data-testid="demo-document-reader"
+      >
+        {searchSegments.map((segment, index) =>
+          segment.match ? (
+            <mark
+              key={`${segment.text}-${index}`}
+              className="bg-[#FFF4B8] px-0.5"
+              data-testid="demo-document-search-match"
+            >
+              {segment.text}
+            </mark>
+          ) : (
+            <span key={`${index}-${segment.text.slice(0, 8)}`}>{segment.text}</span>
+          ),
+        )}
+      </div>
 
-        <aside className="order-1 space-y-4 lg:order-2">
-          <section className="rounded-card border border-ink bg-paper p-4" data-testid="demo-document-workbench-rail">
-            <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              Document workbench
-            </p>
-            <h2 className="mt-1 text-sm font-semibold text-ink">This file is ready to use.</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              This public demo lets you read the source, open the skills that use it,
-              and inspect the record without creating an account.
-            </p>
-            <div className="mt-4 grid gap-2 text-sm">
-              <a
-                href="/demo/workflows"
-                className="flex items-center justify-between rounded-item border border-ink bg-ink px-3 py-2 font-semibold text-paper hover:bg-seal hover:border-seal"
-              >
-                <span>Run a skill with this file</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              <a
-                href="/demo/audit"
-                className="flex items-center justify-between rounded-item border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
-              >
-                <span>View the Record</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              <a
-                href="/demo/documents"
-                className="flex items-center justify-between rounded-item border border-rule bg-paper-sunken px-3 py-2 font-semibold text-ink hover:border-ink"
-              >
-                <span>Open other files</span>
-                <span aria-hidden="true">→</span>
-              </a>
-            </div>
-          </section>
-          <section className="rounded-card border border-rule bg-paper p-4">
-            <h2 className="text-sm font-semibold text-ink">What happens in the workspace</h2>
-            <ol className="mt-3 space-y-2 text-sm leading-6 text-muted">
-              <li><span className="font-semibold text-ink">1.</span> Read or search the document.</li>
-              <li><span className="font-semibold text-ink">2.</span> Open a skill that uses the file.</li>
-              <li><span className="font-semibold text-ink">3.</span> Inspect the produced output.</li>
-              <li><span className="font-semibold text-ink">4.</span> Open the Record to see what happened.</li>
-            </ol>
-          </section>
-          <section className="rounded-card border border-rule bg-paper p-4">
-            <details>
-              <summary className="cursor-pointer text-sm font-semibold text-ink">
-                Document facts
-              </summary>
-            <dl className="mt-3 space-y-3 text-sm">
-              <DemoReaderFact label="Type" value={doc.mime_type} />
-              <DemoReaderFact
-                label="Uploaded"
-                value={doc.uploaded_at.replace("T", " ").slice(0, 16)}
-              />
-              <DemoReaderFact label="SHA-256" value={doc.sha256} mono />
-            </dl>
-            </details>
-          </section>
-        </aside>
-      </main>
-    </div>
-  );
-}
-
-function DemoReaderFact({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <dt className="text-[10px] font-semibold uppercase tracking-track2 text-muted">
-        {label}
-      </dt>
-      <dd className={`mt-1 break-words text-ink ${mono ? "tech-token text-xs" : ""}`}>
-        {value}
-      </dd>
+      <footer className="mt-12 border-t border-rule pt-4">
+        <dl className="space-y-1 text-[11px] text-muted">
+          <LedgerRow label="Type">
+            {doc.mime_type.includes("wordprocessingml")
+              ? "Word document"
+              : doc.mime_type === "application/pdf"
+                ? "PDF"
+                : doc.mime_type}
+          </LedgerRow>
+          <LedgerRow label="Uploaded">
+            {doc.uploaded_at.replace("T", " ").slice(0, 16)}
+          </LedgerRow>
+          <LedgerRow label="SHA-256">
+            <span className="tech-token">{doc.sha256.slice(0, 16)}…</span>
+          </LedgerRow>
+        </dl>
+        <p className="mt-4 text-xs text-muted">
+          In the working product this surface carries the original file, edit
+          versions, redlines, and record links.
+        </p>
+      </footer>
     </div>
   );
 }
 
 function demoDocumentExtract(doc: MatterDocument): string {
   if (doc.filename.includes("dismissal")) {
-    return "Acme Trading Ltd confirms dismissal with effect from 12 March 2026. The reason given is alleged breach of the company social-media policy. The letter refers to a disciplinary meeting chaired by the same manager named in Ms Khan's earlier grievance.";
+    return [
+      "ACME TRADING LTD\nUnit 4, Riverside Industrial Estate, Leeds LS10 1AB",
+      "12 March 2026\n\nMs Jasmine Khan\n[address withheld in this demo]",
+      "Dear Ms Khan,",
+      "RE: TERMINATION OF EMPLOYMENT",
+      "I am writing to confirm the outcome of the disciplinary hearing held on 10 March 2026. The panel found that your conduct in publishing material on social media on 5 March 2026 amounted to a serious breach of the Company's Social Media and Communications Policy (section 4.2).",
+      "The Company has decided that your employment will terminate with effect from 12 March 2026. You will be paid in lieu of your notice period.",
+      "The disciplinary meeting was chaired by Mr D. Howarth, Warehouse Operations Manager. The panel considered your written representations and the investigation report dated 6 March 2026.",
+      "You have the right to appeal this decision in writing within five working days.",
+      "Yours sincerely,\nHR Department\nAcme Trading Ltd",
+    ].join("\n\n");
   }
   if (doc.filename.includes("witness")) {
-    return "Ms Khan says the social-media post was made from a private account, outside working hours, to a closed audience. She had raised a grievance six weeks earlier about her line manager's conduct toward female warehouse staff.";
+    return [
+      "IN THE EMPLOYMENT TRIBUNAL\nCASE NO: 2406432/2026\n\nBETWEEN: JASMINE KHAN (Claimant) and ACME TRADING LTD (Respondent)",
+      "WITNESS STATEMENT OF JASMINE KHAN",
+      "1. I make this statement from my own knowledge save where otherwise stated.",
+      "2. I was employed by the Respondent from 8 November 2022 until my dismissal on 12 March 2026, most recently as a warehouse team coordinator. My disciplinary record was clean throughout.",
+      "3. On 29 January 2026 I raised a written grievance concerning the conduct of my line manager, Mr Howarth, toward female members of the warehouse team. HR acknowledged the grievance on 18 February 2026 and appointed Mr Howarth's own department to investigate it.",
+      "4. The Instagram post relied on by the Respondent was made on 5 March 2026 from my personal account, outside working hours. The account is private, with an audience of 47 approved followers. None of them are customers, suppliers, or people named in the post. The post did not identify the Respondent.",
+      "5. The disciplinary meeting on 10 March 2026 was chaired by Mr Howarth — the manager who was the subject of my grievance six weeks earlier.",
+      "I believe the facts stated in this witness statement are true.",
+    ].join("\n\n");
   }
-  return "The synthetic mutual NDA contains indefinite confidentiality obligations, broad mutual indemnity language, a data-protection clause, and no governing law or jurisdiction clause.";
+  return [
+    "MUTUAL NON-DISCLOSURE AGREEMENT",
+    "This Agreement is made between Acme Trading Ltd and North Mill Consulting Limited (each a \"Party\").",
+    "1. CONFIDENTIAL INFORMATION. Each Party may disclose to the other information relating to its business, products, customers, and operations. All such information is \"Confidential Information\".",
+    "2. OBLIGATIONS. Each Party shall hold the other's Confidential Information in strict confidence. The obligations in this clause survive termination of this Agreement indefinitely.",
+    "3. INDEMNITY. Each Party shall indemnify the other against all losses, costs, and claims howsoever arising in connection with any breach of this Agreement, without limit.",
+    "4. DATA PROTECTION. Each Party confirms it complies with applicable data protection law.",
+    "5. TERM. This Agreement runs for three years from the date of signature.",
+    "[No governing law or jurisdiction clause appears in the document.]",
+  ].join("\n\n");
 }
