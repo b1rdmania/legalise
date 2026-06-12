@@ -1,6 +1,6 @@
 """Module install trust ceremony.
 
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 5 and the
+Per the PHASE_3_BUILD_PLAN plan (repo history) 5 and the
 ``TRUST_CEREMONY.md`` architecture doc.
 
 Two install modes:

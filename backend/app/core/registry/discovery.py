@@ -12,7 +12,7 @@ Returns ``DiscoveredModule`` records with the source manifest kind so
 callers can route to either the v2 validator directly or through the
 v1 → v2 shim.
 
-Per docs/handovers/PHASE_2_BUILD_PLAN.md §Step 3.
+Per the PHASE_2_BUILD_PLAN plan (repo history) 3.
 """
 
 from __future__ import annotations

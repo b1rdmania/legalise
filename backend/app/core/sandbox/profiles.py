@@ -5,7 +5,7 @@ sandbox profile. Modules can override individual fields via their
 manifest's data_movement + entrypoint configuration, but the kind
 default establishes the safe baseline.
 
-Per docs/handovers/PHASE_3_BUILD_PLAN.md §Step 3.
+Per the PHASE_3_BUILD_PLAN plan (repo history) 3.
 """
 
 from __future__ import annotations

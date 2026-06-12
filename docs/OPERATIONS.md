@@ -4,7 +4,7 @@ This is the backup and restore runbook. It covers what holds your data,
 how to back it up, and how to get back to a working stack after a bad
 deploy, data corruption, or total loss. Deploy mechanics and migration
 discipline live in [`RUNBOOK.md`](./RUNBOOK.md); hosted-deploy secrets
-live in [`handovers/DEPLOYMENT_SECRETS.md`](./handovers/DEPLOYMENT_SECRETS.md).
+live in [`DEPLOYMENT_SECRETS.md`](./DEPLOYMENT_SECRETS.md).
 
 ---
 
@@ -28,7 +28,7 @@ What is **not** a source of truth:
   Never back up a Fly machine's disk expecting matter data.
 - **Redis.** Holds job ids and queue state only — no matter content,
   prompt bodies, response bodies, or document bodies, ever (see
-  `handovers/DEPLOYMENT_SECRETS.md` §Redis). Losing Redis loses at most
+  `docs/DEPLOYMENT_SECRETS.md` §Redis). Losing Redis loses at most
   in-flight background jobs, which can be re-run.
 
 So a complete backup is: **a Postgres backup + an object-storage copy.**
