@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from app.core.auth import current_user
 from app.core.github_import import build_github_draft, get_remote_skill
+from app.core.lawve_directory import LAWVE_SKILLS_URL, directory_count
 from app.core.lawve_import import (
     LawveSourceError,
     build_draft,
@@ -53,6 +54,24 @@ async def list_lawve_skills() -> dict:
             502,
             detail={"error": "lawve_source_unavailable", "message": str(exc)},
         )
+
+
+@router.get("/external/lawve/directory-count")
+async def lawve_directory_count() -> dict:
+    """Distinct published skills on lawve.ai (sitemap count, 1h cache).
+
+    Public + read-only — it feeds the shelf footer's honest gap strip
+    ("N skills on Lawve · M importable here today"). The frontend hides
+    the strip on 502 rather than guessing a number.
+    """
+    try:
+        count = await directory_count()
+    except LawveSourceError as exc:
+        raise HTTPException(
+            502,
+            detail={"error": "lawve_directory_unavailable", "message": str(exc)},
+        )
+    return {"source": "lawve.ai", "skills_url": LAWVE_SKILLS_URL, "count": count}
 
 
 @router.get("/external/lawve/skills/{slug}")

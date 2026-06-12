@@ -150,6 +150,8 @@ export interface LawveSkillRow {
   author_name: string | null;
   license: string | null;
   source_path: string | null;
+  /** Direct attribution link to the skill's lawve.ai directory page. */
+  lawve_url?: string | null;
   has_references: boolean;
   has_scripts: boolean;
   script_review_required: boolean;
@@ -178,6 +180,19 @@ export interface LawveDraftResult {
 export const listLawveSkills = () =>
   apiFetch(`${API}/modules/external/lawve/skills`).then((r) =>
     jsonOrThrow<{ source: string; repo: string; ref: string | null; skills: LawveSkillRow[] }>(r),
+  );
+
+// The honest gap strip — how many skills the lawve.ai directory lists
+// versus how many are importable here today. Public; cached 1h
+// server-side; callers hide the strip on failure.
+export interface LawveDirectoryCount {
+  source: string;
+  skills_url: string;
+  count: number;
+}
+export const getLawveDirectoryCount = () =>
+  apiFetch(`${API}/modules/external/lawve/directory-count`).then((r) =>
+    jsonOrThrow<LawveDirectoryCount>(r),
   );
 
 export const getLawveSkill = (slug: string) =>

@@ -181,6 +181,14 @@ def _flags_for(slug: str, paths: list[str]) -> dict[str, bool]:
 
 
 def _row(plugin: dict, slug: str, ref: str, flags: dict[str, bool]) -> dict:
+    # Listing facets are marketplace.json fields only — deliberately.
+    # Surveyed all 42 SKILL.md frontmatters in the catalogue (2026-06-12):
+    # the vocabulary is exactly `name`, `description`,
+    # `metadata: {author, license, version}` — no tags, jurisdiction, or
+    # category fields exist. Fetching every SKILL.md per listing would
+    # cost ~42 raw GETs on a cold cache and surface nothing the
+    # marketplace doesn't already carry, so we don't. If the upstream
+    # vocabulary grows, add the field here with an honest null default.
     author = plugin.get("author") or {}
     return {
         "source": "lawve",
@@ -193,6 +201,10 @@ def _row(plugin: dict, slug: str, ref: str, flags: dict[str, bool]) -> dict:
         "author_name": author.get("name") if isinstance(author, dict) else None,
         "license": plugin.get("license"),
         "source_path": plugin.get("source"),
+        # The catalogue directory name doubles as the lawve.ai slug
+        # (verified against the live /en/skills/{slug} sitemap), so every
+        # row can attribute its source with a direct outbound link.
+        "lawve_url": f"https://lawve.ai/en/skills/{slug}",
         **flags,
     }
 
