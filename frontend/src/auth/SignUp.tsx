@@ -1,15 +1,28 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { navigate } from "../lib/route";
+import { getSignupChannel } from "../lib/channel";
 import { useAuth } from "./AuthProvider";
 import { AuthCard, LedgerField } from "./AuthCard";
 import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
+
+// Gate 4 demand capture — optional, self-reported. Mirrors the backend
+// allowlist in app/core/demand_capture.py.
+const PERSONA_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "Prefer not to say" },
+  { value: "practising_solicitor", label: "Practising solicitor" },
+  { value: "in_house", label: "In-house counsel" },
+  { value: "legal_ops", label: "Legal ops" },
+  { value: "engineer", label: "Engineer" },
+  { value: "other", label: "Other" },
+];
 
 export function SignUp() {
   const auth = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [persona, setPersona] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -22,7 +35,10 @@ export function SignUp() {
     setBusy(true);
     setError(null);
     try {
-      await auth.signUp(email, password, name);
+      await auth.signUp(email, password, name, {
+        persona: persona || null,
+        channel: getSignupChannel(),
+      });
       // After register, backend may require verification - route to pending.
       navigate("/auth/verify-pending");
     } catch (err) {
@@ -67,6 +83,19 @@ export function SignUp() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             className={inputCls}
           />
+        </LedgerField>
+        <LedgerField label="I am a" hint="optional - helps us understand who is evaluating">
+          <select
+            value={persona}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setPersona(e.target.value)}
+            className={inputCls}
+          >
+            {PERSONA_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </LedgerField>
         {error && <ErrorCallout message={error} />}
         <button type="submit" disabled={busy} className={primaryBtn}>

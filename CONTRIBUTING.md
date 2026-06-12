@@ -133,6 +133,8 @@ For:
 - Coverage gaps — modules you'd want to see in v0.2+.
 - Corrections — links to authority that says the plan is wrong.
 
+Entirely optional: add one of the `provenance:practitioner` / `provenance:builder` / `provenance:firm` labels to say where you're coming from — it helps us see whose problems we're actually solving.
+
 ## Code of conduct
 
 Be civil. Disagree with reasoning, not people.

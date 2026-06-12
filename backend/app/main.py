@@ -22,6 +22,7 @@ from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
 from app.api.jobs import router as jobs_router
+from app.api.admin_launch_funnel import router as admin_launch_funnel_router
 from app.api.admin_users import router as admin_users_router
 from app.api.artifacts import router as artifacts_router
 from app.api.audit import router as audit_router, admin_router as audit_admin_router
@@ -331,6 +332,10 @@ app.include_router(signoffs_router, prefix="/api/matters", tags=["signoffs"])
 # Admin role endpoint. Future admin endpoints land alongside under
 # /api/admin.
 app.include_router(admin_users_router, prefix="/api/admin", tags=["admin"])
+# Gate 4 launch-funnel counts — operator-facing JSON, superuser-only.
+app.include_router(
+    admin_launch_funnel_router, prefix="/api/admin", tags=["admin"]
+)
 # Bootstrap-state endpoint. Open (no auth) — gate to the first-auth flow.
 app.include_router(system_router, prefix="/api/system", tags=["system"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
