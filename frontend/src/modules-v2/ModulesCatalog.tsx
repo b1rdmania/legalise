@@ -449,18 +449,28 @@ export function ModulesCatalog() {
       )}
 
       {/* The stocked shelf: the open Lawve catalogue, reviewable and
-          addable in two clicks. */}
-      {authed && (
-        <section className="mt-12" data-testid="lawve-catalogue">
+          addable in two clicks. Public — the anonymous /skills page is
+          a real library, not three boxes (the catalogue GETs are open;
+          importing still requires a workspace). */}
+      <section className="mt-12" data-testid="lawve-catalogue">
           <SectionRule
             label="Schedule B — the open catalogue"
             right={
-              <Link
-                to="/skills/lawve"
-                className="normal-case tracking-normal text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              >
-                Open full importer →
-              </Link>
+              authed ? (
+                <Link
+                  to="/skills/lawve"
+                  className="normal-case tracking-normal text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                >
+                  Open full importer →
+                </Link>
+              ) : (
+                <a
+                  href="/auth/signup"
+                  className="normal-case tracking-normal text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                >
+                  Create a workspace to import →
+                </a>
+              )
             }
           />
           {lawve == null ? (
@@ -497,8 +507,7 @@ export function ModulesCatalog() {
             Skills hold no standing until admitted — review, signature,
             permissions, gates, then the register.
           </Colophon>
-        </section>
-      )}
+      </section>
     </div>
   );
 }
