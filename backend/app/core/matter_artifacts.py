@@ -92,7 +92,7 @@ async def write_artifact(
     invocation_id: uuid.UUID,
     kind: str,
     payload: dict[str, Any],
-    actor_user_id: uuid.UUID,
+    actor_user_id: uuid.UUID | None,
 ) -> MatterArtifact:
     """Write an artifact to OBJECT STORAGE + insert the DB row.
 

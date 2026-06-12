@@ -21,6 +21,7 @@ from app.api.account import router as account_router
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
+from app.api.external_packs import router as external_packs_router
 from app.api.jobs import router as jobs_router
 from app.api.admin_launch_funnel import router as admin_launch_funnel_router
 from app.api.admin_users import router as admin_users_router
@@ -340,6 +341,9 @@ app.include_router(
 app.include_router(system_router, prefix="/api/system", tags=["system"])
 app.include_router(jobs_router, prefix="/api/matters", tags=["jobs"])
 app.include_router(exports_router, prefix="/api/matters", tags=["exports"])
+app.include_router(
+    external_packs_router, prefix="/api/external", tags=["external-packs"]
+)
 app.include_router(documents_router, prefix="/api/documents", tags=["documents"])
 app.include_router(modules_router, prefix="/api/modules", tags=["modules"])
 # Lawve Skill Importer v1 — external-source browse/convert (read-only;

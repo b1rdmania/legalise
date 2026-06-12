@@ -21,6 +21,7 @@ import {
   type InstalledModule,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import { ExternalPacksSection } from "./ExternalPacks";
 
 const TIERS = [
   "factual_extraction",
@@ -143,6 +144,8 @@ export function CounselRegister() {
           ))}
         </div>
       )}
+
+      <ExternalPacksSection />
 
       <p className="mt-14 border-t border-rule pt-3 text-[10px] uppercase tracking-[0.2em] text-muted">
         Refusals and revocations are recorded with the same fidelity as

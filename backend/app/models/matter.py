@@ -62,6 +62,12 @@ class Matter(Base):
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
+    # Register sidecar: adapter name ("mike") when this matter is an
+    # ingested external-workspace pack; NULL for native matters. External
+    # matters are created C_paused so the posture gate keeps them
+    # read-only — no capability runs, no model calls, no skills.
+    external_source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     @property
     def required_provider(self) -> str | None:
         """The keyed provider this matter's default model needs, or None
