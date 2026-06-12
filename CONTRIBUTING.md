@@ -89,6 +89,9 @@ rg -n "—|–" frontend/src/ README.md EXECUTIVE_SUMMARY.md ARCHITECTURE.md doc
 
 # No __pycache__ or .pyc tracked.
 git ls-files | rg "__pycache__|\.pyc$"
+
+# Sweep stray bytecode dirs left behind by deleted code paths (dry-run first with -n).
+git clean -fdX backend/
 ```
 
 Both should return empty. Em-dashes inside seeded legal-content
