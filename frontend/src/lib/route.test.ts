@@ -15,8 +15,13 @@ describe("routeFromPath", () => {
     expect(routeFromPath("/", "")).toEqual({ name: "landing" });
   });
 
-  it("/manifesto → manifesto", () => {
-    expect(routeFromPath("/manifesto", "")).toEqual({ name: "manifesto" });
+  it("/architecture → architecture (and /manifesto maps there pre-redirect)", () => {
+    expect(routeFromPath("/architecture", "")).toEqual({ name: "architecture" });
+    expect(routeFromPath("/manifesto", "")).toEqual({ name: "architecture" });
+  });
+
+  it("/about → about", () => {
+    expect(routeFromPath("/about", "")).toEqual({ name: "about" });
   });
 
   it("/auth/signin → signin", () => {

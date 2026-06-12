@@ -1611,3 +1611,22 @@ Exact values (copy, do not approximate):
 
 Where it lands: ModulesCatalog (workspace skills + Lawve catalogue + requested-skills as certificates/ledger), MatterList (ledger rhythm + certificate-grade row typography), Settings, AdminUsersList, AdminAuditView, LawveImport, ModuleDetail, Help, AppHome, CreateModule. NOT touched: matter chat shell (P22), document editor (P25), InstallCeremony + CounselRegister (already the reference).
 Deliberate divergences: none yet — filled by the post-build audit.
+
+---
+
+## P28 — The public surface (four doors)
+
+Source: lavern.ai (2026-06-12) — Andy: open-source legal-AI peers keep the public surface to three decisions (Architecture · Demo · GitHub); ours had seven doors and no about-page despite business cards pointing at legalise.dev. Reference: Lavern's homepage (nav = Architecture / Demo / GitHub-as-logo) and its `/architecture` page — a single continuous prose manifesto, minimal screenshots, closing honesty section.
+
+The rule: **the anonymous surface offers exactly four links — Architecture · Demo · About · GitHub (Octocat logo, no label).** Sign-in survives as one muted text link; nothing else is top-level.
+
+What we build:
+- **Public nav (TopBar + Drawer, unauthed branch)**: Architecture · Demo · About · GitHub icon · sign-in (muted). "Create account" and "Skills" leave the nav — skills are reached through the homepage taste section, the demo, and /architecture. Authed nav untouched.
+- **`/architecture`** — long-form manifesto page in the register idiom (P27 primitives). One continuous read: thesis (standing over capability), the regulated-profession mapping (manifest = practicing certificate, ceremony = instruction, audit = disciplinary record, sign-off = supervised practice), matter spine, admission, the gate and the refusal, the record, sign-off and track record, the stack (with GitHub doc citations — Trust / Security / Roadmap move here from the footer), and a closing **Honesty** section that names what is not solved. Prose-heavy, screenshots minimal. `/manifesto` becomes a router-level redirect here; Manifesto.tsx is deleted.
+- **`/about`** — the business-card landing. One register-idiom page: who built this, why, what he wants from a reader (a conversation with practising solicitors), contact. Short; pitch register — credibility through specificity, no superlatives.
+- **Landing cut**: hero keeps headline + Open the demo + GitHub (icon-labelled button) + quickstart command. The on-page manifesto section collapses to a one-paragraph pointer at /architecture. The duplicate try-it section goes. A "From the register" section shows three skill certificates (CertCard anatomy) linking to /skills and /register.
+- **Footer**: © · Architecture · About · GitHub · Apache 2.0. Doc deep-links live on /architecture as citations.
+
+Exact values: masthead/monument/whisper/prose tiers per P27 (no new tokens). Architecture page section headers use SectionRule; body text `text-base leading-relaxed text-prose max-w-3xl`; pull-quotes none — restraint.
+Where it lands: TopBar.tsx, Drawer.tsx, Footer.tsx, Landing.tsx, landing/Architecture.tsx (new), landing/About.tsx (new), router/index.tsx, lib/route.ts, app/AppShell.tsx.
+Deliberate divergences: Lavern shows agent-count metrics and an install video in the hero; we show the quickstart command and the refusal thesis instead — the register does not advertise capability counts.

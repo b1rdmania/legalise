@@ -1,3 +1,4 @@
+import { Github } from "lucide-react";
 import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
@@ -127,7 +128,21 @@ export function TopBar({
                 />
               </>
             ) : (
+              // P28: the anonymous surface offers exactly four links —
+              // Architecture · Demo · About · GitHub (logo). Sign-in
+              // survives as one muted text link.
               <>
+                <a
+                  href="/architecture"
+                  className={
+                    "transition-colors " +
+                    (route.name === "architecture"
+                      ? "text-ink font-semibold"
+                      : "text-ink hover:opacity-70")
+                  }
+                >
+                  Architecture
+                </a>
                 <a
                   href={DEMO_HREF_UNAUTHED}
                   className={
@@ -138,33 +153,31 @@ export function TopBar({
                   Demo
                 </a>
                 <a
-                  href="/skills"
+                  href="/about"
                   className={
                     "transition-colors " +
-                    (isModules ? "text-ink font-semibold" : "text-ink hover:opacity-70")
+                    (route.name === "about"
+                      ? "text-ink font-semibold"
+                      : "text-ink hover:opacity-70")
                   }
                 >
-                  Skills
+                  About
                 </a>
                 <a
                   href="https://github.com/b1rdmania/legalise"
                   target="_blank"
                   rel="noreferrer"
+                  aria-label="GitHub"
+                  title="GitHub"
                   className="text-ink hover:opacity-70 transition-colors"
                 >
-                  GitHub
+                  <Github size={18} strokeWidth={1.75} aria-hidden="true" />
                 </a>
                 <a
                   href="/auth/signin"
                   className="text-muted hover:text-ink transition-colors"
                 >
                   Sign in
-                </a>
-                <a
-                  href="/auth/signup"
-                  className="border border-rule px-3 py-1.5 text-ink transition-colors hover:border-ink hover:bg-wash"
-                >
-                  Create account
                 </a>
               </>
             )}
