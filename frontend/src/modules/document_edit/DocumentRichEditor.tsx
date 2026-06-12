@@ -4,29 +4,9 @@ import {
   useRef,
   useState,
   type ChangeEvent,
-  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { EditorContent, useEditor, type Editor } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
-import { Extension, type Content, type JSONContent } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import Typography from "@tiptap/extension-typography";
-import Highlight from "@tiptap/extension-highlight";
-import Color from "@tiptap/extension-color";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
-import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
-import { Table } from "@tiptap/extension-table";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
-import { Plugin, PluginKey } from "prosemirror-state";
-import { Decoration, DecorationSet } from "prosemirror-view";
-import type { Node as ProseMirrorNode } from "prosemirror-model";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { type Content } from "@tiptap/core";
 
 import {
   commitDocumentWorkingDraft,
@@ -40,687 +20,72 @@ import {
   type DocumentWorkingDraftRead,
 } from "../../lib/api";
 import { buildVersionDiff, buildVersionDiffSummary } from "./VersionDiff";
+import {
+  clearDocumentLocalDraft,
+  documentOutlineFromJson,
+  editorJsonToPlainText,
+  findNormalizedRange,
+  isEditableWordDocument,
+  readDocumentLocalDraft,
+  textToEditorHtml,
+  writeDocumentLocalDraft,
+  type DocumentLocalDraft,
+  type TiptapNode,
+} from "./editorText";
 
-export type TiptapNode = JSONContent;
+export {
+  clearDocumentLocalDraft, documentOutlineFromJson, documentStatsFromText,
+  editorJsonToPlainText, findNormalizedRange, findNormalizedRanges,
+  isEditableWordDocument, readDocumentLocalDraft, textToEditorHtml,
+  writeDocumentLocalDraft,
+} from "./editorText";
+export type { TiptapNode } from "./editorText";
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
+import {
+  trackChangesDecorationsExtension,
+  type DocumentProposedEdit,
+  type TrackChangeHandlers,
+} from "./trackedChanges";
 
-type TextRange = { start: number; end: number };
-type OutlineItem = { id: string; label: string; query: string };
-type DocumentStats = { words: number; chars: number; blocks: number };
+export { locateProposedEditInDoc } from "./trackedChanges";
+export type { DocumentProposedEdit, ProposedEditLocation } from "./trackedChanges";
+
+import { findDecorationsExtension } from "./findDecorations";
+import {
+  reviewNoteDecorationsExtension,
+  type DocumentNoteHighlight,
+} from "./reviewNotes";
+
+export type { DocumentNoteHighlight } from "./reviewNotes";
+
+import {
+  documentEditorExtensions,
+  documentEditorProps,
+} from "./editorExtensions";
+import {
+  useClipboardActions,
+  useFindInDocument,
+  useTrackedChangeResolution,
+} from "./editorHooks";
+import {
+  CommandBarRow,
+  editorStatusLabelFor,
+  FormatToolbar,
+} from "./editorChrome";
+import {
+  DraftNotices,
+  EditorSideRail,
+  FindPanel,
+  RedlinesPanel,
+  ReviewMapPanel,
+  SelectionBubbleMenu,
+  SelectionRibbon,
+  WorkingDiffPanel,
+} from "./EditorPanels";
+
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
-type WorkingDiffPart = ReturnType<typeof buildVersionDiff>[number];
-const EDITOR_TEXT_COLORS = [
-  { label: "Ink text", value: "#181818" },
-  { label: "Red text", value: "#8C1D18" },
-  { label: "Amber text", value: "#8A5A00" },
-  { label: "Green text", value: "#236A44" },
-  { label: "Blue text", value: "#245B8A" },
-] as const;
 const SHARED_DRAFT_POLL_MS = 15_000;
-type DocumentLocalDraft = {
-  documentId: string;
-  filename: string;
-  savedAt: string;
-  plainText: string;
-  json: TiptapNode;
-};
-
-function firstImageFile(files: FileList | File[] | null | undefined): File | null {
-  for (const file of Array.from(files ?? [])) {
-    if (file.type.startsWith("image/")) return file;
-  }
-  return null;
-}
-
-type FindDecorationState = {
-  activeIndex: number;
-  query: string;
-};
-export type DocumentNoteHighlight = {
-  id: string;
-  label: string;
-  quote: string;
-  status: "open" | "resolved";
-};
-const FIND_DECORATIONS_PLUGIN_KEY = new PluginKey<FindDecorationState>(
-  "legaliseDocumentFind",
-);
-
-function findDecorationsExtension() {
-  return Extension.create({
-    name: "legaliseDocumentFind",
-    addProseMirrorPlugins() {
-      return [
-        new Plugin<FindDecorationState>({
-          key: FIND_DECORATIONS_PLUGIN_KEY,
-          state: {
-            init: () => ({ query: "", activeIndex: 0 }),
-            apply(transaction, previous) {
-              return transaction.getMeta(FIND_DECORATIONS_PLUGIN_KEY) ?? previous;
-            },
-          },
-          props: {
-            decorations(state) {
-              const pluginState = FIND_DECORATIONS_PLUGIN_KEY.getState(state);
-              const query = pluginState?.query?.trim() ?? "";
-              if (query.length < 3) return DecorationSet.empty;
-              const decorations: Decoration[] = [];
-              let matchIndex = 0;
-              state.doc.descendants((node, position) => {
-                if (!node.isText || !node.text) return;
-                findNormalizedRanges(node.text, query).forEach((range) => {
-                  const isActive = matchIndex === pluginState?.activeIndex;
-                  decorations.push(
-                    Decoration.inline(position + range.start, position + range.end, {
-                      class: isActive
-                        ? "legalise-find-match legalise-find-match-active"
-                        : "legalise-find-match",
-                      "data-find-match": isActive ? "active" : "true",
-                    }),
-                  );
-                  matchIndex += 1;
-                });
-              });
-              return DecorationSet.create(state.doc, decorations);
-            },
-          },
-        }),
-      ];
-    },
-  });
-}
-
-function reviewNoteDecorationsExtension(noteHighlights: DocumentNoteHighlight[]) {
-  return Extension.create({
-    name: "legaliseReviewNotes",
-    addProseMirrorPlugins() {
-      return [
-        new Plugin({
-          key: new PluginKey("legaliseReviewNotes"),
-          props: {
-            decorations(state) {
-              const decorations: Decoration[] = [];
-              state.doc.descendants((node, position) => {
-                if (!node.isText || !node.text) return;
-                noteHighlights.forEach((note) => {
-                  findNormalizedRanges(node.text ?? "", note.quote).forEach((range) => {
-                    decorations.push(
-                      Decoration.inline(position + range.start, position + range.end, {
-                        class:
-                          note.status === "resolved"
-                            ? "legalise-review-note-resolved"
-                            : "legalise-review-note-open",
-                        "data-review-note-id": note.id,
-                        title: note.label,
-                      }),
-                    );
-                  });
-                });
-              });
-              return DecorationSet.create(state.doc, decorations);
-            },
-          },
-        }),
-      ];
-    },
-  });
-}
-
-// ----- Inline tracked changes (proposed document_edits rows) --------------
-//
-// AI/skill-proposed edits arrive as (deleted_text, inserted_text,
-// context_before, context_after) rows. We anchor each one in the live
-// document with the same whitespace-normalised search the review notes
-// use, then decorate: deletion struck through in seal, insertion as an
-// underlined inline widget, with compact accept/reject controls. Edits
-// that cannot be anchored stay in the rail listing — never dropped.
-
-export type DocumentProposedEdit = {
-  id: string;
-  deletedText: string;
-  insertedText: string;
-  contextBefore: string;
-  contextAfter: string;
-  rationale?: string | null;
-};
-
-export type ProposedEditLocation =
-  | { kind: "replace"; from: number; to: number }
-  | { kind: "insert"; pos: number };
-
-type TrackChangesPluginState = {
-  edits: DocumentProposedEdit[];
-  visible: boolean;
-};
-
-type TrackChangeHandlers = {
-  resolve: (edit: DocumentProposedEdit, action: "accept" | "reject") => void;
-};
-
-const TRACK_CHANGES_PLUGIN_KEY = new PluginKey<TrackChangesPluginState>(
-  "legaliseTrackChanges",
-);
-
-export function locateProposedEditInDoc(
-  doc: ProseMirrorNode,
-  edit: DocumentProposedEdit,
-  options?: { strict?: boolean },
-): ProposedEditLocation | null {
-  const deleted = edit.deletedText ?? "";
-  const deletedNeedle = deleted.trim().replace(/\s+/g, " ");
-  let located: ProposedEditLocation | null = null;
-
-  if (deletedNeedle.length >= 3) {
-    // Most specific anchor first; bare deleted text last. First match
-    // wins — the same policy the backend resolver applies. Strict mode
-    // (used when APPLYING text, not just decorating) requires the full
-    // context anchor: a bare-needle match after a neighbouring accept
-    // could land on the wrong occurrence while the server, applying to
-    // untouched base_text, lands on the right one.
-    const anchors = options?.strict
-      ? [`${edit.contextBefore ?? ""}${deleted}${edit.contextAfter ?? ""}`]
-      : [
-          `${edit.contextBefore ?? ""}${deleted}${edit.contextAfter ?? ""}`,
-          `${edit.contextBefore ?? ""}${deleted}`,
-          deleted,
-        ];
-    for (const anchor of anchors) {
-      if (located) break;
-      doc.descendants((node, position) => {
-        if (located) return false;
-        if (!node.isText || !node.text) return true;
-        const anchorRange = findNormalizedRanges(node.text, anchor)[0];
-        if (!anchorRange) return true;
-        const slice = node.text.slice(anchorRange.start, anchorRange.end);
-        const inner = findNormalizedRanges(slice, deleted)[0];
-        if (!inner) return true;
-        located = {
-          kind: "replace",
-          from: position + anchorRange.start + inner.start,
-          to: position + anchorRange.start + inner.end,
-        };
-        return false;
-      });
-    }
-    return located;
-  }
-
-  // Deletions under three characters cannot be anchored safely; they
-  // fall back to the rail listing.
-  if (deletedNeedle.length > 0) return null;
-
-  // Pure insertion: anchor on the surrounding context.
-  doc.descendants((node, position) => {
-    if (located) return false;
-    if (!node.isText || !node.text) return true;
-    const beforeRange = findNormalizedRanges(node.text, edit.contextBefore)[0];
-    if (beforeRange) {
-      located = { kind: "insert", pos: position + beforeRange.end };
-      return false;
-    }
-    const afterRange = findNormalizedRanges(node.text, edit.contextAfter)[0];
-    if (afterRange) {
-      located = { kind: "insert", pos: position + afterRange.start };
-      return false;
-    }
-    return true;
-  });
-  return located;
-}
-
-function applyProposedEditToEditor(
-  activeEditor: Editor,
-  edit: DocumentProposedEdit,
-): boolean {
-  const located = locateProposedEditInDoc(activeEditor.state.doc, edit, {
-    strict: true,
-  });
-  if (!located) return false;
-  const inserted = (edit.insertedText ?? "").replace(/\s+/g, " ");
-  return activeEditor
-    .chain()
-    .command(({ tr, state }) => {
-      if (located.kind === "replace") {
-        if (inserted.trim()) {
-          tr.replaceWith(located.from, located.to, state.schema.text(inserted));
-        } else {
-          tr.delete(located.from, located.to);
-        }
-        return true;
-      }
-      if (!inserted.trim()) return false;
-      tr.insert(located.pos, state.schema.text(inserted));
-      return true;
-    })
-    .run();
-}
-
-function trackChangeWidget(
-  edit: DocumentProposedEdit,
-  handlersRef: { current: TrackChangeHandlers | null },
-): HTMLElement {
-  const wrap = window.document.createElement("span");
-  wrap.className = "legalise-track-change";
-  wrap.dataset.trackEditId = edit.id;
-  if (edit.rationale) wrap.title = edit.rationale;
-  const inserted = (edit.insertedText ?? "").replace(/\s+/g, " ").trim();
-  if (inserted) {
-    const ins = window.document.createElement("span");
-    ins.className = "legalise-track-insert";
-    ins.textContent = inserted;
-    wrap.append(ins);
-  }
-  const controls = window.document.createElement("span");
-  controls.className = "legalise-track-controls";
-  const makeButton = (
-    label: string,
-    glyph: string,
-    action: "accept" | "reject",
-  ) => {
-    const button = window.document.createElement("button");
-    button.type = "button";
-    button.className =
-      action === "accept" ? "legalise-track-accept" : "legalise-track-reject";
-    button.setAttribute("aria-label", label);
-    button.title = label;
-    button.textContent = glyph;
-    // mousedown (not click) so the editor selection is not stolen first.
-    button.addEventListener("mousedown", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      handlersRef.current?.resolve(edit, action);
-    });
-    return button;
-  };
-  controls.append(
-    makeButton("Accept change", "✓", "accept"),
-    makeButton("Reject change", "✕", "reject"),
-  );
-  wrap.append(controls);
-  return wrap;
-}
-
-function trackChangesDecorationsExtension(handlersRef: {
-  current: TrackChangeHandlers | null;
-}) {
-  return Extension.create({
-    name: "legaliseTrackChanges",
-    addProseMirrorPlugins() {
-      return [
-        new Plugin<TrackChangesPluginState>({
-          key: TRACK_CHANGES_PLUGIN_KEY,
-          state: {
-            init: () => ({ edits: [], visible: true }),
-            apply(transaction, previous) {
-              return transaction.getMeta(TRACK_CHANGES_PLUGIN_KEY) ?? previous;
-            },
-          },
-          props: {
-            decorations(state) {
-              const pluginState = TRACK_CHANGES_PLUGIN_KEY.getState(state);
-              if (!pluginState?.visible || pluginState.edits.length === 0) {
-                return DecorationSet.empty;
-              }
-              const decorations: Decoration[] = [];
-              pluginState.edits.forEach((edit) => {
-                const located = locateProposedEditInDoc(state.doc, edit);
-                if (!located) return;
-                if (located.kind === "replace") {
-                  decorations.push(
-                    Decoration.inline(located.from, located.to, {
-                      class: "legalise-track-delete",
-                      "data-track-edit-id": edit.id,
-                    }),
-                  );
-                }
-                const widgetPos =
-                  located.kind === "replace" ? located.to : located.pos;
-                decorations.push(
-                  Decoration.widget(
-                    widgetPos,
-                    () => trackChangeWidget(edit, handlersRef),
-                    { side: 1, key: `legalise-track-${edit.id}` },
-                  ),
-                );
-              });
-              return DecorationSet.create(state.doc, decorations);
-            },
-          },
-        }),
-      ];
-    },
-  });
-}
-
-function selectedEditorText(editor: Editor | null): string {
-  if (!editor) return "";
-  const { from, to } = editor.state.selection;
-  if (from === to) return "";
-  return editor.state.doc.textBetween(from, to, " ").replace(/\s+/g, " ").trim();
-}
-
-export function findNormalizedRanges(
-  text: string,
-  needle: string | null | undefined,
-): TextRange[] {
-  const target = needle?.trim().replace(/\s+/g, " ").toLowerCase();
-  if (!target || target.length < 3) return [];
-
-  let normalised = "";
-  const starts: number[] = [];
-  const ends: number[] = [];
-
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (/\s/.test(ch)) {
-      if (normalised.length === 0) continue;
-      if (normalised.endsWith(" ")) {
-        ends[ends.length - 1] = i + 1;
-      } else {
-        normalised += " ";
-        starts.push(i);
-        ends.push(i + 1);
-      }
-      continue;
-    }
-    normalised += ch.toLowerCase();
-    starts.push(i);
-    ends.push(i + 1);
-  }
-
-  const searchable = normalised.trimEnd();
-  const ranges: TextRange[] = [];
-  let from = 0;
-  while (from < searchable.length) {
-    const index = searchable.indexOf(target, from);
-    if (index === -1) break;
-    const endIndex = index + target.length - 1;
-    ranges.push({ start: starts[index], end: ends[endIndex] });
-    from = index + Math.max(target.length, 1);
-  }
-  return ranges;
-}
-
-export function findNormalizedRange(
-  text: string,
-  needle: string | null | undefined,
-): TextRange | null {
-  return findNormalizedRanges(text, needle)[0] ?? null;
-}
-
-function escapeWithOptionalMark(text: string, range: TextRange | null): string {
-  if (!range || range.end <= range.start) return escapeHtml(text);
-  const matched = text.slice(range.start, range.end);
-  if (/\n{2,}/.test(matched)) return escapeHtml(text);
-  return [
-    escapeHtml(text.slice(0, range.start)),
-    '<mark data-source-anchor="true">',
-    escapeHtml(matched),
-    "</mark>",
-    escapeHtml(text.slice(range.end)),
-  ].join("");
-}
-
-export function textToEditorHtml(
-  text: string,
-  sourceHighlight?: string | null,
-): string {
-  const trimmed = text.trim();
-  if (!trimmed) return "<p></p>";
-  const range = findNormalizedRange(trimmed, sourceHighlight);
-  const html = escapeWithOptionalMark(trimmed, range)
-    .replace(/\n{2,}/g, "</p><p>")
-    .replace(/\n/g, "<br />");
-  return `<p>${html}</p>`;
-}
-
-function plainTextFromNode(node: TiptapNode): string {
-  if (node.type === "text") return node.text ?? "";
-  if (node.type === "hardBreak") return "\n";
-  if (node.type === "image") return node.attrs?.alt ? `[image: ${node.attrs.alt}]\n\n` : "[image]\n\n";
-  const children = node.content?.map(plainTextFromNode).join("") ?? "";
-  if (node.type === "paragraph" || node.type === "heading") return `${children}\n\n`;
-  if (node.type === "taskItem") {
-    return `${node.attrs?.checked ? "[x]" : "[ ]"} ${children.trimEnd()}\n`;
-  }
-  if (node.type === "listItem") return `${children.trimEnd()}\n`;
-  if (node.type === "tableCell" || node.type === "tableHeader") return children.trim();
-  if (node.type === "tableRow") {
-    return `${node.content?.map(plainTextFromNode).join("\t") ?? ""}\n`;
-  }
-  if (node.type === "table") return `${children}\n`;
-  return children;
-}
-
-export function editorJsonToPlainText(json: TiptapNode): string {
-  return plainTextFromNode(json).replace(/\n{3,}/g, "\n\n").trim();
-}
-
-export function isEditableWordDocument(filename: string, mimeType?: string | null): boolean {
-  return (
-    /\.docx$/i.test(filename) ||
-    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  );
-}
-
-function firstTextFromNode(node: TiptapNode): string {
-  if (node.type === "text") return node.text ?? "";
-  return node.content?.map(firstTextFromNode).join("") ?? "";
-}
-
-function documentOutlineFromText(text: string): OutlineItem[] {
-  const blocks = text
-    .split(/\n{2,}/)
-    .map((block) => block.replace(/\s+/g, " ").trim())
-    .filter((block) => block.length >= 12);
-  return blocks.slice(0, 12).map((block, index) => {
-    const compact = block.length > 76 ? `${block.slice(0, 73).trimEnd()}...` : block;
-    return {
-      id: `${index}-${compact}`,
-      label: compact,
-      query: block.slice(0, 96),
-    };
-  });
-}
-
-export function documentOutlineFromJson(
-  json: TiptapNode | null | undefined,
-  fallbackText: string,
-): OutlineItem[] {
-  const headingItems =
-    json?.content?.flatMap((node, index): OutlineItem[] => {
-      if (node.type !== "heading") return [];
-      const text = firstTextFromNode(node).replace(/\s+/g, " ").trim();
-      if (!text) return [];
-      return [{
-        id: `heading-${index}-${text}`,
-        label: text.length > 76 ? `${text.slice(0, 73).trimEnd()}...` : text,
-        query: text,
-      }];
-    }) ?? [];
-  return headingItems.length > 0 ? headingItems.slice(0, 12) : documentOutlineFromText(fallbackText);
-}
-
-export function documentStatsFromText(text: string): DocumentStats {
-  const trimmed = text.trim();
-  return {
-    words: trimmed ? trimmed.split(/\s+/).length : 0,
-    chars: text.length,
-    blocks: trimmed ? trimmed.split(/\n{2,}/).filter(Boolean).length : 0,
-  };
-}
-
-function draftStorageKey(documentId: string): string {
-  return `legalise.documentDraft.${documentId}`;
-}
-
-export function readDocumentLocalDraft(documentId: string): DocumentLocalDraft | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(draftStorageKey(documentId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<DocumentLocalDraft>;
-    if (
-      parsed.documentId !== documentId ||
-      !parsed.json ||
-      typeof parsed.plainText !== "string" ||
-      typeof parsed.savedAt !== "string"
-    ) {
-      window.localStorage.removeItem(draftStorageKey(documentId));
-      return null;
-    }
-    return parsed as DocumentLocalDraft;
-  } catch {
-    window.localStorage.removeItem(draftStorageKey(documentId));
-    return null;
-  }
-}
-
-export function writeDocumentLocalDraft(draft: DocumentLocalDraft): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(draftStorageKey(draft.documentId), JSON.stringify(draft));
-}
-
-export function clearDocumentLocalDraft(documentId: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(draftStorageKey(documentId));
-}
-
-function ToolbarButton({
-  active,
-  children,
-  onClick,
-  label,
-  disabled,
-}: {
-  active?: boolean;
-  children: string;
-  onClick: () => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-item border px-2 text-sm disabled:cursor-not-allowed disabled:opacity-35 ${
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-rule bg-paper text-ink hover:border-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ToolbarGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-1 border-r border-rule pr-2 last:border-r-0 last:pr-0">
-      <span className="mr-1 hidden text-[10px] font-semibold uppercase tracking-track2 text-muted xl:inline">
-        {label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-function ColorButton({
-  active,
-  color,
-  label,
-  onClick,
-}: {
-  active?: boolean;
-  color: string;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-item border bg-paper px-2 ${
-        active ? "border-ink" : "border-rule hover:border-ink"
-      }`}
-    >
-      <span
-        className="block h-4 w-4 rounded-sm border border-rule"
-        style={{ backgroundColor: color }}
-        aria-hidden="true"
-      />
-    </button>
-  );
-}
-
-function ViewModeButton({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex h-8 items-center rounded-item border px-3 text-xs ${
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function renderWorkingDiffParts(parts: WorkingDiffPart[]) {
-  return parts.map((part, index) => {
-    if (part.type === "insert") {
-      return (
-        <ins
-          key={`${part.type}-${index}`}
-          className="bg-green-100 px-0.5 text-green-950 no-underline"
-        >
-          {part.text}
-        </ins>
-      );
-    }
-    if (part.type === "delete") {
-      return (
-        <del
-          key={`${part.type}-${index}`}
-          className="bg-red-100 px-0.5 text-red-950"
-        >
-          {part.text}
-        </del>
-      );
-    }
-    return <span key={`${part.type}-${index}`}>{part.text}</span>;
-  });
-}
 
 export function DocumentRichEditor({
   documentId,
@@ -770,11 +135,7 @@ export function DocumentRichEditor({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
-  const [findQuery, setFindQuery] = useState("");
-  const [findOpen, setFindOpen] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
-  const [activeFindIndex, setActiveFindIndex] = useState(0);
   const [localDraft, setLocalDraft] = useState<DocumentLocalDraft | null>(null);
   const [serverDraft, setServerDraft] = useState<DocumentWorkingDraftRead | null>(null);
   const [draftLoadState, setDraftLoadState] = useState<"loading" | "ready" | "error">("loading");
@@ -784,10 +145,6 @@ export function DocumentRichEditor({
   const [originalImportState, setOriginalImportState] = useState<OriginalImportState>("idle");
   const [draftBaselineText, setDraftBaselineText] = useState(initialText);
   const [canvasMode, setCanvasMode] = useState<DocumentCanvasMode>("page");
-  const [redlinesVisible, setRedlinesVisible] = useState(true);
-  const [trackBusy, setTrackBusy] = useState(false);
-  const [trackNotice, setTrackNotice] = useState<string | null>(null);
-  const findInputRef = useRef<HTMLInputElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const draftSaveTimerRef = useRef<number | null>(null);
   const dirtyRef = useRef(false);
@@ -895,68 +252,15 @@ export function DocumentRichEditor({
 
   const editor = useEditor(
     {
-      extensions: [
-        StarterKit.configure({
-          heading: {
-            levels: [2, 3],
-          },
-          codeBlock: false,
-          horizontalRule: false,
-        }),
-        Placeholder.configure({
-          placeholder: "Start editing this document...",
-        }),
-        Typography,
-        Highlight.configure({ multicolor: false }),
-        TextStyle,
-        Color,
-        Image.configure({
-          allowBase64: false,
-          inline: false,
-        }),
-        Link.configure({
-          autolink: true,
-          defaultProtocol: "https",
-          openOnClick: false,
-          HTMLAttributes: {
-            class: "text-ink underline underline-offset-4",
-          },
-        }),
-        TextAlign.configure({
-          types: ["heading", "paragraph"],
-        }),
-        TaskList,
-        TaskItem.configure({
-          nested: true,
-        }),
+      extensions: documentEditorExtensions({
         findExtension,
         reviewNoteExtension,
         trackChangesExtension,
-        Table.configure({ resizable: true }),
-        TableRow,
-        TableHeader,
-        TableCell,
-      ],
+      }),
       content,
-      editorProps: {
-        attributes: {
-          class:
-            "legalise-document-editor min-h-[760px] border border-rule bg-paper px-9 py-12 text-[16px] leading-8 outline-none shadow-[0_18px_50px_rgba(0,0,0,0.08)] sm:px-14",
-        },
-        handlePaste: (_view, event) => {
-          const file = firstImageFile(event.clipboardData?.files);
-          if (!file) return false;
-          void uploadAndInsertEditorImage(file);
-          return true;
-        },
-        handleDrop: (_view, event) => {
-          const file = firstImageFile(event.dataTransfer?.files);
-          if (!file) return false;
-          event.preventDefault();
-          void uploadAndInsertEditorImage(file);
-          return true;
-        },
-      },
+      editorProps: documentEditorProps((file) =>
+        void uploadAndInsertEditorImage(file),
+      ),
       onUpdate: ({ editor: activeEditor }) => {
         const json = activeEditor.getJSON() as TiptapNode;
         const plainText = editorJsonToPlainText(json);
@@ -1123,25 +427,44 @@ export function DocumentRichEditor({
       !downloadingDocx &&
       (dirty || latestVersionId),
   );
-  const findMatches = useMemo(
-    () => findNormalizedRanges(plainText, findQuery),
-    [plainText, findQuery],
-  );
-  const activeFindMatch = findMatches[activeFindIndex] ?? findMatches[0] ?? null;
-  const findPreview =
-    activeFindMatch && plainText
-      ? plainText
-          .slice(
-            Math.max(0, activeFindMatch.start - 70),
-            Math.min(plainText.length, activeFindMatch.end + 90),
-          )
-          .replace(/\s+/g, " ")
-          .trim()
-      : null;
-  const findPositionLabel =
-    findMatches.length > 0
-      ? `${activeFindIndex + 1} / ${findMatches.length}`
-      : null;
+  const {
+    findQuery,
+    setFindQuery,
+    findOpen,
+    setFindOpen,
+    findInputRef,
+    findMatches,
+    findPreview,
+    findPositionLabel,
+    moveFind,
+    handleFindKeyDown,
+  } = useFindInDocument({ editor, plainText, canSave, save });
+  const {
+    redlinesVisible,
+    setRedlinesVisible,
+    trackBusy,
+    trackNotice,
+    anchoredProposedEditCount,
+    resolveAllProposedEdits,
+  } = useTrackedChangeResolution({
+    editor,
+    proposedEdits,
+    proposedEditsKey,
+    plainText,
+    onResolveProposedEdit,
+    setError,
+    trackHandlersRef,
+  });
+  const {
+    copiedMessage,
+    copyWorkingText,
+    copySelectedQuote,
+    copyEditorSelection,
+    highlightEditorSelection,
+    setEditorLink,
+    insertEditorImageUrl,
+    downloadWorkingText,
+  } = useClipboardActions({ editor, plainText, selectedQuote, filename });
   const outlineItems = useMemo(
     () => documentOutlineFromJson(currentEditorJson, plainText),
     [currentEditorJson, plainText],
@@ -1168,140 +491,15 @@ export function DocumentRichEditor({
     [workingDiffParts],
   );
   const showWorkingDiff = dirty && workingDiffSummary.changed;
-  const sharedDraftLabel =
-    draftLoadState === "loading"
-      ? "Loading shared draft"
-      : draftSaveState === "saving"
-        ? "Saving shared draft"
-        : draftSaveState === "saved"
-          ? `Shared draft saved${serverDraft ? ` · r${serverDraft.version_counter}` : ""}`
-          : draftSaveState === "error"
-            ? "Local fallback active"
-            : "Shared draft ready";
-  const editorStatusLabel = dirty
-    ? sharedDraftLabel
-    : savedMessage
-      ? savedMessage
-      : latestVersionNumber
-        ? `Saved v${latestVersionNumber}`
-        : "Extracted text";
+  const editorStatusLabel = editorStatusLabelFor({
+    dirty,
+    draftLoadState,
+    draftSaveState,
+    serverDraftCounter: serverDraft ? serverDraft.version_counter : null,
+    savedMessage,
+    latestVersionNumber,
+  });
   const canvasMaxWidth = canvasMode === "page" ? "max-w-[820px]" : "max-w-[1040px]";
-
-  useEffect(() => {
-    setActiveFindIndex(0);
-  }, [findQuery]);
-
-  useEffect(() => {
-    if (activeFindIndex >= findMatches.length) setActiveFindIndex(0);
-  }, [activeFindIndex, findMatches.length]);
-
-  useEffect(() => {
-    if (!editor) return;
-    const activeIndex =
-      findMatches.length === 0
-        ? 0
-        : Math.min(activeFindIndex, Math.max(0, findMatches.length - 1));
-    editor.view.dispatch(
-      editor.state.tr.setMeta(FIND_DECORATIONS_PLUGIN_KEY, {
-        query: findQuery,
-        activeIndex,
-      } satisfies FindDecorationState),
-    );
-    if (findQuery.trim().length >= 3 && findMatches.length > 0) {
-      window.requestAnimationFrame(() => {
-        if (editor.isDestroyed) return;
-        editor.view.dom
-          .querySelector('[data-find-match="active"]')
-          ?.scrollIntoView({ block: "center", inline: "nearest" });
-      });
-    }
-  }, [activeFindIndex, editor, findMatches.length, findQuery]);
-
-  // A fresh batch of proposed edits always starts visible.
-  useEffect(() => {
-    setRedlinesVisible(true);
-  }, [proposedEditsKey]);
-
-  useEffect(() => {
-    if (!editor) return;
-    editor.view.dispatch(
-      editor.state.tr.setMeta(TRACK_CHANGES_PLUGIN_KEY, {
-        edits: proposedEdits,
-        visible: redlinesVisible,
-      } satisfies TrackChangesPluginState),
-    );
-    // proposedEditsKey stands in for the array identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, proposedEditsKey, redlinesVisible]);
-
-  const anchoredProposedEditCount = useMemo(() => {
-    if (!editor || proposedEdits.length === 0) return 0;
-    return proposedEdits.filter((edit) =>
-      locateProposedEditInDoc(editor.state.doc, edit),
-    ).length;
-    // plainText tracks document changes; proposedEditsKey tracks the list.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, proposedEditsKey, plainText]);
-
-  async function resolveProposedEditInline(
-    edit: DocumentProposedEdit,
-    action: "accept" | "reject",
-  ) {
-    if (!editor || !onResolveProposedEdit || trackBusy) return;
-    setTrackBusy(true);
-    setError(null);
-    try {
-      await onResolveProposedEdit(edit.id, action);
-      if (action === "accept") {
-        const applied = applyProposedEditToEditor(editor, edit);
-        if (!applied) {
-          setTrackNotice(
-            "Accepted on the record. The text could not be applied in place " +
-              "here — it lands when the final redline is decided.",
-          );
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setTrackBusy(false);
-    }
-  }
-
-  // "Accept all" / "Reject all" still resolve one edit at a time so each
-  // decision lands as its own audit row — and they only touch edits the
-  // user can SEE inline (anchored). Unanchored edits stay pending in the
-  // suggested-edits rail; one click never decides an unseen change. The
-  // anchor is re-checked per iteration because applying one edit can
-  // unanchor the next.
-  async function resolveAllProposedEdits(action: "accept" | "reject") {
-    if (!editor || !onResolveProposedEdit || trackBusy) return;
-    setTrackBusy(true);
-    setError(null);
-    try {
-      for (const edit of [...proposedEdits]) {
-        if (!locateProposedEditInDoc(editor.state.doc, edit)) continue;
-        await onResolveProposedEdit(edit.id, action);
-        if (action === "accept") {
-          const applied = applyProposedEditToEditor(editor, edit);
-          if (!applied) {
-            setTrackNotice(
-              "Some accepted changes could not be applied in place — they " +
-                "land when the final redline is decided.",
-            );
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setTrackBusy(false);
-    }
-  }
-
-  trackHandlersRef.current = {
-    resolve: (edit, action) => void resolveProposedEditInline(edit, action),
-  };
 
   async function save(): Promise<DocumentVersionRead | null> {
     if (!editor || !canSave) return null;
@@ -1404,58 +602,6 @@ export function DocumentRichEditor({
     setLocalDraft(null);
   }
 
-  async function copyWorkingText() {
-    if (!plainText.trim()) return;
-    await window.navigator.clipboard.writeText(plainText);
-    setCopiedMessage("Copied working text");
-    window.setTimeout(() => setCopiedMessage(null), 2000);
-  }
-
-  async function copySelectedQuote() {
-    if (!selectedQuote?.trim()) return;
-    await window.navigator.clipboard.writeText(selectedQuote.trim());
-    setCopiedMessage("Copied selected passage");
-    window.setTimeout(() => setCopiedMessage(null), 2000);
-  }
-
-  async function copyEditorSelection() {
-    const selection = selectedEditorText(editor);
-    if (!selection) return;
-    await window.navigator.clipboard.writeText(selection);
-    setCopiedMessage("Copied selected passage");
-    window.setTimeout(() => setCopiedMessage(null), 2000);
-  }
-
-  function highlightEditorSelection() {
-    if (!editor || !selectedEditorText(editor)) return;
-    editor.chain().focus().toggleHighlight().run();
-  }
-
-  function setEditorLink() {
-    if (!editor) return;
-    const currentHref = typeof editor.getAttributes("link").href === "string"
-      ? editor.getAttributes("link").href
-      : "";
-    const nextHref = window.prompt("Paste link URL. Leave blank to remove the link.", currentHref);
-    if (nextHref === null) return;
-    const trimmed = nextHref.trim();
-    if (!trimmed) {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: trimmed }).run();
-  }
-
-  function insertEditorImageUrl() {
-    if (!editor) return;
-    const src = window.prompt("Paste image URL");
-    if (src === null) return;
-    const trimmed = src.trim();
-    if (!trimmed) return;
-    const alt = window.prompt("Image description", "")?.trim() ?? "";
-    editor.chain().focus().setImage({ src: trimmed, alt }).run();
-  }
-
   async function uploadAndInsertEditorImage(file: File) {
     if (!editor) return;
     setUploadingImage(true);
@@ -1481,503 +627,77 @@ export function DocumentRichEditor({
     await uploadAndInsertEditorImage(file);
   }
 
-  function downloadWorkingText() {
-    const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
-    const url = window.URL.createObjectURL(blob);
-    const anchor = window.document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${filename.replace(/\.[^.]+$/, "") || "document"}-working-copy.txt`;
-    window.document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-    window.URL.revokeObjectURL(url);
-  }
-
-  const moveFind = (direction: 1 | -1) => {
-    if (findMatches.length === 0) return;
-    setActiveFindIndex((current) =>
-      (current + direction + findMatches.length) % findMatches.length,
-    );
-  };
-  const handleFindKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    moveFind(event.shiftKey ? -1 : 1);
-  };
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!event.metaKey && !event.ctrlKey) return;
-      const key = event.key.toLowerCase();
-      if (key === "f") {
-        event.preventDefault();
-        setFindOpen(true);
-        requestAnimationFrame(() => {
-          findInputRef.current?.focus();
-          findInputRef.current?.select();
-        });
-      }
-      if (key === "s") {
-        event.preventDefault();
-        if (canSave) void save();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  });
-
   return (
     <section className="min-h-[760px] rounded-card border border-rule bg-paper" data-testid="document-editor">
       <div
         className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur"
         data-testid="document-editor-command-bar"
       >
-        <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 text-[13px]">
-          <div
-            className="flex items-center gap-1 border-r border-rule pr-2"
-            aria-label="Document view"
-            data-testid="document-editor-view-mode"
-          >
-            <ViewModeButton active={canvasMode === "page"} onClick={() => setCanvasMode("page")}>
-              Page
-            </ViewModeButton>
-            <ViewModeButton active={canvasMode === "wide"} onClick={() => setCanvasMode("wide")}>
-              Wide
-            </ViewModeButton>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFormatOpen((current) => !current)}
-            aria-expanded={formatOpen}
-            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink"
-          >
-            Format
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFindOpen((current) => {
-                const next = !current;
-                if (next) {
-                  requestAnimationFrame(() => findInputRef.current?.focus());
-                }
-                return next;
-              });
-            }}
-            aria-expanded={findOpen}
-            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink"
-          >
-            Find
-          </button>
-          {proposedEdits.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setRedlinesVisible((current) => !current)}
-              aria-pressed={redlinesVisible}
-              data-testid="document-editor-redlines-toggle"
-              className={`inline-flex h-8 items-center rounded-item border px-3 text-xs ${
-                redlinesVisible
-                  ? "border-ink bg-paper text-ink"
-                  : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
-              }`}
-            >
-              Redlines ({proposedEdits.length})
-            </button>
-          )}
-          <span className="ml-2 inline-flex items-center gap-2 text-xs text-muted">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                draftSaveState === "error"
-                  ? "bg-red-700"
-                  : dirty
-                    ? "bg-amber-500"
-                    : "bg-emerald-700"
-              }`}
-              aria-hidden="true"
-            />
-            {editorStatusLabel}
-          </span>
-          {sourceLabel?.startsWith("Viewing saved version") && (
-            <span className="text-xs text-muted">{sourceLabel}</span>
-          )}
-          <div className="ml-auto flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={save}
-              disabled={!canSave}
-              className="inline-flex h-8 items-center rounded-item border border-ink bg-ink px-3 text-xs text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
-            >
-              {saving ? "Saving…" : "Save version"}
-            </button>
-            <details className="relative" data-testid="document-editor-more">
-              <summary className="inline-flex h-8 cursor-pointer list-none items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink">
-                More
-              </summary>
-              <div className="absolute right-0 z-20 mt-1 grid min-w-44 gap-1 rounded-card border border-rule bg-paper p-1.5 shadow-panel">
-                <button
-                  type="button"
-                  onClick={() => void saveAndDownloadDocx()}
-                  disabled={!canDownloadDocx}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  {downloadingDocx ? "Preparing…" : dirty ? "Save & download DOCX" : "Download DOCX"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void copyWorkingText()}
-                  disabled={!plainText.trim()}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Copy text
-                </button>
-                <button
-                  type="button"
-                  onClick={downloadWorkingText}
-                  disabled={!plainText.trim()}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Download text
-                </button>
-                <span
-                  className="inline-flex h-8 items-center px-2 text-xs text-muted"
-                  data-testid="document-editor-word-count"
-                >
-                  {documentStatsFromText(plainText).words.toLocaleString()} words
-                </span>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  disabled={!plainText.trim()}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Print / PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={reset}
-                  disabled={!dirty || saving}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Reset
-                </button>
-              </div>
-            </details>
-          </div>
-        </div>
+        <CommandBarRow
+          canvasMode={canvasMode}
+          onSetCanvasMode={setCanvasMode}
+          formatOpen={formatOpen}
+          onToggleFormat={() => setFormatOpen((current) => !current)}
+          findOpen={findOpen}
+          onToggleFind={() => {
+            setFindOpen((current) => {
+              const next = !current;
+              if (next) {
+                requestAnimationFrame(() => findInputRef.current?.focus());
+              }
+              return next;
+            });
+          }}
+          proposedEditCount={proposedEdits.length}
+          redlinesVisible={redlinesVisible}
+          onToggleRedlines={() => setRedlinesVisible((current) => !current)}
+          draftSaveError={draftSaveState === "error"}
+          dirty={dirty}
+          editorStatusLabel={editorStatusLabel}
+          sourceLabel={sourceLabel}
+          onSave={save}
+          canSave={canSave}
+          saving={saving}
+          onSaveAndDownloadDocx={saveAndDownloadDocx}
+          canDownloadDocx={canDownloadDocx}
+          downloadingDocx={downloadingDocx}
+          onCopyWorkingText={copyWorkingText}
+          onDownloadWorkingText={downloadWorkingText}
+          plainText={plainText}
+          onReset={reset}
+        />
         {formatOpen && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-2">
-          {editor && (
-            <>
-              <ToolbarGroup label="Style">
-                <ToolbarButton
-                  label="Heading 2"
-                  active={editor.isActive("heading", { level: 2 })}
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                >
-                  H2
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Heading 3"
-                  active={editor.isActive("heading", { level: 3 })}
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                >
-                  H3
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Text">
-                <ToolbarButton
-                  label="Bold"
-                  active={editor.isActive("bold")}
-                  onClick={() => editor.chain().focus().toggleBold().run()}
-                >
-                  B
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Italic"
-                  active={editor.isActive("italic")}
-                  onClick={() => editor.chain().focus().toggleItalic().run()}
-                >
-                  I
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Underline"
-                  active={editor.isActive("underline")}
-                  onClick={() => editor.chain().focus().toggleUnderline().run()}
-                >
-                  U
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Highlight"
-                  active={editor.isActive("highlight")}
-                  onClick={() => editor.chain().focus().toggleHighlight().run()}
-                >
-                  H
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Link"
-                  active={editor.isActive("link")}
-                  onClick={setEditorLink}
-                >
-                  Link
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Remove link"
-                  disabled={!editor.isActive("link")}
-                  onClick={() =>
-                    editor.chain().focus().extendMarkRange("link").unsetLink().run()
-                  }
-                >
-                  Unlink
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Colour">
-                {EDITOR_TEXT_COLORS.map((color) => (
-                  <ColorButton
-                    key={color.value}
-                    label={color.label}
-                    color={color.value}
-                    active={editor.isActive("textStyle", { color: color.value })}
-                    onClick={() => editor.chain().focus().setColor(color.value).run()}
-                  />
-                ))}
-                <ToolbarButton
-                  label="Remove text colour"
-                  disabled={!editor.isActive("textStyle")}
-                  onClick={() => editor.chain().focus().unsetColor().run()}
-                >
-                  Clear
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Align">
-                <ToolbarButton
-                  label="Align left"
-                  active={editor.isActive({ textAlign: "left" })}
-                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                >
-                  L
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Align centre"
-                  active={editor.isActive({ textAlign: "center" })}
-                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                >
-                  C
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Align right"
-                  active={editor.isActive({ textAlign: "right" })}
-                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                >
-                  R
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Lists">
-                <ToolbarButton
-                  label="Bullet list"
-                  active={editor.isActive("bulletList")}
-                  onClick={() => editor.chain().focus().toggleBulletList().run()}
-                >
-                  •
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Numbered list"
-                  active={editor.isActive("orderedList")}
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                >
-                  1.
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Checklist"
-                  active={editor.isActive("taskList")}
-                  onClick={() => editor.chain().focus().toggleTaskList().run()}
-                >
-                  ☑
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Media">
-                <input
-                  ref={imageInputRef}
-                  data-testid="document-image-upload-input"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(event) => void handleEditorImageUpload(event)}
-                />
-                <ToolbarButton
-                  label={uploadingImage ? "Uploading image" : "Upload image"}
-                  disabled={uploadingImage}
-                  onClick={() => imageInputRef.current?.click()}
-                >
-                  Up
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Insert image URL"
-                  onClick={insertEditorImageUrl}
-                >
-                  Img
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Table">
-                <ToolbarButton
-                  label="Insert table"
-                  active={editor.isActive("table")}
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                      .run()
-                  }
-                >
-                  Tbl
-                </ToolbarButton>
-                {editor.isActive("table") && (
-                  <>
-                    <ToolbarButton
-                      label="Add row"
-                      onClick={() => editor.chain().focus().addRowAfter().run()}
-                    >
-                      +R
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Add column"
-                      onClick={() => editor.chain().focus().addColumnAfter().run()}
-                    >
-                      +C
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Delete row"
-                      onClick={() => editor.chain().focus().deleteRow().run()}
-                    >
-                      -R
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Delete column"
-                      onClick={() => editor.chain().focus().deleteColumn().run()}
-                    >
-                      -C
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Delete table"
-                      onClick={() => editor.chain().focus().deleteTable().run()}
-                    >
-                      X
-                    </ToolbarButton>
-                  </>
-                )}
-                {!editor.isActive("table") && (
-                  <ToolbarButton
-                    label="Add row"
-                    disabled
-                    onClick={() => editor.chain().focus().addRowAfter().run()}
-                  >
-                    +R
-                  </ToolbarButton>
-                )}
-              </ToolbarGroup>
-            </>
-          )}
-          <span className="ml-auto text-xs text-muted">Formatting tools</span>
-        </div>
+          <FormatToolbar
+            editor={editor}
+            imageInputRef={imageInputRef}
+            uploadingImage={uploadingImage}
+            onImageUpload={handleEditorImageUpload}
+            onSetLink={setEditorLink}
+            onInsertImageUrl={insertEditorImageUrl}
+          />
         )}
         {(findOpen || findQuery.trim()) && (
-        <div
-          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2.5"
-          data-testid="document-editor-find-panel"
-        >
-          <label
-            htmlFor={`find-${documentId}`}
-            className="text-xs font-semibold uppercase tracking-track2 text-muted"
-          >
-            Find
-          </label>
-          <input
-            ref={findInputRef}
-            id={`find-${documentId}`}
-            type="search"
-            value={findQuery}
-            onChange={(event) => setFindQuery(event.target.value)}
-            onKeyDown={handleFindKeyDown}
-            placeholder="Search this document"
-            className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
+          <FindPanel
+            documentId={documentId}
+            findInputRef={findInputRef}
+            findQuery={findQuery}
+            setFindQuery={setFindQuery}
+            onFindKeyDown={handleFindKeyDown}
+            matchCount={findMatches.length}
+            moveFind={moveFind}
+            findPositionLabel={findPositionLabel}
+            findPreview={findPreview}
           />
-          <span className="text-xs text-muted" data-testid="document-editor-find-count">
-            {findQuery.trim().length >= 3
-              ? `${findMatches.length} match${findMatches.length === 1 ? "" : "es"}`
-              : "Type 3+ characters"}
-          </span>
-          <button
-            type="button"
-            onClick={() => moveFind(-1)}
-            disabled={findMatches.length === 0}
-            className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => moveFind(1)}
-            disabled={findMatches.length === 0}
-            className="border border-rule px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink disabled:opacity-40"
-          >
-            Next
-          </button>
-          {findMatches.length > 0 && (
-            <span className="text-xs text-muted" data-testid="document-editor-find-position">
-              {findPositionLabel}
-            </span>
-          )}
-          {findQuery && (
-            <button
-              type="button"
-              onClick={() => setFindQuery("")}
-              className="text-xs text-muted underline underline-offset-4 hover:text-ink"
-            >
-              Clear
-            </button>
-          )}
-          {findPreview && (
-            <p
-              className="basis-full text-xs leading-5 text-muted"
-              data-testid="document-editor-find-preview"
-            >
-              Match {findPositionLabel}: {findPreview}
-            </p>
-          )}
-        </div>
         )}
         {redlinesVisible && proposedEdits.length > 0 && (
-        <div
-          className="flex flex-wrap items-center gap-3 border-t border-rule bg-paper px-4 py-2 text-xs text-muted"
-          data-testid="document-editor-redlines-panel"
-        >
-          <span>
-            {proposedEdits.length} proposed change
-            {proposedEdits.length === 1 ? "" : "s"}
-            {anchoredProposedEditCount < proposedEdits.length
-              ? ` · ${proposedEdits.length - anchoredProposedEditCount} not anchored in this text — review in the suggested-edits list`
-              : ""}
-            {trackNotice ? ` · ${trackNotice}` : ""}
-          </span>
-          <span className="ml-auto flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => void resolveAllProposedEdits("accept")}
-              disabled={trackBusy || !onResolveProposedEdit}
-              className="inline-flex h-7 items-center rounded-item border border-ink bg-ink px-2.5 text-xs text-paper hover:bg-seal disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
-            >
-              {trackBusy ? "Working…" : "Accept all"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void resolveAllProposedEdits("reject")}
-              disabled={trackBusy || !onResolveProposedEdit}
-              className="inline-flex h-7 items-center rounded-item border border-rule bg-paper px-2.5 text-xs text-muted hover:border-seal hover:text-seal disabled:opacity-40"
-            >
-              Reject all
-            </button>
-          </span>
-        </div>
+          <RedlinesPanel
+            proposedEditCount={proposedEdits.length}
+            anchoredProposedEditCount={anchoredProposedEditCount}
+            trackNotice={trackNotice}
+            trackBusy={trackBusy}
+            canResolve={Boolean(onResolveProposedEdit)}
+            onResolveAll={resolveAllProposedEdits}
+          />
         )}
       </div>
 
@@ -1990,187 +710,47 @@ export function DocumentRichEditor({
         </p>
       )}
       {selectedQuote && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-ink bg-paper px-5 py-3"
-          data-testid="document-editor-selection-ribbon"
-        >
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-track2 text-ink">
-              Selected passage
-            </p>
-            <p className="mt-1 max-w-3xl truncate text-sm text-muted">{selectedQuote}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void copySelectedQuote()}
-              className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-            >
-              Copy
-            </button>
-            <button
-              type="button"
-              onClick={() => setFindQuery(selectedQuote)}
-              className="border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-            >
-              Find in document
-            </button>
-            {onCreateNoteFromSelection && (
-              <button
-                type="button"
-                onClick={onCreateNoteFromSelection}
-                className="border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
-              >
-                Add review note
-              </button>
-            )}
-            {onRunSkillFromSelection && (
-              <button
-                type="button"
-                onClick={onRunSkillFromSelection}
-                className="border border-ink bg-paper px-3 py-2 text-xs font-semibold text-ink hover:bg-paper-sunken"
-              >
-                Run skill
-              </button>
-            )}
-          </div>
-        </div>
+        <SelectionRibbon
+          selectedQuote={selectedQuote}
+          onCopySelectedQuote={copySelectedQuote}
+          onFindInDocument={() => setFindQuery(selectedQuote)}
+          onCreateNoteFromSelection={onCreateNoteFromSelection}
+          onRunSkillFromSelection={onRunSkillFromSelection}
+        />
       )}
-      {draftSaveState === "error" && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
-          data-testid="document-server-draft-error"
-        >
-          <span>
-            {draftConflict ??
-              "Shared draft could not be saved. The browser copy is preserved locally; try saving again before leaving this file."}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              loadSharedDraftFromServer({
-                allowWordImport: false,
-                reloadedMessage: "Shared draft reloaded",
-              }).catch((err) => {
-                setDraftSaveState("error");
-                setError(err instanceof Error ? err.message : String(err));
-              })
-            }
-            className="border border-amber-900 bg-paper px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100"
-          >
-            Reload shared draft
-          </button>
-        </div>
-      )}
-      {remoteDraftNotice && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-paper-sunken px-5 py-2 text-xs leading-5 text-muted"
-          data-testid="document-remote-draft-notice"
-        >
-          <span>{remoteDraftNotice}</span>
-          <button
-            type="button"
-            onClick={() =>
-              loadSharedDraftFromServer({
-                allowWordImport: false,
-                reloadedMessage: "Shared draft reloaded",
-              }).catch((err) => {
-                setRemoteDraftNotice(null);
-                setError(err instanceof Error ? err.message : String(err));
-              })
-            }
-            className="border border-rule bg-paper px-3 py-1.5 text-xs font-semibold text-ink hover:border-ink"
-          >
-            Reload shared draft
-          </button>
-        </div>
-      )}
-      {originalImportState === "loading" && (
-        <p className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted">
-          Importing Word structure into the editable working copy...
-        </p>
-      )}
-      {originalImportState === "ready" && (
-        <p
-          className="border-b border-rule bg-paper-sunken px-5 py-2 text-xs text-muted"
-          data-testid="document-word-import-ready"
-        >
-          Word structure imported into the shared draft. Save a version when the edit is ready.
-        </p>
-      )}
-      {originalImportState === "error" && (
-        <p
-          className="border-b border-amber-300 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-900"
-          data-testid="document-word-import-fallback"
-        >
-          Word structure could not be imported here, so the editor is using extracted text.
-        </p>
-      )}
-      {localDraft && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-amber-50 px-5 py-3 text-sm text-ink"
-          data-testid="document-local-draft-banner"
-        >
-          <span>
-            Unsaved local draft from{" "}
-            {new Date(localDraft.savedAt).toLocaleString()}. Restore it or discard it.
-          </span>
-          <span className="flex gap-2">
-            <button
-              type="button"
-              onClick={restoreLocalDraft}
-              className="border border-ink bg-paper px-3 py-1.5 text-xs font-semibold text-ink hover:bg-ink hover:text-paper"
-            >
-              Restore draft
-            </button>
-            <button
-              type="button"
-              onClick={discardLocalDraft}
-              className="border border-rule bg-paper px-3 py-1.5 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
-            >
-              Discard
-            </button>
-          </span>
-        </div>
-      )}
+      <DraftNotices
+        draftSaveError={draftSaveState === "error"}
+        draftConflict={draftConflict}
+        onReloadAfterError={() =>
+          loadSharedDraftFromServer({
+            allowWordImport: false,
+            reloadedMessage: "Shared draft reloaded",
+          }).catch((err) => {
+            setDraftSaveState("error");
+            setError(err instanceof Error ? err.message : String(err));
+          })
+        }
+        remoteDraftNotice={remoteDraftNotice}
+        onReloadAfterNotice={() =>
+          loadSharedDraftFromServer({
+            allowWordImport: false,
+            reloadedMessage: "Shared draft reloaded",
+          }).catch((err) => {
+            setRemoteDraftNotice(null);
+            setError(err instanceof Error ? err.message : String(err));
+          })
+        }
+        originalImportState={originalImportState}
+        localDraft={localDraft}
+        onRestoreLocalDraft={restoreLocalDraft}
+        onDiscardLocalDraft={discardLocalDraft}
+      />
       {showWorkingDiff && (
-        <div
-          className="border-b border-rule bg-paper px-5 py-3"
-          data-testid="document-working-diff"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Unsaved changes
-              </p>
-              <p className="mt-1 text-sm text-ink">
-                Review the working copy before saving it as a new document version.
-              </p>
-            </div>
-            <dl className="flex flex-wrap gap-2 text-xs">
-              <div className="border border-rule bg-paper-sunken px-3 py-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Added</dt>
-                <dd className="mt-1 font-semibold text-green-900">
-                  {workingDiffSummary.insertedChars.toLocaleString()} chars
-                </dd>
-              </div>
-              <div className="border border-rule bg-paper-sunken px-3 py-2">
-                <dt className="tech-token uppercase tracking-track2 text-muted">Removed</dt>
-                <dd className="mt-1 font-semibold text-red-900">
-                  {workingDiffSummary.deletedChars.toLocaleString()} chars
-                </dd>
-              </div>
-            </dl>
-          </div>
-          <details className="mt-3 border border-rule bg-paper-sunken">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-ink">
-              Preview redline before saving
-            </summary>
-            <div className="max-h-[260px] overflow-auto border-t border-rule bg-paper p-4 text-sm leading-7">
-              {renderWorkingDiffParts(workingDiffParts)}
-            </div>
-          </details>
-        </div>
+        <WorkingDiffPanel
+          workingDiffParts={workingDiffParts}
+          insertedChars={workingDiffSummary.insertedChars}
+          deletedChars={workingDiffSummary.deletedChars}
+        />
       )}
       {error && (
         <p className="border-b border-red-800 bg-red-50 px-5 py-3 text-sm text-red-900">
@@ -2178,205 +758,38 @@ export function DocumentRichEditor({
         </p>
       )}
       {noteAnchorSummaries.length > 0 && (
-        <div
-          className="border-b border-rule bg-paper px-5 py-3"
-          data-testid="document-editor-review-map"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Review map
-              </p>
-              <p className="mt-1 text-sm text-ink">
-                {locatedNoteCount} of {noteAnchorSummaries.length} note anchor
-                {noteAnchorSummaries.length === 1 ? "" : "s"} located in this working copy.
-              </p>
-            </div>
-            <span className="border border-rule bg-paper-sunken px-2 py-1 text-[11px] font-semibold uppercase tracking-track2 text-muted">
-              Anchored notes
-            </span>
-          </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {noteAnchorSummaries.map((note) => (
-              <button
-                key={note.id}
-                type="button"
-                onClick={() => setFindQuery(note.quote)}
-                className={`min-w-[220px] max-w-[280px] border px-3 py-2 text-left text-xs leading-5 ${
-                  note.located
-                    ? "border-ink bg-paper text-ink"
-                    : "border-amber-300 bg-amber-50 text-amber-950"
-                }`}
-              >
-                <span className="block font-semibold">{note.label}</span>
-                <span className="mt-1 block max-h-10 overflow-hidden text-muted">
-                  {note.quote}
-                </span>
-                <span className="mt-2 block tech-token uppercase tracking-track2">
-                  {note.located ? "Located" : "Not located"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <ReviewMapPanel
+          noteAnchorSummaries={noteAnchorSummaries}
+          locatedNoteCount={locatedNoteCount}
+          onJumpToNote={setFindQuery}
+        />
       )}
       <div className="grid min-h-[620px] lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="border-b border-rule bg-paper px-5 py-5 lg:border-b-0 lg:border-r">
-          <div className="space-y-5">
-            {sourceHighlight && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                  Source passage
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted">
-                  {sourceRange ? "Located in this version." : "Not located in this version."}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setFindQuery(sourceHighlight)}
-                  className="mt-2 text-xs font-medium text-ink underline underline-offset-4 hover:text-muted"
-                >
-                  Search cited text
-                </button>
-              </div>
-            )}
-            {selectedQuote && (
-              <div
-                className="border border-ink bg-paper p-3"
-                data-testid="document-editor-selected-passage"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-ink">
-                    Selected passage
-                  </p>
-                  <span className="border border-rule bg-paper-sunken px-2 py-1 text-[10px] font-semibold uppercase tracking-track2 text-muted">
-                    {selectedQuoteAnchored ? "Anchored" : "Unanchored"}
-                  </span>
-                </div>
-                <p className="mt-2 max-h-28 overflow-hidden text-xs leading-5 text-muted">
-                  {selectedQuote}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void copySelectedQuote()}
-                  className="mt-3 w-full border border-rule px-3 py-2 text-xs font-semibold text-ink hover:border-ink"
-                >
-                  Copy passage
-                </button>
-                {onCreateNoteFromSelection && (
-                  <button
-                    type="button"
-                    onClick={onCreateNoteFromSelection}
-                    className="mt-2 w-full border border-ink bg-ink px-3 py-2 text-xs font-semibold text-paper hover:bg-seal"
-                  >
-                    Add review note
-                  </button>
-                )}
-              </div>
-            )}
-            {noteHighlights.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Review notes
-              </p>
-              {noteHighlights.length > 0 ? (
-                <div className="mt-2 space-y-2" data-testid="document-editor-note-rail">
-                  {noteHighlights.map((note) => (
-                    <button
-                      key={note.id}
-                      type="button"
-                      onClick={() => setFindQuery(note.quote)}
-                      className="block w-full border border-rule bg-paper px-3 py-2 text-left text-xs leading-5 text-muted hover:border-ink hover:text-ink"
-                    >
-                      <span className="block font-medium text-ink">{note.label}</span>
-                      <span className="mt-1 block max-h-10 overflow-hidden">{note.quote}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            )}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                Outline
-              </p>
-              {outlineItems.length > 0 ? (
-                <nav className="mt-2 space-y-1" aria-label="Document outline">
-                  {outlineItems.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setFindQuery(item.query)}
-                      className="block w-full border-l border-transparent py-1 pl-2 text-left text-xs leading-5 text-muted hover:border-ink hover:text-ink"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
-              ) : (
-                <p className="mt-2 text-sm text-muted">No outline yet.</p>
-              )}
-            </div>
-          </div>
-        </aside>
+        <EditorSideRail
+          sourceHighlight={sourceHighlight}
+          sourceLocated={Boolean(sourceRange)}
+          selectedQuote={selectedQuote}
+          selectedQuoteAnchored={selectedQuoteAnchored}
+          onCopySelectedQuote={copySelectedQuote}
+          onCreateNoteFromSelection={onCreateNoteFromSelection}
+          noteHighlights={noteHighlights}
+          outlineItems={outlineItems}
+          onFind={setFindQuery}
+        />
         <div
           className="bg-[linear-gradient(180deg,#f7f7f4_0%,#efefea_100%)] px-4 py-8 sm:px-8 sm:py-10"
           data-testid="document-editor-canvas"
         >
           <div className={`mx-auto ${canvasMaxWidth}`}>
             {editor && (
-              <BubbleMenu
+              <SelectionBubbleMenu
                 editor={editor}
-                shouldShow={({ editor: bubbleEditor }) =>
-                  selectedEditorText(bubbleEditor).length >= 3
-                }
-                options={{ placement: "top", offset: 8 }}
-              >
-                <div
-                  className="flex items-center gap-1 border border-ink bg-paper px-1.5 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
-                  data-testid="document-editor-selection-menu"
-                >
-                  <button
-                    type="button"
-                    onClick={() => void copyEditorSelection()}
-                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                  >
-                    Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={highlightEditorSelection}
-                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                  >
-                    Highlight
-                  </button>
-                  <button
-                    type="button"
-                    onClick={setEditorLink}
-                    className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                  >
-                    Link
-                  </button>
-                  {onCreateNoteFromSelection && (
-                    <button
-                      type="button"
-                      onClick={onCreateNoteFromSelection}
-                      className="bg-ink px-2 py-1 text-xs font-semibold text-paper hover:bg-seal"
-                    >
-                      Add note
-                    </button>
-                  )}
-                  {onRunSkillFromSelection && (
-                    <button
-                      type="button"
-                      onClick={onRunSkillFromSelection}
-                      className="px-2 py-1 text-xs font-semibold text-ink hover:bg-paper-sunken"
-                    >
-                      Run skill
-                    </button>
-                  )}
-                </div>
-              </BubbleMenu>
+                onCopyEditorSelection={copyEditorSelection}
+                onHighlightSelection={highlightEditorSelection}
+                onSetLink={setEditorLink}
+                onCreateNoteFromSelection={onCreateNoteFromSelection}
+                onRunSkillFromSelection={onRunSkillFromSelection}
+              />
             )}
             <EditorContent editor={editor} />
           </div>
