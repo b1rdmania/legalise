@@ -613,6 +613,7 @@ export function AssistantTab({
             onKeyDown={onKey}
             disabled={pending}
             rows={2}
+            data-testid="chat-composer-input"
             placeholder={`Ask about ${matter.title}`}
             className="w-full resize-none rounded-item border border-rule bg-paper px-4 py-3 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:border-ink focus:outline-none disabled:cursor-not-allowed disabled:bg-wash disabled:text-muted"
           />
@@ -749,6 +750,7 @@ export function AssistantTab({
               <button
                 onClick={onSend}
                 disabled={pending || !input.trim()}
+                data-testid="chat-composer-send"
                 className={primaryBtn + " px-4 py-1.5 text-[14px]"}
               >
                 {pending ? "Sending…" : "Send"}

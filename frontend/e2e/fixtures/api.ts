@@ -178,6 +178,53 @@ export async function setUserDefaultModel(
   }
 }
 
+/**
+ * Grant a module capability on a matter via the real Phase 7 grants
+ * endpoint. Creates the matter-scoped grant rows for the capability's
+ * declared reads + writes (`module.grant.created` audit per row).
+ */
+export async function grantCapability(
+  req: APIRequestContext,
+  slug: string,
+  body: { module_id: string; capability_id: string },
+): Promise<void> {
+  const resp = await req.post(
+    `${BACKEND_BASE}/api/matters/${encodeURIComponent(slug)}/grants`,
+    { data: body },
+  );
+  if (!resp.ok()) {
+    throw new Error(`grantCapability failed: ${resp.status()} ${await resp.text()}`);
+  }
+}
+
+/**
+ * Upload a small text document through the real multipart upload
+ * endpoint (`POST /api/matters/{slug}/documents`) — the same surface
+ * DocumentsTab drives. Returns the created document row.
+ */
+export async function uploadTextDocument(
+  req: APIRequestContext,
+  slug: string,
+  opts: { filename: string; body: string },
+): Promise<{ id: string; filename: string }> {
+  const resp = await req.post(
+    `${BACKEND_BASE}/api/matters/${encodeURIComponent(slug)}/documents`,
+    {
+      multipart: {
+        file: {
+          name: opts.filename,
+          mimeType: "text/plain",
+          buffer: Buffer.from(opts.body, "utf-8"),
+        },
+      },
+    },
+  );
+  if (!resp.ok()) {
+    throw new Error(`uploadTextDocument failed: ${resp.status()} ${await resp.text()}`);
+  }
+  return resp.json();
+}
+
 // ---------------------------------------------------------------------------
 // System / bootstrap-state
 // ---------------------------------------------------------------------------
