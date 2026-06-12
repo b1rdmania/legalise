@@ -180,3 +180,47 @@ async def test_warnings_license_and_scripts() -> None:
 
     scripted = await lwv.build_draft("office-processor")
     assert any(w["code"] == "script_review" for w in scripted["warnings"])
+
+
+# ---------------------------------------------------------------------------
+# Frontmatter parser (pure, fixture text)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_frontmatter_full_vocabulary() -> None:
+    # The real catalogue vocabulary (surveyed across all 42 skills):
+    # name, description, metadata{author, license, version}. Nothing else.
+    fm, body = lwv._parse_frontmatter(_SKILL_MD)
+    assert fm["name"] == "contract-review-anthropic"
+    assert fm["metadata"] == {
+        "author": "Anthropic",
+        "license": "Apache-2.0",
+        "version": "2026.01.30",
+    }
+    assert body.startswith("# Contract Review Skill")
+
+
+def test_parse_frontmatter_missing_returns_empty() -> None:
+    text = "# No frontmatter here\nJust a body."
+    fm, body = lwv._parse_frontmatter(text)
+    assert fm == {}
+    assert body == text
+
+
+def test_parse_frontmatter_malformed_yaml_is_tolerated() -> None:
+    text = "---\n: : not yaml [\n---\nbody"
+    fm, body = lwv._parse_frontmatter(text)
+    assert fm == {}
+    assert body == "body"
+
+
+@pytest.mark.asyncio
+async def test_list_rows_carry_lawve_attribution_url() -> None:
+    # Catalogue directory name == lawve.ai slug (verified against the
+    # live sitemap), so every row links back to its directory page.
+    res = await lwv.list_skills()
+    by_slug = {r["slug"]: r for r in res["skills"]}
+    assert (
+        by_slug["contract-review-anthropic"]["lawve_url"]
+        == "https://lawve.ai/en/skills/contract-review-anthropic"
+    )

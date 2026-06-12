@@ -14,7 +14,7 @@ import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/rea
 import { router as productionRouter } from "../router";
 import { AuthProvider } from "../auth/AuthProvider";
 import * as api from "../lib/api";
-import type { V2ManifestEntry } from "../lib/api";
+import type { LawveSkillRow, V2ManifestEntry } from "../lib/api";
 
 function refModule(over: Partial<V2ManifestEntry> = {}): V2ManifestEntry {
   return {
@@ -35,6 +35,41 @@ function refModule(over: Partial<V2ManifestEntry> = {}): V2ManifestEntry {
     validation_errors: [],
     ...over,
   };
+}
+
+function lawveRow(over: Partial<LawveSkillRow> = {}): LawveSkillRow {
+  const slug = over.slug ?? "contract-review-anthropic";
+  return {
+    source: "lawve",
+    repo: "lawve-ai/awesome-legal-skills",
+    ref: "abc123sha",
+    slug,
+    name: slug,
+    description: "A catalogue skill.",
+    version: "2026.01.30",
+    author_name: "Anthropic",
+    license: "Apache-2.0",
+    source_path: `./skills/${slug}`,
+    lawve_url: `https://lawve.ai/en/skills/${slug}`,
+    has_references: false,
+    has_scripts: false,
+    script_review_required: false,
+    ...over,
+  };
+}
+
+function mockLawveShelf(rows: LawveSkillRow[], directoryCount = 170) {
+  vi.spyOn(api, "listLawveSkills").mockResolvedValue({
+    source: "lawve",
+    repo: "lawve-ai/awesome-legal-skills",
+    ref: "abc123sha",
+    skills: rows,
+  });
+  vi.spyOn(api, "getLawveDirectoryCount").mockResolvedValue({
+    source: "lawve.ai",
+    skills_url: "https://lawve.ai/en/skills",
+    count: directoryCount,
+  });
 }
 
 function mountAt(path = "/skills") {
@@ -229,6 +264,112 @@ describe("ModulesCatalog — integrations home", () => {
       expect(screen.getByText("Add skill")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("skill-requests")).toBeNull();
+  });
+
+  it("Schedule B: shelf facets, sort, Lawve attribution, and the gap strip", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    mockLawveShelf([
+      lawveRow(),
+      lawveRow({
+        slug: "nda-review-jamie-tso",
+        name: "nda-review-jamie-tso",
+        author_name: "Jamie Tso",
+        license: "AGPL-3.0",
+      }),
+    ]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("shelf-search")).toBeInTheDocument();
+    });
+    expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
+    expect(screen.getByTestId("shelf-count")).toHaveTextContent("2 of 2");
+
+    // Quiet outbound attribution per row — catalogue dir name == slug.
+    expect(
+      screen
+        .getByTestId("shelf-lawve-link-contract-review-anthropic")
+        .getAttribute("href"),
+    ).toBe("https://lawve.ai/en/skills/contract-review-anthropic");
+
+    // Licence facet narrows the ledger.
+    fireEvent.change(screen.getByTestId("shelf-license-filter"), {
+      target: { value: "AGPL-3.0" },
+    });
+    expect(screen.queryByText("contract-review-anthropic")).toBeNull();
+    expect(screen.getByText("nda-review-jamie-tso")).toBeInTheDocument();
+    expect(screen.getByTestId("shelf-count")).toHaveTextContent("1 of 2");
+    fireEvent.change(screen.getByTestId("shelf-license-filter"), {
+      target: { value: "" },
+    });
+
+    // Author facet exists with the real authors.
+    expect(screen.getByTestId("shelf-author-filter")).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId("shelf-author-filter"), {
+      target: { value: "Jamie Tso" },
+    });
+    expect(screen.getByTestId("shelf-count")).toHaveTextContent("1 of 2");
+    fireEvent.change(screen.getByTestId("shelf-author-filter"), {
+      target: { value: "" },
+    });
+
+    // Sort control offers name / author / licence.
+    expect(screen.getByTestId("shelf-sort")).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId("shelf-sort"), {
+      target: { value: "licence" },
+    });
+    expect(screen.getByTestId("shelf-count")).toHaveTextContent("2 of 2");
+
+    // Search empties honestly.
+    fireEvent.change(screen.getByTestId("shelf-search"), {
+      target: { value: "zzzzz" },
+    });
+    expect(
+      screen.getByText("No catalogue skills match that filter."),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId("shelf-search"), {
+      target: { value: "" },
+    });
+
+    // The honest gap strip: directory size vs importable today.
+    await waitFor(() => {
+      expect(screen.getByTestId("shelf-gap-strip")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("shelf-gap-strip")).toHaveTextContent(
+      "170 skills on Lawve · 2 importable here today",
+    );
+  });
+
+  it("Schedule B: gap strip hides when the directory count fails", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    vi.spyOn(api, "listLawveSkills").mockResolvedValue({
+      source: "lawve",
+      repo: "lawve-ai/awesome-legal-skills",
+      ref: "abc123sha",
+      skills: [lawveRow()],
+    });
+    vi.spyOn(api, "getLawveDirectoryCount").mockRejectedValue(new Error("502"));
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("shelf-gap-strip")).toBeNull();
+  });
+
+  it("Schedule B: the shelf stocks for anonymous browsers too", async () => {
+    vi.spyOn(api, "getCurrentUser").mockRejectedValue(new Error("401"));
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    mockLawveShelf([lawveRow()]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("shelf-search")).toBeInTheDocument();
   });
 
   it("renders without the retired open-skill-library browse section", async () => {

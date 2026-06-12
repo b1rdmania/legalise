@@ -34,11 +34,20 @@ import {
   LedgerRow,
   SectionRule,
 } from "../ui/certificate";
-import { listLawveSkills, type LawveSkillRow } from "../lib/api";
+import {
+  getLawveDirectoryCount,
+  listLawveSkills,
+  type LawveDirectoryCount,
+  type LawveSkillRow,
+} from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 
 type ModuleState = "available" | "installed" | "disabled";
 type SkillTab = "installed" | "available" | "revoked";
+// Shelf sort keys. The catalogue's real metadata is marketplace.json's
+// name / author / licence (the SKILL.md frontmatter vocabulary carries
+// nothing beyond it — surveyed upstream), so those are the facets.
+type ShelfSort = "name" | "author" | "licence";
 
 // "disabled" in the substrate (InstalledModule.enabled === false) is the
 // user-facing "Revoked" state per blueprint §7: a skill that was
@@ -95,9 +104,13 @@ export function ModulesCatalog() {
   const [modules, setModules] = useState<V2ManifestEntry[] | null>(null);
   const [installed, setInstalled] = useState<Map<string, InstalledModule>>(new Map());
   const [lawve, setLawve] = useState<LawveSkillRow[] | null>(null);
+  // The honest gap strip — lawve.ai directory size vs importable here.
+  // Degrades silently: null hides the strip entirely.
+  const [directory, setDirectory] = useState<LawveDirectoryCount | null>(null);
 
+  // The shelf is public (the catalogue GETs are open), so it stocks for
+  // anonymous browsers too — no auth gate on these reads.
   useEffect(() => {
-    if (!authed) return;
     let cancelled = false;
     listLawveSkills()
       .then((res) => {
@@ -106,11 +119,17 @@ export function ModulesCatalog() {
       .catch(() => {
         if (!cancelled) setLawve([]);
       });
+    getLawveDirectoryCount()
+      .then((res) => {
+        if (!cancelled && typeof res?.count === "number" && res.count > 0) {
+          setDirectory(res);
+        }
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed]);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<SkillTab>("installed");
@@ -191,6 +210,47 @@ export function ModulesCatalog() {
     }
     return counts;
   }, [installed, modules]);
+
+  // Schedule B shelf controls — client-side search, facets, and sort
+  // over the open catalogue, in the importer's filter idiom.
+  const [shelfQuery, setShelfQuery] = useState("");
+  const [shelfLicense, setShelfLicense] = useState("");
+  const [shelfAuthor, setShelfAuthor] = useState("");
+  const [shelfSort, setShelfSort] = useState<ShelfSort>("name");
+
+  const shelfLicenses = useMemo(
+    () =>
+      [...new Set((lawve ?? []).map((s) => s.license).filter((l): l is string => !!l))].sort(),
+    [lawve],
+  );
+  const shelfAuthors = useMemo(
+    () =>
+      [...new Set((lawve ?? []).map((s) => s.author_name).filter((a): a is string => !!a))].sort(),
+    [lawve],
+  );
+  const shelf = useMemo(() => {
+    const term = shelfQuery.trim().toLowerCase();
+    const rows = (lawve ?? []).filter((s) => {
+      if (shelfLicense && s.license !== shelfLicense) return false;
+      if (shelfAuthor && s.author_name !== shelfAuthor) return false;
+      if (!term) return true;
+      return (
+        s.name.toLowerCase().includes(term) ||
+        s.description.toLowerCase().includes(term) ||
+        (s.author_name ?? "").toLowerCase().includes(term) ||
+        (s.license ?? "").toLowerCase().includes(term)
+      );
+    });
+    const key = (s: LawveSkillRow) =>
+      shelfSort === "author"
+        ? (s.author_name ?? "")
+        : shelfSort === "licence"
+          ? (s.license ?? "")
+          : s.name;
+    return rows.sort(
+      (a, b) => key(a).localeCompare(key(b)) || a.name.localeCompare(b.name),
+    );
+  }, [lawve, shelfQuery, shelfLicense, shelfAuthor, shelfSort]);
 
   // Default to Added if anything is already trusted, otherwise show
   // Available so a fresh workspace lands on the discovery view.
@@ -480,28 +540,122 @@ export function ModulesCatalog() {
               Catalogue unavailable right now.
             </p>
           ) : (
-            <div className="mt-1">
-              {lawve.map((s, i) => (
-                <LedgerLine
-                  key={s.slug}
-                  index={i + 1}
-                  label={s.license ?? "licence ?"}
-                  right={
-                    <a
-                      href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
-                      className="text-sm text-muted hover:text-seal"
-                    >
-                      Review &amp; add →
-                    </a>
-                  }
+            <>
+              {/* Shelf controls — search, licence/author facets, sort.
+                  Facets are the catalogue's real metadata (the upstream
+                  SKILL.md frontmatter carries nothing beyond name /
+                  description / author / licence / version). */}
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <input
+                  value={shelfQuery}
+                  onChange={(e) => setShelfQuery(e.target.value)}
+                  placeholder="Search the catalogue"
+                  aria-label="Search the catalogue"
+                  className="min-h-[34px] w-48 border border-rule bg-paper px-3 text-[13px] text-ink focus:border-ink focus:outline-none"
+                  data-testid="shelf-search"
+                />
+                <select
+                  value={shelfLicense}
+                  onChange={(e) => setShelfLicense(e.target.value)}
+                  className="rounded-md border border-rule bg-paper px-2 py-1 text-ink"
+                  aria-label="Filter by licence"
+                  data-testid="shelf-license-filter"
                 >
-                  <span className="text-ink">{s.name}</span>
-                  <span className="ml-2 hidden text-[12px] text-muted sm:inline">
-                    {s.author_name ?? "unknown"}
-                  </span>
-                </LedgerLine>
-              ))}
-            </div>
+                  <option value="">any licence</option>
+                  {shelfLicenses.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+                <select
+                  value={shelfAuthor}
+                  onChange={(e) => setShelfAuthor(e.target.value)}
+                  className="rounded-md border border-rule bg-paper px-2 py-1 text-ink"
+                  aria-label="Filter by author"
+                  data-testid="shelf-author-filter"
+                >
+                  <option value="">any author</option>
+                  {shelfAuthors.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                <select
+                  value={shelfSort}
+                  onChange={(e) => setShelfSort(e.target.value as ShelfSort)}
+                  className="rounded-md border border-rule bg-paper px-2 py-1 text-ink"
+                  aria-label="Sort catalogue"
+                  data-testid="shelf-sort"
+                >
+                  <option value="name">sort: name</option>
+                  <option value="author">sort: author</option>
+                  <option value="licence">sort: licence</option>
+                </select>
+                <span className="text-muted" data-testid="shelf-count">
+                  {shelf.length} of {lawve.length}
+                </span>
+              </div>
+              <div className="mt-1">
+                {shelf.length === 0 ? (
+                  <p className="mt-3 text-sm text-muted">
+                    No catalogue skills match that filter.
+                  </p>
+                ) : (
+                  shelf.map((s, i) => (
+                    <LedgerLine
+                      key={s.slug}
+                      index={i + 1}
+                      label={s.license ?? "licence ?"}
+                      right={
+                        <span className="flex items-baseline gap-4">
+                          {s.lawve_url && (
+                            <a
+                              href={s.lawve_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="hidden text-[12px] text-muted hover:text-seal sm:inline"
+                              data-testid={`shelf-lawve-link-${s.slug}`}
+                            >
+                              View on Lawve →
+                            </a>
+                          )}
+                          <a
+                            href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
+                            className="text-sm text-muted hover:text-seal"
+                          >
+                            Review &amp; add →
+                          </a>
+                        </span>
+                      }
+                    >
+                      <span className="text-ink">{s.name}</span>
+                      <span className="ml-2 hidden text-[12px] text-muted sm:inline">
+                        {s.author_name ?? "unknown"}
+                      </span>
+                    </LedgerLine>
+                  ))
+                )}
+              </div>
+              {/* The honest gap strip — the directory is larger than the
+                  importable feed today; say so plainly. Hidden whenever
+                  the count could not be fetched. */}
+              {directory && (
+                <p
+                  className="mt-3 text-[11px] text-muted"
+                  data-testid="shelf-gap-strip"
+                >
+                  {directory.count} skills on{" "}
+                  <a
+                    href={directory.skills_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  >
+                    Lawve
+                  </a>{" "}
+                  · {lawve.length} importable here today · the catalogue feed
+                  is being arranged
+                </p>
+              )}
+            </>
           )}
           <Colophon>
             Skills hold no standing until admitted — review, signature,
