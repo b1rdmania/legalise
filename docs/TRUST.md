@@ -334,13 +334,12 @@ The table below is planned sequencing, not achieved assurance.
 | **UK GDPR / DPA 2018** | Designed against the principles (per-matter scoping, processor agreements with sub-processors, audit log of personal-data processing). The DPIA is owed, not published. Records of processing (Art. 30) and a public DPIA summary are v0.2 deliverables. The firm using Legalise is the controller and remains accountable | Author DPIA; publish ROPA |
 | **SRA Code of Conduct** | Designed to support solicitor accountability (audit trail, confidentiality via privilege posture). Legalise is not the regulated entity — the firm is | No further action — this is a perpetual support obligation, not a target |
 | **Cyber Essentials Plus** | Not certified. Planned after the live-matter readiness foundations | Engage assessor; remediation work; certificate |
-| **ISO 27001** | Not certified. Planned start v0.3 if revenue justifies the audit cost | Open ISMS scope; controls implementation |
-| **SOC 2 Type II** | Not certified. Considered only on US-firm GTM or US-firm-owned UK customer demand. Not on the v0.2/v0.3 timeline | n/a until trigger |
+| **ISO 27001** | Not certified. Not started | Open ISMS scope; controls implementation |
+| **SOC 2 Type II** | Not certified. Considered only on demand from US-owned firms. Not on the v0.2/v0.3 timeline | n/a until trigger |
 | **HIPAA** | Out of scope. Legalise is not designed for US healthcare workflows | n/a |
 
-The Cyber Essentials Plus → ISO 27001 → SOC 2 order reflects UK-first GTM
-(firm floor → firm ceiling → US-firm gate). A US-first competitor would
-invert it. None of these have been started.
+None of these have been started. The ordering (Cyber Essentials Plus
+first, then ISO 27001, then SOC 2) follows what UK firms ask for first.
 
 ---
 

@@ -88,7 +88,7 @@ Translating US patterns into Anglicised vocabulary produces software that breaks
 
 The core is Apache-2.0 forever. Self-host on any infrastructure. Run any models. Fork. Modify.
 
-We do not gate the matter spine, audit log, skill import path (Lawve catalogue or any public GitHub repo at a pinned SHA), or any module behind a commercial tier. If a commercial tier ever exists, it sells managed operations and certifications. Not functionality.
+We do not gate the matter spine, audit log, skill import path (Lawve catalogue or any public GitHub repo at a pinned SHA), or any module. The core is open and stays open.
 
 ## What we won't do
 
