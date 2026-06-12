@@ -1,4 +1,15 @@
-"""Phase 1 state machine primitive — runtime + registry tests.
+"""State machine primitive — runtime + registry tests. DORMANT.
+
+PARKED 2026-06-12 (test-slim order Phase 2 / fluff-cut order Phase D):
+the state-machine primitive is declared but unenforced in v0.1 — no
+live request path transitions through it — so the code moved to
+``backend/contrib/state_machine/`` and these tests are excluded from
+collection (``collect_ignore`` in ``tests/conftest.py``; the CI shard
+glob is non-recursive and never sees this directory).
+
+Revived by: the v0.2 output-lifecycle roadmap item. These tests are
+the spec-by-test for that work — do not delete.
+
 
 Covers the five canonical scenarios from the HANDOVER_PHASE_1_START
 acceptance bar:
@@ -31,7 +42,7 @@ from app.core.phase1_runtime import (
     Phase1Blocked,
     Phase1Failed,
 )
-from app.core.state_machine import (
+from contrib.state_machine import (
     DefinitionNotFoundError,
     InvalidDefinitionError,
     create_instance,
@@ -43,7 +54,7 @@ from app.core.state_machine import (
     register_gate,
     request_transition,
 )
-from app.core.state_machine.runtime import unregister_gate
+from contrib.state_machine.runtime import unregister_gate
 from app.models import (
     AuditEntry,
     StateMachineDefinition,

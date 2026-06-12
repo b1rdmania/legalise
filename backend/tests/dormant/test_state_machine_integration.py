@@ -1,21 +1,26 @@
-"""Phase 1 cross-primitive integration tests.
+"""State-machine cross-primitive integration tests. DORMANT.
 
-Proves the three substrate primitives (state_machine, matter_context,
-advice_boundary) compose cleanly via the shared phase1_runtime helpers:
+PARKED 2026-06-12 (test-slim order Phase 2 / fluff-cut order Phase D):
+the state-machine primitive is declared but unenforced in v0.1 and
+lives in ``backend/contrib/state_machine/``. These are the two
+state-machine-dependent integration tests split out of
+``tests/test_phase1_integration.py``; the third test of that file
+(matter-context + advice-boundary composition, live code) moved to
+``tests/test_advice_boundary.py``.
+
+Covers:
 
 1. State machine consuming matter-context capability check — define a
    transition whose required_capabilities references a matter-context
    namespace; transition is blocked when the caller lacks the grant.
 
-2. Matter-context write composing with advice-boundary — write an item
-   describing a draft advice tier, then invoke the advice-boundary gate
-   on it. Both primitives emit canonical audit rows under
-   ``core.matter_context`` and ``core.advice_boundary``.
+2. Audit reconstruction across all three Phase 1 primitives — execute
+   a sequence and confirm every audit row carries the canonical fields
+   (module, module_id, capability_id, BlockedPayload shape where
+   applicable).
 
-3. Audit reconstruction across all three — execute a sequence and
-   confirm every audit row carries the canonical fields (module,
-   module_id, capability_id, BlockedPayload shape where applicable) so
-   Phase 5 reconstruction can filter the matter's history end-to-end.
+Revived by: the v0.2 output-lifecycle roadmap item. Spec-by-test —
+do not delete.
 """
 
 from __future__ import annotations
@@ -27,7 +32,6 @@ from sqlalchemy import select
 
 from app.core.advice_boundary import (
     ADVICE_TIER_DRAFT_ADVICE,
-    ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
     check as advice_check,
 )
 from app.core.capabilities import grant
@@ -36,11 +40,6 @@ from app.core.matter_context import (
     write_item,
 )
 from app.core.phase1_runtime import BlockedReason, Phase1Blocked
-from app.core.state_machine import (
-    create_instance,
-    register_definition,
-    request_transition,
-)
 from app.models import (
     AuditEntry,
     Matter,
@@ -50,6 +49,11 @@ from app.models import (
     TRANSITION_STATUS_BLOCKED,
     TRANSITION_STATUS_COMPLETED,
     User,
+)
+from contrib.state_machine import (
+    create_instance,
+    register_definition,
+    request_transition,
 )
 
 
@@ -202,89 +206,7 @@ async def test_state_machine_required_capability_against_matter_context(
 
 
 # ---------------------------------------------------------------------------
-# Integration 2: matter-context write composing with advice-boundary check
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_matter_context_then_advice_boundary(db_session) -> None:
-    """Write a matter-context item that describes a draft advice claim,
-    then invoke the advice-boundary gate against the synthetic output
-    identifier. Both audit chains exist under the canonical actions."""
-    user = await _make_user(db_session)
-    matter = await _make_matter(db_session, user)
-    namespace = "legalise_memory.draft_advice"
-    await register_schema(
-        db_session,
-        namespace=namespace,
-        module_id="legalise-matter-memory",
-        version="1.0.0",
-        json_schema={
-            "type": "object",
-            "required": ["text"],
-            "properties": {
-                "text": {"type": "string"},
-                "advice_tier": {"type": "string"},
-            },
-            "additionalProperties": False,
-        },
-    )
-    await grant(
-        db_session,
-        user_id=user.id,
-        plugin="core",
-        skill="matter_context",
-        capability=f"matter.context.{namespace}.write",
-    )
-    await db_session.flush()
-
-    item = await write_item(
-        db_session,
-        matter_id=matter.id,
-        namespace=namespace,
-        payload={
-            "text": "First-pass advice on unfair dismissal liability.",
-            "advice_tier": ADVICE_TIER_DRAFT_ADVICE,
-        },
-        user_id=user.id,
-    )
-
-    # Now invoke the advice-boundary gate as if promoting the item to
-    # supervised review. Solicitor role allowed; transition succeeds.
-    result = await advice_check(
-        db_session,
-        output_id=str(item.id),
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-        module_id="legalise-matter-memory",
-    )
-    assert result["allowed"] is True
-
-    # Both audit chains exist for this user.
-    item_created = await db_session.scalar(
-        select(AuditEntry).where(
-            AuditEntry.action == "matter_context.item.created",
-            AuditEntry.actor_id == user.id,
-        )
-    )
-    assert item_created is not None
-    assert item_created.module == "core.matter_context"
-
-    advice_completed = await db_session.scalar(
-        select(AuditEntry).where(
-            AuditEntry.action == "advice_boundary.check.completed",
-            AuditEntry.actor_id == user.id,
-        )
-    )
-    assert advice_completed is not None
-    assert advice_completed.module == "core.advice_boundary"
-    assert advice_completed.payload["output_id"] == str(item.id)
-
-
-# ---------------------------------------------------------------------------
-# Integration 3: audit reconstruction across all three primitives
+# Integration 2: audit reconstruction across all three primitives
 # ---------------------------------------------------------------------------
 
 

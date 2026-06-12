@@ -1,4 +1,19 @@
-"""Phase 1 advice boundary primitive — tier vocabulary + gate tests.
+"""Advice boundary primitive — tier vocabulary + gate tests.
+
+ENFORCED in v0.1 (verified 2026-06-12, test-slim order Phase 2). The
+live call chain: chat tool calls (``modules/assistant/pipeline.py``)
+and ``POST /api/invocations`` both dispatch through
+``core.runtime.dispatch_capability``; prompt-runtime capabilities (the
+only way skills arrive — Lawve catalogue / GitHub import) run
+``core.prompt_runtime.run_prompt_capability``, which calls
+``advice_boundary.check()`` per invocation and raises
+``AdviceBoundaryDenied`` on denial — translated to a 403 by the
+invocations endpoint and to a user-facing failure message by the
+assistant pipeline. Tier vocabulary, transition rules, the
+initial-tier cap, and declared_tier_max are enforced unconditionally;
+the role requirement additionally gates on
+``LEGALISE_FIRM_ROLE_GATES_ENABLED`` (the suite runs firm-mode via the
+autouse conftest fixture).
 
 Eight canonical scenarios from PHASE_1_BUILD_PLAN.md:
 
@@ -10,6 +25,9 @@ Eight canonical scenarios from PHASE_1_BUILD_PLAN.md:
 6. Null declared_tier_max (Phase 1 mode — accepted + logged)
 7. Immutability of approved_final_advice (no transition out)
 8. Audit emission verified across paths
+
+Plus the matter-context composition test (formerly in
+``test_phase1_integration.py``).
 """
 
 from __future__ import annotations
@@ -37,6 +55,11 @@ from app.core.advice_boundary.tiers import (
     role_satisfies,
     tier_rank,
 )
+from app.core.capabilities import grant
+from app.core.matter_context import (
+    register_schema,
+    write_item,
+)
 from app.models import (
     AdviceBoundaryDecision,
     AuditEntry,
@@ -44,6 +67,9 @@ from app.models import (
     DECISION_STATUS_COMPLETED,
     DECISION_STATUS_DENIED,
     DECISION_STATUS_FAILED,
+    Matter,
+    PRIVILEGE_MIXED,
+    STATUS_OPEN,
     User,
 )
 
@@ -610,3 +636,103 @@ async def test_audit_emission_across_paths(db_session) -> None:
         )
         assert row is not None, f"missing audit row for {action}"
         assert row.module == "core.advice_boundary"
+
+
+# ---------------------------------------------------------------------------
+# Composition: matter-context write then advice-boundary check
+# (moved from test_phase1_integration.py when the state-machine
+# primitive was parked in contrib/, 2026-06-12)
+# ---------------------------------------------------------------------------
+
+
+async def _make_matter(db_session, user) -> Matter:
+    matter = Matter(
+        id=uuid.uuid4(),
+        slug=f"matter-{uuid.uuid4().hex[:8]}",
+        title="Integration Matter",
+        matter_type="employment_tribunal",
+        status=STATUS_OPEN,
+        privilege_posture=PRIVILEGE_MIXED,
+        default_model_id="claude-opus-4-7",
+        created_by_id=user.id,
+    )
+    db_session.add(matter)
+    await db_session.flush()
+    return matter
+
+
+@pytest.mark.asyncio
+async def test_matter_context_then_advice_boundary(db_session) -> None:
+    """Write a matter-context item that describes a draft advice claim,
+    then invoke the advice-boundary gate against the synthetic output
+    identifier. Both audit chains exist under the canonical actions."""
+    user = await _make_user(db_session)
+    matter = await _make_matter(db_session, user)
+    namespace = "legalise_memory.draft_advice"
+    await register_schema(
+        db_session,
+        namespace=namespace,
+        module_id="legalise-matter-memory",
+        version="1.0.0",
+        json_schema={
+            "type": "object",
+            "required": ["text"],
+            "properties": {
+                "text": {"type": "string"},
+                "advice_tier": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    )
+    await grant(
+        db_session,
+        user_id=user.id,
+        plugin="core",
+        skill="matter_context",
+        capability=f"matter.context.{namespace}.write",
+    )
+    await db_session.flush()
+
+    item = await write_item(
+        db_session,
+        matter_id=matter.id,
+        namespace=namespace,
+        payload={
+            "text": "First-pass advice on unfair dismissal liability.",
+            "advice_tier": ADVICE_TIER_DRAFT_ADVICE,
+        },
+        user_id=user.id,
+    )
+
+    # Now invoke the advice-boundary gate as if promoting the item to
+    # supervised review. Solicitor role allowed; transition succeeds.
+    result = await check(
+        db_session,
+        output_id=str(item.id),
+        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+        from_tier=ADVICE_TIER_DRAFT_ADVICE,
+        actor_user_id=user.id,
+        actor_role="qualified_solicitor",
+        module_id="legalise-matter-memory",
+    )
+    assert result["allowed"] is True
+
+    # Both audit chains exist for this user.
+    item_created = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.action == "matter_context.item.created",
+            AuditEntry.actor_id == user.id,
+        )
+    )
+    assert item_created is not None
+    assert item_created.module == "core.matter_context"
+
+    advice_completed = await db_session.scalar(
+        select(AuditEntry).where(
+            AuditEntry.action == "advice_boundary.check.completed",
+            AuditEntry.actor_id == user.id,
+        )
+    )
+    assert advice_completed is not None
+    assert advice_completed.module == "core.advice_boundary"
+    assert advice_completed.payload["output_id"] == str(item.id)

@@ -42,6 +42,13 @@ from sqlalchemy.ext.asyncio import (
 )
 
 
+# Dormant tests (spec-by-test for parked primitives in backend/contrib/)
+# are excluded from collection. The CI shard split uses a non-recursive
+# Path("tests").glob("test_*.py") so it never sees the subdirectory; this
+# line keeps a bare local `pytest` run consistent with CI.
+collect_ignore = ["dormant"]
+
+
 TEST_DSN = os.environ.get(
     "TEST_DATABASE_URL",
     "postgresql+asyncpg://legalise:legalise@db:5432/legalise_test",

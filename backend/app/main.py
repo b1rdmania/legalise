@@ -36,7 +36,6 @@ from app.api.system import router as system_router
 from app.api.settings import router as settings_router
 from app.api.usage import router as usage_router
 from app.api.workspace import router as workspace_router
-from app.api.state_machine import router as state_machine_router
 from app.api.matter_context import (
     schema_router as matter_context_schema_router,
     items_router as matter_context_items_router,
@@ -348,12 +347,8 @@ app.include_router(demo_router)
 app.include_router(agent_evals_router, prefix="/api/evals", tags=["evals"])
 app.include_router(workspace_router, prefix="/api/workspace", tags=["workspace"])
 
-# Substrate primitives (state machine + matter context).
-app.include_router(
-    state_machine_router,
-    prefix="/api/state-machine",
-    tags=["state-machine"],
-)
+# Substrate primitives (matter context; the state-machine primitive is
+# dormant and parked in backend/contrib/state_machine/ — see its header).
 app.include_router(
     matter_context_schema_router,
     prefix="/api/matter-context",
