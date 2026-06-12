@@ -90,8 +90,9 @@ export function Landing() {
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
             An open-source workspace for England &amp; Wales. Plug in a legal
-            skill, run it from chat, watch the supervised run. Every output
-            knows its sources, its permissions, and who stood behind it.
+            skill, a small piece of legal work, and run it from chat, watch
+            the supervised run. Every output knows its sources, its
+            permissions, and who stood behind it.
           </p>
 
           {/* CTAs */}

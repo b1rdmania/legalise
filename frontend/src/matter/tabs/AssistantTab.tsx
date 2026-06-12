@@ -55,6 +55,9 @@ interface AssistantTabProps {
   // Optional route override for read-only/public shells. Normal matters
   // route source chips into the authenticated matter document reader.
   onDocumentChip?: (documentId: string) => void;
+  // Where a `view_signed_output` action lands. Only the demo emits the
+  // action today; shells that omit this simply ignore it.
+  onOpenSignedOutput?: () => void;
   initialDocumentId?: string | null;
   // Pause/resume entry point in the header meta line. Same plumbing as
   // PostureBanner: the callback owns setPrivilege + matter refetch
@@ -107,6 +110,7 @@ export function AssistantTab({
   showContextRail = false,
   onDisabledAction,
   onDocumentChip,
+  onOpenSignedOutput,
   initialDocumentId,
   onPostureChange,
   // back-compat — see AssistantTabProps; deliberately unused.
@@ -310,6 +314,10 @@ export function AssistantTab({
   };
 
   const dispatchAction = (a: SuggestedAction) => {
+    if (a.type === "view_signed_output") {
+      onOpenSignedOutput?.();
+      return;
+    }
     const workflowPrompt = WORKFLOW_ACTION_PROMPT[a.type];
     if (workflowPrompt) {
       const selectedIds = new Set(selectedDocIds);

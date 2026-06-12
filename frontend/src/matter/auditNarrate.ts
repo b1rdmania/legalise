@@ -95,6 +95,10 @@ export function narrateEntry(entry: AuditEntry): string {
     return "Blocked a model call because the matter is paused. No content left the workspace.";
   }
 
+  if (a === "document.edit.accepted") {
+    return "Accepted a tracked change in the document.";
+  }
+
   if (a === "output.signed") return "Signed the output — a named person took responsibility for it.";
   if (a === "output.signed_with_observations") {
     return "Signed the output with observations recorded.";
