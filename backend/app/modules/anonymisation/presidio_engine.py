@@ -4,11 +4,13 @@ Lazy singleton — Presidio + spaCy together resident is ~50MB, so we
 avoid loading at import time. Calls to `analyse()` are the only public
 entry point.
 
-Presidio is an optional install — `presidio-analyzer` and a spaCy model
-must be present for this module to do real work. We wrap the imports in
-a try/except so the module still imports in environments that do not
-have the wheels (CI smoke, frontend-only dev). The first real `analyse`
-call in that state raises a clean `RuntimeError` with install guidance.
+Presidio is an optional install — the `anonymisation` extra
+(`pip install -e ".[anonymisation]"`) plus a spaCy model must be present
+for this module to do real work. We wrap the imports in a try/except so
+the module still imports in environments that do not have the wheels
+(slim deploys, frontend-only dev). The first real `analyse` call in that
+state raises a clean `RuntimeError` with install guidance, which the
+anonymisation routes translate into a 503.
 
 Model selection: the `PRESIDIO_MODEL` env var lets production swap in
 `en_core_web_lg` (~560MB) for higher recall. Defaults to
@@ -75,9 +77,9 @@ def _build_engine() -> Any:
     """
     if not _PRESIDIO_AVAILABLE:
         raise RuntimeError(
-            "Presidio is not installed. Install with: "
-            "`pip install presidio-analyzer presidio-anonymizer spacy && "
-            "python -m spacy download en_core_web_sm`. "
+            "anonymisation extra not installed. Install with: "
+            '`pip install -e ".[anonymisation]" && '
+            "python -m spacy download en_core_web_sm` (from backend/). "
             f"(Underlying import error: {_IMPORT_ERROR!r})"
         )
 

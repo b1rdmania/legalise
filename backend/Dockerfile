@@ -13,7 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-RUN pip install --upgrade pip && pip install -e .
+# The `anonymisation` extra (Presidio + spaCy) is optional in pyproject
+# but installed here: the demo/dev image ships batteries-included. A slim
+# deploy can drop the extra (and the model download below); the
+# anonymisation endpoints then return 503 with install guidance instead
+# of crashing.
+RUN pip install --upgrade pip && pip install -e ".[anonymisation]"
 
 # spaCy NER model for the Phase C anonymisation pipeline (Presidio).
 # Distributed outside PyPI; install after the editable install above.

@@ -502,6 +502,26 @@ def check_provider_mode() -> CheckResult:
     )
 
 
+def check_anonymisation_engine() -> CheckResult:
+    """Optional-extra probe — never fails (missing extra is a valid slim
+    install; the endpoints degrade to 503 with install guidance)."""
+    from app.modules.anonymisation import presidio_engine
+
+    if presidio_engine.is_available():
+        return CheckResult(
+            "anonymisation.engine",
+            "ok",
+            "presidio importable (anonymisation extra installed)",
+        )
+    return CheckResult(
+        "anonymisation.engine",
+        "note",
+        "anonymisation extra not installed — anonymise endpoints will 503; "
+        'install with `pip install -e ".[anonymisation]" && '
+        "python -m spacy download en_core_web_sm`",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -543,6 +563,9 @@ async def _run_all(*, create_bucket: bool) -> int:
 
     # Provider mode — diagnostic only.
     results.append(check_provider_mode())
+
+    # Anonymisation extra — diagnostic only (optional install).
+    results.append(check_anonymisation_engine())
 
     await engine.dispose()
 
