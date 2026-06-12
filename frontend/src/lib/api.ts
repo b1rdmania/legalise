@@ -12,6 +12,7 @@ export * from "./api/documents";
 export * from "./api/assistant";
 export * from "./api/modules";
 export * from "./api/signoffs";
+export * from "./api/external";
 export * from "./api/audit";
 export * from "./api/admin";
 export * from "./api/settings";

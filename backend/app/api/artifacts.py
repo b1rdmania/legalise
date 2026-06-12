@@ -51,7 +51,8 @@ class ArtifactSummary(BaseModel):
     capability_id: str
     invocation_id: str
     kind: str
-    created_by_id: str
+    # None for external-pack documents: no workspace user authored them.
+    created_by_id: str | None
     created_at: str
     size_bytes: int
 
@@ -92,7 +93,7 @@ def _row_to_summary(row: MatterArtifact) -> ArtifactSummary:
         capability_id=row.capability_id,
         invocation_id=str(row.invocation_id),
         kind=row.kind,
-        created_by_id=str(row.created_by_id),
+        created_by_id=str(row.created_by_id) if row.created_by_id else None,
         created_at=row.created_at.isoformat(),
         size_bytes=row.size_bytes,
     )

@@ -48,10 +48,14 @@ class MatterArtifact(Base):
     )
     kind: Mapped[str] = mapped_column(String(64), nullable=False)
     storage_path: Mapped[str] = mapped_column(Text, nullable=False)
-    created_by_id: Mapped[uuid.UUID] = mapped_column(
+    # NULL = no workspace user authored this artifact (external-pack
+    # documents whose author was the external assistant or an external
+    # human). signer_is_author is computed as created_by_id == signer.id,
+    # so a NULL author always reads as signer_is_author=false.
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
-        nullable=False,
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

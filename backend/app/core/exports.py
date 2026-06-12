@@ -531,7 +531,9 @@ async def build_matter_export(
                 "kind": art.kind,
                 "size_bytes": art.size_bytes,
                 "created_at": art.created_at,
-                "created_by_id": str(art.created_by_id),
+                "created_by_id": (
+                    str(art.created_by_id) if art.created_by_id else None
+                ),
                 # Sign-off status: signed | signed_with_observations |
                 # rejected | unsigned.
                 "signoff_status": cur.decision if cur else "unsigned",
