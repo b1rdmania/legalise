@@ -4,6 +4,8 @@
 // React state lives. Order is load-bearing and preserved exactly from the
 // pre-split DocumentRichEditor.tsx (Fluff C3).
 import type { AnyExtension } from "@tiptap/core";
+
+import { firstImageFile } from "./editorText";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
@@ -71,4 +73,28 @@ export function documentEditorExtensions({
     TableHeader,
     TableCell,
   ];
+}
+
+// Editor view props: canvas styling plus paste/drop image interception.
+// Verbatim from the pre-split DocumentRichEditor.tsx (Fluff C3).
+export function documentEditorProps(onImageFile: (file: File) => void) {
+  return {
+    attributes: {
+      class:
+        "legalise-document-editor min-h-[760px] border border-rule bg-paper px-9 py-12 text-[16px] leading-8 outline-none shadow-[0_18px_50px_rgba(0,0,0,0.08)] sm:px-14",
+    },
+    handlePaste: (_view: unknown, event: ClipboardEvent) => {
+      const file = firstImageFile(event.clipboardData?.files);
+      if (!file) return false;
+      onImageFile(file);
+      return true;
+    },
+    handleDrop: (_view: unknown, event: DragEvent) => {
+      const file = firstImageFile(event.dataTransfer?.files);
+      if (!file) return false;
+      event.preventDefault();
+      onImageFile(file);
+      return true;
+    },
+  };
 }

@@ -23,10 +23,8 @@ import { buildVersionDiff, buildVersionDiffSummary } from "./VersionDiff";
 import {
   clearDocumentLocalDraft,
   documentOutlineFromJson,
-  documentStatsFromText,
   editorJsonToPlainText,
   findNormalizedRange,
-  firstImageFile,
   isEditableWordDocument,
   readDocumentLocalDraft,
   textToEditorHtml,
@@ -36,15 +34,9 @@ import {
 } from "./editorText";
 
 export {
-  clearDocumentLocalDraft,
-  documentOutlineFromJson,
-  documentStatsFromText,
-  editorJsonToPlainText,
-  findNormalizedRange,
-  findNormalizedRanges,
-  isEditableWordDocument,
-  readDocumentLocalDraft,
-  textToEditorHtml,
+  clearDocumentLocalDraft, documentOutlineFromJson, documentStatsFromText,
+  editorJsonToPlainText, findNormalizedRange, findNormalizedRanges,
+  isEditableWordDocument, readDocumentLocalDraft, textToEditorHtml,
   writeDocumentLocalDraft,
 } from "./editorText";
 export type { TiptapNode } from "./editorText";
@@ -66,13 +58,20 @@ import {
 
 export type { DocumentNoteHighlight } from "./reviewNotes";
 
-import { documentEditorExtensions } from "./editorExtensions";
+import {
+  documentEditorExtensions,
+  documentEditorProps,
+} from "./editorExtensions";
 import {
   useClipboardActions,
   useFindInDocument,
   useTrackedChangeResolution,
 } from "./editorHooks";
-import { FormatToolbar, ViewModeButton } from "./editorChrome";
+import {
+  CommandBarRow,
+  editorStatusLabelFor,
+  FormatToolbar,
+} from "./editorChrome";
 import {
   DraftNotices,
   EditorSideRail,
@@ -259,25 +258,9 @@ export function DocumentRichEditor({
         trackChangesExtension,
       }),
       content,
-      editorProps: {
-        attributes: {
-          class:
-            "legalise-document-editor min-h-[760px] border border-rule bg-paper px-9 py-12 text-[16px] leading-8 outline-none shadow-[0_18px_50px_rgba(0,0,0,0.08)] sm:px-14",
-        },
-        handlePaste: (_view, event) => {
-          const file = firstImageFile(event.clipboardData?.files);
-          if (!file) return false;
-          void uploadAndInsertEditorImage(file);
-          return true;
-        },
-        handleDrop: (_view, event) => {
-          const file = firstImageFile(event.dataTransfer?.files);
-          if (!file) return false;
-          event.preventDefault();
-          void uploadAndInsertEditorImage(file);
-          return true;
-        },
-      },
+      editorProps: documentEditorProps((file) =>
+        void uploadAndInsertEditorImage(file),
+      ),
       onUpdate: ({ editor: activeEditor }) => {
         const json = activeEditor.getJSON() as TiptapNode;
         const plainText = editorJsonToPlainText(json);
@@ -508,23 +491,14 @@ export function DocumentRichEditor({
     [workingDiffParts],
   );
   const showWorkingDiff = dirty && workingDiffSummary.changed;
-  const sharedDraftLabel =
-    draftLoadState === "loading"
-      ? "Loading shared draft"
-      : draftSaveState === "saving"
-        ? "Saving shared draft"
-        : draftSaveState === "saved"
-          ? `Shared draft saved${serverDraft ? ` · r${serverDraft.version_counter}` : ""}`
-          : draftSaveState === "error"
-            ? "Local fallback active"
-            : "Shared draft ready";
-  const editorStatusLabel = dirty
-    ? sharedDraftLabel
-    : savedMessage
-      ? savedMessage
-      : latestVersionNumber
-        ? `Saved v${latestVersionNumber}`
-        : "Extracted text";
+  const editorStatusLabel = editorStatusLabelFor({
+    dirty,
+    draftLoadState,
+    draftSaveState,
+    serverDraftCounter: serverDraft ? serverDraft.version_counter : null,
+    savedMessage,
+    latestVersionNumber,
+  });
   const canvasMaxWidth = canvasMode === "page" ? "max-w-[820px]" : "max-w-[1040px]";
 
   async function save(): Promise<DocumentVersionRead | null> {
@@ -659,138 +633,39 @@ export function DocumentRichEditor({
         className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur"
         data-testid="document-editor-command-bar"
       >
-        <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 text-[13px]">
-          <div
-            className="flex items-center gap-1 border-r border-rule pr-2"
-            aria-label="Document view"
-            data-testid="document-editor-view-mode"
-          >
-            <ViewModeButton active={canvasMode === "page"} onClick={() => setCanvasMode("page")}>
-              Page
-            </ViewModeButton>
-            <ViewModeButton active={canvasMode === "wide"} onClick={() => setCanvasMode("wide")}>
-              Wide
-            </ViewModeButton>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFormatOpen((current) => !current)}
-            aria-expanded={formatOpen}
-            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink"
-          >
-            Format
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFindOpen((current) => {
-                const next = !current;
-                if (next) {
-                  requestAnimationFrame(() => findInputRef.current?.focus());
-                }
-                return next;
-              });
-            }}
-            aria-expanded={findOpen}
-            className="inline-flex h-8 items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink"
-          >
-            Find
-          </button>
-          {proposedEdits.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setRedlinesVisible((current) => !current)}
-              aria-pressed={redlinesVisible}
-              data-testid="document-editor-redlines-toggle"
-              className={`inline-flex h-8 items-center rounded-item border px-3 text-xs ${
-                redlinesVisible
-                  ? "border-ink bg-paper text-ink"
-                  : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
-              }`}
-            >
-              Redlines ({proposedEdits.length})
-            </button>
-          )}
-          <span className="ml-2 inline-flex items-center gap-2 text-xs text-muted">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                draftSaveState === "error"
-                  ? "bg-red-700"
-                  : dirty
-                    ? "bg-amber-500"
-                    : "bg-emerald-700"
-              }`}
-              aria-hidden="true"
-            />
-            {editorStatusLabel}
-          </span>
-          {sourceLabel?.startsWith("Viewing saved version") && (
-            <span className="text-xs text-muted">{sourceLabel}</span>
-          )}
-          <div className="ml-auto flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={save}
-              disabled={!canSave}
-              className="inline-flex h-8 items-center rounded-item border border-ink bg-ink px-3 text-xs text-paper disabled:border-rule disabled:bg-paper-sunken disabled:text-muted"
-            >
-              {saving ? "Saving…" : "Save version"}
-            </button>
-            <details className="relative" data-testid="document-editor-more">
-              <summary className="inline-flex h-8 cursor-pointer list-none items-center rounded-item border border-rule px-3 text-xs text-muted hover:border-ink hover:text-ink">
-                More
-              </summary>
-              <div className="absolute right-0 z-20 mt-1 grid min-w-44 gap-1 rounded-card border border-rule bg-paper p-1.5 shadow-panel">
-                <button
-                  type="button"
-                  onClick={() => void saveAndDownloadDocx()}
-                  disabled={!canDownloadDocx}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  {downloadingDocx ? "Preparing…" : dirty ? "Save & download DOCX" : "Download DOCX"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void copyWorkingText()}
-                  disabled={!plainText.trim()}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Copy text
-                </button>
-                <button
-                  type="button"
-                  onClick={downloadWorkingText}
-                  disabled={!plainText.trim()}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Download text
-                </button>
-                <span
-                  className="inline-flex h-8 items-center px-2 text-xs text-muted"
-                  data-testid="document-editor-word-count"
-                >
-                  {documentStatsFromText(plainText).words.toLocaleString()} words
-                </span>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  disabled={!plainText.trim()}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Print / PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={reset}
-                  disabled={!dirty || saving}
-                  className="inline-flex h-8 items-center rounded-item px-2 text-xs text-ink hover:bg-paper-sunken disabled:text-muted"
-                >
-                  Reset
-                </button>
-              </div>
-            </details>
-          </div>
-        </div>
+        <CommandBarRow
+          canvasMode={canvasMode}
+          onSetCanvasMode={setCanvasMode}
+          formatOpen={formatOpen}
+          onToggleFormat={() => setFormatOpen((current) => !current)}
+          findOpen={findOpen}
+          onToggleFind={() => {
+            setFindOpen((current) => {
+              const next = !current;
+              if (next) {
+                requestAnimationFrame(() => findInputRef.current?.focus());
+              }
+              return next;
+            });
+          }}
+          proposedEditCount={proposedEdits.length}
+          redlinesVisible={redlinesVisible}
+          onToggleRedlines={() => setRedlinesVisible((current) => !current)}
+          draftSaveError={draftSaveState === "error"}
+          dirty={dirty}
+          editorStatusLabel={editorStatusLabel}
+          sourceLabel={sourceLabel}
+          onSave={save}
+          canSave={canSave}
+          saving={saving}
+          onSaveAndDownloadDocx={saveAndDownloadDocx}
+          canDownloadDocx={canDownloadDocx}
+          downloadingDocx={downloadingDocx}
+          onCopyWorkingText={copyWorkingText}
+          onDownloadWorkingText={downloadWorkingText}
+          plainText={plainText}
+          onReset={reset}
+        />
         {formatOpen && (
           <FormatToolbar
             editor={editor}
