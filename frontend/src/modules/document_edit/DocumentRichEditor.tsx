@@ -9,21 +9,6 @@ import {
 import { EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { type Content } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import Typography from "@tiptap/extension-typography";
-import Highlight from "@tiptap/extension-highlight";
-import Color from "@tiptap/extension-color";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
-import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
-import { Table } from "@tiptap/extension-table";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
 
 import {
   commitDocumentWorkingDraft,
@@ -93,145 +78,16 @@ import {
 
 export type { DocumentNoteHighlight } from "./reviewNotes";
 
+import { documentEditorExtensions } from "./editorExtensions";
+import {
+  FormatToolbar,
+  renderWorkingDiffParts,
+  ViewModeButton,
+} from "./editorChrome";
+
 type DocumentCanvasMode = "page" | "wide";
 type OriginalImportState = "idle" | "loading" | "ready" | "error";
-type WorkingDiffPart = ReturnType<typeof buildVersionDiff>[number];
-const EDITOR_TEXT_COLORS = [
-  { label: "Ink text", value: "#181818" },
-  { label: "Red text", value: "#8C1D18" },
-  { label: "Amber text", value: "#8A5A00" },
-  { label: "Green text", value: "#236A44" },
-  { label: "Blue text", value: "#245B8A" },
-] as const;
 const SHARED_DRAFT_POLL_MS = 15_000;
-
-function ToolbarButton({
-  active,
-  children,
-  onClick,
-  label,
-  disabled,
-}: {
-  active?: boolean;
-  children: string;
-  onClick: () => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-item border px-2 text-sm disabled:cursor-not-allowed disabled:opacity-35 ${
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-rule bg-paper text-ink hover:border-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ToolbarGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-1 border-r border-rule pr-2 last:border-r-0 last:pr-0">
-      <span className="mr-1 hidden text-[10px] font-semibold uppercase tracking-track2 text-muted xl:inline">
-        {label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-function ColorButton({
-  active,
-  color,
-  label,
-  onClick,
-}: {
-  active?: boolean;
-  color: string;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-item border bg-paper px-2 ${
-        active ? "border-ink" : "border-rule hover:border-ink"
-      }`}
-    >
-      <span
-        className="block h-4 w-4 rounded-sm border border-rule"
-        style={{ backgroundColor: color }}
-        aria-hidden="true"
-      />
-    </button>
-  );
-}
-
-function ViewModeButton({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex h-8 items-center rounded-item border px-3 text-xs ${
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-rule bg-paper text-muted hover:border-ink hover:text-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function renderWorkingDiffParts(parts: WorkingDiffPart[]) {
-  return parts.map((part, index) => {
-    if (part.type === "insert") {
-      return (
-        <ins
-          key={`${part.type}-${index}`}
-          className="bg-green-100 px-0.5 text-green-950 no-underline"
-        >
-          {part.text}
-        </ins>
-      );
-    }
-    if (part.type === "delete") {
-      return (
-        <del
-          key={`${part.type}-${index}`}
-          className="bg-red-100 px-0.5 text-red-950"
-        >
-          {part.text}
-        </del>
-      );
-    }
-    return <span key={`${part.type}-${index}`}>{part.text}</span>;
-  });
-}
 
 export function DocumentRichEditor({
   documentId,
@@ -406,48 +262,11 @@ export function DocumentRichEditor({
 
   const editor = useEditor(
     {
-      extensions: [
-        StarterKit.configure({
-          heading: {
-            levels: [2, 3],
-          },
-          codeBlock: false,
-          horizontalRule: false,
-        }),
-        Placeholder.configure({
-          placeholder: "Start editing this document...",
-        }),
-        Typography,
-        Highlight.configure({ multicolor: false }),
-        TextStyle,
-        Color,
-        Image.configure({
-          allowBase64: false,
-          inline: false,
-        }),
-        Link.configure({
-          autolink: true,
-          defaultProtocol: "https",
-          openOnClick: false,
-          HTMLAttributes: {
-            class: "text-ink underline underline-offset-4",
-          },
-        }),
-        TextAlign.configure({
-          types: ["heading", "paragraph"],
-        }),
-        TaskList,
-        TaskItem.configure({
-          nested: true,
-        }),
+      extensions: documentEditorExtensions({
         findExtension,
         reviewNoteExtension,
         trackChangesExtension,
-        Table.configure({ resizable: true }),
-        TableRow,
-        TableHeader,
-        TableCell,
-      ],
+      }),
       content,
       editorProps: {
         attributes: {
@@ -1176,220 +995,14 @@ export function DocumentRichEditor({
           </div>
         </div>
         {formatOpen && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-rule px-4 py-2">
-          {editor && (
-            <>
-              <ToolbarGroup label="Style">
-                <ToolbarButton
-                  label="Heading 2"
-                  active={editor.isActive("heading", { level: 2 })}
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                >
-                  H2
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Heading 3"
-                  active={editor.isActive("heading", { level: 3 })}
-                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                >
-                  H3
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Text">
-                <ToolbarButton
-                  label="Bold"
-                  active={editor.isActive("bold")}
-                  onClick={() => editor.chain().focus().toggleBold().run()}
-                >
-                  B
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Italic"
-                  active={editor.isActive("italic")}
-                  onClick={() => editor.chain().focus().toggleItalic().run()}
-                >
-                  I
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Underline"
-                  active={editor.isActive("underline")}
-                  onClick={() => editor.chain().focus().toggleUnderline().run()}
-                >
-                  U
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Highlight"
-                  active={editor.isActive("highlight")}
-                  onClick={() => editor.chain().focus().toggleHighlight().run()}
-                >
-                  H
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Link"
-                  active={editor.isActive("link")}
-                  onClick={setEditorLink}
-                >
-                  Link
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Remove link"
-                  disabled={!editor.isActive("link")}
-                  onClick={() =>
-                    editor.chain().focus().extendMarkRange("link").unsetLink().run()
-                  }
-                >
-                  Unlink
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Colour">
-                {EDITOR_TEXT_COLORS.map((color) => (
-                  <ColorButton
-                    key={color.value}
-                    label={color.label}
-                    color={color.value}
-                    active={editor.isActive("textStyle", { color: color.value })}
-                    onClick={() => editor.chain().focus().setColor(color.value).run()}
-                  />
-                ))}
-                <ToolbarButton
-                  label="Remove text colour"
-                  disabled={!editor.isActive("textStyle")}
-                  onClick={() => editor.chain().focus().unsetColor().run()}
-                >
-                  Clear
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Align">
-                <ToolbarButton
-                  label="Align left"
-                  active={editor.isActive({ textAlign: "left" })}
-                  onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                >
-                  L
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Align centre"
-                  active={editor.isActive({ textAlign: "center" })}
-                  onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                >
-                  C
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Align right"
-                  active={editor.isActive({ textAlign: "right" })}
-                  onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                >
-                  R
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Lists">
-                <ToolbarButton
-                  label="Bullet list"
-                  active={editor.isActive("bulletList")}
-                  onClick={() => editor.chain().focus().toggleBulletList().run()}
-                >
-                  •
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Numbered list"
-                  active={editor.isActive("orderedList")}
-                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                >
-                  1.
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Checklist"
-                  active={editor.isActive("taskList")}
-                  onClick={() => editor.chain().focus().toggleTaskList().run()}
-                >
-                  ☑
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Media">
-                <input
-                  ref={imageInputRef}
-                  data-testid="document-image-upload-input"
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(event) => void handleEditorImageUpload(event)}
-                />
-                <ToolbarButton
-                  label={uploadingImage ? "Uploading image" : "Upload image"}
-                  disabled={uploadingImage}
-                  onClick={() => imageInputRef.current?.click()}
-                >
-                  Up
-                </ToolbarButton>
-                <ToolbarButton
-                  label="Insert image URL"
-                  onClick={insertEditorImageUrl}
-                >
-                  Img
-                </ToolbarButton>
-              </ToolbarGroup>
-              <ToolbarGroup label="Table">
-                <ToolbarButton
-                  label="Insert table"
-                  active={editor.isActive("table")}
-                  onClick={() =>
-                    editor
-                      .chain()
-                      .focus()
-                      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                      .run()
-                  }
-                >
-                  Tbl
-                </ToolbarButton>
-                {editor.isActive("table") && (
-                  <>
-                    <ToolbarButton
-                      label="Add row"
-                      onClick={() => editor.chain().focus().addRowAfter().run()}
-                    >
-                      +R
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Add column"
-                      onClick={() => editor.chain().focus().addColumnAfter().run()}
-                    >
-                      +C
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Delete row"
-                      onClick={() => editor.chain().focus().deleteRow().run()}
-                    >
-                      -R
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Delete column"
-                      onClick={() => editor.chain().focus().deleteColumn().run()}
-                    >
-                      -C
-                    </ToolbarButton>
-                    <ToolbarButton
-                      label="Delete table"
-                      onClick={() => editor.chain().focus().deleteTable().run()}
-                    >
-                      X
-                    </ToolbarButton>
-                  </>
-                )}
-                {!editor.isActive("table") && (
-                  <ToolbarButton
-                    label="Add row"
-                    disabled
-                    onClick={() => editor.chain().focus().addRowAfter().run()}
-                  >
-                    +R
-                  </ToolbarButton>
-                )}
-              </ToolbarGroup>
-            </>
-          )}
-          <span className="ml-auto text-xs text-muted">Formatting tools</span>
-        </div>
+          <FormatToolbar
+            editor={editor}
+            imageInputRef={imageInputRef}
+            uploadingImage={uploadingImage}
+            onImageUpload={handleEditorImageUpload}
+            onSetLink={setEditorLink}
+            onInsertImageUrl={insertEditorImageUrl}
+          />
         )}
         {(findOpen || findQuery.trim()) && (
         <div
