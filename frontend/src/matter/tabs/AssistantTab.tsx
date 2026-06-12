@@ -496,7 +496,7 @@ export function AssistantTab({
 
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 space-y-5 overflow-y-auto border-t border-rule py-5"
+          className="min-h-0 flex-1 space-y-6 overflow-y-auto border-t border-rule py-6"
         >
         {!loaded && (
           <p className="tech-token text-xs text-muted flex items-center gap-2">

@@ -1630,3 +1630,32 @@ What we build:
 Exact values: masthead/monument/whisper/prose tiers per P27 (no new tokens). Architecture page section headers use SectionRule; body text `text-base leading-relaxed text-prose max-w-3xl`; pull-quotes none — restraint.
 Where it lands: TopBar.tsx, Drawer.tsx, Footer.tsx, Landing.tsx, landing/Architecture.tsx (new), landing/About.tsx (new), router/index.tsx, lib/route.ts, app/AppShell.tsx.
 Deliberate divergences: Lavern shows agent-count metrics and an install video in the hero; we show the quickstart command and the refusal thesis instead — the register does not advertise capability counts.
+
+---
+
+## P29 — The golden loop (demo as one conversation; the chat and the record earn their look)
+
+Source: Andy's demo walk, 2026-06-12 (screenshots). The verdict: the demo is a tab museum of gray squares — raw code in the audit drawer, a bespoke document page that never shows the real reading surface, a chat thread that reads as gibberish, and lecture/workbench panels stacking CTAs. Ratified shape: **the demo is one scripted conversation** — the golden loop start to finish in the chat window. The chat, record, and chronology surfaces are the REAL workspace components, so this pass fixes the product, not just the demo.
+
+### 1. The record speaks English first (`AuditTab` + drawer, shared)
+
+- New `matter/auditNarrate.ts`: `narrateEntry(entry) → string` — one plain sentence per action ("Built a chronology of 7 events.", "Uploaded khan-dismissal-letter.pdf.", "Blocked a model call on a paused matter. No content left the workspace."). Unknown actions fall back to the action string.
+- Drawer anatomy top-to-bottom: action title → **the sentence** (`text-sm text-prose leading-relaxed`) → plain rows only (When, human date · Who, "You"/system · Matter, title · Model, if any) → `<details>` **"Technical record"** holding hashes, ids, tokens, latency, raw payload JSON. The technical material survives complete but never leads.
+- Posture values inside narrated text use the user vocabulary (Active/Paused), never the enum.
+- The table keeps its ledger anatomy (it IS the register); the drawer is where meaning lives.
+
+### 2. The chat earns its look (`MessageBubble` + thread, shared)
+
+- User bubble: `rounded-card` (the P21 panel radius), keep bg-wash + border. Square chat bubbles read as unfinished against the rounded shell.
+- Assistant turn: drop the gray left-border block; plain prose on the panel with a quiet meta line, `rounded-card` only on the output row and chips. Meta line: `Assistant · N sources` — "saved to Activity" leaves (every turn says it; the output row's Activity link already carries it).
+- Citation chips + suggestion buttons: `rounded-item`, unchanged anatomy.
+- Spacing: turns separated by `space-y-6`; thread column stays ≤760px.
+
+### 3. The demo is the loop (demo-only)
+
+- The thread IS the demo: summarise NDA (output row) → dismissal date (chronology citation) → **pause for without-prejudice talks** → **the refusal, struck on the record** → resume when talks conclude → the witness-statement summary now succeeds → close on "Open the Record". Copy uses Active/Paused only — the `C_paused` enum never appears in chat text.
+- Demo document page strips to the P25 reading anatomy: quiet back link, title, one meta line (tag · size · uploaded), the document body (multi-paragraph, looks like a document), document facts as ledger rows at the foot. DELETED: Document Workbench panel, "What happens in the workspace" lecture list, the chip salad, the second search box.
+- DELETED from the demo: nothing else gains a CTA. The rail keeps Chat / Files / Skills + the single posture state + one "Create a workspace" footer link.
+
+Where it lands: matter/auditNarrate.ts (new), matter/tabs/AuditTab.tsx, matter/MessageBubble.tsx, matter/tabs/AssistantTab.tsx (spacing only), demo/snapshot.ts, demo/DemoMatter.tsx.
+Deliberate divergences: the demo document page does NOT mount the real editor stack (ProseMirror, ~200 kB lazy) — the demo is read-only by design; it borrows the P25 reading anatomy instead.

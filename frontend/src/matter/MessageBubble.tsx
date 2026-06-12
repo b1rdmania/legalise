@@ -68,9 +68,11 @@ export function MessageBubble({
 }
 
 function UserMessage({ content, compact }: { content: string; compact: boolean }) {
+  // rounded-card matches the P21 panel radius — square bubbles read as
+  // unfinished against the rounded shell (P29 §2).
   const cls = compact
-    ? "max-w-[90%] bg-wash border border-rule px-3 py-2 text-xs text-ink whitespace-pre-wrap leading-relaxed"
-    : "max-w-[560px] bg-wash border border-rule px-4 py-3 text-sm text-ink whitespace-pre-wrap leading-relaxed";
+    ? "max-w-[90%] rounded-card bg-wash border border-rule px-3 py-2 text-xs text-ink whitespace-pre-wrap leading-relaxed"
+    : "max-w-[560px] rounded-card bg-wash border border-rule px-4 py-3 text-[15px] text-ink whitespace-pre-wrap leading-relaxed";
   return (
     <div className="flex justify-end">
       <div className={cls}>{content}</div>
@@ -99,20 +101,14 @@ function AssistantMessageView({
 
   return (
     <div className="flex justify-start">
-      <div
-        className={
-          (compact
-            ? "max-w-full"
-            : "w-full border-l-2 border-rule bg-paper px-4 py-3") +
-          " flex flex-col gap-2"
-        }
-      >
+      {/* P29 §2: assistant turns are plain prose on the panel — no gray
+          block, no left border. The output row and chips carry the chrome. */}
+      <div className={(compact ? "max-w-full" : "w-full") + " flex flex-col gap-2"}>
         <div className={`tech-token ${metaSizing} text-muted`}>
           Assistant{!compact && modelLabel(message) ? ` · ${modelLabel(message)}` : ""}
           {!compact && sourceCount > 0
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
-          {" · saved to Activity"}
         </div>
         <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
           {text}
@@ -127,7 +123,7 @@ function AssistantMessageView({
                   c.kind === "doc" ? onDocChip(c.id) : onChronChip(c.id)
                 }
                 title={c.full}
-                className={`inline-flex items-center border border-rule bg-paper text-ink px-2 py-0.5 tech-token ${
+                className={`inline-flex items-center rounded-item border border-rule bg-paper text-ink px-2 py-0.5 tech-token ${
                   compact ? "text-[10px]" : "text-[11px]"
                 } hover:border-ink transition-colors`}
               >
@@ -209,7 +205,7 @@ function AssistantOutputRow({
 
   return (
     <div
-      className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-rule bg-paper px-3 py-2"
+      className="mt-2 flex flex-wrap items-center gap-2 rounded-card border border-rule bg-paper px-3 py-2"
       data-testid="assistant-output-row"
     >
       <span

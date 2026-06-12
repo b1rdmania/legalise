@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { AuditEntry, Matter } from "../../lib/api";
 import { LoadingLine } from "../../ui/primitives";
+import { narrateEntry } from "../auditNarrate";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -127,6 +128,17 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
   );
 }
 
+const DRAWER_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+// "2026-04-04T13:02:09Z" → "4 April 2026, 13:02"
+function humanTimestamp(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return iso;
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return iso;
+  return `${Number(m[3])} ${DRAWER_MONTHS[month - 1]} ${m[1]}, ${m[4]}:${m[5]}`;
+}
+
 function AuditDetailDrawer({
   entry,
   matter,
@@ -138,6 +150,10 @@ function AuditDetailDrawer({
 }) {
   const payloadKeys = Object.keys(entry.payload ?? {});
   const hasPayload = payloadKeys.length > 0;
+  const isBlocked =
+    entry.action.includes(".blocked") ||
+    entry.action.includes(".refused") ||
+    entry.action.includes(".denied");
 
   return (
     <>
@@ -150,12 +166,14 @@ function AuditDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Audit entry detail"
-        className="fixed top-0 right-0 z-50 h-screen w-[420px] max-w-full bg-paper border-l border-rule p-6 overflow-y-auto"
+        className="fixed top-0 right-0 z-50 h-screen w-[420px] max-w-full bg-paper border-l border-rule p-6 overflow-y-auto md:m-3 md:h-[calc(100vh-24px)] md:rounded-panel md:border md:shadow-panel"
       >
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div>
-            <div className="eyebrow mb-2">Audit entry</div>
-            <h3 className="text-lg font-bold text-ink leading-tight">{entry.action}</h3>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="min-w-0">
+            <div className="eyebrow mb-2">{isBlocked ? "Refused entry" : "Audit entry"}</div>
+            <h3 className={"text-lg font-bold leading-tight break-words " + (isBlocked ? "text-seal" : "text-ink")}>
+              {entry.action}
+            </h3>
           </div>
           <button
             type="button"
@@ -169,30 +187,52 @@ function AuditDetailDrawer({
           </button>
         </div>
 
-        <dl className="grid grid-cols-[110px_1fr] gap-y-3 gap-x-4 tech-token text-[12px] mb-6">
-          <Row label="Timestamp" value={entry.timestamp} />
-          <Row label="Module" value={entry.module ?? "-"} />
-          <Row label="Action" value={entry.action} />
-          <ActorRow actor={entry.actor_id} />
-          <ResourceRow entry={entry} />
-          <MatterIdRow matterId={entry.matter_id} matter={matter} />
-          <Row label="Model" value={entry.model_used ?? "-"} />
-          <Row label="Tokens" value={entry.token_count != null ? String(entry.token_count) : "-"} />
-          <Row label="Latency" value={entry.latency_ms != null ? `${entry.latency_ms}ms` : "-"} />
-          <Row label="Prompt hash" value={entry.prompt_hash ?? "-"} mono break />
-          <Row label="Response hash" value={entry.response_hash ?? "-"} mono break />
-          <Row label="Entry id" value={entry.id} mono break />
+        {/* What happened, in English, before any identifier. */}
+        <p className="mb-6 text-sm leading-relaxed text-prose" data-testid="audit-narration">
+          {narrateEntry(entry)}
+        </p>
+
+        <dl className="grid grid-cols-[90px_1fr] gap-y-3 gap-x-4 text-[13px] mb-6 border-t border-rule pt-4">
+          <PlainRow label="When" value={humanTimestamp(entry.timestamp)} />
+          <PlainRow label="Who" value={entry.actor_id ? "Workspace user" : "System"} />
+          {matter?.title && <PlainRow label="Matter" value={matter.title} />}
+          {entry.model_used && <PlainRow label="Model" value={entry.model_used} />}
         </dl>
 
-        {hasPayload && (
-          <div>
-            <div className="eyebrow mb-2">Payload</div>
-          <pre className="rounded-card tech-token text-xs bg-wash border border-rule p-3 overflow-x-auto whitespace-pre-wrap break-all">
+        {/* The complete technical material — present, never leading. */}
+        <details className="border-t border-rule pt-4">
+          <summary className="cursor-pointer text-[10px] uppercase tracking-[0.18em] text-muted hover:text-ink">
+            Technical record
+          </summary>
+          <dl className="mt-4 grid grid-cols-[110px_1fr] gap-y-3 gap-x-4 tech-token text-[12px]">
+            <Row label="Timestamp" value={entry.timestamp} />
+            <Row label="Module" value={entry.module ?? "-"} />
+            <Row label="Action" value={entry.action} />
+            <ActorRow actor={entry.actor_id} />
+            <ResourceRow entry={entry} />
+            <MatterIdRow matterId={entry.matter_id} matter={matter} />
+            <Row label="Tokens" value={entry.token_count != null ? String(entry.token_count) : "-"} />
+            <Row label="Latency" value={entry.latency_ms != null ? `${entry.latency_ms}ms` : "-"} />
+            <Row label="Prompt hash" value={entry.prompt_hash ?? "-"} mono break />
+            <Row label="Response hash" value={entry.response_hash ?? "-"} mono break />
+            <Row label="Entry id" value={entry.id} mono break />
+          </dl>
+          {hasPayload && (
+            <pre className="mt-4 rounded-card tech-token text-xs bg-wash border border-rule p-3 overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(entry.payload, null, 2)}
             </pre>
-          </div>
-        )}
+          )}
+        </details>
       </aside>
+    </>
+  );
+}
+
+function PlainRow({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt className="text-[10px] uppercase tracking-[0.18em] text-muted self-center">{label}</dt>
+      <dd className="text-ink break-words">{value}</dd>
     </>
   );
 }
