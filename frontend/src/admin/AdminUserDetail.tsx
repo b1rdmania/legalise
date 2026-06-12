@@ -113,21 +113,29 @@ export function AdminUserDetail({ userId }: { userId: string }) {
   if (q.status === "not_found") {
     return (
       <div className="page-shell">
-        <h1 className="text-xl font-bold tracking-tight2">User not found</h1>
-        <p className="mt-3 text-sm">
+        <p className="mb-6">
           <Link
             to="/admin/users"
-            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             ← All users
           </Link>
         </p>
+        <h1 className="text-xl font-bold tracking-tight2">User not found</h1>
       </div>
     );
   }
   if (q.status === "error") {
     return (
       <div className="page-shell">
+        <p className="mb-6">
+          <Link
+            to="/admin/users"
+            className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            ← All users
+          </Link>
+        </p>
         <h1 className="text-xl font-bold tracking-tight2">Could not load user</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
@@ -172,6 +180,14 @@ export function AdminUserDetail({ userId }: { userId: string }) {
 
   return (
     <div className="page-shell">
+      <p className="mb-6">
+        <Link
+          to="/admin/users"
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+        >
+          ← All users
+        </Link>
+      </p>
       <PageHeader title={user.email} subId={user.id} />
 
       <CertCard testid="practitioner-card">
@@ -285,14 +301,6 @@ export function AdminUserDetail({ userId }: { userId: string }) {
         )}
       </section>
 
-      <section className="mt-10">
-        <Link
-          to="/admin/users"
-          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-        >
-          ← All users
-        </Link>
-      </section>
     </div>
   );
 }

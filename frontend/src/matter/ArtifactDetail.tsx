@@ -95,17 +95,17 @@ export function ArtifactDetail({
   if (q.status === "error") {
     return (
       <div className="page-shell">
-        <h1 className="text-xl font-bold tracking-tight2">Output not found</h1>
-        <p className="mt-3 text-sm text-muted">{q.message}</p>
-        <p className="mt-4 text-sm">
+        <p className="mb-6">
           <Link
             to="/matters/$slug/artifacts"
             params={{ slug }}
-            className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
-            ← All signed outputs
+            ← Signed outputs
           </Link>
         </p>
+        <h1 className="text-xl font-bold tracking-tight2">Output not found</h1>
+        <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
     );
   }
@@ -115,6 +115,15 @@ export function ArtifactDetail({
 
   return (
     <div className="page-shell">
+      <p className="mb-6">
+        <Link
+          to="/matters/$slug/artifacts"
+          params={{ slug }}
+          className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+        >
+          ← Signed outputs
+        </Link>
+      </p>
       {/* The artifact's certificate header — its entry in the record
           (DESIGN.md P27). Inner surface: the matter shell owns the page,
           so the header is a CertCard, not a masthead. */}
@@ -293,13 +302,6 @@ export function ArtifactDetail({
       </details>
 
       <section className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <Link
-          to="/matters/$slug/artifacts"
-          params={{ slug }}
-          className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-        >
-          ← All signed outputs
-        </Link>
         <a
           href={auditHref}
           className="text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"

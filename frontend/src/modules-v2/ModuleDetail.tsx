@@ -26,7 +26,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   getModuleV2,
   listInstalledModules,
@@ -148,16 +148,29 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
     };
   }, [moduleId, life.kind]);
 
+  const backLink = (
+    <p className="mb-6">
+      <Link
+        to="/skills"
+        className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+      >
+        ← Skills
+      </Link>
+    </p>
+  );
+
   if (q.status === "loading") {
     return (
-      <div className="page-shell text-sm text-muted">
-        Loading skill…
+      <div className="page-shell">
+        {backLink}
+        <p className="text-sm text-muted">Loading skill…</p>
       </div>
     );
   }
   if (q.status === "error") {
     return (
       <div className="page-shell">
+        {backLink}
         <h1 className="text-xl font-bold tracking-tight2">Skill not found</h1>
         <p className="mt-3 text-sm text-muted">{q.message}</p>
       </div>
@@ -246,6 +259,7 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
 
   return (
     <div className="page-shell">
+      {backLink}
       {/* Masthead — ruled eyebrow row; the certificate below is the hero. */}
       <div className="flex items-baseline justify-between border-b border-ink pb-2">
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted">
