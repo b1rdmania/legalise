@@ -1,10 +1,9 @@
 /**
- * /architecture — the manifesto page (DESIGN.md P28).
+ * /architecture — the manifesto page (DESIGN.md P28, restructured P36).
  *
- * One continuous read in the register idiom: thesis, the profession
- * mapping, the matter spine, admission, the gate, the record, sign-off,
- * the stack, and an honesty section. Prose-heavy by design — this page
- * argues, it does not advertise. Doc deep-links live here as citations.
+ * Plain before persuasive: what this is, why, how it is built — then
+ * standing, design-and-data, admission, the gate, the record, sign-off,
+ * honesty. Prose-heavy by design; stamps and seal wayfinding per P35.
  */
 
 import { Footer } from "../ui/Footer";
@@ -341,53 +340,100 @@ export function Architecture() {
           />
         </section>
 
-        <Section label="01 · The thesis" title="Capability is a commodity. Standing is the institution.">
+        <Section label="01 · What this is" title="A matter workspace where the AI works under supervision.">
           <Prose>
             <p>
-              The frontier models do the legal reasoning. They are available to
-              everyone, including your opponent. Within a year of any capability
-              shipping, it is table stakes. What does not commodify is the
-              apparatus around the work: who was permitted to do it, what they
-              were permitted to see, who reviewed it, who signed it, and what
-              the record says when someone asks later.
+              Legalise is an open-source workspace for legal AI work in
+              England and Wales. A solicitor opens a matter, uploads its
+              documents, and works in chat. The model answers with its
+              sources attached, and it can run skills: small, vetted units
+              of legal work. A letter before claim. A disclosure list. A
+              summary of a witness statement.
             </p>
             <p>
-              The legal profession solved this problem centuries ago. Not with
-              better lawyers. With standing: a practicing certificate, rights
-              of audience, a disciplinary record, supervised practice. Legalise
-              applies that structure to AI counsel. The product is not the model.
-              The product is the register.
+              Every output is a draft until a named person reviews it,
+              amends it with tracked changes, and signs it. Everything the
+              system does, including what it refuses to do, lands on one
+              tamper-evident record. That is the whole product: chat,
+              governed skills, sign-off, and the record.
+            </p>
+          </Prose>
+        </Section>
+
+        <Section label="02 · Why" title="Because capability is not the hard part. Proof is.">
+          <Prose>
+            <p>
+              The hard question in legal AI is not whether the model can do
+              the work. It is whether a firm can show, later and on demand,
+              what the AI saw, under whose supervision it acted, and who
+              took responsibility for the output. Regulators and PI
+              insurers think in those terms. So does Heppner, the privilege
+              ruling that made it concrete: that answer has to be
+              structural. It cannot be reconstructed from a chat history.
+            </p>
+            <p>
+              The matter is the unit that makes proof possible. Documents,
+              model calls, outputs, signatures, and the record all hang off
+              one matter, owned by one user, governed by one privilege
+              posture, written into one audit log. Outside that frame the
+              legal use case stops being legal. It is a generic question
+              that happens to mention the law.
+            </p>
+          </Prose>
+        </Section>
+
+        <Section label="03 · How it is built" title="Boring stack, ambitious composition.">
+          <Prose>
+            <p>
+              Python, FastAPI, and Postgres behind. React in front. Nothing
+              on that list will surprise anyone in 2030, which is the
+              point: the novelty is the composition, and the parts that
+              matter survive any provider rotation.
             </p>
           </Prose>
           <SpineDiagram />
-        </Section>
-
-        <Section label="02 · Design and data" title="Model-agnostic by design. Claude-tight for the demo.">
           <Prose>
             <p>
-              The architecture was drawn model-agnostic from the start. The
-              gateway treats providers as commodities, and the original build
-              ran against local models, GPT, DeepSeek, and Claude
-              interchangeably. For the demonstration, that breadth added more
-              complexity than it earned, so the working build is honed
-              tightly to Anthropic and the Claude skills format.
-            </p>
-            <p>
-              That choice has a known cost: demo traffic touches Anthropic's
-              API, with the data questions that carries. This is a proof of
-              concept and the trade is deliberate. A firm building a shell
-              around this substrate can tune it to run entirely on local
-              models as they strengthen. At that point it is viable for no
-              client data to leave the building.
+              A request runs left to right. Documents belong to a matter.
+              The gate reads the matter's privilege posture before any
+              model is called. The model runs on your own keys. The output
+              waits for human sign-off. And every station writes to the
+              same hash-chained, exportable record, refusals included.
+              Skills arrive only by import, from the Lawve catalogue or any
+              public GitHub repository, read at a pinned commit and
+              admitted through a ceremony.
             </p>
           </Prose>
+          <div className="mt-10 max-w-3xl">
+            <SectionRule label={<span className="text-seal">The documents</span>} right="On the record" />
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              {CITATIONS.map((c) => (
+                <a
+                  key={c.label}
+                  href={c.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs uppercase tracking-[0.18em] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+                >
+                  {c.label}
+                </a>
+              ))}
+            </div>
+          </div>
         </Section>
 
-        <Section label="03 · The mapping" title="The primitives are the profession's, made mechanical.">
+        <Section label="04 · Standing" title="Capability is a commodity. Standing is the institution.">
           <Prose>
             <p>
-              Each primitive in the system is the direct, enforced counterpart
-              of an institution the profession already trusts:
+              The frontier models are available to everyone, including your
+              opponent. What does not commodify is the apparatus around the
+              work: who was permitted to do it, what they were permitted to
+              see, who signed it, and what the record says when someone
+              asks later. The profession solved this centuries ago, not
+              with better lawyers but with standing: a practicing
+              certificate, rights of audience, a disciplinary record,
+              supervised practice. Legalise applies that structure to AI
+              counsel. The mapping is literal:
             </p>
           </Prose>
           <div className="mt-8 max-w-xl">
@@ -417,27 +463,28 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="04 · The matter spine" title="Matter-first, not prompt-first.">
+        <Section label="05 · Design and data" title="Model-agnostic by design. Claude-tight for the demo.">
           <Prose>
             <p>
-              The unit of work is not a prompt. It is a matter. Documents,
-              skills, model calls, outputs, signatures, and the record all hang
-              off one matter, owned by one user, governed by one privilege
-              posture, written into one audit log. Outside that frame the legal
-              use case stops being legal. It is a generic question that happens
-              to mention the law.
+              The architecture was drawn model-agnostic from the start. The
+              gateway treats providers as commodities, and the original build
+              ran against local models, GPT, DeepSeek, and Claude
+              interchangeably. For the demonstration, that breadth added more
+              complexity than it earned, so the working build is honed
+              tightly to Anthropic and the Claude skills format.
             </p>
             <p>
-              This is the lesson of Heppner, the privilege ruling that made it
-              concrete: a firm using AI must show, later and on demand, what
-              privileged material the AI saw, who held it, and under what
-              protection. That answer has to be structural. It cannot be
-              reconstructed from a chat history.
+              That choice has a known cost: demo traffic touches Anthropic's
+              API, with the data questions that carries. This is a proof of
+              concept and the trade is deliberate. A firm building a shell
+              around this substrate can tune it to run entirely on local
+              models as they strengthen. At that point it is viable for no
+              client data to leave the building.
             </p>
           </Prose>
         </Section>
 
-        <Section label="05 · Admission" title="Skills arrive by ceremony, not by upload.">
+        <Section label="06 · Admission" title="Skills arrive by ceremony, not by upload.">
           <Prose>
             <p>
               Any public GitHub repository with a SKILL.md can be proposed. The
@@ -477,7 +524,7 @@ export function Architecture() {
           </div>
         </Section>
 
-        <Section label="06 · The gate" title="The gate refuses, and the record keeps the refusal.">
+        <Section label="07 · The gate" title="The gate refuses, and the record keeps the refusal.">
           <Prose>
             <p>
               Every matter carries a privilege posture: a declared state that
@@ -506,7 +553,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="07 · The record" title="Audit is not the product. Audit is the receipt.">
+        <Section label="08 · The record" title="Audit is not the product. Audit is the receipt.">
           <Prose>
             <p>
               Every model call writes an audit row. Every matter mutation writes
@@ -531,7 +578,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="08 · Sign-off" title="Supervised practice, with a track record.">
+        <Section label="09 · Sign-off" title="Supervised practice, with a track record.">
           <Prose>
             <p>
               Every output is a draft until a named human reviews it, changes it
@@ -553,33 +600,6 @@ export function Architecture() {
             index={6}
             caption="The signature · tracked changes, a named signer, output.signed on the ledger"
           />
-        </Section>
-
-        <Section label="09 · The stack" title="Boring stack, ambitious composition." >
-          <Prose>
-            <p>
-              Python, FastAPI, Postgres, React. Nothing on this list will
-              surprise anyone in 2030, which is the point. The novelty is the
-              composition, and the parts that matter survive any provider
-              rotation.
-            </p>
-          </Prose>
-          <div className="mt-10 max-w-3xl">
-            <SectionRule label={<span className="text-seal">The documents</span>} right="On the record" />
-            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-              {CITATIONS.map((c) => (
-                <a
-                  key={c.label}
-                  href={c.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs uppercase tracking-[0.18em] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-                >
-                  {c.label}
-                </a>
-              ))}
-            </div>
-          </div>
         </Section>
 
         <Section label="10 · Honesty" title="What is not solved.">
