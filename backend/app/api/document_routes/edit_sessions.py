@@ -8,6 +8,41 @@ from .common import *  # noqa: F403
 router = APIRouter()
 
 
+def _active_session_cutoff() -> datetime:
+    return datetime.now(UTC) - timedelta(seconds=90)
+
+
+async def _active_edit_sessions(
+    session: AsyncSession,
+    document_id: uuid.UUID,
+) -> list[DocumentEditSessionRead]:
+    rows = (
+        await session.execute(
+            select(DocumentEditSession, User)
+            .join(User, User.id == DocumentEditSession.user_id)
+            .where(
+                DocumentEditSession.document_id == document_id,
+                DocumentEditSession.ended_at.is_(None),
+                DocumentEditSession.last_seen_at >= _active_session_cutoff(),
+            )
+            .order_by(DocumentEditSession.last_seen_at.desc())
+        )
+    ).all()
+    return [
+        DocumentEditSessionRead(
+            id=row.id,
+            document_id=row.document_id,
+            user_id=row.user_id,
+            client_id=row.client_id,
+            user_label=user.name or user.email,
+            started_at=row.started_at,
+            last_seen_at=row.last_seen_at,
+            ended_at=row.ended_at,
+        )
+        for row, user in rows
+    ]
+
+
 @router.get("/{document_id}/edit-sessions", response_model=list[DocumentEditSessionRead])
 async def get_document_edit_sessions(
     document_id: uuid.UUID,
