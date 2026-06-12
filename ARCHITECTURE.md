@@ -3,7 +3,7 @@
 ## Principles
 
 1. **Matter is the spine.** Every entity, file, audit entry, and AI invocation belongs to a matter. No orphan data.
-2. **Filesystem is the source of truth.** Postgres is a fast index; `matters/[slug]/` on disk is canonical. A matter folder can be tarballed, emailed, dropped into Stella, and re-imported.
+2. **Filesystem is the source of truth.** Postgres is a fast index; `matters/[slug]/` on disk is canonical. A matter folder can be tarballed, emailed, and re-imported into any workspace that reads the format.
 3. **Audit everything that touches an LLM or a document.** Prompt hashes, response hashes, document hashes, user, matter, timestamp. No untracked AI inference.
 4. **Privilege posture is a first-class matter property.** It changes which model gets called, which sources can be extracted from, and which outputs filter privileged entries.
 5. **Skills are the brains. Workspace is the venue.** Legal logic arrives as imported skills (Lawve catalogue or any public GitHub repo with a SKILL.md), installed through the trust ceremony and run by the prompt runtime. The workspace adds matter context, audit, document handling, and UI.
@@ -22,7 +22,7 @@
 | Styling | Tailwind + Shadcn primitives | Solicitor-legible defaults, customisable, no design-system rebuild needed. |
 | AI gateway | `app/core/model_gateway.py` | Abstracts Anthropic, OpenAI, Ollama. Per-matter privilege posture selects provider. |
 | Multi-agent | Module-local pipelines in `app/modules/<name>/pipeline.py` where a module needs one. The heavyweight built-in pipelines (pre-motion, contract review, tabular review, case law, letters) were removed in the skills-as-plugins cut; reference implementations live as installable example modules under `examples/modules/`. |
-| Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Stella uses Gotenberg; same choice for interop. |
+| Document conversion | Gotenberg (HTML→PDF), LibreOffice headless (DOCX) | Boring, widely-used converters; the output formats are the interop contract. |
 | Caching / queues | Redis | Background jobs (filesystem sync, retention enforcement), session state. |
 | Hosting (live demo) | Cloudflare Pages (frontend) + Fly.io `lhr` (backend, default) + Neon Postgres London + R2 (storage). Cloudflare Containers optional / experimental. | UK-region database and backend; edge CDN and storage at EU / Western Europe placement (R2 hint best-effort). See `infra/deploy/cloudflare.md` for honest residency caveats. |
 | Hosting (self) | Docker Compose | Single `docker compose -f infra/docker-compose.yml up` brings full stack. Operators can deploy anywhere. Cloudflare is the maintainer's choice, not a requirement. |
@@ -151,7 +151,7 @@ matters/example-v-respondent-2026/
     YYYY-MM-DD.jsonl # daily audit log shard
 ```
 
-`schemas/matter.json` documents the format. Stella-compatible.
+`schemas/matter.json` documents the format.
 
 ## AI gateway
 
