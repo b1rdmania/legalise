@@ -13,7 +13,7 @@ const SURFACES: { title: string; body: string }[] = [
   },
   {
     title: "Add skill",
-    body: "Skills are governed legal work units. They declare what they read, what they write, and how they run.",
+    body: "A skill is a small piece of legal work: review an NDA, test a claim, draft a letter. It declares what it reads, what it writes, and how it runs.",
   },
   {
     title: "Run against documents",
@@ -170,8 +170,8 @@ export function Landing() {
       </section>
 
       <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
+        <SectionRule label="The record" right="In three lines" />
         <div className="max-w-3xl">
-          <SectionRule label="The record" right="In three lines" />
           <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink leading-tight">
             A register that records refusals as faithfully as approvals.
           </h2>
@@ -184,7 +184,7 @@ export function Landing() {
                 <span className="line-through decoration-seal">
                   privileged read on a paused matter
                 </span>{" "}
-                · gate held · recorded
+                · gate held · struck on the record
               </LedgerLine>
             </div>
             <LedgerLine index={3} label="Sign-off">

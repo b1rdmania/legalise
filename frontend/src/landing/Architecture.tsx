@@ -12,7 +12,6 @@ import {
   CertCard,
   CertEyebrow,
   Colophon,
-  LedgerLine,
   LedgerRow,
   SectionRule,
 } from "../ui/certificate";
@@ -26,37 +25,6 @@ const MAPPING: { primitive: string; counterpart: string }[] = [
   { primitive: "Permission bands", counterpart: "Rights of audience" },
   { primitive: "Audit chain", counterpart: "Disciplinary record" },
   { primitive: "Professional sign-off", counterpart: "Supervised practice" },
-];
-
-const STACK: { name: string; detail: string; href?: string }[] = [
-  {
-    name: "Matter workspace",
-    detail: "FastAPI · Postgres. The matter is the unit of work.",
-  },
-  {
-    name: "Document store and reader",
-    detail: "Sources stay attached to the matter, not the prompt.",
-  },
-  {
-    name: "Skill admission",
-    detail: "GitHub import at a pinned SHA, manifest checks, trust ceremony.",
-  },
-  {
-    name: "Model gateway",
-    detail: "Providers are commodities behind one interface. BYO keys.",
-  },
-  {
-    name: "Posture gate",
-    detail: "Reads the matter posture before every call. Refusals are audited.",
-  },
-  {
-    name: "Sign-off",
-    detail: "Outputs are drafts until a named human signs them.",
-  },
-  {
-    name: "Audit record",
-    detail: "Hash-chained rows, independently verifiable, exported in the working pack.",
-  },
 ];
 
 const CITATIONS: { label: string; href: string }[] = [
@@ -149,9 +117,8 @@ export function Architecture() {
         <Section label="02 · The mapping" title="The primitives are the profession's, made mechanical.">
           <Prose>
             <p>
-              This is not an analogy bolted on for marketing. Each primitive in
-              the system is the direct, enforced counterpart of an institution
-              the profession already trusts:
+              Each primitive in the system is the direct, enforced counterpart
+              of an institution the profession already trusts:
             </p>
           </Prose>
           <div className="mt-8 max-w-xl">
@@ -169,9 +136,8 @@ export function Architecture() {
           <Prose>
             <p>
               A skill cannot run because it is clever. It runs because it was
-              admitted: its manifest declares what it reads and writes, the
-              ceremony records who admitted it and at what pinned source, and
-              every run it makes lands in a record it cannot edit.
+              admitted, and everything it does afterwards lands in a record it
+              cannot edit.
             </p>
           </Prose>
         </Section>
@@ -187,10 +153,11 @@ export function Architecture() {
               to mention the law.
             </p>
             <p>
-              This is the Heppner lesson made concrete. A firm using AI must
-              show, later and on demand, what privileged material the AI saw,
-              who held it, and under what protection. That answer has to be
-              structural. It cannot be reconstructed from a chat history.
+              This is the lesson of Heppner, the privilege ruling that made it
+              concrete: a firm using AI must show, later and on demand, what
+              privileged material the AI saw, who held it, and under what
+              protection. That answer has to be structural. It cannot be
+              reconstructed from a chat history.
             </p>
           </Prose>
         </Section>
@@ -214,14 +181,16 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="05 · The gate" title="The demo that sells the firewall is the blocked packet.">
+        <Section label="05 · The gate" title="The gate refuses, and the record keeps the refusal.">
           <Prose>
             <p>
-              Every matter carries a privilege posture. The gateway reads it
-              before every model call and decides which providers, if any, can
-              serve the call. When a skill attempts a read the posture forbids,
-              the gate refuses, and the refusal lands in the record as a struck
-              entry: same row anatomy, same hash chain, seal red.
+              Every matter carries a privilege posture: a declared state that
+              says whether its material is cleared for cloud providers, mixed,
+              or paused while privilege is live. The gateway reads it before
+              every model call and decides which providers, if any, can serve
+              the call. When a skill attempts a read the posture forbids, the
+              gate refuses, and the refusal lands in the record as a struck
+              entry: same row anatomy, same ledger, seal red.
             </p>
             <p>
               The refusal is the soul of the system. A register that only
@@ -263,10 +232,10 @@ export function Architecture() {
             </p>
             <p>
               Sign-off decisions accumulate per skill: signed, signed with
-              observations, rejected. That is the moat. A supervised track
+              observations, rejected. A supervised track
               record generated by the architecture itself. Not a benchmark, a
-              practice history. Closed platforms structurally cannot publish
-              theirs.
+              practice history. Closed platforms have not published theirs,
+              and have no incentive to start.
             </p>
           </Prose>
         </Section>
@@ -280,15 +249,8 @@ export function Architecture() {
               rotation.
             </p>
           </Prose>
-          <div className="mt-8 max-w-3xl">
-            {STACK.map((s, i) => (
-              <LedgerLine key={s.name} index={i + 1} label={s.name}>
-                {s.detail}
-              </LedgerLine>
-            ))}
-          </div>
           <div className="mt-10 max-w-3xl">
-            <SectionRule label="Citations" right="The papers" />
+            <SectionRule label="The documents" right="On the record" />
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
               {CITATIONS.map((c) => (
                 <a
