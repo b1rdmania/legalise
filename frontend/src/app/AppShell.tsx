@@ -27,7 +27,8 @@ import { DrawerProvider, useDrawer } from "./DrawerContext";
 // routes are redirected by the auth guard below.
 const CHROMELESS_ROUTES = new Set([
   "landing",
-  "manifesto",
+  "architecture",
+  "about",
   "waitlist",
   "signin",
   "signup",

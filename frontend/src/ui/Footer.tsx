@@ -2,30 +2,22 @@ export function Footer() {
   return (
     <footer className="mt-32 pt-12 border-t border-rule flex flex-wrap gap-y-4 justify-between items-center text-xs text-muted uppercase tracking-track2">
       <span>© 2026 Legalise</span>
+      {/* P28: doc deep-links (Trust / Security / Roadmap) moved to
+          /architecture as citations; the footer keeps the four doors. */}
       <div className="flex gap-6">
-        <a
-          href="https://github.com/b1rdmania/legalise/blob/master/docs/TRUST.md"
-          target="_blank"
-          rel="noreferrer"
-          className="hover:text-ink"
-        >
-          Trust
+        <a href="/architecture" className="hover:text-ink">
+          Architecture
+        </a>
+        <a href="/about" className="hover:text-ink">
+          About
         </a>
         <a
-          href="https://github.com/b1rdmania/legalise/blob/master/SECURITY.md"
+          href="https://github.com/b1rdmania/legalise"
           target="_blank"
           rel="noreferrer"
           className="hover:text-ink"
         >
-          Security
-        </a>
-        <a
-          href="https://github.com/b1rdmania/legalise/blob/master/docs/ROADMAP.md"
-          target="_blank"
-          rel="noreferrer"
-          className="hover:text-ink"
-        >
-          Roadmap
+          GitHub
         </a>
         <a
           href="https://github.com/b1rdmania/legalise/blob/master/LICENSE"

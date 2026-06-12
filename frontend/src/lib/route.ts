@@ -18,7 +18,8 @@ import { router } from "../router";
 
 export type Route =
   | { name: "landing" }
-  | { name: "manifesto" }
+  | { name: "architecture" }
+  | { name: "about" }
   | { name: "waitlist" }
   | { name: "signin" }
   | { name: "signup" }
@@ -64,7 +65,12 @@ export function routeFromPath(pathname: string, search: string): Route {
   const path = pathname.replace(/\/$/, "") || "/";
 
   if (path === "/") return { name: "landing" };
-  if (path === "/manifesto") return { name: "manifesto" };
+  // /manifesto redirects to /architecture at the router level; the shim
+  // still maps it so the route name is right during the redirect tick.
+  if (path === "/architecture" || path === "/manifesto") {
+    return { name: "architecture" };
+  }
+  if (path === "/about") return { name: "about" };
   if (path === "/waitlist") return { name: "waitlist" };
 
   if (path === "/auth/signin") return { name: "signin" };
@@ -210,7 +216,8 @@ export function navigate(to: string): void {
 // is retained because TopBar / Drawer consume it for nav-visibility logic.
 export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "landing",
-  "manifesto",
+  "architecture",
+  "about",
   "waitlist",
   "signin",
   "signup",

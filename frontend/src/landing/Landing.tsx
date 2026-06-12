@@ -2,7 +2,7 @@ import { Github } from "lucide-react";
 import { navigate } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
 import { Footer } from "../ui/Footer";
-import { SectionRule } from "../ui/certificate";
+import { LedgerLine, SectionRule } from "../ui/certificate";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 
@@ -169,76 +169,44 @@ export function Landing() {
         </div>
       </section>
 
-      <section
-        id="manifesto"
-        className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-20"
-      >
-        <div className="max-w-4xl">
-          <SectionRule label="What we are building" />
-          <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-8 leading-tight">
-            Infrastructure a regulated firm could inspect, insure, and explain.
-          </h2>
-          <div className="grid gap-8 md:grid-cols-2 text-base leading-relaxed text-prose">
-            <p>
-              A law firm cannot just “use AI” and hope the supervision story
-              works out later. It needs a matter file, source visibility,
-              permission checks, professional sign-off, and an audit record.
-            </p>
-            <p>
-              Claude is the MVP target because the skills format works well
-              there. The architecture is built so a firm can later run other
-              approved model providers or local models inside its own controls.
-            </p>
-          </div>
-          <div className="mt-10 grid gap-px border border-rule bg-rule md:grid-cols-3">
-            <div className="bg-paper p-5">
-              <h3 className="font-semibold text-ink">Solicitor accountable</h3>
-              <p className="mt-2 text-sm leading-relaxed text-prose">
-                AI prepares. The human reviews, changes, and signs.
-              </p>
-            </div>
-            <div className="bg-paper p-5">
-              <h3 className="font-semibold text-ink">Sources visible</h3>
-              <p className="mt-2 text-sm leading-relaxed text-prose">
-                Outputs point back to the documents the reviewer should check.
-              </p>
-            </div>
-            <div className="bg-paper p-5">
-              <h3 className="font-semibold text-ink">Record exportable</h3>
-              <p className="mt-2 text-sm leading-relaxed text-prose">
-                The working pack carries outputs, signatures, and audit trail.
-              </p>
-            </div>
-          </div>
-          <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted">
-            The hosted site is a demonstration. The build is aimed at real
-            regulated deployment.
-          </p>
-        </div>
-      </section>
-
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16">
+      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
         <div className="max-w-3xl">
-          <SectionRule label="Try it" />
+          <SectionRule label="The record" right="In three lines" />
           <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink leading-tight">
-            See a Khan v Acme demo matter with documents, skills, and a record.
+            A register that records refusals as faithfully as approvals.
           </h2>
-          <p className="mt-5 text-base leading-relaxed text-prose">
-            No sign-in. Click through the matter, inspect the documents, open
-            a skill preview, and read the record.
+          <div className="mt-8">
+            <LedgerLine index={1} label="Admission">
+              counsel admitted · manifest verified · source pinned
+            </LedgerLine>
+            <div className="text-seal">
+              <LedgerLine index={2} label="Refusal">
+                <span className="line-through decoration-seal">
+                  privileged read on a paused matter
+                </span>{" "}
+                · gate held · recorded
+              </LedgerLine>
+            </div>
+            <LedgerLine index={3} label="Sign-off">
+              output reviewed, amended, and signed by a named human
+            </LedgerLine>
+          </div>
+          <p className="mt-8 max-w-2xl text-base leading-relaxed text-prose">
+            Skills are admitted like counsel, gated by privilege posture, and
+            build a supervised track record. The full argument is one page.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <a
-              href="/demo"
+              href="/architecture"
               className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
-              Open the demo
+              Read the architecture
             </a>
             <a
               href="/skills"
               className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
-              Browse skills
+              Browse the skills
             </a>
           </div>
         </div>

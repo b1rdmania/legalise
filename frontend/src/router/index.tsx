@@ -40,7 +40,8 @@ import { AdminUsersList } from "../admin/AdminUsersList";
 import { AdminUserDetail } from "../admin/AdminUserDetail";
 import { AdminAuditView } from "../admin/AdminAuditView";
 import { Landing } from "../landing/Landing";
-import { Manifesto } from "../landing/Manifesto";
+import { Architecture } from "../landing/Architecture";
+import { About } from "../landing/About";
 import { Waitlist } from "../landing/Waitlist";
 import { SignIn } from "../auth/SignIn";
 import { SignUp } from "../auth/SignUp";
@@ -110,10 +111,25 @@ const landingRoute = createRoute({
   component: Landing,
 });
 
-const manifestoRoute = createRoute({
+const architectureRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/architecture",
+  component: Architecture,
+});
+
+const aboutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/about",
+  component: About,
+});
+
+// /manifesto predates P28; old links and bookmarks land on /architecture.
+const manifestoRedirect = createRoute({
   getParentRoute: () => rootRoute,
   path: "/manifesto",
-  component: Manifesto,
+  beforeLoad: () => {
+    throw redirect({ to: "/architecture" });
+  },
 });
 
 const waitlistRoute = createRoute({
@@ -539,7 +555,9 @@ export const adminAuditRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   landingRoute,
-  manifestoRoute,
+  architectureRoute,
+  aboutRoute,
+  manifestoRedirect,
   waitlistRoute,
   signinRoute,
   signupRoute,
