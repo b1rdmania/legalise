@@ -1685,3 +1685,9 @@ The back rule, app-wide: detail / form / error pages carry ONE affordance — a 
 Source: external audit, 2026-06-12 — the demo proved admission and refusal but never showed a sign-off, the claim in the product's name. The demo now closes on a signed output: the chat puts the summary up for sign-off, the record gains `document.edit.accepted` and `output.signed` (signer R. Patel, not the author), and `/demo/signed` renders the artifact — the summary with one struck deletion in seal and one underlined insertion (the P25 tracked-changes language, static), then the signature block as ledger rows and a quiet link to the record.
 
 Also: the demo skill certificates carry a Track record row (signed / with observations / refused, labelled "seeded demo record"), and the hero says what a skill is in passing. Where it lands: demo/snapshot.ts, demo/DemoSignedOutput.tsx, demo/DemoMatter.tsx, matter/auditNarrate.ts, landing/Landing.tsx.
+
+---
+
+## P35 — Architecture in oxblood (the page argues louder)
+
+Source: Andy, 2026-06-12 eve. The architecture page gains: (1) his positioning passage in the intro — world models / local inference, "not a snake oil salesman", limited pilots with regulatory approval and monetisation potential, DMs open → /about; (2) an early EXHIBIT: Damien Charlotin's AI-hallucination case database (1,600 decisions) cited + screen-grabbed as Fig. 01 — the cost of unsupervised capability, before the thesis; (3) the spine diagram promoted to §01 so the page goes visual immediately; (4) two muted looping clips cut from the demo film, embedded where they prove the claim — the refusal in §06, the signature in §08; (5) oxblood escalation ON THIS PAGE ONLY: schedule labels, whisper, and Fig. numbers run seal; rubber Stamp elements (rotated, double-bordered, seal) where something was decided — OPEN EXPERIMENT at the masthead, REFUSED · GATE HELD at the gate. Stamps mark decisions, never decorate.

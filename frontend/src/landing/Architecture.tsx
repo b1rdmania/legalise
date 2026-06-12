@@ -36,6 +36,58 @@ const CITATIONS: { label: string; href: string }[] = [
   { label: "Apache 2.0", href: `${REPO}/blob/master/LICENSE` },
 ];
 
+/** Rubber stamp — rotated, seal-inked, used only where something was
+ * decided. The P35 "fun stuff": stamps, not decoration. */
+function Stamp({ children, rotate = -6 }: { children: React.ReactNode; rotate?: number }) {
+  return (
+    <span
+      className="inline-block border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.25em] text-seal"
+      style={{ transform: `rotate(${rotate}deg)` }}
+      aria-hidden="true"
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Muted looping clip in figure chrome — the demo proving a section's
+ * claim in motion. */
+function VideoFigure({
+  src,
+  index,
+  caption,
+}: {
+  src: string;
+  index: number;
+  caption: string;
+}) {
+  return (
+    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
+      <video
+        src={src}
+        className="block w-full border border-rule/60"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        // React doesn't reliably write the muted ATTRIBUTE before the
+        // autoplay policy check runs; set it imperatively so the clips
+        // actually start.
+        ref={(el) => {
+          if (el) {
+            el.muted = true;
+            void el.play().catch(() => undefined);
+          }
+        }}
+      />
+      <figcaption className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
+        <span className="text-seal">Fig. {String(index).padStart(2, "0")}</span> · {caption}
+      </figcaption>
+    </figure>
+  );
+}
+
 /** Bordered figure with a clerk's caption — the page's only image chrome. */
 function Figure({
   src,
@@ -52,7 +104,7 @@ function Figure({
     <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
       <img src={src} alt={alt} className="block w-full border border-rule/60" loading="lazy" />
       <figcaption className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-        Fig. {String(index).padStart(2, "0")} · {caption}
+        <span className="text-seal">Fig. {String(index).padStart(2, "0")}</span> · {caption}
       </figcaption>
     </figure>
   );
@@ -179,7 +231,9 @@ function Section({
 }) {
   return (
     <section className="mt-16">
-      <SectionRule label={label} right={right} />
+      {/* P35: the schedule labels carry the seal — the page's wayfinding
+          runs in oxblood. */}
+      <SectionRule label={<span className="text-seal">{label}</span>} right={right} />
       <h2 className="mt-6 text-2xl md:text-3xl font-bold tracking-tight2 text-ink leading-tight max-w-2xl">
         {title}
       </h2>
@@ -197,10 +251,13 @@ export function Architecture() {
           <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
             Standing
           </h1>
-          <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">
+          <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-seal">
             over capability
           </p>
-          <div className="mt-8 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
+          <div className="mt-6">
+            <Stamp>Open experiment</Stamp>
+          </div>
+          <div className="mt-6 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
             <p>
               This started as an experiment on a problem that, possibly,
               nobody has. Regulators seem comfortable enough with the big
@@ -223,8 +280,66 @@ export function Architecture() {
               not a finished product. It is an open experiment, and it
               welcomes contributors.
             </p>
+            <p>
+              As the field moves toward world models, local inference, and
+              the stranger problems of aggregating knowledge, strategy, and
+              intelligence, a genuinely interesting space is opening up: how
+              experienced lawyers entwine with this technology.
+            </p>
+            <p>
+              I am not a snake oil salesman, and I am not a legal domain
+              expert. I am not looking for an unbounded consultancy
+              retainer, and I will not be running Zoom training for your
+              legal team. What I have is a keen sense of the limits and the
+              possibilities of AI.
+            </p>
+            <p>
+              The angle worth exploring: limited pilots, designed for
+              regulatory approval, with monetisation potential.{" "}
+              <a
+                href="/about"
+                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              >
+                My DMs are open
+              </a>
+              .
+            </p>
           </div>
         </header>
+
+        {/* Exhibit: the cost of unsupervised capability, already in the
+            law reports. Early by design — this is why the page exists. */}
+        <section className="mt-16">
+          <SectionRule
+            label={<span className="text-seal">Exhibit · the cost of capability alone</span>}
+            right="1,600 cases"
+          />
+          <Prose>
+            <p>
+              None of this is hypothetical. Damien Charlotin's database of
+              AI hallucination cases has identified{" "}
+              <a
+                href="https://www.damiencharlotin.com/hallucinations/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              >
+                1,600 legal decisions
+              </a>{" "}
+              where generative AI put hallucinated content, typically fake
+              citations, in front of a court. Lawyers are being sanctioned
+              for unsupervised capability now, in public, with their names
+              on the orders. Supervision is not a compliance garnish. It is
+              the product.
+            </p>
+          </Prose>
+          <Figure
+            src="/architecture/fig-hallucinations.png"
+            alt="Damien Charlotin's AI Hallucination Cases database: 1,600 legal decisions involving hallucinated AI content"
+            index={1}
+            caption="The hallucination case database · damiencharlotin.com · 1,600 decisions and counting"
+          />
+        </section>
 
         <Section label="01 · The thesis" title="Capability is a commodity. Standing is the institution.">
           <Prose>
@@ -244,6 +359,7 @@ export function Architecture() {
               The product is the register.
             </p>
           </Prose>
+          <SpineDiagram />
         </Section>
 
         <Section label="02 · Design and data" title="Model-agnostic by design. Claude-tight for the demo.">
@@ -296,7 +412,7 @@ export function Architecture() {
           <Figure
             src="/architecture/fig-certificates.png"
             alt="Two skills rendered as certificates in the demo workspace, each declaring what it reads and writes"
-            index={1}
+            index={3}
             caption="Skills in a matter, rendered as their certificates"
           />
         </Section>
@@ -319,7 +435,6 @@ export function Architecture() {
               reconstructed from a chat history.
             </p>
           </Prose>
-          <SpineDiagram />
         </Section>
 
         <Section label="05 · Admission" title="Skills arrive by ceremony, not by upload.">
@@ -381,11 +496,13 @@ export function Architecture() {
               read, in public, and the record keeps it.
             </p>
           </Prose>
-          <Figure
-            src="/architecture/fig-refusal-chat.png"
-            alt="The demo chat: the matter is paused mid-conversation, a summarise request is refused by the gate, then resumed and re-run successfully"
-            index={3}
-            caption="The refusal, in conversation · pause, refusal, resume, success"
+          <div className="mt-6">
+            <Stamp rotate={-4}>Refused · gate held</Stamp>
+          </div>
+          <VideoFigure
+            src="/architecture/clip-refusal.mp4"
+            index={4}
+            caption="The refusal, in conversation · pause, refusal, resume · live from the demo"
           />
         </Section>
 
@@ -409,7 +526,7 @@ export function Architecture() {
           <Figure
             src="/architecture/fig-refusal-record.png"
             alt="The matter record with the blocked entry struck in seal red and its detail drawer open, leading with a plain-English account"
-            index={4}
+            index={5}
             caption="The blocked entry on the record, struck and kept"
           />
         </Section>
@@ -431,6 +548,11 @@ export function Architecture() {
               and have no incentive to start.
             </p>
           </Prose>
+          <VideoFigure
+            src="/architecture/clip-signature.mp4"
+            index={6}
+            caption="The signature · tracked changes, a named signer, output.signed on the ledger"
+          />
         </Section>
 
         <Section label="09 · The stack" title="Boring stack, ambitious composition." >
@@ -443,7 +565,7 @@ export function Architecture() {
             </p>
           </Prose>
           <div className="mt-10 max-w-3xl">
-            <SectionRule label="The documents" right="On the record" />
+            <SectionRule label={<span className="text-seal">The documents</span>} right="On the record" />
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
               {CITATIONS.map((c) => (
                 <a
