@@ -79,6 +79,18 @@ export function DemoSignedOutput() {
             See output.signed on the record →
           </a>
         </p>
+        {/* The loop's last line is a way to reach the builder — the demo's
+            one ask (premortem item: capture at the final scene). */}
+        <p className="mt-6 border-t border-rule pt-4 text-sm text-prose" data-testid="demo-capture-line">
+          Supervise work product in a real firm? Tell me where this breaks,
+          twenty minutes:{" "}
+          <a
+            href="mailto:andy@legalise.dev"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            andy@legalise.dev
+          </a>
+        </p>
       </footer>
     </div>
   );

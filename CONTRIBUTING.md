@@ -136,3 +136,7 @@ For:
 ## Code of conduct
 
 Be civil. Disagree with reasoning, not people.
+
+## Maintainer reality
+
+This is an evaluation release with a single maintainer. Issues are triaged weekly; security reports are acknowledged within 48 hours (see SECURITY.md). Expect honest response times, not enterprise ones.

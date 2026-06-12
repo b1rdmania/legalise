@@ -18,7 +18,7 @@ Please include:
 - impact assessment
 - whether any hosted evaluation data may be affected
 
-We aim to acknowledge reports within 72 hours. Please give us 90 days before public disclosure, longer where deployed users may be affected.
+We acknowledge reports within 48 hours. Please give us 90 days before public disclosure, longer where deployed users may be affected.
 
 ## Scope
 
