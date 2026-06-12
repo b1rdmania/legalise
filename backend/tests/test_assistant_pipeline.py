@@ -1,7 +1,7 @@
 """Assistant pipeline — the golden loop's engine, tested in isolation.
 
 Extracted from test_smoke_evals.py (Phase 0 of the 2026-06-12 test-slim
-order, docs/handovers/TEST_SLIM_ORDER_2026-06-12.md). Covers: persistence
+order, the TEST_SLIM_ORDER_2026-06-12 plan (repo history)). Covers: persistence
 + audit of a turn, suggested-action round-trip, keyless deterministic
 fallback, keyed routing, prompt assembly (matter/chronology/tools), the
 tool loop (run-once, progress events, SSE boundary), posture 409,

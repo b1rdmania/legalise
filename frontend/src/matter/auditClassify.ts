@@ -7,7 +7,7 @@
  * `artifact` class: artifact writes emit no audit row, and the only rows
  * carrying an artifact_id are `review.*` — the artifact is surfaced as an
  * invocation-chain output node, not a timeline class. See
- * docs/handovers/AUDIT_DECISION_TIMELINE_V1_PLAN.md.
+ * the AUDIT_DECISION_TIMELINE_V1_PLAN plan (repo history).
  */
 
 import type { TimelineEntry } from "../lib/api";

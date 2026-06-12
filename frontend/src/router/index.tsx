@@ -64,7 +64,7 @@ import { getAuthSnapshot } from "../auth/AuthSnapshot";
 // → Tiptap + 18 extensions + ProseMirror); DemoMatter pulls in the demo
 // snapshot fixture. Neither is needed for chat, landing, or the matters list,
 // so they load only when their route is opened — keeping ~150–200 kB gzip out
-// of the first-paint bundle. See docs/handovers/PERF_AUDIT_2026-06-06.md (#1, #3).
+// of the first-paint bundle. See the PERF_AUDIT_2026-06-06 plan (repo history) (#1, #3).
 // ---------------------------------------------------------------------------
 
 const DocumentDetail = lazy(() =>

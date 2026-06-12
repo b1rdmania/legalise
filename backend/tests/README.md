@@ -2,7 +2,7 @@
 
 One line per file, grouped by module. Names are module-based (the
 `test_phaseN_*` naming was retired in test-slim Phase 3 — see
-`docs/handovers/TEST_SLIM_ORDER_2026-06-12.md`). `dormant/` holds
+`the TEST_SLIM_ORDER_2026-06-12 plan (repo history)`). `dormant/` holds
 spec-by-test files for v0.2 features that are declared but not yet
 enforced (state machine); they are excluded from CI collection.
 

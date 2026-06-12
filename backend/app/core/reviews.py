@@ -6,7 +6,7 @@ transition emits a ``review.*`` audit row in the caller's session so it
 commits alongside the state change and shows up in matter
 reconstruction (source ``audit``).
 
-Design decisions (ratified — see docs/handovers/SUPERVISOR_REVIEW_V1_PLAN.md):
+Design decisions (ratified — see the SUPERVISOR_REVIEW_V1_PLAN plan (repo history)):
 - Manual request (not auto-on-produce).
 - Advisory + audited: a decision records and reconstructs, it does not
   hard-gate downstream use.

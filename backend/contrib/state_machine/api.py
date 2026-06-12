@@ -1,6 +1,6 @@
 """State machine HTTP API.
 
-Five endpoints per ``docs/handovers/HANDOVER_PHASE_1_START.md`` and
+Five endpoints per the HANDOVER_PHASE_1_START plan (repo history) and
 ``docs/architecture/STATE_MACHINE_PRIMITIVE.md``:
 
     POST   /api/state-machine/definitions

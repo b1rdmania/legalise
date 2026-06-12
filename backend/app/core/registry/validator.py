@@ -12,7 +12,7 @@ Two layers:
      to include at least one capability of ``kind: provider`` OR a
      dependency-declared provider via ``requires``
 
-Per docs/handovers/PHASE_2_BUILD_PLAN.md §Step 3 and
+Per the PHASE_2_BUILD_PLAN plan (repo history) 3 and
 docs/architecture/MANIFEST_V2_SCHEMA.md §Validation Rules.
 """
 

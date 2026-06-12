@@ -16,7 +16,7 @@ note — the explicit, audited supervised-autonomy escape hatch.
 Reviewer != author by default (segregation of review); a superuser may
 override that, but the override is itself recorded in the audit row.
 
-Per docs/handovers/SUPERVISOR_REVIEW_V1_PLAN.md.
+Per the SUPERVISOR_REVIEW_V1_PLAN plan (repo history).
 """
 
 from __future__ import annotations
