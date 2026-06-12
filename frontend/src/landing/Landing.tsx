@@ -89,10 +89,10 @@ export function Landing() {
           </h1>
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            An open-source workspace for England &amp; Wales. Plug in a legal
-            skill, a small piece of legal work, and run it from chat, watch
-            the supervised run. Every output knows its sources, its
-            permissions, and who stood behind it.
+            Not another AI workspace. The register underneath them, for
+            England &amp; Wales: skills admitted like counsel, outputs
+            signed by named people, refusals kept on the record. Open
+            source, with a live matter to walk.
           </p>
 
           {/* CTAs */}
