@@ -48,7 +48,7 @@ Legalise records the path. The audit trail is not the product. It is the receipt
 
 Three states. `A_cleared`, `B_mixed`, `C_paused`. Each matter carries one. The gateway reads the posture before every model call and decides which providers can serve it.
 
-Cloud providers are commodities behind the gateway, not direct dependencies of any module. Local models (Ollama) exist from day one for `C_paused` matters.
+Cloud providers are commodities behind the gateway, not direct dependencies of any module. Local models (Ollama) exist from day one for `B_mixed` matters, where local-preferred routing keeps work in-tenant. `C_paused` permits no model call at all.
 
 If the posture rules and the providers configured for a matter cannot serve a call, the gateway refuses it. The refusal is audited. Privilege is not a soft setting.
 
@@ -62,7 +62,7 @@ No dependencies on provider-specific features unless the gateway can offer a cle
 
 Python, FastAPI, Postgres, React 19, Tailwind. Nothing on this list surprises anyone in 2030.
 
-The novelty is the composition. Privilege-aware gateway. Adversarial premortem pipelines. Audit-first model dispatch. Matter folder represented as markdown on disk so it survives any future database migration. We optimise for the parts of the system that don't care which model you used in 2026 versus 2030.
+The novelty is the composition. Privilege-aware gateway. Hash-chained audit trail. Audit-first model dispatch. A skill admission ceremony with pinned-SHA provenance. Matter folder represented as markdown on disk so it survives any future database migration. We optimise for the parts of the system that don't care which model you used in 2026 versus 2030.
 
 ## Human-in-the-loop, permanently
 
@@ -88,12 +88,12 @@ Translating US patterns into Anglicised vocabulary produces software that breaks
 
 The core is Apache-2.0 forever. Self-host on any infrastructure. Run any models. Fork. Modify.
 
-We do not gate the matter spine, audit log, plugin bridge, or any v0.1 module behind a commercial tier. If a commercial tier ever exists, it sells managed operations and certifications. Not functionality.
+We do not gate the matter spine, audit log, skill import path (Lawve catalogue or any public GitHub repo at a pinned SHA), or any module behind a commercial tier. If a commercial tier ever exists, it sells managed operations and certifications. Not functionality.
 
 ## What we won't do
 
 - Replace solicitor sign-off.
-- Add a chatbot as the primary surface.
+- Ship a chat surface that floats outside the matter file. Chat is the front door to a governed matter workspace, never a loose prompt window.
 - Take dependencies on closed proprietary APIs without an open alternative.
 - Ship a feature that breaks audit-row contract or privilege-posture dispatch.
 

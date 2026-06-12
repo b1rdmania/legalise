@@ -26,7 +26,9 @@ Shipped surfaces:
 - **BYO model keys**, AES-256-GCM-encrypted per user. Legalise itself does
   not provide model access.
 - **Two module runtimes:** first-party native modules (`examples.contract-review`,
-  `examples.pre-motion`), and a `prompt` runtime for Lawve `SKILL.md` imports.
+  `examples.pre-motion`), and a `prompt` runtime for `SKILL.md` imports from
+  the Lawve catalogue or any public GitHub repo (the generic importer at
+  `backend/app/core/github_import.py`).
 - **Source anchors v1** across both runtimes. Server-known anchors for every
   loaded document, independent of the model; optional `quote_found_in_source`
   flag for model-supplied quotes (normalised substring check against the
@@ -42,9 +44,34 @@ Shipped surfaces:
 - **Audit reconstruction.** Ordered timeline merged from audit, state-machine,
   and advice-boundary sources, with decision events in the foreground lane.
 - **Module catalogue + add-skill trust ceremony** with declared/granted capabilities,
-  per-skill trust posture, `module.json` schema validation. (The public
-  submission flow and the filesystem plugin path were removed 2026-06-11;
-  skills now arrive via the Lawve catalogue or GitHub-repo import.)
+  per-skill trust posture, `module.json` schema validation. Skills arrive
+  only by import: the Lawve catalogue or a GitHub repo at a pinned SHA
+  (the filesystem plugin path was removed 2026-06-11).
+- **Signed manifests.** ed25519 manifest signatures with two honest grades:
+  `verified` (cryptographic check against a registered publisher key) and
+  `structure_verified` (shape-only). Publishers without a registered key
+  cannot reach `verified`.
+- **Hash-chained audit log** with a third-party verify endpoint
+  (`GET /api/matters/{slug}/audit/chain`) that recomputes every link from
+  the raw rows and reports the head plus any breaks.
+- **Inline tracked changes.** AI-proposed edits render in the document
+  editor as tracked changes: deletions struck, insertions marked, each
+  accepted or rejected by a human.
+- **Author and signer separation.** `SIGNOFF_AUTHOR_MUST_DIFFER` blocks an
+  author from signing their own output (off by default so a sole
+  practitioner can sign their own work).
+- **Object storage.** S3-compatible storage abstraction is the default
+  backend (`backend/app/core/storage.py`): MinIO in local compose,
+  Cloudflare R2 hosted. Fly filesystem is cache and matter
+  materialisation only, never source of truth.
+- **Job runner.** arq + Redis with a `jobs` table as source of truth.
+  Long-running module runs survive client disconnects and instance
+  restarts; a dedicated worker process group runs alongside the HTTP app.
+- **Migration discipline.** Migrations run as a deploy release step
+  (`release_command = "alembic upgrade head"`), not at app boot.
+- **Hosted evaluation limits.** legalise.dev enforces generous free
+  evaluation limits (matters, documents, storage, daily runs, active
+  jobs) with a usage endpoint. Self-hosting removes hosted limits.
 - **fastapi-users cookie sessions** + email verification.
 - Smoke evals + real-DB E2E coverage across auth, chronology, modules,
   matters, documents, audit, workspace skills, capabilities,
@@ -54,24 +81,10 @@ Shipped surfaces:
 
 Theme: serious backend substrate before broader public launch pressure.
 
-The direction is fixed. Feature work should pause until these backend
-foundations are either shipped or explicitly deferred by reviewer sign-off:
+The direction is fixed. The object storage, job runner, migration
+discipline, and hosted-limit foundations have shipped (see Shipped
+surfaces above). What remains before live-matter posture:
 
-- **Real object storage.** Uploaded binaries and generated artefacts move
-  to an S3-compatible storage abstraction. Local compose uses MinIO; hosted
-  production uses Cloudflare R2. Fly filesystem becomes cache and matter
-  materialisation only, never source of truth.
-- **Job runner: `arq` + Redis + `jobs` table as source of truth.** No
-  re-debate of Dramatiq / RQ. Long-running module runs move off
-  router-local `asyncio.create_task` onto the job runner. Redis carries
-  queue metadata; Postgres stores job state and result pointers.
-- **Migration discipline.** Production app boot should not mutate schema.
-  Migrations move to a deploy/release step. The app should fail fast if
-  schema is behind.
-- **Hosted evaluation limits.** legalise.dev gets generous free evaluation
-  limits: matters, documents, total storage, daily workflow runs, active
-  jobs, generated artefacts, and public module submissions. Self-hosting
-  removes hosted limits.
 - **Matter export / delete.** Export a matter with documents, generated
   artefacts, audit, and redaction mode. Delete/archive is owner-scoped,
   refuses while jobs run, and records audit/retention consequences.
@@ -94,10 +107,6 @@ foundations are either shipped or explicitly deferred by reviewer sign-off:
   from `backend/app/core/audit_actions.py`.
 - **`sse-starlette` swap.** Bespoke SSE frames replace with library
   inside the job-runner work.
-- **Multi-instance Redis-backed rate limiter** for the submission flow.
-  Current code uses an in-memory token bucket (single Fly instance is sufficient for evaluation).
-- **GitHub App for the submission flow.** v0.1 uses a `b1rdmania`-scoped
-  PAT. v0.2 replaces with an auto-rotating installation token.
 - **Assistant prompt hardening.** v0.1 ships a conservative built-in
   system prompt. v0.2 can add prompt versioning, richer source selection,
   and provider-native structured responses.
@@ -110,17 +119,20 @@ Other work already on the roadmap:
 - Enterprise SSO via WorkOS or Stytch (Microsoft 365, Google Workspace, SAML, SCIM)
 - MCP-runtime skills (imported skills exposing MCP servers)
 - Vector search over matter documents (pgvector + ingest pipeline)
-- Real audit-log export with hash chain; WORM enforcement on `audit_entries`
+- Audit-log export bundle carrying the chain head (the hash chain and
+  third-party verify endpoint shipped; the export bundle remains)
+- WORM role enforcement on `audit_entries`: revoke UPDATE/DELETE for a
+  dedicated app role (the trigger guard is already live)
 - Status page at `status.legalise.dev`
 - Cyber Essentials Plus certification target
 - DPIA summary published as a public artefact
 - Anthropic / OpenAI UK addenda signed and referenced from the processor list
-- CPR 31.22 gate coverage extended beyond chronology (skill inputs, plugin invocations)
+- CPR 31.22 gate coverage extended beyond chronology (skill inputs, imported-skill invocations)
 - Audit-tab UI filter by `module` column (or Phase E polish, whichever lands first)
 
 ## v0.3+
 
-Theme: signed identity, submission infrastructure, and portability.
+Theme: publisher trust and portability.
 
 - **Matter export / import.** Two explicit modes on the wire:
   `full_internal` (full audit + payloads + bodies; same-posture guard)
@@ -129,12 +141,11 @@ Theme: signed identity, submission infrastructure, and portability.
   placeholders; `cpr_31_22_locked` flags preserved). Deferred from v0.1
   because at v0.1 there's no real second user or second matter to
   pressure-test the wire format against.
-- **Signed module manifests.** Manifest signatures (minisign or
-  sigstore over the SKILL.md + manifest). Firms allow skills signed
-  by `b1rdmania` or by their own internal signer. Today provenance is
-  the git SHA you pinned; v0.3 adds cryptographic identity.
-- **GitHub-App-based submission flow** with installation tokens scoped
-  per submitting firm.
+- **Publisher web of trust.** ed25519 manifest signatures shipped early
+  (VERIFIED / STRUCTURE_VERIFIED grades, `backend/app/core/signing.py`).
+  What remains is key distribution: firms register their own internal
+  signers, publisher keys move out of the in-repo registry, and key
+  rotation gets a ceremony.
 - **Additional modules:** discrimination quantum (Vento bands),
   settlement-agreement review as a workspace module, contract-review
   redlined `.docx` output, interim relief / freezing-order drafting,
@@ -186,20 +197,16 @@ Theme: signed identity, submission infrastructure, and portability.
 - A public claim boundary for evals. Evals are evidence of a tested posture, not
   proof that the system gives legal advice.
 
-## Chat shape: Model B (docked assistant) — decided direction, post-v0.5
+## Chat shape: shipped
 
-The matter shell is currently Model C (Chat is one nav item) yet names Chat the
-default landing — a chat-primary claim wired as chat-incidental. To consult the
-assistant about a document you navigate away from it, which is backwards for
-supervised autonomy. The decided destination is **Model B**: the substance
-(documents / record) stays centre, the assistant is **docked alongside**, both
-co-visible during the review-and-sign loop (NotebookLM's Sources · Chat · Output
-shape). Not Model A (chat-as-canvas) — that buries the documents-of-record
-substance. This is an IA/layout move, not a skin change: the v0.5 panel shell,
-rail, and tokens survive it; only the main panel's contents change. Bridge =
-a collapsible docked chat present alongside Documents/Record before the full
-two/three-pane build. Sequenced after the cleanup programme; it overlaps the
-"collapse bespoke tabs into the generic runner" cut directly.
+The chat-led matter shell shipped. Chat is the default landing surface
+inside the matter frame, with Files, Skills, Activity, and signed outputs
+alongside, and the bespoke module tabs collapsed into the generic runner.
+Chat never floats outside the matter file: every conversation belongs to
+one matter, one posture, one audit log. The remaining open question is
+layout, not direction: a docked assistant co-visible with the document
+under review (NotebookLM's Sources · Chat · Output shape) stays a
+candidate refinement for the review-and-sign loop, not a committed cut.
 
 ## Permanently out of scope
 

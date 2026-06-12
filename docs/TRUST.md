@@ -40,7 +40,7 @@ practitioner can still sign their own work as themselves.
   remain personally accountable to the SRA.
 - Not a substitute for client KYC, conflict-checks, or money-laundering
   obligations under MLR 2017. Those remain the firm's responsibility.
-- Not a court-filing platform. ET1 / N1 PDF rendering is on the v0.3 roadmap
+- Not a court-filing platform. ET1 PDF rendering is on the v0.3 roadmap
   but does not file.
 - **Not certified** against any framework today. No SOC 2, no ISO 27001, no
   Cyber Essentials. See Section 4 for the planned sequencing.
@@ -63,17 +63,17 @@ reading the architecture.
 - **Retention is recorded, not enforced.** Every matter has a
   `retention_until` field; nothing actively sweeps and deletes when that
   date passes.
-- **Audit log is append-only by convention, not by Postgres grant.** A
-  superuser with DB access could in principle alter rows. WORM grants
-  land v0.2.
+- **Audit WORM is trigger-enforced, not yet role-enforced.** A Postgres
+  trigger rejects UPDATE and DELETE on `audit_entries`, and every row is
+  hash-chained so any out-of-band rewrite is detectable. The remaining
+  work is operational: split the migration and application database
+  roles so the REVOKE on the app role takes effect.
 - **Application-layer encryption of stored prompts/responses is not yet
   implemented.** We rely on Neon/Fly/R2 at-rest encryption defaults.
-- **Uploaded and generated artefacts are moving to real object storage.**
-  The intended production shape is R2/S3-compatible storage as source of
-  truth, with Fly filesystem used only for cache and matter materialisation.
-- **Long-running workflows are not yet durable jobs.** Current SSE surfaces
-  are acceptable for evaluation. Live-client posture requires a jobs table
-  and worker so results survive client disconnects and instance restarts.
+- **One deployment is one workspace.** There is no organisation or
+  multi-tenant model in the beta. Teams that need separation run one
+  deployment each. This is deliberate scope, recorded in the README
+  Status section and `OPERATIONS.md`.
 - **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon
   London) are in the UK. Cloudflare R2 placement is EU (Western Europe),
   not UK-specific. Anthropic and OpenAI commercial APIs are US-served
@@ -102,7 +102,7 @@ solicitor ──▶ Legalise frontend (browser)
               Legalise backend (Fly.io, region: lhr — London)
                 │
                 ├─▶ Postgres (Neon, region: London/lhr)              ── matter rows, audit rows, users
-                ├─▶ Cloudflare R2 (jurisdiction: EU)                  ── document blobs (v0.2: binary uploads)
+                ├─▶ Cloudflare R2 (jurisdiction: EU)                  ── document blobs
                 ├─▶ Model gateway
                 │     ├─ A_cleared / B_mixed posture
                 │     │     ├─▶ Anthropic API (US, UK addendum)        ── if Anthropic model requested
@@ -216,22 +216,24 @@ work or was refused at the door:
   `chronology.gate.confirmed`) plus an **HTTP forensic row** written
   by the audit middleware (`http.{method}` + path + status code).
 - **Model-backed successful module runs** add `model.call` rows from
-  the gateway. Pre-Motion produces nine of them per run (one per
-  agent in the four-stage pipeline). Each `model.call` carries
+  the gateway, one per provider call (the example Pre-Motion skill
+  makes one call per run). Each `model.call` carries
   `model_used`, `prompt_hash`, `response_hash`, `token_count`, and
   `latency_ms`. The prompt and response themselves are **not** stored
   in the audit row, only their SHA-256 hashes.
 - **Requests blocked before semantic work commits** — for example a
-  C_paused plugin invocation, a C_paused Pre-Motion run, or a
-  validation rejection at the router boundary — produce **only the
+  C_paused skill run or a validation rejection at the router
+  boundary — produce **only the
   HTTP forensic row**, carrying the failure status (typically 409 or
   400). Blocked attempts are still traceable via the path and
   status, but they do not write a "started/blocked" semantic row.
   The trade-off is transactional integrity: semantic rows commit
   only when the semantic operation commits.
 
-The `audit_entries` table is append-only by convention today. WORM
-enforcement (Postgres-level revocation of UPDATE/DELETE) lands v0.2.
+The `audit_entries` table is append-only by enforcement: a Postgres
+trigger rejects UPDATE and DELETE on every row. The remaining hardening
+is operational, not code: split the migration and application database
+roles so the app role also loses UPDATE/DELETE by grant.
 
 **Third-party verification.** Every audit row is hash-chained: an
 append-only `audit_chain` table links each entry to the previous one
@@ -365,6 +367,7 @@ unless they prefer anonymity.
 | 2026-05-13 | Sweep: "Compliant by design" → "Designed against principles"; gaps promoted to §3 (read this first); compliance table reframed as planned sequencing, not achieved assurance; insurance note added |
 | 2026-05-14 | Added §9 skill provenance and approval: Git review as approval trail, `PLUGINS_REPO_REF` pinning, and `plugin.invoked` audit provenance |
 | 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path (Lawve + GitHub) — pinned-SHA provenance, trust ceremony as the only install route |
+| 2026-06-12 | Currency pass: audit WORM recorded as trigger-enforced with hash chain (role split remains); object storage and durable jobs removed from §3 gaps (shipped); single-workspace scope added to §3; Pre-Motion audit-row count corrected; R2 v0.2 marker dropped |
 
 This file changes when the architecture changes. `git log docs/TRUST.md`
 is the canonical history.
