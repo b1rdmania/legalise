@@ -11,6 +11,9 @@ export function Footer() {
         <a href="/about" className="hover:text-ink">
           About
         </a>
+        <a href="mailto:andy@legalise.dev" className="hover:text-ink">
+          andy@legalise.dev
+        </a>
         <a
           href="https://github.com/b1rdmania/legalise"
           target="_blank"

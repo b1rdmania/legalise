@@ -51,9 +51,15 @@ export function About() {
               </p>
               <p>
                 Right now I want one thing: conversations with practising
-                solicitors. If you supervise work product in a real firm and
-                are willing to tell me where this breaks, I would like to hear
-                from you.
+                solicitors. If you supervise work product in a real firm,
+                give me twenty minutes and tell me where this breaks:{" "}
+                <a
+                  href="mailto:andy@legalise.dev"
+                  className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                >
+                  andy@legalise.dev
+                </a>
+                .
               </p>
             </div>
 
@@ -94,6 +100,12 @@ export function About() {
                 </dl>
               </div>
               <div className="mt-4 border-t border-rule pt-3 space-y-2">
+                <a
+                  href="mailto:andy@legalise.dev"
+                  className="flex items-center gap-2 text-xs text-ink transition-colors hover:text-seal"
+                >
+                  andy@legalise.dev
+                </a>
                 <a
                   href={GITHUB_PROFILE}
                   target="_blank"
