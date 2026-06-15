@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listMatters, type Matter } from "../lib/api";
+import { listApiKeys, listMatters, type Matter } from "../lib/api";
 import { postureLabel } from "../lib/posture";
 import { EmptyState, ErrorCallout, PageHeader } from "../ui/primitives";
 import { LedgerLine, SectionRule } from "../ui/certificate";
@@ -15,11 +15,17 @@ function formatType(raw: string): string {
 export function MatterList() {
   const [matters, setMatters] = useState<Matter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A new user has no provider key on file yet. Used to show one quiet
+  // first-run orientation note. On error we stay silent rather than nag.
+  const [noKey, setNoKey] = useState(false);
 
   useEffect(() => {
     listMatters()
       .then((rows) => setMatters(rows))
       .catch((e) => setError(String(e)));
+    listApiKeys()
+      .then((keys) => setNoKey(keys.length === 0))
+      .catch(() => setNoKey(false));
   }, []);
 
   return (
@@ -38,6 +44,33 @@ export function MatterList() {
           </a>
         }
       />
+
+      {noKey && (
+        <div className="mb-8 border border-rule bg-wash px-5 py-4">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-muted mb-2">
+            Start here
+          </div>
+          <p className="max-w-2xl text-sm leading-relaxed text-prose">
+            New to the workspace? Walk the public demo to see the whole loop
+            end to end, with nothing to set up. To run skills on your own
+            matters, add a model key in settings.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-5">
+            <a
+              href="/demo"
+              className="text-sm text-ink underline underline-offset-4 decoration-rule transition-colors hover:decoration-seal hover:text-seal"
+            >
+              Walk the demo
+            </a>
+            <a
+              href="/settings/keys"
+              className="text-sm text-muted underline underline-offset-4 decoration-rule transition-colors hover:decoration-seal hover:text-seal"
+            >
+              Add a model key
+            </a>
+          </div>
+        </div>
+      )}
 
       {error && <ErrorCallout message={error} />}
 
