@@ -30,10 +30,12 @@ export function VerifyPending() {
   return (
     <AuthCard
       heading="Check your inbox"
-      intro="We sent a verification link to your email. Click it to activate your account."
+      intro="We just sent a verification link to your email. Click it to activate your account. If it does not arrive in a minute, check your spam folder or resend it below."
     >
       {sent ? (
-        <p className="prose-p mb-0">A new link is on its way.</p>
+        <p className="prose-p mb-0">
+          A new link is on its way. Check your spam folder if you do not see it.
+        </p>
       ) : (
         <form className="flex flex-col gap-6" onSubmit={resend}>
           <LedgerField label="Email" hint="resend the link if needed">
