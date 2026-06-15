@@ -48,7 +48,7 @@ export function ExternalPacksSection() {
   return (
     <section className="mt-16" data-testid="external-packs">
       <SectionRule
-        label="Supervised exports"
+        label="External exports"
         right={String(q.packs.length).padStart(2, "0")}
       />
       <p className="mt-4 max-w-xl text-sm leading-relaxed text-prose">

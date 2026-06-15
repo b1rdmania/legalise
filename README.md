@@ -110,7 +110,7 @@ A regulator, insurer, supervisor, or partner will eventually ask four questions 
 3. What did it produce?
 4. Who remained accountable?
 
-Every matter has a spine: documents, chronology, parties, retention clock, privilege posture. The AI only sees what lives inside the matter. Cross-matter leakage is structurally impossible.
+Every matter has a spine: documents, chronology, parties, retention clock, privilege posture. The AI only sees what lives inside the matter. Cross-matter access is scoped by access control at the application layer, and every access is audited. This is enforced in the application, not a structural guarantee. See [`docs/TRUST.md`](./docs/TRUST.md).
 
 Disclosure-tainted chronology entries carry a CPR 31.22 implied-undertaking flag. The chronology gate withholds detail until acknowledgement. The acknowledgement is audited.
 
