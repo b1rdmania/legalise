@@ -776,7 +776,7 @@ function demoDocumentExtract(doc: MatterDocument): string {
       "RE: TERMINATION OF EMPLOYMENT",
       "I am writing to confirm the outcome of the disciplinary hearing held on 10 March 2026. The panel found that your conduct in publishing material on social media on 5 March 2026 amounted to a serious breach of the Company's Social Media and Communications Policy (section 4.2).",
       "The Company has decided that your employment will terminate with effect from 12 March 2026. You will be paid in lieu of your notice period.",
-      "The disciplinary meeting was chaired by Mr D. Howarth, Warehouse Operations Manager. The panel considered your written representations and the investigation report dated 6 March 2026.",
+      "The disciplinary meeting was chaired by Mr D. Caldwell, Warehouse Operations Manager. The panel considered your written representations and the investigation report dated 6 March 2026.",
       "You have the right to appeal this decision in writing within five working days.",
       "Yours sincerely,\nHR Department\nAcme Trading Ltd",
     ].join("\n\n");
@@ -787,9 +787,9 @@ function demoDocumentExtract(doc: MatterDocument): string {
       "WITNESS STATEMENT OF JASMINE KHAN",
       "1. I make this statement from my own knowledge save where otherwise stated.",
       "2. I was employed by the Respondent from 8 November 2022 until my dismissal on 12 March 2026, most recently as a warehouse team coordinator. My disciplinary record was clean throughout.",
-      "3. On 29 January 2026 I raised a written grievance concerning the conduct of my line manager, Mr Howarth, toward female members of the warehouse team. HR acknowledged the grievance on 18 February 2026 and appointed Mr Howarth's own department to investigate it.",
+      "3. On 29 January 2026 I raised a written grievance concerning the conduct of my line manager, Mr Caldwell, toward female members of the warehouse team. HR acknowledged the grievance on 18 February 2026 and appointed Mr Caldwell's own department to investigate it.",
       "4. The Instagram post relied on by the Respondent was made on 5 March 2026 from my personal account, outside working hours. The account is private, with an audience of 47 approved followers. None of them are customers, suppliers, or people named in the post. The post did not identify the Respondent.",
-      "5. The disciplinary meeting on 10 March 2026 was chaired by Mr Howarth — the manager who was the subject of my grievance six weeks earlier.",
+      "5. The disciplinary meeting on 10 March 2026 was chaired by Mr Caldwell — the manager who was the subject of my grievance six weeks earlier.",
       "I believe the facts stated in this witness statement are true.",
     ].join("\n\n");
   }
