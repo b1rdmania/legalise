@@ -40,6 +40,21 @@ const CATALOGUE: Skill[] = [
   { id: "disclosure-list", name: "disclosure-list", blurb: "Builds a disclosure list from the matter's documents.", fixes: false, reads: "matter.document.read", writes: "matter.artifact.write" },
 ];
 
+// The record the sign-off creates — the chain, refusal struck in seal.
+const AUDIT_ROWS: { label: string; value: string; refused?: boolean }[] = [
+  { label: "skill.invoke", value: "citation-check · plain-english run on the draft" },
+  { label: "model.call", value: "claude · documents read under the privilege gate" },
+  { label: "gate.refuse", value: "authority “Henderson v Brent LBC [2019] EWCA Civ 1021” — not found in source", refused: true },
+  { label: "artifact.write", value: "skill_response · draft written to the matter" },
+  { label: "output.signed", value: "reviewing solicitor (you) · responsibility accepted" },
+];
+
+const DECISIONS: { id: string; title: string; help: string }[] = [
+  { id: "sign", title: "Sign", help: "I accept this draft as reviewed." },
+  { id: "observations", title: "Sign with observations", help: "Accept the refusals; note what still needs checking." },
+  { id: "reject", title: "Reject", help: "Send back for redrafting." },
+];
+
 const DOCS: { key: string; label: string; filename: string; text: string }[] = [
   {
     key: "dismissal",
@@ -117,35 +132,6 @@ function BackLink({ onClick }: { onClick: () => void }) {
   );
 }
 
-// The document reader — the matter's paper, on the page. Tabs across the
-// three documents, the active one rendered as plain extracted text.
-function DocReader({ highlight }: { highlight?: boolean }) {
-  const [key, setKey] = useState("dismissal");
-  const doc = DOCS.find((d) => d.key === key) ?? DOCS[0];
-  return (
-    <div className={"border bg-paper " + (highlight ? "border-seal/50" : "border-rule")}>
-      <div className="flex border-b border-rule">
-        {DOCS.map((d) => (
-          <button
-            key={d.key}
-            type="button"
-            onClick={() => setKey(d.key)}
-            className={
-              "px-3 py-2 text-[11px] uppercase tracking-[0.16em] transition-colors " +
-              (d.key === key ? "text-ink font-semibold border-b-2 border-seal -mb-px" : "text-muted hover:text-seal")
-            }
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
-      <div className="px-4 py-3">
-        <div className="tech-token text-[11px] text-muted mb-2">{doc.filename}</div>
-        <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-prose">{doc.text}</pre>
-      </div>
-    </div>
-  );
-}
 
 export function GuidedDemo() {
   const [act, setAct] = useState(0);
@@ -158,6 +144,8 @@ export function GuidedDemo() {
   const [running, setRunning] = useState(false);
   const [ran, setRan] = useState(false);
   const [showCorrected, setShowCorrected] = useState(true);
+  const [signed, setSigned] = useState(false);
+  const [decision, setDecision] = useState("observations");
   const reduce = usePrefersReducedMotion();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -301,34 +289,32 @@ export function GuidedDemo() {
           </nav>
 
           <div className="mt-8">
-            {/* ── ACT 1 · THE FAILURE ── */}
+            {/* ── ACT 1 · THE FAILURE (the matter chat) ── */}
             {act === 0 && (
-              <div>
+              <div className="mx-auto max-w-[760px]">
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">The version of AI most lawyers have met.</h2>
-                <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
-                  <div>
-                    <div className="border border-rule bg-paper">
-                      <div className="border-b border-rule px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted">You ask</div>
-                      <div className="px-4 py-3 text-sm text-ink">
-                        {q.shown}
-                        {!q.done && <span className="ml-0.5 inline-block w-[2px] animate-pulse bg-seal">&nbsp;</span>}
-                      </div>
+                <p className="mt-3 text-sm leading-relaxed text-prose">One matter, one question. The answer is fluent. Then look at what's wrong with it.</p>
+
+                <div className="mt-7 space-y-6">
+                  {/* user — right-aligned bubble */}
+                  <div className="flex justify-end">
+                    <div className="max-w-[560px] rounded-card border border-rule bg-wash px-4 py-3 text-[15px] text-ink whitespace-pre-wrap">
+                      {q.shown}
+                      {!q.done && <span className="ml-0.5 inline-block w-[2px] animate-pulse bg-seal">&nbsp;</span>}
                     </div>
-                    {q.done && (
-                      <div className="mt-4 border border-rule bg-paper">
-                        <div className="border-b border-rule px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted">Claude · raw</div>
-                        <div className="gd-doc px-4 py-4 text-sm leading-relaxed text-prose" dangerouslySetInnerHTML={{ __html: RAW_HTML }} />
-                      </div>
-                    )}
                   </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted mb-2">The matter's documents</div>
-                    <DocReader />
-                  </div>
+                  {/* assistant — plain prose, no box */}
+                  {q.done && (
+                    <div>
+                      <div className="tech-token text-[11px] text-muted mb-2">Assistant · raw model · no skills installed</div>
+                      <div className="gd-doc text-[15px] leading-relaxed text-ink" dangerouslySetInnerHTML={{ __html: RAW_HTML }} />
+                    </div>
+                  )}
                 </div>
+
                 {q.done && revealed && (
                   <Coachmark>
-                    Fluent, confident, and wrong. <strong>Henderson v Brent LBC</strong> is invented — there's no such authority anywhere in this matter (check the documents on the right). The padding and the "very likely to succeed" prediction are bluff too. This is the failure that makes good lawyers quit. It's catchable.
+                    Fluent, confident, and wrong. <strong>Henderson v Brent LBC</strong> is invented — no such authority appears anywhere in this matter. The padding and the "very likely to succeed" prediction are bluff too. This is the failure that makes good lawyers quit. It's catchable.
                   </Coachmark>
                 )}
                 <div className="mt-8">
@@ -427,65 +413,148 @@ export function GuidedDemo() {
               </div>
             )}
 
-            {/* ── ACT 4 · RUN → REDLINE (with the document open) ── */}
+            {/* ── ACT 4 · RUN (the skill runner) ── */}
             {act === 3 && (
-              <div>
+              <div className="mx-auto max-w-[760px]">
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">Same question. Skills installed.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">The skills run against the matter's documents — open on the right. Watch the bluff get struck and the padding stripped.</p>
-                <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
-                  <div>
-                    {!ran && (
-                      <div>
-                        <PrimaryBtn onClick={runSkills}>{running ? "Running…" : "Run the installed skills"}</PrimaryBtn>
-                        {running && (
-                          <div className="mt-4 space-y-1 text-[11px] uppercase tracking-[0.18em] text-muted">
-                            {chosen.map((s) => (
-                              <div key={s.id} className="flex items-center gap-2">
-                                <span className="h-2 w-2 animate-pulse rounded-full bg-seal" />
-                                {s.name} · reading documents…
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {ran && (
-                      <>
-                        <div className="inline-flex border border-rule bg-paper text-xs">
-                          <button type="button" onClick={() => setShowCorrected(false)} className={"px-3 py-2 " + (!showCorrected ? "bg-ink text-paper" : "text-muted")}>Raw</button>
-                          <button type="button" onClick={() => setShowCorrected(true)} className={"px-3 py-2 " + (showCorrected ? "bg-ink text-paper" : "text-muted")}>With skills</button>
-                        </div>
-                        <div className="mt-3 border border-rule bg-paper">
-                          <div className="border-b border-rule px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted">{showCorrected ? "Claude · citation-check + plain-english" : "Claude · raw"}</div>
-                          <div className="gd-doc px-4 py-4 text-sm leading-relaxed text-prose" dangerouslySetInnerHTML={{ __html: showCorrected ? REDLINE_HTML : RAW_HTML }} />
-                        </div>
-                        <p className="mt-3 text-xs text-muted"><del className="text-muted">struck</del> = removed by a skill · <span className="text-seal">underlined</span> = added · ⚑ = the citation check refused an unsupported claim.</p>
-                      </>
-                    )}
+                <p className="mt-3 text-sm leading-relaxed text-prose">The skills run inside the matter — reading the documents in scope, rewriting what the source won't support.</p>
+
+                {/* the runner */}
+                <div className="mt-6 rounded-card border border-rule bg-paper p-4">
+                  <div className="text-[11px] uppercase tracking-widest text-muted">Request</div>
+                  <div className="mt-1 border border-rule bg-wash px-3 py-2 text-sm text-ink">{QUESTION}</div>
+
+                  <div className="mt-4 text-[11px] uppercase tracking-widest text-muted">Documents in scope</div>
+                  <div className="mt-1 max-h-40 overflow-auto rounded-md border border-rule">
+                    {DOCS.map((d) => (
+                      <label key={d.key} className="flex items-center gap-2 border-b border-rule px-3 py-1.5 last:border-b-0">
+                        <input type="checkbox" checked readOnly className="accent-[#7e2b22]" />
+                        <span className="tech-token text-[12px] text-prose">{d.filename}</span>
+                      </label>
+                    ))}
                   </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted mb-2">Checked against</div>
-                    <DocReader highlight={ran} />
+
+                  <div className="mt-4 text-[11px] uppercase tracking-widest text-muted">Skills</div>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {chosen.map((s) => (
+                      <span key={s.id} className="rounded-item border border-rule bg-wash px-2 py-0.5 tech-token text-[11px] text-ink">{s.id}</span>
+                    ))}
                   </div>
+
+                  {!ran && (
+                    <div className="mt-4">
+                      <PrimaryBtn onClick={runSkills}>{running ? "Running skill…" : "Run skill"}</PrimaryBtn>
+                      {running && <p className="mt-3 text-xs text-muted">Running skill… reading {DOCS.length} documents, checking authority against source.</p>}
+                    </div>
+                  )}
                 </div>
+
+                {/* result artifact */}
                 {ran && (
-                  <Coachmark>The invented citation is gone, struck by the source-anchor check against the documents on the right. The padding is gone, stripped by plain-english. What's left is anchored to the paper — and the refusal itself is about to land on the record.</Coachmark>
+                  <div className="mt-5 rounded-md border border-rule bg-paper p-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-3">
+                      <span className="tech-token text-[11px] text-muted">Artifact · skill_response · draft</span>
+                      <span className="inline-flex border border-rule bg-paper text-xs">
+                        <button type="button" onClick={() => setShowCorrected(false)} className={"px-3 py-1.5 " + (!showCorrected ? "bg-ink text-paper" : "text-muted")}>Raw</button>
+                        <button type="button" onClick={() => setShowCorrected(true)} className={"px-3 py-1.5 " + (showCorrected ? "bg-ink text-paper" : "text-muted")}>With skills</button>
+                      </span>
+                    </div>
+                    <div className="gd-doc mt-3 text-sm leading-relaxed text-ink" dangerouslySetInnerHTML={{ __html: showCorrected ? REDLINE_HTML : RAW_HTML }} />
+                    <p className="mt-3 text-xs text-muted"><del className="text-muted">struck</del> = removed by a skill · <span className="text-seal">underlined</span> = added · ⚑ = the citation check refused an unsupported claim.</p>
+                  </div>
+                )}
+
+                {ran && (
+                  <Coachmark>The invented citation is gone, struck by the source-anchor check against the matter's documents. The padding is gone, stripped by plain-english. What's left is anchored to the paper — and the refusal itself is about to land on the record.</Coachmark>
                 )}
                 <div className="mt-8 flex items-center gap-4">
                   <BackLink onClick={() => setAct(2)} />
-                  {ran && <PrimaryBtn onClick={() => setAct(4)}>Send it to the record →</PrimaryBtn>}
+                  {ran && <PrimaryBtn onClick={() => setAct(4)}>Send it for sign-off →</PrimaryBtn>}
                 </div>
               </div>
             )}
 
-            {/* ── ACT 5 · GOVERN (scaffold) ── */}
+            {/* ── ACT 5 · GOVERN (sign-off → the record) ── */}
             {act === 4 && (
               <div>
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">The model drafted. A human becomes the authority.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">Next: SAW-vs-ASSERTED, the refusal struck on the record, and the sign-off where a named person takes responsibility. (Porting the harness's audit + sign-off card here next.)</p>
+                <p className="mt-3 text-sm leading-relaxed text-prose">Every output is a draft until a named person reviews it and signs what they will stand behind.</p>
+
+                {!signed ? (
+                  <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_320px]">
+                    {/* the instrument */}
+                    <div>
+                      <SectionRule label="The instrument" right="skill_response · draft" />
+                      <div className="gd-doc mt-4 text-sm leading-relaxed text-ink" dangerouslySetInnerHTML={{ __html: REDLINE_HTML }} />
+                    </div>
+                    {/* the decision */}
+                    <div className="self-start border border-rule bg-paper p-4 lg:sticky lg:top-6">
+                      <SectionRule label="The decision" />
+                      <div className="mt-4 space-y-2">
+                        {DECISIONS.map((d) => (
+                          <label key={d.id} className={"block cursor-pointer border p-3 text-sm " + (decision === d.id ? "border-ink bg-wash" : "border-rule")}>
+                            <span className="flex items-center gap-2">
+                              <input type="radio" name="gd-decision" checked={decision === d.id} onChange={() => setDecision(d.id)} className="accent-[#7e2b22]" />
+                              <span className="font-medium text-ink">{d.title}</span>
+                            </span>
+                            <span className="mt-1 block pl-6 text-xs text-muted">{d.help}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <textarea
+                        rows={3}
+                        defaultValue="Accepted the citation refusal. Confirm ACAS position and effective date of termination before relying on any deadline."
+                        className="mt-3 w-full border border-rule bg-wash px-3 py-2 text-sm text-ink"
+                      />
+                      <label className="mt-3 flex items-start gap-2 text-sm text-prose">
+                        <input type="checkbox" defaultChecked className="mt-0.5 accent-[#7e2b22]" />
+                        I am a qualified person and take responsibility for this output.
+                      </label>
+                      <div className="mt-4">
+                        <PrimaryBtn onClick={() => setSigned(true)}>Sign off</PrimaryBtn>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-7">
+                    <SectionRule label="The record" right="hash-chained · exportable" />
+                    <div className="mt-2">
+                      {AUDIT_ROWS.map((r, i) => (
+                        <LedgerLine
+                          key={i}
+                          index={i + 1}
+                          label={r.label}
+                          right={<span className={"tech-token text-[11px] " + (r.refused ? "text-seal" : "text-muted")}>{r.refused ? "refused" : "recorded"}</span>}
+                        >
+                          {r.refused ? <span className="text-seal line-through decoration-1">{r.value}</span> : r.value}
+                        </LedgerLine>
+                      ))}
+                    </div>
+
+                    <div className="relative mt-6 border border-ink/70 bg-paper p-5">
+                      <span className="absolute right-5 top-5 -rotate-6 border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-seal">Signed</span>
+                      <CertEyebrow left="Record · created by the sign-off" />
+                      <dl className="mt-4 space-y-1 text-[11px] text-muted">
+                        <LedgerRow label="Matter" tone="ink">Khan v Acme Trading Ltd</LedgerRow>
+                        <LedgerRow label="Decision" tone="ink">{decision === "sign" ? "Signed" : decision === "reject" ? "Rejected" : "Signed with observations"}</LedgerRow>
+                        <LedgerRow label="Signed by" tone="ink">Reviewing solicitor (you)</LedgerRow>
+                        <LedgerRow label="Record hash" tone="ink">a1f9·c3e2·77bd·0e41</LedgerRow>
+                      </dl>
+                    </div>
+
+                    <Coachmark>
+                      The refusal carries the same weight as an approval — the citation check's refusal of <strong>Henderson v Brent</strong> is struck onto the record, not hidden. The model drafted; you signed. That's the whole product: choose a skill, install it, run it, and stand behind what it produced.
+                    </Coachmark>
+                  </div>
+                )}
+
                 <div className="mt-8 flex items-center gap-4">
                   <BackLink onClick={() => setAct(3)} />
-                  <PrimaryBtn onClick={() => { setAct(0); setRevealed(false); setSelected(new Set()); setInstalled(false); setRan(false); }}>Replay from the top</PrimaryBtn>
+                  {signed && (
+                    <PrimaryBtn onClick={() => { setAct(0); setRevealed(false); setSelected(new Set()); setInstalled(false); setRan(false); setSigned(false); }}>
+                      Replay from the top
+                    </PrimaryBtn>
+                  )}
                 </div>
               </div>
             )}
