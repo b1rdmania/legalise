@@ -6,6 +6,7 @@
  * honesty. Prose-heavy by design; stamps and seal wayfinding per P35.
  */
 
+import { useState } from "react";
 import { Footer } from "../ui/Footer";
 import {
   CertCard,
@@ -242,6 +243,7 @@ function Section({
 }
 
 export function Architecture() {
+  const [tab, setTab] = useState<"why" | "technical">("why");
   return (
     <div className="max-w-page mx-auto">
       <div className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
@@ -306,12 +308,40 @@ export function Architecture() {
           </div>
         </header>
 
+        {/* Why / Technical — one page, two readers. Why = the argument and
+            what we're running at; Technical = the full build article. */}
+        <nav className="mt-12 flex gap-1 border-b border-rule" aria-label="Architecture sections">
+          {(
+            [
+              ["why", "Why"],
+              ["technical", "Technical"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              aria-current={tab === key ? "true" : undefined}
+              className={
+                "-mb-px border-b-2 px-4 py-3 text-[11px] uppercase tracking-[0.2em] transition-colors " +
+                (tab === key
+                  ? "border-seal text-ink font-semibold"
+                  : "border-transparent text-muted hover:text-seal")
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {tab === "why" && (
+          <>
         {/* Exhibit: the cost of unsupervised capability, already in the
             law reports. Early by design — this is why the page exists. */}
         <section className="mt-16">
           <SectionRule
             label={<span className="text-seal">Exhibit · the cost of capability alone</span>}
-            right="1,600 cases"
+            right="1,500+ cases"
           />
           <Prose>
             <p>
@@ -323,7 +353,7 @@ export function Architecture() {
                 rel="noreferrer"
                 className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
-                1,600 legal decisions
+                1,500+ legal decisions
               </a>{" "}
               where generative AI put hallucinated content, typically fake
               citations, in front of a court. Lawyers are being sanctioned
@@ -336,7 +366,7 @@ export function Architecture() {
             src="/architecture/fig-hallucinations.png"
             alt="Damien Charlotin's AI Hallucination Cases database: 1,600 legal decisions involving hallucinated AI content"
             index={1}
-            caption="The hallucination case database · damiencharlotin.com · 1,600 decisions and counting"
+            caption="The hallucination case database · damiencharlotin.com · 1,500+ decisions and counting"
           />
         </section>
 
@@ -382,7 +412,12 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="03 · How it is built" title="Boring stack, ambitious composition.">
+          </>
+        )}
+
+        {tab === "technical" && (
+          <>
+        <Section label="01 · How it is built" title="Boring stack, ambitious composition.">
           <Prose>
             <p>
               Python, FastAPI, and Postgres behind. React in front. Nothing
@@ -421,8 +456,12 @@ export function Architecture() {
             </div>
           </div>
         </Section>
+          </>
+        )}
 
-        <Section label="04 · Standing" title="Capability is a commodity. Standing is the institution.">
+        {tab === "why" && (
+          <>
+        <Section label="03 · Standing" title="Capability is a commodity. Standing is the institution.">
           <Prose>
             <p>
               The frontier models are available to everyone, including your
@@ -463,7 +502,12 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="05 · Design and data" title="Model-agnostic by design. Claude-tight for the demo.">
+          </>
+        )}
+
+        {tab === "technical" && (
+          <>
+        <Section label="02 · Design and data" title="Model-agnostic by design. Claude-tight for the demo.">
           <Prose>
             <p>
               The architecture was drawn model-agnostic from the start. The
@@ -484,7 +528,7 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="06 · Admission" title="Skills arrive by ceremony, not by upload.">
+        <Section label="03 · Admission" title="Skills arrive by ceremony, not by upload.">
           <Prose>
             <p>
               Any public GitHub repository with a SKILL.md can be proposed. The
@@ -524,7 +568,7 @@ export function Architecture() {
           </div>
         </Section>
 
-        <Section label="07 · The gate" title="The gate refuses, and the record keeps the refusal.">
+        <Section label="04 · The gate" title="The gate refuses, and the record keeps the refusal.">
           <Prose>
             <p>
               Every matter carries a privilege posture: a declared state that
@@ -553,7 +597,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="08 · The record" title="Audit is not the product. Audit is the receipt.">
+        <Section label="05 · The record" title="Audit is not the product. Audit is the receipt.">
           <Prose>
             <p>
               Every model call writes an audit row. Every matter mutation writes
@@ -578,7 +622,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="09 · Sign-off" title="Supervised practice, with a track record.">
+        <Section label="06 · Sign-off" title="Supervised practice, with a track record.">
           <Prose>
             <p>
               Every output is a draft until a named human reviews it, changes it
@@ -602,7 +646,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="10 · Honesty" title="What is not solved.">
+        <Section label="07 · Honesty" title="What is not solved.">
           <Prose>
             <p>
               The hosted site is an evaluation environment, not a practice
@@ -641,6 +685,9 @@ export function Architecture() {
             </p>
           </Prose>
         </Section>
+
+          </>
+        )}
 
         <Colophon>
           The register does not say what counsel can do. It says what counsel
