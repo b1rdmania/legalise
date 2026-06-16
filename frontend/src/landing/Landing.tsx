@@ -22,49 +22,6 @@ const DEMO_MOVES: { title: string; body: string }[] = [
   },
 ];
 
-// The three load-bearing words, defined plainly on first contact.
-const TERMS: { term: string; body: string }[] = [
-  {
-    term: "Register",
-    body: "A running record of a matter: what the AI read, what it produced, what it refused to do. Like a court file, kept automatically.",
-  },
-  {
-    term: "Refusal on record",
-    body: "When a skill will not do something, reach a privileged document, answer beyond its remit, the refusal is logged as faithfully as an answer. The blocked move is evidence too.",
-  },
-  {
-    term: "Sign-off",
-    body: "An output is not finished until a named person reads it and takes responsibility. The signature pins exactly what they signed.",
-  },
-];
-
-const SURFACES: { title: string; body: string }[] = [
-  {
-    title: "Open project",
-    body: "A matter workspace holds the documents, skills, outputs, signatures, and record in one place.",
-  },
-  {
-    title: "Add skill",
-    body: "A skill is a small piece of legal work: review an NDA, test a claim, draft a letter. It declares what it reads, what it writes, and how it runs.",
-  },
-  {
-    title: "Run against documents",
-    body: "The AI works inside the matter file, not in a loose prompt window. Sources stay attached.",
-  },
-  {
-    title: "Review output",
-    body: "Outputs are drafts until a human reads them, changes them where needed, and decides what to stand behind.",
-  },
-  {
-    title: "Sign",
-    body: "Professional sign-off pins the output and records who took responsibility for it.",
-  },
-  {
-    title: "Export record",
-    body: "The working pack carries the outputs, source context, signatures, and audit record.",
-  },
-];
-
 const QUICKSTART_CMD =
   "git clone https://github.com/b1rdmania/legalise && cd legalise && ./scripts/quickstart.sh";
 
@@ -122,7 +79,7 @@ export function Landing() {
             were never decided, and leave no record of how they got there.
           </p>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
-            Not another AI workspace. The register underneath them.
+            The register underneath the AI.
           </h1>
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
@@ -193,12 +150,12 @@ export function Landing() {
         <div className="mt-8 max-w-3xl">
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-8">
             <div className="font-redaction35 text-ink text-[64px] sm:text-[88px] leading-none tracking-tight2">
-              1,600
+              1,500+
             </div>
             <p className="mt-3 sm:mt-0 text-lg text-prose leading-relaxed max-w-xl">
-              court decisions where AI put citations to cases that were never
-              decided in front of a judge. Damien Charlotin has been cataloguing
-              them, and the count keeps climbing.
+              court decisions, and counting, where AI put citations to cases
+              that were never decided in front of a judge. Damien Charlotin has
+              been cataloguing them, and the count keeps climbing.
             </p>
           </div>
           <p className="mt-8 max-w-2xl text-base leading-relaxed text-prose">
@@ -243,49 +200,6 @@ export function Landing() {
             >
               Walk the demo
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* The three load-bearing words, in plain English. */}
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
-        <div className="max-w-page mx-auto">
-          <SectionRule label="In plain English" />
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
-            {TERMS.map((t) => (
-              <div key={t.term} className="bg-paper p-6 md:p-8">
-                <h3 className="text-lg font-bold text-ink mb-3 tracking-tight2">
-                  {t.term}
-                </h3>
-                <p className="text-sm text-prose leading-relaxed">{t.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works: the six steps. */}
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
-        <div className="max-w-page mx-auto">
-          <SectionRule label="How it works" />
-          <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
-            Six steps, and a record of every one.
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
-            {SURFACES.map((s, i) => (
-              <div
-                key={s.title}
-                className="bg-paper p-6 md:p-8 hover:bg-wash transition-colors"
-              >
-                <div className="text-[10px] uppercase tracking-[0.25em] text-muted mb-4">
-                  {String(i + 1).padStart(2, "0")} / 06
-                </div>
-                <h3 className="text-lg font-bold text-ink mb-3 tracking-tight2">
-                  {s.title}
-                </h3>
-                <p className="text-sm text-prose leading-relaxed">{s.body}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
