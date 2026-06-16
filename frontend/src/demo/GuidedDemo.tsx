@@ -10,7 +10,7 @@
 // Ink, scoped to this surface (tokens are static, so we override them here).
 
 import { useEffect, useRef, useState } from "react";
-import { CertCard, CertEyebrow, LedgerRow } from "../ui/certificate";
+import { CertCard, CertEyebrow, InkBands, LedgerLine, LedgerRow, SectionRule } from "../ui/certificate";
 import { PageHeader } from "../ui/primitives";
 import { SidebarView, NavIcon, type RailItem } from "../ui/SidebarView";
 
@@ -185,6 +185,39 @@ export function GuidedDemo() {
 
   const chosen = CATALOGUE.filter((s) => selected.has(s.id));
 
+  // Admission scan — the rows that march down with a tick before standing
+  // is granted (mirrors the real InstallCeremony ledger).
+  const scanRows = [
+    ...chosen.flatMap((s) => [
+      { label: s.id, value: "manifest structure — valid" },
+      { label: s.id, value: `reads ${s.reads} · writes ${s.writes}` },
+      { label: s.id, value: "gate privilege_posture — bound" },
+    ]),
+    { label: "source", value: "pinned commit · licence MIT · verified" },
+  ];
+  const [scanN, setScanN] = useState(0);
+  const scanComplete = scanN >= scanRows.length;
+  useEffect(() => {
+    if (act !== 2) return;
+    if (installed || reduce) {
+      setScanN(scanRows.length);
+      return;
+    }
+    setScanN(0);
+    const id = setInterval(() => {
+      setScanN((n) => {
+        if (n >= scanRows.length) {
+          clearInterval(id);
+          return n;
+        }
+        return n + 1;
+      });
+    }, 300);
+    return () => clearInterval(id);
+    // scanRows.length is the only scan input that matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [act, installed, reduce, scanRows.length]);
+
   const railActive = ACT_RAIL[act];
   const globalItems: RailItem[] = [
     { key: "matters", label: "Matters", icon: <NavIcon name="matters" />, href: "/" },
@@ -213,8 +246,10 @@ export function GuidedDemo() {
         .gd-almond .text-seal,.gd-almond .hover\\:text-seal:hover{color:#7E2B22!important}
         .gd-almond .text-paper{color:#F6F1E8!important}
         .gd-almond .border-rule{border-color:#E0D8C9!important}
+        .gd-almond .border-rule\\/60{border-color:rgba(224,216,201,.6)!important}
         .gd-almond .border-ink{border-color:#221E17!important}
-        .gd-almond .border-seal,.gd-almond .border-seal\\/50{border-color:#7E2B22!important}
+        .gd-almond .border-ink\\/70{border-color:rgba(34,30,23,.72)!important}
+        .gd-almond .border-seal,.gd-almond .border-seal\\/50,.gd-almond .border-seal\\/40{border-color:rgba(126,43,34,.55)!important}
         .gd-almond .decoration-rule{text-decoration-color:#E0D8C9!important}
         .gd-almond .decoration-seal{text-decoration-color:#7E2B22!important}
         /* Teaching annotations + redline. */
@@ -302,21 +337,32 @@ export function GuidedDemo() {
               </div>
             )}
 
-            {/* ── ACT 2 · CHOOSE ── */}
+            {/* ── ACT 2 · CHOOSE (the skills register) ── */}
             {act === 1 && (
               <div>
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">You don't fix this with a better prompt. You install a skill.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-prose">A skill is a small, vetted unit of legal work. Pick the ones that answer the failure you just saw — the bluff and the slop.</p>
-                <div className="mt-6 space-y-px bg-rule border border-rule">
-                  {CATALOGUE.map((s) => {
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                  {CATALOGUE.map((s, i) => {
                     const on = selected.has(s.id);
                     return (
-                      <button key={s.id} type="button" onClick={() => toggleSkill(s.id)} className={"block w-full text-left px-4 py-4 transition-colors " + (on ? "bg-panel-sel" : "bg-paper hover:bg-wash")}>
-                        <div className="flex items-center justify-between">
-                          <span className="tech-token text-sm text-ink">{s.name}</span>
-                          <span className={"text-[10px] uppercase tracking-[0.18em] " + (on ? "text-seal font-semibold" : "text-muted")}>{on ? "selected" : s.fixes ? "addresses the failure" : "available"}</span>
-                        </div>
-                        <p className="mt-1 text-sm text-prose">{s.blurb}</p>
+                      <button key={s.id} type="button" onClick={() => toggleSkill(s.id)} className="block text-left">
+                        <CertCard tone={on ? "seal" : "ink"}>
+                          <CertEyebrow
+                            left={`Skill ${String(i + 1).padStart(2, "0")}`}
+                            right={on ? "Selected" : s.fixes ? "Fixes the failure" : "Available"}
+                            rightTone={on ? "seal" : "muted"}
+                          />
+                          <div className="mt-3 tech-token text-sm text-ink">{s.name}</div>
+                          <p className="mt-2 text-sm leading-relaxed text-prose">{s.blurb}</p>
+                          <div className="mt-4 space-y-2">
+                            <InkBands label="Reads" values={[s.reads]} />
+                            <InkBands label="Writes" values={[s.writes]} />
+                          </div>
+                          <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
+                            <LedgerRow label="Gate" tone="ink">privilege_posture</LedgerRow>
+                          </dl>
+                        </CertCard>
                       </button>
                     );
                   })}
@@ -328,38 +374,55 @@ export function GuidedDemo() {
               </div>
             )}
 
-            {/* ── ACT 3 · INSTALL (certificate admission) ── */}
+            {/* ── ACT 3 · INSTALL (the admission ceremony) ── */}
             {act === 2 && (
               <div>
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">A skill is admitted, not just uploaded.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">Each skill declares what it may read, what it may write, and which gate governs it. You approve that contract; then it is admitted to the matter.</p>
-                <div className="mt-6 space-y-5">
-                  {chosen.map((s) => (
-                    <div key={s.id} className="relative">
-                      <CertCard>
-                        <CertEyebrow left="Skill manifest" right={installed ? "Admitted" : "Pending admission"} />
-                        <div className="mt-3 tech-token text-sm text-ink">{s.name}</div>
-                        <dl className="mt-4 space-y-1 text-[11px] text-muted">
-                          <LedgerRow label="Reads" tone="ink">{s.reads}</LedgerRow>
-                          <LedgerRow label="Writes" tone="ink">{s.writes}</LedgerRow>
-                          <LedgerRow label="Gate" tone="ink">privilege_posture</LedgerRow>
-                          <LedgerRow label="External network" tone="ink">none</LedgerRow>
-                        </dl>
-                      </CertCard>
-                      {installed && (
-                        <span className="absolute right-4 top-4 -rotate-6 border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-seal">
-                          Admitted
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                <p className="mt-3 text-sm leading-relaxed text-prose">The register scans each manifest — what it reads, what it writes, the gate it runs under, the source it came from. Only then do you grant it standing in the matter.</p>
+
+                <div className="mt-7">
+                  <SectionRule label="Admission · manifest scan" right={`${Math.min(scanN, scanRows.length)} / ${scanRows.length}`} />
+                  <div className="mt-1">
+                    {scanRows.slice(0, scanN).map((r, i) => (
+                      <LedgerLine
+                        key={i}
+                        index={i + 1}
+                        label={r.label}
+                        right={<span className="tech-token text-[11px] text-ink">✓</span>}
+                      >
+                        {r.value}
+                      </LedgerLine>
+                    ))}
+                    {!scanComplete && (
+                      <div className="flex items-center gap-2 py-2.5 text-[11px] uppercase tracking-[0.18em] text-muted">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-seal" />
+                        scanning…
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {installed && (
-                  <Coachmark>The skill can't reach a document it didn't declare, or run on a matter whose privilege posture forbids it. Everything it does from here lands on the record.</Coachmark>
+
+                {scanComplete && (
+                  <div className="mt-8">
+                    <SectionRule label="Grant of standing" right={installed ? "Granted" : "Your decision"} />
+                    <p className="mt-4 text-sm leading-relaxed text-prose">
+                      The manifests check out. {installed ? "Standing is granted" : "Grant standing"} to{" "}
+                      {chosen.map((s) => s.name).join(" and ")} — and from here, everything {installed ? "they do" : "they will do"} lands on the record.
+                    </p>
+                    {installed && (
+                      <Coachmark>An admitted skill can't reach a document it didn't declare, or run on a matter whose privilege posture forbids it. Standing, not cleverness, is what lets it act.</Coachmark>
+                    )}
+                  </div>
                 )}
+
                 <div className="mt-8 flex items-center gap-4">
                   <BackLink onClick={() => setAct(1)} />
-                  {!installed ? <PrimaryBtn onClick={() => setInstalled(true)}>Admit &amp; install</PrimaryBtn> : <PrimaryBtn onClick={() => setAct(3)}>Run it on the matter →</PrimaryBtn>}
+                  {scanComplete &&
+                    (!installed ? (
+                      <PrimaryBtn onClick={() => setInstalled(true)}>Grant standing &amp; admit</PrimaryBtn>
+                    ) : (
+                      <PrimaryBtn onClick={() => setAct(3)}>Run it on the matter →</PrimaryBtn>
+                    ))}
                 </div>
               </div>
             )}
