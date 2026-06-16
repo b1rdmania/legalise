@@ -14,8 +14,7 @@ import { CertCard, CertEyebrow, InkBands, LedgerLine, LedgerRow, SectionRule } f
 import { PageHeader } from "../ui/primitives";
 import { SidebarView, NavIcon, type RailItem } from "../ui/SidebarView";
 
-const ACTS = ["The failure", "Choose", "Install", "Run", "Govern"] as const;
-// Which rail surface each act lights up — so the guided flow drives the
+// Which rail surface each act lights up: the guided flow drives the
 // real nav, not a parallel stepper alone.
 const ACT_RAIL = ["assistant", "workflows", "workflows", "documents", "audit"] as const;
 
@@ -109,9 +108,7 @@ function useTypewriter(text: string, active: boolean) {
 
 function Coachmark({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-6 border-l-2 border-seal bg-wash px-4 py-3">
-      <p className="text-sm leading-relaxed text-prose">{children}</p>
-    </div>
+    <p className="mt-6 text-sm leading-relaxed text-prose">{children}</p>
   );
 }
 
@@ -216,6 +213,34 @@ export function GuidedDemo() {
     { key: "audit", label: "Record", icon: <NavIcon name="audit" />, active: railActive === "audit", onSelect: () => setAct(4) },
   ];
 
+  // The forward action for the pinned footer, by act + state. In-context
+  // actions (Run skill, Sign off) stay in their cards; the footer carries
+  // the reveal and the act-to-act steps so nothing hides below the fold.
+  const resetAll = () => {
+    setAct(0);
+    setRevealed(false);
+    setSelected(new Set());
+    setInstalled(false);
+    setRan(false);
+    setSigned(false);
+  };
+  let primary: { label: string; onClick: () => void } | null = null;
+  if (act === 0 && q.done) {
+    primary = revealed
+      ? { label: "The fix is a skill →", onClick: () => setAct(1) }
+      : { label: "See what went wrong", onClick: () => setRevealed(true) };
+  } else if (act === 1 && selected.size > 0) {
+    primary = { label: `Install ${selected.size} to the matter →`, onClick: () => setAct(2) };
+  } else if (act === 2 && scanComplete) {
+    primary = installed
+      ? { label: "Run it on the matter →", onClick: () => setAct(3) }
+      : { label: "Grant standing & admit", onClick: () => setInstalled(true) };
+  } else if (act === 3 && ran) {
+    primary = { label: "Send it for sign-off →", onClick: () => setAct(4) };
+  } else if (act === 4 && signed) {
+    primary = { label: "Replay from the top", onClick: resetAll };
+  }
+
   return (
     <div className="gd-almond min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
       <style>{`
@@ -268,25 +293,17 @@ export function GuidedDemo() {
         </button>
       </div>
 
-      <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
-        <div className="mx-auto w-full max-w-[860px]">
-          {/* Demo header — framed as a walkthrough, the matter as context. */}
-          <PageHeader
-            title="Demo walkthrough"
-            description="Legalise on a live matter: Khan v Acme, an unfair-dismissal claim. Watch a wrong answer become a signed record."
-          />
+      <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel flex flex-col md:overflow-hidden">
+        <div className="flex-1 md:min-h-0 md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+          <div className="mx-auto w-full max-w-[860px]">
+            {/* Demo header — the backend masthead (display tier). */}
+            <PageHeader
+              display
+              title="Demo walkthrough"
+              description="Legalise on a live matter: Khan v Acme, an unfair-dismissal claim. Watch a wrong answer become a signed record."
+            />
 
-          {/* Stepper — the one piece of guided chrome. */}
-          <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Demo acts">
-            {ACTS.map((label, i) => (
-              <span key={label} aria-current={i === act ? "step" : undefined}
-                className={"text-[11px] uppercase tracking-[0.18em] " + (i === act ? "text-ink font-semibold" : i < act ? "text-seal" : "text-muted/50")}>
-                {String(i + 1).padStart(2, "0")} · {label}
-              </span>
-            ))}
-          </nav>
-
-          <div className="mt-8">
+            <div className="mt-8">
             {/* ── ACT 1 · THE FAILURE (the matter chat) ── */}
             {act === 0 && (
               <div className="mx-auto max-w-[760px]">
@@ -315,9 +332,6 @@ export function GuidedDemo() {
                     Fluent, confident, and wrong. <strong>Henderson v Brent LBC</strong> is invented. No such authority appears anywhere in this matter. The padding and the "very likely to succeed" line are bluff too. This is the failure that makes good lawyers quit, and every part of it is catchable.
                   </Coachmark>
                 )}
-                <div className="mt-8">
-                  {!revealed ? (q.done && <PrimaryBtn onClick={() => setRevealed(true)}>See what went wrong</PrimaryBtn>) : <PrimaryBtn onClick={() => setAct(1)}>The fix is a skill →</PrimaryBtn>}
-                </div>
               </div>
             )}
 
@@ -350,10 +364,6 @@ export function GuidedDemo() {
                       </button>
                     );
                   })}
-                </div>
-                <div className="mt-8 flex items-center gap-4">
-                  <BackLink onClick={() => setAct(0)} />
-                  {selected.size > 0 && <PrimaryBtn onClick={() => setAct(2)}>Install {selected.size} to the matter →</PrimaryBtn>}
                 </div>
               </div>
             )}
@@ -389,15 +399,6 @@ export function GuidedDemo() {
                   <Coachmark>An admitted skill cannot reach a document it did not declare, or run on a matter whose privilege posture forbids it. Standing, not cleverness, is what lets it act.</Coachmark>
                 )}
 
-                <div className="mt-8 flex items-center gap-4">
-                  <BackLink onClick={() => setAct(1)} />
-                  {scanComplete &&
-                    (!installed ? (
-                      <PrimaryBtn onClick={() => setInstalled(true)}>Grant standing &amp; admit</PrimaryBtn>
-                    ) : (
-                      <PrimaryBtn onClick={() => setAct(3)}>Run it on the matter →</PrimaryBtn>
-                    ))}
-                </div>
               </div>
             )}
 
@@ -455,10 +456,6 @@ export function GuidedDemo() {
                 {ran && (
                   <Coachmark>The invented citation is gone, struck by the source-anchor check against the matter's documents. The padding is gone, stripped by plain-english. What is left is anchored to the paper, and the refusal itself is about to land on the record.</Coachmark>
                 )}
-                <div className="mt-8 flex items-center gap-4">
-                  <BackLink onClick={() => setAct(2)} />
-                  {ran && <PrimaryBtn onClick={() => setAct(4)}>Send it for sign-off →</PrimaryBtn>}
-                </div>
               </div>
             )}
 
@@ -536,16 +533,16 @@ export function GuidedDemo() {
                   </div>
                 )}
 
-                <div className="mt-8 flex items-center gap-4">
-                  <BackLink onClick={() => setAct(3)} />
-                  {signed && (
-                    <PrimaryBtn onClick={() => { setAct(0); setRevealed(false); setSelected(new Set()); setInstalled(false); setRan(false); setSigned(false); }}>
-                      Replay from the top
-                    </PrimaryBtn>
-                  )}
-                </div>
               </div>
             )}
+            </div>
+          </div>
+        </div>
+        {/* action bar — pinned, so the buttons never need a scroll */}
+        <div className="shrink-0 border-t border-rule bg-panel px-4 sm:px-6 lg:px-10 py-4">
+          <div className="mx-auto flex w-full max-w-[860px] items-center gap-4">
+            {act > 0 && <BackLink onClick={() => setAct(act - 1)} />}
+            {primary && <PrimaryBtn onClick={primary.onClick}>{primary.label}</PrimaryBtn>}
           </div>
         </div>
       </main>
