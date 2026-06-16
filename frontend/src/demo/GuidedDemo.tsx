@@ -110,7 +110,6 @@ function useTypewriter(text: string, active: boolean) {
 function Coachmark({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-6 border-l-2 border-seal bg-wash px-4 py-3">
-      <div className="text-[10px] uppercase tracking-[0.22em] text-seal mb-2">What's going on</div>
       <p className="text-sm leading-relaxed text-prose">{children}</p>
     </div>
   );
@@ -177,9 +176,9 @@ export function GuidedDemo() {
   // is granted (mirrors the real InstallCeremony ledger).
   const scanRows = [
     ...chosen.flatMap((s) => [
-      { label: s.id, value: "manifest structure — valid" },
+      { label: s.id, value: "manifest structure valid" },
       { label: s.id, value: `reads ${s.reads} · writes ${s.writes}` },
-      { label: s.id, value: "gate privilege_posture — bound" },
+      { label: s.id, value: "gate privilege_posture bound" },
     ]),
     { label: "source", value: "pinned commit · licence MIT · verified" },
   ];
@@ -271,11 +270,10 @@ export function GuidedDemo() {
 
       <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
         <div className="mx-auto w-full max-w-[860px]">
-          {/* Matter header — the real backend masthead (PageHeader). */}
+          {/* Demo header — framed as a walkthrough, the matter as context. */}
           <PageHeader
-            display
-            title="Khan v Acme Trading Ltd"
-            description="Jasmine Khan · claimant · s.94 ERA 1996 unfair dismissal"
+            title="Demo walkthrough"
+            description="Legalise on a live matter: Khan v Acme, an unfair-dismissal claim. Watch a wrong answer become a signed record."
           />
 
           {/* Stepper — the one piece of guided chrome. */}
@@ -293,7 +291,7 @@ export function GuidedDemo() {
             {act === 0 && (
               <div className="mx-auto max-w-[760px]">
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">The version of AI most lawyers have met.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">One matter, one question. The answer is fluent. Then look at what's wrong with it.</p>
+                <p className="mt-3 text-sm leading-relaxed text-prose">Ask a capable model a real legal question and the answer comes back fluent and sure of itself. Sometimes it is also wrong. The better the lawyer, the faster they see it, distrust the tool, and walk away. The failure is real. It is also catchable.</p>
 
                 <div className="mt-7 space-y-6">
                   {/* user — right-aligned bubble */}
@@ -314,7 +312,7 @@ export function GuidedDemo() {
 
                 {q.done && revealed && (
                   <Coachmark>
-                    Fluent, confident, and wrong. <strong>Henderson v Brent LBC</strong> is invented — no such authority appears anywhere in this matter. The padding and the "very likely to succeed" prediction are bluff too. This is the failure that makes good lawyers quit. It's catchable.
+                    Fluent, confident, and wrong. <strong>Henderson v Brent LBC</strong> is invented. No such authority appears anywhere in this matter. The padding and the "very likely to succeed" line are bluff too. This is the failure that makes good lawyers quit, and every part of it is catchable.
                   </Coachmark>
                 )}
                 <div className="mt-8">
@@ -327,7 +325,7 @@ export function GuidedDemo() {
             {act === 1 && (
               <div>
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">You don't fix this with a better prompt. You install a skill.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">A skill is a small, vetted unit of legal work. Pick the ones that answer the failure you just saw — the bluff and the slop.</p>
+                <p className="mt-3 text-sm leading-relaxed text-prose">A skill is a small, vetted unit of legal work. Pick the ones that answer the failure you just saw: the bluff and the slop.</p>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {CATALOGUE.map((s, i) => {
                     const on = selected.has(s.id);
@@ -363,42 +361,32 @@ export function GuidedDemo() {
             {/* ── ACT 3 · INSTALL (the admission ceremony) ── */}
             {act === 2 && (
               <div>
-                <h2 className="text-2xl font-bold tracking-tight2 text-ink">A skill is admitted, not just uploaded.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">The register scans each manifest — what it reads, what it writes, the gate it runs under, the source it came from. Only then do you grant it standing in the matter.</p>
+                <h2 className="text-2xl font-bold tracking-tight2 text-ink">A skill is admitted, not uploaded.</h2>
+                <p className="mt-3 text-sm leading-relaxed text-prose">Each skill declares what it reads, what it writes, and the gate it runs under. The register checks the manifest, then you grant it standing.</p>
 
-                <div className="mt-7">
-                  <SectionRule label="Admission · manifest scan" right={`${Math.min(scanN, scanRows.length)} / ${scanRows.length}`} />
-                  <div className="mt-1">
-                    {scanRows.slice(0, scanN).map((r, i) => (
-                      <LedgerLine
-                        key={i}
-                        index={i + 1}
-                        label={r.label}
-                        right={<span className="tech-token text-[11px] text-ink">✓</span>}
-                      >
-                        {r.value}
-                      </LedgerLine>
-                    ))}
-                    {!scanComplete && (
-                      <div className="flex items-center gap-2 py-2.5 text-[11px] uppercase tracking-[0.18em] text-muted">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-seal" />
-                        scanning…
-                      </div>
-                    )}
-                  </div>
+                <div className="mt-7 text-[11px] uppercase tracking-[0.18em] text-muted">Manifest scan</div>
+                <div className="mt-1">
+                  {scanRows.slice(0, scanN).map((r, i) => (
+                    <LedgerLine key={i} index={i + 1} label={r.label} right={<span className="tech-token text-[11px] text-ink">✓</span>}>
+                      {r.value}
+                    </LedgerLine>
+                  ))}
+                  {!scanComplete && (
+                    <div className="flex items-center gap-2 py-2.5 text-[11px] uppercase tracking-[0.18em] text-muted">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-seal" />
+                      scanning
+                    </div>
+                  )}
                 </div>
 
                 {scanComplete && (
-                  <div className="mt-8">
-                    <SectionRule label="Grant of standing" right={installed ? "Granted" : "Your decision"} />
-                    <p className="mt-4 text-sm leading-relaxed text-prose">
-                      The manifests check out. {installed ? "Standing is granted" : "Grant standing"} to{" "}
-                      {chosen.map((s) => s.name).join(" and ")} — and from here, everything {installed ? "they do" : "they will do"} lands on the record.
-                    </p>
-                    {installed && (
-                      <Coachmark>An admitted skill can't reach a document it didn't declare, or run on a matter whose privilege posture forbids it. Standing, not cleverness, is what lets it act.</Coachmark>
-                    )}
-                  </div>
+                  <p className="mt-6 text-sm leading-relaxed text-prose">
+                    The manifests check out. {installed ? "Standing is granted to" : "Grant standing to"}{" "}
+                    {chosen.map((s) => s.name).join(" and ")}. From here, everything {installed ? "they do" : "they will do"} lands on the record.
+                  </p>
+                )}
+                {installed && (
+                  <Coachmark>An admitted skill cannot reach a document it did not declare, or run on a matter whose privilege posture forbids it. Standing, not cleverness, is what lets it act.</Coachmark>
                 )}
 
                 <div className="mt-8 flex items-center gap-4">
@@ -417,7 +405,7 @@ export function GuidedDemo() {
             {act === 3 && (
               <div className="mx-auto max-w-[760px]">
                 <h2 className="text-2xl font-bold tracking-tight2 text-ink">Same question. Skills installed.</h2>
-                <p className="mt-3 text-sm leading-relaxed text-prose">The skills run inside the matter — reading the documents in scope, rewriting what the source won't support.</p>
+                <p className="mt-3 text-sm leading-relaxed text-prose">The skills run inside the matter. They read the documents in scope and rewrite what the source will not support.</p>
 
                 {/* the runner */}
                 <div className="mt-6 rounded-card border border-rule bg-paper p-4">
@@ -465,7 +453,7 @@ export function GuidedDemo() {
                 )}
 
                 {ran && (
-                  <Coachmark>The invented citation is gone, struck by the source-anchor check against the matter's documents. The padding is gone, stripped by plain-english. What's left is anchored to the paper — and the refusal itself is about to land on the record.</Coachmark>
+                  <Coachmark>The invented citation is gone, struck by the source-anchor check against the matter's documents. The padding is gone, stripped by plain-english. What is left is anchored to the paper, and the refusal itself is about to land on the record.</Coachmark>
                 )}
                 <div className="mt-8 flex items-center gap-4">
                   <BackLink onClick={() => setAct(2)} />
@@ -484,7 +472,7 @@ export function GuidedDemo() {
                   <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_320px]">
                     {/* the instrument */}
                     <div>
-                      <SectionRule label="The instrument" right="skill_response · draft" />
+                      <SectionRule label="The instrument" />
                       <div className="gd-doc mt-4 text-sm leading-relaxed text-ink" dangerouslySetInnerHTML={{ __html: REDLINE_HTML }} />
                     </div>
                     {/* the decision */}
@@ -517,7 +505,7 @@ export function GuidedDemo() {
                   </div>
                 ) : (
                   <div className="mt-7">
-                    <SectionRule label="The record" right="hash-chained · exportable" />
+                    <SectionRule label="The record" />
                     <div className="mt-2">
                       {AUDIT_ROWS.map((r, i) => (
                         <LedgerLine
@@ -543,7 +531,7 @@ export function GuidedDemo() {
                     </div>
 
                     <Coachmark>
-                      The refusal carries the same weight as an approval — the citation check's refusal of <strong>Henderson v Brent</strong> is struck onto the record, not hidden. The model drafted; you signed. That's the whole product: choose a skill, install it, run it, and stand behind what it produced.
+                      The refusal carries the same weight as an approval. The citation check's refusal of <strong>Henderson v Brent</strong> is struck onto the record, not hidden. The model drafted and you signed. That is the whole product: choose a skill, install it, run it, and stand behind what it produced.
                     </Coachmark>
                   </div>
                 )}
