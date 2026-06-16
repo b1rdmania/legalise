@@ -242,28 +242,8 @@ export function GuidedDemo() {
   }
 
   return (
-    <div className="gd-almond min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
+    <div className="min-h-screen md:h-screen bg-canvas text-ink md:flex md:gap-3 md:p-3 md:overflow-hidden">
       <style>{`
-        /* Almond & Ink — scoped palette override (tokens are static). */
-        .gd-almond.bg-canvas,.gd-almond .bg-canvas{background-color:#E9E2D4!important}
-        .gd-almond .bg-panel,.gd-almond .bg-panel-2{background-color:#F2ECE1!important}
-        .gd-almond .bg-paper{background-color:#F6F1E8!important}
-        .gd-almond .bg-wash{background-color:#EFE9DD!important}
-        .gd-almond .bg-panel-sel{background-color:#E0D7C6!important}
-        .gd-almond .bg-ink{background-color:#221E17!important}
-        .gd-almond .bg-seal,.gd-almond .hover\\:bg-seal:hover{background-color:#7E2B22!important}
-        .gd-almond .text-ink{color:#221E17!important}
-        .gd-almond .text-prose{color:#564E42!important}
-        .gd-almond .text-muted{color:#8B8273!important}
-        .gd-almond .text-seal,.gd-almond .hover\\:text-seal:hover{color:#7E2B22!important}
-        .gd-almond .text-paper{color:#F6F1E8!important}
-        .gd-almond .border-rule{border-color:#E0D8C9!important}
-        .gd-almond .border-rule\\/60{border-color:rgba(224,216,201,.6)!important}
-        .gd-almond .border-ink{border-color:#221E17!important}
-        .gd-almond .border-ink\\/70{border-color:rgba(34,30,23,.72)!important}
-        .gd-almond .border-seal,.gd-almond .border-seal\\/50,.gd-almond .border-seal\\/40{border-color:rgba(126,43,34,.55)!important}
-        .gd-almond .decoration-rule{text-decoration-color:#E0D8C9!important}
-        .gd-almond .decoration-seal{text-decoration-color:#7E2B22!important}
         /* Teaching annotations + redline. */
         .gd-doc p{margin:0 0 .85rem}
         .gd-doc .ann{border-radius:2px;padding:0 2px}
@@ -293,17 +273,26 @@ export function GuidedDemo() {
         </button>
       </div>
 
-      <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel flex flex-col md:overflow-hidden">
-        <div className="flex-1 md:min-h-0 md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
-          <div className="mx-auto w-full max-w-[860px]">
-            {/* Demo header — the backend masthead (display tier). */}
-            <PageHeader
-              display
-              title="Demo walkthrough"
-              description="Legalise on a live matter: Khan v Acme, an unfair-dismissal claim. Watch a wrong answer become a signed record."
-            />
+      <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+        <div className="mx-auto w-full max-w-[860px]">
+          {/* Demo header — the backend masthead (display tier). */}
+          <PageHeader
+            display
+            title="Demo walkthrough"
+            description="Legalise on a live matter: Khan v Acme, an unfair-dismissal claim. Watch a wrong answer become a signed record."
+          />
 
-            <div className="mt-8">
+          {/* Action nav — sits under the header, always in view. */}
+          <div className="mt-2 flex items-center gap-4 border-b border-rule pb-6">
+            {act > 0 && <BackLink onClick={() => setAct(act - 1)} />}
+            {primary ? (
+              <PrimaryBtn onClick={primary.onClick}>{primary.label}</PrimaryBtn>
+            ) : (
+              <span className="text-xs text-muted">Read the answer below, then continue.</span>
+            )}
+          </div>
+
+          <div className="mt-8">
             {/* ── ACT 1 · THE FAILURE (the matter chat) ── */}
             {act === 0 && (
               <div className="mx-auto max-w-[760px]">
@@ -535,14 +524,6 @@ export function GuidedDemo() {
 
               </div>
             )}
-            </div>
-          </div>
-        </div>
-        {/* action bar — pinned, so the buttons never need a scroll */}
-        <div className="shrink-0 border-t border-rule bg-panel px-4 sm:px-6 lg:px-10 py-4">
-          <div className="mx-auto flex w-full max-w-[860px] items-center gap-4">
-            {act > 0 && <BackLink onClick={() => setAct(act - 1)} />}
-            {primary && <PrimaryBtn onClick={primary.onClick}>{primary.label}</PrimaryBtn>}
           </div>
         </div>
       </main>

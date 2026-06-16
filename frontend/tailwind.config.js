@@ -20,26 +20,27 @@ export default {
         redaction20: ['"Redaction 20"', 'Georgia', 'serif'],
         redaction35: ['"Redaction 35"', 'Georgia', 'serif'],
       },
-      colors: {
-        ink: '#181818',
-        paper: '#FFFFFF',
-        wash: '#F4F4F4',
-        rule: '#E5E5E5',
-        muted: '#9CA3AF',
-        prose: '#4B5563',
+        // Almond & Ink — warm-neutral register palette, site-wide
+        // (2026-06-16). Replaces the old cool-grey tokens; near-marble
+        // paper, oxblood seal at ~10% chroma.
+        colors: {
+        ink: '#221E17',
+        paper: '#F6F1E8',
+        wash: '#EFE9DD',
+        rule: '#E0D8C9',
+        muted: '#8B8273',
+        prose: '#564E42',
         // Tertiary accent — sealing wax. v0.5: verdicts, the seal/stamp,
         // privilege C_paused, audit blocked rows, CPR 31.22 flag,
         // destructive confirms. NEVER in workspace chrome (no nav accent,
         // no panel border), never a background, never on the brand mark.
-        seal: '#8B0000',
-        // v0.5 workspace register — neutral-grey floating-panel shell.
-        // See docs/DESIGN.md P21. Used by the matter workspace only;
-        // Landing/auth keep paper #FFFFFF.
-        canvas: '#E8E8E8',
-        panel: '#FAFAFA',
-        'panel-hover': '#F3F3F3',
-        'panel-sel': '#E6E6E6',
-        'panel-2': '#F7F7F7',
+        seal: '#7E2B22',
+        // Warm-neutral floating-panel shell (Almond & Ink value ladder).
+        canvas: '#E9E2D4',
+        panel: '#F2ECE1',
+        'panel-hover': '#E9E2D4',
+        'panel-sel': '#E0D7C6',
+        'panel-2': '#F2ECE1',
       },
       maxWidth: {
         page: '1440px',
