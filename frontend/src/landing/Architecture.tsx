@@ -258,54 +258,6 @@ export function Architecture() {
           <div className="mt-6">
             <Stamp>Open experiment</Stamp>
           </div>
-          <div className="mt-6 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
-            <p>
-              This started as an experiment on a problem that, possibly,
-              nobody has. Regulators seem comfortable enough with the big
-              AI-led platforms firms already use. To say nothing of the grey
-              area of every other solicitor running litigation questions
-              through a personal GPT or Claude account.
-            </p>
-            <p>
-              The question I am actually chasing: what shape would AI take,
-              integrated at the base of a new SRA-regulated firm, or a
-              sandbox for one, that regulators and PI insurers would be
-              comfortable with? And underneath that: where is AI strong,
-              where is it weak, where must human expertise stay in the loop,
-              and how is responsibility for the decisions that matter
-              actually held?
-            </p>
-            <p>
-              What I have built is bigger than I intended, because every
-              stone I overturned needed more surface or more backend. It is
-              not a finished product. It is an open experiment, and it
-              welcomes contributors.
-            </p>
-            <p>
-              As the field moves toward world models, local inference, and
-              the stranger problems of aggregating knowledge, strategy, and
-              intelligence, a genuinely interesting space is opening up: how
-              experienced lawyers entwine with this technology.
-            </p>
-            <p>
-              I am not a snake oil salesman, and I am not a legal domain
-              expert. I am not looking for an unbounded consultancy
-              retainer, and I will not be running Zoom training for your
-              legal team. What I have is a keen sense of the limits and the
-              possibilities of AI.
-            </p>
-            <p>
-              The angle worth exploring: limited pilots, designed for
-              regulatory approval, with monetisation potential.{" "}
-              <a
-                href="/about"
-                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              >
-                My DMs are open
-              </a>
-              .
-            </p>
-          </div>
         </header>
 
         {/* Why / Technical — one page, two readers. Why = the argument and
@@ -336,6 +288,56 @@ export function Architecture() {
 
         {tab === "why" && (
           <>
+        {/* The founder note — why this exists and what we're running at. */}
+        <div className="mt-12 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
+          <p>
+            This started as an experiment on a problem that, possibly,
+            nobody has. Regulators seem comfortable enough with the big
+            AI-led platforms firms already use. To say nothing of the grey
+            area of every other solicitor running litigation questions
+            through a personal GPT or Claude account.
+          </p>
+          <p>
+            The question I am actually chasing: what shape would AI take,
+            integrated at the base of a new SRA-regulated firm, or a
+            sandbox for one, that regulators and PI insurers would be
+            comfortable with? And underneath that: where is AI strong,
+            where is it weak, where must human expertise stay in the loop,
+            and how is responsibility for the decisions that matter
+            actually held?
+          </p>
+          <p>
+            What I have built is bigger than I intended, because every
+            stone I overturned needed more surface or more backend. It is
+            not a finished product. It is an open experiment, and it
+            welcomes contributors.
+          </p>
+          <p>
+            As the field moves toward world models, local inference, and
+            the stranger problems of aggregating knowledge, strategy, and
+            intelligence, a genuinely interesting space is opening up: how
+            experienced lawyers entwine with this technology.
+          </p>
+          <p>
+            I am not a snake oil salesman, and I am not a legal domain
+            expert. I am not looking for an unbounded consultancy
+            retainer, and I will not be running Zoom training for your
+            legal team. What I have is a keen sense of the limits and the
+            possibilities of AI.
+          </p>
+          <p>
+            The angle worth exploring: limited pilots, designed for
+            regulatory approval, with monetisation potential.{" "}
+            <a
+              href="/about"
+              className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            >
+              My DMs are open
+            </a>
+            .
+          </p>
+        </div>
+
         {/* Exhibit: the cost of unsupervised capability, already in the
             law reports. Early by design — this is why the page exists. */}
         <section className="mt-16">
