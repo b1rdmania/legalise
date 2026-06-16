@@ -37,6 +37,7 @@ const CHROMELESS_ROUTES = new Set([
   "verify",
   "verifyPending",
   "demo",
+  "demoGuided",
 ]);
 
 type HealthResponse = {
@@ -167,7 +168,7 @@ function AppShellInner() {
   // The demo workspace (DemoMatter) brings its own full v0.5 panel shell —
   // render it bare, without the marketing TopBar/Drawer, which otherwise
   // stacked a second wordmark above the rail (the v0.5 double-header).
-  if (route.name === "demo" || route.name === "demoDocument") {
+  if (route.name === "demo" || route.name === "demoDocument" || route.name === "demoGuided") {
     return <Outlet />;
   }
 

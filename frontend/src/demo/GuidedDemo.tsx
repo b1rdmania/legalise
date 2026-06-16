@@ -10,8 +10,8 @@
 // Ink, scoped to this surface (tokens are static, so we override them here).
 
 import { useEffect, useRef, useState } from "react";
-import { Footer } from "../ui/Footer";
-import { CertCard, CertEyebrow, LedgerRow, SectionRule } from "../ui/certificate";
+import { CertCard, CertEyebrow, LedgerRow } from "../ui/certificate";
+import { PageHeader } from "../ui/primitives";
 import { SidebarView, NavIcon, type RailItem } from "../ui/SidebarView";
 
 const ACTS = ["The failure", "Choose", "Install", "Run", "Govern"] as const;
@@ -248,27 +248,15 @@ export function GuidedDemo() {
 
       <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
         <div className="mx-auto w-full max-w-[860px]">
-          {/* Matter header — the real masthead. */}
-          <div className="border-b border-rule pb-5">
-            <div className="flex items-baseline justify-between">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-muted">Guided demo · read-only</div>
-              <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted">
-                <span className="h-2 w-2 rounded-full bg-seal" aria-hidden="true" />
-                Active
-              </span>
-            </div>
-            <h1 className="mt-2 font-redaction35 text-[34px] leading-none tracking-tight2 text-ink">
-              Khan v Acme Trading Ltd
-            </h1>
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-muted">
-              <span>Jasmine Khan · claimant</span>
-              <span>s.94 ERA 1996 · unfair dismissal</span>
-              <span className="tech-token">employment_tribunal</span>
-            </div>
-          </div>
+          {/* Matter header — the real backend masthead (PageHeader). */}
+          <PageHeader
+            display
+            title="Khan v Acme Trading Ltd"
+            description="Jasmine Khan · claimant · s.94 ERA 1996 unfair dismissal"
+          />
 
-          {/* Stepper. */}
-          <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-2" aria-label="Demo acts">
+          {/* Stepper — the one piece of guided chrome. */}
+          <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Demo acts">
             {ACTS.map((label, i) => (
               <span key={label} aria-current={i === act ? "step" : undefined}
                 className={"text-[11px] uppercase tracking-[0.18em] " + (i === act ? "text-ink font-semibold" : i < act ? "text-seal" : "text-muted/50")}>
@@ -281,8 +269,7 @@ export function GuidedDemo() {
             {/* ── ACT 1 · THE FAILURE ── */}
             {act === 0 && (
               <div>
-                <SectionRule label={<span className="text-seal">Claude, raw</span>} right="the failure" />
-                <h2 className="mt-5 text-2xl font-bold tracking-tight2 text-ink">The version of AI most lawyers have met.</h2>
+                <h2 className="text-2xl font-bold tracking-tight2 text-ink">The version of AI most lawyers have met.</h2>
                 <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
                   <div>
                     <div className="border border-rule bg-paper">
@@ -318,8 +305,7 @@ export function GuidedDemo() {
             {/* ── ACT 2 · CHOOSE ── */}
             {act === 1 && (
               <div>
-                <SectionRule label={<span className="text-seal">The catalogue</span>} right="choose" />
-                <h2 className="mt-5 text-2xl font-bold tracking-tight2 text-ink">You don't fix this with a better prompt. You install a skill.</h2>
+                <h2 className="text-2xl font-bold tracking-tight2 text-ink">You don't fix this with a better prompt. You install a skill.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-prose">A skill is a small, vetted unit of legal work. Pick the ones that answer the failure you just saw — the bluff and the slop.</p>
                 <div className="mt-6 space-y-px bg-rule border border-rule">
                   {CATALOGUE.map((s) => {
@@ -345,8 +331,7 @@ export function GuidedDemo() {
             {/* ── ACT 3 · INSTALL (certificate admission) ── */}
             {act === 2 && (
               <div>
-                <SectionRule label={<span className="text-seal">Admission</span>} right="install" />
-                <h2 className="mt-5 text-2xl font-bold tracking-tight2 text-ink">A skill is admitted, not just uploaded.</h2>
+                <h2 className="text-2xl font-bold tracking-tight2 text-ink">A skill is admitted, not just uploaded.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-prose">Each skill declares what it may read, what it may write, and which gate governs it. You approve that contract; then it is admitted to the matter.</p>
                 <div className="mt-6 space-y-5">
                   {chosen.map((s) => (
@@ -382,8 +367,7 @@ export function GuidedDemo() {
             {/* ── ACT 4 · RUN → REDLINE (with the document open) ── */}
             {act === 3 && (
               <div>
-                <SectionRule label={<span className="text-seal">The run</span>} right="redline" />
-                <h2 className="mt-5 text-2xl font-bold tracking-tight2 text-ink">Same question. Skills installed.</h2>
+                <h2 className="text-2xl font-bold tracking-tight2 text-ink">Same question. Skills installed.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-prose">The skills run against the matter's documents — open on the right. Watch the bluff get struck and the padding stripped.</p>
                 <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
                   <div>
@@ -434,8 +418,7 @@ export function GuidedDemo() {
             {/* ── ACT 5 · GOVERN (scaffold) ── */}
             {act === 4 && (
               <div>
-                <SectionRule label={<span className="text-seal">Audit &amp; sign-off</span>} right="govern" />
-                <h2 className="mt-5 text-2xl font-bold tracking-tight2 text-ink">The model drafted. A human becomes the authority.</h2>
+                <h2 className="text-2xl font-bold tracking-tight2 text-ink">The model drafted. A human becomes the authority.</h2>
                 <p className="mt-3 text-sm leading-relaxed text-prose">Next: SAW-vs-ASSERTED, the refusal struck on the record, and the sign-off where a named person takes responsibility. (Porting the harness's audit + sign-off card here next.)</p>
                 <div className="mt-8 flex items-center gap-4">
                   <BackLink onClick={() => setAct(3)} />
@@ -444,11 +427,6 @@ export function GuidedDemo() {
               </div>
             )}
           </div>
-
-          <div className="mt-14">
-            <SectionRule label="Acts 1–4 built · Almond & Ink" right="Vertical slice" />
-          </div>
-          <Footer />
         </div>
       </main>
     </div>
