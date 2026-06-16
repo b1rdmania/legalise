@@ -28,6 +28,7 @@ import { ModuleDetail } from "../modules-v2/ModuleDetail";
 import { CreateModule } from "../modules-v2/CreateModule";
 import { LawveImport } from "../modules-v2/LawveImport";
 import { DemoLoop } from "../demo/DemoLoop";
+import { GuidedDemo } from "../demo/GuidedDemo";
 import { InstallCeremony } from "../modules-v2/InstallCeremony";
 import { CounselRegister } from "../modules-v2/CounselRegister";
 import { ArtifactsList } from "../matter/ArtifactsList";
@@ -232,6 +233,15 @@ const demoDocumentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/demo/documents/$documentId",
   component: DemoMatterPage,
+});
+
+// Preview of the rebuilt, guided, skill-lifecycle demo. Public, separate
+// from /demo so the existing static workspace stays untouched while we
+// iterate on the replacement.
+const guidedDemoRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/guided-demo",
+  component: GuidedDemo,
 });
 
 // ---------------------------------------------------------------------------
@@ -570,6 +580,7 @@ const routeTree = rootRoute.addChildren([
   demoIndexRoute,
   demoDocumentRoute,
   demoTabRoute,
+  guidedDemoRoute,
   appHomeRoute,
   authedRoute.addChildren([
     mattersListRoute,

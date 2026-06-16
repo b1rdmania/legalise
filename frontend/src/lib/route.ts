@@ -33,6 +33,7 @@ export type Route =
   | { name: "demoLoop" }
   | { name: "demo"; tab?: string }
   | { name: "demoDocument"; documentId: string }
+  | { name: "demoGuided" }
   | { name: "list" }
   | { name: "new" }
   | { name: "detail"; slug: string; tab?: string }
@@ -90,6 +91,7 @@ export function routeFromPath(pathname: string, search: string): Route {
   if (path === "/skills/lawve" || path === "/modules/lawve") return { name: "lawveImport" };
 
   if (path === "/demo-loop") return { name: "demoLoop" };
+  if (path === "/guided-demo") return { name: "demoGuided" };
   if (path === "/demo") return { name: "demo" };
   const demoDocumentMatch = path.match(/^\/demo\/documents\/([^/]+)$/);
   if (demoDocumentMatch) {
@@ -232,6 +234,7 @@ export const PUBLIC_ROUTE_NAMES = new Set<Route["name"]>([
   "modules",
   "demo",
   "demoDocument",
+  "demoGuided",
   // /app is intentionally public — first-run (user_count=0) and
   // bootstrap-required states must render without a session.
   // AppHome owns its own auth gating once has_superuser=true.
