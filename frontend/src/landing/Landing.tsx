@@ -6,19 +6,20 @@ import { LedgerLine, SectionRule } from "../ui/certificate";
 
 const DEMO_SLUG = "khan-v-acme-trading-2026";
 
-// The demo, framed before the click: the three moves a visitor watches.
+// The demo, framed before the click: the governed loop a visitor runs,
+// live, on real endpoints, with no provider key.
 const DEMO_MOVES: { title: string; body: string }[] = [
   {
-    title: "Raw",
-    body: "Ask an ordinary model about the matter. It answers in confident prose, and gets a load-bearing fact wrong.",
+    title: "Run",
+    body: "Run a skill against the matter's documents — keyless, on a stub model. It executes under the same privilege control, per-matter permissions, and audit as a real run.",
   },
   {
-    title: "Caught",
-    body: "Ask again through a skill. It tests the claim against the documents, finds no support, and refuses. The refusal is struck onto the record.",
+    title: "Review",
+    body: "The output lands as a first-class artifact and goes for review. The author can't approve their own work; a separate reviewer decides. That separation is the guarantee.",
   },
   {
-    title: "Signed",
-    body: "A named human reviews the output, amends it, and signs. The record now shows who stood behind it.",
+    title: "Record",
+    body: "Open the Record. The whole chain is reconstructed — skill run, model called, artifact written, review requested. Every step real, nothing faked.",
   },
 ];
 
@@ -157,7 +158,7 @@ export function Landing() {
           ) : (
             <div className="flex flex-wrap items-center gap-4 mt-10">
               <a
-                href="/demo"
+                href="/demo-loop"
                 className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
               >
                 Walk the demo
@@ -175,8 +176,10 @@ export function Landing() {
           )}
 
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-prose">
-            A real unfair-dismissal matter. Watch the AI get a fact wrong, watch
-            the guardrail catch it, and watch a human sign it off.
+            A keyless run on a matter modelled on a real unfair-dismissal
+            dispute. Run a skill, send it for independent review, and open the
+            Record to see the whole chain &mdash; every step real, no provider
+            key needed.
           </p>
 
           <QuickstartCommand />
@@ -221,7 +224,7 @@ export function Landing() {
         <div className="max-w-page mx-auto">
           <SectionRule label="The demo" right="Three moves" />
           <h2 className="mt-5 text-3xl md:text-4xl font-bold tracking-tight2 text-ink mb-10 leading-tight max-w-2xl">
-            Watch it work, catch it, and sign it.
+            Run it, review it, read the record.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-rule border border-rule">
             {DEMO_MOVES.map((m, i) => (
@@ -236,12 +239,18 @@ export function Landing() {
               </div>
             ))}
           </div>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap items-center gap-4">
             <a
-              href="/demo"
+              href="/demo-loop"
               className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
             >
               Walk the demo
+            </a>
+            <a
+              href="/demo"
+              className="text-sm text-muted underline underline-offset-4 decoration-rule transition-colors hover:decoration-seal hover:text-seal"
+            >
+              Or explore the full workspace
             </a>
           </div>
         </div>

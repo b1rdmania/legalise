@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
 import { postureLabel } from "../lib/posture";
 
-const DEMO_HREF_UNAUTHED = "/demo";
+const DEMO_HREF_UNAUTHED = "/demo-loop";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };

@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
 import { MATTER_TAB_LABELS, type TabKey } from "../matter/tabs/types";
 
-const DEMO_HREF_UNAUTHED = "/demo";
+const DEMO_HREF_UNAUTHED = "/demo-loop";
 
 export function TopBar({
   route,
@@ -24,7 +24,7 @@ export function TopBar({
   const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list";
-  const isDemo = route.name === "demo";
+  const isDemo = route.name === "demoLoop" || route.name === "demo";
   // Admin nav anchor. Only superusers see it; the substrate
   // enforces independently. Active state covers the admin user
   // surfaces.

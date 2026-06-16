@@ -96,10 +96,10 @@ export function About() {
               <SectionRule label="Start here" />
               <div className="mt-6 flex flex-wrap gap-4">
                 <a
-                  href="/demo"
+                  href="/demo-loop"
                   className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
                 >
-                  Open the demo
+                  Walk the demo
                 </a>
                 <a
                   href="/architecture"
