@@ -139,7 +139,7 @@ export function Sidebar({
     },
     {
       key: "register",
-      label: "Register",
+      label: "Your skills",
       href: "/register",
       icon: <NavIcon name="audit" />,
       active: !onMatterArea && route.name === "register",

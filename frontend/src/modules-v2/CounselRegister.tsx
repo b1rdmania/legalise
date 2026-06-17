@@ -1,16 +1,13 @@
 /**
- * /register — the Counsel Register.
+ * /register — "Your skills": the skills installed in this workspace,
+ * each with what it can read, what it can write, its advice limit, and
+ * its track record.
  *
- * Idea A from the standing reframe: render the workspace's installed
- * skills as entries in a register of AI counsel. A pure renderer over
- * the installed manifests — no second database, no new writes. Each
- * certificate states what the record already holds: publisher
- * (chambers), permission bands, advice ceiling, signature status,
- * pinned source, date of admission.
- *
- * Design: Standing Order (the artist pass) — ink/paper/seal only,
- * Didone monument + clerk's ledger, red spent like money. A revoked
- * counsel is shown struck, with the same fidelity as the admitted.
+ * A pure renderer over the installed manifests — no second database, no
+ * new writes. Each card states what the record already holds: publisher,
+ * permissions, advice limit, signature status, source, date added. The
+ * standing/admission metaphor lives on the public /architecture page;
+ * this is a working tool, so the copy is plain.
  */
 
 import { useEffect, useState } from "react";
@@ -100,39 +97,34 @@ export function CounselRegister() {
   return (
     <div className="page-shell">
       <h1 className="font-redaction35 text-[64px] leading-none tracking-tight2 sm:text-[88px]">
-        Standing
+        Your skills
       </h1>
-      <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">
-        over capability
-      </p>
 
       <p className="mt-8 max-w-xl text-sm leading-relaxed text-prose">
-        The register does not say what counsel can do. It says what counsel
-        has been admitted to do under supervision — which matters it may
-        read, what it may write, the ceiling on its advice, and who vouched
-        for it. Admission is the trust ceremony; every entry below is
-        derived from the signed record, nothing else.
+        The skills installed in this workspace. Each one shows what it can
+        read, what it can write, its advice limit, and its track record. To
+        browse and add more, go to the Skill library.
       </p>
 
       {q.status === "loading" && (
-        <p className="mt-12 text-sm text-muted">Opening the register…</p>
+        <p className="mt-12 text-sm text-muted">Loading your skills…</p>
       )}
       {q.status === "error" && (
         <p className="mt-12 text-sm text-seal">
-          Could not open the register: {q.message}
+          Could not load your skills: {q.message}
         </p>
       )}
 
       {q.status === "ready" && q.rows.length === 0 && (
         <div className="mt-12 border border-rule bg-paper p-6">
           <p className="text-sm text-prose">
-            No counsel hold standing in this workspace yet.
+            You haven't added any skills to this workspace yet.
           </p>
           <Link
             to="/skills/lawve"
             className="mt-3 inline-flex items-center rounded-md bg-ink px-4 py-2 text-sm text-paper hover:bg-seal"
           >
-            Instruct your first counsel
+            Add your first skill
           </Link>
         </div>
       )}
@@ -148,8 +140,7 @@ export function CounselRegister() {
       <ExternalPacksSection />
 
       <p className="mt-14 border-t border-rule pt-3 text-[10px] uppercase tracking-[0.2em] text-muted">
-        Refusals and revocations are recorded with the same fidelity as
-        admissions — the record testifies against itself when it must.
+        Refusals and removals are recorded the same way as approvals.
       </p>
     </div>
   );
@@ -172,16 +163,18 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
   const admitted = new Date(row.installed_at);
 
   return (
-    <article
+    <Link
+      to="/skills/$moduleId"
+      params={{ moduleId: row.module_id }}
       className={
-        "relative border bg-paper p-5 " +
+        "relative block border bg-paper p-5 transition-opacity hover:opacity-80 " +
         (revoked ? "border-seal/40" : "border-ink/70")
       }
       data-testid={`certificate-${row.module_id}`}
     >
       <div className="flex items-baseline justify-between">
         <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-          Counsel {String(index + 1).padStart(2, "0")}
+          Skill {String(index + 1).padStart(2, "0")}
         </p>
         <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
           {row.visibility?.replaceAll("_", " ")}
@@ -197,10 +190,10 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
         {displayName(row)}
       </h2>
       <p className="mt-1 text-xs text-muted">
-        {row.publisher} (chambers) · v{row.version}
+        {row.publisher} · v{row.version}
       </p>
 
-      {/* Practice bands — what the counsel may read and write. */}
+      {/* What this skill may read and write. */}
       <div className="mt-4 space-y-2">
         <Band label="Reads" values={reads} />
         <Band label="Writes" values={writes} />
@@ -232,7 +225,7 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
           </dd>
         </div>
         <div className="flex justify-between gap-3">
-          <dt className="uppercase tracking-[0.18em]">Admitted</dt>
+          <dt className="uppercase tracking-[0.18em]">Added</dt>
           <dd>
             {admitted.toLocaleDateString("en-GB", {
               day: "2-digit",
@@ -244,36 +237,27 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
         {src && (
           <div className="flex justify-between gap-3">
             <dt className="uppercase tracking-[0.18em]">Source</dt>
-            <dd className="truncate">
-              <a
-                href={src.href}
-                target="_blank"
-                rel="noreferrer"
-                className="tech-token hover:underline"
-              >
-                {src.label}
-              </a>
-            </dd>
+            <dd className="truncate tech-token">{src.label}</dd>
           </div>
         )}
         {revoked && (
           <div className="flex justify-between gap-3 text-seal">
-            <dt className="uppercase tracking-[0.18em]">Standing</dt>
-            <dd>revoked</dd>
+            <dt className="uppercase tracking-[0.18em]">Status</dt>
+            <dd>removed</dd>
           </div>
         )}
       </dl>
 
-      {/* The seal — only counsel with a verified signature carry it. */}
+      {/* The seal — only a skill with a verified signature carries it. */}
       {verified && !revoked && (
         <span
-          aria-label="verified standing"
+          aria-label="verified signature"
           className="absolute -right-2 -top-2 flex h-12 w-12 rotate-12 items-center justify-center rounded-full border-2 border-seal text-[8px] uppercase tracking-[0.15em] text-seal"
         >
           Signed
         </span>
       )}
-    </article>
+    </Link>
   );
 }
 
@@ -340,22 +324,15 @@ export function TrackRecord({
 
 function Band({ label, values }: { label: string; values: string[] }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-baseline gap-3">
       <span className="w-12 shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
         {label}
       </span>
       {values.length === 0 ? (
-        <span className="text-[11px] text-muted">—</span>
+        <span className="text-[11px] text-muted">nothing</span>
       ) : (
-        <span className="flex min-w-0 flex-1 flex-wrap gap-1" title={values.join(", ")}>
-          {values.map((v) => (
-            <span
-              key={v}
-              className="h-2.5 bg-ink"
-              style={{ width: `${Math.min(96, 18 + v.length * 4)}px` }}
-              title={v}
-            />
-          ))}
+        <span className="min-w-0 flex-1 text-[11px] text-ink">
+          {values.map((v) => v.replaceAll("_", " ")).join(" · ")}
         </span>
       )}
     </div>

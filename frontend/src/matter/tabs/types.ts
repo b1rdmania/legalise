@@ -8,9 +8,10 @@
 // skills-as-plugins cut; skills now run from Chat via the generic
 // runner.
 //
-// Bare /matters/{slug} lands on Chat (the assistant key).
+// Bare /matters/{slug} lands on Documents (the documents key) — opening
+// a matter shows what is in it first.
 //
-// User-facing tab labels (Chat / Files / Skills / Activity)
+// User-facing tab labels (Chat / Documents / Skills / Activity)
 // intentionally do not match the underlying URL keys
 // (assistant / documents / workflows / audit). The keys are kept
 // stable in this slice for route compatibility; they are rewired in
@@ -29,13 +30,13 @@ export type TabKey =
 // for route compatibility.
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
-  { key: "documents", label: "Files" },
+  { key: "documents", label: "Documents" },
   { key: "workflows", label: "Skills" },
 ];
 
 export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
   assistant: "Chat",
-  documents: "Files",
+  documents: "Documents",
   chronology: "Chronology",
   workflows: "Skills",
   audit: "Activity",

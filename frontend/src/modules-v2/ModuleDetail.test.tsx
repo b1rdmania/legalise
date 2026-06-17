@@ -110,8 +110,13 @@ describe("ModuleDetail", () => {
       expect(screen.getByText("Contract Review")).toBeInTheDocument();
     });
     expect(screen.getByText("v0.2.1")).toBeInTheDocument();
-    // Certificate anatomy: publisher (chambers) line + visibility eyebrow.
-    expect(screen.getByText(/legalise \(chambers\)/)).toBeInTheDocument();
+    // Certificate anatomy: publisher line + visibility eyebrow.
+    expect(
+      screen.getByText(
+        (_content, el) =>
+          el?.tagName === "P" && (el.textContent ?? "").startsWith("legalise"),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("first party")).toBeInTheDocument();
     expect(screen.getByTestId("skill-certificate")).toBeInTheDocument();
     // Capability permission card — raw identifiers stay visible.

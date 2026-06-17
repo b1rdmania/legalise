@@ -224,6 +224,10 @@ export function DocumentDetail({
   const [versionUploadError, setVersionUploadError] = useState<string | null>(null);
   const [activeEditSessions, setActiveEditSessions] = useState<DocumentEditSessionRead[]>([]);
   const [showDetails, setShowDetails] = useState(false);
+  // Right-hand panel (skills / review queue / suggest edits) is hidden by
+  // default so the document reads clean. Toggle shows it without unmounting,
+  // so its contents stay in the DOM and addressable.
+  const [showPanel, setShowPanel] = useState(false);
   const [workbenchView, setWorkbenchView] = useState<WorkbenchView>("editor");
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [compareVersionId, setCompareVersionId] = useState<string>(EXTRACTED_VERSION_ID);
@@ -792,6 +796,7 @@ export function DocumentDetail({
     } else {
       setSelectedAnchor(null);
     }
+    setShowPanel(true);
     requestAnimationFrame(() => {
       notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
     });
@@ -800,6 +805,7 @@ export function DocumentDetail({
     const trimmed = selectedQuote.trim().replace(/\s+/g, " ");
     if (!trimmed) return;
     setCommentQuote(trimmed);
+    setShowPanel(true);
     requestAnimationFrame(() => {
       notesRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
     });
@@ -818,6 +824,7 @@ export function DocumentDetail({
   const openDocumentSkill = (skill: RunnableMatterSkill, useSelection = false) => {
     setRunnerInitialInput(useSelection ? selectedPassageRequest(skill) : undefined);
     setActiveRunnerSkill(skill);
+    setShowPanel(true);
     requestAnimationFrame(() => {
       skillsRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" });
     });
@@ -1009,16 +1016,6 @@ export function DocumentDetail({
             >
               Ask about this file
             </Link>
-            {primaryDocumentSkill && (
-              <button
-                type="button"
-                onClick={() => openDocumentSkill(primaryDocumentSkill)}
-                className="inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
-                data-testid="document-run-primary-skill"
-              >
-                Run skill
-              </button>
-            )}
             {selectedResolvedVersion && (
               <>
                 <a
@@ -1037,11 +1034,30 @@ export function DocumentDetail({
                 </a>
               </>
             )}
-            <details className="ml-auto rounded-item border border-rule bg-paper-sunken px-3 py-1.5">
+            <button
+              type="button"
+              onClick={() => setShowPanel((v) => !v)}
+              aria-expanded={showPanel}
+              data-testid="document-panel-toggle"
+              className="ml-auto inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
+            >
+              {showPanel ? "Hide panel" : "Panel"}
+            </button>
+            <details className="rounded-item border border-rule bg-paper-sunken px-3 py-1.5">
               <summary className="cursor-pointer text-[13px] text-ink">
                 More actions
               </summary>
               <div className="mt-3 grid min-w-48 gap-2">
+                {primaryDocumentSkill && (
+                  <button
+                    type="button"
+                    onClick={() => openDocumentSkill(primaryDocumentSkill)}
+                    className="inline-flex items-center justify-center rounded-item border border-rule bg-paper px-3 py-2 text-ink hover:border-ink"
+                    data-testid="document-run-primary-skill"
+                  >
+                    Run skill
+                  </button>
+                )}
                 <a
                   href={originalHref}
                   target="_blank"
@@ -1081,7 +1097,11 @@ export function DocumentDetail({
           )}
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
+        <div
+          className={`mt-6 grid gap-6 ${
+            showPanel ? "lg:grid-cols-[minmax(0,1fr)_390px]" : "lg:grid-cols-1"
+          }`}
+        >
           <main
             ref={workbenchRef}
             className="min-w-0"
@@ -1153,12 +1173,15 @@ export function DocumentDetail({
                       </div>
                       <button
                         type="button"
-                        onClick={() =>
-                          notesRef.current?.scrollIntoView?.({
-                            block: "start",
-                            behavior: "smooth",
-                          })
-                        }
+                        onClick={() => {
+                          setShowPanel(true);
+                          requestAnimationFrame(() =>
+                            notesRef.current?.scrollIntoView?.({
+                              block: "start",
+                              behavior: "smooth",
+                            }),
+                          );
+                        }}
                         className="rounded-item border border-rule px-3 py-2 text-xs font-semibold text-muted hover:border-ink hover:text-ink"
                       >
                         Manage notes
@@ -1172,10 +1195,13 @@ export function DocumentDetail({
                           onClick={() => {
                             if (comment.quote_text) jumpToCommentQuote(comment.quote_text);
                             else {
-                              notesRef.current?.scrollIntoView?.({
-                                block: "start",
-                                behavior: "smooth",
-                              });
+                              setShowPanel(true);
+                              requestAnimationFrame(() =>
+                                notesRef.current?.scrollIntoView?.({
+                                  block: "start",
+                                  behavior: "smooth",
+                                }),
+                              );
                             }
                           }}
                           className="rounded-item border border-rule bg-paper-sunken px-3 py-2 text-left text-sm hover:border-ink"
@@ -1465,7 +1491,11 @@ export function DocumentDetail({
             )}
           </main>
 
-          <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <aside
+            className={`space-y-4 lg:sticky lg:top-6 lg:self-start ${
+              showPanel ? "" : "hidden"
+            }`}
+          >
             <section
               className="rounded-card border border-rule bg-paper p-4"
               data-testid="document-next-step"

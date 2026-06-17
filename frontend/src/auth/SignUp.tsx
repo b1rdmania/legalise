@@ -51,10 +51,10 @@ export function SignUp() {
   return (
     <AuthCard
       heading="Sign up"
-      intro="Create a workspace. You'll add an Anthropic or OpenAI key after email verification."
+      intro="Create a workspace. You add your own Anthropic key after you verify your email."
     >
-      <form className="flex flex-col gap-6" onSubmit={submit}>
-        <LedgerField label="Name" hint="optional - shown in audit rows">
+      <form className="flex flex-col gap-4" onSubmit={submit}>
+        <LedgerField label="Name" hint="optional — shown in audit rows">
           <input
             type="text"
             autoComplete="name"
@@ -84,7 +84,7 @@ export function SignUp() {
             className={inputCls}
           />
         </LedgerField>
-        <LedgerField label="I am a" hint="optional - helps us understand who is evaluating">
+        <LedgerField label="I am a" hint="optional — helps us understand who's evaluating">
           <select
             value={persona}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setPersona(e.target.value)}
@@ -102,7 +102,7 @@ export function SignUp() {
           {busy ? "Creating account…" : "Create account"}
         </button>
       </form>
-      <p className="text-sm text-muted mt-6">
+      <p className="text-sm text-muted mt-4">
         Already have an account?{" "}
         <a href="/auth/signin" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
           Sign in

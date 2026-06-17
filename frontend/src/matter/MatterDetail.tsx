@@ -39,12 +39,12 @@ export function MatterDetail({ slug }: { slug: string }) {
   // posture banner reads the current user role.
   const auth = useAuth();
   const route = useRoute();
-  // Bare /matters/:slug lands on Chat — opening a matter feels like
-  // opening a project folder where work happens, with documents and
-  // the record one click away. The previous documents-first default
-  // surfaced the file cabinet before the work, contra blueprint §4A.2.
+  // Bare /matters/:slug lands on Documents — when you open a matter you
+  // expect to see what is in it, and the documents are the point. Chat
+  // and the rest are one click away. Deep links to a specific tab
+  // (/matters/:slug/:tab) still win.
   const initialTab: TabKey =
-    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "assistant";
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "documents";
   const [tab, setTab] = useState<TabKey>(initialTab);
   const initialChatDocumentId =
     typeof window !== "undefined"
@@ -57,12 +57,12 @@ export function MatterDetail({ slug }: { slug: string }) {
   }, [tab, onTabChange]);
 
   // Sync tab from path changes (back/forward). Bare /matters/:slug
-  // lands on Chat.
+  // lands on Documents.
   useEffect(() => {
     if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab);
     } else if (route.name === "detail" && !route.tab) {
-      setTab("assistant");
+      setTab("documents");
     }
   }, [route]);
 

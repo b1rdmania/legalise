@@ -265,11 +265,11 @@ export function ModulesCatalog() {
     <div className="page-shell">
       <PageHeader
         display
-        title="Skills"
-        whisper="Instruments of practice"
+        title="Skill library"
+        whisper="Browse and add skills"
         description={
           authed
-            ? "A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Add one from the catalogue, enable it on a matter, run it from Chat. Every run leaves a signed, auditable record."
+            ? "Browse skills and add them to your workspace. A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Once added, enable it on a matter and run it from Chat. To see the skills you've already added, with their track record, go to Your skills."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -292,7 +292,7 @@ export function ModulesCatalog() {
                   to="/register"
                   className="inline-flex items-center px-2 py-2 text-sm text-muted hover:text-seal"
                 >
-                  View the register →
+                  Your skills →
                 </Link>
               </>
             ) : (
@@ -306,6 +306,60 @@ export function ModulesCatalog() {
           </div>
         }
       />
+
+      {/* Intro band — the plain-English value proposition, set as a
+          register leaf: headline, two short lines, then the three steps
+          every skill goes through here. Composed from existing tokens
+          (ink / paper / rule / muted / seal) — no new colours or media. */}
+      <section
+        className="mb-12 border border-ink/70 bg-paper p-6 sm:p-8"
+        data-testid="skills-intro"
+      >
+        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+          Skills, kept on the record
+        </p>
+        <h2 className="mt-3 max-w-2xl text-[30px] leading-tight tracking-tight2 text-ink sm:text-[34px]">
+          Skills are powerful. Run loose, they make a mess.
+        </h2>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-prose">
+          Legalise adds a skill, scans it for safety, and puts every run
+          behind an audit step and a human sign-off.
+        </p>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-prose">
+          You control the model. It does not control you.
+        </p>
+
+        <div className="mt-6 grid gap-px border border-rule bg-rule sm:grid-cols-3">
+          <IntroStep
+            step="01"
+            title="Install"
+            body="Add a skill from the catalogue into your workspace."
+          />
+          <IntroStep
+            step="02"
+            title="Scan"
+            body="We check its signature and what it is allowed to touch."
+          />
+          <IntroStep
+            step="03"
+            title="Sign off"
+            body="Every run is audited, then signed off by a person."
+          />
+        </div>
+
+        <p className="mt-6 text-sm text-muted">
+          Looking for more?{" "}
+          <a
+            href="https://lawve.ai"
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            data-testid="lawve-link"
+          >
+            Browse community skills on Lawve →
+          </a>
+        </p>
+      </section>
 
       {!authed && (
         <section className="mb-10 grid gap-px border border-rule bg-rule sm:grid-cols-3">
@@ -380,7 +434,7 @@ export function ModulesCatalog() {
       {authed && (
       <section>
         <SectionRule
-          label="Schedule A — workspace skills"
+          label="Workspace skills"
           right={modules ? String(modules.length) : undefined}
         />
         <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
@@ -481,7 +535,7 @@ export function ModulesCatalog() {
                       </h3>
                       <p className="mt-1 text-xs text-muted">
                         {manifestStr(m, "publisher")
-                          ? `${manifestStr(m, "publisher")} (chambers) · `
+                          ? `${manifestStr(m, "publisher")} · `
                           : ""}
                         <span className="tech-token">{m.module_id}</span>
                       </p>
@@ -514,7 +568,7 @@ export function ModulesCatalog() {
           importing still requires a workspace). */}
       <section className="mt-12" data-testid="lawve-catalogue">
           <SectionRule
-            label="Schedule B — the open catalogue"
+            label="The open catalogue"
             right={
               authed ? (
                 <Link
@@ -658,10 +712,31 @@ export function ModulesCatalog() {
             </>
           )}
           <Colophon>
-            Skills hold no standing until admitted — review, signature,
-            permissions, gates, then the register.
+            Adding a skill takes a few steps: review it, check its
+            signature, grant its permissions. After that it shows up in
+            Your skills.
           </Colophon>
       </section>
+    </div>
+  );
+}
+
+function IntroStep({
+  step,
+  title,
+  body,
+}: {
+  step: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="bg-paper p-4">
+      <div className="flex items-baseline gap-2">
+        <span className="tech-token text-[11px] text-muted">{step}</span>
+        <h3 className="text-sm font-semibold text-ink">{title}</h3>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-prose">{body}</p>
     </div>
   );
 }

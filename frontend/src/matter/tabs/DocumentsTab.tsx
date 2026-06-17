@@ -144,6 +144,12 @@ export function DocumentsTab({
 
   return (
     <div className="max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Documents</h1>
+        <p className="mt-1 text-sm text-muted">
+          Every document in this matter. Add one below, then click a file to open it.
+        </p>
+      </div>
       <details className="mb-8 rounded-card border border-rule bg-paper" open={!docs || docs.length === 0}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
           Add documents
@@ -204,11 +210,11 @@ export function DocumentsTab({
                 </span>
               </label>
               <div className="border-t border-rule pt-3 text-sm text-muted" data-testid="document-ingress-status">
-                {ingress.kind === "idle" && "Ready for matter documents."}
+                {ingress.kind === "idle" && "Accepts PDF, DOCX, and TXT."}
                 {ingress.kind === "uploading" &&
                   `Uploading ${ingress.done + 1}/${ingress.total}: ${ingress.current}`}
                 {ingress.kind === "done" &&
-                  `${ingress.count} document${ingress.count === 1 ? "" : "s"} uploaded and queued for use.`}
+                  `${ingress.count} document${ingress.count === 1 ? "" : "s"} added.`}
                 {ingress.kind === "error" && ingress.message}
               </div>
             </div>
@@ -221,14 +227,14 @@ export function DocumentsTab({
       {!docs && <LoadingLine label="loading documents" />}
       {docs && docs.length === 0 && (
         <EmptyState
-          title="No documents registered yet"
-          body="Upload a document above to populate the matter."
+          title="No documents yet"
+          body="Add your first document above. Drop a file or click to browse."
         />
       )}
       {docs && docs.length > 0 && (
         <div>
           <SectionRule
-            label="Documents"
+            label="In this matter"
             right={`${docs.length} file${docs.length === 1 ? "" : "s"} · ${formatBytes(totalBytes)}`}
           />
           <div

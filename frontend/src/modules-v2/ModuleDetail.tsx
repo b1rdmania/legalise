@@ -40,7 +40,6 @@ import { useAuth } from "../auth/AuthProvider";
 import {
   CertCard,
   CertEyebrow,
-  InkBands,
   LedgerRow,
   SectionRule,
 } from "../ui/certificate";
@@ -294,12 +293,12 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
             {name}
           </h1>
           <p className="mt-1 text-xs text-muted">
-            {publisher ? `${publisher} (chambers) · ` : ""}
+            {publisher ? `${publisher} · ` : ""}
             <span className="tech-token">{entry.module_id}</span>
           </p>
           <div className="mt-4 space-y-2">
-            <InkBands label="Reads" values={reads} />
-            <InkBands label="Writes" values={writes} />
+            <CapText label="Reads" values={reads} />
+            <CapText label="Writes" values={writes} />
           </div>
           <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
             <LedgerRow label="Permission sets">
@@ -511,6 +510,26 @@ function CapabilityCard({ cap }: { cap: CapabilityRow }) {
         )}
       </dl>
     </li>
+  );
+}
+
+// Plain-text reads/writes for the certificate. The shared InkBands
+// renders these as solid bars, which read as redacted — on this page
+// we show the real values as words.
+function CapText({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div className="flex items-baseline gap-3">
+      <span className="w-12 shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
+        {label}
+      </span>
+      {values.length === 0 ? (
+        <span className="text-[11px] text-muted">nothing</span>
+      ) : (
+        <span className="min-w-0 flex-1 text-[11px] text-ink">
+          {values.map((v) => v.replaceAll("_", " ")).join(" · ")}
+        </span>
+      )}
+    </div>
   );
 }
 

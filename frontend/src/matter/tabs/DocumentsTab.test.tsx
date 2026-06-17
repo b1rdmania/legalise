@@ -113,7 +113,7 @@ describe("DocumentsTab — document ingress", () => {
     expect(onUpload).toHaveBeenNthCalledWith(1, expect.any(File), undefined, undefined);
     expect(onUpload).toHaveBeenNthCalledWith(2, expect.any(File), undefined, undefined);
     expect(screen.getByTestId("document-ingress-status")).toHaveTextContent(
-      "2 documents uploaded",
+      "2 documents added.",
     );
   });
 
