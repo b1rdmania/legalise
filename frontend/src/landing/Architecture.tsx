@@ -1278,6 +1278,38 @@ export function Architecture() {
           />
         </Section>
 
+        {/* Plain-words recap of the security primitives, for the reader
+            who wants the gist before the spec. */}
+        <section id="plain" className="mt-16 scroll-mt-8">
+          <SectionRule label={<span className="text-seal">In plain words</span>} />
+          <ul className="mt-6 max-w-3xl space-y-3 text-base leading-relaxed text-prose">
+            <li>
+              <span className="font-semibold text-ink">Your model key is locked away.</span>{" "}
+              It is scrambled (AES-256) before it is stored, and unlocked only
+              for the moment it makes a call. The server will not start without
+              the secret that unlocks it.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">The log cannot be edited in secret.</span>{" "}
+              Each entry carries a fingerprint of the one before it, so changing
+              any past line breaks every fingerprint after it. Anyone can
+              re-check the whole chain from one link.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">The database refuses to change or delete those log lines.</span>
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Skills can be signed.</span>{" "}
+              A real signature is marked verified. One without a registered key
+              can only ever be structure-checked, never verified.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">A sign-off is tied to the exact document it approved.</span>{" "}
+              Swap the document afterwards and the signature stops matching.
+            </li>
+          </ul>
+        </section>
+
         {/* Deeper reading (A1): the page is the readable index; each
             section maps to its canonical doc(s) in the repo. */}
         <section id="docs" className="mt-16 scroll-mt-8">

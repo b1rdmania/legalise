@@ -74,11 +74,10 @@ test("golden loop: signup → Khan chat → deterministic summary + sources → 
   await expectMatterAuditRow(request, KHAN_SLUG, "auth.user.demo_seeded");
 
   // ---------------------------------------------------------------
-  // 2. Bare /matters/:slug lands on Chat — the default surface.
-  //    Assert the chat workspace + composer render without any tab
-  //    segment in the URL.
+  // 2. Bare /matters/:slug now lands on Documents (the most important
+  //    view). The golden loop runs in Chat, so navigate there.
   // ---------------------------------------------------------------
-  await page.goto(`/matters/${KHAN_SLUG}`);
+  await page.goto(`/matters/${KHAN_SLUG}/assistant`);
   await expect(page.getByTestId("chat-led-workspace")).toBeVisible({
     timeout: 15_000,
   });
@@ -86,7 +85,6 @@ test("golden loop: signup → Khan chat → deterministic summary + sources → 
   await expect(
     page.getByRole("heading", { name: "Khan v Acme Trading Ltd" }),
   ).toBeVisible();
-  expect(new URL(page.url()).pathname).toBe(`/matters/${KHAN_SLUG}`);
 
   // ---------------------------------------------------------------
   // 3. Deterministic summary prompt. The user has no provider key and
