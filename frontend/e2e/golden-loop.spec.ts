@@ -143,9 +143,8 @@ test("golden loop: signup → Khan chat → deterministic summary + sources → 
       "letter cites the social-media policy.",
   });
 
-  // Chat is the default surface here too; run the granted demo skill
-  // from the chat Skills popover.
-  await page.goto(`/matters/${signMatter.slug}`);
+  // Run the granted demo skill from the chat Skills popover.
+  await page.goto(`/matters/${signMatter.slug}/assistant`);
   await expect(page.getByTestId("chat-led-workspace")).toBeVisible({
     timeout: 15_000,
   });
