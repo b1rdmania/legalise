@@ -85,10 +85,10 @@ export function DemoSignedOutput() {
           Supervise work product in a real firm? Tell me where this breaks,
           twenty minutes:{" "}
           <a
-            href="mailto:andy@legalise.dev"
+            href="mailto:andrew@legalise.dev"
             className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
-            andy@legalise.dev
+            andrew@legalise.dev
           </a>
         </p>
       </footer>

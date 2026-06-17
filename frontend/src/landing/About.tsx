@@ -71,8 +71,8 @@ export function About() {
               LinkedIn
             </a>
             {" · "}
-            <a href="mailto:andy@legalise.dev" className={linkClass}>
-              andy@legalise.dev
+            <a href="mailto:andrew@legalise.dev" className={linkClass}>
+              andrew@legalise.dev
             </a>
             {" · "}
             <a href={GITHUB_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
