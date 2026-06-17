@@ -7,7 +7,7 @@
  */
 
 import { Footer } from "../ui/Footer";
-import { Colophon, SectionRule } from "../ui/certificate";
+import { Colophon } from "../ui/certificate";
 
 const GITHUB_PROFILE = "https://github.com/b1rdmania";
 const LINKEDIN = "https://www.linkedin.com/in/andrew-bird-nomos/";
@@ -27,42 +27,54 @@ export function About() {
           </h1>
 
           <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
-            <p>I&apos;m Andrew.</p>
             <p>
-              A few months building in legal AI. Outside it, I&apos;ve been
-              through the FCA and Bank of England sandbox process as an
-              applicant, so I&apos;ve seen what a regulator actually wants from a
-              technical build.
+              I&apos;m Andrew. Not a lawyer. Not a law firm founder. I come at
+              this from the outside.
             </p>
             <p>
-              I&apos;m not a lawyer. I&apos;m not a law firm founder. I come at
-              this as an outsider.
+              The credential that matters here: I&apos;ve been through the FCA
+              and Bank of England sandbox as an applicant. I&apos;ve seen up
+              close what a regulator wants from a technical build before they
+              sign it off.
             </p>
             <p>
-              So I don&apos;t look at legal AI through &ldquo;what can AI
-              do&rdquo;. In my other work, the answer to that is everything.
+              That&apos;s my lens. Not &ldquo;what can AI do&rdquo;. In my other
+              work the answer to that is everything. The question I care about is
+              what a regulator or an insurer needs to see before a firm puts AI
+              at the centre of how it works.
             </p>
             <p>
-              I look at what a regulator or an insurer needs to see before a law
-              firm makes AI central to how it works.
+              So I built Legalise. I kept watching AI get legal work wrong.
+              Confidently, and with no trail of how it got there. Legalise keeps
+              the trail. Every output is supervised, signed, and on a record you
+              could hand a regulator. Open source, Apache 2.0, unfinished, and
+              open to anyone who wants to contribute.
             </p>
             <p>
-              I&apos;m also resolutely unimpressed by a lot of the legal AI
-              incumbents. Closed models, aggressive per-head pricing.
-            </p>
-            <p>
-              The open-source momentum building across a few projects right now
-              raises the bar for everyone.
-            </p>
-            <p>
-              The new UK SRA sandbox interests me. Pilot programmes, or someone
-              who wants to build a regulated, AI-augmented law firm. My DMs are
-              open.
+              I&apos;m unimpressed by most of the legal AI incumbents. Closed
+              models, aggressive per-head pricing. The open source work building
+              across a few projects right now raises the bar, and I want
+              Legalise in that fight.
             </p>
           </div>
 
-          {/* Links — one line directly under the intro. */}
-          <p className="mt-6 text-sm text-muted">
+          <div className="mt-10 max-w-xl">
+            <p className="text-[11px] uppercase tracking-[0.3em] text-seal">
+              Up for meeting
+            </p>
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-base leading-relaxed text-prose marker:text-seal">
+              <li>legal tech nerds bored in slow-moving internal roles</li>
+              <li>UK solicitors curious what an SRA sandbox pilot could look like</li>
+              <li>people thinking about AI and access to law</li>
+              <li>anyone building coherently in open source</li>
+            </ul>
+            <p className="mt-5 text-base leading-relaxed text-prose">
+              Or just tell me where this breaks. DMs open.
+            </p>
+          </div>
+
+          {/* Links — one line at the close. */}
+          <p className="mt-8 text-sm text-muted">
             <a href={X_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
               X
             </a>
@@ -80,21 +92,6 @@ export function About() {
             </a>
           </p>
         </header>
-
-        <div className="mt-16 max-w-xl">
-          <SectionRule label="Why I built it" />
-          <div className="mt-6 space-y-5 text-base leading-relaxed text-prose">
-            <p>
-              It&apos;s an open experiment in audit trails and modular workflows
-              for a legal platform. It is not a finished product. It&apos;s open
-              under Apache 2.0, and anyone can contribute.
-            </p>
-            <p>
-              I&apos;m open to criticism and collaboration. If you find it
-              useful, or you can break it, get in touch.
-            </p>
-          </div>
-        </div>
 
         <Colophon>Not a law firm. Not legal advice. One builder, in the open.</Colophon>
 
