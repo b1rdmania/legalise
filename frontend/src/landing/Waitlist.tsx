@@ -22,10 +22,10 @@ export function Waitlist() {
         </p>
         <div className="flex flex-wrap items-center gap-4">
           <a
-            href="/auth/signup"
-            className="bg-ink text-paper px-4 py-2 hover:bg-black transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            href="/guided-demo"
+            className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
           >
-            Create account
+            Walk the demo
           </a>
           <a
             href="https://github.com/b1rdmania/legalise"
@@ -35,8 +35,8 @@ export function Waitlist() {
           >
             Fork on GitHub
           </a>
-          <a href="/demo" className="text-sm text-muted hover:text-ink transition-colors">
-            Browse the demo
+          <a href="/auth/signup" className="text-sm text-muted hover:text-ink transition-colors">
+            Create an account
           </a>
         </div>
       </div>

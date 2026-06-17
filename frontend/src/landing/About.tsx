@@ -54,58 +54,64 @@ export function About() {
           <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-muted">
             Builder of Legalise
           </p>
-          <p className="mt-8 max-w-xl text-sm leading-relaxed text-prose">
-            If a card with legalise.dev on it brought you here, this is the
-            person behind it, and this page is the fastest way to understand
-            what you were handed.
+          <p className="mt-8 max-w-xl text-base leading-relaxed text-prose">
+            I&apos;m Andy. I&apos;m not a lawyer. I&apos;m not selling you
+            anything. I kept watching AI get legal work wrong, with full
+            confidence and no trail of how. So I built the thing that keeps the
+            trail. It&apos;s an open experiment. If you find it useful, or you can
+            break it, my DMs are open.
           </p>
         </header>
 
         <div className="mt-16 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div>
-            <SectionRule label="The short version" />
+            <SectionRule label="Why I built it" />
             <div className="mt-6 space-y-5 text-base leading-relaxed text-prose">
               <p>
-                I build software in London. Legalise is the current build: an
-                open-source workspace for AI legal work in England &amp; Wales,
-                designed so that every output knows its sources, its
-                permissions, and who stood behind it.
+                The question I&apos;m chasing is simple. What would AI look like
+                if it sat at the base of a law firm the SRA regulates, or a
+                sandbox version of one, built so regulators and insurers were
+                happy to sign off? And under that: where is AI good, where is it
+                bad, where does a human have to stay in the loop, and who carries
+                the blame when a decision goes wrong?
               </p>
               <p>
-                The position is simple. The models already do the work, and
-                they are available to everyone. What a regulated firm actually
-                lacks is the apparatus around the work: admission, supervision,
-                refusal, sign-off, record. That apparatus is what I am
-                building, in the open, under Apache 2.0.
+                What I built grew bigger than I planned. Every question I opened
+                led to another. It is not a finished product. It&apos;s an open
+                experiment under Apache 2.0, and anyone can contribute.
               </p>
               <p>
-                Right now I want one thing: conversations with practising
-                solicitors. If you supervise work product in a real firm,
-                give me twenty minutes and tell me where this breaks:{" "}
+                I&apos;m not a legal expert and I&apos;m not after a retainer.
+                What I know is where AI breaks and where it can help. The thing
+                worth trying: small pilots, built to pass regulatory approval.
+              </p>
+            </div>
+
+            <div className="mt-12">
+              <SectionRule label="Reach me" />
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-prose">
+                If you check legal work in a real firm, give me twenty minutes
+                and tell me where this breaks:{" "}
                 <a
                   href="mailto:andy@legalise.dev"
                   className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   andy@legalise.dev
                 </a>
-                .
+                . Or see it run first.
               </p>
-            </div>
-
-            <div className="mt-12">
-              <SectionRule label="Start here" />
               <div className="mt-6 flex flex-wrap gap-4">
                 <a
-                  href="/demo"
+                  href="mailto:andy@legalise.dev"
                   className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
                 >
-                  Open the demo
+                  Email Andy
                 </a>
                 <a
-                  href="/architecture"
+                  href="/guided-demo"
                   className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
                 >
-                  Read the architecture
+                  See the demo
                 </a>
               </div>
             </div>

@@ -5,8 +5,6 @@ import { useAuth } from "../auth/AuthProvider";
 import { ProfileChip } from "./ProfileChip";
 import { MATTER_TAB_LABELS, type TabKey } from "../matter/tabs/types";
 
-const DEMO_HREF_UNAUTHED = "/demo";
-
 export function TopBar({
   route,
   navOpen,
@@ -24,7 +22,6 @@ export function TopBar({
   const isDetail = route.name === "detail";
   const isModules = route.name === "modules";
   const isList = route.name === "list";
-  const isDemo = route.name === "demo";
   // Admin nav anchor. Only superusers see it; the substrate
   // enforces independently. Active state covers the admin user
   // surfaces.
@@ -128,9 +125,10 @@ export function TopBar({
                 />
               </>
             ) : (
-              // P28: the anonymous surface offers exactly four links —
-              // Architecture · Demo · About · GitHub (logo). Sign-in
-              // survives as one muted text link.
+              // The anonymous surface offers three nav links —
+              // Architecture · About · GitHub (logo) — plus one muted
+              // sign-in text link. The demo is reached via the homepage
+              // CTA, not the nav bar.
               <>
                 <a
                   href="/architecture"
@@ -142,15 +140,6 @@ export function TopBar({
                   }
                 >
                   Architecture
-                </a>
-                <a
-                  href={DEMO_HREF_UNAUTHED}
-                  className={
-                    "transition-colors " +
-                    (isDemo ? "text-ink font-semibold" : "text-ink hover:opacity-70")
-                  }
-                >
-                  Demo
                 </a>
                 <a
                   href="/about"

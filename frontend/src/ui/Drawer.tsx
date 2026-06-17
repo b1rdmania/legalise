@@ -4,7 +4,6 @@ import { useAuth } from "../auth/AuthProvider";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
 import { postureLabel } from "../lib/posture";
 
-const DEMO_HREF_UNAUTHED = "/demo";
 const GITHUB_REPO = "https://github.com/b1rdmania/legalise";
 
 type HealthResponse = { status: string; version: string; database: string; environment: string };
@@ -89,10 +88,11 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // P28 unauth marketing nav — the four doors, then a muted sign-in.
+    // Unauth marketing nav — Architecture · About · GitHub, then a
+    // muted sign-in. The demo is reached via the homepage CTA, not the
+    // nav.
     primary = [
       { href: "/architecture", label: "Architecture" },
-      { href: DEMO_HREF_UNAUTHED, label: "Demo" },
       { href: "/about", label: "About" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];

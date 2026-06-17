@@ -57,7 +57,7 @@ export function MatterList() {
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-5">
             <a
-              href="/demo"
+              href="/guided-demo"
               className="text-sm text-ink underline underline-offset-4 decoration-rule transition-colors hover:decoration-seal hover:text-seal"
             >
               Walk the demo

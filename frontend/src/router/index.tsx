@@ -217,10 +217,16 @@ const legacyModulesRedirect = createRoute({
   component: () => null,
 });
 
+// Bare /demo is no longer the on-ramp — /guided-demo is the canonical,
+// keyless demo. Old links and bookmarks redirect there. The deeper
+// /demo/$tab and /demo/documents/$documentId workspace routes stay live.
 const demoIndexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/demo",
-  component: DemoMatterPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/guided-demo" });
+  },
+  component: () => null,
 });
 
 const demoTabRoute = createRoute({
