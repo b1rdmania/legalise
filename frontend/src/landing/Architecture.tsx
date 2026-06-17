@@ -636,33 +636,6 @@ function Section({
 
 /** The skim layer: the system in five lines, plus a jump index of the
  * sections. A technical reader skims this once, then deep-reads. */
-const FIVE_LINES = [
-  "Identity: per-user matters, real session revocation, an audit row per action.",
-  "Gateway: one exit point; your keys, encrypted, decrypted only at call time.",
-  "Gate: the matter's privilege setting, read from the database before every call.",
-  "Admission: skills arrive by ceremony at a fixed commit, not by upload.",
-  "Record: every call, output, and refusal hash-chained and exportable.",
-];
-
-const JUMP_INDEX: { num: string; title: string; href: string }[] = [
-  { num: "01", title: "What this is", href: "#what" },
-  { num: "02", title: "Why", href: "#why" },
-  { num: "03", title: "How it is built", href: "#built" },
-  { num: "04", title: "Identity and access", href: "#identity" },
-  { num: "05", title: "The inference gateway", href: "#gateway" },
-  { num: "06", title: "The privilege gate", href: "#gate" },
-  { num: "07", title: "Anonymisation", href: "#anon" },
-  { num: "08", title: "Admission", href: "#admission" },
-  { num: "09", title: "The refusal", href: "#refusal" },
-  { num: "10", title: "The record", href: "#record" },
-  { num: "11", title: "Sign-off", href: "#signoff" },
-  { num: "12", title: "Sovereignty", href: "#sovereignty" },
-  { num: "13", title: "Standing", href: "#standing" },
-  { num: "—", title: "Deeper reading", href: "#docs" },
-  { num: "—", title: "Status", href: "#status" },
-  { num: "—", title: "Honesty", href: "#honesty" },
-];
-
 function StatusTag({ status }: { status: "shipped" | "deferred" | "accepted" }) {
   const isShipped = status === "shipped";
   return (
@@ -696,9 +669,7 @@ export function Architecture() {
             <p>
               The system, in one line: AI that runs inside a matter file,
               under supervision. Identity, an inference gateway, a privilege
-              gate, a record nothing escapes. The sections below walk each
-              part and link its source. The gaps sit under Honesty, not at
-              the bottom by accident.
+              gate, and a record of what it did.
             </p>
             <p>
               Why it exists is on the{" "}
@@ -712,36 +683,6 @@ export function Architecture() {
             </p>
           </div>
         </header>
-
-        {/* Skim layer (A2): the system in five lines + a jump index, so a
-            technical reader can read top-down once and then deep-read. */}
-        <section className="mt-12">
-          <SectionRule label={<span className="text-seal">The system in five lines</span>} />
-          <ol className="mt-6 max-w-3xl space-y-2">
-            {FIVE_LINES.map((line) => (
-              <li key={line} className="flex gap-3 text-sm leading-relaxed text-prose">
-                <span className="text-seal" aria-hidden="true">·</span>
-                <span>{line}</span>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-8 max-w-3xl border-t border-rule/50 pt-4">
-            <span className="tech-token text-[10px] uppercase tracking-[0.2em] text-muted">
-              Sections:
-            </span>
-            <nav className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-              {JUMP_INDEX.map((s) => (
-                <a
-                  key={s.title}
-                  href={s.href}
-                  className="tech-token text-[11px] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-                >
-                  <span className="text-seal">{s.num}</span> {s.title}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </section>
 
         {/* Exhibit: the cost of unsupervised capability, already in the
             law reports. Early by design — this is why the page exists. */}
@@ -854,11 +795,6 @@ export function Architecture() {
               import, from the Lawve catalogue or any public GitHub
               repository, read at a fixed commit and admitted through a
               ceremony.
-            </p>
-            <p>
-              The rest of the page walks through each step and links the file
-              that implements it. If a claim here is wrong, the code is one
-              click away.
             </p>
           </Prose>
           <SourceRow
