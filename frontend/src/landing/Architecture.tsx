@@ -651,11 +651,11 @@ function Section({
 /** The skim layer: the system in five lines, plus a jump index of the
  * sections. A technical reader skims this once, then deep-reads. */
 const FIVE_LINES = [
-  "Identity — per-user matters, real session revocation, an audit row per action.",
-  "Gateway — one egress; your keys, encrypted, decrypted only at call time.",
-  "Gate — the matter's privilege posture, read from the DB before every call.",
-  "Admission — skills arrive by ceremony at a pinned commit, not by upload.",
-  "Record — every call, output, and refusal hash-chained and exportable.",
+  "Identity: per-user matters, real session revocation, an audit row per action.",
+  "Gateway: one exit point; your keys, encrypted, decrypted only at call time.",
+  "Gate: the matter's privilege setting, read from the database before every call.",
+  "Admission: skills arrive by ceremony at a fixed commit, not by upload.",
+  "Record: every call, output, and refusal hash-chained and exportable.",
 ];
 
 const JUMP_INDEX: { num: string; title: string; href: string }[] = [
@@ -699,34 +699,30 @@ export function Architecture() {
             lives on /about). */}
         <header>
           <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
-            Standing
+            Architecture
           </h1>
-          <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-seal">
-            over capability
-          </p>
-          <div className="mt-6">
-            <Stamp>Open experiment</Stamp>
-          </div>
           <div className="mt-6 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
             <p>
-              This page is for the technical reader — the firm's IT,
-              security, or infrastructure person, or a builder evaluating the
-              design. It describes the system as it is actually built:
-              identity, the inference gateway, the privilege gate, the
-              record. Every claim here is grounded in the code. Where the
-              page names a file, it links straight to it on GitHub, so you
-              can check the claim instead of trusting it. The open gaps are
-              listed at the end, not buried.
+              Every claim on this page is backed by code you can read. Where
+              it names a file, the file is one click away. Check it; don't
+              trust it.
             </p>
             <p>
-              The personal account of why this exists lives on{" "}
+              The system, in one line: AI that runs inside a matter file,
+              under supervision. Identity, an inference gateway, a privilege
+              gate, a record nothing escapes. The sections below walk each
+              part and link its source. The gaps sit under Honesty, not at
+              the bottom by accident.
+            </p>
+            <p>
+              Why it exists is on the{" "}
               <a
                 href="/about"
                 className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
-                the about page
+                about page
               </a>
-              . What follows is the machine.
+              . This is how it's built.
             </p>
           </div>
         </header>
@@ -773,8 +769,8 @@ export function Architecture() {
           />
           <Prose>
             <p>
-              None of this is hypothetical. Damien Charlotin's database of
-              AI hallucination cases has identified{" "}
+              This already happens. Damien Charlotin's database of AI
+              hallucination cases has found{" "}
               <a
                 href="https://www.damiencharlotin.com/hallucinations/"
                 target="_blank"
@@ -783,11 +779,10 @@ export function Architecture() {
               >
                 more than 1,500 legal decisions
               </a>{" "}
-              where generative AI put hallucinated content, typically fake
-              citations, in front of a court. Lawyers are being sanctioned
-              for unsupervised capability now, in public, with their names
-              on the orders. Supervision is not a compliance garnish. It is
-              the product.
+              where generative AI put made-up content, usually fake case
+              citations, in front of a court. Lawyers are being punished for
+              this now, in public, with their names on the orders.
+              Supervision is not a nice extra. It is the product.
             </p>
           </Prose>
           <Figure
@@ -802,16 +797,17 @@ export function Architecture() {
           <Prose>
             <p>
               Legalise is an open-source workspace for legal AI work in
-              England and Wales. A solicitor opens a matter, uploads its
-              documents, and works in chat. The model answers with its
-              sources attached, and it can run skills: small, vetted units
-              of legal work. A letter before claim. A disclosure list. A
-              summary of a witness statement.
+              England and Wales. A "matter" is one legal case or file. A
+              solicitor opens a matter, uploads its documents, and works in
+              chat. The model answers with its sources attached, and it can
+              run skills, which are small, vetted units of legal work. A
+              letter before claim. A disclosure list. A summary of a witness
+              statement.
             </p>
             <p>
-              Every output is a draft until a named person reviews it,
-              amends it with tracked changes, and signs it. Everything the
-              system does, including what it refuses to do, lands on one
+              Every output is a draft until a named person reviews it, edits
+              it with tracked changes, and signs it. Everything the system
+              does, including what it refuses to do, is written to one
               tamper-evident record. That is the whole product: chat,
               governed skills, sign-off, and the record.
             </p>
@@ -823,22 +819,24 @@ export function Architecture() {
             <p>
               The hard question in legal AI is not whether the model can do
               the work. It is whether a firm can show, later and on demand,
-              what the AI saw, under whose supervision it acted, and who
-              took responsibility for the output. Regulators and PI
-              insurers think in those terms. In the US,{" "}
+              what the AI saw, under whose supervision it acted, and who took
+              responsibility for the output. Regulators and professional
+              indemnity insurers think in those terms. In the US,{" "}
               <em>United States v. Heppner</em> held that AI work a client
-              generated on their own — outside their lawyer's direction —
-              was not privileged. England has not ruled directly, but the
-              principle is the same: unsupervised AI use is where privilege
-              and responsibility break down. That answer has to be
-              structural. It cannot be reconstructed from a chat history.
+              generated on their own, outside their lawyer's direction, was
+              not privileged. (Privilege is the legal protection that keeps
+              certain lawyer-client work confidential.) England has not ruled
+              directly, but the principle is the same: unsupervised AI use is
+              where privilege and responsibility break down. The answer has
+              to be built into the system. You cannot reconstruct it from a
+              chat history afterwards.
             </p>
             <p>
               The matter is the unit that makes proof possible. Documents,
               model calls, outputs, signatures, and the record all hang off
               one matter, owned by one user, governed by one privilege
-              posture, written into one audit log. Outside that frame the
-              legal use case stops being legal. It is a generic question
+              setting, written into one audit log. Outside that frame the
+              legal use case stops being legal. It becomes a generic question
               that happens to mention the law.
             </p>
           </Prose>
@@ -847,39 +845,40 @@ export function Architecture() {
         <Section id="built" label="03 · How it is built" title="Boring stack, ambitious composition.">
           <Prose>
             <p>
-              Python, FastAPI, and Postgres behind. React in front. Nothing
-              on that list will surprise anyone in 2030, which is the
-              point: the novelty is the composition, and the parts that
-              matter survive any provider rotation.
+              Python, FastAPI, and Postgres on the back end. React on the
+              front end. Nothing on that list will surprise anyone in 2030,
+              which is the point. The new part is how the pieces fit
+              together, and the pieces that matter survive swapping out any
+              model provider.
             </p>
           </Prose>
           <SpineDiagram />
           <Prose>
             <p>
-              The spine above is the shape. The diagram below is the
-              detail: the same path drawn as the nodes a request passes
-              through, with the check each node runs written beside it. Read
-              it top to bottom. A request only reaches the next node if the
-              current one lets it.
+              The spine above is the shape. The diagram below shows the
+              detail: the same path drawn as the steps a request passes
+              through, with the check each step runs written beside it. Read
+              it top to bottom. A request only reaches the next step if the
+              current one lets it through.
             </p>
           </Prose>
           <RequestPathDiagram />
           <Prose>
             <p>
-              Documents belong to a matter. The gate reads the matter's
-              privilege posture from the database before any model is
-              called, and a paused matter stops the request there. The model
+              Documents belong to a matter. Before any model is called, the
+              gate reads that matter's privilege setting from the database,
+              and a paused matter stops the request right there. The model
               runs on your own keys. The output is a draft until a person
-              signs it. Every node writes to the same hash-chained,
-              exportable record, refusals included. Skills arrive only by
-              import: from the Lawve catalogue or any public GitHub
-              repository, read at a pinned commit and admitted through a
+              signs it. Every step writes to the same hash-chained,
+              exportable record, refusals included. Skills only arrive by
+              import, from the Lawve catalogue or any public GitHub
+              repository, read at a fixed commit and admitted through a
               ceremony.
             </p>
             <p>
-              The rest of the page walks each node and links the file that
-              implements it. If a claim here is wrong, the code is one click
-              away.
+              The rest of the page walks through each step and links the file
+              that implements it. If a claim here is wrong, the code is one
+              click away.
             </p>
           </Prose>
           <SourceRow
@@ -912,35 +911,37 @@ export function Architecture() {
         <Section id="identity" label="04 · Identity and access" title="Per-user matters, real session revocation, an audit row per action.">
           <Prose>
             <p>
-              Authentication is fastapi-users with cookie sessions
-              (HttpOnly, Secure, SameSite=Lax) backed by a server-side{" "}
-              <code className="tech-token">access_token</code> table, so
-              sign-out is a real server-side revocation, not just a cleared
-              cookie. Passwords hash under the library's Argon2/bcrypt
-              scheme. Email verification runs through Resend; password reset
-              is a one-time, short-lived token. The unauthenticated surface
-              is per-IP rate limited at the application layer — five
-              registrations and ten verification or reset requests per IP per
-              hour, counted from a sliding window recomputed from Postgres so
-              the limit holds across instances. The first rejection in a
-              window writes an <code className="tech-token">auth.rate_limited</code>{" "}
-              row.
+              Login uses fastapi-users with cookie sessions (HttpOnly,
+              Secure, SameSite=Lax) backed by a server-side{" "}
+              <code className="tech-token">access_token</code> table. So
+              signing out actually revokes the session on the server, not
+              just clears a cookie in the browser. Passwords are hashed with
+              the library's Argon2/bcrypt scheme. Email verification runs
+              through Resend, and a password reset uses a one-time token that
+              expires quickly. Requests from people who are not logged in are
+              rate limited by IP address: five registrations and ten
+              verification or reset requests per IP per hour. The count comes
+              from a sliding window recomputed from Postgres, so the limit
+              holds even when the app runs on several machines at once. The
+              first rejection in a window writes an{" "}
+              <code className="tech-token">auth.rate_limited</code> row.
             </p>
             <p>
-              Matters are scoped per user, not globally. A matter slug is
-              unique per <code className="tech-token">(slug, created_by_id)</code>,
-              so two users can each hold a matter at the same slug without
-              collision. A cross-user read returns 404, not 403, so user A
-              cannot even learn that user B holds a matter at a given slug.
-              Access decisions, mutations, and model calls each land as their
-              own audit row.
+              Matters belong to one user, not to everyone. A matter's short
+              name is unique per{" "}
+              <code className="tech-token">(slug, created_by_id)</code>, so
+              two users can each have a matter with the same name without
+              clashing. Reading another user's matter returns 404, not 403,
+              so user A cannot even learn that user B has a matter with a
+              given name. Access decisions, changes, and model calls each
+              write their own audit row.
             </p>
             <p>
-              Be precise about the limits: this is the sole-practitioner and
-              small-firm case. There is no organisation or team object, no
-              SSO, no MFA, and one deployment is one workspace. Those are v0.2
-              and enterprise milestones, not shipped. The honesty section
-              repeats this; it is a v0.2 item and the page says so.
+              Be clear about the limits. This is built for the sole
+              practitioner and the small firm. There is no organisation or
+              team object, no single sign-on, no two-factor login, and one
+              deployment is one workspace. Those are planned for v0.2 and
+              later, not shipped.
             </p>
           </Prose>
           <div className="mt-6">
@@ -958,47 +959,48 @@ export function Architecture() {
         <Section id="gateway" label="05 · The inference gateway" title="One egress boundary. Your keys, encrypted, decrypted only at call time.">
           <Prose>
             <p>
-              Every model call goes through one gateway. Providers
-              (Anthropic, OpenAI, local Ollama, and a keyless deterministic
-              stub for keyless dev) are registered behind a single interface,
-              and the gateway is the only component that talks to a model
-              provider. That makes it the single egress boundary: if you want
-              to know what can leave for a third party, you read one file.
+              Every model call goes through one gateway. The providers
+              (Anthropic, OpenAI, local Ollama, and a keyless stub for
+              development) sit behind a single interface, and the gateway is
+              the only part of the system that talks to a model provider. So
+              there is one exit point. If you want to know what can leave for
+              a third party, you read one file.
             </p>
             <p>
-              Keys are bring-your-own. Each user stores an Anthropic or OpenAI
-              key under Settings, held AES-256-GCM-encrypted — ciphertext,
-              a 12-byte nonce, and the auth tag, serialised together — under
-              a master key supplied to the backend by environment variable.
-              Production refuses to boot if that master key is missing,
-              wrongly sized, or not valid hex. If a user has no key for a
-              keyed provider, the call fails closed with a structured error
-              and an audit row; there is no silent server-key fallback in
-              production.
+              You bring your own keys. Each user stores an Anthropic or OpenAI
+              key under Settings, encrypted with AES-256-GCM (the ciphertext,
+              a 12-byte nonce, and the auth tag stored together) under a
+              master key given to the back end through an environment
+              variable. In production the app refuses to start if that master
+              key is missing, the wrong length, or not valid hex. If a user
+              has no key for a provider that needs one, the call fails safely
+              with a clear error and an audit row. There is no quiet fallback
+              to a server-owned key in production.
             </p>
             <p>
-              The honest cost: we do not pay for, sit between, or resell
-              model usage. The hosted site is an evaluation environment, and
-              real calls require your own provider credentials.
+              The honest cost: we do not pay for, sit between, or resell model
+              usage. The hosted site is for evaluation, and real calls need
+              your own provider credentials.
             </p>
           </Prose>
           <GatewayDiagram />
           <Prose>
             <p>
               Inside the box, every call runs the same five steps in order.
-              Read the matter's posture from the database. Refuse outright if
-              the matter is paused. Pick the provider for the requested
-              model. Decrypt your key, at this moment and not before. Make
-              the call, hash the prompt and response, write the audit row.
-              The decrypted key lives only for the length of the call and
-              never touches a log or the audit row.
+              Read the matter's privilege setting from the database. Refuse
+              outright if the matter is paused. Pick the provider for the
+              requested model. Decrypt your key, now and not before. Make the
+              call, hash the prompt and response, write the audit row. The
+              decrypted key lives only for the length of the call and never
+              touches a log or the audit row.
             </p>
             <p>
-              One small thing that matters more than it looks: the gateway
-              maps the model name to a provider in one helper, used both by
-              the gateway and by any pre-flight check. So a check can never
-              be stricter than the call it is checking. If a renamed model id
-              would change routing, both sides change together.
+              One small thing that matters more than it looks. The gateway
+              works out which provider a model name belongs to in a single
+              helper, used both by the gateway and by any check that runs
+              before the call. So a check can never be stricter than the call
+              it is checking. If a renamed model id would change routing, both
+              sides change at once.
             </p>
           </Prose>
           <SourceRow
@@ -1015,46 +1017,45 @@ export function Architecture() {
         <Section id="gate" label="06 · The privilege gate" title="The matter's posture is read from the database before every call.">
           <Prose>
             <p>
-              Every matter carries one of three privilege postures.{" "}
-              <code className="tech-token">A_cleared</code> permits all
+              Every matter has one of three privilege settings.{" "}
+              <code className="tech-token">A_cleared</code> allows all
               providers. <code className="tech-token">B_mixed</code>, the
-              default, prefers a local Ollama provider when one is registered
-              and a frontier model was requested, and otherwise permits the
-              frontier providers under their no-training contractual posture.{" "}
-              <code className="tech-token">C_paused</code> permits no model
-              call at all.
+              default, prefers a local Ollama provider when one is set up and
+              a frontier model was asked for, and otherwise allows the
+              frontier providers under their no-training contract terms.{" "}
+              <code className="tech-token">C_paused</code> allows no model call
+              at all.
             </p>
             <p>
-              The critical property is where the posture is read. The gateway
-              reads it from the matter row, in the same session as the
-              request, never from a value the caller passed in. That closes
-              the race where a caller reads <code className="tech-token">B_mixed</code>,
-              an administrator flips the matter to{" "}
-              <code className="tech-token">C_paused</code>, and the stale
-              value is used for dispatch. On a paused matter the gateway
-              raises before any network traffic. The same gate guards
-              posture-gated tools, and a posture-gated tool with no matter
-              scope is refused rather than allowed to bypass the check by
-              omitting its matter. The change of posture is itself audited.
+              What matters is where the setting is read. The gateway reads it
+              from the matter row, in the same session as the request, never
+              from a value the caller handed in. That closes a gap: a caller
+              reads <code className="tech-token">B_mixed</code>, an
+              administrator switches the matter to{" "}
+              <code className="tech-token">C_paused</code>, and the old value
+              gets used anyway. On a paused matter the gateway stops before
+              any network traffic. The same gate guards privilege-gated tools.
+              A privilege-gated tool with no matter attached is refused rather
+              than allowed to skip the check by leaving its matter off. The
+              change of setting is itself audited.
             </p>
             <p>
-              The gate is two layers, not one. The gateway blocks model
+              The gate works at two levels, not one. The gateway blocks model
               calls on a paused matter. A second gate,{" "}
               <code className="tech-token">check_posture</code>, runs before
               any capability does, so even a non-model action is stopped on a
               paused matter, and a non-solicitor on a privileged matter gets a
-              posture-shaped refusal rather than a grant-shaped one. The whole
-              policy is six lines of a constant table in one file. Changing it
-              is a reviewable diff, not a config knob someone can flip in
+              refusal that fits the setting rather than a grant. The whole
+              policy is a six-line table in one file. Changing it is a code
+              change someone has to review, not a switch anyone can flip in
               production.
             </p>
             <p>
-              Skill-attributed calls carry a further check: a call made on
-              behalf of a <code className="tech-token">(plugin, skill)</code>{" "}
-              pair must hold the{" "}
-              <code className="tech-token">model.invoke</code> grant for that
-              pair, and a tool that writes a privileged resource needs its
-              matching write capability too. A skill runs because it was
+              Calls made by a skill carry one more check. A call made for a{" "}
+              <code className="tech-token">(plugin, skill)</code> pair must
+              hold the <code className="tech-token">model.invoke</code> grant
+              for that pair, and a tool that writes a privileged resource also
+              needs its matching write permission. A skill runs because it was
               admitted, not because it is clever.
             </p>
           </Prose>
@@ -1071,25 +1072,28 @@ export function Architecture() {
         <Section id="anon" label="07 · Anonymisation" title="An optional pseudonymisation layer, with its limits stated.">
           <Prose>
             <p>
-              Before sending a document body to a model, a solicitor can
-              pseudonymise it. The layer runs Microsoft Presidio with three
-              UK-specific recognisers added on top of the spaCy defaults:
-              postcodes, National Insurance numbers, and GBP amounts — the
-              shapes the base recognisers miss in UK correspondence. Detected
-              spans are replaced with stable tokens (PARTY_1, ORG_1, and so
-              on) and the mapping is stored so re-runs are idempotent.
+              Before sending a document to a model, a solicitor can
+              pseudonymise it, meaning replace names and other identifying
+              details with placeholders. The layer runs Microsoft Presidio
+              with three UK-specific detectors added on top of the spaCy
+              defaults: postcodes, National Insurance numbers, and GBP
+              amounts, the shapes the base detectors miss in UK
+              correspondence. Detected text is replaced with stable tokens
+              (PARTY_1, ORG_1, and so on), and the mapping is stored so a
+              re-run produces the same result.
             </p>
             <p>
-              Two honest limits. First, Presidio is an optional install: the
-              slim deployment image does not ship it, and a real run in that
-              state fails clean with install guidance rather than silently
-              passing text through. Second, in <code className="tech-token">auto</code>{" "}
-              mode, when Presidio's recall on a long document looks low, the
-              layer can fall back to a Claude pass through the same gateway —
-              which means that fallback is a model call, under the same
-              privilege gate and the same audit row. Pseudonymisation reduces
-              what a provider sees; it is not a guarantee, and the gate above
-              it still decides whether the provider may be called at all.
+              Two honest limits. First, Presidio is an optional install. The
+              slim deployment image does not include it, and a real run in
+              that state fails cleanly with install guidance rather than
+              quietly passing text straight through. Second, in{" "}
+              <code className="tech-token">auto</code> mode, if Presidio seems
+              to be catching too little on a long document, the layer can fall
+              back to a Claude pass through the same gateway. That fallback is
+              a model call, so it goes through the same privilege gate and
+              gets the same audit row. Pseudonymisation reduces what a
+              provider sees. It is not a guarantee, and the gate above it
+              still decides whether the provider may be called at all.
             </p>
           </Prose>
           <SourceRow
@@ -1103,25 +1107,26 @@ export function Architecture() {
         <Section id="admission" label="08 · Admission" title="Skills arrive by ceremony, not by upload.">
           <Prose>
             <p>
-              Any public GitHub repository with a SKILL.md can be proposed. The
-              importer reads it at a pinned commit, sniffs the licence, and
-              produces a governed draft. Admission is a live scan of manifest
-              structure, permission declarations, and source integrity, halting
-              at one human decision: approve and enable, or refuse. The record
-              keeps both outcomes with the same fidelity.
+              Anyone can propose a skill from a public GitHub repository that
+              has a SKILL.md file. The importer reads it at a fixed commit,
+              checks the licence, and produces a draft that the system can
+              govern. Admission scans the manifest's structure, its declared
+              permissions, and whether the source matches, then stops at one
+              human decision: approve and enable, or refuse. The record keeps
+              both outcomes the same way.
             </p>
             <p>
               Signatures come in two honest grades.{" "}
               <code className="tech-token">verified</code> means the manifest
-              carries an ed25519 signature that cryptographically checks out
-              against the publisher's registered public key — only the holder
-              of that private key could have produced it.{" "}
+              carries an ed25519 signature that checks out cryptographically
+              against the publisher's registered public key, so only the
+              holder of the matching private key could have produced it.{" "}
               <code className="tech-token">structure_verified</code> means
-              shape only: the signature is present and plausible, the
-              publisher is in the registry, but no cryptography was performed
-              and a well-formed forgery would pass. The status string says
-              exactly which check ran, and a publisher with no registered key
-              can never reach <code className="tech-token">verified</code>.
+              shape only. The signature is present and looks plausible, the
+              publisher is in the registry, but no cryptography was run, so a
+              well-made forgery would pass. The status string says exactly
+              which check ran, and a publisher with no registered key can
+              never reach <code className="tech-token">verified</code>.
             </p>
           </Prose>
           {/* A real capability from examples/modules/contract_review —
@@ -1155,10 +1160,10 @@ export function Architecture() {
               registered key, the verifier checks shape only and reports{" "}
               <code className="tech-token">structure_verified</code>. The name
               is deliberately not <code className="tech-token">verified</code>,
-              because shape is not proof. The signing input is a canonical
-              hash of the manifest with the signature fields stripped, so the
-              exact bytes that get signed are pinned and a re-serialisation
-              cannot change them.
+              because shape is not proof. What gets signed is a fixed hash of
+              the manifest with the signature fields removed, so the exact
+              bytes being signed are pinned and re-saving the file cannot
+              change them.
             </p>
           </Prose>
           <SourceRow
@@ -1178,15 +1183,15 @@ export function Architecture() {
               The gate from section 06 is only worth something if its
               refusals are kept and visible. When a paused matter refuses a
               privileged read, the refusal lands in the demo's record as a
-              struck entry — same row anatomy, same ledger, seal red — rather
-              than vanishing into a log nobody reads.
+              struck entry, in the same row shape, the same ledger, and seal
+              red, rather than vanishing into a log nobody reads.
             </p>
             <p>
-              The refusal is the soul of the system. A register that only
+              The refusal is the heart of the system. A register that only
               records approvals is advertising. A register that testifies
-              against itself when it must is evidence. You can watch this
-              happen in the demo: the paused matter refuses a privileged
-              read, in public, and the record keeps it.
+              against itself when it must is evidence. You can watch this in
+              the demo: the paused matter refuses a privileged read, in
+              public, and the record keeps it.
             </p>
           </Prose>
           <div className="mt-6">
@@ -1202,38 +1207,38 @@ export function Architecture() {
         <Section id="record" label="10 · The record" title="Audit is not the product. Audit is the receipt.">
           <Prose>
             <p>
-              Every model call writes an audit row carrying the model used,
+              Every model call writes an audit row holding the model used,
               the SHA-256 hashes of the prompt and response (never the text
-              itself), the token count, and the latency. Every matter
-              mutation writes a row too. The rows are hash-chained: an
-              append-only chain table links each entry to the previous one
-              per matter, so the chain's head hash is the matter's
-              fingerprint and commits to every entry beneath it. Publish that
-              head — in an email, a filing, a public log — and anyone can
-              later prove the trail was not rewritten, because a changed trail
-              no longer recomputes to the same head. The chain is written by a
-              Postgres trigger in PL/pgSQL the moment a row lands; the verify
-              endpoint{" "}
+              itself), the token count, and the latency. Every change to a
+              matter writes a row too. The rows are hash-chained, which means
+              an append-only table links each entry to the one before it for
+              that matter, so the chain's head hash is the matter's
+              fingerprint and stands for every entry under it. Publish that
+              head hash, in an email, a filing, or a public log, and anyone
+              can later prove the trail was not rewritten, because a changed
+              trail no longer adds up to the same head. A Postgres trigger
+              written in PL/pgSQL writes the chain the moment a row lands. The
+              verify endpoint{" "}
               <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/chain</code>{" "}
-              recomputes the same hashes independently in Python from the raw
-              rows and reports the head plus any breaks. Two implementations of
-              one recipe, and CI fails the build if they ever disagree — a hash
-              chain whose only checker is the code that wrote it would prove
-              nothing.
+              recomputes the same hashes separately in Python from the raw
+              rows and reports the head plus any breaks. Two pieces of code do
+              the same sum, and CI fails the build if they ever disagree. A
+              hash chain whose only checker is the code that wrote it would
+              prove nothing.
             </p>
             <p>
-              The table is append-only by enforcement, in two layers: a
-              Postgres trigger rejects UPDATE and DELETE on every row whatever
-              role issues them, and a database role split removes
-              UPDATE/DELETE on the audit table from the application role by
-              grant. The role split is asserted in CI on every build — the
-              build fails if the app role can mutate an audit row — and
-              turning it on for the hosted deployment is a connection-string
-              switch, documented in Operations. That switch is not yet flipped
-              on the hosted stack; the honesty section says so.
+              The table is append-only, enforced in two layers. A Postgres
+              trigger rejects UPDATE and DELETE on every row, whatever role
+              tries it, and a database role split removes the application
+              role's permission to UPDATE or DELETE on the audit table. CI
+              checks the role split on every build and fails if the app role
+              can change an audit row. Turning it on for the hosted deployment
+              is a one-line connection-string change, documented in
+              Operations. That switch is not yet flipped on the hosted stack,
+              and the honesty section says so.
             </p>
             <p>
-              The working pack carries the outputs, the source context, the
+              The working pack holds the outputs, the source context, the
               signatures, and the audit trail. It is what a solicitor uses to
               answer the questions a regulator, a client, or opposing counsel
               will eventually ask: what did your AI see, when, under what
@@ -1259,22 +1264,23 @@ export function Architecture() {
         <Section id="signoff" label="11 · Sign-off" title="Supervised practice, with a track record.">
           <Prose>
             <p>
-              Every output is a draft until a named human reviews it, changes it
-              where needed, and signs what they are prepared to stand behind.
-              Edits arrive as inline tracked changes: deletions struck,
-              insertions underlined, each acceptance or rejection its own audit
-              row. A firm that wants a four-eyes rule can deploy with{" "}
+              Every output is a draft until a named human reviews it, changes
+              it where needed, and signs what they are prepared to stand
+              behind. Edits show up as inline tracked changes: deletions
+              struck through, insertions underlined, and each acceptance or
+              rejection gets its own audit row. A firm that wants a four-eyes
+              rule (two people, not one) can deploy with{" "}
               <code className="tech-token">SIGNOFF_AUTHOR_MUST_DIFFER</code>{" "}
-              set, which blocks an author from signing their own output
-              (rejecting it stays allowed). It is off by default so a sole
-              practitioner can still sign their own work as themselves.
+              set, which stops an author signing their own output (rejecting
+              it stays allowed). It is off by default so a sole practitioner
+              can still sign their own work.
             </p>
             <p>
-              Sign-off decisions accumulate per skill: signed, signed with
-              observations, rejected. A supervised track
-              record generated by the architecture itself. Not a benchmark, a
-              practice history. Closed platforms have not published theirs,
-              and have no incentive to start.
+              Sign-off decisions build up per skill: signed, signed with
+              observations, or rejected. That is a supervised practice
+              history, produced by the system as it runs, not a benchmark
+              score. Closed platforms have not published theirs, and have no
+              reason to start.
             </p>
           </Prose>
           <VideoFigure
@@ -1284,12 +1290,12 @@ export function Architecture() {
           />
           <Prose>
             <p>
-              The signature pins the exact output the signer saw: it is taken
-              over a SHA-256 of the artifact, so a signature can never quietly
+              The signature pins the exact output the signer saw. It is taken
+              over a SHA-256 of the file, so a signature can never quietly
               come to mean a different document. The record also notes when a
-              sign-off lands implausibly fast for the length of the output,
-              measured against a rough ten-minutes-per-thousand-words
-              baseline. It flags; it does not block.
+              sign-off lands too fast for the length of the output, judged
+              against a rough ten-minutes-per-thousand-words baseline. It
+              flags this; it does not block it.
             </p>
           </Prose>
           <SourceRow
@@ -1303,28 +1309,28 @@ export function Architecture() {
         <Section id="sovereignty" label="12 · Sovereignty and deployment" title="Open source, your own keys, a path to fully local.">
           <Prose>
             <p>
-              The architecture was drawn model-agnostic from the start: the
-              gateway treats providers as commodities, and the original build
-              ran against local models, GPT, and Claude interchangeably. For
-              the demonstration that breadth earned less than it cost, so the
-              working build is honed tightly to Anthropic and the Claude
-              skills format. The known cost of that choice: demo traffic
-              touches Anthropic's commercial API, under its no-training
-              contractual terms, with the data questions that carries. It is a
-              proof of concept and the trade is deliberate.
+              The architecture was model-agnostic from the start. The gateway
+              treats providers as interchangeable, and the original build ran
+              against local models, GPT, and Claude without caring which. For
+              the demo, that breadth earned less than it cost, so the working
+              build is tuned tightly to Anthropic and the Claude skills
+              format. The known cost of that choice: demo traffic touches
+              Anthropic's commercial API, under its no-training contract
+              terms, with the data questions that carries. This is a proof of
+              concept, and the trade is deliberate.
             </p>
             <p>
-              The project is Apache-2.0 and self-hostable. Backend (Fly{" "}
-              <code className="tech-token">lhr</code>) and Postgres (Neon
-              London) sit in the UK; R2 object storage is EU-placed, not
-              UK-specific, and we do not claim end-to-end UK residency because
-              it is not literally true. A self-host operator owns the master
-              encryption key. Because <code className="tech-token">B_mixed</code>{" "}
-              prefers a registered local Ollama provider, a firm building a
-              shell around this substrate can tune it to run entirely on local
-              models as they strengthen — at which point it is viable for no
-              client data to leave the building, and a local provider is not a
-              third party for privilege at all.
+              The project is Apache-2.0 and you can host it yourself. The back
+              end (Fly <code className="tech-token">lhr</code>) and Postgres
+              (Neon London) sit in the UK. R2 object storage is placed in the
+              EU, not specifically the UK, and we do not claim end-to-end UK
+              residency because that is not literally true. If you self-host,
+              you own the master encryption key. Because{" "}
+              <code className="tech-token">B_mixed</code> prefers a registered
+              local Ollama provider, a firm building on top of this can tune
+              it to run entirely on local models as those get stronger. At
+              that point no client data needs to leave the building, and a
+              local model is not a third party for privilege at all.
             </p>
           </Prose>
         </Section>
@@ -1335,14 +1341,14 @@ export function Architecture() {
           <Prose>
             <p>
               The frontier models are available to everyone, including your
-              opponent. What does not commodify is the apparatus around the
-              work: who was permitted to do it, what they were permitted to
-              see, who signed it, and what the record says when someone
-              asks later. The profession solved this centuries ago, not
-              with better lawyers but with standing: a practicing
+              opponent. What does not become a commodity is the apparatus
+              around the work: who was allowed to do it, what they were
+              allowed to see, who signed it, and what the record says when
+              someone asks later. The profession solved this centuries ago,
+              not with better lawyers but with standing: a practicing
               certificate, rights of audience, a disciplinary record,
-              supervised practice. Legalise applies that structure to AI
-              counsel. The mapping is literal:
+              supervised practice. Legalise applies that same structure to AI
+              counsel. The mapping is direct:
             </p>
           </Prose>
           <div className="mt-8 max-w-xl">
@@ -1374,10 +1380,10 @@ export function Architecture() {
           />
           <Prose>
             <p>
-              This page is the map. Each section above has one or more
-              canonical documents in the repository that carry the full
-              detail. They are listed here so depth lives in the docs and the
-              page stays readable.
+              This page is the map. Each section above has one or more main
+              documents in the repository that carry the full detail. They
+              are listed here so the depth lives in the docs and the page
+              stays readable.
             </p>
           </Prose>
           <dl className="mt-8 max-w-3xl space-y-4">
@@ -1457,20 +1463,21 @@ export function Architecture() {
               not pay for, or sit between, your model usage.
             </p>
             <p>
-              One deployment is one workspace. Multi-tenancy is deliberately
-              out of scope for the beta. Firm-grade isolation deserves its own
-              design pass, not a column on a table. Manifest signing is young:
-              the scheme works, the web of trust around it does not exist yet.
-              Durable job recovery, formal WORM storage roles, and
-              production-grade regulator reconstruction are staged engineering
-              gates, not solved problems.
+              One deployment is one workspace. Serving many separate
+              organisations from one deployment is deliberately out of scope
+              for the beta. Firm-grade isolation needs its own design pass,
+              not a column on a table. Manifest signing is young: the scheme
+              works, but the web of trust around it does not exist yet.
+              Durable job recovery, formal write-once storage roles, and
+              production-grade regulator reconstruction are planned
+              engineering work, not solved problems.
             </p>
             <p>
-              And the models hallucinate. Citations give the reviewer somewhere
-              concrete to check; they are not a guarantee. The system makes
-              review explicit and recorded. It does not make review optional,
-              and it never will. That constraint is the product surface, not
-              an aspiration.
+              And the models hallucinate. Citations give the reviewer
+              something concrete to check, but they are not a guarantee. The
+              system makes review explicit and recorded. It does not make
+              review optional, and it never will. That limit is the point of
+              the product, not something we hope to remove.
             </p>
             <p>
               If any of this is wrong, or you can break it, the repository is
