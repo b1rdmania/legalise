@@ -10,7 +10,6 @@
  * sign-off → sovereignty → standing (closing argument) → deeper-reading
  * doc map → status matrix → honesty (gaps stated, not buried) → colophon.
  * The middle reads as one clean machine; philosophy sits at the ends.
- * Stamps and seal wayfinding per P35.
  *
  * Diagrams (all hand-drawn inline SVG, no deps): SpineDiagram (the flat
  * spine), RequestPathDiagram (nodes + the check at each, refusal in
@@ -210,19 +209,6 @@ const CITATIONS: { label: string; href: string }[] = [
   { label: "Apache 2.0", href: `${REPO}/blob/master/LICENSE` },
 ];
 
-/** Rubber stamp — rotated, seal-inked, used only where something was
- * decided. The P35 "fun stuff": stamps, not decoration. */
-function Stamp({ children, rotate = -6 }: { children: React.ReactNode; rotate?: number }) {
-  return (
-    <span
-      className="inline-block border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.25em] text-seal"
-      style={{ transform: `rotate(${rotate}deg)` }}
-      aria-hidden="true"
-    >
-      {children}
-    </span>
-  );
-}
 
 /** Muted looping clip in figure chrome — the demo proving a section's
  * claim in motion. */
@@ -730,10 +716,7 @@ export function Architecture() {
         {/* Skim layer (A2): the system in five lines + a jump index, so a
             technical reader can read top-down once and then deep-read. */}
         <section className="mt-12">
-          <SectionRule
-            label={<span className="text-seal">The system in five lines</span>}
-            right="Skim first"
-          />
+          <SectionRule label={<span className="text-seal">The system in five lines</span>} />
           <ol className="mt-6 max-w-3xl space-y-2">
             {FIVE_LINES.map((line) => (
               <li key={line} className="flex gap-3 text-sm leading-relaxed text-prose">
@@ -763,10 +746,7 @@ export function Architecture() {
         {/* Exhibit: the cost of unsupervised capability, already in the
             law reports. Early by design — this is why the page exists. */}
         <section className="mt-16">
-          <SectionRule
-            label={<span className="text-seal">Exhibit · the cost of capability alone</span>}
-            right="1,500+ cases"
-          />
+          <SectionRule label={<span className="text-seal">The cost of capability alone</span>} />
           <Prose>
             <p>
               This already happens. Damien Charlotin's database of AI
@@ -814,7 +794,7 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section id="why" label="02 · Why" title="Because capability is not the hard part. Proof is.">
+        <Section id="why" label="02 · Why" title="The hard part is proof, not capability.">
           <Prose>
             <p>
               The hard question in legal AI is not whether the model can do
@@ -842,7 +822,7 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section id="built" label="03 · How it is built" title="Boring stack, ambitious composition.">
+        <Section id="built" label="03 · How it is built" title="Built on a conventional stack.">
           <Prose>
             <p>
               Python, FastAPI, and Postgres on the back end. React on the
@@ -891,7 +871,7 @@ export function Architecture() {
             ]}
           />
           <div className="mt-10 max-w-3xl">
-            <SectionRule label={<span className="text-seal">The documents</span>} right="On the record" />
+            <SectionRule label={<span className="text-seal">The documents</span>} />
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
               {CITATIONS.map((c) => (
                 <a
@@ -908,7 +888,7 @@ export function Architecture() {
           </div>
         </Section>
 
-        <Section id="identity" label="04 · Identity and access" title="Per-user matters, real session revocation, an audit row per action.">
+        <Section id="identity" label="04 · Identity and access" title="Each user sees only their own matters, and every action is logged.">
           <Prose>
             <p>
               Login uses fastapi-users with cookie sessions (HttpOnly,
@@ -944,9 +924,6 @@ export function Architecture() {
               later, not shipped.
             </p>
           </Prose>
-          <div className="mt-6">
-            <Stamp rotate={-5}>Auth · v0.2 hardening</Stamp>
-          </div>
           <SourceRow
             items={[
               { label: "matter_access.py", file: SRC.matterAccess },
@@ -956,7 +933,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="gateway" label="05 · The inference gateway" title="One egress boundary. Your keys, encrypted, decrypted only at call time.">
+        <Section id="gateway" label="05 · The inference gateway" title="Every model call leaves through one gateway, on keys you provide.">
           <Prose>
             <p>
               Every model call goes through one gateway. The providers
@@ -1055,8 +1032,7 @@ export function Architecture() {
               <code className="tech-token">(plugin, skill)</code> pair must
               hold the <code className="tech-token">model.invoke</code> grant
               for that pair, and a tool that writes a privileged resource also
-              needs its matching write permission. A skill runs because it was
-              admitted, not because it is clever.
+              needs its matching write permission.
             </p>
           </Prose>
           <SourceRow
@@ -1069,7 +1045,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="anon" label="07 · Anonymisation" title="An optional pseudonymisation layer, with its limits stated.">
+        <Section id="anon" label="07 · Anonymisation" title="An optional layer that strips identifying details before a call.">
           <Prose>
             <p>
               Before sending a document to a model, a solicitor can
@@ -1104,7 +1080,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="admission" label="08 · Admission" title="Skills arrive by ceremony, not by upload.">
+        <Section id="admission" label="08 · Admission" title="Skills are checked and admitted before they can run.">
           <Prose>
             <p>
               Anyone can propose a skill from a public GitHub repository that
@@ -1177,7 +1153,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="refusal" label="09 · The refusal" title="A register that testifies against itself is evidence.">
+        <Section id="refusal" label="09 · The refusal" title="The gate refuses, and the refusal is kept.">
           <Prose>
             <p>
               The gate from section 06 is only worth something if its
@@ -1187,16 +1163,11 @@ export function Architecture() {
               red, rather than vanishing into a log nobody reads.
             </p>
             <p>
-              The refusal is the heart of the system. A register that only
-              records approvals is advertising. A register that testifies
-              against itself when it must is evidence. You can watch this in
-              the demo: the paused matter refuses a privileged read, in
-              public, and the record keeps it.
+              Refusals are recorded with the same weight as approvals. You
+              can watch it in the demo: the paused matter refuses a privileged
+              read, and the record keeps it.
             </p>
           </Prose>
-          <div className="mt-6">
-            <Stamp rotate={-4}>Refused · gate held</Stamp>
-          </div>
           <VideoFigure
             src="/architecture/clip-refusal.mp4"
             index={4}
@@ -1204,7 +1175,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="record" label="10 · The record" title="Audit is not the product. Audit is the receipt.">
+        <Section id="record" label="10 · The record" title="Every action writes a hash-chained audit row you can check.">
           <Prose>
             <p>
               Every model call writes an audit row holding the model used,
@@ -1261,7 +1232,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="signoff" label="11 · Sign-off" title="Supervised practice, with a track record.">
+        <Section id="signoff" label="11 · Sign-off" title="A person reviews and signs every output.">
           <Prose>
             <p>
               Every output is a draft until a named human reviews it, changes
@@ -1306,7 +1277,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section id="sovereignty" label="12 · Sovereignty and deployment" title="Open source, your own keys, a path to fully local.">
+        <Section id="sovereignty" label="12 · Sovereignty and deployment" title="Open source, and it runs on your own keys.">
           <Prose>
             <p>
               The architecture was model-agnostic from the start. The gateway
@@ -1337,7 +1308,7 @@ export function Architecture() {
 
         {/* Standing (A5): moved out of the technical spine to here, the
             closing argument — why the machine above is the institution. */}
-        <Section id="standing" label="13 · Standing" title="Capability is a commodity. Standing is the institution.">
+        <Section id="standing" label="13 · Standing" title="Standing, not capability, is what the profession trusts.">
           <Prose>
             <p>
               The frontier models are available to everyone, including your
@@ -1353,7 +1324,7 @@ export function Architecture() {
           </Prose>
           <div className="mt-8 max-w-xl">
             <CertCard>
-              <CertEyebrow left="Schedule 01" right="The correspondence" />
+              <CertEyebrow left="System" right="Profession" />
               <dl className="mt-4 space-y-1 text-[11px] text-muted">
                 {MAPPING.map((m) => (
                   <LedgerRow key={m.primitive} label={m.primitive} tone="ink">
@@ -1374,10 +1345,7 @@ export function Architecture() {
         {/* Deeper reading (A1): the page is the readable index; each
             section maps to its canonical doc(s) in the repo. */}
         <section id="docs" className="mt-16 scroll-mt-8">
-          <SectionRule
-            label={<span className="text-seal">Deeper reading</span>}
-            right="The page indexes; the docs go deep"
-          />
+          <SectionRule label={<span className="text-seal">Deeper reading</span>} />
           <Prose>
             <p>
               This page is the map. Each section above has one or more main
@@ -1411,10 +1379,7 @@ export function Architecture() {
             staged, and what is a deliberate trade — each with where to
             check it. No SBOM/SLSA/SOC2/ISO claimed as shipped. */}
         <section id="status" className="mt-16 scroll-mt-8">
-          <SectionRule
-            label={<span className="text-seal">Status</span>}
-            right="Shipped · deferred · accepted"
-          />
+          <SectionRule label={<span className="text-seal">Status</span>} />
           <Prose>
             <p>
               Shipped means it is in the code on master. Deferred means it is
@@ -1496,8 +1461,8 @@ export function Architecture() {
         </Section>
 
         <Colophon>
-          The register does not say what counsel can do. It says what counsel
-          has done under supervision.
+          The record shows what the AI did, what it refused, and who signed it
+          off.
         </Colophon>
 
         <Footer />
