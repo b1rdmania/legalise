@@ -2,6 +2,24 @@
 
 Legalise is open source. The hosted site is a limited evaluation environment.
 
+## Security posture
+
+Legalise routes all model traffic through a single egress gateway, stores
+provider keys encrypted with AES-256-GCM (decrypted only at call time),
+scopes every matter to its owner (cross-user access returns 404, never
+403), enforces capability grants at runtime, and writes a hash-chained,
+append-only audit trail that any reader can independently re-verify.
+Several controls are deliberately partial or deferred — an operator who
+holds both the database and the master key can read matter content, data
+residency is only partial, and Legalise produces **no** SBOM, signed
+images, or SLSA provenance. We document those limits rather than hide
+them.
+
+**→ Read the full [Threat Model](docs/THREAT_MODEL.md)** for assets,
+trust boundaries, per-attacker analysis (mitigated / residual /
+deferred), and what is explicitly out of scope. This page is the front
+door; the threat model is the substance.
+
 ## Reporting a Vulnerability
 
 Please do not open a public GitHub issue for security vulnerabilities.

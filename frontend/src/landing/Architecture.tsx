@@ -4,11 +4,13 @@
  * narrative moved to /about; this page is grounded entirely in what the
  * code does, every claim sourced from the repo.
  *
- * Order: tight masthead → exhibit (why it matters) → what/why/how →
- * identity & access → inference gateway → privilege gate → anonymisation →
- * standing → admission → the refusal → the record → sign-off →
- * sovereignty → honesty (gaps stated, not buried) → colophon.
- * Prose-heavy by design; stamps and seal wayfinding per P35.
+ * Order: tight masthead → skim layer (five lines + jump index) → exhibit
+ * (why it matters) → what/why/how → identity & access → inference gateway →
+ * privilege gate → anonymisation → admission → the refusal → the record →
+ * sign-off → sovereignty → standing (closing argument) → deeper-reading
+ * doc map → status matrix → honesty (gaps stated, not buried) → colophon.
+ * The middle reads as one clean machine; philosophy sits at the ends.
+ * Stamps and seal wayfinding per P35.
  *
  * Diagrams (all hand-drawn inline SVG, no deps): SpineDiagram (the flat
  * spine), RequestPathDiagram (nodes + the check at each, refusal in
@@ -97,6 +99,106 @@ const MAPPING: { primitive: string; counterpart: string }[] = [
   { primitive: "Permission bands", counterpart: "Rights of audience" },
   { primitive: "Audit chain", counterpart: "Disciplinary record" },
   { primitive: "Professional sign-off", counterpart: "Supervised practice" },
+];
+
+/** The "deeper reading" map: each section of this page → its canonical
+ * doc(s) in the repo. The page is the readable index; these are the
+ * depth. Every path verified present on master. */
+const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = [
+  {
+    section: "Identity & access",
+    docs: [{ label: "AUTH.md", file: `${BLOB}/docs/AUTH.md` }],
+  },
+  {
+    section: "Inference gateway / keys",
+    docs: [{ label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` }],
+  },
+  {
+    section: "Privilege gate",
+    docs: [
+      { label: "POSTURE_GATE_UX.md", file: `${BLOB}/docs/spec/POSTURE_GATE_UX.md` },
+      { label: "ADVICE_BOUNDARY.md", file: `${BLOB}/docs/architecture/ADVICE_BOUNDARY.md` },
+    ],
+  },
+  {
+    section: "Anonymisation",
+    docs: [{ label: "SANDBOX_STRATEGY.md", file: `${BLOB}/docs/architecture/SANDBOX_STRATEGY.md` }],
+  },
+  {
+    section: "Admission / signing",
+    docs: [
+      { label: "SIGNING.md", file: `${BLOB}/docs/architecture/SIGNING.md` },
+      { label: "TRUST_CEREMONY.md", file: `${BLOB}/docs/architecture/TRUST_CEREMONY.md` },
+      { label: "MANIFEST_V2_SCHEMA.md", file: `${BLOB}/docs/architecture/MANIFEST_V2_SCHEMA.md` },
+    ],
+  },
+  {
+    section: "The record",
+    docs: [
+      { label: "AUDIT_COVERAGE_MATRIX.md", file: `${BLOB}/docs/spec/AUDIT_COVERAGE_MATRIX.md` },
+      { label: "AUDIT_RECONSTRUCTION.md", file: `${BLOB}/docs/architecture/AUDIT_RECONSTRUCTION.md` },
+      { label: "AUDIT_EMISSION_MAP.md", file: `${BLOB}/docs/spec/AUDIT_EMISSION_MAP.md` },
+    ],
+  },
+  {
+    section: "Sign-off / output",
+    docs: [
+      { label: "OUTPUT_LIFECYCLE.md", file: `${BLOB}/docs/architecture/OUTPUT_LIFECYCLE.md` },
+      { label: "REVIEW_PANELS.md", file: `${BLOB}/docs/architecture/REVIEW_PANELS.md` },
+      { label: "SUPERVISION_LEGIBILITY_M13.md", file: `${BLOB}/docs/spec/SUPERVISION_LEGIBILITY_M13.md` },
+    ],
+  },
+  {
+    section: "Supervised autonomy",
+    docs: [{ label: "SUPERVISED_AUTONOMY.md", file: `${BLOB}/docs/SUPERVISED_AUTONOMY.md` }],
+  },
+  {
+    section: "Compliance / regulatory",
+    docs: [{ label: "REGULATORY_PLUMBING.md", file: `${BLOB}/REGULATORY_PLUMBING.md` }],
+  },
+  {
+    section: "Claim boundary",
+    docs: [{ label: "CLAIM_BOUNDARY.md", file: `${BLOB}/docs/CLAIM_BOUNDARY.md` }],
+  },
+  {
+    section: "Threat model",
+    docs: [{ label: "THREAT_MODEL.md", file: `${BLOB}/docs/THREAT_MODEL.md` }],
+  },
+  {
+    section: "Top-level",
+    docs: [
+      { label: "ARCHITECTURE.md", file: `${BLOB}/ARCHITECTURE.md` },
+      { label: "ENGINEERING.md", file: `${BLOB}/docs/ENGINEERING.md` },
+      { label: "ROADMAP.md", file: `${BLOB}/docs/ROADMAP.md` },
+    ],
+  },
+];
+
+/** The shipped-vs-deferred matrix, built from the Honesty prose + TRUST.md.
+ * "shipped" means in the code on master; "deferred" means designed/staged
+ * but not built; "accepted" means a deliberate trade we are not closing.
+ * No SBOM/SLSA/SOC2/ISO/signed-images claims — Legalise has none. */
+const STATUS_MATRIX: {
+  capability: string;
+  status: "shipped" | "deferred" | "accepted";
+  verification: string;
+}[] = [
+  { capability: "Single-egress inference gateway", status: "shipped", verification: "model_gateway.py" },
+  { capability: "Bring-your-own keys, encrypted at rest", status: "shipped", verification: "encryption.py · user_keys.py" },
+  { capability: "Privilege gate read from DB per call", status: "shipped", verification: "posture_gate.py" },
+  { capability: "Hash-chained audit, dual-implementation verify", status: "shipped", verification: "audit_chain.py · GET /audit/chain" },
+  { capability: "Named sign-off over artifact SHA-256", status: "shipped", verification: "signoff.py" },
+  { capability: "Skill admission ceremony, two signature grades", status: "shipped", verification: "signing.py · trust_ceremony.py" },
+  { capability: "Per-user matter isolation, session revocation", status: "shipped", verification: "matter_access.py · AUTH.md" },
+  { capability: "Audit-role split asserted in CI", status: "shipped", verification: "SECURITY.md (build gate)" },
+  { capability: "WORM role flipped on hosted deployment", status: "deferred", verification: "OPERATIONS.md" },
+  { capability: "Organisation / team / SSO / MFA", status: "deferred", verification: "AUTH.md · ROADMAP.md" },
+  { capability: "Multi-tenancy (one deploy = one workspace today)", status: "deferred", verification: "ROADMAP.md" },
+  { capability: "Manifest web-of-trust / publisher registry at scale", status: "deferred", verification: "TRUST.md" },
+  { capability: "Durable job recovery, regulator reconstruction", status: "deferred", verification: "ROADMAP.md" },
+  { capability: "SBOM / SLSA / signed images / SOC 2 / ISO", status: "deferred", verification: "not present — roadmap only" },
+  { capability: "Hosted demo touches Anthropic commercial API", status: "accepted", verification: "TRUST.md (no-training terms)" },
+  { capability: "R2 storage EU-placed, not UK-specific", status: "accepted", verification: "OPERATIONS.md" },
 ];
 
 const CITATIONS: { label: string; href: string }[] = [
@@ -521,18 +623,20 @@ function Prose({ children }: { children: React.ReactNode }) {
 }
 
 function Section({
+  id,
   label,
   right,
   title,
   children,
 }: {
+  id?: string;
   label: string;
   right?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-16">
+    <section id={id} className="mt-16 scroll-mt-8">
       {/* P35: the schedule labels carry the seal — the page's wayfinding
           runs in oxblood. */}
       <SectionRule label={<span className="text-seal">{label}</span>} right={right} />
@@ -541,6 +645,48 @@ function Section({
       </h2>
       {children}
     </section>
+  );
+}
+
+/** The skim layer: the system in five lines, plus a jump index of the
+ * sections. A technical reader skims this once, then deep-reads. */
+const FIVE_LINES = [
+  "Identity — per-user matters, real session revocation, an audit row per action.",
+  "Gateway — one egress; your keys, encrypted, decrypted only at call time.",
+  "Gate — the matter's privilege posture, read from the DB before every call.",
+  "Admission — skills arrive by ceremony at a pinned commit, not by upload.",
+  "Record — every call, output, and refusal hash-chained and exportable.",
+];
+
+const JUMP_INDEX: { num: string; title: string; href: string }[] = [
+  { num: "01", title: "What this is", href: "#what" },
+  { num: "02", title: "Why", href: "#why" },
+  { num: "03", title: "How it is built", href: "#built" },
+  { num: "04", title: "Identity and access", href: "#identity" },
+  { num: "05", title: "The inference gateway", href: "#gateway" },
+  { num: "06", title: "The privilege gate", href: "#gate" },
+  { num: "07", title: "Anonymisation", href: "#anon" },
+  { num: "08", title: "Admission", href: "#admission" },
+  { num: "09", title: "The refusal", href: "#refusal" },
+  { num: "10", title: "The record", href: "#record" },
+  { num: "11", title: "Sign-off", href: "#signoff" },
+  { num: "12", title: "Sovereignty", href: "#sovereignty" },
+  { num: "13", title: "Standing", href: "#standing" },
+  { num: "—", title: "Deeper reading", href: "#docs" },
+  { num: "—", title: "Status", href: "#status" },
+  { num: "—", title: "Honesty", href: "#honesty" },
+];
+
+function StatusTag({ status }: { status: "shipped" | "deferred" | "accepted" }) {
+  const isShipped = status === "shipped";
+  return (
+    <span
+      className={`tech-token text-[10px] uppercase tracking-[0.18em] ${
+        isShipped ? "text-ink" : "text-seal"
+      }`}
+    >
+      {status}
+    </span>
   );
 }
 
@@ -585,12 +731,45 @@ export function Architecture() {
           </div>
         </header>
 
+        {/* Skim layer (A2): the system in five lines + a jump index, so a
+            technical reader can read top-down once and then deep-read. */}
+        <section className="mt-12">
+          <SectionRule
+            label={<span className="text-seal">The system in five lines</span>}
+            right="Skim first"
+          />
+          <ol className="mt-6 max-w-3xl space-y-2">
+            {FIVE_LINES.map((line) => (
+              <li key={line} className="flex gap-3 text-sm leading-relaxed text-prose">
+                <span className="text-seal" aria-hidden="true">·</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-8 max-w-3xl border-t border-rule/50 pt-4">
+            <span className="tech-token text-[10px] uppercase tracking-[0.2em] text-muted">
+              Sections:
+            </span>
+            <nav className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              {JUMP_INDEX.map((s) => (
+                <a
+                  key={s.title}
+                  href={s.href}
+                  className="tech-token text-[11px] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+                >
+                  <span className="text-seal">{s.num}</span> {s.title}
+                </a>
+              ))}
+            </nav>
+          </div>
+        </section>
+
         {/* Exhibit: the cost of unsupervised capability, already in the
             law reports. Early by design — this is why the page exists. */}
         <section className="mt-16">
           <SectionRule
             label={<span className="text-seal">Exhibit · the cost of capability alone</span>}
-            right="1,600 cases"
+            right="1,500+ cases"
           />
           <Prose>
             <p>
@@ -602,7 +781,7 @@ export function Architecture() {
                 rel="noreferrer"
                 className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
-                1,600 legal decisions
+                more than 1,500 legal decisions
               </a>{" "}
               where generative AI put hallucinated content, typically fake
               citations, in front of a court. Lawyers are being sanctioned
@@ -613,13 +792,13 @@ export function Architecture() {
           </Prose>
           <Figure
             src="/architecture/fig-hallucinations.png"
-            alt="Damien Charlotin's AI Hallucination Cases database: 1,600 legal decisions involving hallucinated AI content"
+            alt="Damien Charlotin's AI Hallucination Cases database: more than 1,500 legal decisions involving hallucinated AI content"
             index={1}
-            caption="The hallucination case database · damiencharlotin.com · 1,600 decisions and counting"
+            caption="The hallucination case database · damiencharlotin.com · 1,500+ decisions and counting"
           />
         </section>
 
-        <Section label="01 · What this is" title="A matter workspace where the AI works under supervision.">
+        <Section id="what" label="01 · What this is" title="A matter workspace where the AI works under supervision.">
           <Prose>
             <p>
               Legalise is an open-source workspace for legal AI work in
@@ -639,15 +818,19 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="02 · Why" title="Because capability is not the hard part. Proof is.">
+        <Section id="why" label="02 · Why" title="Because capability is not the hard part. Proof is.">
           <Prose>
             <p>
               The hard question in legal AI is not whether the model can do
               the work. It is whether a firm can show, later and on demand,
               what the AI saw, under whose supervision it acted, and who
               took responsibility for the output. Regulators and PI
-              insurers think in those terms. So does Heppner, the privilege
-              ruling that made it concrete: that answer has to be
+              insurers think in those terms. In the US,{" "}
+              <em>United States v. Heppner</em> held that AI work a client
+              generated on their own — outside their lawyer's direction —
+              was not privileged. England has not ruled directly, but the
+              principle is the same: unsupervised AI use is where privilege
+              and responsibility break down. That answer has to be
               structural. It cannot be reconstructed from a chat history.
             </p>
             <p>
@@ -661,7 +844,7 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="03 · How it is built" title="Boring stack, ambitious composition.">
+        <Section id="built" label="03 · How it is built" title="Boring stack, ambitious composition.">
           <Prose>
             <p>
               Python, FastAPI, and Postgres behind. React in front. Nothing
@@ -726,7 +909,7 @@ export function Architecture() {
           </div>
         </Section>
 
-        <Section label="04 · Identity and access" title="Per-user matters, real session revocation, an audit row per action.">
+        <Section id="identity" label="04 · Identity and access" title="Per-user matters, real session revocation, an audit row per action.">
           <Prose>
             <p>
               Authentication is fastapi-users with cookie sessions
@@ -772,7 +955,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="05 · The inference gateway" title="One egress boundary. Your keys, encrypted, decrypted only at call time.">
+        <Section id="gateway" label="05 · The inference gateway" title="One egress boundary. Your keys, encrypted, decrypted only at call time.">
           <Prose>
             <p>
               Every model call goes through one gateway. Providers
@@ -788,9 +971,7 @@ export function Architecture() {
               a 12-byte nonce, and the auth tag, serialised together — under
               a master key supplied to the backend by environment variable.
               Production refuses to boot if that master key is missing,
-              wrongly sized, or not valid hex. A stored key is decrypted only
-              at call time, inside the gateway, and never enters logs, audit
-              rows, or the prompt-response payload. If a user has no key for a
+              wrongly sized, or not valid hex. If a user has no key for a
               keyed provider, the call fails closed with a structured error
               and an audit row; there is no silent server-key fallback in
               production.
@@ -831,7 +1012,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="06 · The privilege gate" title="The matter's posture is read from the database before every call.">
+        <Section id="gate" label="06 · The privilege gate" title="The matter's posture is read from the database before every call.">
           <Prose>
             <p>
               Every matter carries one of three privilege postures.{" "}
@@ -874,9 +1055,7 @@ export function Architecture() {
               <code className="tech-token">model.invoke</code> grant for that
               pair, and a tool that writes a privileged resource needs its
               matching write capability too. A skill runs because it was
-              admitted, not because it is clever. A posture-gated tool called
-              with no matter is refused outright, so the paused-matter check
-              cannot be dodged by leaving the matter off the request.
+              admitted, not because it is clever.
             </p>
           </Prose>
           <SourceRow
@@ -889,7 +1068,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="07 · Anonymisation" title="An optional pseudonymisation layer, with its limits stated.">
+        <Section id="anon" label="07 · Anonymisation" title="An optional pseudonymisation layer, with its limits stated.">
           <Prose>
             <p>
               Before sending a document body to a model, a solicitor can
@@ -921,48 +1100,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="08 · Standing" title="Capability is a commodity. Standing is the institution.">
-          <Prose>
-            <p>
-              The frontier models are available to everyone, including your
-              opponent. What does not commodify is the apparatus around the
-              work: who was permitted to do it, what they were permitted to
-              see, who signed it, and what the record says when someone
-              asks later. The profession solved this centuries ago, not
-              with better lawyers but with standing: a practicing
-              certificate, rights of audience, a disciplinary record,
-              supervised practice. Legalise applies that structure to AI
-              counsel. The mapping is literal:
-            </p>
-          </Prose>
-          <div className="mt-8 max-w-xl">
-            <CertCard>
-              <CertEyebrow left="Schedule 01" right="The correspondence" />
-              <dl className="mt-4 space-y-1 text-[11px] text-muted">
-                {MAPPING.map((m) => (
-                  <LedgerRow key={m.primitive} label={m.primitive} tone="ink">
-                    {m.counterpart}
-                  </LedgerRow>
-                ))}
-              </dl>
-            </CertCard>
-          </div>
-          <Prose>
-            <p>
-              A skill cannot run because it is clever. It runs because it was
-              admitted, and everything it does afterwards lands in a record it
-              cannot edit.
-            </p>
-          </Prose>
-          <Figure
-            src="/architecture/fig-certificates.png"
-            alt="Two skills rendered as certificates in the demo workspace, each declaring what it reads and writes"
-            index={3}
-            caption="Skills in a matter, rendered as their certificates"
-          />
-        </Section>
-
-        <Section label="09 · Admission" title="Skills arrive by ceremony, not by upload.">
+        <Section id="admission" label="08 · Admission" title="Skills arrive by ceremony, not by upload.">
           <Prose>
             <p>
               Any public GitHub repository with a SKILL.md can be proposed. The
@@ -1034,7 +1172,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="10 · The refusal" title="A register that testifies against itself is evidence.">
+        <Section id="refusal" label="09 · The refusal" title="A register that testifies against itself is evidence.">
           <Prose>
             <p>
               The gate from section 06 is only worth something if its
@@ -1061,7 +1199,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="11 · The record" title="Audit is not the product. Audit is the receipt.">
+        <Section id="record" label="10 · The record" title="Audit is not the product. Audit is the receipt.">
           <Prose>
             <p>
               Every model call writes an audit row carrying the model used,
@@ -1073,11 +1211,15 @@ export function Architecture() {
               fingerprint and commits to every entry beneath it. Publish that
               head — in an email, a filing, a public log — and anyone can
               later prove the trail was not rewritten, because a changed trail
-              no longer recomputes to the same head. The verify endpoint{" "}
+              no longer recomputes to the same head. The chain is written by a
+              Postgres trigger in PL/pgSQL the moment a row lands; the verify
+              endpoint{" "}
               <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/chain</code>{" "}
-              recomputes every link from the raw rows and reports the head
-              plus any breaks. A record you have to take our word for is not a
-              record.
+              recomputes the same hashes independently in Python from the raw
+              rows and reports the head plus any breaks. Two implementations of
+              one recipe, and CI fails the build if they ever disagree — a hash
+              chain whose only checker is the code that wrote it would prove
+              nothing.
             </p>
             <p>
               The table is append-only by enforcement, in two layers: a
@@ -1097,14 +1239,6 @@ export function Architecture() {
               will eventually ask: what did your AI see, when, under what
               protection, and what did it produce.
             </p>
-            <p>
-              One detail for the careful reader. The chain is written by a
-              database trigger, in PL/pgSQL, the moment a row lands. The
-              verify endpoint recomputes the same hashes in Python from the
-              raw rows. Two independent implementations of one recipe, and CI
-              fails the build if they ever disagree. A hash chain whose only
-              checker is the same code that wrote it would prove nothing.
-            </p>
           </Prose>
           <SourceRow
             items={[
@@ -1122,7 +1256,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="12 · Sign-off" title="Supervised practice, with a track record.">
+        <Section id="signoff" label="11 · Sign-off" title="Supervised practice, with a track record.">
           <Prose>
             <p>
               Every output is a draft until a named human reviews it, changes it
@@ -1155,8 +1289,7 @@ export function Architecture() {
               come to mean a different document. The record also notes when a
               sign-off lands implausibly fast for the length of the output,
               measured against a rough ten-minutes-per-thousand-words
-              baseline. It flags, it does not block. The register testifies;
-              it does not nanny.
+              baseline. It flags; it does not block.
             </p>
           </Prose>
           <SourceRow
@@ -1167,7 +1300,7 @@ export function Architecture() {
           />
         </Section>
 
-        <Section label="13 · Sovereignty and deployment" title="Open source, your own keys, a path to fully local.">
+        <Section id="sovereignty" label="12 · Sovereignty and deployment" title="Open source, your own keys, a path to fully local.">
           <Prose>
             <p>
               The architecture was drawn model-agnostic from the start: the
@@ -1196,7 +1329,126 @@ export function Architecture() {
           </Prose>
         </Section>
 
-        <Section label="14 · Honesty" title="What is not solved.">
+        {/* Standing (A5): moved out of the technical spine to here, the
+            closing argument — why the machine above is the institution. */}
+        <Section id="standing" label="13 · Standing" title="Capability is a commodity. Standing is the institution.">
+          <Prose>
+            <p>
+              The frontier models are available to everyone, including your
+              opponent. What does not commodify is the apparatus around the
+              work: who was permitted to do it, what they were permitted to
+              see, who signed it, and what the record says when someone
+              asks later. The profession solved this centuries ago, not
+              with better lawyers but with standing: a practicing
+              certificate, rights of audience, a disciplinary record,
+              supervised practice. Legalise applies that structure to AI
+              counsel. The mapping is literal:
+            </p>
+          </Prose>
+          <div className="mt-8 max-w-xl">
+            <CertCard>
+              <CertEyebrow left="Schedule 01" right="The correspondence" />
+              <dl className="mt-4 space-y-1 text-[11px] text-muted">
+                {MAPPING.map((m) => (
+                  <LedgerRow key={m.primitive} label={m.primitive} tone="ink">
+                    {m.counterpart}
+                  </LedgerRow>
+                ))}
+              </dl>
+            </CertCard>
+          </div>
+          <Figure
+            src="/architecture/fig-certificates.png"
+            alt="Two skills rendered as certificates in the demo workspace, each declaring what it reads and writes"
+            index={3}
+            caption="Skills in a matter, rendered as their certificates"
+          />
+        </Section>
+
+        {/* Deeper reading (A1): the page is the readable index; each
+            section maps to its canonical doc(s) in the repo. */}
+        <section id="docs" className="mt-16 scroll-mt-8">
+          <SectionRule
+            label={<span className="text-seal">Deeper reading</span>}
+            right="The page indexes; the docs go deep"
+          />
+          <Prose>
+            <p>
+              This page is the map. Each section above has one or more
+              canonical documents in the repository that carry the full
+              detail. They are listed here so depth lives in the docs and the
+              page stays readable.
+            </p>
+          </Prose>
+          <dl className="mt-8 max-w-3xl space-y-4">
+            {DOC_MAP.map((row) => (
+              <div
+                key={row.section}
+                className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-rule/50 pt-4 sm:grid-cols-[180px_1fr]"
+              >
+                <dt className="text-[11px] uppercase tracking-[0.18em] text-muted">
+                  {row.section}
+                </dt>
+                <dd className="flex flex-wrap gap-x-5 gap-y-2">
+                  {row.docs.map((d) => (
+                    <Src key={d.label} file={d.file}>
+                      {d.label}
+                    </Src>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* Shipped-vs-deferred matrix (A7): what is in the code, what is
+            staged, and what is a deliberate trade — each with where to
+            check it. No SBOM/SLSA/SOC2/ISO claimed as shipped. */}
+        <section id="status" className="mt-16 scroll-mt-8">
+          <SectionRule
+            label={<span className="text-seal">Status</span>}
+            right="Shipped · deferred · accepted"
+          />
+          <Prose>
+            <p>
+              Shipped means it is in the code on master. Deferred means it is
+              designed or staged but not built. Accepted means a deliberate
+              trade we are not closing. Each row points at where to check.
+            </p>
+          </Prose>
+          <div className="mt-8 max-w-3xl overflow-x-auto border border-ink/70 bg-paper">
+            <table className="w-full border-collapse text-left text-sm text-prose">
+              <thead>
+                <tr className="border-b border-rule/60">
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+                    Capability
+                  </th>
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+                    Status
+                  </th>
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+                    Verification
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {STATUS_MATRIX.map((row) => (
+                  <tr key={row.capability} className="border-b border-rule/40 last:border-0">
+                    <td className="px-3 py-2 align-top">{row.capability}</td>
+                    <td className="px-3 py-2 align-top">
+                      <StatusTag status={row.status} />
+                    </td>
+                    <td className="tech-token px-3 py-2 align-top text-[11px] text-muted">
+                      {row.verification}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <Section id="honesty" label="14 · Honesty" title="What is not solved.">
           <Prose>
             <p>
               The hosted site is an evaluation environment, not a practice
