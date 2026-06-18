@@ -653,6 +653,20 @@ export function Architecture() {
   return (
     <div className="max-w-page mx-auto">
       <div className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
+        {/* Honest note: this page is provisional; the repo is canonical. */}
+        <div className="mb-10 max-w-2xl border border-rule bg-wash px-4 py-3 text-sm leading-relaxed text-muted">
+          This page is a temporary version, and parts of it are LLM-written
+          slop. For the real read, go to the docs and the actual code on{" "}
+          <a
+            href="https://github.com/b1rdmania/legalise"
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            GitHub
+          </a>
+          .
+        </div>
         {/* Masthead — the monument carries the page alone (P30). The
             technical reader's orientation, not the founder's story (that
             lives on /about). */}
