@@ -1,5 +1,7 @@
 # LegalTechTalk 2026 — Floor Teardown
 
+> **Start here:** [`outputs/REPORT.md`](./outputs/REPORT.md) — the narrative front door (hook, thesis, picks, direction). This README is the process/doctrine layer behind it.
+
 A first-hand, source-anchored teardown of the LegalTechTalk 2026 exhibitor
 floor (InterContinental London – The O2, 17–18 June 2026). Triage the whole
 floor, kill the dead weight, dissect the interesting ones (model,

@@ -1,8 +1,17 @@
 # LegalTechTalk 2026 — Research Scorecard
 
-**33 vendors screened against the thesis:** *AI as preparation, accountability, supervised autonomy* — technically-real = agentic, interoperable, lives where lawyers work.
+**33 vendors screened. Two theses, one scorecard.**
+- **Thesis 1 — infrastructure / the "interrupt":** technically-real = agentic, interoperable, lives where lawyers work. *AI as preparation, accountability, supervised autonomy.* Most of the field is read against this.
+- **Thesis 2 — regulated legal-services entities deploying accountable AI:** already-regulated entities (law firms / legal-services providers) delivering AI-augmented legal services. Judged on regulatory standing, accountability & privilege posture, AI leverage — **not** the agentic/interop infra rubric, which structurally penalises a firm-model. **Moritz** and **Cicero** are read primarily against this lens (see the Thesis-2 section).
 
-Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibility + Interoperability + Team. Scores are provisional (Stage A/B facts pass); confidence flags evidence quality.
+Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibility + Interoperability + Team. "Thesis-fit" credits fit to *either* thesis. Scores are provisional (Stage A/B facts pass); confidence flags evidence quality.
+
+## Thesis 2 — regulated legal-services entities deploying accountable AI
+
+*The "be the regulated AI firm" cohort — the inverse of the infra plays (which arm the firms). Surfaced as its own section because the Thesis-1 ranking buries them: a firm-model scores ~0 on interoperability by construction. Read these here, not in the infra ranking.* Scope-checked against the actual exhibitor floor — Garfield, Lawhive, Crosby etc. were **not** at LegalTechTalk 2026 and are excluded. KPMG Law was present but is held out of this cohort for now (per scoping call).
+
+- **Moritz** *(now #25 · 19.0/35 in the main table)* — AI-native, lawyer-supervised firm (~80% AI draft + 20% lawyer sign-off), $9M seed (YC / 20VC). The flagship Thesis-2 entity: *be* the regulated firm rather than sell software to one. Strong thesis-fit and team; the open questions are firm-model defensibility and whether the services margin compounds like software. Previously scored 13/35 / "off-thesis" under Thesis 1 — that was the wrong lens.
+- **Cicero (by Automatise)** *(#18 · 21.0/35)* — adjacent, not identical: a *vendor* with regulated-grade posture (self-hosted Llama, privilege-safe litigation analysis) whose customers are regulated firms (Wotton Kearney, Law In Order) via TransPerfect. Belongs in the conversation for its accountability stance, but it sells to the firm rather than being one.
 
 ## Ranked summary
 
@@ -32,14 +41,14 @@ Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibi
 | 22 | **Crimson** | ediscovery | 20.0 | 3 | 6 | 3 | 2 | 2 | 4 | medium |
 | 23 | **Emma Legal** | research | 20.0 | 3 | 6 | 2 | 2 | 3 | 4 | medium |
 | 24 | **PhaseLaw** | ediscovery | 20.0 | 3 | 6 | 3 | 2 | 2 | 4 | high |
-| 25 | **Aloi** | knowledge | 19.0 | 3 | 8 | 2 | 2 | 2 | 2 | low |
-| 26 | **Augmetec** | ediscovery | 19.0 | 3 | 6 | 2 | 2 | 3 | 3 | low |
-| 27 | **LUPL** | practice-mgmt | 19.0 | 3 | 4 | 2 | 3 | 4 | 3 | medium |
-| 28 | **Casey** | agentic-horizontal | 17.0 | 3 | 6 | 1 | 2 | 2 | 3 | low |
-| 29 | **Awesome Compliance (ACT)** | compliance-risk | 14.0 | 2 | 6 | 2 | 1 | 1 | 2 | medium |
-| 30 | **Mage Legal** | ediscovery | 14.0 | 2 | 6 | 2 | 1 | 1 | 2 | medium |
-| 31 | **Pivot (yourpivot)** | ediscovery | 14.0 | 3 | 4 | 2 | 2 | 1 | 2 | low |
-| 32 | **Moritz** | services-consulting | 13.0 | 3 | 2 | 3 | 1 | 0 | 4 | medium |
+| 25 | **Moritz** _(Thesis 2)_ | services-consulting | 19.0 | 3 | 8 | 3 | 1 | 0 | 4 | medium |
+| 26 | **Aloi** | knowledge | 19.0 | 3 | 8 | 2 | 2 | 2 | 2 | low |
+| 27 | **Augmetec** | ediscovery | 19.0 | 3 | 6 | 2 | 2 | 3 | 3 | low |
+| 28 | **LUPL** | practice-mgmt | 19.0 | 3 | 4 | 2 | 3 | 4 | 3 | medium |
+| 29 | **Casey** | agentic-horizontal | 17.0 | 3 | 6 | 1 | 2 | 2 | 3 | low |
+| 30 | **Awesome Compliance (ACT)** | compliance-risk | 14.0 | 2 | 6 | 2 | 1 | 1 | 2 | medium |
+| 31 | **Mage Legal** | ediscovery | 14.0 | 2 | 6 | 2 | 1 | 1 | 2 | medium |
+| 32 | **Pivot (yourpivot)** | ediscovery | 14.0 | 3 | 4 | 2 | 2 | 1 | 2 | low |
 | 33 | **KomplyAI** | compliance-risk | 9.0 | 2 | 2 | 1 | 1 | 1 | 2 | low |
 
 ## Tier A — really liked
@@ -217,8 +226,8 @@ Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibi
 - **Red flags:** Headcount, pricing, and exact total funding (~$72.1M) are aggregator/self-reported or unknown.; '5,000 professionals / 200,000 transactions' are company self-reported metrics.; No evidence of open API/MCP/CLI or embedded DMS/Office integrations; 'agent' is internal-loop marketing.; Core reliance on 
 - **Scores:** U3 T4 I4 D2 X1 Tm3
 
-### Cicero (by Automatise)  ·  21.0/35  ·  _low confidence_
-*ediscovery* — Security-first private (self-hosted Llama) litigation analysis tool with a strong distribution partner in TransPerfect, but company financials and team depth are opaque. [PROVISIONAL]
+### Cicero (by Automatise)  ·  21.0/35  ·  _low confidence_  ·  **Thesis-2 adjacent**
+*ediscovery* — Security-first private (self-hosted Llama) litigation analysis tool with a strong distribution partner in TransPerfect, but company financials and team depth are opaque. **Thesis-2 read:** regulated-grade posture (privilege-safe, self-hosted) selling *into* regulated firms — the accountability stance is the draw, but it's a vendor to the firm, not a firm itself. [PROVISIONAL]
 
 - **Founded/HQ:** unknown (Automatise is the operating company; founding year not confirmed in credible sources) · Sydney, Australia (Automatise)
 - **Funding:** unknown (no funding round confirmed in credible sources) (last: unknown; lead: unknown)
@@ -360,15 +369,15 @@ Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibi
 - **Red flags:** Funding amount, headcount, and customer names all undisclosed/self-reported; No integrations or API/agentic surface — closed browser app contradicts 'lives where lawyers work' thesis; Very early (proof/beta) and narrow single-jurisdiction vertical (UK family law); 'World's first' / 'AI-native' claim
 - **Scores:** U3 T2 I2 D2 X1 Tm2
 
-### Moritz  ·  13.0/35  ·  _medium confidence_
-*services-consulting* — Legitimately funded, well-pedigreed AI-native law firm — but a services business with an internal AI tool, not the agentic/interoperable software the thesis rewards; off-thesis as a tech vendor. [PROVISIONAL]
+### Moritz  ·  19.0/35  ·  _medium confidence_  ·  **Thesis 2 flagship**
+*services-consulting* — **Read against Thesis 2, not Thesis 1.** Legitimately funded, well-pedigreed AI-native *regulated firm* (~80% AI draft + lawyer sign-off) — the cleanest "be the regulated AI firm" play in the field. Strong thesis-fit and team; the open questions are firm-model defensibility and whether services margin compounds like software. The interop/agentic score is ~0 *by construction* (a firm isn't a platform) — that's the Thesis-1 rubric mismeasuring a Thesis-2 entity, which is exactly why it's broken out. [PROVISIONAL]
 
 - **Founded/HQ:** 2025 (operating/launched early 2026; originally founded as 'Arcline' before pivot/rename) · San Francisco, CA, USA
 - **Funding:** $9M (seed, 2026) (last: $9M seed, announced May 2026 (oversubscribed, reportedly closed in four days); raised via its MSO/tech entity Parlai; lead: Y Combinator and 20VC (co-led); also Urban Innovation Fund, Inception, and 20+ unicorn founders (Dropbox, Reddit, Instacart, Gusto, Hugging Face, Runway, WorkOS, Superhuman, Cruise, Mixpanel, Supercell))
 - **Customers:** 100+ companies served (self-reported); named verticals/clients not disclosed — founder Pamir Ehsas was prior outside counsel to OpenAI and Google, but those are not stated as Moritz clients
 - **Interop/agentic:** none found. No API/MCP/CLI/agent-to-agent surface for third parties. AI is internal: Parlai-supplied tech drafts a first pass (templates, playbooks, precedent/industry data) that human lawyers review. It is a service delivery tool, not interoperable software that lives where the customer's lawyers work.
-- **Red flags:** Category mismatch: listed 'services-consulting' but it is structurally a law firm + MSO, not a software/consulting vendor — agentic/interop thesis lens applies poorly.; Traction metrics ($2bn+ aggregate contract value, 100+ companies, 4-hour turnaround) are self-reported/PR, not independently verifi
-- **Scores:** U3 T1 I3 D1 X0 Tm4
+- **Red flags:** Traction metrics ($2bn+ aggregate contract value, 100+ companies, 4-hour turnaround) are self-reported/PR, not independently verified; firm-model defensibility (vs. the next AI-native firm) and services-vs-software margin profile are unproven; very young (founded 2025, launched 2026). *Note: the earlier "category mismatch / off-thesis" flag was a Thesis-1 artefact — resolved by reading it under Thesis 2.*
+- **Scores:** U3 **T4 (Thesis-2 fit)** I3 D1 X0 Tm4
 
 ### KomplyAI  ·  9.0/35  ·  _low confidence_
 *compliance-risk* — Thin-evidence AI-GRC workflow tool in a crowded compliance category; no funding/agentic/integration signals to support the thesis. [PROVISIONAL]

@@ -3,7 +3,7 @@
 
 *Companion to the 33-vendor scorecard. This is the POV layer — evidence is in the scorecard, the judgement is mine. Calls are provisional.*
 
-> **Note (widening in progress):** This cut is written against **Thesis 1 — the "interrupt"/infrastructure play** (agentic, interoperable, lives where lawyers work). A **second thesis — regulated legal-services entities deploying accountable AI** — is being added. Under that second lens, the calls on **Moritz** and **Cicero** below are being re-evaluated (they are off-thesis *here*, but on-thesis *there*). Read the kill-list with that caveat.
+> **Two theses.** This cut is written mainly against **Thesis 1 — the "interrupt"/infrastructure play** (agentic, interoperable, lives where lawyers work). A **second thesis — already-regulated legal-services entities deploying accountable AI** — runs alongside it. **Moritz** (the flagship) and **Cicero** (adjacent) are judged under Thesis 2, where they're on-thesis — they are *not* in the kill-list below. Scope is the actual exhibitor floor only: Garfield, Lawhive, Crosby were *not* at the show and are excluded.
 
 ## The one-line map
 Three things are real. Most of the rest is an app that becomes a feature in someone else's product inside a year.
@@ -30,7 +30,7 @@ Blunt. Evidence in the scorecard; this is the read.
 - **Dead segment — the standalone vertical LLM app with no interop:** Crimson, Emma, PhaseLaw, Pivot, Mage. Pattern: 2024-25 founded, tiny raise, "AI [associate] for [vertical]," closed browser SaaS, no API/MCP, self-reported traction. Features, not companies — gone the moment a horizontal agent or incumbent ships the vertical. Avoid as bets; fine as acquihire fodder.
 - **Dead-ish — diagramming-as-data:** Structureflow, Jigsaw. Nice tools, real logos, but closed surface, not agentic, niche-bound. Good businesses, capped ceilings. Not where the thesis points.
 - **Crowded and thin — compliance/GRC:** KomplyAI (9/35, no funding, no agentic signal), Awesome Compliance. A graveyard of thin workflow tools on the same ground. Truth Systems is the only one to watch, and only if it goes deeper than browser-layer enforcement.
-- **Off-thesis — the services firm in software clothing:** Moritz (13/35). Well-funded, well-pedigreed, but structurally a law firm + MSO with an internal tool. Not a vendor. (Relevant to Stella as the *opposite* model: Moritz is "be the AI firm"; the infra plays are "arm the firms.") *(Widening note: under Thesis 2 this "opposite model" is itself a thesis — re-evaluating.)*
+- **(Moved to Thesis 2, not killed):** Moritz. Under Thesis 1 it looked like a "services firm in software clothing" (13/35). It isn't a kill — it's the **Thesis-2 flagship**: the "be the regulated AI firm" model (the inverse of the infra plays, which arm the firms). Re-scored 19/35 under the right lens. See the Thesis-2 section in the scorecard.
 - **Most exposed — horizontal agent-builders:** Airia, Eudia, Newcode, Wexler, Casey. "Spin up bespoke legal agents" is the most clonable shape there is, a frontier-model quarter from commoditised. Casey especially — solo founder, unconfirmed everything, severe name-collision. Watch, don't bet.
 
 ## What it means
