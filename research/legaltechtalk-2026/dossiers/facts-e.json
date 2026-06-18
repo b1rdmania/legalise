@@ -1,0 +1,196 @@
+[
+  {
+    "id": "S38",
+    "name": "Jigsaw",
+    "category": "knowledge",
+    "facts": {
+      "founded": "~2019-2020 (disputed: Legal IT Insider 2019, Tracxn 2020; funding activity from Feb 2023)",
+      "hq": "London, UK (offices also cited in US and Singapore)",
+      "total_funding": "$25M total ($15M Series A Apr 2024 + ~$10M prior pre-seed/seed since Feb 2023)",
+      "last_round": "$15M Series A, April 2024",
+      "lead_investor": "Exor Ventures (angels from Linklaters, Morgan Stanley, KKR)",
+      "headcount": "unknown (disputed: press/self-reported ~145-150, Tracxn 32 as of Jul 2024)",
+      "customers": ["unknown (only self-reported aggregate: '200+ top-tier law firms, financial institutions, asset managers'; no named logos confirmed)"],
+      "integrations": ["Microsoft Office (PowerPoint, Word, Excel, Visio)", "iManage"],
+      "agentic_interop": "No confirmed public API/MCP/CLI/agent-to-agent. Has 'Jigbot' AI assistant (builds/edits diagrams from email/text deal summaries) and computer-vision sketch capture. Interop is closed Office/iManage embedding, not an open developer surface.",
+      "tech_model": "AI/computer-vision diagramming engine converting text/email deal summaries, documents, or sketch photos into data-rich corporate structure diagrams, timelines and step plans stored as queryable data.",
+      "pricing": "unknown (no public pricing; enterprise/custom quote implied)",
+      "name_collision_check": "Confirmed entity = jigsawcreate.com (UK 'Jigsaw Tech Ltd'), corporate-structure diagramming, $15M Series A Apr 2024, founders Scanlan & Leon. Ruled out: Google Jigsaw (Alphabet), jigsaw.ai (data platform), JigsawStack (dev AI API), Jigsaw Trading (futures software), a16z Speedrun 'Jigsaw', CMU HCII research prototype. Website is jigsawcreate.com, NOT jigsaw.legal."
+    },
+    "scores": {
+      "uniqueness": {"score": 4, "justification": "Visual-first structure-diagramming-as-system-of-record is a genuinely differentiated niche with little direct competition (vs PowerPoint/Visio)."},
+      "thesis_fit": {"score": 2, "justification": "Lives in Office/iManage where lawyers work, but is an assistive diagramming app, not agentic/supervised-autonomy; Jigbot is a feature, no open agent surface."},
+      "investability": {"score": 4, "justification": "$25M raised, Exor Ventures lead, marquee angels, repeat founders with prior exit (XRef->Litera); strong on paper despite unverified traction."},
+      "defensibility": {"score": 3, "justification": "Structured-data model and CV capture create some moat, but no API/network effects and no named customer lock-in evidence; conservative given thin traction data."},
+      "interoperability": {"score": 2, "justification": "Office and iManage embedding only; no confirmed API, MCP, CLI or agent-to-agent — closed integration surface."},
+      "team": {"score": 4, "justification": "Repeat legal-tech founders (Scanlan, Leon) with prior XRef exit to Litera and deep BigLaw/Litera pedigree."}
+    },
+    "provisional_verdict": "Differentiated diagramming-as-data play with strong backing and repeat founders, but closed integration surface and no agentic/interop depth limit thesis fit. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Headcount conflict (32 vs ~145-150) — material discrepancy",
+      "No named customers; '200+' claim is self-reported marketing",
+      "Founded-year conflict (2019 vs 2020 vs activity from 2023)",
+      "Founder bio inconsistency (Scanlan ex-Akin Gump per Law.com vs ex-Simmons & Simmons elsewhere)",
+      "No confirmed open API/MCP/CLI/agent interop — likely absent",
+      "RollOnFriday '£100M sale' refers to founders' earlier XRef chain, NOT a Jigsaw exit"
+    ],
+    "sources": [
+      {"url": "https://www.law.com/legaltechnews/2024/04/29/jigsaw-legal-tech-startup-focused-on-corporate-diagramming-raises-15-million/", "accessed": "2026-06-18", "what_it_supports": "$15M Series A Apr 2024, Exor lead, corporate diagramming, UK/US/Singapore offices, founders"},
+      {"url": "https://legaltechnology.com/2024/04/29/jigsaw-raises-a-15m-series-a-bringing-total-funding-since-2023-to-25m/", "accessed": "2026-06-18", "what_it_supports": "$25M total funding since 2023"},
+      {"url": "https://legaltechnology.com/2025/07/29/jigsaw-five-fast-facts/", "accessed": "2026-06-18", "what_it_supports": "Founded 2019, ~145 headcount, founder backgrounds"},
+      {"url": "https://tracxn.com/d/companies/jigsaw/", "accessed": "2026-06-18", "what_it_supports": "Founded 2020, 32 headcount (aggregator, lower confidence)"},
+      {"url": "https://www.jigsawcreate.com/", "accessed": "2026-06-18", "what_it_supports": "Confirmed entity website, self-reported '200+ firms', integrations"},
+      {"url": "https://www.jigsawcreate.com/product/ai", "accessed": "2026-06-18", "what_it_supports": "Jigbot AI assistant, computer-vision sketch capture"},
+      {"url": "https://www.uktech.news/ai/jigsaw-ai-funding-20240430", "accessed": "2026-06-18", "what_it_supports": "Series A round (£12m framing)"},
+      {"url": "https://www.legaltechnologyhub.com/vendors/jigsaw/", "accessed": "2026-06-18", "what_it_supports": "Integrations (Office, iManage)"}
+    ]
+  },
+  {
+    "id": "A3",
+    "name": "Augmetec",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "2022 (probable; 2023 appears in some aggregators)",
+      "hq": "London, UK (registered at 71-75 Shelton Street, a serviced/formation-agent address)",
+      "total_funding": "~£2.4M total (~£410K pre-seed Apr 2023 + £2M+/€2.4M seed Feb 2025)",
+      "last_round": "£2M+ seed, announced ~18 Feb 2025",
+      "lead_investor": "Fuel Ventures (co-investor 14Peaks Capital; angels incl. retired Kirkland & Ellis senior partner, NetDocuments founders' family office). Pre-seed from Haatch Ventures.",
+      "headcount": "unknown (no credible figure; the '11-50' result was for wrong entity 'Augmetic'; likely <20 at seed stage)",
+      "customers": ["unknown (anonymized testimonials only: 'Top Ranked Law Firm', 'International Law Firm'; no named logos)"],
+      "integrations": ["Relativity", "iManage", "NetDocuments", "Microsoft (generic)", "Google (generic)"],
+      "agentic_interop": "Marketed as an investigations 'command centre' but evidence of true agentic/agent-to-agent architecture is thin. LEIAA v2.0 does AI automation/workflows (auto-identify evidence, detect fraudulent docs, build chronologies, 'suggest team actions'). No public API/developer docs, no MCP, no CLI, no named autonomous agent found. Reads as assistive workflow AI, not agentic.",
+      "tech_model": "Secure single-interface SaaS that ingests investigation evidence/documents and applies AI (analytics, document/fraud detection, NLP for witness/interview prep, chronology building, automated reporting) over the investigation lifecycle. Model stack undisclosed.",
+      "pricing": "unknown (no public pricing; enterprise SaaS assumed)",
+      "name_collision_check": "Confirmed entity = Augmetec (London legaltech, product 'LEIAA', uk.linkedin.com/company/augmetec). HIGH spelling-collision risk: ruled out Augmetic/Augmetic Technology, Augmetek, Augmedix (US healthcare AI), Augentic AI. Verify spelling 'Augmetec' + product 'LEIAA' on any data feed."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Investigations-specific 'command centre' (witness prep, fraud detection, chronologies) is a defined niche, but crowded vs Relativity/ediscovery incumbents; differentiation is workflow packaging."},
+      "thesis_fit": {"score": 3, "justification": "'AI as preparation/accountability' framing fits well (investigation prep, defensible answers), and it integrates into Relativity/iManage/NetDocuments — but agentic/supervised-autonomy is unverified; 'suggest', not act."},
+      "investability": {"score": 2, "justification": "Only ~£2.4M total, seed-stage, credible micro-VC (Fuel) + strategic angels, but very early and traction unverified."},
+      "defensibility": {"score": 2, "justification": "Thin evidence of moat — workflow AI over third-party models, no named customers, no proprietary-data lock-in shown; conservative on thin evidence."},
+      "interoperability": {"score": 3, "justification": "Real DMS/ediscovery connectors (Relativity, iManage, NetDocuments) are meaningful, but no API docs/MCP/CLI/A2A — integration is connector-level only."},
+      "team": {"score": 3, "justification": "CEO Kritin Sundaram is ex-HSF/Fieldfisher investigations lawyer (domain-credible); other co-founders' backgrounds largely unverified."}
+    },
+    "provisional_verdict": "Domain-credible investigations workflow AI with real DMS/ediscovery connectors, but very early, unfunded-deep, and 'command centre' agentic claims are unverified. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": [
+      "Very early stage (~£2.4M total); product young despite 'v2.0'",
+      "No named customers — anonymized testimonials only",
+      "Most substantive claims self-reported/PR (45% efficiency, ISO/SOC certs, '150+ investigations')",
+      "Agentic framing vs reality gap — no API/MCP/CLI or named agent verifiable",
+      "Headcount unconfirmed; registered at serviced-office address",
+      "Spelling collision risk (Augmetic/Augmetek/Augmedix/Augentic)",
+      "Founding-year discrepancy (2022 vs 2023)"
+    ],
+    "sources": [
+      {"url": "https://www.law.com/legaltechnews/2025/02/18/uk-startup-augmetec-attracts-more-than-2-million-in-seed-funding/", "accessed": "2026-06-18", "what_it_supports": "£2M+ seed round Feb 2025"},
+      {"url": "https://www.artificiallawyer.com/2025/02/18/augmetec-bags-2m-for-regulatory-investigations-platform/", "accessed": "2026-06-18", "what_it_supports": "Founded 2022, seed funding, regulatory investigations platform, integrations"},
+      {"url": "https://www.eu-startups.com/2025/02/legaltech-startup-augmetec-raises-over-e2-4-million-for-its-flagship-platform-leiaa/", "accessed": "2026-06-18", "what_it_supports": "€2.4M seed, LEIAA flagship"},
+      {"url": "https://www.fuel.ventures/augmetec-raises-2m", "accessed": "2026-06-18", "what_it_supports": "Fuel Ventures lead, 14Peaks co-investor, strategic angels (PR/investor-self-interest)"},
+      {"url": "https://www.crunchbase.com/funding_round/augmetec-pre-seed--c086ff7c", "accessed": "2026-06-18", "what_it_supports": "Pre-seed round dated 2023-04-01"},
+      {"url": "https://haatch.com/portfolio/augmetec/", "accessed": "2026-06-18", "what_it_supports": "Pre-seed ~£410K from Haatch + angels"},
+      {"url": "https://www.legaltech-talk.com/augmetec-launches-leiaa-v2-0/", "accessed": "2026-06-18", "what_it_supports": "LEIAA v2.0 capabilities (workflows, suggestions, chronologies)"},
+      {"url": "https://siliconcanals.com/uk-augmetec-raises-2-4m/", "accessed": "2026-06-18", "what_it_supports": "CEO Kritin Sundaram background (ex-HSF/Fieldfisher)"},
+      {"url": "https://www.enterprisetimes.co.uk/2025/02/18/augmetec-sees-future-growth-with-new-funding/", "accessed": "2026-06-18", "what_it_supports": "Co-founders Jonny Jackson (CSO), Jennifer Ratz (COO)"},
+      {"url": "https://uk.linkedin.com/company/augmetec", "accessed": "2026-06-18", "what_it_supports": "Entity confirmation, London HQ"}
+    ]
+  },
+  {
+    "id": "S56",
+    "name": "Crimson",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "2025",
+      "hq": "London, UK (New York office opened May 2026, led by ex-Patterson Belknap litigator Rhick Bose)",
+      "total_funding": "$2.5M seed (~£1.8M), 'oversubscribed' — NOTE: brief's '$25M' is wrong, a URL-slug artifact; every credible source says $2.5M",
+      "last_round": "$2.5M seed, announced ~28 May 2026",
+      "lead_investor": "Y Combinator (Spring 2025 cohort); plus Symphony Ventures, Twenty Two Ventures, ACQ Ventures, Amino Capital, Eight Capital, Scale Asia Ventures, Progressive Ventures, and legal-industry/arbitrator angels",
+      "headcount": "~6 (London core team, per GetLatka estimate — treat as approximate/unverified)",
+      "customers": ["unknown (claims 'Magic Circle and Am Law 10 firms, arbitration practices, litigation boutiques'; no firm named)"],
+      "integrations": ["iManage", "SharePoint"],
+      "agentic_interop": "Positioned as 'The AI Associate for Litigation Lawyers' doing multi-step case work, but no source confirms autonomous-agent/agent-to-agent architecture. No public API, no MCP, no CLI found. Integration is DMS connector-level (iManage/SharePoint) for ingestion. Agentic claims unverified.",
+      "tech_model": "Cloud-based vertical LLM application for litigation/arbitration — ingests case documents, extracts issues/entities/events, flags inconsistencies between party positions, produces citation-grounded answers and drafts (RAG-style grounding); foundation-model provider undisclosed.",
+      "pricing": "unknown (no public pricing; subscription/enterprise custom implied)",
+      "name_collision_check": "Confirmed entity = crimson.law, AI litigation/disputes platform, YC Spring 2025, co-founder Mark Feldner. Ruled out: Crimson Education (NZ admissions), Crimson Wine Group, The Harvard Crimson, Crimson cybersecurity vendors, Crimson Legal/Crimson Legal Group law firms. KEY CORRECTION: funding is $2.5M not $25M."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Litigation/arbitration 'case intelligence' workspace is a defined wedge, but RAG-over-documents with citations is increasingly common; differentiation is litigation-native UX and founder credibility."},
+      "thesis_fit": {"score": 3, "justification": "'AI as preparation/accountability' fits (citation-grounded, matter-scoped); lives in iManage/SharePoint — but agentic/supervised-autonomy unverified and it reads as a vertical LLM app."},
+      "investability": {"score": 3, "justification": "YC-backed, oversubscribed $2.5M seed, A&O Shearman Fuse selection, strong founder pedigree — but very small/early and metrics self-reported."},
+      "defensibility": {"score": 2, "justification": "Thin moat — vertical LLM wrapper (RAG + citations) on third-party models, no proprietary data or network effects shown; conservative on thin evidence."},
+      "interoperability": {"score": 2, "justification": "Only iManage + SharePoint confirmed; no Relativity, no Salesforce, no public API/MCP/CLI despite ediscovery framing."},
+      "team": {"score": 4, "justification": "Strong: CEO Mark Feldner (ex-Clifford Chance/WilmerHale/Willkie litigator), CTO David Strömbäck (ex-Flutter head of data science leading 13 AI engineers)."}
+    },
+    "provisional_verdict": "Credible litigation-native founders and YC backing, but a tiny, very-early vertical LLM app with thin interop and self-reported traction. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Brief's funding figure is WRONG ($2.5M not $25M) — correct internal records",
+      "Very early/small: 2025-founded, ~6 people; servicing 'Magic Circle/Am Law 10' is a diligence stretch",
+      "No named customers; '$40bn disputes' and '30% MoM growth' are self-reported, unverified",
+      "Interop thin — only iManage+SharePoint; no Relativity/Salesforce/API/MCP/CLI",
+      "Tech is a vertical LLM wrapper on undisclosed foundation models",
+      "Third co-founder (Amine Amor) and GetLatka revenue figure are single-source/low-confidence"
+    ],
+    "sources": [
+      {"url": "https://www.globallegalpost.com/news/ai-litigation-legaltech-start-up-crimson-raises-25m-in-seed-funding-round-1123576627", "accessed": "2026-06-18", "what_it_supports": "$2.5m seed (headline), AI litigation positioning"},
+      {"url": "https://www.law.com/legaltechnews/2026/05/28/litigation-platform-crimson-announces-25m-seed-round-new-york-office-/", "accessed": "2026-06-18", "what_it_supports": "$2.5M seed dated 2026-05-28, New York office, Rhick Bose"},
+      {"url": "https://legaltechnology.com/crimson-raises-2-5m-seed-opens-new-york-office-leans-hard-on-the-litigation-native-pitch/", "accessed": "2026-06-18", "what_it_supports": "YC lead, investor syndicate, A&O Shearman Fuse"},
+      {"url": "https://www.ycombinator.com/companies/crimson", "accessed": "2026-06-18", "what_it_supports": "Founded 2025, YC Spring 2025, entity confirmation"},
+      {"url": "https://www.ycombinator.com/launches/Ndn-crimson-the-ai-associate-for-litigation-lawyers", "accessed": "2026-06-18", "what_it_supports": "'AI Associate for Litigation Lawyers' positioning"},
+      {"url": "https://legaltechnology.com/2025/05/30/start-up-corner-crimson-the-ai-platform-built-to-manage-complex-disputes/", "accessed": "2026-06-18", "what_it_supports": "Product capabilities (per-matter workspaces, document review, timelines)"},
+      {"url": "https://www.nonbillable.co.uk/news/litigation-ai-startup-founded-city-lawyer-crimson-fundraise-mark-feldner", "accessed": "2026-06-18", "what_it_supports": "CEO Mark Feldner background"},
+      {"url": "https://www.finsmes.com/2026/05/crimson-raises-2-5m-in-seed-funding.html", "accessed": "2026-06-18", "what_it_supports": "$2.5M seed, founded 2025, traction claims (PR republisher)"},
+      {"url": "https://getlatka.com/companies/crimson.law", "accessed": "2026-06-18", "what_it_supports": "~6-person team / ~$660K revenue (estimated, low confidence)"}
+    ]
+  },
+  {
+    "id": "S61",
+    "name": "Lawstronaut",
+    "category": "infra-platform",
+    "facts": {
+      "founded": "unknown exact (~2024-2025; EUIPO trademark filed Feb 2025; parent filerskeepers founded 2018; surfaced publicly at ILTACON 2025)",
+      "hq": "Operationally Amsterdam, Netherlands (founders + filerskeepers base); trademark/contracting entity is 'Lawstronaut FZCO', a Dubai free-zone company",
+      "total_funding": "unknown (no round/amount/investor found; parent filerskeepers shows no funding data — likely bootstrapped)",
+      "last_round": "unknown",
+      "lead_investor": "unknown",
+      "headcount": "unknown for Lawstronaut standalone (parent filerskeepers listed 51-100; Lawstronaut team likely much smaller)",
+      "customers": ["unknown (parent filerskeepers names Alibaba, Heineken, Coca-Cola for data-retention, NOT confirmed as Lawstronaut API customers)"],
+      "integrations": ["MCP server connecting to AI agents (e.g. Claude)", "RESTful API (no DMS/Word/SharePoint/Salesforce connectors — it is a data layer, not a workflow app)"],
+      "agentic_interop": "Strong infra-platform signals (all self-reported): RESTful legal-data API over 45M+ laws/regs/cases across 150+ jurisdictions, OAuth 2.0, JSON, versioned content; explicit MCP server that 'hands your agent the slice of law it needs, with provenance' (citation+timestamp+link in-turn); continuous ingestion ~2M records/day with article-level change detection. Genuinely a platform-others-build-on. No CLI or A2A framework found.",
+      "tech_model": "Continuously crawls official government legal sources across 150+ jurisdictions, normalizes into a versioned structured schema with article-level change detection, and serves the corpus to developers/AI agents via REST API and an MCP server with provenance/citations.",
+      "pricing": "Starter $15/month; Team $25 per user/month; Enterprise custom (self-reported from site)",
+      "name_collision_check": "Confirmed entity = Lawstronaut (lawstronaut.com), legal-data infrastructure spun out of filerskeepers; founders Wanne Pemmelaar & Madeleine Vos. Trademark held by Lawstronaut FZCO (Dubai). No competing 'space/NASA' commercial entity. Operating team Amsterdam, contracting entity Dubai FZCO — flag for KYC."
+    },
+    "scores": {
+      "uniqueness": {"score": 4, "justification": "Legal-data-layer-for-builders (API + MCP with provenance across 150+ jurisdictions) is a genuinely differentiated infra play; few direct peers (CourtListener/Free Law Project, TR MCP)."},
+      "thesis_fit": {"score": 5, "justification": "Squarely on thesis — API/MCP, agent-native, provenance/accountability built in, lives where agents/builders work; the clearest 'lives where lawyers/agents work' fit of the cohort."},
+      "investability": {"score": 1, "justification": "No confirmable funding, no standalone headcount, no named customers; essentially undiligenceable on financials at this stage."},
+      "defensibility": {"score": 3, "justification": "Continuously-maintained normalized 150+-jurisdiction corpus with change detection is a real data moat IF the claims hold — but all self-reported and unbenchmarked; conservative."},
+      "interoperability": {"score": 5, "justification": "Best-in-cohort: REST API (OAuth 2.0) + MCP server with provenance, explicitly agent-native; this IS the product."},
+      "team": {"score": 4, "justification": "Founders Pemmelaar (ex-A&O/De Brauw/Stibbe, filerskeepers CEO) and Vos are credible data/tech lawyers with an established global data-retention track record (Chambers/Legal 500)."}
+    },
+    "provisional_verdict": "The most thesis-aligned of the cohort — a genuine agent-native legal-data API/MCP infra layer with credible founders — but earliest and thinnest on funding/traction evidence. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": [
+      "No confirmable funding; likely bootstrapped/very early",
+      "No standalone Lawstronaut headcount or named customers",
+      "All capability metrics (45M+ records, 2M/day, 150+ jurisdictions) self-reported, unbenchmarked",
+      "Entity split: Amsterdam ops vs Dubai FZCO trademark/contracting entity — clarify KYC/contracting party",
+      "No Law.com/TechCrunch/Sifted coverage; only ILTA startup-hub + own site",
+      "No CLI or agent-to-agent framework (API + MCP only)"
+    ],
+    "sources": [
+      {"url": "https://lawstronaut.com/", "accessed": "2026-06-18", "what_it_supports": "API/MCP product, 45M+ records/150+ jurisdictions, pricing (all self-reported)"},
+      {"url": "https://www.iltanet.org/resources/publications/pulse/startup25/lawstronaut", "accessed": "2026-06-18", "what_it_supports": "ILTACON 2025 startup-hub profile, infra-platform positioning, MCP/data pipeline"},
+      {"url": "https://www.legaltech-talk.com/partners/2026/lawstronaut/", "accessed": "2026-06-18", "what_it_supports": "Spun out of filerskeepers, founders Pemmelaar & Vos"},
+      {"url": "https://ilta.podbean.com/e/0107-lawstronaut-iltacon-startup-hub/", "accessed": "2026-06-18", "what_it_supports": "ILTA Voices podcast July 2025, public surfacing date"},
+      {"url": "https://uspto.report/TM/99249415", "accessed": "2026-06-18", "what_it_supports": "Trademark held by Lawstronaut FZCO (Dubai entity)"},
+      {"url": "https://tmdb.eu/marke/EU-019148787::lawstronaut-lawstronaut-fzco.html", "accessed": "2026-06-18", "what_it_supports": "EUIPO mark filed Feb 2025, Lawstronaut FZCO"},
+      {"url": "https://www.crunchbase.com/organization/filerskeepers", "accessed": "2026-06-18", "what_it_supports": "Parent filerskeepers — no funding data"},
+      {"url": "https://www.cbinsights.com/company/filerskeepers", "accessed": "2026-06-18", "what_it_supports": "Parent filerskeepers 51-100 employees"},
+      {"url": "https://www.linkedin.com/in/wannepemmelaar/", "accessed": "2026-06-18", "what_it_supports": "CEO background (ex-A&O/De Brauw/Stibbe, filerskeepers)"},
+      {"url": "https://www.lawnext.com/2026/05/two-legal-research-providers-launch-mcp-integrations-with-claude-thomson-reuters-and-free-law-project-connect-their-data-to-ai.html", "accessed": "2026-06-18", "what_it_supports": "Category context — MCP legal-data integrations with Claude"}
+    ]
+  }
+]
