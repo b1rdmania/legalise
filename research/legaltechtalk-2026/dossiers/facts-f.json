@@ -1,0 +1,178 @@
+[
+  {
+    "id": "A6",
+    "name": "Definely",
+    "category": "drafting-redline",
+    "facts": {
+      "founded": "2020",
+      "hq": "London, UK (expanding US presence)",
+      "total_funding": "~$40M total to date",
+      "last_round": "$30M Series B, June 2025",
+      "lead_investor": "Revaia (lead); participants incl. Alumni Ventures, Beacon Capital, Clio, plus earlier investors Octopus Ventures, Zrosk Investment Management, The Raine Group, Cornerstone VC",
+      "headcount": "~84 employees (self-reported at Series B, June 2025; projected to surpass 100 in H2 2025)",
+      "customers": ["A&O Shearman", "Slaughter and May", "DLA Piper", "Dentons", "BT Group (in-house)", "Deloitte (in-house)", "P&O Cruises (in-house)"],
+      "integrations": ["Microsoft Word (native add-in, core)", "iManage", "NetDocuments", "SharePoint", "PDF handling"],
+      "agentic_interop": "Enhance is described as a multi-agent / agentic AI contract-review system (combines rules-based logic, ML and RAG-based generative AI) operating on the active Word document plus related contracts. Integrates into DMS (iManage, NetDocuments, SharePoint) so it lives where lawyers work. No public open developer API/MCP/CLI or agent-to-agent surface confirmed; interop is closed Word/DMS embedding.",
+      "tech_model": "Microsoft Word-native suite (Vault precedent/clause library via connected DMS, Draft in-context navigation, Enhance agentic AI review/redline, Proof proofreading, PDF) using rules + ML + RAG-based generative AI focused on the document in front of the lawyer.",
+      "pricing": "unknown (no public pricing; enterprise/seat-based implied)",
+      "name_collision_check": "Confirmed entity = definely.com, London legaltech founded 2020 by Nnamdi Emelifeonwu and Feargus MacDaeid (MacDaeid a registered blind lawyer), in-Word definition/reference navigation + AI drafting/review, $30M Series B led by Revaia June 2025. Ruled out: unrelated dictionary/definition apps and generic 'definitely' typo results. Distinct from Vesence and other Word-native review tools."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "In-Word definition/cross-reference navigation was a genuinely novel wedge, but the broader draft/review/redline space is now crowded (Vesence, Spellbook, Legora, etc.); differentiation narrowing."},
+      "thesis_fit": {"score": 4, "justification": "Lives natively in Word + iManage/NetDocuments/SharePoint where lawyers work, and Enhance is explicitly multi-agent agentic review — strong 'AI as supervised preparation/accountability' fit."},
+      "investability": {"score": 4, "justification": "$40M raised, $30M Series B led by Revaia June 2025 with strategic backers (Clio), named blue-chip law-firm and in-house customers, disciplined growth narrative."},
+      "defensibility": {"score": 3, "justification": "Deep Word/DMS embedding and clause-level indexing create workflow stickiness, but no open-platform network effects and no proprietary-data moat; defensibility is distribution/UX-based."},
+      "interoperability": {"score": 3, "justification": "Real integrations into Word, iManage, NetDocuments and SharePoint, but no confirmed public API/MCP/CLI or agent-to-agent surface — interop is closed embedding."},
+      "team": {"score": 4, "justification": "Founder-led by two ex-Freshfields-pedigree lawyers; MacDaeid (registered blind) gives strong accessibility-driven origin story; assembled marquee investors and board (Jeroen Plink)."}
+    },
+    "provisional_verdict": "Well-funded, well-distributed Word-native drafting/review tool moving credibly into agentic review (Enhance), but interop is closed embedding and the review space is crowding fast. [PROVISIONAL]",
+    "confidence": "high",
+    "red_flags": [
+      "Headcount and customer-as-logo claims are largely self-reported (Series B PR)",
+      "No open API/MCP/CLI/agent-to-agent developer surface confirmed — interop limited to embedding",
+      "Crowded draft/review/redline category with well-funded competitors"
+    ],
+    "sources": [
+      {"url": "https://techcrunch.com/2025/06/12/legal-tech-platform-definely-raises-30m-series-b-to-make-contract-reviewing-more-efficient/", "accessed": "2026-06-18", "what_it_supports": "$30M Series B June 2025, ~$40M total, founders, 2020 founding, Word integration, Enhance multi-agent"},
+      {"url": "https://tech.eu/2025/06/09/uk-legaltech-definely-secures-30m-to-boost-global-reach-and-ai-development/", "accessed": "2026-06-18", "what_it_supports": "$30M Series B, US expansion, AI roadmap incl. Enhance"},
+      {"url": "https://www.uktech.news/legal/definely-raises-30m-in-series-b-funding-round-20250609", "accessed": "2026-06-18", "what_it_supports": "Series B lead Revaia, participants incl. Clio, Alumni Ventures, Beacon Capital"},
+      {"url": "https://tracxn.com/d/companies/definely/__tYbZhfQQ16itNhuke-GkYRvBchin0rVOh55N9YnyktU/funding-and-investors", "accessed": "2026-06-18", "what_it_supports": "~84 headcount, investor list (aggregator, lower confidence)"},
+      {"url": "https://siliconcanals.com/uk-legaltech-definely-gets-6-5m/", "accessed": "2026-06-18", "what_it_supports": "Founders incl. registered-blind lawyer, prior round, Microsoft/Google backing"},
+      {"url": "https://www.definely.com/blogs/best-ai-document-management-systems", "accessed": "2026-06-18", "what_it_supports": "Integrations iManage/NetDocuments/SharePoint, Enhance agentic architecture (rules+ML+RAG), Vault clause library"},
+      {"url": "https://www.crunchbase.com/organization/definely", "accessed": "2026-06-18", "what_it_supports": "Company profile, founding, funding aggregate"}
+    ]
+  },
+  {
+    "id": "P7",
+    "name": "Leah (ex-ContractPodAi)",
+    "category": "clm",
+    "facts": {
+      "founded": "2012 (as ContractPodAi / ContractPod Technologies); rebranded to Leah January 2026",
+      "hq": "London, UK (global offices: San Francisco, New York, Glasgow, Chicago, Sydney, Mumbai, Toronto)",
+      "total_funding": "$170M-$202M total (disputed across aggregators: CB Insights ~$170M, PitchBook ~$179M, Tracxn ~$202M); anchored by $55M Series B (Insight Partners, 2019) + $115M Series C (SoftBank Vision Fund 2, Sept 2021)",
+      "last_round": "$115M Series C, September 2021 (SoftBank Vision Fund 2) — no new round confirmed post-rebrand",
+      "lead_investor": "SoftBank Vision Fund 2 (Series C lead); Insight Partners (Series B lead); Eagle Investments also cited",
+      "headcount": "unknown (no credible current figure; large multi-office org)",
+      "customers": ["KPMG", "PwC (UK alliance partner)", "Pinsent Masons", "Morae", "Epiq", "QuisLex", "Integreon", "LegalEase", "Bowmans", "Execo", "Vyapi", "(also self-reported 'Fortune 500 legal teams')"],
+      "integrations": ["Salesforce (AppExchange app)", "SAP", "Workday", "Microsoft 365 / Word", "DocuSign", "ERP/CRM/DMS/e-sign via pre-built connectors", "open APIs"],
+      "agentic_interop": "Strongest interop of the four: explicitly positions Leah Agentic OS to design/deploy/govern AI agents, plus Leah Agentic CLM agentic workforce. Open APIs and pre-built connectors across ERP/CRM/DMS/e-sign/finance; Salesforce AppExchange listing; third-party data integration (Nexla connector). PwC UK alliance for agentic operating models / agent orchestration in GBS. Agent-to-agent/orchestration is a core marketed capability.",
+      "tech_model": "Agentic AI platform (Leah Agentic OS + Agentic CLM) orchestrating multiple LLMs dynamically selected per task (incl. OpenAI reasoning models), with RAG over contracts, 65+ language support, spanning legal/procurement/finance workflows.",
+      "pricing": "unknown publicly; third-party estimate ~$50K-$200K/yr enterprise (bindlegal, low confidence)",
+      "name_collision_check": "Confirmed entity = leahai.com / contractpodai.com, the CLM vendor founded 2012 (legal name ContractPod Technologies), rebranded to Leah Jan 2026, CEO/co-founder Sarvarth Misra. Ruled out: 'Leah' as a common personal name and unrelated AI assistants named Leah; this is specifically the ex-ContractPodAi agentic CLM 'OS' with PwC UK alliance."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Agentic 'OS' framing beyond CLM into procurement/finance is ambitious, but the underlying CLM category is mature and crowded (Icertis, Ironclad, Sirion, DocuSign); rebrand is repositioning more than novel tech."},
+      "thesis_fit": {"score": 4, "justification": "Explicitly agentic, interoperable, runs inside enterprise systems of record (Salesforce/SAP/Workday/M365) — strong supervised-autonomy/accountability fit, though heavier enterprise-CLM than lawyer-desktop."},
+      "investability": {"score": 3, "justification": "$170M-$202M raised with SoftBank/Insight, Gartner Visionary 5 yrs, PwC alliance — but no new round since 2021, SoftBank-era valuation overhang and rebrand suggest a reset/pivot, not fresh momentum."},
+      "defensibility": {"score": 3, "justification": "Enterprise integration depth, multi-year deployments and PwC channel create switching costs, but faces deep-pocketed incumbents and no clear proprietary-data or model moat."},
+      "interoperability": {"score": 5, "justification": "Open APIs + pre-built connectors across ERP/CRM/DMS/e-sign, Salesforce AppExchange app, agent-to-agent/orchestration OS, PwC agentic operating-model alliance — best-in-cohort interoperability."},
+      "team": {"score": 3, "justification": "Long-tenured founder/CEO Sarvarth Misra plus co-founders since 2012 and SoftBank/Insight backing; experienced but the rebrand signals strategic pressure rather than fresh execution proof."}
+    },
+    "provisional_verdict": "Mature, deeply interoperable CLM repositioning as an agentic 'OS' with a PwC alliance, but no new funding since 2021 and the rebrand reads as a reset under a crowded-category overhang. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Total funding figure disputed across aggregators ($170M-$202M)",
+      "No new funding round since 2021 Series C; rebrand may signal valuation/strategy reset",
+      "Current headcount unconfirmed",
+      "Customer list mixes named partners (KPMG/PwC/Pinsent Masons) with self-reported 'Fortune 500' claims",
+      "Crowded enterprise CLM category with much larger incumbents"
+    ],
+    "sources": [
+      {"url": "https://siliconangle.com/2026/01/05/contractpodai-rebrands-leah-expand-agentic-automation-beyond-contract-lifecycle-management/", "accessed": "2026-06-18", "what_it_supports": "Jan 2026 rebrand to Leah, Agentic OS + Agentic CLM, expansion beyond CLM"},
+      {"url": "https://www.businesswire.com/news/home/20260210624028/en/Leah-Partners-with-PwC-UK-to-Power-Agentic-Operating-Models", "accessed": "2026-06-18", "what_it_supports": "PwC UK alliance for agentic operating models / agent orchestration in GBS"},
+      {"url": "https://contractpodai.com/integrations/", "accessed": "2026-06-18", "what_it_supports": "Open APIs and pre-built connectors (ERP/CRM/DMS/e-sign), Salesforce/SAP/Workday/M365/DocuSign"},
+      {"url": "https://docs.nexla.com/user-guides/connectors/contractpodai_api/overview", "accessed": "2026-06-18", "what_it_supports": "Leah CLM public API (third-party connector confirmation)"},
+      {"url": "https://contractpodai.com/news/contractpodai-115m-funding-softbank-vision-fund-2/", "accessed": "2026-06-18", "what_it_supports": "$115M Series C led by SoftBank Vision Fund 2, Sept 2021, founded 2012, London HQ + global offices"},
+      {"url": "https://yourstory.com/2019/10/legal-tech-startup-contractpodai-funding-insight-partners", "accessed": "2026-06-18", "what_it_supports": "$55M Series B led by Insight Partners (2019)"},
+      {"url": "https://tracxn.com/d/companies/contractpod-technologies/__SJI9px_Q6oO7ALqn8QlHmTOPYazYtw_xhV-LOwPiMvI", "accessed": "2026-06-18", "what_it_supports": "~$202M total funding figure, customer/partner names (aggregator, lower confidence)"},
+      {"url": "https://www.crunchbase.com/organization/contractpodai", "accessed": "2026-06-18", "what_it_supports": "Founder Sarvarth Misra, rebrand to Leah, funding profile"}
+    ]
+  },
+  {
+    "id": "P22",
+    "name": "Vesence",
+    "category": "drafting-redline",
+    "facts": {
+      "founded": "2024",
+      "hq": "San Francisco, CA, USA (2261 Market St) with Swedish roots/founders",
+      "total_funding": "$9M (seed)",
+      "last_round": "$9M seed, announced 28 October 2025",
+      "lead_investor": "Emergence Capital (lead); participation from 20VC, Creandum, Y Combinator, and angels incl. Paul Graham, Anton Osika (Lovable), and OpenAI operators",
+      "headcount": "unknown (early-stage; no credible figure)",
+      "customers": ["unknown (no named law-firm logos confirmed; self-reported 'first firm-wide rollout' reached 90% weekly active usage)"],
+      "integrations": ["Microsoft Word (native)", "Microsoft Outlook (in-email redlines)", "Microsoft Office / Microsoft 365"],
+      "agentic_interop": "Explicitly agentic ('AI agents for professional services', 'Cursor for Lawyers') operating inside MS Office — reviews documents/emails/projects in Word and Outlook before client send. No public open API/MCP/CLI or agent-to-agent developer surface confirmed; no iManage/DMS integration confirmed yet. Interop is MS Office embedding.",
+      "tech_model": "Agentic AI quality-assurance/review layer inside Microsoft Word and Outlook that enforces firm style guides/standards and validates consistency across documents (cap tables, term sheets, SPAs) and produces precise in-email redlines; positioned as 'making what's written right' rather than generating new text.",
+      "pricing": "unknown (no public pricing)",
+      "name_collision_check": "Confirmed entity = vesence.com, YC X25 'Cursor for Lawyers' agentic-AI-in-MS-Office startup, founded 2024 by Henrik Hansson (CEO) and Ludvig Swanström, $9M seed led by Emergence Oct 2025. Ruled out: no significant same-name collisions found; distinct from Definely and other Word-native review tools."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Review/QA-first (verify rather than generate) and in-Outlook redlines are a sharp angle, but it sits in the crowding Word-native review category alongside Definely, Spellbook, Legora; differentiation is positioning more than defensible tech (early)."},
+      "thesis_fit": {"score": 4, "justification": "Agentic, supervised review that lives in Word/Outlook where lawyers work and emphasises accountability ('make it right before the client sees it') — strong thesis alignment."},
+      "investability": {"score": 4, "justification": "$9M seed led by Emergence (a top enterprise-SaaS investor) with Creandum/20VC/YC and notable angels; strong early-usage signal (90% WAU in first rollout) for a 2024-founded company."},
+      "defensibility": {"score": 2, "justification": "Very early; moat is UX/positioning and Office embedding only — no proprietary data, network effects, or open-platform lock-in evidenced. Conservative on thin evidence."},
+      "interoperability": {"score": 3, "justification": "Real native Word + Outlook integration (in-email redline is differentiated), but no confirmed open API/MCP/CLI/agent-to-agent surface and no DMS (iManage/NetDocuments) integration confirmed."},
+      "team": {"score": 4, "justification": "Repeat operators: founders met at YC startup Depict (S20); Swanström ex-Peltarion (acq. King), Norrsken; strong YC/AI-operator network — credible execution profile for stage."}
+    },
+    "provisional_verdict": "Sharp, well-backed YC agentic review-QA tool living in Word/Outlook with a strong early-usage signal, but very early, single-round, and no named customers or open interop yet. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "No named customers; '90% WAU first rollout' is self-reported and unquantified (one firm)",
+      "Very early stage (founded 2024, single $9M seed) — limited traction evidence",
+      "No open API/MCP/CLI and no DMS (iManage/NetDocuments) integration confirmed",
+      "Crowded Word-native review category with better-funded incumbents (Definely, Legora)"
+    ],
+    "sources": [
+      {"url": "https://www.artificiallawyer.com/2025/10/28/vesence-bags-9m-seed-for-contract-review-agents/", "accessed": "2026-06-18", "what_it_supports": "$9M seed, contract-review agents, Emergence lead, MS Office positioning"},
+      {"url": "https://sifted.eu/articles/yc-backed-legal-tech-vesence-raises-9m-seed-round", "accessed": "2026-06-18", "what_it_supports": "YC-backed, $9M seed, founders, Swedish/legal-tech context"},
+      {"url": "https://www.ycombinator.com/companies/vesence", "accessed": "2026-06-18", "what_it_supports": "YC X25, 'Cursor for Lawyers', agentic AI in MS Office"},
+      {"url": "https://www.startuphub.ai/ai-news/funding-round/2025/vesence-lands-9m-to-bring-rigorous-ai-review-to-law-firms/", "accessed": "2026-06-18", "what_it_supports": "Verify-not-generate model, in-Outlook redlines, 90% WAU first rollout, SOC 2 / zero data retention"},
+      {"url": "https://www.emcap.com/thoughts/precision-over-promises-why-were-backing-vesence-the-ai-platform-making-legal-work-bulletproof", "accessed": "2026-06-18", "what_it_supports": "Emergence Capital thesis on backing Vesence, QA/accuracy positioning"},
+      {"url": "https://www.vesence.com/about", "accessed": "2026-06-18", "what_it_supports": "Founders, product scope (Word/Outlook), SF location"},
+      {"url": "https://www.linkedin.com/in/ludvig-swanstrom-73ab49114/", "accessed": "2026-06-18", "what_it_supports": "Co-founder background (Depict YC, Peltarion, Norrsken)"}
+    ]
+  },
+  {
+    "id": "S11",
+    "name": "Pandektes",
+    "category": "research",
+    "facts": {
+      "founded": "2023",
+      "hq": "Copenhagen, Denmark",
+      "total_funding": "€2.9M (seed)",
+      "last_round": "€2.9M seed, February 2025",
+      "lead_investor": "People Ventures and Interface Capital (co-leads); plus a group of Nordic angel investors",
+      "headcount": "unknown (no credible figure; early-stage)",
+      "customers": ["unknown as named logos (self-reported '100+ customers in Europe', incl. legal councils, public institutions and large law firms in Germany and Denmark)"],
+      "integrations": ["Public API (developers can integrate legal sources/intelligence into their apps)", "internal matter-file connection alongside verified data", "Aderant (partner page reference, unverified depth)"],
+      "agentic_interop": "Markets 'agentic AI' that understands legal hierarchies for reasoning/answering/drafting plus cross-jurisdictional search; offers a public developer API to embed its legal corpus and intelligence into other applications and to connect internal matter files. Genuine API surface (notable for a research vendor); no MCP/CLI or agent-to-agent specifically confirmed.",
+      "tech_model": "AI legal-research platform unifying public + proprietary European legal sources (legislation, case law, administrative decisions) into one multilingual searchable database, with agentic/RAG-style retrieval and reasoning across jurisdictions; building 'Europe's largest AI-powered legal database'.",
+      "pricing": "unknown (no public pricing)",
+      "name_collision_check": "Confirmed entity = pandektes.com, Copenhagen legaltech founded 2023 by Casper Laursen and Søren Brokær, €2.9M seed Feb 2025 (People Ventures + Interface Capital). Name derives from Roman-law 'Pandects/Pandectae' (Justinian's Digest) — historical/etymological term, not a competing company. No significant corporate name collision found."
+    },
+    "scores": {
+      "uniqueness": {"score": 4, "justification": "Cross-jurisdictional pan-European legal search (use a German/French ruling in a Polish matter) unifying many national sources multilingually is a genuinely differentiated angle vs national-only research tools."},
+      "thesis_fit": {"score": 3, "justification": "Agentic retrieval/reasoning plus a public API to embed in other apps fits 'AI as preparation' and interoperability, but research/answer-engine is less 'supervised autonomy in the workflow' than agentic drafting/CLM."},
+      "investability": {"score": 3, "justification": "Credible €2.9M seed from named Nordic VCs and claimed 100+ customers in ~2 years is solid for stage, but small round and early; data-acquisition/coverage is capital-intensive."},
+      "defensibility": {"score": 4, "justification": "Aggregating + normalising fragmented multilingual EU legal sources into one queryable corpus is a hard, data-network moat if achieved — the strongest defensibility angle in the cohort, though execution unproven."},
+      "interoperability": {"score": 4, "justification": "Has a genuine public developer API to embed its legal corpus/intelligence and connect internal matter files — strong and unusual for a research vendor; no MCP/CLI/agent-to-agent confirmed."},
+      "team": {"score": 2, "justification": "Founders Casper Laursen and Søren Brokær confirmed but little public detail on prior exits/domain depth; conservative on thin team evidence."}
+    },
+    "provisional_verdict": "Differentiated cross-jurisdictional EU legal-research engine with a real API and a hard data moat thesis, but early, lightly funded, and thin on team/customer evidence. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "No named customers; '100+ customers' is self-reported",
+      "Small seed (€2.9M) for a capital-intensive pan-EU data-coverage ambition",
+      "Headcount and founder track-record largely unconfirmed",
+      "Cross-jurisdictional legal-data coverage/accuracy claims unverified independently"
+    ],
+    "sources": [
+      {"url": "https://tech.eu/2025/02/04/danish-ai-startup-raises-2-9m-to-revolutionize-the-legal-sector-in-europe/", "accessed": "2026-06-18", "what_it_supports": "€2.9M seed, Copenhagen, founders Laursen & Brokær, founded 2023, 100+ customers, cross-jurisdictional thesis, People Ventures/Interface Capital"},
+      {"url": "https://www.artificiallawyer.com/2025/02/04/denmarks-pandektes-bags-e2-9m-for-genai-legal-search/", "accessed": "2026-06-18", "what_it_supports": "GenAI legal search, seed round, product description"},
+      {"url": "https://legaltechnology.com/2025/02/04/european-legal-research-startup-pandektes-raises-e2-9m-seed-funding/", "accessed": "2026-06-18", "what_it_supports": "European legal research positioning, €2.9M seed"},
+      {"url": "https://www.eu-startups.com/2025/02/legaltech-startup-pandektes-raises-e2-9-million-to-automate-the-european-legal-sector/", "accessed": "2026-06-18", "what_it_supports": "Investors, customer count, EU automation mission"},
+      {"url": "https://pandektes.com/", "accessed": "2026-06-18", "what_it_supports": "Agentic AI understanding legal hierarchies, public API, cross-jurisdictional search, internal matter-file connection"},
+      {"url": "https://en.wikipedia.org/wiki/Digest_(Roman_law)", "accessed": "2026-06-18", "what_it_supports": "Name etymology (Pandects/Pandectae) — name-collision rule-out"}
+    ]
+  }
+]
