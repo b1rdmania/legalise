@@ -850,7 +850,10 @@
       "name": "Scissero",
       "category": "drafting-redline",
       "verdict": "deep-dive",
-      "flags": [],
+      "flags": [
+        "andy-flagged",
+        "andy-liked"
+      ],
       "confidence": "low",
       "rationale": "Tech + embedded-lawyer hybrid; acquired Robin AI's services arm",
       "pre_verification": true,
@@ -858,7 +861,9 @@
         "found": true,
         "source": "https://www.scissero.com/",
         "needs_recheck": false
-      }
+      },
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): nice / liked"
     },
     {
       "id": "S33",
