@@ -47,7 +47,8 @@
         "found": true,
         "source": "https://augmetec.com/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "A4",
@@ -327,7 +328,8 @@
       "rationale": "Legal knowledge-retrieval/search AI (Swiss) on a premium stand — strong non-redliner example; promote to deep-dive if a slot frees up.",
       "pre_verification": true,
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed"
+      "andy_note": "Andy (on floor): interesting but flawed",
+      "pass2": true
     },
     {
       "id": "M1",
@@ -410,7 +412,8 @@
         "needs_recheck": false
       },
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed"
+      "andy_note": "Andy (on floor): interesting but flawed",
+      "pass2": true
     },
     {
       "id": "M7",
@@ -426,7 +429,8 @@
       "rationale": "Property/real-estate due-diligence AI (Orbital Witness) — strong defensible niche; great non-redliner counterexample.",
       "pre_verification": true,
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed"
+      "andy_note": "Andy (on floor): interesting but flawed",
+      "pass2": true
     },
     {
       "id": "M8",
@@ -500,7 +504,8 @@
         "needs_recheck": false
       },
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed ('Eudia data one') - confirms S4 = Eudia"
+      "andy_note": "Andy (on floor): interesting but flawed ('Eudia data one') - confirms S4 = Eudia",
+      "pass2": true
     },
     {
       "id": "S5",
@@ -864,7 +869,8 @@
         "needs_recheck": false
       },
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): nice / liked"
+      "andy_note": "Andy (on floor): nice / liked",
+      "pass2": true
     },
     {
       "id": "S33",
@@ -948,7 +954,8 @@
         "found": true,
         "source": "https://www.law.com/legaltechnews/2024/04/29/jigsaw-legal-tech-startup-focused-on-corporate-diagramming-raises-15-million/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "S53",
@@ -1002,7 +1009,8 @@
         "found": true,
         "source": "https://www.globallegalpost.com/news/ai-litigation-legaltech-start-up-crimson-raises-25m-in-seed-funding-round-1123576627",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "S57",
@@ -1069,7 +1077,8 @@
         "found": true,
         "source": "https://lawstronaut.com/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "S62",
@@ -1111,7 +1120,8 @@
         "found": true,
         "source": "https://kuberno.com/us/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "S65",
@@ -1197,7 +1207,8 @@
         "found": true,
         "source": "https://www.law.com/legaltechnews/2025/10/28/governance-and-compliance-startup-truth-systems-announces-4m-seed-round/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "K1",
@@ -1308,7 +1319,8 @@
         "found": true,
         "source": "https://legal.airia.com/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "K9",
@@ -1524,7 +1536,8 @@
       "rationale": "Compliance AI; hold pending 1b.",
       "pre_verification": true,
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed"
+      "andy_note": "Andy (on floor): interesting but flawed",
+      "pass2": true
     },
     {
       "id": "K25",
@@ -1598,7 +1611,8 @@
         "needs_recheck": false
       },
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed ('Awesome GDPR')"
+      "andy_note": "Andy (on floor): interesting but flawed ('Awesome GDPR')",
+      "pass2": true
     },
     {
       "id": "K31",
@@ -1672,7 +1686,8 @@
         "found": true,
         "source": "https://syllo.ai/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "K45",
@@ -1717,7 +1732,8 @@
         "needs_recheck": false
       },
       "evidence_tier": 1,
-      "andy_note": "Andy (on floor): interesting but flawed; rated 'mid'"
+      "andy_note": "Andy (on floor): interesting but flawed; rated 'mid'",
+      "pass2": true
     },
     {
       "id": "K48",
@@ -1819,7 +1835,8 @@
         "found": true,
         "source": "https://www.moritzlegal.com/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "K57",
@@ -1952,7 +1969,8 @@
         "found": true,
         "source": "https://yourpivot.co/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "SA5",
@@ -1986,7 +2004,8 @@
         "found": true,
         "source": "https://www.moonlit.ai/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "SA7",
@@ -2038,7 +2057,8 @@
         "found": true,
         "source": "https://www.casey.legal/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true
     },
     {
       "id": "SA10",
