@@ -59,7 +59,7 @@
     { "id": "S1", "zone": "Standard", "name": "Bryter", "verify": false },
     { "id": "S2", "zone": "Standard", "name": "Cleardox", "verify": false },
     { "id": "S3", "zone": "Standard", "name": "PSA", "verify": true, "note": "label unclear" },
-    { "id": "S4", "zone": "Standard", "name": "Eldia", "verify": true, "note": "spelling unclear" },
+    { "id": "S4", "zone": "Standard", "name": "Eudia", "verify": false, "note": "confirmed by Andy on floor (was misread 'Eldia')" },
     { "id": "S5", "zone": "Standard", "name": "Philips Speech AI Solutions", "verify": true, "note": "booth label read as V7, numbering odd" },
     { "id": "S6", "zone": "Standard", "name": "Diligent", "verify": false },
     { "id": "S7", "zone": "Standard", "name": "HaystackID", "verify": false },

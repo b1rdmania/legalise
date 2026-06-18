@@ -315,14 +315,18 @@
       "id": "P26",
       "name": "DeepJudge",
       "category": "knowledge",
-      "verdict": "watch",
+      "verdict": "deep-dive",
       "flags": [
+        "andy-flagged",
         "defensible",
+        "interesting-flawed",
         "promote-candidate"
       ],
       "confidence": "medium",
       "rationale": "Legal knowledge-retrieval/search AI (Swiss) on a premium stand — strong non-redliner example; promote to deep-dive if a slot frees up.",
-      "pre_verification": true
+      "pre_verification": true,
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed"
     },
     {
       "id": "M1",
@@ -392,7 +396,10 @@
       "name": "Mage Legal",
       "category": "ediscovery",
       "verdict": "deep-dive",
-      "flags": [],
+      "flags": [
+        "andy-flagged",
+        "interesting-flawed"
+      ],
       "confidence": "low",
       "rationale": "YC S24 data-room diligence-to-memo automation",
       "pre_verification": true,
@@ -400,7 +407,9 @@
         "found": true,
         "source": "https://magelegal.com/",
         "needs_recheck": false
-      }
+      },
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed"
     },
     {
       "id": "M7",
@@ -408,12 +417,15 @@
       "category": "research",
       "verdict": "deep-dive",
       "flags": [
+        "andy-flagged",
         "defensible",
         "interesting-flawed"
       ],
       "confidence": "medium",
       "rationale": "Property/real-estate due-diligence AI (Orbital Witness) — strong defensible niche; great non-redliner counterexample.",
-      "pre_verification": true
+      "pre_verification": true,
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed"
     },
     {
       "id": "M8",
@@ -471,18 +483,23 @@
     },
     {
       "id": "S4",
-      "name": "Eldia (likely Eudia)",
+      "name": "Eudia",
       "category": "agentic-horizontal",
       "verdict": "deep-dive",
-      "flags": [],
+      "flags": [
+        "andy-flagged",
+        "interesting-flawed"
+      ],
       "confidence": "low",
-      "rationale": "Not found as 'Eldia'; almost certainly a misread of Eudia (General Catalyst-backed in-house legal AI)",
+      "rationale": "In-house legal AI platform (General Catalyst-backed); Andy flags interesting-but-flawed",
       "pre_verification": true,
       "pass1b": {
         "found": false,
-        "source": null,
-        "needs_recheck": true
-      }
+        "source": "https://eudia.com/",
+        "needs_recheck": false
+      },
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed ('Eudia data one') - confirms S4 = Eudia"
     },
     {
       "id": "S5",
@@ -1491,13 +1508,17 @@
       "id": "K24",
       "name": "KomplyAI",
       "category": "compliance-risk",
-      "verdict": "watch",
+      "verdict": "deep-dive",
       "flags": [
+        "andy-flagged",
+        "interesting-flawed",
         "me-too"
       ],
       "confidence": "low",
       "rationale": "Compliance AI; hold pending 1b.",
-      "pre_verification": true
+      "pre_verification": true,
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed"
     },
     {
       "id": "K25",
@@ -1557,8 +1578,11 @@
       "id": "K30",
       "name": "Awesome Compliance (ACT)",
       "category": "compliance-risk",
-      "verdict": "watch",
-      "flags": [],
+      "verdict": "deep-dive",
+      "flags": [
+        "andy-flagged",
+        "interesting-flawed"
+      ],
       "confidence": "low",
       "rationale": "Hybrid AI compliance (GDPR/AI Act/DORA); NL",
       "pre_verification": true,
@@ -1566,7 +1590,9 @@
         "found": true,
         "source": "https://www.legaltech-talk.com/introducing-awesome-compliance-technology/",
         "needs_recheck": false
-      }
+      },
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed ('Awesome GDPR')"
     },
     {
       "id": "K31",
@@ -1672,7 +1698,10 @@
       "name": "Ankar",
       "category": "ip",
       "verdict": "deep-dive",
-      "flags": [],
+      "flags": [
+        "andy-flagged",
+        "interesting-flawed"
+      ],
       "confidence": "low",
       "rationale": "AI OS for patent professionals; $20M Series A (Atomico), ex-Palantir",
       "pre_verification": true,
@@ -1680,7 +1709,9 @@
         "found": true,
         "source": "https://ankar.ai/",
         "needs_recheck": false
-      }
+      },
+      "evidence_tier": 1,
+      "andy_note": "Andy (on floor): interesting but flawed; rated 'mid'"
     },
     {
       "id": "K48",
