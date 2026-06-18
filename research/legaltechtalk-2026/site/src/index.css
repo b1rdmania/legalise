@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Type + tokens lifted from the Legalise design system (Almond & Ink, Redaction
+   editorial cut). The @font-face kit is loaded in index.html from
+   /fonts/redaction/redaction.css. */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: #f6f1e8; /* paper */
+    color: #221e17; /* ink */
+    font-family: "Redaction", Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #8b8273; /* muted */
+    font-size: 10px;
+    font-weight: 700;
+    font-family: "Redaction", Georgia, serif;
+  }
+
+  /* Pull-quotes + citations in the real italic cut. */
+  blockquote,
+  cite {
+    font-style: italic;
+  }
+
+  /* Tabular figures for scores / funding / any aligned numerals. */
+  .tech-token {
+    font-family: "Redaction", Georgia, "Times New Roman", serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .prose-p {
+    color: #564e42; /* prose */
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+  }
+  .prose-p:last-child {
+    margin-bottom: 0;
+  }
+}
