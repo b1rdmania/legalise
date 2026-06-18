@@ -6,6 +6,8 @@
 
 Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibility + Interoperability + Team. "Thesis-fit" credits fit to *either* thesis. Scores are provisional (Stage A/B facts pass); confidence flags evidence quality.
 
+> **Verification pass (2026-06-18):** the eight low-confidence calls were web-verified. Six upgraded low→medium — **Lawstronaut, Cicero, Casey, Scissero, Aloi, Pivot** (all confirmed real, several with factual corrections); two (**Augmetec, KomplyAI**) remain unverified/provisional (rate-limited). Full cited log: [`outputs/VERIFICATION-2026-06-18.md`](./outputs/VERIFICATION-2026-06-18.md).
+
 ## Thesis 2 — regulated legal-services entities deploying accountable AI
 
 *The "be the regulated AI firm" cohort — the inverse of the infra plays (which arm the firms). Surfaced as its own section because the Thesis-1 ranking buries them: a firm-model scores ~0 on interoperability by construction. Read these here, not in the infra ranking.* Scope-checked against the actual exhibitor floor — Garfield, Lawhive, Crosby etc. were **not** at LegalTechTalk 2026 and are excluded. KPMG Law was present but is held out of this cohort for now (per scoping call).
@@ -18,7 +20,7 @@ Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibi
 | # | Company | Cat | Comp | U | T×2 | I | D | X | Tm | Conf |
 |---|---------|-----|-----:|--:|----:|--:|--:|--:|---:|------|
 | 1 | **DeepJudge** | knowledge | 28.0 | 3.5 | 9.0 | 4 | 3 | 4.5 | 4 | medium |
-| 2 | **Lawstronaut** | infra-platform | 27.0 | 4 | 10 | 1 | 3 | 5 | 4 | low |
+| 2 | **Lawstronaut** | infra-platform | 27.0 | 4 | 10 | 1 | 3 | 5 | 4 | medium |
 | 3 | **Syllo** | ediscovery | 26.0 | 4 | 8 | 4 | 3 | 3 | 4 | high |
 | 4 | **Ankar** | ip | 26.0 | 3 | 8 | 4 | 3 | 4 | 4 | high |
 | 5 | **Moonlit.AI** | research | 25.0 | 4 | 8 | 2 | 3 | 5 | 3 | medium |
@@ -34,21 +36,21 @@ Composite (max 35) = Uniqueness + **Thesis-fit ×2** + Investability + Defensibi
 | 15 | **Wexler AI** | agentic-horizontal | 22.0 | 3 | 8 | 3 | 2 | 2 | 4 | medium |
 | 16 | **Structureflow** | other | 22.0 | 4 | 6 | 3 | 3 | 2 | 4 | medium |
 | 17 | **Orbital** | research | 21.0 | 3 | 8 | 4 | 2 | 1 | 3 | medium |
-| 18 | **Cicero (by Automatise)** | ediscovery | 21.0 | 3 | 8 | 2 | 3 | 3 | 2 | low |
-| 19 | **Scissero** | drafting-redline | 21.0 | 2 | 8 | 2 | 2 | 3 | 4 | low |
+| 18 | **Cicero (by Automatise)** | ediscovery | 21.0 | 3 | 8 | 2 | 3 | 3 | 2 | medium |
+| 19 | **Scissero** | drafting-redline | 21.0 | 2 | 8 | 2 | 2 | 3 | 4 | medium |
 | 20 | **Truth Systems** | compliance-risk | 21.0 | 3 | 6 | 4 | 2 | 2 | 4 | medium |
 | 21 | **Jigsaw** | knowledge | 21.0 | 4 | 4 | 4 | 3 | 2 | 4 | medium |
 | 22 | **Crimson** | ediscovery | 20.0 | 3 | 6 | 3 | 2 | 2 | 4 | medium |
 | 23 | **Emma Legal** | research | 20.0 | 3 | 6 | 2 | 2 | 3 | 4 | medium |
 | 24 | **PhaseLaw** | ediscovery | 20.0 | 3 | 6 | 3 | 2 | 2 | 4 | high |
 | 25 | **Moritz** _(Thesis 2)_ | services-consulting | 19.0 | 3 | 8 | 3 | 1 | 0 | 4 | medium |
-| 26 | **Aloi** | knowledge | 19.0 | 3 | 8 | 2 | 2 | 2 | 2 | low |
+| 26 | **Aloi** | knowledge | 19.0 | 3 | 8 | 2 | 2 | 2 | 2 | medium |
 | 27 | **Augmetec** | ediscovery | 19.0 | 3 | 6 | 2 | 2 | 3 | 3 | low |
 | 28 | **LUPL** | practice-mgmt | 19.0 | 3 | 4 | 2 | 3 | 4 | 3 | medium |
-| 29 | **Casey** | agentic-horizontal | 17.0 | 3 | 6 | 1 | 2 | 2 | 3 | low |
+| 29 | **Casey** | agentic-horizontal | 17.0 | 3 | 6 | 1 | 2 | 2 | 3 | medium |
 | 30 | **Awesome Compliance (ACT)** | compliance-risk | 14.0 | 2 | 6 | 2 | 1 | 1 | 2 | medium |
 | 31 | **Mage Legal** | ediscovery | 14.0 | 2 | 6 | 2 | 1 | 1 | 2 | medium |
-| 32 | **Pivot (yourpivot)** | ediscovery | 14.0 | 3 | 4 | 2 | 2 | 1 | 2 | low |
+| 32 | **Pivot (yourpivot)** | ediscovery | 14.0 | 3 | 4 | 2 | 2 | 1 | 2 | medium |
 | 33 | **KomplyAI** | compliance-risk | 9.0 | 2 | 2 | 1 | 1 | 1 | 2 | low |
 
 ## Tier A — really liked

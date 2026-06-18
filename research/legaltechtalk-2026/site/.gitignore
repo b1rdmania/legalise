@@ -2,3 +2,12 @@ node_modules
 dist
 *.local
 .DS_Store
+*.tsbuildinfo
+
+# The legalise repo root .gitignore has a broad `data/` rule (meant for
+# backend/data/) that silently swallows this site's data dirs. Re-include them
+# so the scorecard module + JSON are always tracked and the build never breaks.
+!src/data/
+!src/data/**
+!public/data/
+!public/data/**
