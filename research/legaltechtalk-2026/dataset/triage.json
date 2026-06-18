@@ -86,7 +86,9 @@
       ],
       "confidence": "medium",
       "rationale": "Genuine in-Word definition/reference wedge — differentiated within a crowded category; good interop teardown.",
-      "pre_verification": true
+      "pre_verification": true,
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "A7",
@@ -204,7 +206,9 @@
         "found": true,
         "source": "https://leahai.com/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "P8",
@@ -286,7 +290,9 @@
         "found": true,
         "source": "https://www.vesence.com/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "P23",
@@ -594,7 +600,9 @@
         "found": true,
         "source": "https://tech.eu/2025/02/04/danish-ai-startup-raises-2-9m-to-revolutionize-the-legal-sector-in-europe/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "S12",
@@ -631,7 +639,9 @@
       ],
       "confidence": "medium",
       "rationale": "Litigation fact-analysis AI, UK — interesting non-drafting angle.",
-      "pre_verification": true
+      "pre_verification": true,
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "S15",
@@ -737,7 +747,9 @@
       ],
       "confidence": "medium",
       "rationale": "Deal-structure visualization — differentiated, non-redliner; good model teardown.",
-      "pre_verification": true
+      "pre_verification": true,
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "S23",
@@ -762,7 +774,9 @@
         "found": true,
         "source": "https://www.emma.legal/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "S25",
@@ -777,7 +791,9 @@
         "found": true,
         "source": "https://www.cicero.com.ai/",
         "needs_recheck": true
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "S26",
@@ -1050,7 +1066,9 @@
         "found": true,
         "source": "https://www.artificiallawyer.com/2026/03/17/newcode-raises-6-5m-maged-helmy-interview/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "S60",
@@ -1591,7 +1609,9 @@
         "found": true,
         "source": "https://www.lupl.com/about/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "K30",
@@ -1851,7 +1871,9 @@
         "found": true,
         "source": "https://www.august.law/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "K58",
@@ -1903,7 +1925,9 @@
         "found": true,
         "source": "https://www.aloi.law/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "SA1",
@@ -1952,7 +1976,9 @@
         "found": true,
         "source": "https://www.phase.law/",
         "needs_recheck": false
-      }
+      },
+      "pass2": true,
+      "pass2_wave": 2
     },
     {
       "id": "SA4",
