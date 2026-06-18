@@ -1,0 +1,176 @@
+[
+  {
+    "id": "SA4",
+    "name": "Pivot (yourpivot)",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "July 2024",
+      "hq": "United Kingdom (London); cloud hosted on UK-based AWS",
+      "total_funding": "Pre-seed angel round raised (amount not disclosed); reported to be raising a seed round as of 2025-2026",
+      "last_round": "Pre-seed angel (amount unknown); seed round in progress per founder statements",
+      "lead_investor": "unknown (angel round; no named lead investor confirmed)",
+      "headcount": "unknown (small/early-stage; founding team + KC advisor)",
+      "customers": ["Reported 'four top legal firms' onboarding in beta and 28+ on waitlist (self-reported, family law firms; specific names not disclosed)"],
+      "integrations": ["none found (browser-based cloud app; no named connectors to iManage/Word/SharePoint etc. confirmed)"],
+      "agentic_interop": "none found — web-browser SaaS only, no public API/MCP/CLI/agent-to-agent signals; describes itself as 'auditable' evidence intelligence but interoperability into lawyer tooling is unconfirmed",
+      "tech_model": "Ontology-grounded knowledge graphs modeling family-law relationships (parties/claims/assets/conflicts) layered over case documents; uses Anthropic Claude as the LLM, configured not to train on client data; per-matter cryptographic isolation; hosted on AWS/Vercel/Supabase",
+      "pricing": "unknown (live beta; no public pricing)",
+      "name_collision_check": "Confirmed entity = Pivot at yourpivot.co, UK family-law 'Evidence Intelligence' platform founded by Nimrita Dadlani (2024). Ruled out: LawPivot (defunct Q&A/legal-marketplace startup, GV-backed ~2011); Pivot Legal Society (Canadian non-profit); Pivot RP / COS Pivot (research-funding database, Clarivate/ProQuest); pivotapp.ai 'Pivot for Legal Teams'; Pivotal Ventures."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Knowledge-graph + ontology approach to family-law evidence is a differentiated narrative, but thin public evidence it is built/proven beyond beta marketing."},
+      "thesis_fit": {"score": 2, "justification": "Markets 'auditable' AI-as-preparation, but it is a standalone browser app with no agentic/interop signals and does not live where lawyers work."},
+      "investability": {"score": 2, "justification": "Pre-seed angel only, no disclosed amount, pre-revenue/proof stage, narrow vertical (UK family law); high execution risk."},
+      "defensibility": {"score": 2, "justification": "Claimed ontology/knowledge-graph IP is plausible moat but unverified; thin team and no patents/data-network effects evidenced — conservative."},
+      "interoperability": {"score": 1, "justification": "No API/MCP/CLI/integrations found; closed browser SaaS only."},
+      "team": {"score": 2, "justification": "Founder Nimrita Dadlani (domain-credible, divorce-support background) + KC advisor (Hannah Markham KC) and a chief architect, but small and unproven at scale."}
+    },
+    "provisional_verdict": "Domain-credible UK family-law evidence tool with a nice knowledge-graph story but pre-seed, closed SaaS, and zero interoperability — interesting niche, not yet technically-real to the thesis. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": [
+      "Funding amount, headcount, and customer names all undisclosed/self-reported",
+      "No integrations or API/agentic surface — closed browser app contradicts 'lives where lawyers work' thesis",
+      "Very early (proof/beta) and narrow single-jurisdiction vertical (UK family law)",
+      "'World's first' / 'AI-native' claims are PR/self-reported"
+    ],
+    "sources": [
+      {"url": "https://yourpivot.co/", "accessed": "2026-06-18", "what_it_supports": "Product description: AI-native evidence intelligence for family law, knowledge graphs, live beta, UK AWS hosting"},
+      {"url": "https://yourpivot.co/legal/privacy-policy", "accessed": "2026-06-18", "what_it_supports": "Uses Claude LLM not trained on client data; 256-bit per-matter encryption; AWS/Vercel/Supabase; GDPR; SOC2 Type II in progress"},
+      {"url": "https://uk.linkedin.com/in/nimritadadlani", "accessed": "2026-06-18", "what_it_supports": "Nimrita Dadlani = Founder of Pivot"},
+      {"url": "https://techround.co.uk/women-in-startups-tech/9-nimrita-dadlani/", "accessed": "2026-06-18", "what_it_supports": "Founder background, founding ~2024, beta firms/waitlist, raising seed"},
+      {"url": "https://medium.com/the-bae-hq/pivot-providing-1-1-human-care-for-divorce-and-separation-powered-by-technology-3759ad3c0450", "accessed": "2026-06-18", "what_it_supports": "Founding story, divorce-support origin, co-founder Ramesh Touraney"},
+      {"url": "https://www.asian-voice.com/News/UK/BRIDGING-JUSTICE-AND-TECHNOLOGY", "accessed": "2026-06-18", "what_it_supports": "Pivot positioning as auditable AI evidence platform for family law"}
+    ]
+  },
+  {
+    "id": "SA9",
+    "name": "Casey",
+    "category": "agentic-horizontal",
+    "facts": {
+      "founded": "unknown (early-stage; founder previously at DLA Piper; appears 2024-2025, not confirmed in a credible dated source)",
+      "hq": "London, United Kingdom",
+      "total_funding": "unknown (NOTE: Tracxn/Crunchbase '$500K seed' figures appear to belong to a different 'Casey' — see collision check — and are NOT attributed here)",
+      "last_round": "unknown",
+      "lead_investor": "unknown",
+      "headcount": "unknown (early-stage)",
+      "customers": ["unknown — markets to law firms and in-house teams; no named customers confirmed in credible sources"],
+      "integrations": ["none confirmed — describes drag-and-drop ingestion of a client's historical contracts and self-serve client portals; no named connectors (iManage/Word/SharePoint/Salesforce) verified"],
+      "agentic_interop": "Self-described as an agent builder: no-code platform to spin up bespoke legal AI 'agents'/products in <30 min deployed via self-serve client/internal portals. Agentic framing is real to its pitch, but no public API/MCP/CLI/agent-to-agent protocol signals or verified deep integrations found.",
+      "tech_model": "No-code builder that ingests a firm's internal knowledge (playbooks, precedents, historical contracts) to configure specialized legal LLM agents/workflows (e.g. Playbook Builder, clause risk detection) exposed as client-facing or internal self-serve portals",
+      "pricing": "unknown (no public pricing)",
+      "name_collision_check": "Confirmed entity = Casey at casey.legal, London-based no-code legal-AI product builder founded by Vipul Ladwa (ex-DLA Piper AI lawyer); 2026 LegalTech LaunchPad finalist at LegalTechTalk London. RULED OUT (high collision): (1) 'Casey' YC-backed AI commercial-insurance brokerage, San Francisco, founders Nico Hanggi/Pascal Kung/Maximilian Thoelen, ~$500K — the Tracxn/Crunchbase funding/founder data most likely maps to THIS entity, not casey.legal; (2) 'Casey AI' by Case Status (client intake/engagement); (3) 'Casey' by Caseway (caseway.ai, $49/mo legal research); (4) 'Casey' insurance-fraud-investigation tool from TechUnited venture studio; (5) people named Cat Casey / Casey Flaherty / Anthony J. Casey."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "'White-label your expertise into client-facing AI products' productization angle is a differentiated wedge vs generic assistants, though several no-code agent-builders exist."},
+      "thesis_fit": {"score": 3, "justification": "Agentic and aimed at productizing legal work (AI-as-product/revenue), but unproven interop and 'lives where lawyers work' depth is unverified; portal-centric rather than embedded."},
+      "investability": {"score": 1, "justification": "Funding unconfirmed (and the only public numbers belong to a different Casey); no verified traction — too thin to score higher."},
+      "defensibility": {"score": 2, "justification": "Moat would rest on captured firm knowledge/playbooks, plausible but unevidenced; no-code builders are increasingly commoditized — conservative."},
+      "interoperability": {"score": 2, "justification": "Drag-and-drop ingestion and self-serve portals exist, but no confirmed API/MCP/CLI or named system integrations."},
+      "team": {"score": 3, "justification": "Founder Vipul Ladwa has credible domain background (decade in tech law / AI lawyer at DLA Piper); rest of team unconfirmed."}
+    },
+    "provisional_verdict": "Credible solo-founder London bet on productizing law-firm expertise into client-facing AI agents, but funding/traction/interop are all unconfirmed and the name collides badly with an unrelated YC insurance 'Casey' — promising pitch, thin proof. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": [
+      "Severe name collision: public funding ($500K) and founder data likely belong to a different YC 'Casey' (AI insurance brokerage) — do NOT attribute to casey.legal",
+      "No confirmed funding, customers, headcount, or founding date from credible sources",
+      "Risk of being a thin LLM/no-code wrapper; interoperability into lawyer tooling unproven",
+      "Most product claims are self-reported marketing"
+    ],
+    "sources": [
+      {"url": "https://www.casey.legal/", "accessed": "2026-06-18", "what_it_supports": "Product: no-code builder for bespoke legal AI products/agents, self-serve client/internal portals, clause risk detection"},
+      {"url": "https://uk.linkedin.com/in/vipul-ladwa", "accessed": "2026-06-18", "what_it_supports": "Vipul Ladwa = Casey (Legal AI); ex-DLA Piper AI lawyer/tech strategist; London"},
+      {"url": "https://www.legaltechnologyhub.com/vendors/casey/", "accessed": "2026-06-18", "what_it_supports": "Independent vendor listing describing Casey as converting internal legal expertise into client-facing digital products"},
+      {"url": "https://www.legaltech-talk.com/launchpad-startup-pitch-competition/", "accessed": "2026-06-18", "what_it_supports": "Casey as 2026 LegalTech LaunchPad finalist pitching at LegalTechTalk London (entity = casey.legal)"},
+      {"url": "https://tracxn.com/d/companies/caseyai/__auAEc7dMZ-zicsGSu3jY5UlGhEL4v0JF5YRwF772ghA", "accessed": "2026-06-18", "what_it_supports": "Collision evidence: '$500K seed, founders Hanggi/Kung/Thoelen, SF' — flagged as likely the YC insurance Casey, NOT casey.legal"},
+      {"url": "https://www.ycombinator.com/companies/casey", "accessed": "2026-06-18", "what_it_supports": "Ruled-out entity: YC 'Casey' = AI-native commercial insurance brokerage (distinct company)"}
+    ]
+  },
+  {
+    "id": "K44",
+    "name": "Syllo",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "2019 (legal entity TLATech Inc.)",
+      "hq": "845 Third Avenue, New York, NY, USA",
+      "total_funding": "$30M growth round (Oct 2025); total raised not separately disclosed",
+      "last_round": "$30M growth investment, announced 2025-10-28",
+      "lead_investor": "Venrock (with Two Seas Capital and strategic individual investors)",
+      "headcount": "unknown (growing; senior hires Eric Wall, Oz Ben-Ami added 2025)",
+      "customers": ["Ballard Spahr (agentic review across 1.5M+ docs, 25+ issue prompts)", "Reported AmLaw 100 firms plus small firms and sole practitioners (specific additional names not all disclosed)"],
+      "integrations": ["Positioned as a unified system of record competing with/ingesting from Relativity, Everlaw, DISCO, Reveal; specific named connectors and API surface not confirmed in primary sources (treat integration depth as unverified)"],
+      "agentic_interop": "Strongly agentic: agentic AI document review orchestrates MULTIPLE LLMs that delegate review work among themselves and autonomously decide how to conduct responsiveness/privilege/issue/PII review within user-set guidelines; unlimited issue codes across millions of docs. Genuine multi-agent architecture. Public API/MCP/CLI/agent-to-agent protocol details not confirmed.",
+      "tech_model": "AI-native unified litigation workspace (eDiscovery + case management + work-product generation) with a 'Case Intelligence Layer' grounding outputs in the full case record; multi-LLM agentic orchestration for autonomous first-level document review",
+      "pricing": "unknown (enterprise; NELA member discount program exists, terms not public)",
+      "name_collision_check": "Confirmed entity = Syllo at syllo.ai, operated by TLATech Inc., NYC, CEO/co-founder Jeffrey Chivers (ex-Sullivan & Cromwell litigator, Harvard CS / Georgetown Law). No significant competing 'Syllo' legal entity found; not to be confused with generic 'syllabus'/education uses."
+    },
+    "scores": {
+      "uniqueness": {"score": 4, "justification": "Multi-LLM agentic orchestration for autonomous first-level review across millions of docs, validated in a real AmLaw deployment (Ballard Spahr), is genuinely differentiated in eDiscovery."},
+      "thesis_fit": {"score": 4, "justification": "Squarely AI-as-preparation/supervised-autonomy: autonomous agents act within human-set guidelines on real litigation work; strong fit, though embeddedness in firm stacks is partly unverified."},
+      "investability": {"score": 4, "justification": "$30M from Venrock + Two Seas, real revenue/awards (ILTA 2025), credible founder; mature stage relative to peers."},
+      "defensibility": {"score": 3, "justification": "Five years in stealth, domain-built workspace and case-intelligence layer give a moat, but eDiscovery is crowded (Relativity/Everlaw/DISCO/Harvey) and agentic review is being replicated industry-wide."},
+      "interoperability": {"score": 3, "justification": "Clear multi-agent orchestration and positioning as a system of record ingesting other tools' data, but no confirmed public API/MCP/CLI or named connectors — interop depth partly unverified."},
+      "team": {"score": 4, "justification": "Founder Jeffrey Chivers is an ex-S&C litigator + Harvard CS / clerkships; team of litigators + AI engineers; senior leadership hires; ILTA Innovative Leader 2025."}
+    },
+    "provisional_verdict": "The strongest of this batch: well-funded ($30M Venrock), litigator-founded, with real multi-LLM agentic document review proven at AmLaw scale — technically-real supervised autonomy, with the main open question being interop/API depth. [PROVISIONAL]",
+    "confidence": "high",
+    "red_flags": [
+      "Headcount and detailed pricing undisclosed",
+      "Crowded, well-capitalized eDiscovery field (Relativity, Everlaw, DISCO, Reveal, Harvey/CoCounsel)",
+      "Some customer breadth ('AmLaw 100 firms') is self-reported beyond the named Ballard Spahr deployment",
+      "Specific API/MCP/connector evidence not located — interoperability claims partly unverified"
+    ],
+    "sources": [
+      {"url": "https://www.businesswire.com/news/home/20251028084081/en/Syllo-Raises-$30-Million-to-Bolster-Product-Innovation-and-Meet-Growing-Demand-for-AI-Driven-Litigation-Products-and-Services", "accessed": "2026-06-18", "what_it_supports": "$30M raise, Venrock + Two Seas Capital + strategics, Oct 2025"},
+      {"url": "https://www.lawnext.com/2026/03/how-two-litigators-spent-five-years-in-stealth-building-what-they-say-is-the-most-comprehensive-litigation-platform-on-the-market.html", "accessed": "2026-06-18", "what_it_supports": "Five years stealth; founded by litigators; competitive set (Relativity/Everlaw/DISCO/Reveal/Harvey); unified workspace scope"},
+      {"url": "https://www.businesswire.com/news/home/20250321997717/en/Syllo-and-Elite-Litigation-Practitioners-Reveal-How-Agentic-AI-Document-Review-Is-Transforming-Complex-Litigation", "accessed": "2026-06-18", "what_it_supports": "Agentic multi-LLM document review; Ballard Spahr 1.5M+ docs / 25+ issue prompts"},
+      {"url": "https://www.crunchbase.com/person/jeffrey-chivers-5a22", "accessed": "2026-06-18", "what_it_supports": "Jeffrey Chivers = Co-Founder & CEO of Syllo"},
+      {"url": "https://www.cbinsights.com/company/tlatech", "accessed": "2026-06-18", "what_it_supports": "TLATech Inc. / Syllo founded 2019, HQ 845 Third Avenue New York"},
+      {"url": "https://www.businesswire.com/news/home/20250430840524/en/Syllo-Wins-Two-2025-ILTA-Distinguished-Peer-Awards-For-Trail-Blazer-of-the-Year-with-Ballard-Spahr-and-Innovative-Leader", "accessed": "2026-06-18", "what_it_supports": "ILTA 2025 Distinguished Peer Awards; Chivers Innovative Leader; Ballard Spahr Trail Blazer"},
+      {"url": "https://www.nela.org/syllo-partnership/", "accessed": "2026-06-18", "what_it_supports": "NELA partnership offering member pricing on Syllo eDiscovery/litigation platform"}
+    ]
+  },
+  {
+    "id": "S64",
+    "name": "Kuberno",
+    "category": "compliance-risk",
+    "facts": {
+      "founded": "2020 (company); Kube platform launched 2021",
+      "hq": "London, United Kingdom (US subsidiary Kuberno US, Delaware/Boston, launched Q1 2024)",
+      "total_funding": "£9.5M Series A total (£3.5M initial 2023 + ~£6M follow-on closed 2024)",
+      "last_round": "£9.5M Series A close, co-led by Barclays and Nasdaq Ventures (follow-on announced Oct 2024)",
+      "lead_investor": "Nasdaq Ventures (initial Series A lead); Barclays + Nasdaq Ventures co-led the close",
+      "headcount": "~56 employees (May 2026, per Crustdata); company reports quadrupling headcount since 2023",
+      "customers": ["unknown — serves corporate secretariat/legal/finance/tax teams managing multi-entity groups; specific named customers not confirmed in credible sources"],
+      "integrations": ["API-first architecture marketed as the first governance tech to take an API-first approach; built to integrate with board portals, HR, finance, tax and legal systems (named connectors not individually confirmed)"],
+      "agentic_interop": "API-first platform; KAIA built-in AI assistant moving toward agentic workflows ('AI operated, human controlled'): autonomously triggers filing workflows, flags data inconsistencies across systems, drafts routine resolutions, with humans at approval points. Genuine supervised-autonomy framing; no public MCP/CLI/agent-to-agent protocol confirmed.",
+      "tech_model": "Cloud-native (Microsoft Azure, ISO 27001) entity-governance system of record (Kube) combining entity management + secretariat practice management; data-first single source of truth with automation/workflows; KAIA AI assistant layered for compliance automation and drafting",
+      "pricing": "unknown (packaged tiers exist; pricing not public)",
+      "name_collision_check": "Confirmed entity = Kuberno Ltd (Kube / KAIA), London entity-governance & compliance software, CEO/co-founder Zoe Bucknell, Nasdaq Ventures + Barclays backed. No notable competing 'Kuberno' found; distinct from generic 'Kubernetes' container-orchestration tooling."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "API-first 'system of record + secretariat practice management' for entity governance with an AI layer is differentiated in a sleepy category, though entity-management competitors (Diligent, ComplyGlobal, etc.) exist."},
+      "thesis_fit": {"score": 3, "justification": "Strong 'AI-as-accountability + supervised autonomy' fit (AI operated, human controlled; autonomous filings with approval gates), but it is governance/compliance rather than core lawyer workflow, and agentic capability (KAIA) is partly forward-looking."},
+      "investability": {"score": 4, "justification": "£9.5M Series A from Nasdaq Ventures + Barclays, 3x revenue growth, US expansion, ~56 staff — solid, credibly backed scale-up."},
+      "defensibility": {"score": 3, "justification": "API-first system-of-record with sticky regulated data and Nasdaq distribution gives real lock-in, but no patents/network-effects evidenced and incumbents are well-funded."},
+      "interoperability": {"score": 4, "justification": "Explicitly API-first by design, built to integrate with board portals/HR/finance/tax/legal systems — the most interoperable-by-architecture company in this batch (specific named connectors still to verify)."},
+      "team": {"score": 3, "justification": "Co-founder/CEO Zoe Bucknell with governance-domain focus, Nasdaq-backed board with an industry-heavyweight chair; broader team depth unverified."}
+    },
+    "provisional_verdict": "Credibly funded (Nasdaq + Barclays), API-first entity-governance system of record adding supervised-autonomy AI (KAIA) — strong interoperability and accountability fit, though it sits in compliance-ops rather than core legal practice. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "No named customers confirmed in credible sources",
+      "KAIA agentic capabilities are partly roadmap/forward-looking ('will be able to') rather than fully shipped",
+      "Pricing undisclosed",
+      "Category (entity governance) is adjacent to, not embedded in, core lawyer workflow"
+    ],
+    "sources": [
+      {"url": "https://startupsmagazine.co.uk/article-kuberno-closes-ps95m-series-co-led-barclays-and-nasdaq-ventures", "accessed": "2026-06-18", "what_it_supports": "£9.5M Series A close co-led by Barclays and Nasdaq Ventures"},
+      {"url": "https://www.nasdaq.com/press-release/kuberno-announces-3.5m-series-a-financing-led-by-nasdaq-ventures-2023-04-12", "accessed": "2026-06-18", "what_it_supports": "Initial £3.5M Series A led by Nasdaq Ventures (Apr 2023)"},
+      {"url": "https://pulse2.com/kuberno-zoe-bucknell-profile/", "accessed": "2026-06-18", "what_it_supports": "Zoe Bucknell = CEO/co-founder; Kube launched 2021; entity-governance automation"},
+      {"url": "https://www.corporatecomplianceinsights.com/kuberno-launches-us-subsidiary/", "accessed": "2026-06-18", "what_it_supports": "US subsidiary launch (Delaware, Boston/California), Q1 2024; 3x growth, headcount quadrupled"},
+      {"url": "https://kuberno.com/kaia/", "accessed": "2026-06-18", "what_it_supports": "KAIA AI assistant; 'AI operated, human controlled'; autonomous filing workflows with human approval points"},
+      {"url": "https://profiles.crustdata.com/company/kuberno-limited", "accessed": "2026-06-18", "what_it_supports": "~56 employees (May 2026); ~30% YoY headcount growth"},
+      {"url": "https://kuberno.com/us/platform/all-features/", "accessed": "2026-06-18", "what_it_supports": "API-first architecture; integrations with board portals/HR/finance/tax; Azure, ISO 27001, GDPR"}
+    ]
+  }
+]
