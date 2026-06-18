@@ -12,6 +12,10 @@ Not "will struggle" — **dead as a concept.** A front-end on a frontier model w
 
 I screened the whole floor and ran deep research on ~20 that looked like they were actually *doing something*. This is the summary and the scorecard. Deep-research links are attached — point Claude at them and ask anything.
 
+## The macro driver: the 80/20 flip
+
+Legal is flipping from **80% human / 20% AI → 80% AI / 20% human.** Every company on that floor reduces to one question: *does it survive the flip?* The flip is also the demand engine for the white space below — when AI does 80% of the work, the guardrails around it stop being optional.
+
 ## The spine: interoperability in the data layer
 
 The market is moving to a place where "lawyers using four platforms that don't swap data and that agents can't talk to" is simply ridiculous. So the test is one question:
@@ -40,6 +44,10 @@ The screen is the floor; the eye is the product. A mechanical interop-screen kil
 The **$500M+ Series B beasts** are held out on purpose. I may be opinionated on the giants, but a take on them helps nobody and just picks a fight. This is about what's *live and movable* on the floor, not the incumbents.
 
 ---
+
+## The white space (the strategic payoff)
+
+The un-won category is **AI compliance guardrails + documentation** — what a regulator or an insurer needs to see: audit, accountability, supervised autonomy. The governed layer nobody owns. It's flagged via **KomplyAI**, which is itself a kill (too wide, thin backend) — but the *space* is wide open, and the 80/20 flip is its forced, growing buyer: when AI does 80%, regulators and insurers will *require* the guardrails (PII, liability, privilege). The hinge: **kill the company, own the space.** That's the builder's / Stella's play.
 
 ## Direction & game-theory — what you do about it
 
