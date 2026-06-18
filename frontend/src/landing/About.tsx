@@ -19,7 +19,8 @@ export function About() {
   return (
     <div className="max-w-page mx-auto">
       <div className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
-        <header>
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-16">
+          <header className="min-w-0 flex-1">
           <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
             About
           </h1>
@@ -130,7 +131,17 @@ export function About() {
               GitHub
             </a>
           </p>
-        </header>
+          </header>
+
+          <div className="shrink-0 lg:w-60 lg:pt-2">
+            <img
+              src="/media/andrew.jpg"
+              alt="Andrew Bird"
+              className="w-52 sm:w-60 lg:w-full border border-rule"
+              loading="lazy"
+            />
+          </div>
+        </div>
 
         <Colophon>Not a law firm. Not legal advice. One builder, in the open.</Colophon>
       </div>
