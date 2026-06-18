@@ -72,37 +72,35 @@ export function Landing() {
               GitHub
             </a>
           </div>
-        </div>
-      </section>
 
-      {/* Scroll cue down to the demo video. */}
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-12 flex justify-center">
-        <a
-          href="#demo-video"
-          onClick={(e) => {
-            e.preventDefault();
-            document
-              .getElementById("demo-video")
-              ?.scrollIntoView({ behavior: "smooth" });
-          }}
-          className="inline-flex flex-col items-center gap-2 text-sm font-medium text-muted hover:text-seal transition-colors min-h-[44px]"
-        >
-          <span>Watch a 30-second demo</span>
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            className="animate-bounce"
+          {/* Scroll cue to the demo video — sits on the splash. */}
+          <a
+            href="#demo-video"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("demo-video")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-seal transition-colors min-h-[44px]"
           >
-            <path d="M12 5v14M19 12l-7 7-7-7" />
-          </svg>
-        </a>
+            <span>Watch a 30-second demo</span>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="animate-bounce"
+            >
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
+          </a>
+        </div>
       </section>
 
       {/* The demo: a quick, silent scan through the workspace. */}
@@ -129,9 +127,6 @@ export function Landing() {
               }}
             />
           </div>
-          <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-muted">
-            A 30-second run through the workspace · no sound
-          </p>
         </div>
       </section>
 
