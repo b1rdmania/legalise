@@ -1,0 +1,171 @@
+[
+  {
+    "id": "K24",
+    "name": "KomplyAI",
+    "category": "compliance-risk",
+    "facts": {
+      "founded": "2022",
+      "hq": "Sydney, Australia",
+      "total_funding": "unknown (Tracxn/Crunchbase list it as unfunded / no disclosed institutional round as of access date)",
+      "last_round": "unknown",
+      "lead_investor": "unknown",
+      "headcount": "unknown",
+      "customers": ["unknown — self-describes serving SMEs and regulated sectors (higher education, health, banking/financial services, oil/gas/mining/construction/data centres); no named logos confirmed in credible source"],
+      "integrations": ["unknown — no named third-party integrations (no iManage/Word/SharePoint/Salesforce) confirmed"],
+      "agentic_interop": "Weak. Self-describes an 'intelligent workflow engine' and a self-service 'micro-tool' for governing commercial gen-AI use; one secondary source notes the UI is 'drawable by way of an API' but no documented public API/MCP/CLI/agent-to-agent capability. Effectively none confirmed.",
+      "tech_model": "Enterprise SaaS GRC platform for AI governance: workflow engine + built-in risk assessors and knowledge libraries for AI lifecycle risk assessment, regulatory mapping and compliance documentation; appears template/workflow-driven rather than autonomous-agent.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = KomplyAI (komplyai.com), Sydney AI-governance/GRC startup founded 2022 by Kristen Migliorini (ex-IP litigator). Ruled out: getkomply.com 'Komply' (AI audit/compliance for MFIs/NBFCs), Kompliant/kompliant.com (banking KYB/KYC, acquired by LegitScript), Komplyd (separate seed-funded compliance co per BusinessWire 2022), and Comply.com 'ComplyAI' (finance firm-compliance)."
+    },
+    "scores": {
+      "uniqueness": {"score": 2, "justification": "AI-GRC is a crowded category; KomplyAI's regulatory-expertise + workflow framing is plausible but not visibly differentiated on thin public evidence."},
+      "thesis_fit": {"score": 1, "justification": "Reads as governance documentation/workflow tooling, not agentic supervised-autonomy living where lawyers work; no API/MCP/integration depth confirmed."},
+      "investability": {"score": 1, "justification": "No disclosed funding, headcount, or named customers; appears early/bootstrapped — low evidenced investability."},
+      "defensibility": {"score": 1, "justification": "No moat evidence (no IP, data, or integration lock-in confirmed); regulatory knowledge libraries are replicable. Conservative."},
+      "interoperability": {"score": 1, "justification": "No documented API/MCP/CLI or real legal-system integrations; a single unverified mention of an API."},
+      "team": {"score": 2, "justification": "Solo-founder profile credible (ex-deep-tech IP litigator) but no broader team depth confirmed."}
+    },
+    "provisional_verdict": "Thin-evidence AI-GRC workflow tool in a crowded compliance category; no funding/agentic/integration signals to support the thesis. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": [
+      "No disclosed funding, headcount, or named customers in any credible source",
+      "Agentic/API/integration claims unverified; thesis-relevant depth absent",
+      "High name-collision space (multiple 'Komply' compliance products) — brand and SEO risk"
+    ],
+    "sources": [
+      {"url": "https://komplyai.com/", "accessed": "2026-06-18", "what_it_supports": "Product positioning: responsible-AI risk assessment, governance and compliance platform (self-reported)"},
+      {"url": "https://www.crunchbase.com/organization/komplyai", "accessed": "2026-06-18", "what_it_supports": "Company profile; no disclosed funding"},
+      {"url": "https://tracxn.com/d/companies/komplyai/__JkynAtGnPpAru12Yuy0kOLacCC83Q02XkcF1O4Z0uH8", "accessed": "2026-06-18", "what_it_supports": "Founded 2022, Sydney; founder Kristen Migliorini; listed as unfunded"},
+      {"url": "https://oecd.ai/en/catalogue/tools/komplyai", "accessed": "2026-06-18", "what_it_supports": "Listed in OECD.AI catalogue as a responsible-AI tool (third-party)"},
+      {"url": "https://www.smartcompany.com.au/artificial-intelligence/neural-notes-komplyai-ai-compliance-competitive-advantage-smes/", "accessed": "2026-06-18", "what_it_supports": "Australian press: AI compliance positioning for SMEs (founder commentary)"},
+      {"url": "https://www.getkomply.com/", "accessed": "2026-06-18", "what_it_supports": "Collision ruled out: separate 'Komply' MFI/NBFC audit product"},
+      {"url": "https://www.kompliant.com/", "accessed": "2026-06-18", "what_it_supports": "Collision ruled out: 'Kompliant' banking KYB/KYC platform"}
+    ]
+  },
+  {
+    "id": "K30",
+    "name": "Awesome Compliance (ACT)",
+    "category": "compliance-risk",
+    "facts": {
+      "founded": "2024",
+      "hq": "Flevoland, Netherlands",
+      "total_funding": "EUR 1.2M (pre-seed, ~$1.3M)",
+      "last_round": "Pre-seed, announced Dec 2025",
+      "lead_investor": "Horizon Flevoland (alongside legal-tech angel investors)",
+      "headcount": "unknown (round earmarked to expand engineering and legal-ops teams)",
+      "customers": ["unknown — targets privacy/AI lawyers, compliance consultants, DPOs and in-house legal teams; no named customer logos confirmed"],
+      "integrations": ["unknown — no specific third-party integrations (iManage/Word/SharePoint/Salesforce) confirmed"],
+      "agentic_interop": "Moderate signal: positions as a collaborative AI platform using domain-specific AI agents to 'collect facts, structure ROPAs, draft DPIAs, assess AI Act risks, and produce contracts and policies', with collaborative practitioner/client workspaces. No public API/MCP/CLI documented; agent claims are self-reported in launch PR.",
+      "tech_model": "Hybrid AI + human-expertise compliance platform for GDPR / EU AI Act / Data Act: multi-agent workflows automate ROPAs, DPIAs, AI-Act risk classification and contract/policy drafting, with human-in-the-loop review in shared workspaces.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Awesome Compliance / Awesome Compliance Technology (ACT), awesomecompliance.com, Netherlands, founded 2024 by Marianne de Feijter, Dick Sterk, Roel Wessels; EUR 1.2M pre-seed led by Horizon Flevoland (Law.com/Artificial Lawyer/LegalTechTalk, Dec 2025). Generic 'awesome-*' GitHub lists and generic compliance-agent vendors ruled out."
+    },
+    "scores": {
+      "uniqueness": {"score": 2, "justification": "Collaborative multi-agent angle for EU privacy/AI-Act compliance is somewhat fresh, but the GDPR/AI-Act compliance-automation space is increasingly crowded."},
+      "thesis_fit": {"score": 3, "justification": "Explicit domain-specific agents drafting DPIAs/ROPAs/contracts with human-in-the-loop maps well to 'AI as preparation + accountability + supervised autonomy'; lacks confirmed API/integration depth."},
+      "investability": {"score": 2, "justification": "Disclosed EUR 1.2M pre-seed with a named regional lead and angels; very early and modest, with European 2026 rollout ahead."},
+      "defensibility": {"score": 1, "justification": "Pre-seed; moat unproven (no proprietary data/IP/integration lock-in confirmed). Conservative on thin evidence."},
+      "interoperability": {"score": 1, "justification": "No documented public API/MCP/CLI or real DMS/CRM integrations; collaboration is in-app only as evidenced."},
+      "team": {"score": 2, "justification": "Three named co-founders with apparent compliance/legal-tech background; depth not deeply verified."}
+    },
+    "provisional_verdict": "Early but thesis-aligned EU compliance startup: real multi-agent DPIA/ROPA drafting with human oversight, but pre-seed-thin on funding, traction and interoperability. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Agent capabilities sourced largely from launch PR; not independently validated",
+      "No named customers or revenue traction confirmed",
+      "Regional pre-seed lead (Horizon Flevoland) and small round — execution/scale risk into broader Europe"
+    ],
+    "sources": [
+      {"url": "https://www.law.com/legaltechnews/2025/12/17/dutch-compliance-tech-startup-awesome-announces-12-million-pre-seed-funding-round-/", "accessed": "2026-06-18", "what_it_supports": "EUR 1.2M pre-seed, Dutch HQ, compliance-tech positioning (reputable press)"},
+      {"url": "https://www.artificiallawyer.com/2025/12/16/awesome-raises-e1-2m-for-collaborative-compliance-ai-platform/", "accessed": "2026-06-18", "what_it_supports": "EUR 1.2M raise, founders, Horizon Flevoland lead, domain-specific AI agents for ROPAs/DPIAs/AI-Act/contracts"},
+      {"url": "https://www.legaltech-talk.com/awesome-compliance-raises-e1-2-million-to-launch-the-first-collaborative-ai-platform-for-compliance-practitioners/", "accessed": "2026-06-18", "what_it_supports": "Collaborative AI platform for compliance practitioners; target users"},
+      {"url": "https://tracxn.com/d/companies/awesome-compliance/__5eDxu4X1BJxVxZAu25TlS3LEvmZhnOo4Rhb-BpjsIX0", "accessed": "2026-06-18", "what_it_supports": "Founded 2024, Flevoland; founders Marianne de Feijter, Dick Sterk, Roel Wessels"},
+      {"url": "https://aimgroup.com/2025/12/24/compliance-tech-startup-awesome-raises-1-3m-in-funding/", "accessed": "2026-06-18", "what_it_supports": "Corroborates raise (~$1.3M USD equivalent)"},
+      {"url": "https://awesomecompliance.com/ourstory", "accessed": "2026-06-18", "what_it_supports": "Company self-description and founding story"}
+    ]
+  },
+  {
+    "id": "K47",
+    "name": "Ankar",
+    "category": "ip",
+    "facts": {
+      "founded": "2024",
+      "hq": "London, UK",
+      "total_funding": "~$24M total",
+      "last_round": "$20M Series A (announced Dec 2025; reported as ~EUR 17M / ~£15M)",
+      "lead_investor": "Atomico (Series A); Index Ventures led the ~£3M/$4M seed (May)",
+      "headcount": "unknown",
+      "customers": ["Johnston IP Law Group PLLC", "L'Oréal", "Valeo", "Vorys (Vorysm Ltd. per source)", "Nexans", "Motorway"],
+      "integrations": ["Clio", "NetDocuments", "Anaqua", "USPTO/EPO/WIPO-compliant formatting/filing output"],
+      "agentic_interop": "Strong for an IP tool: orchestrates the full patent lifecycle (idea capture, novelty search across ~150M patents + ~250M scientific publications, claim/application drafting, prosecution responses) with citation-backed/verifiable outputs; real co-draft/co-review collaboration and integrations into Clio, NetDocuments and Anaqua plus patent-office-standard output. No explicitly documented public API/MCP/CLI, but integration depth into legal/IP systems is real.",
+      "tech_model": "AI 'operating system for innovation' / patent platform: large-scale prior-art retrieval + LLM drafting and prosecution assistance with verifiable citations to source, formatting to USPTO/EPO/WIPO standards; built by ex-Palantir engineers (data + ML).",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Ankar (ankar.ai), London IP/patent platform founded 2024 by Tamar Gomez (CEO) and Wiem Gharbi (CTO), both ex-Palantir; $20M Series A led by Atomico, total ~$24M (Fortune/Artificial Lawyer/EU-Startups, Dec 2025). Distinct from any similarly named entities; consistently identified across multiple independent outlets."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Full-lifecycle patent OS with verifiable citations is differentiated, though IP-drafting AI is competitive (DeepIP, Patentext, Anaqua-adjacent tools)."},
+      "thesis_fit": {"score": 4, "justification": "Agentic, citation-accountable, lifecycle-spanning, and integrated into where IP attorneys work (Clio/NetDocuments/Anaqua + patent-office output) — strong 'preparation + accountability + supervised autonomy' fit."},
+      "investability": {"score": 4, "justification": "$24M total with Atomico-led $20M Series A plus Index/Norrsken/Daphni; credible institutional backing and named enterprise customers."},
+      "defensibility": {"score": 3, "justification": "Proprietary retrieval over 150M+ patents/250M+ publications, citation infrastructure and DMS integrations give moat signals; still early and category is hot."},
+      "interoperability": {"score": 4, "justification": "Confirmed integrations (Clio, NetDocuments, Anaqua) and patent-office-standard filing output; lives in IP-attorney workflows. No public API/MCP confirmed, hence not a 5."},
+      "team": {"score": 4, "justification": "Two named ex-Palantir founders (strategy + ML/data) with tier-1 VC validation; credible technical pedigree."}
+    },
+    "provisional_verdict": "Best-evidenced of the set: well-funded, agentic, citation-accountable patent OS with real legal-system integrations and named customers — strong thesis fit. [PROVISIONAL]",
+    "confidence": "high",
+    "red_flags": [
+      "Headcount and pricing undisclosed",
+      "Crowded, fast-moving AI patent-drafting category (DeepIP $25M Series B, others)",
+      "Customer logos and capability breadth partly sourced from company/PR — verify depth of deployment"
+    ],
+    "sources": [
+      {"url": "https://www.artificiallawyer.com/2025/12/17/ankar-bags-20m-for-ai-driven-patent-platform/", "accessed": "2026-06-18", "what_it_supports": "$20M Series A, Atomico lead, total ~$24M, London HQ, lifecycle product"},
+      {"url": "https://fortune.com/2025/12/17/exclusive-palantir-alums-aiming-to-streamline-patent-filings-with-ai-secure-20-million-in-series-a-venture-funding/", "accessed": "2026-06-18", "what_it_supports": "Ex-Palantir founders, Series A, customers (L'Oreal, Valeo, Nexans, Motorway, etc.)"},
+      {"url": "https://siliconangle.com/2025/12/17/ankar-raises-20m-expand-ai-powered-patent-operating-system/", "accessed": "2026-06-18", "what_it_supports": "Patent operating-system framing; novelty search across ~150M patents + ~250M publications"},
+      {"url": "https://www.eu-startups.com/2025/12/palantir-veterans-startup-ankar-raises-e17-million-to-expand-ai-driven-ip-software-into-the-us/", "accessed": "2026-06-18", "what_it_supports": "EUR 17M equivalent Series A; US expansion; founders Gomez & Gharbi"},
+      {"url": "https://ankar.ai/blog/how-ankar-cites-every-output-verifiable-ai-assisted-patent-work", "accessed": "2026-06-18", "what_it_supports": "Citation/verifiability (accountability) approach to outputs"},
+      {"url": "https://www.brightlineip.com/post/emerging-technology-assessment-ankar-ai-patent-drafting-platform", "accessed": "2026-06-18", "what_it_supports": "Third-party assessment; USPTO/EPO/WIPO formatting; Clio/NetDocuments/Anaqua integrations"}
+    ]
+  },
+  {
+    "id": "M6",
+    "name": "Mage Legal",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "2024",
+      "hq": "San Francisco, CA, USA",
+      "total_funding": "~$500K (per PitchBook); plus Y Combinator S24 participation",
+      "last_round": "Y Combinator S24 / pre-seed",
+      "lead_investor": "Y Combinator (investors also include Goodwater Capital, Gurtin Ventures, New Enterprise Associates, Pioneer Fund per PitchBook)",
+      "headcount": "~7 (per Y Combinator profile)",
+      "customers": ["unknown — targets law firms and PE/M&A funds; no named customer logos confirmed"],
+      "integrations": ["Data-room upload (raw documents in); produces disclosure schedules, closing checklists, memos, redlines, questionnaires. No confirmed iManage/SharePoint/Salesforce/Word integrations."],
+      "agentic_interop": "Moderate workflow-automation signal but limited interop evidence: end-to-end pipeline ingests a data room and outputs diligence findings/disclosure schedules/redlines with every finding tied back to source (accountability); processes 100-500 docs in ~10 min. No public API/MCP/CLI or named DMS integrations confirmed.",
+      "tech_model": "AI-native transactional/diligence platform: ingests a deal data room, runs automated contract review/issue-spotting and generates diligence work product (schedules, memos, redlines) with source citations; SOC 2 Type II, AES-256/TLS 1.3, no training on client data, docs purged post-processing.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Mage Legal (magelegal.com), San Francisco, YC S24, AI for M&A/transactional diligence; founder Raffi Isanians. Ruled out: Mage / Mage.ai (mage.ai) the open-source data-pipeline/orchestration tool (Mage OSS / Mage Pro) — unrelated data-engineering company. NOTE: category tag is 'ediscovery' but Mage Legal is in fact a transactional/M&A diligence tool, not litigation e-discovery."
+    },
+    "scores": {
+      "uniqueness": {"score": 2, "justification": "AI transactional-diligence automation is a busy 2024-25 wave; source-tied work product is sensible but not clearly unique on thin evidence."},
+      "thesis_fit": {"score": 3, "justification": "Agentic diligence pipeline with source-cited outputs (preparation + accountability) fits; weak on living-where-lawyers-work (no DMS/Word integration, only data-room upload)."},
+      "investability": {"score": 2, "justification": "YC S24 with ~$500K and notable angel/VC names, but very early and small; no traction metrics confirmed."},
+      "defensibility": {"score": 1, "justification": "No moat evidence (no proprietary data, IP, or integration lock-in); workflow could be replicated. Conservative."},
+      "interoperability": {"score": 1, "justification": "Only data-room upload confirmed; no public API/MCP/CLI or DMS/CRM integrations evidenced."},
+      "team": {"score": 2, "justification": "YC-backed founder (Raffi Isanians) and small team; limited public pedigree detail."}
+    },
+    "provisional_verdict": "Early YC transactional-diligence tool with source-cited outputs but thin funding/traction and weak interoperability; note it is diligence, not e-discovery. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Category mismatch: tagged 'ediscovery' but is M&A/transactional diligence",
+      "Very early/small (~$500K, ~7 staff, YC S24); no named customers or revenue",
+      "No confirmed DMS/CRM/Word integration or public API — limited 'lives where lawyers work' depth",
+      "Name collides with Mage.ai data-engineering tool (SEO/brand confusion)"
+    ],
+    "sources": [
+      {"url": "https://www.ycombinator.com/companies/mage-legal", "accessed": "2026-06-18", "what_it_supports": "YC S24 batch, San Francisco, team size, founder Raffi Isanians"},
+      {"url": "https://magelegal.com/", "accessed": "2026-06-18", "what_it_supports": "Product: AI transactional diligence; data-room ingestion to work product; security (SOC 2, AES-256, no training on client data) (self-reported)"},
+      {"url": "https://pitchbook.com/profiles/company/1280333-53", "accessed": "2026-06-18", "what_it_supports": "Funding (~$500K) and investor list"},
+      {"url": "https://www.ycombinator.com/companies/mage-legal/jobs", "accessed": "2026-06-18", "what_it_supports": "Headcount (~7), hiring stage and positioning"},
+      {"url": "https://www.mage.ai/oss", "accessed": "2026-06-18", "what_it_supports": "Collision ruled out: Mage.ai is an unrelated open-source data-pipeline/orchestration tool"}
+    ]
+  }
+]
