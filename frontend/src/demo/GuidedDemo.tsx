@@ -276,7 +276,7 @@ export function GuidedDemo() {
       <main className="min-h-screen bg-panel md:min-h-0 md:flex-1 md:min-w-0 md:h-full md:rounded-panel md:shadow-panel md:overflow-y-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
         <div className="mx-auto w-full max-w-[860px]">
           {/* Demo header — the backend masthead (display tier). */}
-          <PageHeader display title="Demo walkthrough" />
+          <PageHeader display title="Demo" />
 
           {/* Action nav — sits under the header, always in view. */}
           <div className="mt-2 flex items-center gap-4 border-b border-rule pb-6">
