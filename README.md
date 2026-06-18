@@ -46,11 +46,12 @@ Legalise currently ships a worked evaluation workspace around the
 Khan v Acme sample matter. The matter surface now follows the golden
 loop directly:
 
-- **Chat:** the project front door. Ask about the matter or run a
-  ready skill against the selected documents.
-- **Files:** drag/drop ingress, extracted bodies, version history,
-  CPR 31.22 disclosure flag, original-file retrieval through an
-  owner-only backend proxy.
+- **Documents:** where a matter opens — every file in the matter, with
+  drag/drop ingress, extracted bodies, version history, the CPR 31.22
+  disclosure flag, and original-file retrieval through an owner-only
+  backend proxy.
+- **Chat:** ask about the matter or run a ready skill against the
+  selected documents.
 - **Skills:** governed legal skills enabled for this matter — readiness
   shown up-front (`Ready` / `Keyless demo model` /
   `Requires Anthropic key` / `Requires OpenAI key`).
@@ -156,7 +157,7 @@ The doctrine:
 
 ## Try it
 
-The hosted evaluation environment at [legalise.dev](https://legalise.dev) is open for evaluation accounts. You can browse the Khan v Acme demo on the hosted site, create an account to run the workspace, or run the full stack locally.
+[legalise.dev](https://legalise.dev) hosts the public demo (a guided walk through the Khan v Acme workspace) and the architecture write-up. Hosted workspace accounts are in **private beta** — to join the testing, email <andrew@legalise.dev>. To run the full workspace yourself today, fork and run the stack locally (below).
 
 Stack: Postgres + MinIO + Redis + Gotenberg + FastAPI + React.
 
@@ -248,7 +249,7 @@ Evaluation release. Honest about what's in and what isn't.
 
 **Shipped:**
 
-- Matter surface ordered around the chat-led loop: Chat / Files /
+- Matter surface ordered around the matter loop: Documents / Chat /
   Skills, with Activity, signed outputs, and working-pack export
   reached from cards and contextual links.
 - Files are first-class records: routed detail page, body/versions/
