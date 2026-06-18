@@ -94,13 +94,6 @@ export function About() {
                 centre of how it works.
               </p>
               <p>
-                So I built Legalise. I kept watching AI get legal work wrong.
-                Confidently, and with no trail of how it got there. Legalise
-                keeps the trail. Every output supervised, signed, and on a record
-                you could hand a regulator. Open source, unfinished, an
-                experiment on a problem the industry might not admit it has yet.
-              </p>
-              <p>
                 What interests me isn&apos;t firms working faster and billing the
                 same. It&apos;s whether this changes how people actually access
                 law.
