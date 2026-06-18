@@ -65,13 +65,13 @@
       "id": "A5",
       "name": "Legora",
       "category": "agentic-horizontal",
-      "verdict": "deep-dive",
+      "verdict": "watch",
       "flags": [
-        "defensible",
-        "valuation-tension"
+        "big-beastie-context",
+        "defensible"
       ],
       "confidence": "medium",
-      "rationale": "Fast-rising European agentic legal platform; model + moat worth dissecting.",
+      "rationale": "Famous, well-documented mega-player — feature as context/foil in the critique, no original deep research needed. Fast-rising European agentic legal platform; model + moat worth dissecting.",
       "pre_verification": true
     },
     {
@@ -115,14 +115,14 @@
       "id": "P1",
       "name": "Spellbook",
       "category": "drafting-redline",
-      "verdict": "deep-dive",
+      "verdict": "watch",
       "flags": [
-        "redliner",
+        "big-beastie-context",
         "interesting-flawed",
-        "valuation-tension"
+        "redliner"
       ],
       "confidence": "medium",
-      "rationale": "Best-known funded drafter — ideal lens on the 'redliner moat' thesis.",
+      "rationale": "Famous, well-documented mega-player — feature as context/foil in the critique, no original deep research needed. Best-known funded drafter — ideal lens on the 'redliner moat' thesis.",
       "pre_verification": true
     },
     {
@@ -180,14 +180,14 @@
       "id": "P6",
       "name": "Harvey",
       "category": "agentic-horizontal",
-      "verdict": "deep-dive",
+      "verdict": "watch",
       "flags": [
+        "big-beastie-context",
         "defensible",
-        "incumbent",
-        "valuation-tension"
+        "incumbent"
       ],
       "confidence": "high",
-      "rationale": "Category-defining; dissect model, moat claim, burn-vs-valuation.",
+      "rationale": "Famous, well-documented mega-player — feature as context/foil in the critique, no original deep research needed. Category-defining; dissect model, moat claim, burn-vs-valuation.",
       "pre_verification": true
     },
     {
@@ -224,14 +224,15 @@
       "id": "P9",
       "name": "Luminance",
       "category": "drafting-redline",
-      "verdict": "deep-dive",
+      "verdict": "watch",
       "flags": [
+        "big-beastie-context",
         "defensible",
         "interesting-flawed",
         "redliner"
       ],
       "confidence": "high",
-      "rationale": "Proprietary contract model + traction in the most crowded category — where's the real moat?",
+      "rationale": "Famous, well-documented mega-player — feature as context/foil in the critique, no original deep research needed. Proprietary contract model + traction in the most crowded category — where's the real moat?",
       "pre_verification": true
     },
     {
