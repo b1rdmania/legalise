@@ -88,6 +88,66 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Scroll cue down to the demo video. */}
+      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-12 flex justify-center">
+        <a
+          href="#demo-video"
+          onClick={(e) => {
+            e.preventDefault();
+            document
+              .getElementById("demo-video")
+              ?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="inline-flex flex-col items-center gap-2 text-sm font-medium text-muted hover:text-seal transition-colors min-h-[44px]"
+        >
+          <span>Watch a 30-second demo</span>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="animate-bounce"
+          >
+            <path d="M12 5v14M19 12l-7 7-7-7" />
+          </svg>
+        </a>
+      </section>
+
+      {/* The demo: a quick, silent scan through the workspace. */}
+      <section
+        id="demo-video"
+        className="scroll-mt-8 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20"
+      >
+        <div className="max-w-3xl mx-auto">
+          <div className="border border-ink/70 bg-paper p-2">
+            <video
+              src="/media/backend-demo.mp4"
+              poster="/media/backend-demo-poster.jpg"
+              className="block w-full border border-rule/60"
+              loop
+              autoPlay
+              playsInline
+              controls
+              preload="metadata"
+              ref={(el) => {
+                if (el) {
+                  el.muted = true;
+                  void el.play().catch(() => undefined);
+                }
+              }}
+            />
+          </div>
+          <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-muted">
+            A 30-second run through the workspace · no sound
+          </p>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );
