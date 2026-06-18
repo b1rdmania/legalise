@@ -660,26 +660,10 @@ export function Architecture() {
           <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
             Architecture
           </h1>
-          <div className="mt-6 max-w-xl space-y-4 text-sm leading-relaxed text-prose">
+          <div className="mt-6 max-w-xl text-base leading-relaxed text-prose">
             <p>
-              Every claim on this page is backed by code you can read. Where
-              it names a file, the file is one click away. Check it; don't
-              trust it.
-            </p>
-            <p>
-              The system, in one line: AI that runs inside a matter file,
-              under supervision. Identity, an inference gateway, a privilege
-              gate, and a record of what it did.
-            </p>
-            <p>
-              Why it exists is on the{" "}
-              <a
-                href="/about"
-                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              >
-                about page
-              </a>
-              . This is how it's built.
+              How Legalise runs AI under supervision. Every claim here links
+              to the code that backs it.
             </p>
           </div>
         </header>
@@ -698,12 +682,12 @@ export function Architecture() {
                 rel="noreferrer"
                 className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
-                more than 1,500 legal decisions
+                more than 1,500 court decisions
               </a>{" "}
-              where generative AI put made-up content, usually fake case
-              citations, in front of a court. Lawyers are being punished for
-              this now, in public, with their names on the orders.
-              Supervision is not a nice extra. It is the product.
+              where generative AI put made-up content, usually fake citations,
+              in front of a judge. Lawyers are being punished now, in public,
+              with their names on the orders. Supervision is not a nice extra.
+              It is the product.
             </p>
           </Prose>
           <Figure
