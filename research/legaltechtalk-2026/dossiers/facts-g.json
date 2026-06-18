@@ -1,0 +1,152 @@
+[
+  {
+    "id": "S14",
+    "name": "Wexler AI",
+    "category": "agentic-horizontal",
+    "facts": {
+      "founded": "2023",
+      "hq": "London, UK",
+      "total_funding": "~$6.7M cited (pre-seed $1.4M Dec 2024 + seed $5.3M Sep 2025); aggregator cites '$6.7M over 4 rounds from 7 investors' (Tracxn) — flagged, not fully reconciled to primary",
+      "last_round": "$5.3M seed (also reported as ~£4m), announced 23 Sep 2025",
+      "lead_investor": "Pear VC (seed); participants Seedcamp, The LegalTech Fund; pre-seed lead Myriad Venture Partners",
+      "headcount": "unknown (no credible figure found)",
+      "customers": ["Clifford Chance (self-reported; 'embedded across dispute resolution practice')", "HSF Kramer (self-reported)", "Goodwin Procter (self-reported)", "Addleshaw Goddard (self-reported)", "Burges Salmon (self-reported)"],
+      "integrations": ["Targets eDiscovery providers and disputes teams (document ingestion of high-volume sets); no specific DMS integrations (iManage/Relativity/SharePoint) confirmed in credible sources — 'unknown'"],
+      "agentic_interop": "Markets an agentic AI assistant named 'Kim' that answers grounded questions, executes multi-step document tasks, and drafts memos/correspondence in one workflow; real-time fact-checking flags contradictions live in depositions/hearings. No public API/MCP/CLI/agent-to-agent or confirmed DMS connectors found — appears to be a standalone web app with an internal agent loop.",
+      "tech_model": "LLM-based 'fact intelligence' platform: applies LLMs to extract, verify and organize facts from large document sets with mandatory source-linked citations (every extraction must be verifiable against the originating document); adds an agentic assistant (Kim) and real-time contradiction detection.",
+      "pricing": "unknown (sales-led, no public pricing)",
+      "name_collision_check": "Confirmed entity = Wexler AI / wexler.ai (London, founded 2023 by Gregory Mostyn (CEO) & Kush Madlani; litigation fact-intelligence). Ruled out: 'Wexler' as a surname/law-firm name and unrelated 'Wexler' consumer-electronics brand."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Litigation fact-intelligence with mandatory source-linking and live deposition fact-checking is a sharp niche, but crowded by disputes/eDiscovery rivals; differentiation is execution not category."},
+      "thesis_fit": {"score": 4, "justification": "Strong fit on 'preparation + accountability': citation-verified facts, auditable extraction, and an agentic assistant (Kim) doing supervised multi-step work."},
+      "investability": {"score": 3, "justification": "Real seed ($5.3M, Pear VC) and credible BigLaw logos with claimed 20x ARR growth, but early stage and ARR figure self-reported."},
+      "defensibility": {"score": 2, "justification": "Thin evidence of a durable moat beyond workflow + verification UX; no proprietary data, patents or deep DMS lock-in confirmed."},
+      "interoperability": {"score": 2, "justification": "Internal agent loop present, but no public API/MCP/CLI or confirmed iManage/Relativity/SharePoint integrations found — does not yet clearly 'live where lawyers work'."},
+      "team": {"score": 4, "justification": "Repeat/credible founders (Mostyn, Madlani) backed by Pear VC + Seedcamp; quantitative/litigation domain framing."}
+    },
+    "provisional_verdict": "Credible, well-backed UK litigation fact-intelligence play with a genuine agentic assistant and accountability-first design, but interop depth is unproven. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": ["ARR '20x growth' and '75% manual-review reduction' are self-reported", "Customer logos are company-stated, not independently corroborated", "No confirmed DMS/API/MCP integrations despite targeting eDiscovery teams", "Aggregator total funding ($6.7M/4 rounds) not fully reconciled to two named rounds"],
+    "sources": [
+      {"url": "https://tech.eu/2025/09/23/wexlerai-secures-53m-to-bring-real-time-fact-checking-to-litigation/", "accessed": "2026-06-18", "what_it_supports": "$5.3M seed, Pear VC lead, real-time fact-checking, London"},
+      {"url": "https://www.law.com/legaltechnews/2025/09/23/ai-powered-litigation-startup-wexlerai-announces-53m-seed-funding-round-live-fact-checking-feature/", "accessed": "2026-06-18", "what_it_supports": "Seed round and live fact-checking feature (press confirmation)"},
+      {"url": "https://www.wexler.ai/insights/wexler-ai-raises-5-3m-to-transform-complex-litigation-for-the-worlds-largest-firms-unveils-real-time-fact-checking", "accessed": "2026-06-18", "what_it_supports": "Company self-report: customers (Clifford Chance, HSF Kramer, Goodwin, Addleshaw Goddard, Burges Salmon), ARR claims"},
+      {"url": "https://www.legaltechnologyhub.com/vendors/wexler/", "accessed": "2026-06-18", "what_it_supports": "Founded 2023, founders Madlani & Mostyn, 'Kim' agentic assistant, fact extraction with mandatory citations, total funding aggregate"},
+      {"url": "https://www.artificiallawyer.com/2025/09/23/wexler-bags-5-3m-interview-with-ceo-gregory-mostyn/", "accessed": "2026-06-18", "what_it_supports": "CEO interview context on seed and product (title/press; body not retrieved due to 403)"},
+      {"url": "https://www.wexler.ai/", "accessed": "2026-06-18", "what_it_supports": "Product positioning: fact extraction, verification and analysis for disputes teams"}
+    ]
+  },
+  {
+    "id": "S22",
+    "name": "Structureflow",
+    "category": "other",
+    "facts": {
+      "founded": "2017 (some sources say 2018); founded by Tim Follett, ex-Slaughter and May / Farrer & Co solicitor",
+      "hq": "London, UK",
+      "total_funding": "~$15M / ~€14M cited to date (per Series A coverage); aggregator-stated total",
+      "last_round": "Series A — $6M / ~€5.5M, announced May 2024",
+      "lead_investor": "FINTOP Capital (US fintech fund) led Series A; follow-on from Venrex / Select Equity Group",
+      "headcount": "unknown (no credible figure confirmed)",
+      "customers": ["Slaughter and May", "A&O Shearman / Allen & Overy", "Linklaters", "Norton Rose Fulbright", "Baker McKenzie", "Bryan Cave Leighton Paisner", "Holland & Knight", "(company states 50+ legal/professional-services firms)"],
+      "integrations": ["Excel / CSV import", "databases", "company registries", "ingests PDFs, Word files, text, images and sketches; no confirmed iManage/SharePoint/Salesforce DMS connector found — 'unknown'"],
+      "agentic_interop": "AI converts documents (PDF/Word/text/images/sketches) and case files into live structure diagrams, step plans, timelines and process maps; timeline tool auto-extracts dates/events. No public API/MCP/CLI/agent-to-agent signals found; positioned as a visual modelling app, not an agentic orchestration layer.",
+      "tech_model": "Visual structuring/diagramming platform combining flexible drawing tools with AI that ingests contracts, datasets and public records and auto-generates data-rich structure charts, timelines and process maps.",
+      "pricing": "unknown (no public pricing confirmed)",
+      "name_collision_check": "Confirmed entity = StructureFlow Ltd / structureflow.co (London legal-structuring & diagramming, founder Tim Follett). Ruled out: unrelated 'structureflow.app' (described as an AI content/UI-mapping tool for agencies) and generic structural-engineering 'structure flow' usages."
+    },
+    "scores": {
+      "uniqueness": {"score": 4, "justification": "Visual structuring/diagramming for transactional lawyers is a genuinely distinctive, under-served niche with few direct rivals."},
+      "thesis_fit": {"score": 3, "justification": "Strong 'preparation' tool and AI-assisted, but it is a focused visual workspace rather than supervised-autonomy agents living across lawyers' tools."},
+      "investability": {"score": 3, "justification": "Real Series A ($6M, FINTOP) and strong Magic Circle / Am Law logos, but modest total funding and growth-stage uncertainty."},
+      "defensibility": {"score": 3, "justification": "Sticky workflow + accumulated diagram/template assets and category ownership give some moat; no patents/data moat confirmed."},
+      "interoperability": {"score": 2, "justification": "Imports from Excel/CSV/databases/registries but no public API/MCP/CLI or confirmed DMS integrations — limited 'lives where lawyers work' evidence."},
+      "team": {"score": 4, "justification": "Founder is an ex-Slaughter and May solicitor (strong domain credibility); backed by a focused fintech fund."}
+    },
+    "provisional_verdict": "Distinctive, well-adopted legal visual-structuring tool with strong logos, but more a focused AI-assisted workspace than an agentic interop play. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": ["Founding-year conflict across sources (2017 vs 2018)", "Total funding (~$15M/€14M) is aggregator-stated", "Customer count '50+' is self-reported", "No public API/MCP/CLI or DMS integration confirmed — interop is thin against the thesis"],
+    "sources": [
+      {"url": "https://www.eu-startups.com/2024/05/london-based-structureflow-raises-over-e5-5-million-to-transform-corporate-diagrams-into-visual-models-of-complex-data/", "accessed": "2026-06-18", "what_it_supports": "Series A ~€5.5M, FINTOP Capital lead, total ~€14M, founder Tim Follett, customer list"},
+      {"url": "https://legaltechnology.com/2024/05/30/structureflow-raises-6m-series-a-as-it-looks-to-expand-in-the-us-and-build-out-use-cases/", "accessed": "2026-06-18", "what_it_supports": "$6M Series A, total ~$15M, founded 2018, ex-Slaughter and May founder, AI ingests contracts/datasets/records, customers"},
+      {"url": "https://thelegalwire.ai/structureflow-turns-diagrams-into-dialogue-for-legal-teams/", "accessed": "2026-06-18", "what_it_supports": "AI converts PDFs/Word/text/images/sketches to live models; timeline auto-extraction; Excel/CSV/database/registry imports; 50+ firms"},
+      {"url": "https://www.structureflow.co/", "accessed": "2026-06-18", "what_it_supports": "Product positioning: structure diagrams, step plans, timelines, process maps"}
+    ]
+  },
+  {
+    "id": "S24",
+    "name": "Emma Legal",
+    "category": "research",
+    "facts": {
+      "founded": "2024",
+      "hq": "Belgium (operations in Ghent and Antwerp); legal/operating entity 'Structize AI'",
+      "total_funding": "€1.6M (~$1.6M) to date",
+      "last_round": "€1.6M, announced February 2025",
+      "lead_investor": "6 Degrees Capital (London) and Entourage Capital (Belgium) — co-investors",
+      "headcount": "unknown (no credible figure confirmed)",
+      "customers": ["Company states it is used by law firms and M&A advisors across Europe with early US interest; no specific named firms confirmed in credible sources"],
+      "integrations": ["Ideals (virtual data room) — strategic partnership connecting directly to documents in an Ideals VDR", "states integrations with 'leading virtual data rooms'"],
+      "agentic_interop": "Connects into virtual data rooms (Ideals partnership) to run structured legal due-diligence analysis on data-room documents; no public API/MCP/CLI/agent-to-agent signals found. Positioned as a 'due diligence workspace', not an open agentic layer.",
+      "tech_model": "AI-powered M&A legal due-diligence workspace ('Structize AI'): uses LLMs to analyze data rooms, identify legal risks and produce structured analysis in hours rather than weeks; emphasis on accuracy + human oversight.",
+      "pricing": "unknown (no public pricing confirmed)",
+      "name_collision_check": "Confirmed entity = Emma Legal / emma.legal, powered by 'Structize AI' (Belgium, founded 2024 by Rick Van Esch & Pieter Buteneers — ex-Chatlayer, acquired by Sinch 2020; M&A due-diligence AI). Ruled out: 'Emma' generic product names, the unrelated 'Emma' money/banking app, and 'EMMA' as an acronym; this is specifically the M&A legal due-diligence vendor."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Focused M&A due-diligence-in-data-rooms angle is reasonably differentiated, but the legal-DD AI space is increasingly crowded."},
+      "thesis_fit": {"score": 3, "justification": "Good 'preparation' fit and data-room interoperability via Ideals, but evidence of supervised-autonomy agents (vs a DD workspace + LLM analysis) is thin."},
+      "investability": {"score": 2, "justification": "Only €1.6M raised and very early (founded 2024); strong founder pedigree but limited traction evidence; named customers unconfirmed."},
+      "defensibility": {"score": 2, "justification": "Thin moat evidence beyond founder expertise and a data-room partnership; no proprietary data/patents confirmed."},
+      "interoperability": {"score": 3, "justification": "Concrete VDR integration (Ideals) connecting to where deal documents live is a genuine plus, but no API/MCP/CLI or DMS connectors confirmed."},
+      "team": {"score": 4, "justification": "Strong repeat founders (Van Esch/Buteneers) with a prior AI exit to Sinch (Chatlayer); credible AI/ML depth."}
+    },
+    "provisional_verdict": "Very early but founder-strong Belgian M&A due-diligence AI with a real data-room integration; traction and moat still unproven. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": ["Founded 2024, only €1.6M raised — very early stage", "No specific named law-firm customers confirmed (only category claims)", "'$1.1bn of transactions supported' is self-reported", "Brand 'Emma' is high-collision; entity is operating co 'Structize AI'"],
+    "sources": [
+      {"url": "https://www.emma.legal/blog/emma-legal-raises-1-6-million-euros-to-transform-legal-due-diligence-with-ai", "accessed": "2026-06-18", "what_it_supports": "€1.6M raise, 6 Degrees Capital + Entourage Capital, M&A due-diligence positioning"},
+      {"url": "https://manda.be/articles/belgian-technology-company-emma-legal-raises-1-6-million-euros-in-capital/", "accessed": "2026-06-18", "what_it_supports": "Belgian company, €1.6M raise (independent press)"},
+      {"url": "https://6degreescapital.substack.com/p/why-we-invested-in-emma-legal", "accessed": "2026-06-18", "what_it_supports": "Investor thesis; founders Van Esch & Buteneers, ex-Chatlayer/Sinch"},
+      {"url": "https://pitchbook.com/profiles/company/741800-53", "accessed": "2026-06-18", "what_it_supports": "HQ Antwurp/Belgium, founded 2024, Structize AI platform"},
+      {"url": "https://www.legaltechnologyhub.com/vendors/emma-legal/", "accessed": "2026-06-18", "what_it_supports": "Ideals VDR partnership, due-diligence workspace, Europe customers (category)"}
+    ]
+  },
+  {
+    "id": "S25",
+    "name": "Cicero (by Automatise)",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "unknown (Automatise is the operating company; founding year not confirmed in credible sources)",
+      "hq": "Sydney, Australia (Automatise)",
+      "total_funding": "unknown (no funding round confirmed in credible sources)",
+      "last_round": "unknown",
+      "lead_investor": "unknown",
+      "headcount": "unknown",
+      "customers": ["Wotton Kearney (Australian law firm, launched Cicero-based solution)", "Law In Order (legal services provider, promotes Cicero)", "TransPerfect Legal (global partnership — Cicero integrated into TransPerfect eDiscovery, claimed reach to 10,000+ clients)"],
+      "integrations": ["TransPerfect eDiscovery / translation / matter-management platforms (partnership integration)", "deployed behind a firm's own firewall / onshore — no public API/MCP/CLI or DMS connector list confirmed"],
+      "agentic_interop": "Performs multi-step litigation analysis: extracts allegations from a Statement of Claim and maps to the Defence (pleadings matrix), auto-drafts chronologies from thousands of documents, and maps individuals by role/relationship. Integration is via the TransPerfect partnership; no public API/MCP/CLI/agent-to-agent signals found. Sold as a private deployment, not an open agentic layer.",
+      "tech_model": "Private/onshore legal AI: runs Meta Llama 3.1 (incl. 405B) models behind the firm's firewall with no third-party data processing; matter-analysis platform for disputes/litigation (pleadings matrices, chronologies, document parsing, investigations). ISO/IEC 42001 certified.",
+      "pricing": "unknown (no public pricing confirmed)",
+      "name_collision_check": "Confirmed entity = Cicero by Automatise / cicero.com.ai (Sydney-based Automatise, CEO Joe Rayment; private legal AI on Llama 3.1, TransPerfect partner). Ruled out: Meta's 'CICERO' Diplomacy game-playing AI; Cicero the Roman orator; numerous unrelated 'Cicero' products (e.g., debt-recovery, fintech, speech tools)."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Fully-private, onshore, self-hosted Llama deployment + ISO 42001 is a real differentiator for security-sensitive litigation; the analysis features themselves are increasingly common."},
+      "thesis_fit": {"score": 4, "justification": "Strong 'preparation + accountability' fit: structured pleadings matrices, source-driven chronologies, auditable private deployment; multi-step litigation tasks."},
+      "investability": {"score": 2, "justification": "No funding, founding date or financials confirmed; investability hard to assess, though TransPerfect partnership is a meaningful distribution signal."},
+      "defensibility": {"score": 3, "justification": "Private-deployment + ISO 42001 + a global distribution partner (TransPerfect) give some moat; underlying model is open-source Llama, limiting tech defensibility."},
+      "interoperability": {"score": 3, "justification": "Real integration into TransPerfect's eDiscovery stack (where litigation work lives), but no public API/MCP/CLI or independent connector list confirmed."},
+      "team": {"score": 2, "justification": "CEO Joe Rayment identified; little verifiable detail on team depth or track record — conservative."}
+    },
+    "provisional_verdict": "Security-first private (self-hosted Llama) litigation analysis tool with a strong distribution partner in TransPerfect, but company financials and team depth are opaque. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": ["No funding, founding year, headcount or financials confirmed", "Built on open-source Llama 3.1 — limited proprietary-model moat", "'First private AI for legal' and 10,000+ client reach are PR/partner claims", "Heavy reliance on a single distribution partner (TransPerfect)", "High name-collision brand ('Cicero')"],
+    "sources": [
+      {"url": "https://www.cicero.com.ai/", "accessed": "2026-06-18", "what_it_supports": "Product: matter-analysis platform, pleadings matrix, chronologies, private/onshore Llama 3.1 deployment"},
+      {"url": "https://www.cicero.com.ai/news/sydney-ai-litigation-start-up-partners-with-global-legal-service-provider", "accessed": "2026-06-18", "what_it_supports": "Sydney HQ, TransPerfect partnership, integration into eDiscovery"},
+      {"url": "https://www.transperfect.com/about/press/transperfect-legal-and-automatise-partner-enhance-ai-powered-litigation-support", "accessed": "2026-06-18", "what_it_supports": "TransPerfect–Automatise partnership (independent corroboration)"},
+      {"url": "https://www.businessnewsaustralia.com/articles/ai-litigation-startup-behind-cicero-teams-up-with-global-translation-services-group-transperfect.html", "accessed": "2026-06-18", "what_it_supports": "Automatise CEO Joe Rayment, Sydney-based, TransPerfect partnership (press)"},
+      {"url": "https://www.cicero.com.ai/news/cicero-achieves-iso42001-certification", "accessed": "2026-06-18", "what_it_supports": "ISO/IEC 42001 certification"},
+      {"url": "https://www.lawinorder.com/news/cicero-the-worlds-first-private-ai-for-the-legal-sector/", "accessed": "2026-06-18", "what_it_supports": "Private/onshore AI, Llama models, behind-firewall, Law In Order as customer/promoter"},
+      {"url": "https://www.wottonkearney.com/wotton-kearney-launches-game-changing-ai-solution-for-australian-legal-industry/", "accessed": "2026-06-18", "what_it_supports": "Wotton Kearney as adopting law firm"}
+    ]
+  }
+]
