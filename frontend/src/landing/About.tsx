@@ -6,8 +6,6 @@
  * a logo bar under the opening line, and a text CTA at the foot.
  */
 
-import { Colophon } from "../ui/certificate";
-
 const GITHUB_PROFILE = "https://github.com/b1rdmania";
 const LINKEDIN = "https://www.linkedin.com/in/andrew-bird-nomos/";
 const X_PROFILE = "https://x.com/b1rdmania";
@@ -143,7 +141,6 @@ export function About() {
           </div>
         </div>
 
-        <Colophon>Not a law firm. Not legal advice. One builder, in the open.</Colophon>
       </div>
     </div>
   );

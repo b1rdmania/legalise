@@ -30,20 +30,16 @@ export function Landing() {
           />
         </div>
         <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-20 md:py-32 max-w-3xl">
-          <div className="eyebrow text-muted mb-5">
-            Open source · England &amp; Wales · v0.1
-          </div>
           <p className="text-lg md:text-xl text-prose leading-relaxed max-w-2xl mb-6">
-            AI drafts your case, cites cases that never happened, and leaves no
-            trace of how it got there.
+            AI drafts your case, cites cases that never happened, and no one is
+            on the hook for it.
           </p>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight2 text-ink mb-2 leading-[1.05]">
-            The register underneath the AI.
+            AI does the work. A named solicitor signs it off.
           </h1>
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            Legalise runs AI inside a matter file and keeps a record: what it
-            read, what it refused to do, and who signed it off.
+            An experiment, unfinished, experimental, open source.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 mt-10">
