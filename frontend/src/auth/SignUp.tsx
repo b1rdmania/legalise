@@ -1,114 +1,62 @@
-import { useEffect, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import { navigate } from "../lib/route";
-import { getSignupChannel } from "../lib/channel";
-import { useAuth } from "./AuthProvider";
-import { AuthCard, LedgerField } from "./AuthCard";
-import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
-
-// Gate 4 demand capture — optional, self-reported. Mirrors the backend
-// allowlist in app/core/demand_capture.py.
-const PERSONA_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: "", label: "Prefer not to say" },
-  { value: "practising_solicitor", label: "Practising solicitor" },
-  { value: "in_house", label: "In-house counsel" },
-  { value: "legal_ops", label: "Legal ops" },
-  { value: "engineer", label: "Engineer" },
-  { value: "other", label: "Other" },
-];
+/**
+ * /auth/signup — hosted sign-up is closed during the beta. Instead of a
+ * form, the page says the hosted backend is in private beta, points to a
+ * contact, and shows the demo. The sign-in page still exists for testers.
+ */
 
 export function SignUp() {
-  const auth = useAuth();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [persona, setPersona] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (auth.user) navigate("/matters");
-  }, [auth.user]);
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await auth.signUp(email, password, name, {
-        persona: persona || null,
-        channel: getSignupChannel(),
-      });
-      // After register, backend may require verification - route to pending.
-      navigate("/auth/verify-pending");
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
-    <AuthCard
-      heading="Sign up"
-      intro="Create a workspace. You add your own Anthropic key after you verify your email."
-    >
-      <form className="flex flex-col gap-4" onSubmit={submit}>
-        <LedgerField label="Name" hint="optional — shown in audit rows">
-          <input
-            type="text"
-            autoComplete="name"
-            value={name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-            className={inputCls}
-          />
-        </LedgerField>
-        <LedgerField label="Email">
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-            className={inputCls}
-          />
-        </LedgerField>
-        <LedgerField label="Password" hint="at least 8 characters">
-          <input
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-            className={inputCls}
-          />
-        </LedgerField>
-        <LedgerField label="I am a" hint="optional — helps us understand who's evaluating">
-          <select
-            value={persona}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setPersona(e.target.value)}
-            className={inputCls}
+    <div className="max-w-page mx-auto px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
+      <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
+        Hosted beta
+      </h1>
+      <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
+        <p>
+          We&apos;re beta testing the hosted backend next week. Sign-up
+          isn&apos;t open yet.
+        </p>
+        <p>
+          If you&apos;d like to join the testing, get in touch:{" "}
+          <a
+            href="mailto:andrew@legalise.dev"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
-            {PERSONA_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </LedgerField>
-        {error && <ErrorCallout message={error} />}
-        <button type="submit" disabled={busy} className={primaryBtn}>
-          {busy ? "Creating account…" : "Create account"}
-        </button>
-      </form>
-      <p className="text-sm text-muted mt-4">
-        Already have an account?{" "}
-        <a href="/auth/signin" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
-          Sign in
-        </a>
-        .
-      </p>
-    </AuthCard>
+            andrew@legalise.dev
+          </a>
+          .
+        </p>
+      </div>
+
+      <div className="mt-12 max-w-3xl">
+        <h2 className="text-lg font-bold tracking-tight2 text-ink">Here&apos;s a demo</h2>
+        <div className="mt-4 border border-ink/70 bg-paper p-2">
+          <video
+            src="/media/backend-demo-v2.mp4"
+            poster="/media/backend-demo-v2-poster.jpg"
+            className="block w-full border border-rule/60"
+            loop
+            autoPlay
+            playsInline
+            controls
+            preload="metadata"
+            ref={(el) => {
+              if (el) {
+                el.muted = true;
+                void el.play().catch(() => undefined);
+              }
+            }}
+          />
+        </div>
+        <p className="mt-4 text-sm text-muted">
+          Or{" "}
+          <a
+            href="/guided-demo"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            walk the guided demo &rarr;
+          </a>
+        </p>
+      </div>
+    </div>
   );
 }
