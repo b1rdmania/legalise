@@ -7,164 +7,2035 @@
     "identify": "unknown — needs Pass 1b cheap lookup before verdict"
   },
   "records": [
-    { "id": "A1", "name": "iManage", "category": "knowledge", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "DMS/knowledge incumbent — note, don't dissect.", "pre_verification": true },
-    { "id": "A2", "name": "LGPI", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "A3", "name": "Augmetec", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "A4", "name": "NetDocuments", "category": "knowledge", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "DMS incumbent.", "pre_verification": true },
-    { "id": "A5", "name": "Legora", "category": "agentic-horizontal", "verdict": "deep-dive", "flags": ["defensible", "valuation-tension"], "confidence": "medium", "rationale": "Fast-rising European agentic legal platform; model + moat worth dissecting.", "pre_verification": true },
-    { "id": "A6", "name": "Definely", "category": "drafting-redline", "verdict": "deep-dive", "flags": ["defensible", "interop"], "confidence": "medium", "rationale": "Genuine in-Word definition/reference wedge — differentiated within a crowded category; good interop teardown.", "pre_verification": true },
-    { "id": "A7", "name": "Clio", "category": "practice-mgmt", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "Practice-management incumbent.", "pre_verification": true },
-    { "id": "A8", "name": "Thomson Reuters", "category": "research", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "Incumbent giant (CoCounsel etc.) — context, not teardown.", "pre_verification": true },
-
-    { "id": "P1", "name": "Spellbook", "category": "drafting-redline", "verdict": "deep-dive", "flags": ["redliner", "interesting-flawed", "valuation-tension"], "confidence": "medium", "rationale": "Best-known funded drafter — ideal lens on the 'redliner moat' thesis.", "pre_verification": true },
-    { "id": "P2", "name": "Wordsmith", "category": "agentic-horizontal", "verdict": "deep-dive", "flags": ["defensible", "valuation-tension"], "confidence": "low", "rationale": "In-house legal AI with notable recent raise; model worth a look.", "pre_verification": true },
-    { "id": "P3", "name": "Ivo", "category": "drafting-redline", "verdict": "watch", "flags": ["redliner", "me-too"], "confidence": "low", "rationale": "Funded contract-review tool; representative of crowded category — hold unless it beats Spellbook/Luminance for the slot.", "pre_verification": true },
-    { "id": "P4", "name": "Consilio", "category": "ediscovery", "verdict": "watch", "flags": ["incumbent", "services"], "confidence": "medium", "rationale": "eDiscovery services incumbent.", "pre_verification": true },
-    { "id": "P5", "name": "Litera", "category": "knowledge", "verdict": "watch", "flags": ["incumbent"], "confidence": "medium", "rationale": "Roll-up suite — acquisition model mildly interesting, not the story.", "pre_verification": true },
-    { "id": "P6", "name": "Harvey", "category": "agentic-horizontal", "verdict": "deep-dive", "flags": ["defensible", "incumbent", "valuation-tension"], "confidence": "high", "rationale": "Category-defining; dissect model, moat claim, burn-vs-valuation.", "pre_verification": true },
-    { "id": "P7", "name": "Leah", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "name needs confirmation — Pass 1b.", "pre_verification": true },
-    { "id": "P8", "name": "Abra", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "name needs confirmation — Pass 1b.", "pre_verification": true },
-    { "id": "P9", "name": "Luminance", "category": "drafting-redline", "verdict": "deep-dive", "flags": ["defensible", "interesting-flawed", "redliner"], "confidence": "high", "rationale": "Proprietary contract model + traction in the most crowded category — where's the real moat?", "pre_verification": true },
-    { "id": "P10", "name": "DraftWise", "category": "drafting-redline", "verdict": "watch", "flags": ["redliner", "me-too"], "confidence": "low", "rationale": "Funded drafter; category over-subscribed — hold.", "pre_verification": true },
-    { "id": "P20", "name": "Wolters Kluwer", "category": "research", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "Incumbent publisher.", "pre_verification": true },
-    { "id": "P21", "name": "LegalFly", "category": "agentic-horizontal", "verdict": "watch", "flags": ["defensible"], "confidence": "low", "rationale": "European in-house agent play; hold pending 1b.", "pre_verification": true },
-    { "id": "P22", "name": "Vesence", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "spelling unsure; unknown what they do — Pass 1b.", "pre_verification": true },
-    { "id": "P23", "name": "Loom Analytics", "category": "research", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "Litigation/court analytics — real but niche; confirm in 1b.", "pre_verification": true },
-    { "id": "P24", "name": "DeepL", "category": "infra-platform", "verdict": "watch", "flags": ["off-core", "incumbent"], "confidence": "medium", "rationale": "Horizontal machine translation, not legal-specific — note, not the story.", "pre_verification": true },
-    { "id": "P26", "name": "DeepJudge", "category": "knowledge", "verdict": "watch", "flags": ["defensible", "promote-candidate"], "confidence": "medium", "rationale": "Legal knowledge-retrieval/search AI (Swiss) on a premium stand — strong non-redliner example; promote to deep-dive if a slot frees up.", "pre_verification": true },
-
-    { "id": "M1", "name": "KLDiscovery", "category": "ediscovery", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "eDiscovery incumbent.", "pre_verification": true },
-    { "id": "M2", "name": "AlphaSense", "category": "research", "verdict": "watch", "flags": ["incumbent"], "confidence": "medium", "rationale": "Market-intel search; adjacent to legal.", "pre_verification": true },
-    { "id": "M3", "name": "BARBRI", "category": "other", "verdict": "watch", "flags": ["niche"], "confidence": "medium", "rationale": "Legal education / bar prep — off-thesis.", "pre_verification": true },
-    { "id": "M4", "name": "ZRM", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "M5", "name": null, "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "illegible — needs photo + Pass 1b.", "pre_verification": true },
-    { "id": "M6", "name": "Mage", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "M7", "name": "Orbital", "category": "research", "verdict": "deep-dive", "flags": ["defensible", "interesting-flawed"], "confidence": "medium", "rationale": "Property/real-estate due-diligence AI (Orbital Witness) — strong defensible niche; great non-redliner counterexample.", "pre_verification": true },
-    { "id": "M8", "name": "Leaf Enterprise", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-
-    { "id": "S1", "name": "Bryter", "category": "agentic-horizontal", "verdict": "watch", "flags": ["defensible"], "confidence": "medium", "rationale": "No-code automation pivoted to AI; real but known.", "pre_verification": true },
-    { "id": "S2", "name": "Cleardox", "category": "drafting-redline", "verdict": "watch", "flags": ["me-too"], "confidence": "low", "rationale": "Document automation; hold pending 1b.", "pre_verification": true },
-    { "id": "S3", "name": "PSA", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "ambiguous label — Pass 1b.", "pre_verification": true },
-    { "id": "S4", "name": "Eldia", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S5", "name": "Philips Speech AI Solutions", "category": "transcription-evidence", "verdict": "watch", "flags": ["incumbent", "niche"], "confidence": "medium", "rationale": "Dictation/transcription incumbent.", "pre_verification": true },
-    { "id": "S6", "name": "Diligent", "category": "compliance-risk", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "Governance/board incumbent.", "pre_verification": true },
-    { "id": "S7", "name": "HaystackID", "category": "ediscovery", "verdict": "watch", "flags": ["services"], "confidence": "medium", "rationale": "eDiscovery services.", "pre_verification": true },
-    { "id": "S8", "name": null, "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "illegible — needs photo + Pass 1b.", "pre_verification": true },
-    { "id": "S9", "name": "Omnilex", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-
-    { "id": "S10", "name": "Tonkean", "category": "billing-ops", "verdict": "watch", "flags": [], "confidence": "medium", "rationale": "Legal-ops workflow orchestration.", "pre_verification": true },
-    { "id": "S11", "name": "Pandektes", "category": "research", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "possible regional legal research — Pass 1b.", "pre_verification": true },
-    { "id": "S12", "name": "PointOne", "category": "billing-ops", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "AI timekeeping/billing.", "pre_verification": true },
-    { "id": "S13", "name": "Laurel", "category": "billing-ops", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "AI timekeeping.", "pre_verification": true },
-    { "id": "S14", "name": "Wexler AI", "category": "agentic-horizontal", "verdict": "deep-dive", "flags": ["defensible", "interesting-flawed"], "confidence": "medium", "rationale": "Litigation fact-analysis AI, UK — interesting non-drafting angle.", "pre_verification": true },
-    { "id": "S15", "name": "Blee", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S16", "name": "Iron Carrot", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S17", "name": "Juro", "category": "clm", "verdict": "watch", "flags": ["defensible"], "confidence": "medium", "rationale": "Established UK CLM; known model.", "pre_verification": true },
-    { "id": "S18", "name": "sa.global", "category": "services-consulting", "verdict": "kill", "flags": ["services"], "confidence": "medium", "rationale": "Dynamics-365 SI for legal — services in a product costume; off-thesis. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S19", "name": "LexisNexis", "category": "research", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "Incumbent.", "pre_verification": true },
-    { "id": "S20", "name": "DocumentDrafter", "category": "drafting-redline", "verdict": "kill", "flags": ["thin-wrapper", "me-too", "no-moat", "redliner"], "confidence": "medium", "rationale": "Generic drafter in a 15-booth field, name = function, no visible differentiator — in my opinion thin-wrapper unlikely to survive the shakeout. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S21", "name": "LexisNexis CounselLink", "category": "billing-ops", "verdict": "watch", "flags": ["incumbent"], "confidence": "high", "rationale": "Incumbent spend-management.", "pre_verification": true },
-    { "id": "S22", "name": "Structureflow", "category": "other", "verdict": "deep-dive", "flags": ["defensible", "interop"], "confidence": "medium", "rationale": "Deal-structure visualization — differentiated, non-redliner; good model teardown.", "pre_verification": true },
-    { "id": "S23", "name": "Summize", "category": "clm", "verdict": "watch", "flags": [], "confidence": "medium", "rationale": "UK CLM/contract intelligence.", "pre_verification": true },
-    { "id": "S24", "name": "Emma Legal", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S25", "name": "Cicero", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-
-    { "id": "S26", "name": "LawVu", "category": "practice-mgmt", "verdict": "watch", "flags": ["defensible"], "confidence": "medium", "rationale": "In-house legal workspace; real but known.", "pre_verification": true },
-    { "id": "S27", "name": "Hexaware", "category": "services-consulting", "verdict": "kill", "flags": ["services"], "confidence": "medium", "rationale": "IT services giant exhibiting AI 'solutions' — not a legal product. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S28", "name": "Persuit", "category": "billing-ops", "verdict": "watch", "flags": ["niche"], "confidence": "medium", "rationale": "Legal procurement/RFP.", "pre_verification": true },
-    { "id": "S29", "name": "BA Insight", "category": "knowledge", "verdict": "watch", "flags": ["incumbent"], "confidence": "low", "rationale": "Enterprise search (Upland).", "pre_verification": true },
-    { "id": "S30", "name": "EPAM", "category": "services-consulting", "verdict": "kill", "flags": ["services"], "confidence": "high", "rationale": "Global IT services — off-thesis. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S31", "name": "SpotDraft", "category": "clm", "verdict": "watch", "flags": ["defensible"], "confidence": "medium", "rationale": "Funded CLM; known.", "pre_verification": true },
-    { "id": "S32", "name": "Scissero", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S33", "name": "Epiq", "category": "ediscovery", "verdict": "watch", "flags": ["incumbent", "services"], "confidence": "high", "rationale": "Legal services/eDiscovery incumbent.", "pre_verification": true },
-    { "id": "S34", "name": "Junjio", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S35", "name": "Juristic", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S36", "name": "Zoho Sign", "category": "infra-platform", "verdict": "kill", "flags": ["commodity", "incumbent"], "confidence": "medium", "rationale": "Commodity e-signature bolt-on — off-thesis. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S37", "name": "LegalOn", "category": "drafting-redline", "verdict": "watch", "flags": ["redliner", "defensible"], "confidence": "medium", "rationale": "Funded contract-review; representative — hold for the slot.", "pre_verification": true },
-    { "id": "S38", "name": "Jigsaw", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-
-    { "id": "S53", "name": "Saga", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "S54", "name": "Intellek", "category": "other", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "Legal learning/training.", "pre_verification": true },
-    { "id": "S55", "name": "Avvoka", "category": "drafting-redline", "verdict": "watch", "flags": ["redliner"], "confidence": "medium", "rationale": "UK document automation/drafting.", "pre_verification": true },
-    { "id": "S56", "name": "Crimson", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "S57", "name": "HYCU", "category": "infra-platform", "verdict": "kill", "flags": ["off-core"], "confidence": "low", "rationale": "SaaS data-backup — not legal tech. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S58", "name": "RWS", "category": "ip", "verdict": "watch", "flags": ["incumbent", "services"], "confidence": "medium", "rationale": "Translation/IP services incumbent.", "pre_verification": true },
-    { "id": "S59", "name": "NewCode.ai", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S60", "name": "TCDI", "category": "ediscovery", "verdict": "watch", "flags": ["services"], "confidence": "low", "rationale": "eDiscovery services.", "pre_verification": true },
-    { "id": "S61", "name": "Lawstronaut", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear; possible dup of K22 — Pass 1b.", "pre_verification": true },
-    { "id": "S62", "name": "June", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "S63", "name": "Integreon", "category": "services-consulting", "verdict": "kill", "flags": ["services"], "confidence": "medium", "rationale": "ALSP/managed services — off-thesis. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S64", "name": "Kuberno", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "name confirmed; still need to know what they do — Pass 1b.", "pre_verification": true },
-    { "id": "S65", "name": "Avanade", "category": "services-consulting", "verdict": "kill", "flags": ["services"], "confidence": "high", "rationale": "Microsoft SI (Accenture/MS JV) — off-thesis. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "S66", "name": "Jude", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S67", "name": "BrightFlag", "category": "billing-ops", "verdict": "watch", "flags": ["defensible"], "confidence": "medium", "rationale": "Legal spend/matter management.", "pre_verification": true },
-
-    { "id": "S90", "name": "Lawaly", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "S91", "name": "K3 Advisory Group", "category": "services-consulting", "verdict": "identify", "flags": ["services"], "confidence": "low", "rationale": "likely advisory/services — Pass 1b.", "pre_verification": true },
-    { "id": "S92", "name": "Truth Systems", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-
-    { "id": "K1", "name": "OpenText", "category": "ediscovery", "verdict": "watch", "flags": ["incumbent"], "confidence": "medium", "rationale": "Enterprise content/eDiscovery incumbent.", "pre_verification": true },
-    { "id": "K2", "name": "Atlas Fuse", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K3", "name": "MinuteBox", "category": "practice-mgmt", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "Entity management.", "pre_verification": true },
-    { "id": "K4", "name": "Evidency", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K5", "name": "KPMG Law", "category": "services-consulting", "verdict": "kill", "flags": ["services"], "confidence": "high", "rationale": "Big-4 legal arm — services, off-thesis. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "K6", "name": "Affine", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K7", "name": "FileOps", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K8", "name": "Airia", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K9", "name": "TitanFile", "category": "infra-platform", "verdict": "watch", "flags": ["commodity"], "confidence": "low", "rationale": "Secure file sharing.", "pre_verification": true },
-    { "id": "K10", "name": "Notarity", "category": "transcription-evidence", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "E-notarization.", "pre_verification": true },
-    { "id": "K11", "name": "Infodash", "category": "knowledge", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "SharePoint intranet for legal.", "pre_verification": true },
-    { "id": "K12", "name": "Everlaw", "category": "ediscovery", "verdict": "watch", "flags": ["defensible", "incumbent"], "confidence": "high", "rationale": "Well-funded litigation/eDiscovery platform; known model.", "pre_verification": true },
-    { "id": "K13", "name": "Twin-1 AI", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K14", "name": "Autologyx", "category": "agentic-horizontal", "verdict": "watch", "flags": [], "confidence": "low", "rationale": "No-code process automation.", "pre_verification": true },
-    { "id": "K15", "name": "Propel", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "K16", "name": "ThirdEye", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-
-    { "id": "K17", "name": "LexHub", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K18", "name": "SingleCase", "category": "practice-mgmt", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "Case management.", "pre_verification": true },
-    { "id": "K19", "name": "Array", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "K20", "name": "Purple", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "K21", "name": "GenC", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear label — Pass 1b.", "pre_verification": true },
-    { "id": "K22", "name": "Lawstronaut", "category": "other", "verdict": "identify", "flags": ["dup?"], "confidence": "low", "rationale": "possible dup of S61 — merge in 1b.", "pre_verification": true },
-    { "id": "K23", "name": "LegalTech Hub", "category": "other", "verdict": "watch", "flags": ["non-product"], "confidence": "medium", "rationale": "Vendor directory/market intel — useful, not a product to rate.", "pre_verification": true },
-    { "id": "K24", "name": "KomplyAI", "category": "compliance-risk", "verdict": "watch", "flags": ["me-too"], "confidence": "low", "rationale": "Compliance AI; hold pending 1b.", "pre_verification": true },
-    { "id": "K25", "name": "TrialView", "category": "transcription-evidence", "verdict": "watch", "flags": ["niche"], "confidence": "medium", "rationale": "Trial presentation/transcript.", "pre_verification": true },
-    { "id": "K26", "name": "TrialView", "category": "other", "verdict": "identify", "flags": ["dup?"], "confidence": "low", "rationale": "possible dup of K25 — verify second name in 1b.", "pre_verification": true },
-    { "id": "K27", "name": "Legal DPT", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K28", "name": "LUPL", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear label — Pass 1b.", "pre_verification": true },
-    { "id": "K30", "name": "Awesome Compliance", "category": "compliance-risk", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear — Pass 1b.", "pre_verification": true },
-    { "id": "K31", "name": "ORO", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear label — Pass 1b.", "pre_verification": true },
-    { "id": "K41", "name": "Cosmonauts", "category": "other", "verdict": "identify", "flags": ["non-product?"], "confidence": "low", "rationale": "possibly an events/community org — Pass 1b.", "pre_verification": true },
-    { "id": "K42", "name": "So They Can", "category": "other", "verdict": "kill", "flags": ["non-vendor"], "confidence": "medium", "rationale": "Appears to be a charity/CSR presence, not a legal-tech vendor — out of scope. [verify it isn't a same-named product]", "pre_verification": true },
-
-    { "id": "K43", "name": "Novis", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K44", "name": "Syllo", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K45", "name": "Hotshot", "category": "other", "verdict": "watch", "flags": ["niche"], "confidence": "low", "rationale": "Transactional training/templates.", "pre_verification": true },
-    { "id": "K46", "name": "Fliplet", "category": "infra-platform", "verdict": "kill", "flags": ["off-core", "commodity"], "confidence": "low", "rationale": "Generic app builder — not legal-specific. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "K47", "name": "Ankar", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K48", "name": "Opus 2", "category": "transcription-evidence", "verdict": "watch", "flags": ["defensible"], "confidence": "medium", "rationale": "Litigation case/transcript management; established.", "pre_verification": true },
-    { "id": "K49", "name": "Intuity AI by Dazzychain", "category": "billing-ops", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "legal-ops; confirm in 1b.", "pre_verification": true },
-    { "id": "K50", "name": "Panoram", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K51", "name": "Pons", "category": "ip", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "possible IP tool — Pass 1b.", "pre_verification": true },
-    { "id": "K52", "name": "Silks", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K55", "name": "NationBetter", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K56", "name": "Moritz", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-    { "id": "K57", "name": "August", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "K58", "name": "Reveal", "category": "ediscovery", "verdict": "watch", "flags": ["defensible", "incumbent"], "confidence": "medium", "rationale": "Funded eDiscovery AI (Reveal/Brainspace); known.", "pre_verification": true },
-    { "id": "K59", "name": "CLOC", "category": "other", "verdict": "kill", "flags": ["non-vendor"], "confidence": "high", "rationale": "Corporate Legal Operations Consortium — industry body, not a vendor.", "pre_verification": true },
-    { "id": "K60", "name": "Bundledocs", "category": "practice-mgmt", "verdict": "watch", "flags": ["niche"], "confidence": "medium", "rationale": "Court bundling/document assembly.", "pre_verification": true },
-    { "id": "K61", "name": "Aloi", "category": "other", "verdict": "identify", "flags": [], "confidence": "low", "rationale": "unclear name — Pass 1b.", "pre_verification": true },
-
-    { "id": "SA1", "name": "Cequence", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA2", "name": "ContractsAI", "category": "drafting-redline", "verdict": "kill", "flags": ["thin-wrapper", "me-too", "no-moat", "redliner"], "confidence": "medium", "rationale": "Name=category, Startup Alley booth, generic contract AI — in my opinion a thin wrapper with no moat. [opinion, pre-verify]", "pre_verification": true },
-    { "id": "SA3", "name": "PhaseLaw", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA4", "name": "Pivot", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "common name — Pass 1b.", "pre_verification": true },
-    { "id": "SA5", "name": "Codified Strategy", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA6", "name": "Moonlit.AI", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA7", "name": "Legal AI", "category": "agentic-horizontal", "verdict": "identify", "flags": ["startup", "me-too?"], "confidence": "low", "rationale": "Generic name — confirm it's real in 1b.", "pre_verification": true },
-    { "id": "SA8", "name": "Atria AI", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA9", "name": "Casey", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA10", "name": "Lucio", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "Startup Alley — Pass 1b.", "pre_verification": true },
-    { "id": "SA11", "name": "AI4GG", "category": "other", "verdict": "identify", "flags": ["startup"], "confidence": "low", "rationale": "unclear label — Pass 1b.", "pre_verification": true }
+    {
+      "id": "A1",
+      "name": "iManage",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "DMS/knowledge incumbent — note, don't dissect.",
+      "pre_verification": true
+    },
+    {
+      "id": "A2",
+      "name": "LGPI / LOPI (unresolved)",
+      "category": "unknown",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "No findable legal-tech vendor under this name",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "A3",
+      "name": "Augmetec",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "AI investigations command centre (LEIAA); ~£2m seed",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://augmetec.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "A4",
+      "name": "NetDocuments",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "DMS incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "A5",
+      "name": "Legora",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "valuation-tension"
+      ],
+      "confidence": "medium",
+      "rationale": "Fast-rising European agentic legal platform; model + moat worth dissecting.",
+      "pre_verification": true
+    },
+    {
+      "id": "A6",
+      "name": "Definely",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "interop"
+      ],
+      "confidence": "medium",
+      "rationale": "Genuine in-Word definition/reference wedge — differentiated within a crowded category; good interop teardown.",
+      "pre_verification": true
+    },
+    {
+      "id": "A7",
+      "name": "Clio",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Practice-management incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "A8",
+      "name": "Thomson Reuters",
+      "category": "research",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Incumbent giant (CoCounsel etc.) — context, not teardown.",
+      "pre_verification": true
+    },
+    {
+      "id": "P1",
+      "name": "Spellbook",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "flags": [
+        "redliner",
+        "interesting-flawed",
+        "valuation-tension"
+      ],
+      "confidence": "medium",
+      "rationale": "Best-known funded drafter — ideal lens on the 'redliner moat' thesis.",
+      "pre_verification": true
+    },
+    {
+      "id": "P2",
+      "name": "Wordsmith",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "valuation-tension"
+      ],
+      "confidence": "low",
+      "rationale": "In-house legal AI with notable recent raise; model worth a look.",
+      "pre_verification": true
+    },
+    {
+      "id": "P3",
+      "name": "Ivo",
+      "category": "drafting-redline",
+      "verdict": "watch",
+      "flags": [
+        "redliner",
+        "me-too"
+      ],
+      "confidence": "low",
+      "rationale": "Funded contract-review tool; representative of crowded category — hold unless it beats Spellbook/Luminance for the slot.",
+      "pre_verification": true
+    },
+    {
+      "id": "P4",
+      "name": "Consilio",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "incumbent",
+        "services"
+      ],
+      "confidence": "medium",
+      "rationale": "eDiscovery services incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "P5",
+      "name": "Litera",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "medium",
+      "rationale": "Roll-up suite — acquisition model mildly interesting, not the story.",
+      "pre_verification": true
+    },
+    {
+      "id": "P6",
+      "name": "Harvey",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "incumbent",
+        "valuation-tension"
+      ],
+      "confidence": "high",
+      "rationale": "Category-defining; dissect model, moat claim, burn-vs-valuation.",
+      "pre_verification": true
+    },
+    {
+      "id": "P7",
+      "name": "Leah (ex-ContractPodAi)",
+      "category": "clm",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Established CLM rebranded as an 'Agentic OS'; PwC alliance",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://leahai.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "P8",
+      "name": "Abra (unresolved)",
+      "category": "unknown",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "No findable legal-tech vendor; name collisions only",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "P9",
+      "name": "Luminance",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "interesting-flawed",
+        "redliner"
+      ],
+      "confidence": "high",
+      "rationale": "Proprietary contract model + traction in the most crowded category — where's the real moat?",
+      "pre_verification": true
+    },
+    {
+      "id": "P10",
+      "name": "DraftWise",
+      "category": "drafting-redline",
+      "verdict": "watch",
+      "flags": [
+        "redliner",
+        "me-too"
+      ],
+      "confidence": "low",
+      "rationale": "Funded drafter; category over-subscribed — hold.",
+      "pre_verification": true
+    },
+    {
+      "id": "P20",
+      "name": "Wolters Kluwer",
+      "category": "research",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Incumbent publisher.",
+      "pre_verification": true
+    },
+    {
+      "id": "P21",
+      "name": "LegalFly",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "low",
+      "rationale": "European in-house agent play; hold pending 1b.",
+      "pre_verification": true
+    },
+    {
+      "id": "P22",
+      "name": "Vesence",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "'Cursor for lawyers' QA layer in Word; $9M seed (Emergence/Creandum/YC)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.vesence.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "P23",
+      "name": "Loom Analytics",
+      "category": "research",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "Litigation/court analytics — real but niche; confirm in 1b.",
+      "pre_verification": true
+    },
+    {
+      "id": "P24",
+      "name": "DeepL",
+      "category": "infra-platform",
+      "verdict": "watch",
+      "flags": [
+        "off-core",
+        "incumbent"
+      ],
+      "confidence": "medium",
+      "rationale": "Horizontal machine translation, not legal-specific — note, not the story.",
+      "pre_verification": true
+    },
+    {
+      "id": "P26",
+      "name": "DeepJudge",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [
+        "defensible",
+        "promote-candidate"
+      ],
+      "confidence": "medium",
+      "rationale": "Legal knowledge-retrieval/search AI (Swiss) on a premium stand — strong non-redliner example; promote to deep-dive if a slot frees up.",
+      "pre_verification": true
+    },
+    {
+      "id": "M1",
+      "name": "KLDiscovery",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "eDiscovery incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "M2",
+      "name": "AlphaSense",
+      "category": "research",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "medium",
+      "rationale": "Market-intel search; adjacent to legal.",
+      "pre_verification": true
+    },
+    {
+      "id": "M3",
+      "name": "BARBRI",
+      "category": "other",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "medium",
+      "rationale": "Legal education / bar prep — off-thesis.",
+      "pre_verification": true
+    },
+    {
+      "id": "M4",
+      "name": "ZRM",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Nordic law-firm CRM/practice mgmt",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://zrm.dk/en/law/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "M5",
+      "name": null,
+      "category": "other",
+      "verdict": "identify",
+      "flags": [
+        "likely-nonexistent"
+      ],
+      "confidence": "low",
+      "rationale": "Illegible on plan and absent from the mini-map (M1-M4, M6) — likely no such booth; drop unless a photo proves otherwise",
+      "pre_verification": true
+    },
+    {
+      "id": "M6",
+      "name": "Mage Legal",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "YC S24 data-room diligence-to-memo automation",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://magelegal.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "M7",
+      "name": "Orbital",
+      "category": "research",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "interesting-flawed"
+      ],
+      "confidence": "medium",
+      "rationale": "Property/real-estate due-diligence AI (Orbital Witness) — strong defensible niche; great non-redliner counterexample.",
+      "pre_verification": true
+    },
+    {
+      "id": "M8",
+      "name": "Leaf Enterprise (likely LEAP)",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Not found; likely a misread of LEAP (PM incumbent)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "S1",
+      "name": "Bryter",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "No-code automation pivoted to AI; real but known.",
+      "pre_verification": true
+    },
+    {
+      "id": "S2",
+      "name": "Cleardox",
+      "category": "drafting-redline",
+      "verdict": "watch",
+      "flags": [
+        "me-too"
+      ],
+      "confidence": "low",
+      "rationale": "Document automation; hold pending 1b.",
+      "pre_verification": true
+    },
+    {
+      "id": "S3",
+      "name": "PSA Solutions",
+      "category": "infra-platform",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Nordic legal-tech integrator/iPaaS (Custodian)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://psasolutions.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S4",
+      "name": "Eldia (likely Eudia)",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Not found as 'Eldia'; almost certainly a misread of Eudia (General Catalyst-backed in-house legal AI)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "S5",
+      "name": "Philips Speech AI Solutions",
+      "category": "transcription-evidence",
+      "verdict": "watch",
+      "flags": [
+        "incumbent",
+        "niche"
+      ],
+      "confidence": "medium",
+      "rationale": "Dictation/transcription incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "S6",
+      "name": "Diligent",
+      "category": "compliance-risk",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Governance/board incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "S7",
+      "name": "HaystackID",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "services"
+      ],
+      "confidence": "medium",
+      "rationale": "eDiscovery services.",
+      "pre_verification": true
+    },
+    {
+      "id": "S8",
+      "name": null,
+      "category": "other",
+      "verdict": "identify",
+      "flags": [
+        "illegible"
+      ],
+      "confidence": "low",
+      "rationale": "Illegible on plan — needs a clearer photo or drop",
+      "pre_verification": true
+    },
+    {
+      "id": "S9",
+      "name": "Omnilex",
+      "category": "research",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Swiss/German law research; $4.5M seed",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://omnilex.ai/en/product",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S10",
+      "name": "Tonkean",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "medium",
+      "rationale": "Legal-ops workflow orchestration.",
+      "pre_verification": true
+    },
+    {
+      "id": "S11",
+      "name": "Pandektes",
+      "category": "research",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Pan-EU multilingual case-law research; €2.9M seed",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://tech.eu/2025/02/04/danish-ai-startup-raises-2-9m-to-revolutionize-the-legal-sector-in-europe/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S12",
+      "name": "PointOne",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "AI timekeeping/billing.",
+      "pre_verification": true
+    },
+    {
+      "id": "S13",
+      "name": "Laurel",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "AI timekeeping.",
+      "pre_verification": true
+    },
+    {
+      "id": "S14",
+      "name": "Wexler AI",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "interesting-flawed"
+      ],
+      "confidence": "medium",
+      "rationale": "Litigation fact-analysis AI, UK — interesting non-drafting angle.",
+      "pre_verification": true
+    },
+    {
+      "id": "S15",
+      "name": "Blee",
+      "category": "compliance-risk",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "YC W23 marketing-compliance review; $2.8M",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.ycombinator.com/companies/blee",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S16",
+      "name": "Iron Carrot",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Data-governance consultancy for law firms, not a product",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://ironcarrot.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S17",
+      "name": "Juro",
+      "category": "clm",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "Established UK CLM; known model.",
+      "pre_verification": true
+    },
+    {
+      "id": "S18",
+      "name": "sa.global",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "medium",
+      "rationale": "Dynamics-365 SI for legal — services in a product costume; off-thesis. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S19",
+      "name": "LexisNexis",
+      "category": "research",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "S20",
+      "name": "DocumentDrafter",
+      "category": "drafting-redline",
+      "verdict": "kill",
+      "flags": [
+        "thin-wrapper",
+        "me-too",
+        "no-moat",
+        "redliner"
+      ],
+      "confidence": "medium",
+      "rationale": "Generic drafter in a 15-booth field, name = function, no visible differentiator — in my opinion thin-wrapper unlikely to survive the shakeout. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S21",
+      "name": "LexisNexis CounselLink",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Incumbent spend-management.",
+      "pre_verification": true
+    },
+    {
+      "id": "S22",
+      "name": "Structureflow",
+      "category": "other",
+      "verdict": "deep-dive",
+      "flags": [
+        "defensible",
+        "interop"
+      ],
+      "confidence": "medium",
+      "rationale": "Deal-structure visualization — differentiated, non-redliner; good model teardown.",
+      "pre_verification": true
+    },
+    {
+      "id": "S23",
+      "name": "Summize",
+      "category": "clm",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "medium",
+      "rationale": "UK CLM/contract intelligence.",
+      "pre_verification": true
+    },
+    {
+      "id": "S24",
+      "name": "Emma Legal",
+      "category": "research",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Multilingual M&A due-diligence agent",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.emma.legal/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S25",
+      "name": "Cicero (by Automatise)",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "On-prem Llama-405B litigation matter-analysis (name collision; confirm)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.cicero.com.ai/",
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "S26",
+      "name": "LawVu",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "In-house legal workspace; real but known.",
+      "pre_verification": true
+    },
+    {
+      "id": "S27",
+      "name": "Hexaware",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "medium",
+      "rationale": "IT services giant exhibiting AI 'solutions' — not a legal product. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S28",
+      "name": "Persuit",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "medium",
+      "rationale": "Legal procurement/RFP.",
+      "pre_verification": true
+    },
+    {
+      "id": "S29",
+      "name": "BA Insight",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "low",
+      "rationale": "Enterprise search (Upland).",
+      "pre_verification": true
+    },
+    {
+      "id": "S30",
+      "name": "EPAM",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "high",
+      "rationale": "Global IT services — off-thesis. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S31",
+      "name": "SpotDraft",
+      "category": "clm",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "Funded CLM; known.",
+      "pre_verification": true
+    },
+    {
+      "id": "S32",
+      "name": "Scissero",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Tech + embedded-lawyer hybrid; acquired Robin AI's services arm",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.scissero.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S33",
+      "name": "Epiq",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "incumbent",
+        "services"
+      ],
+      "confidence": "high",
+      "rationale": "Legal services/eDiscovery incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "S34",
+      "name": "Junu.io",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Legal BI / matter-budgeting; Nordic firms",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.legaltech-talk.com/partners/2026/junu-io/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S35",
+      "name": "Juristic",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Visual legal workspace (entity diagrams, timelines)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.juristic.io/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S36",
+      "name": "Zoho Sign",
+      "category": "infra-platform",
+      "verdict": "kill",
+      "flags": [
+        "commodity",
+        "incumbent"
+      ],
+      "confidence": "medium",
+      "rationale": "Commodity e-signature bolt-on — off-thesis. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S37",
+      "name": "LegalOn",
+      "category": "drafting-redline",
+      "verdict": "watch",
+      "flags": [
+        "redliner",
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "Funded contract-review; representative — hold for the slot.",
+      "pre_verification": true
+    },
+    {
+      "id": "S38",
+      "name": "Jigsaw",
+      "category": "knowledge",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Legal diagramming; ~$25M raised, 200+ Big Law firms",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.law.com/legaltechnews/2024/04/29/jigsaw-legal-tech-startup-focused-on-corporate-diagramming-raises-15-million/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S53",
+      "name": "Saga",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Lawyer-centric AI suite; €1.5M seed, 150+ firms",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.eu-startups.com/2025/10/amsterdams-saga-raises-over-e1-5-million-to-expand-its-lawyer-centric-ai-platform-across-europe-and-latin-america/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S54",
+      "name": "Intellek",
+      "category": "other",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "Legal learning/training.",
+      "pre_verification": true
+    },
+    {
+      "id": "S55",
+      "name": "Avvoka",
+      "category": "drafting-redline",
+      "verdict": "watch",
+      "flags": [
+        "redliner"
+      ],
+      "confidence": "medium",
+      "rationale": "UK document automation/drafting.",
+      "pre_verification": true
+    },
+    {
+      "id": "S56",
+      "name": "Crimson",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Litigation/arbitration AI; YC, £2.5M seed, ex-Willkie founder",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.globallegalpost.com/news/ai-litigation-legaltech-start-up-crimson-raises-25m-in-seed-funding-round-1123576627",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S57",
+      "name": "HYCU",
+      "category": "infra-platform",
+      "verdict": "kill",
+      "flags": [
+        "off-core"
+      ],
+      "confidence": "low",
+      "rationale": "SaaS data-backup — not legal tech. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S58",
+      "name": "RWS",
+      "category": "ip",
+      "verdict": "watch",
+      "flags": [
+        "incumbent",
+        "services"
+      ],
+      "confidence": "medium",
+      "rationale": "Translation/IP services incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "S59",
+      "name": "Newcode.ai",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "On-prem/private AI OS ('Nova'); $6.5M, DLA Piper partner",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.artificiallawyer.com/2026/03/17/newcode-raises-6-5m-maged-helmy-interview/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S60",
+      "name": "TCDI",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "services"
+      ],
+      "confidence": "low",
+      "rationale": "eDiscovery services.",
+      "pre_verification": true
+    },
+    {
+      "id": "S61",
+      "name": "Lawstronaut",
+      "category": "infra-platform",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Legal-data infra: 150+ jurisdictions, MCP server for AI builders",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://lawstronaut.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S62",
+      "name": "June (june.tech)",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Mass-litigation matter platform",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.june.tech/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S63",
+      "name": "Integreon",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "medium",
+      "rationale": "ALSP/managed services — off-thesis. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S64",
+      "name": "Kuberno",
+      "category": "compliance-risk",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Entity governance (Kube); £9.5M Series A (Barclays + Nasdaq Ventures)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://kuberno.com/us/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S65",
+      "name": "Avanade",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "high",
+      "rationale": "Microsoft SI (Accenture/MS JV) — off-thesis. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "S66",
+      "name": "Jude (jude.law)",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "AI-native workspace for generalist firms; private beta",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://jude.law/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S67",
+      "name": "BrightFlag",
+      "category": "billing-ops",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "Legal spend/matter management.",
+      "pre_verification": true
+    },
+    {
+      "id": "S90",
+      "name": "Lawaly (unresolved)",
+      "category": "unknown",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "No findable legal-tech vendor under any spelling",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "S91",
+      "name": "K3 Advisory Group",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "low",
+      "rationale": "Professional-services advisory group, not a software vendor",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://k3advisorygroup.com/about-us/our-brands/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "S92",
+      "name": "Truth Systems",
+      "category": "compliance-risk",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "AI governance guardrails for firms (Charter/Gateway); $4M seed",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.law.com/legaltechnews/2025/10/28/governance-and-compliance-startup-truth-systems-announces-4m-seed-round/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K1",
+      "name": "OpenText",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "incumbent"
+      ],
+      "confidence": "medium",
+      "rationale": "Enterprise content/eDiscovery incumbent.",
+      "pre_verification": true
+    },
+    {
+      "id": "K2",
+      "name": "Atlas Fuse (ClearPeople)",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "M365 KM/retrieval layer for firms",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.clearpeople.com/products/atlas/atlasfuse",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K3",
+      "name": "MinuteBox",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "Entity management.",
+      "pre_verification": true
+    },
+    {
+      "id": "K4",
+      "name": "Evidency",
+      "category": "compliance-risk",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "eIDAS qualified timestamping/e-seals/archiving",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://evidency.io/en/legal-tech-ia-role-digital-evidence/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K5",
+      "name": "KPMG Law",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "services"
+      ],
+      "confidence": "high",
+      "rationale": "Big-4 legal arm — services, off-thesis. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "K6",
+      "name": "Affine (unresolved)",
+      "category": "unknown",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Not found as legal vendor; collides with AFFiNE.pro",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "K7",
+      "name": "FileOps",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Legal inbox/email management; ex-Docuble founders",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.legaltech-talk.com/partners/2026/fileops/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K8",
+      "name": "Airia",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Agentic-AI security/governance/orchestration for legal; award-winner",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://legal.airia.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K9",
+      "name": "TitanFile",
+      "category": "infra-platform",
+      "verdict": "watch",
+      "flags": [
+        "commodity"
+      ],
+      "confidence": "low",
+      "rationale": "Secure file sharing.",
+      "pre_verification": true
+    },
+    {
+      "id": "K10",
+      "name": "Notarity",
+      "category": "transcription-evidence",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "E-notarization.",
+      "pre_verification": true
+    },
+    {
+      "id": "K11",
+      "name": "Infodash",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "SharePoint intranet for legal.",
+      "pre_verification": true
+    },
+    {
+      "id": "K12",
+      "name": "Everlaw",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "defensible",
+        "incumbent"
+      ],
+      "confidence": "high",
+      "rationale": "Well-funded litigation/eDiscovery platform; known model.",
+      "pre_verification": true
+    },
+    {
+      "id": "K13",
+      "name": "Twin-1 AI",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Bessemer-backed 'digital twin' agents; very early",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://f4.fund/startups/twin1",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K14",
+      "name": "Autologyx",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "No-code process automation.",
+      "pre_verification": true
+    },
+    {
+      "id": "K15",
+      "name": "Propel (unresolved)",
+      "category": "unknown",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "No findable legal-tech vendor with this name",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "K16",
+      "name": "ThirdEye (unresolved)",
+      "category": "unknown",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Not found as legal vendor; multiple collisions",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "K17",
+      "name": "LexHub",
+      "category": "knowledge",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "EU-hosted AI workspace for in-house SMEs; per-use pricing",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://lexhub.app/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K18",
+      "name": "SingleCase",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "Case management.",
+      "pre_verification": true
+    },
+    {
+      "id": "K19",
+      "name": "Array (trustarray)",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "eDiscovery + litigation-support services",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://trustarray.com/en-us/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K20",
+      "name": "Purple",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Legal-tech build studio / fractional AI team, not a product",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://purple.law/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K21",
+      "name": "GenC",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Pre-instruction dispute platform + lawyer marketplace; launch-stage",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.legaltech-talk.com/partners/2026/genc/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K22",
+      "name": "Lawstronaut (dup of S61)",
+      "category": "infra-platform",
+      "verdict": "deep-dive",
+      "flags": [
+        "duplicate"
+      ],
+      "confidence": "low",
+      "rationale": "Duplicate booth listing of S61 — same company; do not double-count",
+      "pre_verification": true
+    },
+    {
+      "id": "K23",
+      "name": "LegalTech Hub",
+      "category": "other",
+      "verdict": "watch",
+      "flags": [
+        "non-product"
+      ],
+      "confidence": "medium",
+      "rationale": "Vendor directory/market intel — useful, not a product to rate.",
+      "pre_verification": true
+    },
+    {
+      "id": "K24",
+      "name": "KomplyAI",
+      "category": "compliance-risk",
+      "verdict": "watch",
+      "flags": [
+        "me-too"
+      ],
+      "confidence": "low",
+      "rationale": "Compliance AI; hold pending 1b.",
+      "pre_verification": true
+    },
+    {
+      "id": "K25",
+      "name": "TrialView",
+      "category": "transcription-evidence",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "medium",
+      "rationale": "Trial presentation/transcript.",
+      "pre_verification": true
+    },
+    {
+      "id": "K26",
+      "name": "TrialView (dup of K25)",
+      "category": "transcription-evidence",
+      "verdict": "watch",
+      "flags": [
+        "duplicate"
+      ],
+      "confidence": "low",
+      "rationale": "Duplicate booth listing of K25 — same company; do not double-count",
+      "pre_verification": true
+    },
+    {
+      "id": "K27",
+      "name": "Legal DPT",
+      "category": "clm",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Undifferentiated me-too CLM/doc mgmt",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://legaldpt.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K28",
+      "name": "LUPL",
+      "category": "practice-mgmt",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Matter/legal-project mgmt; $14M, backed by CMS/Cooley/Rajah & Tann",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.lupl.com/about/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K30",
+      "name": "Awesome Compliance (ACT)",
+      "category": "compliance-risk",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Hybrid AI compliance (GDPR/AI Act/DORA); NL",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.legaltech-talk.com/introducing-awesome-compliance-technology/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K31",
+      "name": "ORO (oro.legal)",
+      "category": "clm",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "French AI CLM agent; 190+ jurisdictions (confirm vs ORO Labs)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://oro.legal/en",
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "K41",
+      "name": "Cosmonauts",
+      "category": "other",
+      "verdict": "kill",
+      "flags": [
+        "non-product?"
+      ],
+      "confidence": "low",
+      "rationale": "Legal-tech events/community org, not a vendor",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://uk.linkedin.com/company/cosmonauts-ltd",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K42",
+      "name": "So They Can",
+      "category": "other",
+      "verdict": "kill",
+      "flags": [
+        "non-vendor"
+      ],
+      "confidence": "medium",
+      "rationale": "Appears to be a charity/CSR presence, not a legal-tech vendor — out of scope. [verify it isn't a same-named product]",
+      "pre_verification": true
+    },
+    {
+      "id": "K43",
+      "name": "Novis",
+      "category": "agentic-horizontal",
+      "verdict": "kill",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "General-purpose AI workspace, no legal focus; thin presence",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://novis.ai/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K44",
+      "name": "Syllo",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Agentic litigation workspace; $30M (Venrock), ILTA award CEO",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://syllo.ai/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K45",
+      "name": "Hotshot",
+      "category": "other",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "low",
+      "rationale": "Transactional training/templates.",
+      "pre_verification": true
+    },
+    {
+      "id": "K46",
+      "name": "Fliplet",
+      "category": "infra-platform",
+      "verdict": "kill",
+      "flags": [
+        "off-core",
+        "commodity"
+      ],
+      "confidence": "low",
+      "rationale": "Generic app builder — not legal-specific. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "K47",
+      "name": "Ankar",
+      "category": "ip",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "AI OS for patent professionals; $20M Series A (Atomico), ex-Palantir",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://ankar.ai/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K48",
+      "name": "Opus 2",
+      "category": "transcription-evidence",
+      "verdict": "watch",
+      "flags": [
+        "defensible"
+      ],
+      "confidence": "medium",
+      "rationale": "Litigation case/transcript management; established.",
+      "pre_verification": true
+    },
+    {
+      "id": "K49",
+      "name": "Intuity AI (ex-Dazychain)",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "In-house matter mgmt + AI; rebrand",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.dazychain.com/features/intuityai/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K50",
+      "name": "Panoram",
+      "category": "services-consulting",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "M365-native CLM + digital advisory/managed services",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.panoramdigital.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K51",
+      "name": "Pons (pons.io)",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "All-in-one legal AI workspace; Oslo",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.pons.io/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K52",
+      "name": "Silks",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "M365-native AI workspace for mid-market firms",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.silks.net/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K55",
+      "name": "Nation.better",
+      "category": "compliance-risk",
+      "verdict": "watch",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "UK immigration-compliance SaaS for SME employers",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://app.dealroom.co/companies/nation_better",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K56",
+      "name": "Moritz",
+      "category": "services-consulting",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "AI-native law firm (~80% AI + lawyer sign-off); $9M seed (YC/20VC)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.moritzlegal.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K57",
+      "name": "August",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "Agent-orchestration platform for midsize firms; $7M seed (NEA/Pear)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.august.law/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "K58",
+      "name": "Reveal",
+      "category": "ediscovery",
+      "verdict": "watch",
+      "flags": [
+        "defensible",
+        "incumbent"
+      ],
+      "confidence": "medium",
+      "rationale": "Funded eDiscovery AI (Reveal/Brainspace); known.",
+      "pre_verification": true
+    },
+    {
+      "id": "K59",
+      "name": "CLOC",
+      "category": "other",
+      "verdict": "kill",
+      "flags": [
+        "non-vendor"
+      ],
+      "confidence": "high",
+      "rationale": "Corporate Legal Operations Consortium — industry body, not a vendor.",
+      "pre_verification": true
+    },
+    {
+      "id": "K60",
+      "name": "Bundledocs",
+      "category": "practice-mgmt",
+      "verdict": "watch",
+      "flags": [
+        "niche"
+      ],
+      "confidence": "medium",
+      "rationale": "Court bundling/document assembly.",
+      "pre_verification": true
+    },
+    {
+      "id": "K61",
+      "name": "Aloi",
+      "category": "knowledge",
+      "verdict": "deep-dive",
+      "flags": [],
+      "confidence": "low",
+      "rationale": "On-prem KM/drafting activating firm precedent; data-sovereignty pitch",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.aloi.law/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA1",
+      "name": "Cequence",
+      "category": "clm",
+      "verdict": "watch",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "Slovak CLM; €2M seed, Dell/Orange clients",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://siliconcanals.com/slovakia-cequence-secures-2m/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA2",
+      "name": "ContractsAI",
+      "category": "drafting-redline",
+      "verdict": "kill",
+      "flags": [
+        "thin-wrapper",
+        "me-too",
+        "no-moat",
+        "redliner"
+      ],
+      "confidence": "medium",
+      "rationale": "Name=category, Startup Alley booth, generic contract AI — in my opinion a thin wrapper with no moat. [opinion, pre-verify]",
+      "pre_verification": true
+    },
+    {
+      "id": "SA3",
+      "name": "PhaseLaw",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "AI+human-in-loop eDiscovery/DSAR/redaction; $2.8M (Pear)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.phase.law/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA4",
+      "name": "Pivot (yourpivot)",
+      "category": "ediscovery",
+      "verdict": "deep-dive",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "Family-law evidence intelligence via knowledge graphs; very early",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://yourpivot.co/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA5",
+      "name": "Codified Strategy",
+      "category": "services-consulting",
+      "verdict": "kill",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "Legal-tech advisory firm, not a software product",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.legalfutures.co.uk/associate-news/why-the-best-legal-tech-demo-is-rarely-the-best-decision",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA6",
+      "name": "Moonlit.AI",
+      "category": "research",
+      "verdict": "deep-dive",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "Legal-data infra (API+MCP), 18M+ EU docs; Deloitte NL spinout",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.moonlit.ai/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA7",
+      "name": "Legal AI (unresolved)",
+      "category": "unknown",
+      "verdict": "kill",
+      "flags": [
+        "startup",
+        "me-too?"
+      ],
+      "confidence": "low",
+      "rationale": "No distinct brand found; generic name, no web presence",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    },
+    {
+      "id": "SA8",
+      "name": "Atria AI",
+      "category": "clm",
+      "verdict": "watch",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "Contract intelligence/CLM (Pathfinder); £720K pre-seed",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://atria-ai.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA9",
+      "name": "Casey",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "Infra to productise legal services; $40M Series A (GV/Balderton)",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.casey.legal/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA10",
+      "name": "Lucio",
+      "category": "agentic-horizontal",
+      "verdict": "watch",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "'Invisible' AI workspace embedded in Word/iManage; $5M seed; India/Asia",
+      "pre_verification": true,
+      "pass1b": {
+        "found": true,
+        "source": "https://www.lucioai.com/",
+        "needs_recheck": false
+      }
+    },
+    {
+      "id": "SA11",
+      "name": "AI4GG (unresolved)",
+      "category": "unknown",
+      "verdict": "kill",
+      "flags": [
+        "startup"
+      ],
+      "confidence": "low",
+      "rationale": "No findable web presence; treat as vapour",
+      "pre_verification": true,
+      "pass1b": {
+        "found": false,
+        "source": null,
+        "needs_recheck": true
+      }
+    }
   ]
 }
