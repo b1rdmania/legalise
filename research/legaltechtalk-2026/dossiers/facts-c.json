@@ -1,0 +1,191 @@
+[
+  {
+    "id": "S92",
+    "name": "Truth Systems",
+    "category": "compliance-risk",
+    "facts": {
+      "founded": "2023",
+      "hq": "San Francisco, CA, USA",
+      "total_funding": "~$5M ($1M earlier + $4M seed)",
+      "last_round": "$4M seed, announced 2025-10-28",
+      "lead_investor": "Gradient (Google's Gradient Ventures); participation from Lightspeed, F-Prime Capital, Y Combinator, The LegalTech Fund, Pear VC, a16z Scout, Silver Circle, Wndr Co, plus angels (Kaz Nejatian, Lauren Wagner)",
+      "headcount": "6 (per YC profile)",
+      "customers": ["Two law firms with combined ~$2B revenue, supporting ~1,500 attorneys (firm names not disclosed)"],
+      "integrations": ["Browser extension (works across AI tools/chat interfaces in-browser on any device)"],
+      "agentic_interop": "Self-described 'real-time governance agent.' Charter ships as a browser-extension agent that intercepts prompts at the point of AI use, blocks/warns in real time, and writes immutable audit logs. No public evidence of API, MCP, CLI, agent-to-agent protocols, or deep integrations into iManage/Word/SharePoint/Salesforce — enforcement is at the browser layer, not embedded in DMS/document systems.",
+      "tech_model": "Reads a firm's internal policies + client engagement/outside-counsel letters and converts them into enforceable guardrails; per-policy Small Language Models classify violations, orchestrated by a larger model in a browser extension that blocks non-compliant prompts in real time and logs them immutably.",
+      "pricing": "unknown",
+      "name_collision_check": "confirmed entity = Truth Systems / 'truthsystems' (YC S25), San Francisco legal-AI governance startup, product 'Charter', co-founders Alex Mac & Nam Nguyen, advised by Stanford's Dr. Megan Ma, $4M seed led by Gradient (Law.com/Artificial Lawyer, Oct 2025). Ruled out: 'Truth Social'/Trump Media, defense/identity firms named 'Truth Systems Inc', and other unrelated 'Truth' SaaS vendors."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Real-time prompt-blocking AI-governance agent for law firms is a relatively novel point solution, but adjacent to a crowding AI-governance/DLP field (Credo AI, iManage governance, browser-security vendors)."},
+      "thesis_fit": {"score": 3, "justification": "Strongly hits 'accountability' and 'supervised autonomy' (guardrails + immutable audit) and lives where lawyers work via browser, but it's a guardrail/monitoring layer rather than agentic work-preparation."},
+      "investability": {"score": 4, "justification": "Top-tier syndicate (Gradient lead, Lightspeed, F-Prime, YC S25, Pear), Stanford/Legora-pedigree team, and named ~1,500-attorney / two-large-firm traction signal a credible early-stage bet."},
+      "defensibility": {"score": 2, "justification": "Per-policy SLMs + audit logs and design-partner relationships give some moat, but browser-extension enforcement is replicable and incumbents (iManage, DLP/browser-security, Microsoft) could subsume it; thin evidence of durable lock-in."},
+      "interoperability": {"score": 2, "justification": "Browser-extension reach across AI tools is broad-but-shallow; no confirmed API/MCP/CLI or deep DMS/Office integrations (iManage/Word/SharePoint), so it sits beside the stack rather than embedded in it."},
+      "team": {"score": 4, "justification": "Co-founders Alex Mac & Nam Nguyen are Stanford Law AI researchers under Dr. Megan Ma; founding engineer was 2nd hire at Legora — strong, domain-relevant pedigree for an early team."}
+    },
+    "provisional_verdict": "Credible, well-backed AI-governance guardrail agent for law firms with real named traction; technically real but currently a browser-layer enforcement/audit play rather than deeply interoperable agentic infrastructure — watch for API/MCP/DMS depth. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Pricing not disclosed anywhere public.",
+      "Customer count/traction (~1,500 attorneys, two ~$2B firms) is self-reported via YC; no named logos or third-party confirmation.",
+      "Funding figure relies on press; total includes a separately reported earlier $1M (Legaltech Hub) plus $4M seed — exact total/structure not from a primary filing.",
+      "No evidence of API/MCP/CLI or deep iManage/Word/SharePoint integration — interop claim rests on browser extension only.",
+      "Very small team (6) versus ambition to govern 'all AI use in regulated industries'; category crowding risk from DLP/browser-security/DMS incumbents."
+    ],
+    "sources": [
+      {"url": "https://www.law.com/legaltechnews/2025/10/28/governance-and-compliance-startup-truth-systems-announces-4m-seed-round/", "accessed": "2026-06-18", "what_it_supports": "$4M seed, governance/compliance positioning, seed announcement date (seed article; body 403-blocked but title/summary corroborated across searches)"},
+      {"url": "https://www.artificiallawyer.com/2025/10/28/truth-systems-bags-4m-to-enforce-ai-guardrails/", "accessed": "2026-06-18", "what_it_supports": "$4M raise, Gradient-led with Lightspeed/F-Prime/YC/LegalTech Fund/Pear/a16z Scout/Silver Circle/Wndr Co + angels, Stanford Dr. Megan Ma advisor, Charter product, California startup"},
+      {"url": "https://www.ycombinator.com/companies/truthsystems", "accessed": "2026-06-18", "what_it_supports": "Founded 2023, San Francisco, 6 employees, founders Alex Mac & Nam Nguyen, 'real-time governance agents', ~1,500 attorneys / two firms ~$2B combined revenue"},
+      {"url": "https://www.workatastartup.com/companies/truthsystems", "accessed": "2026-06-18", "what_it_supports": "YC S25 batch designation"},
+      {"url": "https://www.ycombinator.com/launches/OA2-truthsystems-ai-governance-agent-for-regulated-industries", "accessed": "2026-06-18", "what_it_supports": "AI governance agent for regulated industries; founding engineer Mikolaj Bochenski (2nd hire at Legora); guardrail model from firm policies/engagement letters"},
+      {"url": "https://www.rlegaltech.com/vendors/charter-by-truth-systems/", "accessed": "2026-06-18", "what_it_supports": "Charter tech model: per-policy Small Language Models classify violations, orchestrated by larger model in browser extension; real-time prompt blocking; immutable audit logs; target = CIO/CISO/compliance at mid-large firms"},
+      {"url": "https://www.legaltechnologyhub.com/contents/truth-systems-launches-charter-a-real-time-ai-misuse-monitor-for-law-firms-backed-by-dollar1m-in-funding/", "accessed": "2026-06-18", "what_it_supports": "Earlier ~$1M funding and August 2025 Charter launch as real-time AI misuse monitor"},
+      {"url": "https://www.law.com/legaltechnews/2025/08/06/legal-tech-startup-truth-systems-announces-tool-for-preventing-ai-misuse-in-law-firms/", "accessed": "2026-06-18", "what_it_supports": "August 2025 Charter launch; real-time enforcement on any device, blocks prompt + immutable audit log; ILTA debut; SF-based"}
+    ]
+  },
+  {
+    "id": "K8",
+    "name": "Airia",
+    "category": "agentic-horizontal",
+    "facts": {
+      "founded": "2024 (emerged from stealth ~2024-2025)",
+      "hq": "Atlanta, Georgia, USA (offices also in Singapore, London, Dubai, Melbourne, Sofia, Bangalore)",
+      "total_funding": "$100M total committed ($50M invested to date + $50M further commitment), announced Sep 2025",
+      "last_round": "$100M, announced 2025-09-16; structured as funding/commitment from co-founder, not a priced VC round",
+      "lead_investor": "John Marshall (co-founder; self-funded — prior co-founder of AirWatch and Co-Chairman of OneTrust). No external VC lead disclosed.",
+      "headcount": "~150 employees (self-reported, Sep 2025)",
+      "customers": ["300+ enterprise customers claimed (self-reported)", "ArcelorMittal (reported, unverified primary)", "Mars (reported, unverified primary)", "Northwestern University (reported, unverified primary)", "BuzzFeed (reported, unverified primary)", "8x8 (reported, unverified primary)"],
+      "integrations": ["Microsoft 365 / OneDrive / SharePoint", "Salesforce", "Slack", "Confluence", "Snowflake", "GitHub", "major cloud databases/CRMs", "MCP Gateway with 1,000+ pre-configured integrations (self-reported)"],
+      "agentic_interop": "Strong. Native Model Context Protocol (MCP) support via an 'MCP Gateway' claiming 1,000+ pre-configured, governed integrations (largest enterprise MCP catalog, self-reported). Agent Builder supports no-code/low-code/pro-code agent creation; multi-agent orchestration coordinating agents, tools, data sources and workflows; model-agnostic multi-LLM orchestration with BYO-model; out-of-the-box connectors plus integration framework. Governance (change detection, version pinning, audit logging of every tool call) baked into orchestration layer. API/pro-code path exists; explicit CLI/A2A-protocol support not independently confirmed.",
+      "tech_model": "Horizontal enterprise AI orchestration + security + governance platform: model-agnostic multi-LLM layer + no/low/pro-code Agent Builder + MCP-based integration gateway, with guardrails (RBAC, DLP, AI firewall, audit) enforced at the orchestration layer; legal.airia.com is a vertical-marketed instance, not a separate product.",
+      "pricing": "Free $0 (1 user, 10 agents, 100 executions/mo); Individual $50/mo; Team $250/mo (unlimited users, 10k executions); Enterprise custom (SSO/SAML, audit logs). Pricing from third-party review aggregators (medium confidence); 14-day trial.",
+      "name_collision_check": "Confirmed entity = Airia, Atlanta-based enterprise agentic AI orchestration/security/governance platform (airia.com / legal.airia.com), co-founded by John Marshall (ex-AirWatch/OneTrust). Ruled out: unrelated 'Airia' air-purifier/scent-diffuser consumer brand. Note: no confirmed link to Kentik found — that association in the brief appears unfounded."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Differentiated by depth of MCP gateway + governance-at-orchestration-layer, but horizontal AI orchestration is a crowded space (competes with Microsoft, Salesforce Agentforce, many startups); legal is a marketing skin not a defensible niche."},
+      "thesis_fit": {"score": 4, "justification": "Strong fit for 'supervised autonomy + accountability': agents with audit trails, guardrails, RBAC, governed tool calls — preparation/accountability is the core pitch, though legal-specific workflow depth is thin."},
+      "investability": {"score": 3, "justification": "$100M is large but is single-individual founder capital, not external VC validation; no priced market round, no disclosed revenue — capital signals conviction but lacks third-party diligence signal."},
+      "defensibility": {"score": 2, "justification": "Conservative: claimed moat is breadth of integrations + governance, both replicable by hyperscalers; no proprietary model/data moat evident; integration counts are self-reported. Thin independent evidence of lock-in."},
+      "interoperability": {"score": 5, "justification": "Best-in-thesis: native MCP gateway (1,000+ connectors claimed), model-agnostic multi-LLM, real connectors to M365/SharePoint/Salesforce/Slack/Snowflake/GitHub, pro-code/API path — lives where enterprise work happens."},
+      "team": {"score": 4, "justification": "Co-founder John Marshall has strong track record (AirWatch -> $1.54B VMware acquisition; OneTrust Co-Chairman). Broader team/leadership bench not independently verified here."}
+    },
+    "provisional_verdict": "Technically-real horizontal agentic platform with genuine MCP/orchestration depth and a credible operator-founder; 'legal' is a thin vertical skin and the moat + the self-funded round are the open questions. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "$100M is co-founder self-investment ($50M committed not yet deployed), not an externally-validated priced VC round",
+      "300+ customers, ~150 headcount, 1,000+ MCP integrations all self-reported/PR — not independently audited",
+      "Named customers (ArcelorMittal, Mars, etc.) sourced from a search summary, not a directly verified primary page",
+      "Legal vertical (legal.airia.com) appears to be marketing positioning of the horizontal platform, not purpose-built legal tooling (no iManage/NetDocuments integration confirmed)",
+      "Brief's hypothesized Kentik/parent-company link not corroborated — likely incorrect",
+      "Crowded competitive field vs. hyperscaler-native orchestration; weak independent evidence of defensibility"
+    ],
+    "sources": [
+      {"url": "https://siliconangle.com/2025/09/16/airia-raises-100m-co-founder-build-security-foundation-enterprise-ai/", "accessed": "2026-06-18", "what_it_supports": "$100M from co-founder John Marshall; founded 2024; ~150 employees; 300+ customers; enterprise AI security/orchestration positioning"},
+      {"url": "https://www.businesswire.com/news/home/20250916641185/en/Airia-Secures-$100M-in-Funding-to-Accelerate-Safe-and-Secure-Enterprise-AI-Adoption", "accessed": "2026-06-18", "what_it_supports": "Official PR of $100M funding announcement (self-reported)"},
+      {"url": "https://www.artificiallawyer.com/2025/09/16/airia-announces-100m-funding/", "accessed": "2026-06-18", "what_it_supports": "Independent legal-tech press confirming $100M funding and Airia's enterprise AI orchestration model"},
+      {"url": "https://fintech.global/2025/09/18/ai-security-platform-airia-bags-100m-investment/", "accessed": "2026-06-18", "what_it_supports": "Independent confirmation of $100M and AI security platform positioning"},
+      {"url": "https://aimagazine.com/globenewswire/3245517", "accessed": "2026-06-18", "what_it_supports": "MCP Gateway surpassing 1,000 pre-configured integrations; governance features (change detection, version pinning, audit logging) — self-reported via GlobeNewswire"},
+      {"url": "https://airia.com/ai-platform/orchestration/", "accessed": "2026-06-18", "what_it_supports": "Agent Builder no/low/pro-code, multi-agent orchestration, model-agnostic multi-LLM, MCP integration framework, connectors (Salesforce, OneDrive, Slack)"},
+      {"url": "https://legal.airia.com/", "accessed": "2026-06-18", "what_it_supports": "Legal vertical: law-firm AI solutions (document gen/compare, discovery summaries, case timelines), guardrails/audit trails; vertical marketing of horizontal platform"},
+      {"url": "https://www.globenewswire.com/news-release/2026/05/12/3293015/0/en/Airia-Named-Top-Platform-in-Legal-AI-at-Theorem-s-Spring-2026-LegalTech-Awards.html", "accessed": "2026-06-18", "what_it_supports": "May 2026 Theorem LegalTech award (third-party recognition) for legal AI platform"},
+      {"url": "https://airia.com/pricing/", "accessed": "2026-06-18", "what_it_supports": "Existence of free starter tier and paid/enterprise tiers (pricing specifics corroborated via aggregators)"},
+      {"url": "https://hackceleration.com/labs/review/airia", "accessed": "2026-06-18", "what_it_supports": "Third-party pricing breakdown: Free $0, Individual $50/mo, Team $250/mo, Enterprise custom (medium confidence)"},
+      {"url": "https://tracxn.com/d/companies/airia/__jykx801vHfNB508CWyUSlnzUW9_dFDbxCYbzrhWbtyU", "accessed": "2026-06-18", "what_it_supports": "Company profile / financials cross-reference"}
+    ]
+  },
+  {
+    "id": "SA6",
+    "name": "Moonlit.AI",
+    "category": "research",
+    "facts": {
+      "founded": "2024 as independent company (spun out of Deloitte, Aug 2024); originated ~2017 as an internal Deloitte tool",
+      "hq": "Amsterdam, Netherlands",
+      "total_funding": "unknown (amount undisclosed across all accessible sources)",
+      "last_round": "Pre-Seed, announced 2024-08-20 (amount undisclosed)",
+      "lead_investor": "Curiosity VC",
+      "headcount": "~16 (per PitchBook 'Moonlit Legal Technologies'); approximate",
+      "customers": ["Dutch Supreme Court / Hoge Raad", "Public Prosecution Service / Openbaar Ministerie", "De Nederlandsche Bank (Dutch central bank)", "Deloitte", "KPMG"],
+      "integrations": ["MCP server for Claude.ai / Claude Code and any MCP-compatible client (7 read-only legal-research tools)", "REST Data API (api.moonlit.ai/v1.1, Ocp-Apim-Subscription-Key auth)"],
+      "agentic_interop": "Strong for its category: ships a Model Context Protocol (MCP) server exposing curated read-only legal-research tools to Claude/Claude Code and any MCP client, plus a REST Data API to embed the data layer into customer backends/AI agents. Positions explicitly as 'Legal Data Platform, API and MCP' / 'global backbone of legal data.' No public GitHub SDK/CLI repo found (only a .github config repo); no confirmed iManage/Word/SharePoint/Salesforce connectors.",
+      "tech_model": "Aggregates legal data (case law, legislation, administrative decisions) from official sources across 30+ EU/European jurisdictions (110+ portals, 18M+ docs, 26M+ reference graph, daily updates) via NLP/ML information retrieval; exposes it as structured data through API/MCP rather than being a standalone chat wrapper — a data/infrastructure layer that grounds external LLMs.",
+      "pricing": "unknown (free testing available on site; paid plan/API pricing not disclosed in accessible sources)",
+      "name_collision_check": "confirmed entity = Moonlit (moonlit.ai), Amsterdam legal-research/legal-data platform, Deloitte spinout backed by Curiosity VC, legal entity 'Moonlit Legal Technologies'; ruled out unrelated 'Moonlight AI', 'Moonlite AI' (separate Crunchbase/PitchBook profiles) and other consumer/dev 'Moonlit' apps."
+    },
+    "scores": {
+      "uniqueness": {"score": 4, "justification": "Cross-border, multilingual EU/European legal-data layer delivered as API+MCP is a differentiated infra play, not another chat UI; few peers cover 30+ jurisdictions this way."},
+      "thesis_fit": {"score": 4, "justification": "Strong fit: data-as-infrastructure that grounds agents where lawyers/agents work (MCP into Claude, API into customer backends) rather than a thin wrapper; 'accountability via authoritative sources' aligns, though autonomy/workflow execution is light."},
+      "investability": {"score": 2, "justification": "Only a Pre-Seed (undisclosed amount) from a single small Benelux VC; small team (~16); early stage with limited disclosed traction beyond logos."},
+      "defensibility": {"score": 3, "justification": "Moat is the curated multi-jurisdiction legal corpus + reference graph (hard, ongoing data work) — real but conservatively scored given thin public evidence on exclusivity/data rights and easy LLM commoditization of the front-end."},
+      "interoperability": {"score": 5, "justification": "Native MCP server + REST API explicitly built to plug into Claude/Claude Code and customer systems; designed as an interoperable data layer for AI agents."},
+      "team": {"score": 3, "justification": "Credible founders — Roderick Lucas (AI/data science, ex-Deloitte, VU/Tilburg) as CEO and Dirk-Jan van den Broek (20+ yrs legal, founded ClaimShare) as CFO; domain-strong but small and unproven at scale."}
+    },
+    "provisional_verdict": "Technically-real legal-data infrastructure play (API+MCP, authoritative EU corpus, marquee public-sector users) that fits the supervised-autonomy thesis well, but very early-stage and thinly funded. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Funding amount and pricing not disclosed in any accessible source",
+      "Customer logos (Hoge Raad, OM, DNB, Deloitte, KPMG) are self-reported on Moonlit's own site/docs — usage depth unverified",
+      "Headcount (~16) is a third-party DB estimate (PitchBook), not company-confirmed",
+      "No public SDK/CLI repo; agentic claim rests on MCP+API only, no agent-to-agent or workflow-execution evidence",
+      "Deloitte spinout — corpus/data-rights dependence on former parent unverified"
+    ],
+    "sources": [
+      {"url": "https://www.eu-startups.com/2024/08/amsterdam-based-moonlit-spins-out-deloitte-and-bags-funding-to-supercharge-legal-research/", "accessed": "2026-06-18", "what_it_supports": "Amsterdam HQ, Deloitte spinout, Curiosity VC investment, founders Roderick Lucas (CEO) & Dirk-Jan van den Broek (CFO), cross-border EU legal research"},
+      {"url": "https://www.curiosityvc.com/post/moonlit-secures-funding-from-curiosity-vc-to-transform-legal-research-in-europe", "accessed": "2026-06-18", "what_it_supports": "Lead investor Curiosity VC; spinout into independent company; product = continuous EU legal monitoring/research (investor PR, self-reported)"},
+      {"url": "https://www.crunchbase.com/funding_round/moonlit-ai-pre-seed--86e810b7", "accessed": "2026-06-18", "what_it_supports": "Round type = Pre-Seed, dated 2024-08-20"},
+      {"url": "https://pitchbook.com/profiles/company/567390-16", "accessed": "2026-06-18", "what_it_supports": "Headcount ~16 employees (Moonlit Legal Technologies); Amsterdam"},
+      {"url": "https://www.moonlit.ai/", "accessed": "2026-06-18", "what_it_supports": "Positioning 'Legal Data Platform, API and MCP'; 30+ jurisdictions; named customers; MCP+API access (self-reported)"},
+      {"url": "https://docs.moonlit.ai/", "accessed": "2026-06-18", "what_it_supports": "MCP server (7 read-only tools) for Claude/Claude Code; REST Data API base api.moonlit.ai/v1.1 with Ocp-Apim-Subscription-Key auth; coverage stats (110+ portals, 18M+ docs, 26M+ reference graph)"},
+      {"url": "https://github.com/moonlit-ai", "accessed": "2026-06-18", "what_it_supports": "Only a .github config repo public; NLP/ML/IR tech description; no public SDK/CLI/MCP repo"},
+      {"url": "https://www.artificiallawyer.com/2024/08/21/deloitte-legal-research-platform-moonlit-spins-out/", "accessed": "2026-06-18", "what_it_supports": "Independent corroboration of Deloitte spinout and legal-research platform identity (entity verification)"}
+    ]
+  },
+  {
+    "id": "K56",
+    "name": "Moritz",
+    "category": "services-consulting",
+    "facts": {
+      "founded": "2025 (operating/launched early 2026; originally founded as 'Arcline' before pivot/rename)",
+      "hq": "San Francisco, CA, USA",
+      "total_funding": "$9M (seed, 2026)",
+      "last_round": "$9M seed, announced May 2026 (oversubscribed, reportedly closed in four days); raised via its MSO/tech entity Parlai",
+      "lead_investor": "Y Combinator and 20VC (co-led); also Urban Innovation Fund, Inception, and 20+ unicorn founders (Dropbox, Reddit, Instacart, Gusto, Hugging Face, Runway, WorkOS, Superhuman, Cruise, Mixpanel, Supercell)",
+      "headcount": "~10 (per Y Combinator company profile)",
+      "customers": ["100+ companies served (self-reported); named verticals/clients not disclosed — founder Pamir Ehsas was prior outside counsel to OpenAI and Google, but those are not stated as Moritz clients"],
+      "integrations": ["none found — workflow is 'forward contracts/requests by email'; no iManage/Word/SharePoint/Salesforce or other system integrations evidenced"],
+      "agentic_interop": "none found. No API/MCP/CLI/agent-to-agent surface for third parties. AI is internal: Parlai-supplied tech drafts a first pass (templates, playbooks, precedent/industry data) that human lawyers review. It is a service delivery tool, not interoperable software that lives where the customer's lawyers work.",
+      "tech_model": "AI-native law firm: Parlai (an MSO/software entity) supplies AI that auto-drafts ~80% of a contract/matter from templates+playbooks+precedent; an elite human lawyer reviews/finalizes the last ~20%. Delivered as a flat-fee legal service, not as licensed software.",
+      "pricing": "Upfront flat fees per matter (customer 'knows exactly what it costs' before work starts); 'pay lawyers only for the final 20%'. No published price card — exact figures unknown.",
+      "name_collision_check": "Confirmed entity = Moritz at moritzlegal.com: SF-based AI-native law firm, founded 2025 (ex-'Arcline'), YC + 20VC-backed, founders Pamir Ehsas (ex-outside counsel to OpenAI/Google) and Stefan Mandaric (AI engineer, ex-Fulbright MIT), operating via MSO 'Parlai'. RULED OUT: (1) Ohio State University Michael E. Moritz College of Law (moritzlaw.osu.edu) — public law school in Columbus, OH, founded 1891, ~570 students; entirely unrelated. (2) 'Moritz Group' / Moritz as common German given name/surname. (3) Generic 'Moritz' brand collisions. Distinguishing markers: domain moritzlegal.com, SF HQ, 2026 $9M YC/20VC seed, Arcline predecessor name, Parlai MSO."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "AI-native law firm + MSO/Parlai tech structure is a distinctive go-to-market, but the 'AI drafts 80%, lawyer finishes 20%' model is increasingly crowded (Crosby, Garfield, etc.)."},
+      "thesis_fit": {"score": 1, "justification": "Thesis prizes agentic, interoperable software that lives where lawyers work; Moritz is a productized legal SERVICE with an internal AI tool and no external interop — weak fit (would need to win on the 'services' dimension, not the tech thesis)."},
+      "investability": {"score": 3, "justification": "Real $9M seed co-led by YC and 20VC with a strong founder pedigree and traction claims, but tiny, very early, and services-firm margins/scaling are structurally harder than SaaS."},
+      "defensibility": {"score": 1, "justification": "Thin evidence of a technical moat; the AI layer (Parlai) is not shown to be differentiated, and the model is replicable. Conservative low score given no proprietary tech/data evidence."},
+      "interoperability": {"score": 0, "justification": "No API/MCP/CLI/agent-to-agent or system integrations found; intake is via email forwarding. No interoperability surface for customers' stacks."},
+      "team": {"score": 4, "justification": "Credible founders: Pamir Ehsas (Harvard/Oxford-trained, ex-outside counsel to OpenAI/Google) and Stefan Mandaric (AI engineer, ex-Fulbright MIT); top-tier investor backing reinforces team quality."}
+    },
+    "provisional_verdict": "Legitimately funded, well-pedigreed AI-native law firm — but a services business with an internal AI tool, not the agentic/interoperable software the thesis rewards; off-thesis as a tech vendor. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Category mismatch: listed 'services-consulting' but it is structurally a law firm + MSO, not a software/consulting vendor — agentic/interop thesis lens applies poorly.",
+      "Traction metrics ($2bn+ aggregate contract value, 100+ companies, 4-hour turnaround) are self-reported/PR, not independently verified.",
+      "Very early and tiny (~10 staff, founded 2025, launched early 2026); durability unproven.",
+      "No disclosed integrations or external API/agent surface — limited technical defensibility.",
+      "Name collision with Ohio State Moritz College of Law is severe in generic search; care needed in any automated matching.",
+      "All primary/press sources returned HTTP 403 to fetch; facts derived from search snippets (consistent across 6+ outlets) rather than full-text reads."
+    ],
+    "sources": [
+      {"url": "https://www.ycombinator.com/companies/moritz", "accessed": "2026-06-18", "what_it_supports": "Founded 2025; SF HQ; ~10 employees; AI-native law firm; founders Pamir Ehsas and Stefan Mandaric; 80/20 AI-then-lawyer model"},
+      {"url": "https://www.law.com/legaltechnews/2026/05/05/mso-parlai-and-its-hybrid-law-firm-moritz-announce-9m-in-seed-funding/", "accessed": "2026-06-18", "what_it_supports": "$9M seed; Parlai MSO relationship; hybrid law firm structure"},
+      {"url": "https://www.globallegalpost.com/news/ai-native-law-firm-start-up-moritz-secures-9m-in-seed-funding-round-533457054", "accessed": "2026-06-18", "what_it_supports": "$9M seed via MSO Parlai; co-led by Y Combinator and 20VC; Urban Innovation Fund and Inception participated; MSO model funds non-legal/tech operations; formerly Arcline; founders' backgrounds"},
+      {"url": "https://techfundingnews.com/moritz-9m-y-combinator-20vc-former-openai-lawyer-ai-law-firm/", "accessed": "2026-06-18", "what_it_supports": "$9M from YC and 20VC closed in ~four days; founder ex-OpenAI outside counsel"},
+      {"url": "https://www.artificiallawyer.com/2026/05/06/how-ai-first-moritz-is-taking-on-big-law/", "accessed": "2026-06-18", "what_it_supports": "AI-first 80/20 model; pivot from Arcline (selling AI to law firms) to running its own firm; ambition to scale"},
+      {"url": "https://www.machinebrief.com/news/moritz-reinventing-legal-services-with-ai-and-ambition-9mo2", "accessed": "2026-06-18", "what_it_supports": "How the AI works: drafts first pass from templates/playbooks/precedent/industry/client data; email-forward intake; flat upfront fees; lawyer review of last 20%"},
+      {"url": "https://sifted.eu/articles/y-combinator-alum-moritz-raises-9m", "accessed": "2026-06-18", "what_it_supports": "$9M raise; YC alum; $2bn in deals closed; 4-hour average turnaround; investor list"},
+      {"url": "https://moritzlaw.osu.edu/", "accessed": "2026-06-18", "what_it_supports": "Collision ruled out: Ohio State Michael E. Moritz College of Law, Columbus OH, founded 1891 — unrelated law school"}
+    ]
+  }
+]
