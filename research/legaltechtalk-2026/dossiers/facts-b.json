@@ -1,0 +1,192 @@
+[
+  {
+    "id": "M7",
+    "name": "Orbital",
+    "category": "research",
+    "facts": {
+      "founded": "2018",
+      "hq": "London, UK (NY office opened 2025)",
+      "total_funding": "~$72.1M cited by aggregators (pre-seed/seed £1.2M + Series A £7.5M 2023 + Series B $60M Jan 2026); aggregator total flagged, not primary",
+      "last_round": "$60M Series B, announced 26 Jan 2026",
+      "lead_investor": "Brighton Park Capital (Series B); participants REV/LexisNexis, The LegalTech Fund, Moderne Ventures, Grosvenor Group, JLL Spark, Outward, Seedcamp (Series A led by Parker89)",
+      "headcount": "unknown (company stated post-Series B intent to double headcount; forward-looking only)",
+      "customers": ["Clifford Chance (self-reported)", "Slaughter and May (self-reported)", "BCLP / Bryan Cave Leighton Paisner (independently corroborated)", "Macfarlanes (self-reported)", "Freshfields (self-reported)"],
+      "integrations": ["Microsoft Azure (infrastructure)", "Azure AI Vision OCR (document ingestion)", "HM Land Registry data (per earlier reporting)"],
+      "agentic_interop": "Largely none found for open interop. Orbital Copilot markets an internal agentic loop (chain-of-thought reasoning, customizable 'Blueprints' workflows) but no public API/MCP/CLI/agent-to-agent and no confirmed iManage/Word/SharePoint/Salesforce DMS integrations. Appears to be a standalone web app.",
+      "tech_model": "Domain-tuned LLM app on Azure OpenAI GPT-4 + proprietary OCR (Azure AI Vision) for legal docs, C#/.NET + Python on AKS; agentic document-analysis loop emphasizing pinpoint citations, auditable chain-of-thought and transparency over black-box answers.",
+      "pricing": "unknown (sales-led, no public pricing)",
+      "name_collision_check": "Confirmed entity = Orbital Ltd / 'Orbital Witness' (orbital.tech, London real-estate legal AI, Orbital Copilot, founders Will Pearce & Ed Boulle, founded 2018). Ruled out: Orbital Sciences Corp / Northrop Grumman (aerospace), ORBCOMM (satellite IoT), Orbital Imaging/ORBIMAGE/GeoEye, Orbital Insight (geospatial), Orbital Materials, Orbital Marine Power — none legal. Note: 2026 rebrand 'Orbital Witness' -> 'Orbital' raises collision risk with aerospace 'Orbital' brands."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Deep real-estate-law vertical + proprietary OCR + own SRA-regulated law firm (Farringdon) differentiate it, but core engine is commodity Azure OpenAI and vertical legal AI is crowded."},
+      "thesis_fit": {"score": 4, "justification": "Strong on preparation/accountability/supervised autonomy (auditable citations, transparent reasoning, human-in-the-loop, stood up its own regulated firm); capped because 'lives where lawyers work' (API/MCP/embedded) is unproven."},
+      "investability": {"score": 4, "justification": "$60M Series B led by credible growth fund (Brighton Park) with strategic LexisNexis/Grosvenor/JLL backers and US expansion; revenue/headcount undisclosed."},
+      "defensibility": {"score": 2, "justification": "Conservative: moat is domain data/workflows + Farringdon flywheel, but model layer is commodity Azure OpenAI and no evidence of integration lock-in or switching costs."},
+      "interoperability": {"score": 1, "justification": "No public API/MCP/CLI/agent-to-agent and no confirmed DMS/Office integrations; appears to be a standalone web app."},
+      "team": {"score": 3, "justification": "Two long-tenured founders (since 2018), strong investor syndicate, engineering depth evident in tech blog; limited public detail on broader exec bench."}
+    },
+    "provisional_verdict": "Credible, well-funded vertical real-estate legal AI with genuine accountability DNA (citations + its own regulated law firm), but interoperability is unproven and the engine sits on commodity Azure OpenAI — strong thesis fit, weak moat evidence. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Headcount, pricing, and exact total funding (~$72.1M) are aggregator/self-reported or unknown.",
+      "'5,000 professionals / 200,000 transactions' are company self-reported metrics.",
+      "No evidence of open API/MCP/CLI or embedded DMS/Office integrations; 'agent' is internal-loop marketing.",
+      "Core reliance on Azure OpenAI GPT-4 = limited model-layer defensibility.",
+      "Rebrand 'Orbital Witness' -> 'Orbital' creates name-collision risk with aerospace/satellite 'Orbital' brands."
+    ],
+    "sources": [
+      {"url": "https://www.orbital.tech/blog/orbital-raises-series-b", "accessed": "2026-06-18", "what_it_supports": "Series B primary press release: round size, investors, self-reported metrics (403 on fetch; via search summary)"},
+      {"url": "https://legaltechnology.com/2026/01/26/orbital-raises-60m-series-b-as-it-eyes-further-us-growth/", "accessed": "2026-06-18", "what_it_supports": "Legal IT Insider coverage of $60M Series B, US growth, headcount-doubling intent"},
+      {"url": "https://www.bpc.com/insights/orbital-raises-60m-series-b", "accessed": "2026-06-18", "what_it_supports": "Lead investor Brighton Park Capital confirmation"},
+      {"url": "https://www.lawnext.com/2026/01/orbital-raises-60m-series-b", "accessed": "2026-06-18", "what_it_supports": "LawSites/LawNext confirming round, investors, customers"},
+      {"url": "https://www.microsoft.com/en/customers/story/19230-orbital-witness-azure", "accessed": "2026-06-18", "what_it_supports": "Tech model: Azure OpenAI GPT-4, proprietary OCR on Azure AI Vision, C#/.NET+Python on AKS, agentic/auditable design (fetched directly)"},
+      {"url": "https://www.orbital.tech/blog/funding-announcement", "accessed": "2026-06-18", "what_it_supports": "Series A £7.5M (May 2023), total ~£11.5M then; investors Parker89/LocalGlobe/Outward/Seedcamp"},
+      {"url": "https://www.bclplaw.com/en-US/insights/bclp-and-orbital-witness-partner.html", "accessed": "2026-06-18", "what_it_supports": "Independent corroboration of BCLP as a customer/partner"},
+      {"url": "https://www.artificiallawyer.com/2026/04/13/orbital-launches-its-own-real-estate-law-firm/", "accessed": "2026-06-18", "what_it_supports": "Orbital's SRA-regulated law firm Farringdon (NewMod) accountability flywheel (403 on fetch; via search)"},
+      {"url": "https://www.sec.gov/", "accessed": "2026-06-18", "what_it_supports": "Name-collision ruling-out: Orbital Sciences, ORBCOMM, Orbital Imaging filings (aerospace/satellite, unrelated)"}
+    ]
+  },
+  {
+    "id": "P26",
+    "name": "DeepJudge",
+    "category": "knowledge",
+    "facts": {
+      "founded": "2021, by three ETH Zurich AI PhDs / ex-Google researchers (Paulina Grnarova CEO, Kevin Roth, Yannic Kilcher)",
+      "hq": "Zurich, Switzerland (teams also in USA)",
+      "total_funding": "~$52M cumulative (Seed $10.7M announced 2023 + Series A $41.2M announced 4 Nov 2025)",
+      "last_round": "Series A, $41.2M (some press round to ~$42M), Nov 2025; $300M post-money valuation",
+      "lead_investor": "Felicis led Series A (Coatue continued participating); Coatue led the Seed",
+      "headcount": "unknown (third-party estimates conflict: GetLatka ~34, others 51-100 or ~80; careers page implies active scaling)",
+      "customers": ["Homburger (Swiss; '>80% adoption' self-reported)", "Freshfields", "Holland & Knight", "Gunderson Dettmer", "Cozen O'Connor", "ArentFox Schiff", "Schoenherr"],
+      "integrations": ["iManage", "NetDocuments", "SharePoint", "OneDrive", "HighQ", "email archives / intranets / client portals", "Outlook plugin", "iManage plugin", "Thomson Reuters CoCounsel Legal (GA, Oct 2025)", "Harvey (May 2026, bidirectional knowledge loop)"],
+      "agentic_interop": "Strong signals. (1) MCP — publishes 'MCP Isn't Magic. It's Access.' describing Model Context Protocol for governed agent access to firm knowledge. (2) AI Workflows — low/no-code builder to orchestrate/govern LLM agents chaining retrieve->summarize->draft across Outlook->iManage->Word, LLM-agnostic. (3) Agent-to-agent partnerships feeding retrieval into Harvey's agents and TR CoCounsel, permission-aware (ethical walls preserved). No public self-serve developer API/CLI documented; interop is partner- and MCP-mediated.",
+      "tech_model": "In-place crawler/connector indexes a firm's repositories (no file movement), auto-classifies into a legal taxonomy, detects near-duplicates/redlines, serves intent-based/semantic enterprise search; a governed retrieval layer grounds LLM agents/workflows (LLM-agnostic) with access controls and ethical walls enforced at retrieval time. Not a thin wrapper.",
+      "pricing": "unknown (enterprise/firm-level; CoCounsel integration sold as a 'premium option', no figures)",
+      "name_collision_check": "Confirmed entity = DeepJudge AG, Zurich (deepjudge.ai), legal knowledge search/retrieval. Ruled out: judicial-outcome/litigation-prediction analytics (Lex Machina, Pre/Dicta, Bloomberg Law Litigation Analytics) — despite the 'judge' name, DeepJudge does internal-knowledge enterprise search, not court prediction. No competing same-name company found."
+    },
+    "scores": {
+      "uniqueness": {"score": 3.5, "justification": "Differentiated as a permission-aware, in-place knowledge-retrieval layer (not a chatbot), but enterprise legal search is crowded (iManage Insight+, Litera, NetDocs, plus Harvey/CoCounsel building native KM)."},
+      "thesis_fit": {"score": 4.5, "justification": "Strong fit on preparation/accountability/supervised autonomy: governed retrieval, ethical-wall enforcement, agent orchestration, MCP, lives inside iManage/Word/Outlook/SharePoint and feeds Harvey/CoCounsel agents."},
+      "investability": {"score": 4, "justification": "$300M valuation on $52M raised, marquee Am Law customers and two flagship platform partnerships (TR, Harvey); valuation runs ahead of confirmable revenue."},
+      "defensibility": {"score": 3, "justification": "Connector breadth + governance + partner embeds create switching costs, but the retrieval layer risks commoditization by partners (Harvey/TR) who could in-source KM; conservative given thin moat evidence."},
+      "interoperability": {"score": 4.5, "justification": "Among the best-evidenced: MCP, multi-DMS connectors, Outlook/iManage/Word surfaces, and live agent-to-agent integrations with Harvey and CoCounsel."},
+      "team": {"score": 4, "justification": "Three ETH AI PhDs / ex-Google search engineers — credible technical pedigree directly matched to the search/retrieval problem."}
+    },
+    "provisional_verdict": "Technically-real institutional-knowledge retrieval layer that lawyers' agents actually plug into (Harvey, CoCounsel, MCP) — a credible picks-and-shovels KM infrastructure play, not a wrapper; main risk is its biggest partners absorbing the layer. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Headcount/revenue/pricing all unconfirmed; third-party headcount figures conflict (34 vs 80).",
+      "$300M valuation likely outruns confirmable revenue.",
+      "Strategic dependency/channel-conflict risk: Harvey and Thomson Reuters are both partners AND potential in-house substitutes.",
+      "Customer engagement stats (e.g., '80% of Homburger') are self-reported PR.",
+      "No published self-serve developer API/CLI found; interop is partner- and MCP-mediated."
+    ],
+    "sources": [
+      {"url": "https://www.deepjudge.ai/", "accessed": "2026-06-18", "what_it_supports": "Product positioning, enterprise search, AI Workflows/agents (primary; PR)"},
+      {"url": "https://www.deepjudge.ai/blog/mcp-is-not-magic-its-access", "accessed": "2026-06-18", "what_it_supports": "MCP usage / governed agent access (primary; key interop signal)"},
+      {"url": "https://www.deepjudge.ai/news/deepjudge-raises-10-7m-seed-round-led-by-coatue", "accessed": "2026-06-18", "what_it_supports": "Seed $10.7M, Coatue lead, angels (primary; PR)"},
+      {"url": "https://www.felicis.com/insight/deepjudge", "accessed": "2026-06-18", "what_it_supports": "Series A lead rationale, founders, model (investor source)"},
+      {"url": "https://www.law.com/legaltechnews/2025/11/04/swiss-legal-tech-startup-deepjudge-closes-42m-in-series-a-funding/", "accessed": "2026-06-18", "what_it_supports": "$41.2/42M Series A, Felicis lead, $300M valuation, customers (reputable press)"},
+      {"url": "https://www.harvey.ai/blog/deepjudge-and-harvey-partner-to-power-ai-agents-with-institutional-intelligence", "accessed": "2026-06-18", "what_it_supports": "Agent-to-agent integration, bidirectional knowledge loop, ethical walls (primary partner)"},
+      {"url": "https://www.thomsonreuters.com/en/press-releases/2025/october/deepjudge-partners-with-thomson-reuters.html", "accessed": "2026-06-18", "what_it_supports": "CoCounsel Legal integration, GA premium add-on, unified index over iManage/NetDocs/SharePoint/HighQ, permission-aware (primary partner)"},
+      {"url": "https://www.venturelab.swiss/", "accessed": "2026-06-18", "what_it_supports": "$42M Series A Felicis+Coatue; seed $10.7M Coatue (reputable regional source)"},
+      {"url": "https://deeptechnation.ch/dtn-news/from-eth-labs-to-300m-valuation", "accessed": "2026-06-18", "what_it_supports": "$300M valuation, founders, customers (regional press)"},
+      {"url": "https://getlatka.com/companies/deepjudge.ai", "accessed": "2026-06-18", "what_it_supports": "Unverified ARR/headcount estimate (low-confidence; flag)"}
+    ]
+  },
+  {
+    "id": "S4",
+    "name": "Eudia",
+    "category": "agentic-horizontal",
+    "facts": {
+      "founded": "2023 (operated in stealth ~18 months before Feb 2025 public launch)",
+      "hq": "Palo Alto, California, USA",
+      "total_funding": "'Up to $105M' Series A — structured as ~$30M committed equity upfront + ~$75M earmarked for M&A; headline $105M is NOT all deployed cash (flag)",
+      "last_round": "Series A, announced February 2025",
+      "lead_investor": "General Catalyst (with Floodgate, Sierra Ventures, Hakluyt Capital, Defy, Everywhere Ventures, B3 Capital, Backbone, Firsthand; angels incl. Gokul Rajaram, Chris Re, Andrew Sieja, Mike Gamson, Scott Belsky)",
+      "headcount": "~209 (Tracxn, as of Mar 2026); LinkedIn band 201-500; inflated by acquisitions of people-businesses (Johnson Hana ~300+, Out-House); treat as approximate",
+      "customers": ["Duracell (confirmed via dedicated PR + case study)", "DHL", "Cargill", "Intuit (self-reported)", "U.S. Federal Government (self-reported)", "Note: Citibank/Stripe/Coca-Cola/Morgan Stanley etc. came via Johnson Hana's client book, not necessarily Eudia-platform customers"],
+      "integrations": ["Microsoft 365 / Outlook / Word", "iManage", "ServiceNow", "Salesforce"],
+      "agentic_interop": "Real enterprise integration depth (M365, iManage, ServiceNow embedded where lawyers work) — strong on 'lives where lawyers work'; workflow spans Outlook intake -> iManage research -> Word drafting. But NO public developer API, MCP server, CLI, or agent-to-agent protocol found. Interop is vendor-embedded, not open/programmable.",
+      "tech_model": "'Enterprise Brain' + 'Expert Digital Twins' + domain decision engines ('MINDs' for contracts/compliance/procurement/policy) that reverse-engineer expert judgment from exemplar work product, then run governed agentic workflows embedded in enterprise systems; plus a human ALSP layer (Eudia Counsel) from acquired firms. Description largely marketing.",
+      "pricing": "unknown (not publicly listed; model = predictable fixed-fee / outcome-based, 'kill the billable hour'; Duracell case study cites fixed-fee contracting)",
+      "name_collision_check": "Confirmed entity = Eudia, Inc. (eudia.com), Palo Alto, agentic legal AI for enterprise legal departments; founders Omar Haroun (CEO), Ashish Agrawal (CTO), David Van Reyk (COO); backed by General Catalyst. Ruled out: the moth-genus / Greek 'eu-' etymology naming pattern; any second legal-tech company named Eudia (none found). No collision within legal tech."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "'AI + acquired ALSP human workforce' roll-up is a genuinely differentiated GTM in legal AI, but the core tech (digital twins/agentic workflows) is conceptually crowded."},
+      "thesis_fit": {"score": 4, "justification": "Strong on supervised autonomy / accountability — governed Enterprise Brain, human-in-loop ALSP layer, embedded where lawyers work; loses a point for no open agent-to-agent/MCP interop."},
+      "investability": {"score": 4, "justification": "Tier-1 lead (General Catalyst), strong angels, named F500 logos, real revenue motion via ALSP; capped because the '$105M' is partly an M&A earmark, not deployed cash."},
+      "defensibility": {"score": 2, "justification": "Conservative: moat is integrations + proprietary acquired client relationships/data, not unique core IP; easily contested by iManage/Microsoft-native incumbents and Harvey/Legora-class players."},
+      "interoperability": {"score": 3, "justification": "Real embedded enterprise integrations (M365, iManage, ServiceNow) = lives where lawyers work, but no public API/MCP/CLI/A2A — closed, vendor-mediated interop only."},
+      "team": {"score": 4, "justification": "Strong founders — Haroun (founder Text IQ, acquired by Relativity), Agrawal (Amazon/Apple/Google/Cresta), Van Reyk (PE/M&A) — well-suited to an acquisitive AI+services play."}
+    },
+    "provisional_verdict": "A credible, well-funded F500-focused agentic legal platform whose real edge is an AI-plus-acquired-human-ALSP roll-up — technically real and embedded where lawyers work, but defensibility and open interoperability are unproven. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": [
+      "Headline '$105M' conflates ~$30M equity + ~$75M M&A earmark — not all deployed funding.",
+      "Headcount and many 'customer' logos are inflated/inherited via acquired ALSPs (Johnson Hana, Out-House); distinguish platform customers from inherited service clients.",
+      "Tech model ('Enterprise Brain / Digital Twins / MINDs') described largely in marketing terms; little independent technical validation.",
+      "No public API / MCP / CLI / agent-to-agent surface — closed, vendor-mediated interop.",
+      "Heavy acquisition pace (two ALSPs + new law firm in <12 months) = integration/services-margin risk; blends software multiples with lower-margin legal services."
+    ],
+    "sources": [
+      {"url": "https://www.prnewswire.com/news-releases/eudia-secures-up-to-105m-in-series-a-funding-led-by-general-catalyst-to-transform-legal-work-through-ai-powered-augmented-intelligence-302375331.html", "accessed": "2026-06-18", "what_it_supports": "Funding structure ($30M+$75M), lead investor, investor list, founders, stealth launch (self-reported PR — flag)"},
+      {"url": "https://fortune.com/2025/09/03/eudia-legal-tech-ai-startup-killing-billable-hour/", "accessed": "2026-06-18", "what_it_supports": "Pricing thesis, business model (reputable press)"},
+      {"url": "https://www.prnewswire.com/news-releases/eudia-acquires-johnson-hana-to-build-worlds-first-ai-augmented-human-workforce-302499622.html", "accessed": "2026-06-18", "what_it_supports": "Johnson Hana acquisition (Jul 8 2025), 300+ legal pros, inherited clients (PR)"},
+      {"url": "https://www.artificiallawyer.com/2025/07/08/inhouse-ai-co-eudia-buys-alsp-johnson-hana/", "accessed": "2026-06-18", "what_it_supports": "Independent confirmation + analyst framing of Johnson Hana deal"},
+      {"url": "https://www.law.com/legaltechnews/2025/10/22/legal-tech-startup-eudia-acquires-alsp-out-house/", "accessed": "2026-06-18", "what_it_supports": "Out-House acquisition (Oct 2025) (reputable press)"},
+      {"url": "https://www.prnewswire.com/news-releases/duracell-selects-eudia-for-ai-augmented-contracting-302521909.html", "accessed": "2026-06-18", "what_it_supports": "Named platform customer Duracell + fixed-fee pricing (PR)"},
+      {"url": "https://tracxn.com/d/companies/eudia/", "accessed": "2026-06-18", "what_it_supports": "Founded 2023, HQ Palo Alto, ~209 headcount (Mar 2026) (aggregator)"},
+      {"url": "https://en.wikipedia.org/wiki/Eudia_(company)", "accessed": "2026-06-18", "what_it_supports": "Founders, founding year, customers (DHL, Cargill, US Federal Govt), disambiguation"},
+      {"url": "https://www.legaltechnologyhub.com/vendors/eudia/", "accessed": "2026-06-18", "what_it_supports": "Product positioning, integration claims"}
+    ]
+  },
+  {
+    "id": "S32",
+    "name": "Scissero",
+    "category": "drafting-redline",
+    "facts": {
+      "founded": "2018 (founder Mathias Strasser; some self-reported material says 'began in 2017')",
+      "hq": "London, UK (with a New York office)",
+      "total_funding": "unknown (no disclosed priced venture round found; Fuse Incubator involvement and a Goldman Sachs 'Disruptive Technology Symposium' appearance referenced but unverified for amount/terms; the Robin AI deal was a 'cut-price'/distressed acquisition, not a raise)",
+      "last_round": "unknown",
+      "lead_investor": "unknown (Fuse Incubator named in a search summary, unconfirmed; low-confidence)",
+      "headcount": "~85 pre-deal; took on ~70 from Robin AI's managed-services side; combined 'more than 150' post-acquisition (Dec 2025) — founder-sourced",
+      "customers": ["No named logos confirmed", "Category claims only (self-reported): global investment houses, investment/commercial banks, asset managers, FTSE 100 / Fortune 500; inherited Robin AI corporate clients"],
+      "integrations": ["Microsoft Word / DOCX export with native tracked changes (confirmed in open-source Suzie Law repo)", "PDF/PPTX/XLSX/HTML/EPUB ingestion", "Legal-research connectors: CourtListener (US), EUR-Lex, Legifrance/Judilibre (FR), gesetze-im-internet (DE), Indian Kanoon (~22 providers / 19 jurisdictions)", "Stripe billing", "Google/Microsoft OAuth", "NOT found: iManage, SharePoint, Salesforce, NetDocuments"],
+      "agentic_interop": "Genuinely present in the open-source Suzie Law / Team Suzie stack (MIT). Agent loop (@teamsuzie/agent-loop = OpenAI-compatible agent + tool-use loop, MCP client, per-model routing); first-class MCP client (external servers load as <server>__<tool>); 160+ tool-invoking agentic 'recipes' across 12 practice areas. Self-hostable stack (pnpm dev:full); no explicit public REST API or A2A protocol documented. Caveat: unclear how much of the commercial Scissero 'MIKE' platform shares this architecture.",
+      "tech_model": "A managed/regulated legal-services firm wrapped around an in-house AI platform ('MIKE'), paired with an MIT-licensed agentic workspace (Suzie Law) on an OpenAI-compatible agent loop with MCP tool-use, a SQLite-vec knowledge base, multi-model routing (Claude / GPT / Qwen + local models) and tracked-changes DOCX output — lawyers-in-the-loop + agentic drafting/review, not a thin single-prompt wrapper.",
+      "pricing": "unknown (no public price list; Suzie Law open-source includes a Stripe credit-balance paywall scaffold; commercial model is blended legal-services + platform, services-led)",
+      "name_collision_check": "Confirmed entity = Scissero Ltd, London/NY legal-AI + regulated legal-services firm, founder/CEO Mathias Strasser, scissero.com, SRA-registered ('Scissero Law Ltd', SRA #8006186). Ruled out: Robin AI (separate company; Scissero only acquired its managed-services team Dec 2025); Suzie Law / Team Suzie (firelex) (related open-source project, separate GitHub org); Strasser's other ventures WSD Group/WallStreetDocs and Casperaki (same founder, different companies). No material non-legal 'Scissero' entity surfaced."
+    },
+    "scores": {
+      "uniqueness": {"score": 2, "justification": "Agentic + open-source angle (Suzie Law as 'open-source alternative to Harvey') is differentiated, but the commercial side is a services-led ALSP in a crowded contract-AI market; thin evidence of unique tech vs Harvey/Robin/Legora."},
+      "thesis_fit": {"score": 4, "justification": "Strong fit on preparation/accountability/supervised autonomy — lawyers-in-the-loop, agentic recipes, MCP, tracked-changes drafting; lives partly where lawyers work (Word/DOCX) but missing iManage/SharePoint/Salesforce depth."},
+      "investability": {"score": 2, "justification": "No disclosed venture funding; growth came via a distressed/cut-price acquisition, not a raise; services-heavy revenue model; founder-reported metrics only."},
+      "defensibility": {"score": 2, "justification": "Open-sourcing the core stack (MIT) deliberately erodes platform moat; real moat is the regulated law-firm + client relationships + acquired team, not unique tech. Conservative given thin evidence."},
+      "interoperability": {"score": 3, "justification": "Real MCP client + multi-model routing + DOCX tracked changes are credible interop signals; capped because no public API, no A2A, and no enterprise DMS (iManage/NetDocuments) connectors found."},
+      "team": {"score": 4, "justification": "Experienced founder (Sullivan & Cromwell, Harvard LLM, prior WSD exit to Bowmark); combined 150+ incl. lawyers/engineers/AI staff post-Robin acquisition."}
+    },
+    "provisional_verdict": "A credibly agentic, lawyers-in-the-loop legal-AI services firm whose open-source Suzie Law stack is the real (and unusually transparent) technical proof point — but it's a services-led, undisclosed-funding ALSP that grew via a distressed acquisition, with a deliberately weak software moat and no enterprise DMS integrations yet. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": [
+      "No disclosed venture funding; 'Fuse Incubator' and Goldman 'symposium' are unverified and not a round.",
+      "Growth via distressed/'cut-price' acquisition of a rival (Robin AI) that failed to raise — sector stress signal.",
+      "Headcount (85 / +70 / 150+) and customer categories are founder-/self-reported; no named customer logos confirmed.",
+      "Open-sourcing the core stack (MIT) undercuts software defensibility — moat is the law firm/services, not the product.",
+      "Missing the enterprise integrations the thesis prizes most: iManage, SharePoint, Salesforce, NetDocuments not present in the open-source code.",
+      "Ambiguity between the commercial 'MIKE' platform and the open-source 'Suzie Law' stack — unclear how much architecture is shared.",
+      "Founding-year inconsistency (2017 vs 2018 across sources)."
+    ],
+    "sources": [
+      {"url": "https://www.scissero.com/", "accessed": "2026-06-18", "what_it_supports": "Company self-description / entity confirmation (direct fetch 403; via search snippets)"},
+      {"url": "https://github.com/firelex/suzielaw/blob/main/README.md", "accessed": "2026-06-18", "what_it_supports": "Primary technical source: agent loop, MCP client, OpenAI-compatible multi-model routing, tracked-changes DOCX, 160+ agentic recipes, legal-research connectors, MIT license, absence of iManage/SharePoint/Salesforce"},
+      {"url": "https://www.artificiallawyer.com/2025/12/10/the-scissero-robin-ai-deal-mathias-strasser-interview/", "accessed": "2026-06-18", "what_it_supports": "Robin AI deal, founder interview, headcount (85/+70/150+) (founder-sourced)"},
+      {"url": "https://www.artificiallawyer.com/2026/05/07/scissero-launches-suzie-law-open-source-ai-assistant/", "accessed": "2026-06-18", "what_it_supports": "Suzie Law open-source launch, agentic positioning"},
+      {"url": "https://www.globallegalpost.com/news/scissero-buys-managed-services-team-of-rival-robin-ai-264599795", "accessed": "2026-06-18", "what_it_supports": "Reputable press on the Robin AI managed-services acquisition"},
+      {"url": "https://www.law.com/legaltechnews/2025/12/11/why-ai-forward-law-firm-scissero-bought-robin-ais-managed-services-team-/", "accessed": "2026-06-18", "what_it_supports": "Reputable press, deal rationale, customer-base expansion"},
+      {"url": "https://www.crunchbase.com/organization/scissero", "accessed": "2026-06-18", "what_it_supports": "Founding/HQ; no disclosed funding round (via search summary)"},
+      {"url": "https://www.sra.org.uk/consumers/register/organisation/?sraNumber=8006186", "accessed": "2026-06-18", "what_it_supports": "SRA registration of 'Scissero Law Ltd' (regulated-firm confirmation)"}
+    ]
+  }
+]
