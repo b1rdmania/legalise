@@ -75,19 +75,6 @@ export function Landing() {
         </div>
       </section>
 
-      {/* One proof band: the count that makes the problem real. */}
-      <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-24">
-        <div className="max-w-3xl flex flex-col sm:flex-row sm:items-baseline sm:gap-8">
-          <div className="font-redaction35 text-ink text-[64px] sm:text-[112px] leading-none tracking-tight2">
-            1,500+
-          </div>
-          <p className="mt-3 sm:mt-0 text-lg md:text-xl text-prose leading-relaxed max-w-xl">
-            court rulings, and counting, where AI cited cases that never
-            happened.
-          </p>
-        </div>
-      </section>
-
       {/* Scroll cue down to the demo video. */}
       <section className="border-b border-rule px-4 sm:px-6 md:px-16 lg:px-24 py-12 flex justify-center">
         <a
