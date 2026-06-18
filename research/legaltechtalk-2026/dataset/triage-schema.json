@@ -1,0 +1,53 @@
+{
+  "$comment": "Pass 1 triage record schema + worked examples. The triage RUN writes dataset/triage.json using this shape, one record per exhibitor in exhibitors.json. Examples below are ILLUSTRATIVE demonstrations of the rubric, not final verdicts — note pre_verification:true.",
+  "record_schema": {
+    "id": "string — references exhibitors.json id",
+    "name": "string — company name as resolved",
+    "category": "enum — see methodology.md taxonomy",
+    "verdict": "enum — kill | watch | deep-dive",
+    "rationale": "string — ONE line. For kill: disclosed-fact -> opinion.",
+    "thesis_flags": "string[] — e.g. thin-wrapper, no-moat, redliner, me-too, vapour, defensible, interesting-flawed, interop, incumbent, andy-flagged, valuation-tension",
+    "evidence_tier": "int — 1|2|3, highest tier supporting the verdict",
+    "confidence": "enum — low | medium | high",
+    "pre_verification": "bool — true until Pass 2 confirms identity + facts",
+    "sources": "string[] — URLs (required when any T3 fact is cited)"
+  },
+  "examples": [
+    {
+      "id": "P6",
+      "name": "Harvey",
+      "category": "agentic-horizontal",
+      "verdict": "deep-dive",
+      "rationale": "Category-defining agentic platform with elite-firm distribution; dissect the model, the moat claim, and the burn-vs-valuation tension.",
+      "thesis_flags": ["defensible", "incumbent", "valuation-tension"],
+      "evidence_tier": 2,
+      "confidence": "high",
+      "pre_verification": true,
+      "sources": []
+    },
+    {
+      "id": "P9",
+      "name": "Luminance",
+      "category": "drafting-redline",
+      "verdict": "deep-dive",
+      "rationale": "Interesting-but-flawed: proprietary contract model and real traction, but sits in the most crowded category on the floor — good teardown of where the moat actually is.",
+      "thesis_flags": ["defensible", "interesting-flawed", "redliner"],
+      "evidence_tier": 2,
+      "confidence": "medium",
+      "pre_verification": true,
+      "sources": []
+    },
+    {
+      "id": "S20",
+      "name": "DocumentDrafter",
+      "category": "drafting-redline",
+      "verdict": "kill",
+      "rationale": "Generic document-drafting tool in a 15-booth redliner field with no visible proprietary data or workflow lock-in -> in my opinion a thin wrapper unlikely to outlast the category shakeout. [pending T2/T3 confirmation]",
+      "thesis_flags": ["thin-wrapper", "no-moat", "me-too", "redliner"],
+      "evidence_tier": 1,
+      "confidence": "low",
+      "pre_verification": true,
+      "sources": []
+    }
+  ]
+}
