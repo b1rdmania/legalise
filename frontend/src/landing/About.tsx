@@ -1,9 +1,9 @@
 /**
  * /about — the business-card landing (DESIGN.md P28).
  *
- * Cards in circulation point at legalise.dev; the people holding one
- * land here. Plain, specific, no superlatives. Contact marks sit twice:
- * a logo bar under the opening line, and a text CTA at the foot.
+ * Plain, specific, no superlatives. Contact marks sit twice: a logo bar
+ * under the opening line, and a text CTA at the foot. Portrait to the
+ * right of the content.
  */
 
 const GITHUB_PROFILE = "https://github.com/b1rdmania";
@@ -19,116 +19,116 @@ export function About() {
       <div className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
         <div className="flex max-w-4xl flex-col gap-10 lg:flex-row lg:items-start lg:gap-12">
           <header className="min-w-0 flex-1">
-          <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
-            About
-          </h1>
+            <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
+              About
+            </h1>
 
-          <div className="mt-8 max-w-xl space-y-2 text-base leading-relaxed text-prose">
-            <p>I&apos;m Andrew. Not a lawyer. Not a law firm founder (as yet).</p>
-            <p>Interested in working at the edge of what is possible.</p>
-          </div>
+            <div className="mt-8 max-w-xl text-base leading-relaxed text-prose">
+              <p>I&apos;m Andrew. Not a lawyer. Not a law firm founder (as yet).</p>
+            </div>
 
-          {/* Top contact bar — brand marks, under the opening line. */}
-          <div className="mt-6 flex items-center gap-9 text-muted">
-            <a
-              href={X_PROFILE}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="X"
-              className="transition-colors hover:text-seal"
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
-            <a
-              href={LINKEDIN}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="LinkedIn"
-              className="transition-colors hover:text-seal"
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-              </svg>
-            </a>
-            <a
-              href="mailto:andrew@legalise.dev"
-              aria-label="Email andrew@legalise.dev"
-              className="transition-colors hover:text-seal"
-            >
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-                <path d="m22 7-10 6L2 7" />
-              </svg>
-            </a>
-            <a
-              href={GITHUB_PROFILE}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="GitHub"
-              className="transition-colors hover:text-seal"
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-              </svg>
-            </a>
-          </div>
+            {/* Top contact bar — brand marks, under the opening line. */}
+            <div className="mt-6 flex items-center gap-9 text-muted">
+              <a
+                href={X_PROFILE}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="X"
+                className="transition-colors hover:text-seal"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+              <a
+                href={LINKEDIN}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+                className="transition-colors hover:text-seal"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+              </a>
+              <a
+                href="mailto:andrew@legalise.dev"
+                aria-label="Email andrew@legalise.dev"
+                className="transition-colors hover:text-seal"
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-10 6L2 7" />
+                </svg>
+              </a>
+              <a
+                href={GITHUB_PROFILE}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="GitHub"
+                className="transition-colors hover:text-seal"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                </svg>
+              </a>
+            </div>
 
-          <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
-            <p>
-              I&apos;m resolutely unimpressed by most of the legal AI incumbents.
-              Closed models, priced per seat, CRMs and document red-liners with a
-              sprinkle of AI on top. The machines have more power than this.
-            </p>
-            <p>
-              I build open source, at the frontier. I&apos;ve also been through
-              the FCA and Bank of England sandbox as an applicant, so I&apos;ve
-              seen up close what a regulator wants from a technical build before
-              they sign it off.
-            </p>
-            <p>
-              That&apos;s my lens. Not &ldquo;what can AI do&rdquo;. In my other
-              work the answer to that is everything. It&apos;s what a regulator or
-              an insurer needs to see before a firm puts AI at the centre of how
-              it works.
-            </p>
-            <p>
-              So I built Legalise. I kept watching AI get legal work wrong.
-              Confidently, and with no trail of how it got there. Legalise keeps
-              the trail. Every output supervised, signed, and on a record you
-              could hand a regulator. Open source, unfinished, somewhat unwieldy,
-              code-wise. An experiment on a problem the industry might not
-              actually have.
-            </p>
-            <p>
-              What interests me isn&apos;t firms working faster and billing the
-              same. It&apos;s whether this changes how people actually access law.
-            </p>
-            <p>
-              Particularly interested in collaborating for either a regulated firm
-              or an SRA pilot.
-            </p>
-          </div>
+            <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
+              <p>
+                I&apos;m resolutely unimpressed by most of the legal AI
+                incumbents. Closed models, priced per seat, CRMs and document
+                red-liners with a sprinkle of AI on top. The machines have more
+                power than this.
+              </p>
+              <p>
+                I build open source, at the frontier. I&apos;ve also been
+                through the FCA and Bank of England sandbox as an applicant, so
+                I&apos;ve seen up close what a regulator wants from a technical
+                build before they sign it off.
+              </p>
+              <p>
+                That&apos;s my lens. Not &ldquo;what can AI do&rdquo;. In my
+                other work the answer to that is everything. It&apos;s what a
+                regulator or an insurer needs to see before a firm puts AI at the
+                centre of how it works.
+              </p>
+              <p>
+                So I built Legalise. I kept watching AI get legal work wrong.
+                Confidently, and with no trail of how it got there. Legalise
+                keeps the trail. Every output supervised, signed, and on a record
+                you could hand a regulator. Open source, unfinished, an
+                experiment on a problem the industry might not admit it has yet.
+              </p>
+              <p>
+                What interests me isn&apos;t firms working faster and billing the
+                same. It&apos;s whether this changes how people actually access
+                law.
+              </p>
+              <p>
+                Interested in working at the edge of what&apos;s possible. A
+                regulated firm, an SRA pilot, or something not invented yet.
+              </p>
+            </div>
 
-          {/* Foot CTA — the links again, as text. */}
-          <p className="mt-10 text-sm text-muted">
-            <a href={X_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
-              X
-            </a>
-            {" · "}
-            <a href={LINKEDIN} target="_blank" rel="noreferrer" className={linkClass}>
-              LinkedIn
-            </a>
-            {" · "}
-            <a href="mailto:andrew@legalise.dev" className={linkClass}>
-              andrew@legalise.dev
-            </a>
-            {" · "}
-            <a href={GITHUB_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
-              GitHub
-            </a>
-          </p>
+            {/* Foot CTA — the links again, as text. */}
+            <p className="mt-10 text-sm text-muted">
+              <a href={X_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
+                X
+              </a>
+              {" · "}
+              <a href={LINKEDIN} target="_blank" rel="noreferrer" className={linkClass}>
+                LinkedIn
+              </a>
+              {" · "}
+              <a href="mailto:andrew@legalise.dev" className={linkClass}>
+                andrew@legalise.dev
+              </a>
+              {" · "}
+              <a href={GITHUB_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
+                GitHub
+              </a>
+            </p>
           </header>
 
           <div className="shrink-0 lg:w-60 lg:pt-2">
@@ -140,7 +140,6 @@ export function About() {
             />
           </div>
         </div>
-
       </div>
     </div>
   );

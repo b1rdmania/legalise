@@ -30,6 +30,9 @@ export function Landing() {
           />
         </div>
         <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-20 md:py-32 max-w-3xl">
+          <div className="eyebrow text-muted mb-5">
+            Open source · England &amp; Wales · v0.1
+          </div>
           <p className="text-lg md:text-xl text-prose leading-relaxed max-w-2xl mb-6">
             AI drafts your case, cites cases that never happened, and no one is
             on the hook for it.
@@ -39,63 +42,54 @@ export function Landing() {
           </h1>
           <div className="w-16 h-[3px] bg-seal mt-3 mb-6" aria-hidden="true" />
           <p className="text-xl text-muted leading-relaxed max-w-xl">
-            An experiment, unfinished, experimental, open source.
+            Legalise runs AI inside a matter file, and the record shows every
+            point where a human stepped in and took responsibility.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 mt-10">
+          <p className="mt-6 text-base text-prose">
+            Unfinished on purpose. Come break it.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium">
             {auth.user ? (
               <button
                 onClick={onOpenDemo}
-                className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]"
+                className="inline-flex items-center text-ink hover:text-seal transition-colors min-h-[44px]"
               >
-                Open demo project
+                See it work
               </button>
             ) : (
               <a
                 href="/guided-demo"
-                className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+                className="inline-flex items-center text-ink hover:text-seal transition-colors min-h-[44px]"
               >
                 See it work
               </a>
             )}
+            <span className="text-rule" aria-hidden="true">·</span>
+            <a
+              href="#demo-video"
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById("demo-video")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="inline-flex items-center text-ink hover:text-seal transition-colors min-h-[44px]"
+            >
+              30 sec
+            </a>
+            <span className="text-rule" aria-hidden="true">·</span>
             <a
               href="https://github.com/b1rdmania/legalise"
               target="_blank"
               rel="noreferrer"
-              className="border border-rule hover:border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px] inline-flex items-center gap-2"
+              className="inline-flex items-center gap-1.5 text-ink hover:text-seal transition-colors min-h-[44px]"
             >
-              <Github size={16} strokeWidth={1.75} aria-hidden="true" />
+              <Github size={15} strokeWidth={1.75} aria-hidden="true" />
               GitHub
             </a>
           </div>
-
-          {/* Scroll cue to the demo video — sits on the splash. */}
-          <a
-            href="#demo-video"
-            onClick={(e) => {
-              e.preventDefault();
-              document
-                .getElementById("demo-video")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-seal transition-colors min-h-[44px]"
-          >
-            <span>Watch a 30-second demo</span>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="animate-bounce"
-            >
-              <path d="M12 5v14M19 12l-7 7-7-7" />
-            </svg>
-          </a>
         </div>
       </section>
 
