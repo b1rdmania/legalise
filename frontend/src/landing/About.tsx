@@ -76,20 +76,20 @@ export function About() {
 
             <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
               <p>
-                I&apos;m resolutely unimpressed by most of the legal AI
-                incumbents. Closed models, priced per seat, CRMs and document
-                red-liners with a sprinkle of AI on top. The machines have more
-                power than this.
+                Resolutely unimpressed by the legal AI incumbents. Closed
+                models, priced per seat, mostly CRMs and document red-liners +
+                a sprinkle of AI.
+              </p>
+              <p>The machines have more power than this.</p>
+              <p>
+                I build open source, at the frontier. I&apos;ve been through the
+                FCA and Bank of England sandbox as an applicant, so I&apos;ve
+                seen up close what a regulator wants from a technical build
+                before they sign it off.
               </p>
               <p>
-                I build open source, at the frontier. I&apos;ve also been
-                through the FCA and Bank of England sandbox as an applicant, so
-                I&apos;ve seen up close what a regulator wants from a technical
-                build before they sign it off.
-              </p>
-              <p>
-                That&apos;s my lens. Not &ldquo;what can AI do&rdquo;. In my
-                other work the answer to that is everything. It&apos;s what a
+                That&apos;s my lens. Not &ldquo;what can AI do&rdquo;. The answer
+                to that, soon, is almost everything. It&apos;s more what a
                 regulator or an insurer needs to see before a firm puts AI at the
                 centre of how it works.
               </p>
