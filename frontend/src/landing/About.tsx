@@ -24,8 +24,9 @@ export function About() {
             About
           </h1>
 
-          <div className="mt-8 max-w-xl text-base leading-relaxed text-prose">
+          <div className="mt-8 max-w-xl space-y-2 text-base leading-relaxed text-prose">
             <p>I&apos;m Andrew. Not a lawyer. Not a law firm founder (as yet).</p>
+            <p>Interested in working at the edge of what is possible.</p>
           </div>
 
           {/* Top contact bar — brand marks, under the opening line. */}
