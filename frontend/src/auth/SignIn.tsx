@@ -58,7 +58,7 @@ export function SignIn() {
   };
 
   return (
-    <AuthCard eyebrow="The workspace" heading="Sign in" intro="Bring your own Anthropic or OpenAI key after signing in.">
+    <AuthCard eyebrow="The workspace" heading="Sign in" intro="Beta testers only. Hosted access is invite-only during the beta.">
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <LedgerField label="Email" htmlFor="signin-email">
           <input
@@ -123,9 +123,9 @@ export function SignIn() {
         </div>
       </form>
       <p className="text-sm text-muted mt-6">
-        No account?{" "}
+        Not in the beta yet?{" "}
         <a href="/auth/signup" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
-          Sign up
+          Join the beta
         </a>
         .
       </p>

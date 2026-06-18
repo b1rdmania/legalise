@@ -125,11 +125,15 @@ export function TopBar({
                 />
               </>
             ) : (
-              // The anonymous surface offers three nav links —
-              // Architecture · About · GitHub (logo) — plus one muted
-              // sign-in text link. The demo is reached via the homepage
-              // CTA, not the nav bar.
+              // The anonymous surface: Demo · Architecture · About ·
+              // GitHub (logo), plus one muted sign-in text link.
               <>
+                <a
+                  href="/guided-demo"
+                  className="transition-colors text-ink hover:opacity-70"
+                >
+                  Demo
+                </a>
                 <a
                   href="/architecture"
                   className={

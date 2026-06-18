@@ -88,10 +88,10 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing nav — Architecture · About · GitHub, then a
-    // muted sign-in. The demo is reached via the homepage CTA, not the
-    // nav.
+    // Unauth marketing nav — Demo · Architecture · About · GitHub,
+    // then a muted sign-in.
     primary = [
+      { href: "/guided-demo", label: "Demo" },
       { href: "/architecture", label: "Architecture" },
       { href: "/about", label: "About" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
