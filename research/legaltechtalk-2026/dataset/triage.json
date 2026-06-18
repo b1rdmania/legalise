@@ -129,13 +129,13 @@
       "id": "P2",
       "name": "Wordsmith",
       "category": "agentic-horizontal",
-      "verdict": "deep-dive",
+      "verdict": "watch",
       "flags": [
-        "defensible",
-        "valuation-tension"
+        "big-beastie-context",
+        "defensible"
       ],
       "confidence": "low",
-      "rationale": "In-house legal AI with notable recent raise; model worth a look.",
+      "rationale": "Well-covered, well-funded - feature as context, no original deep research. In-house legal AI with notable recent raise; model worth a look.",
       "pre_verification": true
     },
     {
