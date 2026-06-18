@@ -1,0 +1,187 @@
+[
+  {
+    "id": "S59",
+    "name": "Newcode.ai",
+    "category": "agentic-horizontal",
+    "facts": {
+      "founded": "unknown (sources conflict: Crunchbase/EU-Startups list 2021 and 2024; Helmy interview implies ~2022-2023 — treat as unconfirmed)",
+      "hq": "Oslo, Norway",
+      "total_funding": "$6.5M",
+      "last_round": "Seed, $6.5M, announced March 2026",
+      "lead_investor": "Alliance VC and The Legal Tech Fund (with participation from law firms); no single lead clearly named",
+      "headcount": "unknown",
+      "customers": ["DLA Piper (Nordics: Finland, Sweden, Norway)", "Wiersholm", "Haavind", "Simonsen Vogt Wiig"],
+      "integrations": ["Positioned as an intelligence layer across a firm's systems, data and applications — specific named connectors (iManage/Word/etc.) not confirmed in credible sources"],
+      "agentic_interop": "Explicitly agentic: markets 'agentic AI workflows' and an 'AI-native operating system for legal' where firms delegate complex multi-step work and receive complete deliverables. Auditability/control/deployment-flexibility emphasized. No specific API/MCP/CLI/agent-to-agent protocol signals confirmed in public sources.",
+      "tech_model": "Agentic, model-agnostic generative AI platform acting as an intelligence/orchestration layer over firm data; founder background in deep learning / enterprise AI for regulated environments.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Newcode.ai, Oslo-based legal AI founded by Maged Helmy (PhD, Univ. of Oslo), $6.5M raise, DLA Piper partner. Ruled out unrelated 'newcode' software/dev-tool naming and UbiOps (separate Dutch MLOps firm — no documented link)."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Agentic 'OS for legal' framing is differentiated and Nordics-anchored, but the 'AI operating system' positioning is now crowded; thin proof of unique tech."},
+      "thesis_fit": {"score": 4, "justification": "Strong fit on 'AI as preparation, accountability, supervised autonomy' — agentic, deliverable-oriented, stresses auditability/control; loses a point as interop depth is unproven."},
+      "investability": {"score": 3, "justification": "Real $6.5M seed, credible Nordic VCs and a marquee anchor client (DLA Piper), but early/small and single big-customer concentration."},
+      "defensibility": {"score": 2, "justification": "Conservative: moat is embedded-team workflow design + Nordic firm relationships; no proprietary-data or protocol lock-in evidenced."},
+      "interoperability": {"score": 3, "justification": "Claims to live across firm systems and run agentic multi-step workflows, but no confirmed API/MCP/CLI/named-DMS integrations — claim outruns evidence."},
+      "team": {"score": 4, "justification": "Founder Maged Helmy has a deep-learning PhD and 8+ yrs building enterprise AI for regulated environments; associate professor — strong technical pedigree."}
+    },
+    "provisional_verdict": "Technically-real agentic player with a marquee Nordic anchor (DLA Piper) but early and integration depth unproven. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": ["Founding year inconsistent across sources", "Headcount and pricing unknown", "Heavy reliance on one flagship customer (DLA Piper) and self/PR-reported capability claims", "No confirmed named integrations or open protocols (API/MCP/CLI)"],
+    "sources": [
+      {"url": "https://www.artificiallawyer.com/2026/03/17/newcode-raises-6-5m-maged-helmy-interview/", "accessed": "2026-06-18", "what_it_supports": "$6.5M seed, founder Maged Helmy, agentic OS-for-legal positioning"},
+      {"url": "https://www.legaltech-talk.com/newcode-ai-lands-6-5m-to-build-ai-operating-system-for-legal-work/", "accessed": "2026-06-18", "what_it_supports": "Funding, AI operating system framing, Norway HQ"},
+      {"url": "https://norway.dlapiper.com/en/news/dla-piper-partners-newcodeai-bring-agentic-ai-legal-workflows-across-nordics-1", "accessed": "2026-06-18", "what_it_supports": "DLA Piper strategic partnership, agentic workflows across Nordics, embedded team"},
+      {"url": "https://www.law360.com/articles/2453865/norway-startup-newcode-ai-raises-6-5m", "accessed": "2026-06-18", "what_it_supports": "Norway startup, $6.5M raise"},
+      {"url": "https://www.crunchbase.com/organization/newcode-ai", "accessed": "2026-06-18", "what_it_supports": "Company profile / founding-year data (conflicting)"}
+    ]
+  },
+  {
+    "id": "K28",
+    "name": "LUPL",
+    "category": "practice-mgmt",
+    "facts": {
+      "founded": "Spun out of 'Project Aries' ~2019-2020; publicly launched 2020-2021",
+      "hq": "Reston, Virginia, USA (also Singapore roots; founding firms incl. Singapore's Rajah & Tann)",
+      "total_funding": "$24M (across ~2 rounds; Series B $14M in Jan 2021)",
+      "last_round": "$14M (Jan 2021), per Artificial Lawyer / CB Insights",
+      "lead_investor": "Founding/strategic investors: CMS, Cooley, Rajah & Tann Asia (law firms)",
+      "headcount": "unknown (early reports referenced ~50 developers building it ~2020; current headcount unconfirmed)",
+      "customers": ["Used by law firms and in-house legal departments (founding firms CMS, Cooley, Rajah & Tann); specific named paying customers not separately confirmed"],
+      "integrations": ["Microsoft Teams (Lupl for Teams app)", "Outlook", "Microsoft Copilot ('Lupl for Copilot' agent)", "iManage (incl. iManage Cloud)", "NetDocuments", "Open API for Workstreams (create Workstreams/items via API)"],
+      "agentic_interop": "Open API (Workstreams endpoints) confirmed; a 'Lupl for Copilot' agent inside Teams; native DMS connectors (iManage/NetDocuments) and MS 365 surface. Strong on 'lives where lawyers work' interop; lighter on autonomous-agent / MCP signals.",
+      "tech_model": "Matter-synchronization / legal project & task management platform ('open industry platform for legal matters') unifying people, conversations, documents and data across firms and clients; integrates with DMS and MS 365 rather than being a generative-AI engine itself.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Lupl, legal matter/project-management platform (lupl.com), founded out of CMS/Cooley/Rajah & Tann collaboration; co-founder/CPO Matt Pollins (ex-CMS partner). No significant naming collision found."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "'Open industry platform / universal adapter for legal matters' is a distinctive cross-firm collaboration concept, but practice/matter-management is a crowded category."},
+      "thesis_fit": {"score": 2, "justification": "Strong on 'lives where lawyers work' (DMS + MS 365 + API) but it's primarily PM/collaboration, not agentic supervised autonomy; AI is a thin Copilot layer."},
+      "investability": {"score": 2, "justification": "Real $24M and blue-chip law-firm backers, but last confirmed raise was Jan 2021 — no recent round evidenced, raising staleness/runway questions."},
+      "defensibility": {"score": 3, "justification": "Moat from deep DMS/MS 365 integrations + multi-firm consortium relationships; offset by commoditized PM category."},
+      "interoperability": {"score": 4, "justification": "Genuinely interoperable: open API, native iManage/NetDocuments, Teams/Outlook/Copilot — clearly engineered to live inside lawyers' tools."},
+      "team": {"score": 3, "justification": "Credible founding team (ex-CMS partner Matt Pollins) and law-firm sponsorship; full leadership/scale details limited in public sources."}
+    },
+    "provisional_verdict": "Well-integrated legal matter/PM platform that lives where lawyers work, but funding looks stale and AI is a thin Copilot layer rather than agentic. [PROVISIONAL]",
+    "confidence": "medium",
+    "red_flags": ["No funding round confirmed since Jan 2021 — possible stagnation", "Current headcount unknown", "AI/agentic capability is shallow (Copilot wrapper) relative to thesis", "Pricing unknown"],
+    "sources": [
+      {"url": "https://www.lupl.com/about/", "accessed": "2026-06-18", "what_it_supports": "Company description, co-founder Matt Pollins, Project Aries origin"},
+      {"url": "https://www.globallegalpost.com/news/legaltech-startup-lupl-secures-14m-funding-ahead-of-full-launch-this-year-65933744", "accessed": "2026-06-18", "what_it_supports": "$14M funding round"},
+      {"url": "https://www.artificiallawyer.com/2021/01/19/lupl-bags-14m-funding-as-cms-cooley-backed-platform-prepares-to-launch/", "accessed": "2026-06-18", "what_it_supports": "$14M Jan 2021, CMS/Cooley backing"},
+      {"url": "https://www.cbinsights.com/company/lupl", "accessed": "2026-06-18", "what_it_supports": "$24M total raised, HQ Reston VA, investors"},
+      {"url": "https://lupl.com/connected-apps/", "accessed": "2026-06-18", "what_it_supports": "Integrations: iManage, NetDocuments, Teams, Outlook, Copilot, open API"}
+    ]
+  },
+  {
+    "id": "K57",
+    "name": "August",
+    "category": "drafting-redline",
+    "facts": {
+      "founded": "2023",
+      "hq": "unknown (US-focused; august.law/us — specific city not confirmed)",
+      "total_funding": "$7M",
+      "last_round": "Seed, $7M, August 2025",
+      "lead_investor": "NEA and Pear VC (co-led)",
+      "headcount": "unknown",
+      "customers": ["Midsize and boutique law firms and in-house legal teams (specific named customers not confirmed); early adopters cited generically"],
+      "integrations": ["Microsoft Word", "Outlook", "SharePoint", "iManage", "NetDocuments", "Google Drive", "Dropbox", "Web app"],
+      "agentic_interop": "Agent-based architecture with modular/configurable AI 'agents' and custom workflows; integrates across web, Word and Outlook with context preservation; DMS connectors (iManage, NetDocs, SharePoint, GDrive, Dropbox). 'Lives where lawyers work.' No explicit MCP/CLI/agent-to-agent protocol confirmed.",
+      "tech_model": "Configurable legal-AI workspace: modular agents/workflows adapt to a firm's playbooks, statutes and output formats for research, review, drafting and due diligence; self-serve + bespoke onboarding led by attorneys and engineers.",
+      "pricing": "Self-serve with two-week free trial; paid tiers not publicly itemized (treat specific pricing as unknown)",
+      "name_collision_check": "Confirmed entity = August, legal AI workspace at august.law, $7M seed led by NEA + Pear VC, founders Rutvik Rao, Thomas Bueler-Faudree, Joseph Parker (met at Columbia). Ruled out the very common 'August' name in other domains (e.g., August smart locks/home, August media, etc.) — this is the legal-AI 'August'."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Explicit focus on the underserved midsize/boutique segment with configurable, playbook-adaptive agents is a sharp positioning, though drafting/review is a crowded space."},
+      "thesis_fit": {"score": 4, "justification": "Good fit: agent-based, configurable workflows, deep DMS/Word/Outlook integration — preparation + supervised autonomy where lawyers work."},
+      "investability": {"score": 4, "justification": "$7M seed co-led by NEA and Pear VC with strong angels (Gokul Rajaram, Ramp CPO, OpenAI eng lead) signals high-quality conviction at seed."},
+      "defensibility": {"score": 2, "justification": "Conservative: moat rests on configurability + onboarding + segment focus; thin firm-specific data lock-in evidenced; competes with Harvey/Spellbook/CoCounsel etc."},
+      "interoperability": {"score": 4, "justification": "Confirmed integrations into Word, Outlook, SharePoint, iManage, NetDocuments, Google Drive, Dropbox with context preservation — genuinely embedded."},
+      "team": {"score": 4, "justification": "Technical founders (Columbia CS/ML lab) with experience at Blackstone data science, DoorDash, PayPal; strong investor/angel network."}
+    },
+    "provisional_verdict": "Technically-real, well-integrated configurable drafting/review agent for the underserved midsize segment, strongly backed at seed. [PROVISIONAL]",
+    "confidence": "high",
+    "red_flags": ["No named customers confirmed (only generic 'early adopters')", "HQ city and headcount unknown", "Defensibility thin in a crowded drafting/review market", "Performance/time-savings stats are self-reported"],
+    "sources": [
+      {"url": "https://www.businesswire.com/news/home/20250805452796/en/August-Raises-$7M-to-Deliver-Configurable-Legal-AI-to-Midsize-Firms", "accessed": "2026-06-18", "what_it_supports": "$7M seed, NEA + Pear VC, founders, founded 2023, midsize focus"},
+      {"url": "https://www.nea.com/blog/august-high-impact-configurable-legal-ai-for-midsize-firms", "accessed": "2026-06-18", "what_it_supports": "Lead investor rationale, configurable modular agents"},
+      {"url": "https://www.lawnext.com/2026/01/aiming-to-make-ai-more-easily-accessible-for-smaller-law-firms-legal-ai-company-august-launches-self-service-platform-and-free-educational-library.html", "accessed": "2026-06-18", "what_it_supports": "Self-serve launch, integrations (SharePoint/iManage/NetDocs/GDrive/Dropbox), Word/Outlook, agent-based architecture"},
+      {"url": "https://www.prnewswire.com/news-releases/august-launches-new-approach-to-legal-ai-with-instant-self-serve-platform-and-100-video-tutorial-library-302670676.html", "accessed": "2026-06-18", "what_it_supports": "Self-serve platform, free trial, drafting/due-diligence capabilities"},
+      {"url": "https://www.august.law/", "accessed": "2026-06-18", "what_it_supports": "Product positioning: research/review/draft, configurable workflows"}
+    ]
+  },
+  {
+    "id": "K61",
+    "name": "Aloi",
+    "category": "knowledge",
+    "facts": {
+      "founded": "2024",
+      "hq": "Stockholm, Sweden",
+      "total_funding": "$6.29M (per PitchBook/Crunchbase aggregators)",
+      "last_round": "unknown (seed-stage; exact round structure/date not confirmed in credible primary sources)",
+      "lead_investor": "Dagg AI listed as an investor (per aggregator); lead investor not clearly confirmed",
+      "headcount": "~20 (per aggregator)",
+      "customers": ["Law firms / legal teams (positioned for firms where confidentiality and control are non-negotiable); specific named customers not confirmed"],
+      "integrations": ["Deploys within the firm's own environment/infrastructure; permission-aware; specific named connectors (iManage/Word/etc.) not confirmed"],
+      "agentic_interop": "Markets an 'autonomous legal ecosystem' with audit trails and in-environment deployment; precedent discovery, drafting and negotiation support. No confirmed API/MCP/CLI/agent-to-agent or named-integration signals — interop claims are high-level.",
+      "tech_model": "Institutional-knowledge intelligence layer: ingests a firm's contracts, redlines, approvals and negotiation history to power precedent discovery, long-form drafting and grounded counterproposals; secure, in-firm-environment, permission-aware deployment.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Aloi (aloi.law), Stockholm legal-knowledge/contract-intelligence startup founded 2024. Ruled out: Aloi Global / Aloi Technologies (Singapore/Nepal fintech for grassroots loan financing, founded 2019) and individual attorney 'Paul M. Aloi' — both unrelated."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Institutional-memory-to-decision-grade-intelligence framing (precedent + negotiation history) is a reasonable angle, but knowledge-management AI is increasingly contested."},
+      "thesis_fit": {"score": 4, "justification": "Good thesis alignment: preparation (precedent/knowledge), accountability (audit trails, permission-aware, in-firm deployment), supervised drafting/negotiation."},
+      "investability": {"score": 2, "justification": "Conservative: ~$6.29M is aggregator-only with no confirmed press round; lead investor unclear; early and lightly documented."},
+      "defensibility": {"score": 2, "justification": "Thin evidence: claimed moat is a firm's own institutional data, but no proprietary tech, protocol or lock-in confirmed; mark low."},
+      "interoperability": {"score": 2, "justification": "Only high-level 'deploy in your environment, permission-aware' claims; no confirmed API/MCP/CLI or named integrations — interop unproven."},
+      "team": {"score": 2, "justification": "Self-described 'founded by lawyers, built by AI/infra/enterprise experts' but no founder names or verifiable track record found in credible sources."}
+    },
+    "provisional_verdict": "Plausible firm-knowledge/contract-intelligence play with the right thesis framing, but thinly evidenced — founders, round and integrations unconfirmed. [PROVISIONAL]",
+    "confidence": "low",
+    "red_flags": ["Founder names and team track record not confirmed", "Funding ($6.29M) and investor only from aggregators, not primary/press", "No confirmed integrations or open protocols", "Headcount and pricing unverified", "Name collides with unrelated fintech 'Aloi Global'"],
+    "sources": [
+      {"url": "https://www.aloi.law/about", "accessed": "2026-06-18", "what_it_supports": "Positioning: institutional knowledge to decision-grade intelligence, founded-by-lawyers claim, in-firm deployment"},
+      {"url": "https://www.aloi.law/product", "accessed": "2026-06-18", "what_it_supports": "Precedent discovery, drafting, negotiation support, audit trail"},
+      {"url": "https://www.crunchbase.com/organization/aloi-c7ce", "accessed": "2026-06-18", "what_it_supports": "Founded 2024, Stockholm HQ, funding figure"},
+      {"url": "https://pitchbook.com/profiles/company/864408-70", "accessed": "2026-06-18", "what_it_supports": "$6.29M funding, ~20 employees, Dagg AI investor"},
+      {"url": "https://aloi.global/", "accessed": "2026-06-18", "what_it_supports": "Name-collision ruled out: unrelated fintech Aloi Global (Singapore/Nepal)"}
+    ]
+  },
+  {
+    "id": "SA3",
+    "name": "PhaseLaw",
+    "category": "ediscovery",
+    "facts": {
+      "founded": "2023 (operates as Phaselab Inc.; product 'Phaselaw')",
+      "hq": "New York City, USA",
+      "total_funding": "$2.8M",
+      "last_round": "Seed, $2.8M, April 21, 2025",
+      "lead_investor": "Pear VC (round led by Pear, with Defined, BoxGroup, Twelve Below)",
+      "headcount": "unknown (early-stage / small founding team)",
+      "customers": ["Teams handling Subject Access Requests (DSARs), regulatory inquiries and litigation disclosure; enterprises needing large-scale redaction. Specific named customers not confirmed."],
+      "integrations": ["Cloud-based, single-tenant, region-selectable hosting; SOC2 Type II. No specific named DMS/ediscovery-platform connectors or open API/MCP confirmed."],
+      "agentic_interop": "AI-native, human-in-the-loop document review/redaction workflow ('Redact Once, Apply Everywhere') across emails, chats, docs, images; AI models recognize 50+ categories of personal data. Workflow automation is strong, but no confirmed API/MCP/CLI/agent-to-agent interop signals.",
+      "tech_model": "AI-powered, human-in-the-loop eDiscovery & redaction platform: deduplication, threading, relevance review and consistent rules-based redaction in one workflow; single-tenant cloud, built by petabyte-scale data/AI engineers.",
+      "pricing": "unknown",
+      "name_collision_check": "Confirmed entity = Phaselaw by Phaselab Inc. (phase.law), NYC eDiscovery/redaction startup, founded 2023 by Josh Schwartz (ex-CTO Chartbeat, ex-MIT CSAIL) and David van Dokkum, $2.8M seed led by Pear (Apr 2025). Ruled out generic 'phase'/'phase law' usage and physics 'phase' terms."
+    },
+    "scores": {
+      "uniqueness": {"score": 3, "justification": "Sharp wedge: AI-native DSAR/redaction with 'redact once, apply everywhere' and 50+ PII categories is a focused, differentiated take on eDiscovery."},
+      "thesis_fit": {"score": 3, "justification": "Fits 'AI as preparation + accountability' (human-in-the-loop, compliance) but it's a workflow tool, not broadly agentic/supervised-autonomy; bounded scope."},
+      "investability": {"score": 3, "justification": "Real $2.8M seed from credible early-stage funds (Pear, BoxGroup), but small/early with no follow-on evidenced."},
+      "defensibility": {"score": 2, "justification": "Conservative: PII-detection models + UX are the edge, but eDiscovery/redaction is competitive (Relativity, Reveal, etc.); no clear data/protocol moat."},
+      "interoperability": {"score": 2, "justification": "Single-tenant cloud with region choice and SOC2, but no confirmed named integrations or open API/MCP — appears more standalone than embedded."},
+      "team": {"score": 4, "justification": "Strong technical founders: Josh Schwartz (ex-CTO Chartbeat, MIT CSAIL) + David van Dokkum; team cites 30+ yrs petabyte-scale data/AI experience."}
+    },
+    "provisional_verdict": "Focused, well-built AI-native redaction/DSAR tool with a strong technical team, but narrow scope and standalone (low interop). [PROVISIONAL]",
+    "confidence": "high",
+    "red_flags": ["No named customers confirmed", "Headcount and pricing unknown", "Appears standalone — no confirmed DMS/ediscovery integrations or open API/MCP", "Narrow product scope (redaction/DSAR) limits TAM vs thesis"],
+    "sources": [
+      {"url": "https://www.phase.law/blog/phaselaw-fundraising-announcement", "accessed": "2026-06-18", "what_it_supports": "Product intro, eDiscovery/redaction positioning, fundraising"},
+      {"url": "https://legaltechnology.com/2025/04/23/legal-it-latest-new-ai-adoption-index-launched-owen-oliver-joins-legora-imanage-ai-survey-out-now-phaselaw-raises-2-8m/", "accessed": "2026-06-18", "what_it_supports": "$2.8M raise, April 2025 timing"},
+      {"url": "https://www.crunchbase.com/funding_round/phaselab-seed--b364f595", "accessed": "2026-06-18", "what_it_supports": "Seed round April 21 2025, $2.8M, Pear/Defined/BoxGroup/Twelve Below"},
+      {"url": "https://www.phase.law/about", "accessed": "2026-06-18", "what_it_supports": "Founders Josh Schwartz & David van Dokkum, founded 2023, NYC, human-in-the-loop, 50+ PII categories, SOC2"},
+      {"url": "https://www.linkedin.com/in/schwartz-josh/", "accessed": "2026-06-18", "what_it_supports": "Josh Schwartz background: CEO Phaselaw, ex-CTO Chartbeat, ex-MIT CSAIL"}
+    ]
+  }
+]
