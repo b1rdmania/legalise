@@ -139,19 +139,31 @@ const waitlistRoute = createRoute({
   component: Waitlist,
 });
 
+// During the beta, /auth/signin shows the hosted-beta page (no public
+// login form). The real form lives at /auth/login for testers.
 const signinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/signin",
-  // Already signed in → the form is noise; go to app home. Mirrors the
-  // __authed snapshot fast-path below (SignIn's own effect covers the
-  // case where auth is still bootstrapping at navigation time).
   beforeLoad: () => {
     const snap = getAuthSnapshot();
     if (!snap.loading && snap.user) {
       throw redirect({ to: "/matters" });
     }
   },
-  component: () => (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignIn />),
+  component: () => (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignUp />),
+});
+
+// Quiet login route for beta testers — the actual sign-in form.
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/login",
+  beforeLoad: () => {
+    const snap = getAuthSnapshot();
+    if (!snap.loading && snap.user) {
+      throw redirect({ to: "/matters" });
+    }
+  },
+  component: () => <SignIn />,
 });
 
 const signupRoute = createRoute({
@@ -576,6 +588,7 @@ const routeTree = rootRoute.addChildren([
   manifestoRedirect,
   waitlistRoute,
   signinRoute,
+  loginRoute,
   signupRoute,
   forgotRoute,
   resetRoute,

@@ -56,6 +56,15 @@ export function SignUp() {
             walk the guided demo &rarr;
           </a>
         </p>
+        <p className="mt-8 text-sm text-muted">
+          Already a beta tester?{" "}
+          <a
+            href="/auth/login"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            Sign in &rarr;
+          </a>
+        </p>
       </div>
     </div>
   );

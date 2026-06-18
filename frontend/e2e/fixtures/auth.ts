@@ -140,7 +140,7 @@ export async function signInViaUi(page: Page, user: RegisteredUser): Promise<voi
       `requestfailed: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? ""}`,
     );
   });
-  await page.goto("/auth/signin");
+  await page.goto("/auth/login");
   const email = page.locator('input[name="email"]');
   try {
     await email.waitFor({ state: "visible", timeout: 5_000 });
