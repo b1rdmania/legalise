@@ -113,8 +113,8 @@ export function Landing() {
         <div className="max-w-3xl mx-auto">
           <div className="border border-ink/70 bg-paper p-2">
             <video
-              src="/media/backend-demo.mp4"
-              poster="/media/backend-demo-poster.jpg"
+              src="/media/backend-demo-v2.mp4"
+              poster="/media/backend-demo-v2-poster.jpg"
               className="block w-full border border-rule/60"
               loop
               autoPlay
