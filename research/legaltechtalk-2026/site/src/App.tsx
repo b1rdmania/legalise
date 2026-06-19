@@ -55,6 +55,14 @@ function TheRead({ rows }: { rows: Company[] }) {
             I walked all the booths so you didn&apos;t have to. Here&apos;s my
             thesis, and the projects I liked.
           </p>
+          <a
+            href="https://legalise.dev/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-block text-sm font-bold text-ink underline decoration-seal underline-offset-4 hover:decoration-ink"
+          >
+            About the author ↗
+          </a>
         </div>
       </header>
 
