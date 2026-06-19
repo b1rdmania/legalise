@@ -9,7 +9,6 @@ function Nav() {
     ["watching", "Worth watching"],
     ["firm", "Firm play"],
     ["space", "The space"],
-    ["kill", "Kill list"],
   ];
   return (
     <nav className="sticky top-0 z-20 bg-paper/90 backdrop-blur border-b border-rule">
@@ -37,17 +36,6 @@ function R({ id, children }: { id: string; children: string }) {
     </a>
   );
 }
-
-// The kill-list editorial: dead sectors + the named examples in each. These
-// are named here only — out of the scored data, no review pages, no scores.
-const KILL_SECTORS: { sector: string; why: string; examples: string }[] = [
-  { sector: "Standalone vertical apps, no interop", why: "Features, not companies — gone the moment a horizontal agent ships the vertical.", examples: "Crimson · Emma Legal · PhaseLaw · Pivot · Mage Legal" },
-  { sector: "Diagramming-as-data", why: "Pretty, real logos, capped ceiling — a feature, not an app to scale.", examples: "Structureflow · Jigsaw" },
-  { sector: "Horizontal agent-builders", why: "The most clonable shape on the floor — a frontier-model release from commoditised.", examples: "Eudia · Newcode · Casey" },
-  { sector: "Undifferentiated drafting & redline", why: "Nothing the giants don't already do — or you'd rebuild it open-source in a month.", examples: "August · Vesence" },
-  { sector: "Stale incumbents & back-office", why: "No momentum, no agentic edge — a death-rattle rebrand or a tool that never clears the bar.", examples: "LUPL · Kuberno" },
-  { sector: "Geo-capped niche tools", why: "Single-jurisdiction, capped TAM — they can't reach the market that matters.", examples: "Pandektes · Orbital · Aloi · Augmetec" },
-];
 
 function Grid({ items }: { items: Company[] }) {
   return (
@@ -164,27 +152,6 @@ function TheRead({ rows }: { rows: Company[] }) {
               </p>
             </div>
           )}
-        </div>
-      </section>
-
-      <section id="kill" className="scroll-mt-12">
-        <div className="mx-auto max-w-2xl px-6 py-16">
-          <h2 className="font-redaction35 text-3xl tracking-tight2 mb-2">
-            The kill list
-          </h2>
-          <p className="text-muted mb-8">
-            The dead categories, and who&apos;s in each. The same call across the
-            board: a feature, not an app to scale.
-          </p>
-          <div className="divide-y divide-rule border-y border-rule">
-            {KILL_SECTORS.map((s) => (
-              <div key={s.sector} className="py-4">
-                <p className="font-bold text-ink">{s.sector}</p>
-                <p className="prose-p !mb-0 mt-1 text-sm">{s.why}</p>
-                <p className="text-muted text-sm mt-1 tech-token">{s.examples}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
