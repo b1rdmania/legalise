@@ -80,22 +80,6 @@
   "site": "https://www.moonlit.ai/"
  },
  {
-  "id": "K8",
-  "tier": "scorecard",
-  "name": "Airia",
-  "cat": "agentic-horizontal",
-  "U": 3,
-  "T": 4,
-  "I": 3,
-  "D": 2,
-  "X": 5,
-  "Tm": 4,
-  "comp": 25,
-  "conf": "medium",
-  "verdict": "Technically-real horizontal agentic platform with genuine MCP/orchestration depth and a credible operator-founder; 'legal' is a thin vertical skin and the moat + the self-funded round are the open questions. [PROVISIONAL]",
-  "site": "https://airia.com/"
- },
- {
   "id": "A6",
   "tier": "scorecard",
   "name": "Definely",
@@ -112,24 +96,8 @@
   "site": "https://www.definely.com/"
  },
  {
-  "id": "P7",
-  "tier": "scorecard",
-  "name": "Leah (ex-ContractPodAi)",
-  "cat": "clm",
-  "U": 3,
-  "T": 4,
-  "I": 3,
-  "D": 3,
-  "X": 5,
-  "Tm": 3,
-  "comp": 25,
-  "conf": "medium",
-  "verdict": "Mature, deeply interoperable CLM repositioning as an agentic 'OS' with a PwC alliance, but no new funding since 2021 and the rebrand reads as a reset under a crowded-category overhang. [PROVISIONAL]",
-  "site": "https://leahai.com/"
- },
- {
   "id": "K57",
-  "tier": "scorecard",
+  "tier": "hidden",
   "name": "August",
   "cat": "drafting-redline",
   "U": 3,
@@ -145,7 +113,7 @@
  },
  {
   "id": "S4",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Eudia",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -161,7 +129,7 @@
  },
  {
   "id": "P22",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Vesence",
   "cat": "drafting-redline",
   "U": 3,
@@ -177,7 +145,7 @@
  },
  {
   "id": "S59",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Newcode.ai",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -193,7 +161,7 @@
  },
  {
   "id": "S11",
-  "tier": "scorecard",
+  "tier": "hidden",
   "name": "Pandektes",
   "cat": "research",
   "U": 4,
@@ -209,7 +177,7 @@
  },
  {
   "id": "S64",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Kuberno",
   "cat": "compliance-risk",
   "U": 3,
@@ -241,7 +209,7 @@
  },
  {
   "id": "S22",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Structureflow",
   "cat": "other",
   "U": 4,
@@ -257,7 +225,7 @@
  },
  {
   "id": "M7",
-  "tier": "scorecard",
+  "tier": "hidden",
   "name": "Orbital",
   "cat": "research",
   "U": 3,
@@ -273,7 +241,7 @@
  },
  {
   "id": "S25",
-  "tier": "featured",
+  "tier": "thesis2",
   "name": "Cicero (by Automatise)",
   "cat": "ediscovery",
   "U": 3,
@@ -289,7 +257,7 @@
  },
  {
   "id": "S32",
-  "tier": "scorecard",
+  "tier": "thesis2",
   "name": "Scissero",
   "cat": "drafting-redline",
   "U": 2,
@@ -305,7 +273,7 @@
  },
  {
   "id": "S92",
-  "tier": "scorecard",
+  "tier": "whitespace",
   "name": "Truth Systems",
   "cat": "compliance-risk",
   "U": 3,
@@ -321,7 +289,7 @@
  },
  {
   "id": "S38",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Jigsaw",
   "cat": "knowledge",
   "U": 4,
@@ -337,7 +305,7 @@
  },
  {
   "id": "S56",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Crimson",
   "cat": "ediscovery",
   "U": 3,
@@ -353,7 +321,7 @@
  },
  {
   "id": "S24",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Emma Legal",
   "cat": "research",
   "U": 3,
@@ -369,7 +337,7 @@
  },
  {
   "id": "SA3",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "PhaseLaw",
   "cat": "ediscovery",
   "U": 3,
@@ -385,7 +353,7 @@
  },
  {
   "id": "K61",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Aloi",
   "cat": "knowledge",
   "U": 3,
@@ -401,7 +369,7 @@
  },
  {
   "id": "A3",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Augmetec",
   "cat": "ediscovery",
   "U": 3,
@@ -417,7 +385,7 @@
  },
  {
   "id": "K28",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "LUPL",
   "cat": "practice-mgmt",
   "U": 3,
@@ -433,7 +401,7 @@
  },
  {
   "id": "SA9",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Casey",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -449,7 +417,7 @@
  },
  {
   "id": "K30",
-  "tier": "featured",
+  "tier": "eye",
   "name": "Awesome Compliance (ACT)",
   "cat": "compliance-risk",
   "U": 2,
@@ -465,7 +433,7 @@
  },
  {
   "id": "M6",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Mage Legal",
   "cat": "ediscovery",
   "U": 2,
@@ -481,7 +449,7 @@
  },
  {
   "id": "SA4",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Pivot (yourpivot)",
   "cat": "ediscovery",
   "U": 3,
@@ -497,7 +465,7 @@
  },
  {
   "id": "K56",
-  "tier": "featured",
+  "tier": "thesis2",
   "name": "Moritz",
   "cat": "services-consulting",
   "U": 3,
@@ -513,7 +481,7 @@
  },
  {
   "id": "K24",
-  "tier": "featured",
+  "tier": "whitespace",
   "name": "KomplyAI",
   "cat": "compliance-risk",
   "U": 2,

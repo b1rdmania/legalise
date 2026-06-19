@@ -5,6 +5,23 @@ folder; treat it as the repo root once migrated to `b1rdmania/legaltech-teardown
 
 ---
 
+## 🟢 SESSION 2026-06-19 (LATEST) — editorial re-cut BUILT in source (supersedes the tier build below)
+
+Andy ran a live voice-note pass; this is built in source and is **mirror+deploy-ready**.
+Build agent: **only mirror + redeploy** — do not re-edit.
+
+- **Tiers (in `companies.json`):** `scorecard`(7 worth-watching) · `thesis2`(3) · `whitespace`(2) · `eye`(1, ACT) · `killed`(6) · `hidden`(12, parked — kept in data, rendered nowhere). **Leah + Airia deleted from data entirely.**
+- **Worth watching (7):** DeepJudge, Lawstronaut, Syllo, Ankar, Moonlit, Definely, Wexler.
+- **Thesis-2 (firm play):** Scissero (anchor — SRA-regulated, design red-flag kept on substance), Moritz, Cicero.
+- **White space:** KomplyAI (reframed) + Truth Systems; ACT as the "liked on the floor" callout.
+- **Kill-list (named):** Structureflow, Jigsaw, Vesence, Eudia, Newcode, Kuberno — "a feature, not an app to scale." Resolves the old kill-list-names-kept-companies tension.
+- **Voice:** every company leads with first-person *My take*; all "eye/screen/scored-screen/composite/confidence/[PROVISIONAL]" meta stripped from the public site. Reads as 100% Andy's work. (Data still holds the numbers/conf; just not surfaced.)
+- **Model v2 penalties formalised** in data: geo −5 / stale −4 / design −3, rendered as badges. Only Scissero shows one visibly (design −3, kept on substance); Moonlit geo-exempt with a note ("EU is the moat, not the cap"). The cut did most of the de-mushing.
+- **Logos:** favicon per company (Google s2). Per-company detail pages: My take → How I rated it → The facts → Where it's weak → Sources.
+- **TODO not yet done:** de-process the public `methodology.md`/`BRIEF.md` (still describe an automated process); Lawstronaut + Ankar takes are my drafts in Andy's voice (he'll tweak by voice note); logos could upgrade favicon→screenshots.
+
+---
+
 ## 📌 SESSION 2026-06-19 — deployed live + editorial decisions (read this first)
 
 This session: synced source → teardown mirror, **deployed the site live and public**,

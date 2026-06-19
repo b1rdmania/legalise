@@ -131,7 +131,10 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Unverified ARR/headcount estimate (low-confidence; flag)"
    }
-  ]
+  ],
+  "my_take": "I like this — the knowledge layer agents plug into, retrieval that Harvey and CoCounsel call into. My worry is the moat: a lot of this knowledge-retrieval can be open-sourced, and I haven't seen enough to know the stack is special. The moat and the kill are the same thing — its biggest partners are the ones most likely to absorb it.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.deepjudge.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.deepjudge.ai%2F?w=1200&h=750"
  },
  {
   "id": "S61",
@@ -252,7 +255,10 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Category context — MCP legal-data integrations with Claude"
    }
-  ]
+  ],
+  "my_take": "The purest version of what I care about — a legal-data API and MCP layer agents call for the slice of law they need, with provenance. It's also the earliest and thinnest here, all self-reported. It only wins if people build on it, and nobody does yet. High risk, high interest.",
+  "logo": "https://www.google.com/s2/favicons?domain=lawstronaut.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Flawstronaut.com%2F?w=1200&h=750"
  },
  {
   "id": "K44",
@@ -356,7 +362,10 @@
     "accessed": "2026-06-18",
     "what_it_supports": "NELA partnership offering member pricing on Syllo eDiscovery/litigation platform"
    }
-  ]
+  ],
+  "my_take": "Really interesting — pushing into all the right areas, litigator-founded with real money behind it. I haven't seen the backend so I can't vouch for the technical depth, but on direction and traction it's a solid play.",
+  "logo": "https://www.google.com/s2/favicons?domain=syllo.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fsyllo.ai%2F?w=1200&h=750"
  },
  {
   "id": "K47",
@@ -461,7 +470,10 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Third-party assessment; USPTO/EPO/WIPO formatting; Clio/NetDocuments/Anaqua integrations"
    }
-  ]
+  ],
+  "my_take": "The best-evidenced thing here — a citation-grounded patent OS, well-funded, real integrations, named customers. If you want the 'this is genuinely real and working' pick, it's this one.",
+  "logo": "https://www.google.com/s2/favicons?domain=ankar.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fankar.ai%2F?w=1200&h=750"
  },
  {
   "id": "SA6",
@@ -575,144 +587,40 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Independent corroboration of Deloitte spinout and legal-research platform identity (entity verification)"
    }
-  ]
- },
- {
-  "id": "K8",
-  "tier": "scorecard",
-  "name": "Airia",
-  "cat": "agentic-horizontal",
-  "site": "https://airia.com/",
-  "comp": 25,
-  "conf": "medium",
-  "verdict": "Technically-real horizontal agentic platform with genuine MCP/orchestration depth and a credible operator-founder; 'legal' is a thin vertical skin and the moat + the self-funded round are the open questions. [PROVISIONAL]",
-  "U": 3,
-  "T": 4,
-  "I": 3,
-  "D": 2,
-  "X": 5,
-  "Tm": 4,
-  "scores": {
-   "uniqueness": {
-    "score": 3,
-    "justification": "Differentiated by depth of MCP gateway + governance-at-orchestration-layer, but horizontal AI orchestration is a crowded space (competes with Microsoft, Salesforce Agentforce, many startups); legal is a marketing skin not a defensible niche."
-   },
-   "thesis_fit": {
-    "score": 4,
-    "justification": "Strong fit for 'supervised autonomy + accountability': agents with audit trails, guardrails, RBAC, governed tool calls — preparation/accountability is the core pitch, though legal-specific workflow depth is thin."
-   },
-   "investability": {
-    "score": 3,
-    "justification": "$100M is large but is single-individual founder capital, not external VC validation; no priced market round, no disclosed revenue — capital signals conviction but lacks third-party diligence signal."
-   },
-   "defensibility": {
-    "score": 2,
-    "justification": "Conservative: claimed moat is breadth of integrations + governance, both replicable by hyperscalers; no proprietary model/data moat evident; integration counts are self-reported. Thin independent evidence of lock-in."
-   },
-   "interoperability": {
-    "score": 5,
-    "justification": "Best-in-thesis: native MCP gateway (1,000+ connectors claimed), model-agnostic multi-LLM, real connectors to M365/SharePoint/Salesforce/Slack/Snowflake/GitHub, pro-code/API path — lives where enterprise work happens."
-   },
-   "team": {
-    "score": 4,
-    "justification": "Co-founder John Marshall has strong track record (AirWatch -> $1.54B VMware acquisition; OneTrust Co-Chairman). Broader team/leadership bench not independently verified here."
-   }
-  },
-  "facts": {
-   "founded": "2024 (emerged from stealth ~2024-2025)",
-   "hq": "Atlanta, Georgia, USA (offices also in Singapore, London, Dubai, Melbourne, Sofia, Bangalore)",
-   "total_funding": "$100M total committed ($50M invested to date + $50M further commitment), announced Sep 2025",
-   "last_round": "$100M, announced 2025-09-16; structured as funding/commitment from co-founder, not a priced VC round",
-   "lead_investor": "John Marshall (co-founder; self-funded — prior co-founder of AirWatch and Co-Chairman of OneTrust). No external VC lead disclosed.",
-   "headcount": "~150 employees (self-reported, Sep 2025)",
-   "customers": [
-    "300+ enterprise customers claimed (self-reported)",
-    "ArcelorMittal (reported, unverified primary)",
-    "Mars (reported, unverified primary)",
-    "Northwestern University (reported, unverified primary)",
-    "BuzzFeed (reported, unverified primary)",
-    "8x8 (reported, unverified primary)"
-   ],
-   "integrations": [
-    "Microsoft 365 / OneDrive / SharePoint",
-    "Salesforce",
-    "Slack",
-    "Confluence",
-    "Snowflake",
-    "GitHub",
-    "major cloud databases/CRMs",
-    "MCP Gateway with 1,000+ pre-configured integrations (self-reported)"
-   ],
-   "agentic_interop": "Strong. Native Model Context Protocol (MCP) support via an 'MCP Gateway' claiming 1,000+ pre-configured, governed integrations (largest enterprise MCP catalog, self-reported). Agent Builder supports no-code/low-code/pro-code agent creation; multi-agent orchestration coordinating agents, tools, data sources and workflows; model-agnostic multi-LLM orchestration with BYO-model; out-of-the-box connectors plus integration framework. Governance (change detection, version pinning, audit logging of every tool call) baked into orchestration layer. API/pro-code path exists; explicit CLI/A2A-protocol support not independently confirmed.",
-   "tech_model": "Horizontal enterprise AI orchestration + security + governance platform: model-agnostic multi-LLM layer + no/low/pro-code Agent Builder + MCP-based integration gateway, with guardrails (RBAC, DLP, AI firewall, audit) enforced at the orchestration layer; legal.airia.com is a vertical-marketed instance, not a separate product.",
-   "pricing": "Free $0 (1 user, 10 agents, 100 executions/mo); Individual $50/mo; Team $250/mo (unlimited users, 10k executions); Enterprise custom (SSO/SAML, audit logs). Pricing from third-party review aggregators (medium confidence); 14-day trial.",
-   "name_collision_check": "Confirmed entity = Airia, Atlanta-based enterprise agentic AI orchestration/security/governance platform (airia.com / legal.airia.com), co-founded by John Marshall (ex-AirWatch/OneTrust). Ruled out: unrelated 'Airia' air-purifier/scent-diffuser consumer brand. Note: no confirmed link to Kentik found — that association in the brief appears unfounded."
-  },
-  "red_flags": [
-   "$100M is co-founder self-investment ($50M committed not yet deployed), not an externally-validated priced VC round",
-   "300+ customers, ~150 headcount, 1,000+ MCP integrations all self-reported/PR — not independently audited",
-   "Named customers (ArcelorMittal, Mars, etc.) sourced from a search summary, not a directly verified primary page",
-   "Legal vertical (legal.airia.com) appears to be marketing positioning of the horizontal platform, not purpose-built legal tooling (no iManage/NetDocuments integration confirmed)",
-   "Brief's hypothesized Kentik/parent-company link not corroborated — likely incorrect",
-   "Crowded competitive field vs. hyperscaler-native orchestration; weak independent evidence of defensibility"
   ],
-  "sources": [
-   {
-    "url": "https://siliconangle.com/2025/09/16/airia-raises-100m-co-founder-build-security-foundation-enterprise-ai/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "$100M from co-founder John Marshall; founded 2024; ~150 employees; 300+ customers; enterprise AI security/orchestration positioning"
-   },
-   {
-    "url": "https://www.businesswire.com/news/home/20250916641185/en/Airia-Secures-$100M-in-Funding-to-Accelerate-Safe-and-Secure-Enterprise-AI-Adoption",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Official PR of $100M funding announcement (self-reported)"
-   },
-   {
-    "url": "https://www.artificiallawyer.com/2025/09/16/airia-announces-100m-funding/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Independent legal-tech press confirming $100M funding and Airia's enterprise AI orchestration model"
-   },
-   {
-    "url": "https://fintech.global/2025/09/18/ai-security-platform-airia-bags-100m-investment/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Independent confirmation of $100M and AI security platform positioning"
-   },
-   {
-    "url": "https://aimagazine.com/globenewswire/3245517",
-    "accessed": "2026-06-18",
-    "what_it_supports": "MCP Gateway surpassing 1,000 pre-configured integrations; governance features (change detection, version pinning, audit logging) — self-reported via GlobeNewswire"
-   },
-   {
-    "url": "https://airia.com/ai-platform/orchestration/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Agent Builder no/low/pro-code, multi-agent orchestration, model-agnostic multi-LLM, MCP integration framework, connectors (Salesforce, OneDrive, Slack)"
-   },
-   {
-    "url": "https://legal.airia.com/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Legal vertical: law-firm AI solutions (document gen/compare, discovery summaries, case timelines), guardrails/audit trails; vertical marketing of horizontal platform"
-   },
-   {
-    "url": "https://www.globenewswire.com/news-release/2026/05/12/3293015/0/en/Airia-Named-Top-Platform-in-Legal-AI-at-Theorem-s-Spring-2026-LegalTech-Awards.html",
-    "accessed": "2026-06-18",
-    "what_it_supports": "May 2026 Theorem LegalTech award (third-party recognition) for legal AI platform"
-   },
-   {
-    "url": "https://airia.com/pricing/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Existence of free starter tier and paid/enterprise tiers (pricing specifics corroborated via aggregators)"
-   },
-   {
-    "url": "https://hackceleration.com/labs/review/airia",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Third-party pricing breakdown: Free $0, Individual $50/mo, Team $250/mo, Enterprise custom (medium confidence)"
-   },
-   {
-    "url": "https://tracxn.com/d/companies/airia/__jykx801vHfNB508CWyUSlnzUW9_dFDbxCYbzrhWbtyU",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Company profile / financials cross-reference"
-   }
-  ]
+  "my_take": "EU legal data delivered as an API and MCP — the cross-border corpus is the moat, and it's hard, ongoing work. They're raising now, so it's the timely one. Early and thinly funded, but the most investable infrastructure bet on the floor.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.moonlit.ai&sz=128",
+  "geo_note": "EU-only by design — but here the EU cross-jurisdiction corpus is the moat, not a cap, so no geo penalty.",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.moonlit.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "Before I've seen their pack or the tech, here's the bear case — the ways this model fails inside 18 months. Not predictions; the risks to pressure-test the moment the deck lands.",
+   "risks": [
+    {
+     "h": "The moat is replicable, not owned",
+     "body": "EU primary law is public. The value is the enrichment and the citation graph, not exclusive data. A funded incumbent (Clio/vLex just paid $1B for legal data) — or the free official APIs (EUR-Lex, CURIA, HUDOC) wrapped in an open-source MCP server — can close the gap. The 7-year head start is a lead, not a wall."
+    },
+    {
+     "h": "It's an opex treadmill, not a moat",
+     "body": "Daily ingestion across 110+ portals and 30 jurisdictions, hand-built enrichment, constant format drift — that's a permanent, capital-hungry maintenance cost just to stand still. Thin disclosed funding (one undisclosed pre-seed) against a business that has to keep paying for its own freshness."
+    },
+    {
+     "h": "Disintermediated by the buyers it serves",
+     "body": "The bet is that agents call Moonlit for EU law. But its own integrators (Eudia) and the big platforms (Harvey, CoCounsel) can ingest EU data themselves once it's worth it — and Moonlit becomes a feature, the same trap DeepJudge sits in."
+    },
+    {
+     "h": "TAM cap and a slow-money customer base",
+     "body": "EU-only is a smaller, fragmented market, and the marquee logos are public-sector and regulators — long procurement, slow cash. Logos are not revenue."
+    },
+    {
+     "h": "Traction looks thinner than the logos",
+     "body": "The Public Prosecutor is a pilot; De Nederlandsche Bank is unverified. If the signed-revenue base is thin, the (publicly invisible) 'raising now' round is harder and the runway shorter than the customer list implies."
+    },
+    {
+     "h": "The official sources could ship their own",
+     "body": "EUR-Lex and national gazettes increasingly publish structured open data and APIs. If 'official + free + structured' arrives across enough jurisdictions, the aggregation premium compresses."
+    }
+   ]
+  }
  },
  {
   "id": "A6",
@@ -824,137 +732,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Company profile, founding, funding aggregate"
    }
-  ]
- },
- {
-  "id": "P7",
-  "tier": "scorecard",
-  "name": "Leah (ex-ContractPodAi)",
-  "cat": "clm",
-  "site": "https://leahai.com/",
-  "comp": 25,
-  "conf": "medium",
-  "verdict": "Mature, deeply interoperable CLM repositioning as an agentic 'OS' with a PwC alliance, but no new funding since 2021 and the rebrand reads as a reset under a crowded-category overhang. [PROVISIONAL]",
-  "U": 3,
-  "T": 4,
-  "I": 3,
-  "D": 3,
-  "X": 5,
-  "Tm": 3,
-  "scores": {
-   "uniqueness": {
-    "score": 3,
-    "justification": "Agentic 'OS' framing beyond CLM into procurement/finance is ambitious, but the underlying CLM category is mature and crowded (Icertis, Ironclad, Sirion, DocuSign); rebrand is repositioning more than novel tech."
-   },
-   "thesis_fit": {
-    "score": 4,
-    "justification": "Explicitly agentic, interoperable, runs inside enterprise systems of record (Salesforce/SAP/Workday/M365) — strong supervised-autonomy/accountability fit, though heavier enterprise-CLM than lawyer-desktop."
-   },
-   "investability": {
-    "score": 3,
-    "justification": "$170M-$202M raised with SoftBank/Insight, Gartner Visionary 5 yrs, PwC alliance — but no new round since 2021, SoftBank-era valuation overhang and rebrand suggest a reset/pivot, not fresh momentum."
-   },
-   "defensibility": {
-    "score": 3,
-    "justification": "Enterprise integration depth, multi-year deployments and PwC channel create switching costs, but faces deep-pocketed incumbents and no clear proprietary-data or model moat."
-   },
-   "interoperability": {
-    "score": 5,
-    "justification": "Open APIs + pre-built connectors across ERP/CRM/DMS/e-sign, Salesforce AppExchange app, agent-to-agent/orchestration OS, PwC agentic operating-model alliance — best-in-cohort interoperability."
-   },
-   "team": {
-    "score": 3,
-    "justification": "Long-tenured founder/CEO Sarvarth Misra plus co-founders since 2012 and SoftBank/Insight backing; experienced but the rebrand signals strategic pressure rather than fresh execution proof."
-   }
-  },
-  "facts": {
-   "founded": "2012 (as ContractPodAi / ContractPod Technologies); rebranded to Leah January 2026",
-   "hq": "London, UK (global offices: San Francisco, New York, Glasgow, Chicago, Sydney, Mumbai, Toronto)",
-   "total_funding": "$170M-$202M total (disputed across aggregators: CB Insights ~$170M, PitchBook ~$179M, Tracxn ~$202M); anchored by $55M Series B (Insight Partners, 2019) + $115M Series C (SoftBank Vision Fund 2, Sept 2021)",
-   "last_round": "$115M Series C, September 2021 (SoftBank Vision Fund 2) — no new round confirmed post-rebrand",
-   "lead_investor": "SoftBank Vision Fund 2 (Series C lead); Insight Partners (Series B lead); Eagle Investments also cited",
-   "headcount": "unknown (no credible current figure; large multi-office org)",
-   "customers": [
-    "KPMG",
-    "PwC (UK alliance partner)",
-    "Pinsent Masons",
-    "Morae",
-    "Epiq",
-    "QuisLex",
-    "Integreon",
-    "LegalEase",
-    "Bowmans",
-    "Execo",
-    "Vyapi",
-    "(also self-reported 'Fortune 500 legal teams')"
-   ],
-   "integrations": [
-    "Salesforce (AppExchange app)",
-    "SAP",
-    "Workday",
-    "Microsoft 365 / Word",
-    "DocuSign",
-    "ERP/CRM/DMS/e-sign via pre-built connectors",
-    "open APIs"
-   ],
-   "agentic_interop": "Strongest interop of the four: explicitly positions Leah Agentic OS to design/deploy/govern AI agents, plus Leah Agentic CLM agentic workforce. Open APIs and pre-built connectors across ERP/CRM/DMS/e-sign/finance; Salesforce AppExchange listing; third-party data integration (Nexla connector). PwC UK alliance for agentic operating models / agent orchestration in GBS. Agent-to-agent/orchestration is a core marketed capability.",
-   "tech_model": "Agentic AI platform (Leah Agentic OS + Agentic CLM) orchestrating multiple LLMs dynamically selected per task (incl. OpenAI reasoning models), with RAG over contracts, 65+ language support, spanning legal/procurement/finance workflows.",
-   "pricing": "unknown publicly; third-party estimate ~$50K-$200K/yr enterprise (bindlegal, low confidence)",
-   "name_collision_check": "Confirmed entity = leahai.com / contractpodai.com, the CLM vendor founded 2012 (legal name ContractPod Technologies), rebranded to Leah Jan 2026, CEO/co-founder Sarvarth Misra. Ruled out: 'Leah' as a common personal name and unrelated AI assistants named Leah; this is specifically the ex-ContractPodAi agentic CLM 'OS' with PwC UK alliance."
-  },
-  "red_flags": [
-   "Total funding figure disputed across aggregators ($170M-$202M)",
-   "No new funding round since 2021 Series C; rebrand may signal valuation/strategy reset",
-   "Current headcount unconfirmed",
-   "Customer list mixes named partners (KPMG/PwC/Pinsent Masons) with self-reported 'Fortune 500' claims",
-   "Crowded enterprise CLM category with much larger incumbents"
   ],
-  "sources": [
-   {
-    "url": "https://siliconangle.com/2026/01/05/contractpodai-rebrands-leah-expand-agentic-automation-beyond-contract-lifecycle-management/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Jan 2026 rebrand to Leah, Agentic OS + Agentic CLM, expansion beyond CLM"
-   },
-   {
-    "url": "https://www.businesswire.com/news/home/20260210624028/en/Leah-Partners-with-PwC-UK-to-Power-Agentic-Operating-Models",
-    "accessed": "2026-06-18",
-    "what_it_supports": "PwC UK alliance for agentic operating models / agent orchestration in GBS"
-   },
-   {
-    "url": "https://contractpodai.com/integrations/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Open APIs and pre-built connectors (ERP/CRM/DMS/e-sign), Salesforce/SAP/Workday/M365/DocuSign"
-   },
-   {
-    "url": "https://docs.nexla.com/user-guides/connectors/contractpodai_api/overview",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Leah CLM public API (third-party connector confirmation)"
-   },
-   {
-    "url": "https://contractpodai.com/news/contractpodai-115m-funding-softbank-vision-fund-2/",
-    "accessed": "2026-06-18",
-    "what_it_supports": "$115M Series C led by SoftBank Vision Fund 2, Sept 2021, founded 2012, London HQ + global offices"
-   },
-   {
-    "url": "https://yourstory.com/2019/10/legal-tech-startup-contractpodai-funding-insight-partners",
-    "accessed": "2026-06-18",
-    "what_it_supports": "$55M Series B led by Insight Partners (2019)"
-   },
-   {
-    "url": "https://tracxn.com/d/companies/contractpod-technologies/__SJI9px_Q6oO7ALqn8QlHmTOPYazYtw_xhV-LOwPiMvI",
-    "accessed": "2026-06-18",
-    "what_it_supports": "~$202M total funding figure, customer/partner names (aggregator, lower confidence)"
-   },
-   {
-    "url": "https://www.crunchbase.com/organization/contractpodai",
-    "accessed": "2026-06-18",
-    "what_it_supports": "Founder Sarvarth Misra, rebrand to Leah, funding profile"
-   }
-  ]
+  "my_take": "I've argued hard against simple Word redlining tools — this is the exception. A very senior lawyer who lives in Word, a strong, friendly team, nice growth. If one of the traditional, incumbent-shaped plays actually makes it, it's this.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.definely.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.definely.com%2F?w=1200&h=750"
  },
  {
   "id": "K57",
-  "tier": "scorecard",
+  "tier": "hidden",
   "name": "August",
   "cat": "drafting-redline",
   "site": "https://www.august.law/",
@@ -1050,11 +835,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Product positioning: research/review/draft, configurable workflows"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.august.law&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.august.law%2F?w=1200&h=750"
  },
  {
   "id": "S4",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Eudia",
   "cat": "agentic-horizontal",
   "site": "https://eudia.com/",
@@ -1172,11 +960,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Product positioning, integration claims"
    }
-  ]
+  ],
+  "my_take": "A feature, not an app — horizontal legal-ops glue that gets absorbed by the platforms it sits between. The raise doesn't save it.",
+  "logo": "https://www.google.com/s2/favicons?domain=eudia.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Feudia.com%2F?w=1200&h=750"
  },
  {
   "id": "P22",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Vesence",
   "cat": "drafting-redline",
   "site": "https://www.vesence.com/",
@@ -1277,11 +1068,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Co-founder background (Depict YC, Peltarion, Norrsken)"
    }
-  ]
+  ],
+  "my_take": "You could rebuild this open-source in a month. No moat, no reason it survives a frontier-model release.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.vesence.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.vesence.com%2F?w=1200&h=750"
  },
  {
   "id": "S59",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Newcode.ai",
   "cat": "agentic-horizontal",
   "site": "https://newcode.ai/",
@@ -1373,11 +1167,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Company profile / founding-year data (conflicting)"
    }
-  ]
+  ],
+  "my_take": "Bespoke legal agents — the most clonable shape on the floor. The big-firm logo is a pilot, not a moat.",
+  "logo": "https://www.google.com/s2/favicons?domain=newcode.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fnewcode.ai%2F?w=1200&h=750"
  },
  {
   "id": "S11",
-  "tier": "scorecard",
+  "tier": "hidden",
   "name": "Pandektes",
   "cat": "research",
   "site": "https://www.pandektes.com/",
@@ -1473,11 +1270,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Name etymology (Pandects/Pandectae) — name-collision rule-out"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.pandektes.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.pandektes.com%2F?w=1200&h=750"
  },
  {
   "id": "S64",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Kuberno",
   "cat": "compliance-risk",
   "site": "https://kuberno.com/",
@@ -1576,7 +1376,10 @@
     "accessed": "2026-06-18",
     "what_it_supports": "API-first architecture; integrations with board portals/HR/finance/tax; Azure, ISO 27001, GDPR"
    }
-  ]
+  ],
+  "my_take": "Killed on design — the brand and UI don't clear the bar, and there's no agentic edge underneath to carry it.",
+  "logo": "https://www.google.com/s2/favicons?domain=kuberno.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fkuberno.com%2F?w=1200&h=750"
  },
  {
   "id": "S14",
@@ -1678,11 +1481,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Product positioning: fact extraction, verification and analysis for disputes teams"
    }
-  ]
+  ],
+  "my_take": "One to watch, and I like it. Fact-checking and hallucination control is a real accountability play. The open question is interoperability — whether they do agents-talking-to-agents and full interop. If they lean into that, they're strong. Serious team, good partnerships.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.wexler.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.wexler.ai%2F?w=1200&h=750"
  },
  {
   "id": "S22",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Structureflow",
   "cat": "other",
   "site": "https://www.structureflow.co/",
@@ -1776,11 +1582,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Product positioning: structure diagrams, step plans, timelines, process maps"
    }
-  ]
+  ],
+  "my_take": "A feature, not an app to scale — diagramming that gets swept into someone else's product inside a year.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.structureflow.co&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.structureflow.co%2F?w=1200&h=750"
  },
  {
   "id": "M7",
-  "tier": "scorecard",
+  "tier": "hidden",
   "name": "Orbital",
   "cat": "research",
   "site": "https://www.orbital.tech/",
@@ -1896,11 +1705,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Name-collision ruling-out: Orbital Sciences, ORBCOMM, Orbital Imaging filings (aerospace/satellite, unrelated)"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.orbital.tech&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.orbital.tech%2F?w=1200&h=750"
  },
  {
   "id": "S25",
-  "tier": "featured",
+  "tier": "thesis2",
   "name": "Cicero (by Automatise)",
   "cat": "ediscovery",
   "site": "https://www.cicero.com.ai/",
@@ -2003,11 +1815,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Wotton Kearney as adopting law firm"
    }
-  ]
+  ],
+  "my_take": "Adjacent to the firm play — a privilege-safe, self-hosted litigation AI selling into regulated firms through TransPerfect. Not a firm itself, but the regulated-grade posture is the draw.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.cicero.com.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.cicero.com.ai%2F?w=1200&h=750"
  },
  {
   "id": "S32",
-  "tier": "scorecard",
+  "tier": "thesis2",
   "name": "Scissero",
   "cat": "drafting-redline",
   "site": "https://www.scissero.com/",
@@ -2120,11 +1935,20 @@
     "accessed": "2026-06-18",
     "what_it_supports": "SRA registration of 'Scissero Law Ltd' (regulated-firm confirmation)"
    }
-  ]
+  ],
+  "my_take": "The one I spent most time with, and I really like it. SRA-regulated because they started as a law firm — now lawyers run an AI backend to go faster and charge less. Tech-led, founder-led. The red flag is the design: the website and brand are awful, which tells me a founder who doesn't value craft, and in 2026 that matters. I'm backing it anyway — augmented AI law firms, riding the SRA's sandbox, is the interesting bet.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.scissero.com&sz=128",
+  "penalties": [
+   {
+    "type": "design",
+    "points": -3
+   }
+  ],
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.scissero.com%2F?w=1200&h=750"
  },
  {
   "id": "S92",
-  "tier": "scorecard",
+  "tier": "whitespace",
   "name": "Truth Systems",
   "cat": "compliance-risk",
   "site": "https://www.truthsystems.ai/",
@@ -2229,11 +2053,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "August 2025 Charter launch; real-time enforcement on any device, blocks prompt + immutable audit log; ILTA debut; SF-based"
    }
-  ]
+  ],
+  "my_take": "Building toward the thing that matters: interoperability guardrails, hallucination prevention, plugging into existing stacks, iterating fast. Closer to the governed-guardrail layer than anyone — and that layer is still unowned. This is the space worth owning.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.truthsystems.ai&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.truthsystems.ai%2F?w=1200&h=750"
  },
  {
   "id": "S38",
-  "tier": "scorecard",
+  "tier": "killed",
   "name": "Jigsaw",
   "cat": "knowledge",
   "site": "https://www.jigsawcreate.com/",
@@ -2340,11 +2167,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Integrations (Office, iManage)"
    }
-  ]
+  ],
+  "my_take": "A pretty diagramming tool with no legs. Real logos, capped ceiling — a feature, not a company.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.jigsawcreate.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.jigsawcreate.com%2F?w=1200&h=750"
  },
  {
   "id": "S56",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Crimson",
   "cat": "ediscovery",
   "site": "https://www.crimson.law/",
@@ -2456,11 +2286,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "~6-person team / ~$660K revenue (estimated, low confidence)"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.crimson.law&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.crimson.law%2F?w=1200&h=750"
  },
  {
   "id": "S24",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Emma Legal",
   "cat": "research",
   "site": "https://www.emma.legal/",
@@ -2550,11 +2383,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Ideals VDR partnership, due-diligence workspace, Europe customers (category)"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.emma.legal&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.emma.legal%2F?w=1200&h=750"
  },
  {
   "id": "SA3",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "PhaseLaw",
   "cat": "ediscovery",
   "site": "https://www.phase.law/",
@@ -2643,11 +2479,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Josh Schwartz background: CEO Phaselaw, ex-CTO Chartbeat, ex-MIT CSAIL"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.phase.law&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.phase.law%2F?w=1200&h=750"
  },
  {
   "id": "K61",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Aloi",
   "cat": "knowledge",
   "site": "https://www.aloi.law/",
@@ -2737,11 +2576,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Name-collision ruled out: unrelated fintech Aloi Global (Singapore/Nepal)"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.aloi.law&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.aloi.law%2F?w=1200&h=750"
  },
  {
   "id": "A3",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Augmetec",
   "cat": "ediscovery",
   "site": "https://augmetec.com/",
@@ -2862,11 +2704,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Entity confirmation, London HQ"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=augmetec.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Faugmetec.com%2F?w=1200&h=750"
  },
  {
   "id": "K28",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "LUPL",
   "cat": "practice-mgmt",
   "site": "https://www.lupl.com/",
@@ -2960,11 +2805,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Integrations: iManage, NetDocuments, Teams, Outlook, Copilot, open API"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.lupl.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.lupl.com%2F?w=1200&h=750"
  },
  {
   "id": "SA9",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Casey",
   "cat": "agentic-horizontal",
   "site": "https://www.casey.legal/",
@@ -3058,11 +2906,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Ruled-out entity: YC 'Casey' = AI-native commercial insurance brokerage (distinct company)"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=www.casey.legal&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.casey.legal%2F?w=1200&h=750"
  },
  {
   "id": "K30",
-  "tier": "featured",
+  "tier": "eye",
   "name": "Awesome Compliance (ACT)",
   "cat": "compliance-risk",
   "site": "https://awesomecompliance.com/",
@@ -3155,11 +3006,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Company self-description and founding story"
    }
-  ]
+  ],
+  "my_take": "Scored low, but I liked it on the floor — GDPR and compliance, staying on top of the regs, generating your reports and certificates. It feels stalled and early, but it's a real model. This one's my gut, not the numbers.",
+  "logo": "https://www.google.com/s2/favicons?domain=awesomecompliance.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fawesomecompliance.com%2F?w=1200&h=750"
  },
  {
   "id": "M6",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Mage Legal",
   "cat": "ediscovery",
   "site": "https://magelegal.com/",
@@ -3248,11 +3102,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Collision ruled out: Mage.ai is an unrelated open-source data-pipeline/orchestration tool"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=magelegal.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fmagelegal.com%2F?w=1200&h=750"
  },
  {
   "id": "SA4",
-  "tier": "parked",
+  "tier": "hidden",
   "name": "Pivot (yourpivot)",
   "cat": "ediscovery",
   "site": "https://yourpivot.co/",
@@ -3346,11 +3203,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Pivot positioning as auditable AI evidence platform for family law"
    }
-  ]
+  ],
+  "my_take": "",
+  "logo": "https://www.google.com/s2/favicons?domain=yourpivot.co&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fyourpivot.co%2F?w=1200&h=750"
  },
  {
   "id": "K56",
-  "tier": "featured",
+  "tier": "thesis2",
   "name": "Moritz",
   "cat": "services-consulting",
   "site": "https://www.moritzlegal.com/",
@@ -3456,11 +3316,14 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Collision ruled out: Ohio State Michael E. Moritz College of Law, Columbus OH, founded 1891 — unrelated law school"
    }
-  ]
+  ],
+  "my_take": "The clearest 'be the AI firm' play — roughly 80% AI draft, lawyer sign-off, YC and 20VC behind it. The inverse of arming the firms: become one.",
+  "logo": "https://www.google.com/s2/favicons?domain=www.moritzlegal.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.moritzlegal.com%2F?w=1200&h=750"
  },
  {
   "id": "K24",
-  "tier": "featured",
+  "tier": "whitespace",
   "name": "KomplyAI",
   "cat": "compliance-risk",
   "site": "https://komplyai.com/",
@@ -3558,6 +3421,9 @@
     "accessed": "2026-06-18",
     "what_it_supports": "Collision ruled out: 'Kompliant' banking KYB/KYC platform"
    }
-  ]
+  ],
+  "my_take": "KomplyAI is real — MIT-validated, a government contract, a serious regulatory corpus. But it's vertical GRC documentation tooling, not the embedded agentic guardrail layer the 80/20 flip demands. I'm flagging it because the space matters, not because they own it.",
+  "logo": "https://www.google.com/s2/favicons?domain=komplyai.com&sz=128",
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fkomplyai.com%2F?w=1200&h=750"
  }
 ]

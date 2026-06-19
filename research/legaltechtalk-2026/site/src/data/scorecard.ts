@@ -1,6 +1,9 @@
-// Single data source for the site: /public/data/companies.json — the scorecard
-// merged with each company's dossier (scores+justifications, facts, red flags,
-// cited sources). Regenerate from dataset/ + dossiers/ if the research changes.
+// Single data source for the site: /public/data/companies.json.
+// Editorial model: each company carries a tier (where it renders) and a
+// first-person `my_take` (the verdict, in Andy's voice). Penalties are the
+// explicit deductions (geo / stale / design). The research machinery
+// (confidence, [PROVISIONAL], rubric language) stays in the data but is NOT
+// surfaced — this reads as one author's take.
 
 export interface ScoreDim {
   score: number;
@@ -11,19 +14,36 @@ export interface Source {
   accessed: string;
   what_it_supports: string;
 }
-export type Tier = "scorecard" | "featured" | "parked";
+export interface Penalty {
+  type: "geo" | "stale" | "design";
+  points: number;
+}
+export interface Premortem {
+  intro: string;
+  risks: { h: string; body: string }[];
+}
+
+// Where a company renders. "hidden" = kept in the data, shown nowhere.
+export type Tier =
+  | "scorecard" // worth watching
+  | "thesis2" // regulated AI firms
+  | "whitespace" // the space worth owning
+  | "eye" // liked on the floor, low score
+  | "killed" // the kill-list
+  | "hidden";
 
 export interface Company {
   id: string;
   name: string;
   cat: string;
   site: string;
-  // Editorial tier: the 20 that carry the screen ("scorecard"), the four read
-  // outside the table ("featured" — Moritz, Cicero, KomplyAI, ACT), and the
-  // rest-of-the-floor parking lot ("parked"). Absent = scorecard.
-  tier?: Tier;
+  logo: string;
+  screenshot: string;
+  tier: Tier;
+  my_take: string;
+  premortem?: Premortem;
   comp: number;
-  conf: "low" | "medium" | "high" | string;
+  conf: string;
   verdict: string;
   U: number;
   T: number;
@@ -35,6 +55,8 @@ export interface Company {
   facts: Record<string, string | string[]>;
   red_flags: string[];
   sources: Source[];
+  penalties?: Penalty[];
+  geo_note?: string;
 }
 
 export async function loadCompanies(): Promise<Company[]> {
@@ -44,12 +66,14 @@ export async function loadCompanies(): Promise<Company[]> {
   return rows.slice().sort((a, b) => b.comp - a.comp);
 }
 
-export const tierOf = (c: Company): Tier => c.tier ?? "scorecard";
 export const byTier = (rows: Company[], tier: Tier): Company[] =>
-  rows.filter((c) => tierOf(c) === tier);
+  rows.filter((c) => c.tier === tier);
 
-// Thesis-2 cohort (read on the regulated-firm lens, not the interop rubric).
-export const THESIS2_IDS = new Set(["K56", "S25"]); // Moritz, Cicero
+export const PENALTY_BADGE: Record<Penalty["type"], string> = {
+  geo: "🌍 geo-capped",
+  stale: "⏳ stale",
+  design: "🎨 design",
+};
 
 export const NICHE_LABEL: Record<string, string> = {
   "infra-platform": "Infrastructure",
@@ -65,22 +89,9 @@ export const NICHE_LABEL: Record<string, string> = {
   "services-consulting": "Services / firm model",
   other: "Other",
 };
-const NICHE_ORDER = Object.keys(NICHE_LABEL);
+export const nicheLabel = (cat: string): string => NICHE_LABEL[cat] ?? cat;
 
-export function nicheLabel(cat: string): string {
-  return NICHE_LABEL[cat] ?? cat;
-}
-
-export function nichesIn(rows: Company[]): { cat: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const r of rows) counts.set(r.cat, (counts.get(r.cat) ?? 0) + 1);
-  return NICHE_ORDER.filter((c) => counts.has(c)).map((c) => ({
-    cat: c,
-    count: counts.get(c)!,
-  }));
-}
-
-// Pretty labels + order for the dossier facts block on a detail page.
+// Detail-page label maps.
 export const FACT_LABEL: [string, string][] = [
   ["founded", "Founded"],
   ["hq", "HQ"],
@@ -95,7 +106,6 @@ export const FACT_LABEL: [string, string][] = [
   ["pricing", "Pricing"],
   ["name_collision_check", "Name-collision check"],
 ];
-
 export const DIM_LABEL: [string, string][] = [
   ["uniqueness", "Uniqueness"],
   ["thesis_fit", "Thesis-fit"],
