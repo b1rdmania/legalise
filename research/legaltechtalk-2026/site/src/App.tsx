@@ -212,13 +212,13 @@ function TheRead({ rows }: { rows: Company[] }) {
             <p className="mb-5">
               What a regulator or an insurer needs to see. On our thesis this is
               the most important space on the floor, and it&apos;s badly
-              underserved — nobody owns it yet.
+              underserved.
             </p>
             <p className="!mb-0">
               The flip is why it matters. When humans do 80% of the work, the
               guardrails <i>are</i> the humans. When AI does 80%, they have to be
               built — and regulators and insurers will require them. That gap is
-              wide open, and it&apos;s where the real value sits.
+              wide open.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
