@@ -28,15 +28,6 @@ function Nav() {
   );
 }
 
-// Home-page links always go to our own review page, never out to the vendor.
-function R({ id, children }: { id: string; children: string }) {
-  return (
-    <a href={`#/c/${id}`} className="underline decoration-rule underline-offset-4 hover:decoration-ink">
-      {children}
-    </a>
-  );
-}
-
 function Grid({ items }: { items: Company[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -56,39 +47,69 @@ function TheRead({ rows }: { rows: Company[] }) {
   return (
     <main>
       <header id="top" className="border-b border-rule">
-        <div className="mx-auto max-w-2xl px-6 pt-16 pb-14 md:pt-24">
-          <p className="eyebrow mb-4">LegalTechTalk 2026 · the O2 · 17–18 June</p>
-          <h1 className="font-redaction35 text-4xl md:text-5xl leading-[1.08] tracking-tight2">
-            I walked the booth so you didn&apos;t have to. Most of what I saw is
-            shockingly bad and dead within a year.
+        <div className="mx-auto max-w-3xl px-6 pt-16 pb-14 md:pt-24">
+          <p className="eyebrow mb-5">LegalTechTalk 2026 — the read</p>
+          <h1 className="font-redaction35 text-5xl md:text-7xl leading-[1.02] tracking-tight2 text-ink">
+            Most of it is dead within a year.
           </h1>
-          <p className="text-prose text-[1.05rem] leading-[1.7] mt-7">
-            The short version: most of it dies inside a year. A handful are worth
-            watching — <R id="P26">DeepJudge</R>, <R id="S61">Lawstronaut</R>,{" "}
-            <R id="K44">Syllo</R>, <R id="SA6">Moonlit</R> (raising now) and a few
-            more. A small group of regulated law firms are quietly playing a
-            different game. And there&apos;s one space nobody owns yet that&apos;s
-            worth more than any single company on the floor: the compliance and
-            guardrails layer underneath AI legal work. That&apos;s the play.
+          <p className="text-prose text-[1.1rem] leading-[1.6] mt-7">
+            I walked all the booths so you didn&apos;t have to.
           </p>
         </div>
       </header>
 
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-2xl px-6 py-12 text-[1.05rem] leading-[1.75] text-prose">
+        <div className="mx-auto max-w-2xl px-6 py-14 text-[1.05rem] leading-[1.75] text-prose">
           <p>
-            <b className="text-ink">The thesis.</b> We&apos;re moving to a place
-            where thinking you&apos;re getting lawyers using four different
-            platforms that don&apos;t swap data and that agents can&apos;t talk to
-            is ridiculous. If something is just a front-end on proprietary data,
-            it&apos;s dead. It&apos;s a wrapper. It&apos;s gone. They might hold
-            out for an acqui-hire on brand and a following, but they&apos;re dead
-            as concepts.
+            Tyson teased me a &ldquo;Labs&rdquo; concept. I don&apos;t know exactly
+            what it is yet — I&apos;m reading it as a mix of incubation,
+            experimentation and investment. So here&apos;s my thesis, and the
+            projects I liked.
           </p>
-          <p className="!mb-0 mt-6">
-            <b className="text-ink">Scope.</b> I&apos;ve kept the $500M+ Series B
-            names out. I might be opinionated on them, but that doesn&apos;t help
-            anybody.
+          <p className="mt-6">
+            Lawyers running four platforms that can&apos;t swap data, in a world
+            where agents do the work, is absurd. A front-end on proprietary data is
+            a wrapper. It&apos;s gone. They might get acqui-hired on brand, but as
+            concepts they&apos;re dead. Most of the floor is worse: redliners,
+            diagrammers, &ldquo;the AI associate for X.&rdquo; Not apps. Features.
+            Buildable in days. Dead within a year.
+          </p>
+
+          <p className="mt-9 mb-0 font-bold text-ink text-lg">Three things matter.</p>
+          <div className="mt-5 divide-y divide-rule border-y border-rule">
+            <div className="py-5">
+              <p className="font-bold text-ink !mb-0">Infra and data layers.</p>
+              <p className="!mb-0 mt-1">
+                The rails agents plug into. Build the layer everyone&apos;s agents
+                call, not the front-end. Apps come and go; the layer stays.
+              </p>
+            </div>
+            <div className="py-5">
+              <p className="font-bold text-ink !mb-0">
+                AI-augmented regulated law firms.
+              </p>
+              <p className="!mb-0 mt-1">
+                A small group playing a different game: not selling software,
+                becoming the AI-native firm. A serious model.
+              </p>
+            </div>
+            <div className="py-5">
+              <p className="font-bold text-ink !mb-0">
+                The guardrails and compliance layer.
+              </p>
+              <p className="!mb-0 mt-1">
+                This is the play. Legal is flipping from 80% human to 80% AI. That
+                flip is the demand engine: when humans do the work, the guardrails
+                are the humans; when AI does it, the guardrails have to be built,
+                and regulators and insurers will require them. Nobody owns that
+                layer. It&apos;s worth more than any company on the floor.
+              </p>
+            </div>
+          </div>
+
+          <p className="!mb-0 mt-8">
+            <b className="text-ink">Scope.</b> I&apos;ve left the $500M+ Series B
+            names out. I&apos;ve got opinions, but they don&apos;t help anybody.
           </p>
         </div>
       </div>
