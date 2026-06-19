@@ -118,9 +118,7 @@ function TheRead({ rows }: { rows: Company[] }) {
 
       <div className="border-b border-rule">
         <div className="mx-auto max-w-2xl px-6 py-12 text-[1.05rem] leading-[1.75] text-prose">
-          <p className="text-ink font-bold">
-            Here&apos;s my thesis, the projects I liked.
-          </p>
+          <p className="text-ink font-bold">My current thesis.</p>
           <p className="mt-6">
             Lawyers running four platforms that can&apos;t swap data, in a world
             where agents do the work, is absurd. A front-end on proprietary data is
