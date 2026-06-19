@@ -148,35 +148,44 @@ function TheRead({ rows }: { rows: Company[] }) {
 
           <p className="mt-7 mb-4 font-bold text-ink">Three things matter.</p>
           <div className="divide-y divide-rule border-y border-rule">
-            <div className="py-4">
-              <p className="!mb-0">
-                <a href="#watching" className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">
-                  Infra and data layers.
-                </a>{" "}
-                The rails agents plug into. Build the layer everyone&apos;s agents
-                call, not the front-end. Apps come and go; the layer stays.
-              </p>
-            </div>
-            <div className="py-4">
-              <p className="!mb-0">
-                <a href="#firm" className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">
-                  AI-augmented regulated law firms.
-                </a>{" "}
-                A small group playing a different game: not selling software,
-                becoming the AI-native firm. A serious model.
-              </p>
-            </div>
-            <div className="py-4">
-              <p className="!mb-0">
-                <a href="#space" className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">
-                  The guardrails and compliance layer.
-                </a>{" "}
-                This is the play. Legal is flipping from 80% human to 80% AI —
-                the demand engine. When humans do the work, the guardrails are
-                the humans; when AI does it, they have to be built, and
-                regulators and insurers will require them.
-              </p>
-            </div>
+            {[
+              {
+                title: "Infra and data layers.",
+                anchor: "#watching",
+                jump: "See the ones worth watching →",
+                body: "The rails agents plug into. Build the layer everyone's agents call, not the front-end. Apps come and go; the layer stays.",
+              },
+              {
+                title: "AI-augmented regulated law firms.",
+                anchor: "#firm",
+                jump: "See the firms →",
+                body: "A small group playing a different game: not selling software, becoming the AI-native firm. A serious model.",
+              },
+              {
+                title: "The guardrails and compliance layer.",
+                anchor: "#space",
+                jump: "See the space →",
+                body: "This is the play. Legal is flipping from 80% human to 80% AI — the demand engine. When humans do the work, the guardrails are the humans; when AI does it, they have to be built, and regulators and insurers will require them.",
+              },
+            ].map((it) => (
+              <details key={it.anchor} className="group py-4">
+                <summary className="flex cursor-pointer list-none items-center gap-3 font-bold text-ink">
+                  <span className="text-muted transition-transform group-open:rotate-90">
+                    ›
+                  </span>
+                  <span>{it.title}</span>
+                </summary>
+                <p className="!mb-0 mt-2 pl-6">
+                  {it.body}{" "}
+                  <a
+                    href={it.anchor}
+                    className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink whitespace-nowrap"
+                  >
+                    {it.jump}
+                  </a>
+                </p>
+              </details>
+            ))}
           </div>
 
           <p className="!mb-0 mt-7">
