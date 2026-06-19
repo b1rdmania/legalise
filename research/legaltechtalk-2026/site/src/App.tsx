@@ -47,26 +47,20 @@ function TheRead({ rows }: { rows: Company[] }) {
   return (
     <main>
       <header id="top" className="border-b border-rule">
-        <div className="mx-auto max-w-3xl px-6 pt-16 pb-14 md:pt-24">
-          <p className="eyebrow mb-5">LegalTechTalk 2026 — the read</p>
-          <h1 className="font-redaction35 text-5xl md:text-7xl leading-[1.02] tracking-tight2 text-ink">
+        <div className="mx-auto max-w-2xl px-6 pt-14 pb-10 md:pt-16">
+          <h1 className="font-redaction35 text-4xl md:text-5xl leading-[1.06] tracking-tight2 text-ink">
             Most of it is dead within a year.
           </h1>
-          <p className="text-prose text-[1.1rem] leading-[1.6] mt-7">
-            I walked all the booths so you didn&apos;t have to.
+          <p className="text-prose text-[1.1rem] leading-[1.6] mt-5">
+            I walked all the booths so you didn&apos;t have to. Here&apos;s my
+            thesis, and the projects I liked.
           </p>
         </div>
       </header>
 
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-2xl px-6 py-14 text-[1.05rem] leading-[1.75] text-prose">
+        <div className="mx-auto max-w-2xl px-6 py-12 text-[1.05rem] leading-[1.75] text-prose">
           <p>
-            Tyson teased me a &ldquo;Labs&rdquo; concept. I don&apos;t know exactly
-            what it is yet — I&apos;m reading it as a mix of incubation,
-            experimentation and investment. So here&apos;s my thesis, and the
-            projects I liked.
-          </p>
-          <p className="mt-6">
             Lawyers running four platforms that can&apos;t swap data, in a world
             where agents do the work, is absurd. A front-end on proprietary data is
             a wrapper. It&apos;s gone. They might get acqui-hired on brand, but as
@@ -75,39 +69,41 @@ function TheRead({ rows }: { rows: Company[] }) {
             Buildable in days. Dead within a year.
           </p>
 
-          <p className="mt-9 mb-0 font-bold text-ink text-lg">Three things matter.</p>
-          <div className="mt-5 divide-y divide-rule border-y border-rule">
-            <div className="py-5">
-              <p className="font-bold text-ink !mb-0">Infra and data layers.</p>
-              <p className="!mb-0 mt-1">
-                The rails agents plug into. Build the layer everyone&apos;s agents
-                call, not the front-end. Apps come and go; the layer stays.
+          <p className="mt-7 mb-4 font-bold text-ink">Three things matter.</p>
+          <div className="divide-y divide-rule border-y border-rule">
+            <div className="py-4">
+              <p className="font-bold text-ink !mb-0">
+                Infra and data layers.{" "}
+                <span className="font-normal text-prose">
+                  The rails agents plug into. Build the layer everyone&apos;s agents
+                  call, not the front-end. Apps come and go; the layer stays.
+                </span>
               </p>
             </div>
-            <div className="py-5">
+            <div className="py-4">
               <p className="font-bold text-ink !mb-0">
-                AI-augmented regulated law firms.
-              </p>
-              <p className="!mb-0 mt-1">
-                A small group playing a different game: not selling software,
-                becoming the AI-native firm. A serious model.
+                AI-augmented regulated law firms.{" "}
+                <span className="font-normal text-prose">
+                  A small group playing a different game: not selling software,
+                  becoming the AI-native firm. A serious model.
+                </span>
               </p>
             </div>
-            <div className="py-5">
+            <div className="py-4">
               <p className="font-bold text-ink !mb-0">
-                The guardrails and compliance layer.
-              </p>
-              <p className="!mb-0 mt-1">
-                This is the play. Legal is flipping from 80% human to 80% AI. That
-                flip is the demand engine: when humans do the work, the guardrails
-                are the humans; when AI does it, the guardrails have to be built,
-                and regulators and insurers will require them. Nobody owns that
-                layer. It&apos;s worth more than any company on the floor.
+                The guardrails and compliance layer.{" "}
+                <span className="font-normal text-prose">
+                  This is the play. Legal is flipping from 80% human to 80% AI —
+                  the demand engine. When humans do the work, the guardrails are
+                  the humans; when AI does it, they have to be built, and
+                  regulators and insurers will require them. Nobody owns that
+                  layer. It&apos;s worth more than any company on the floor.
+                </span>
               </p>
             </div>
           </div>
 
-          <p className="!mb-0 mt-8">
+          <p className="!mb-0 mt-7">
             <b className="text-ink">Scope.</b> I&apos;ve left the $500M+ Series B
             names out. I&apos;ve got opinions, but they don&apos;t help anybody.
           </p>
