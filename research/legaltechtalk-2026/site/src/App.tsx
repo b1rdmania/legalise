@@ -38,6 +38,17 @@ function R({ id, children }: { id: string; children: string }) {
   );
 }
 
+// Killed — named in the list only. Out of the data and the scores entirely:
+// no review page, no score, no image. Just the verdict.
+const KILLED: [string, string][] = [
+  ["Structureflow", "A feature, not an app to scale — diagramming that gets swept into someone else's product inside a year."],
+  ["Jigsaw", "A pretty diagramming tool with no legs. Real logos, capped ceiling — a feature, not a company."],
+  ["Vesence", "You could rebuild this open-source in a month. No moat, no reason it survives a frontier-model release."],
+  ["Eudia", "A feature, not an app — horizontal legal-ops glue that gets absorbed by the platforms it sits between."],
+  ["Newcode", "Bespoke legal agents — the most clonable shape on the floor. The logo's a pilot, not a moat."],
+  ["Kuberno", "Killed on design — the brand and UI don't clear the bar, and there's no agentic edge underneath."],
+];
+
 function Grid({ items }: { items: Company[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -53,7 +64,6 @@ function TheRead({ rows }: { rows: Company[] }) {
   const firms = byTier(rows, "thesis2");
   const space = byTier(rows, "whitespace");
   const eye = byTier(rows, "eye")[0];
-  const killed = byTier(rows, "killed").sort((a, b) => a.comp - b.comp);
 
   return (
     <main>
@@ -167,15 +177,10 @@ function TheRead({ rows }: { rows: Company[] }) {
             app to scale.
           </p>
           <ul className="divide-y divide-rule border-y border-rule">
-            {killed.map((c) => (
-              <li key={c.id} className="py-4">
-                <a
-                  href={`#/c/${c.id}`}
-                  className="font-bold underline decoration-rule underline-offset-4 hover:decoration-ink"
-                >
-                  {c.name}
-                </a>
-                <p className="prose-p !mb-0 mt-1 text-sm">{c.my_take}</p>
+            {KILLED.map(([name, take]) => (
+              <li key={name} className="py-4">
+                <span className="font-bold">{name}</span>
+                <p className="prose-p !mb-0 mt-1 text-sm">{take}</p>
               </li>
             ))}
           </ul>

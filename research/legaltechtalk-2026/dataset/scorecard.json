@@ -112,54 +112,6 @@
   "site": "https://www.august.law/"
  },
  {
-  "id": "S4",
-  "tier": "killed",
-  "name": "Eudia",
-  "cat": "agentic-horizontal",
-  "U": 3,
-  "T": 4,
-  "I": 4,
-  "D": 2,
-  "X": 3,
-  "Tm": 4,
-  "comp": 24,
-  "conf": "medium",
-  "verdict": "A credible, well-funded F500-focused agentic legal platform whose real edge is an AI-plus-acquired-human-ALSP roll-up — technically real and embedded where lawyers work, but defensibility and open interoperability are unproven. [PROVISIONAL]",
-  "site": "https://eudia.com/"
- },
- {
-  "id": "P22",
-  "tier": "killed",
-  "name": "Vesence",
-  "cat": "drafting-redline",
-  "U": 3,
-  "T": 4,
-  "I": 4,
-  "D": 2,
-  "X": 3,
-  "Tm": 4,
-  "comp": 24,
-  "conf": "medium",
-  "verdict": "Sharp, well-backed YC agentic review-QA tool living in Word/Outlook with a strong early-usage signal, but very early, single-round, and no named customers or open interop yet. [PROVISIONAL]",
-  "site": "https://www.vesence.com/"
- },
- {
-  "id": "S59",
-  "tier": "killed",
-  "name": "Newcode.ai",
-  "cat": "agentic-horizontal",
-  "U": 3,
-  "T": 4,
-  "I": 3,
-  "D": 2,
-  "X": 3,
-  "Tm": 4,
-  "comp": 23,
-  "conf": "medium",
-  "verdict": "Technically-real agentic player with a marquee Nordic anchor (DLA Piper) but early and integration depth unproven. [PROVISIONAL]",
-  "site": "https://newcode.ai/"
- },
- {
   "id": "S11",
   "tier": "hidden",
   "name": "Pandektes",
@@ -176,22 +128,6 @@
   "site": "https://www.pandektes.com/"
  },
  {
-  "id": "S64",
-  "tier": "killed",
-  "name": "Kuberno",
-  "cat": "compliance-risk",
-  "U": 3,
-  "T": 3,
-  "I": 4,
-  "D": 3,
-  "X": 4,
-  "Tm": 3,
-  "comp": 23,
-  "conf": "medium",
-  "verdict": "Credibly funded (Nasdaq + Barclays), API-first entity-governance system of record adding supervised-autonomy AI (KAIA) — strong interoperability and accountability fit, though it sits in compliance-ops rather than core legal practice. [PROVISIONAL]",
-  "site": "https://kuberno.com/"
- },
- {
   "id": "S14",
   "tier": "scorecard",
   "name": "Wexler AI",
@@ -206,22 +142,6 @@
   "conf": "medium",
   "verdict": "Credible, well-backed UK litigation fact-intelligence play with a genuine agentic assistant and accountability-first design, but interop depth is unproven. [PROVISIONAL]",
   "site": "https://www.wexler.ai/"
- },
- {
-  "id": "S22",
-  "tier": "killed",
-  "name": "Structureflow",
-  "cat": "other",
-  "U": 4,
-  "T": 3,
-  "I": 3,
-  "D": 3,
-  "X": 2,
-  "Tm": 4,
-  "comp": 22,
-  "conf": "medium",
-  "verdict": "Distinctive, well-adopted legal visual-structuring tool with strong logos, but more a focused AI-assisted workspace than an agentic interop play. [PROVISIONAL]",
-  "site": "https://www.structureflow.co/"
  },
  {
   "id": "M7",
@@ -286,22 +206,6 @@
   "conf": "medium",
   "verdict": "Credible, well-backed AI-governance guardrail agent for law firms with real named traction; technically real but currently a browser-layer enforcement/audit play rather than deeply interoperable agentic infrastructure — watch for API/MCP/DMS depth. [PROVISIONAL]",
   "site": "https://www.truthsystems.ai/"
- },
- {
-  "id": "S38",
-  "tier": "killed",
-  "name": "Jigsaw",
-  "cat": "knowledge",
-  "U": 4,
-  "T": 2,
-  "I": 4,
-  "D": 3,
-  "X": 2,
-  "Tm": 4,
-  "comp": 21,
-  "conf": "medium",
-  "verdict": "Differentiated diagramming-as-data play with strong backing and repeat founders, but closed integration surface and no agentic/interop depth limit thesis fit. [PROVISIONAL]",
-  "site": "https://www.jigsawcreate.com/"
  },
  {
   "id": "S56",
