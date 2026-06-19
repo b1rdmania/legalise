@@ -46,6 +46,43 @@ function Grid({ items }: { items: Company[] }) {
   );
 }
 
+// A full-width bar — for entries that sit alongside the scored cards but aren't
+// scored teardowns (our own build; the floor pick).
+function Bar({
+  title,
+  tag,
+  body,
+  href,
+  external,
+}: {
+  title: string;
+  tag?: string;
+  body: string;
+  href: string;
+  external?: boolean;
+}) {
+  const ext = external
+    ? { target: "_blank", rel: "noopener noreferrer" }
+    : {};
+  return (
+    <a
+      href={href}
+      {...ext}
+      className="block border border-rule rounded-card p-5 bg-panel/40 hover:border-ink transition-colors"
+    >
+      <span className="font-bold text-lg underline decoration-rule underline-offset-4">
+        {title}
+      </span>
+      {tag && (
+        <span className="ml-3 text-[10px] uppercase tracking-track1 text-seal border border-seal px-1 py-0.5 align-middle">
+          {tag}
+        </span>
+      )}
+      <p className="prose-p !mb-0 mt-2 text-sm">{body}</p>
+    </a>
+  );
+}
+
 function TheRead({ rows }: { rows: Company[] }) {
   const watching = byTier(rows, "scorecard").sort((a, b) => b.comp - a.comp);
   const firms = byTier(rows, "thesis2");
@@ -147,36 +184,41 @@ function TheRead({ rows }: { rows: Company[] }) {
       <section id="space" className="scroll-mt-12 bg-wash border-b border-rule">
         <div className="mx-auto max-w-page px-6 py-16">
           <h2 className="font-redaction35 text-3xl tracking-tight2 mb-3">
-            The space worth owning
+            The space nobody&apos;s serving
           </h2>
           <div className="max-w-2xl text-[1.05rem] leading-[1.7] text-prose mb-8">
             <p className="mb-5">
-              The un-won category is{" "}
               <b className="text-ink">
                 AI compliance guardrails and documentation
               </b>{" "}
-              — what a regulator or an insurer needs to see. Nobody owns it yet.
+              — what a regulator or an insurer needs to see. On our thesis this is
+              the most important space on the floor, and it&apos;s badly
+              underserved. Nobody owns it yet.
             </p>
             <p className="!mb-0">
-              The flip is the demand engine. When humans do 80% of the work, the
+              The flip is why it matters. When humans do 80% of the work, the
               guardrails <i>are</i> the humans. When AI does 80%, they have to be
-              productised — and regulators and insurers will require it.
-              There&apos;s a monetisation layer here. That&apos;s the play.
+              built — and regulators and insurers will require them. That gap is
+              wide open, and it&apos;s where the real value sits.
             </p>
           </div>
           <Grid items={space} />
-          {eye && (
-            <p className="max-w-2xl text-[1.05rem] leading-[1.7] text-prose mt-8">
-              And one more —{" "}
-              <a
+          <div className="mt-4 space-y-4">
+            {eye && (
+              <Bar
+                title={eye.name}
+                body={eye.my_take}
                 href={`#/c/${eye.id}`}
-                className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
-              >
-                {eye.name}
-              </a>{" "}
-              — {eye.my_take}
-            </p>
-          )}
+              />
+            )}
+            <Bar
+              title="Legalise"
+              tag="ours · beta"
+              external
+              href="https://legalise.dev"
+              body="The one we built. Early beta, but it's starting to address exactly this — the guardrails and documentation layer, so the work stays accountable when the AI does it."
+            />
+          </div>
         </div>
       </section>
 
