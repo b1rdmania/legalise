@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CompanyCard } from "./components/CompanyCard";
 import { CompanyDetail } from "./components/CompanyDetail";
 import { PremortemPage } from "./components/PremortemPage";
+import { LegalisePage } from "./components/LegalisePage";
 import { loadCompanies, byTier, type Company } from "./data/scorecard";
 
 function Nav() {
@@ -213,9 +214,8 @@ function TheRead({ rows }: { rows: Company[] }) {
             <Bar
               title="Legalise"
               tag="ours · beta"
-              external
-              href="https://legalise.dev"
-              body="The one we built. Early beta, but it's starting to address exactly this — the guardrails and documentation layer, so the work stays accountable when the AI does it."
+              href="#/legalise"
+              body="The one we built. Early beta, but it's starting to address exactly this — the guardrails and documentation layer, so the work stays accountable when the AI does it. Read the full thing →"
             />
           </div>
         </div>
@@ -239,12 +239,23 @@ function TheRead({ rows }: { rows: Company[] }) {
 }
 
 function useHashRoute() {
-  const get = (): { company: string | null; premortem: string | null } => {
+  const get = (): {
+    company: string | null;
+    premortem: string | null;
+    legalise: boolean;
+  } => {
     const h = window.location.hash;
+    if (h === "#/legalise")
+      return { legalise: true, company: null, premortem: null };
     const pm = h.match(/^#\/premortem\/(.+)$/);
-    if (pm) return { premortem: decodeURIComponent(pm[1]), company: null };
+    if (pm)
+      return { premortem: decodeURIComponent(pm[1]), company: null, legalise: false };
     const c = h.match(/^#\/c\/(.+)$/);
-    return { company: c ? decodeURIComponent(c[1]) : null, premortem: null };
+    return {
+      company: c ? decodeURIComponent(c[1]) : null,
+      premortem: null,
+      legalise: false,
+    };
   };
   const [route, setRoute] = useState(get);
   useEffect(() => {
@@ -283,14 +294,18 @@ export function App() {
       <Nav />
       {err && <p className="mx-auto max-w-2xl px-6 py-16 prose-p text-seal">Failed to load: {err}</p>}
       {!rows && !err && <p className="mx-auto max-w-2xl px-6 py-16 prose-p">Loading…</p>}
-      {rows &&
+      {route.legalise ? (
+        <LegalisePage />
+      ) : (
+        rows &&
         (route.premortem ? (
           <PremortemPage id={route.premortem} rows={rows} />
         ) : route.company ? (
           <CompanyDetail id={route.company} rows={rows} />
         ) : (
           <TheRead rows={rows} />
-        ))}
+        ))
+      )}
     </>
   );
 }
