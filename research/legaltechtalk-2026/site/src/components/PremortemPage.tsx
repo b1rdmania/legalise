@@ -6,7 +6,7 @@ export function PremortemPage({ id, rows }: { id: string; rows: Company[] }) {
   if (!co || !co.premortem)
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <a href="#top" className="text-sm underline decoration-rule underline-offset-4">
+        <a href="#watching" className="text-sm underline decoration-rule underline-offset-4">
           ← back
         </a>
         <p className="prose-p mt-6">No pre-mortem on file.</p>

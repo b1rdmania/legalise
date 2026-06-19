@@ -24,7 +24,7 @@ export function CompanyDetail({ id, rows }: { id: string; rows: Company[] }) {
   if (!co)
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <a href="#top" className="text-sm underline decoration-rule underline-offset-4">
+        <a href="#watching" className="text-sm underline decoration-rule underline-offset-4">
           ← back
         </a>
         <p className="prose-p mt-6">Not found.</p>
@@ -33,17 +33,22 @@ export function CompanyDetail({ id, rows }: { id: string; rows: Company[] }) {
 
   return (
     <article className="mx-auto max-w-2xl px-6 py-12">
-      <a href="#top" className="text-sm text-muted underline decoration-rule underline-offset-4 hover:text-ink">
-        ← back to the read
+      <a href="#watching" className="text-sm text-muted underline decoration-rule underline-offset-4 hover:text-ink">
+        ← back to the list
       </a>
 
       <div className="mt-6 flex items-center gap-3">
         <img src={co.logo} alt="" width={40} height={40} className="rounded bg-paper shrink-0" />
         <h1 className="font-redaction35 text-3xl md:text-4xl tracking-tight2 flex-1">{co.name}</h1>
-        <span className="tech-token text-xl font-bold whitespace-nowrap">
-          {co.comp.toFixed(0)}
-          <span className="text-muted font-normal">/35</span>
-        </span>
+        <a
+          href="#scores"
+          className="tech-token whitespace-nowrap text-right leading-none no-underline"
+          title="Jump to the scores"
+        >
+          <span className="block text-[10px] uppercase tracking-track1 text-muted">Score</span>
+          <span className="text-4xl font-bold text-ink">{co.comp.toFixed(0)}</span>
+          <span className="text-muted font-normal text-xl">/35</span>
+        </a>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted">
@@ -61,16 +66,22 @@ export function CompanyDetail({ id, rows }: { id: string; rows: Company[] }) {
       <img
         src={co.screenshot}
         alt={`${co.name} website`}
-        className="mt-6 w-full rounded-card border border-rule bg-wash"
+        className="mt-6 w-full max-w-sm rounded-card border border-rule bg-wash"
         loading="lazy"
       />
 
-      {/* The take — leads, in voice. */}
-      <p className="mt-6 text-[1.15rem] leading-[1.6] text-ink">
-        <span className="italic text-muted">My take — </span>
-        {co.my_take || co.verdict}
-      </p>
-      {co.geo_note && <p className="prose-p text-sm mt-3 italic">{co.geo_note}</p>}
+      {/* The take — collapsible so it doesn't clog the top of the page. */}
+      <details className="group mt-6 border-y border-rule">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3">
+          <span className="italic text-muted">My take</span>
+          <span className="text-sm text-muted group-open:hidden">read →</span>
+          <span className="hidden text-sm text-muted group-open:inline">hide ↑</span>
+        </summary>
+        <p className="pb-4 text-[1.15rem] leading-[1.6] text-ink">
+          {co.my_take || co.verdict}
+        </p>
+        {co.geo_note && <p className="prose-p text-sm pb-4 italic">{co.geo_note}</p>}
+      </details>
 
       {co.premortem && (
         <a
@@ -84,7 +95,7 @@ export function CompanyDetail({ id, rows }: { id: string; rows: Company[] }) {
 
       {/* How I rated it */}
       {Object.keys(co.scores).length > 0 && (
-        <section className="mt-10">
+        <section id="scores" className="mt-10 scroll-mt-16">
           <h2 className="eyebrow mb-4">How I rated it</h2>
           <div className="divide-y divide-rule border-y border-rule">
             {DIM_LABEL.filter(([k]) => co.scores[k]).map(([k, label]) => (
@@ -140,8 +151,8 @@ export function CompanyDetail({ id, rows }: { id: string; rows: Company[] }) {
       )}
 
       <div className="mt-12 border-t border-rule pt-6">
-        <a href="#top" className="text-sm text-muted underline decoration-rule underline-offset-4 hover:text-ink">
-          ← back to the read
+        <a href="#watching" className="text-sm text-muted underline decoration-rule underline-offset-4 hover:text-ink">
+          ← back to the list
         </a>
       </div>
     </article>

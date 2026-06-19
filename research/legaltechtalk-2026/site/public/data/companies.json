@@ -134,7 +134,24 @@
   ],
   "my_take": "I like this — the knowledge layer agents plug into, retrieval that Harvey and CoCounsel call into. My worry is the moat: a lot of this knowledge-retrieval can be open-sourced, and I haven't seen enough to know the stack is special. The moat and the kill are the same thing — its biggest partners are the ones most likely to absorb it.",
   "logo": "https://www.google.com/s2/favicons?domain=www.deepjudge.ai&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.deepjudge.ai%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.deepjudge.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — how DeepJudge dies in 18 months.",
+   "risks": [
+    {
+     "h": "Partner absorption",
+     "body": "Its biggest partners — Harvey, CoCounsel, Thomson Reuters — are the most obvious in-house substitutes. The day one decides retrieval is core, DeepJudge is a feature it built itself."
+    },
+    {
+     "h": "The moat is open-sourceable",
+     "body": "Governed knowledge-retrieval is increasingly replicable — an OSS RAG/KM stack plus MCP closes much of the gap and compresses the premium."
+    },
+    {
+     "h": "Valuation outruns revenue",
+     "body": "$300M on $52M raised with self-reported adoption. If enterprise usage doesn't convert, the next round is a down-round."
+    }
+   ]
+  }
  },
  {
   "id": "S61",
@@ -258,7 +275,24 @@
   ],
   "my_take": "The purest version of what I care about — a legal-data API and MCP layer agents call for the slice of law they need, with provenance. It's also the earliest and thinnest here, all self-reported. It only wins if people build on it, and nobody does yet. High risk, high interest.",
   "logo": "https://www.google.com/s2/favicons?domain=lawstronaut.com&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Flawstronaut.com%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Flawstronaut.com%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — why Lawstronaut never gets off the ground.",
+   "risks": [
+    {
+     "h": "Nobody builds on it",
+     "body": "Infra only wins on adoption, and there's no evidence developers are building on it yet. An empty platform is not a business."
+    },
+    {
+     "h": "Out-covered and out-spent",
+     "body": "vLex/Clio ($1B) and well-funded global data layers can outcover and outspend a bootstrapped two-founder shop."
+    },
+    {
+     "h": "Everything is self-reported",
+     "body": "45M records / 150+ jurisdictions is unaudited. If coverage or quality doesn't hold, the whole pitch goes."
+    }
+   ]
+  }
  },
  {
   "id": "K44",
@@ -365,7 +399,24 @@
   ],
   "my_take": "Really interesting — pushing into all the right areas, litigator-founded with real money behind it. I haven't seen the backend so I can't vouch for the technical depth, but on direction and traction it's a solid play.",
   "logo": "https://www.google.com/s2/favicons?domain=syllo.ai&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fsyllo.ai%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fsyllo.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — how Syllo gets eaten.",
+   "risks": [
+    {
+     "h": "Incumbent bolts on genAI",
+     "body": "The day Relativity ships agentic review, Syllo's edge evaporates — it's competing on the incumbent's home turf."
+    },
+    {
+     "h": "Closed app, not a layer",
+     "body": "If interop is shallow it's a point tool, absorbed into the platform lawyers already run."
+    },
+    {
+     "h": "Unproven technical depth",
+     "body": "Multi-LLM agentic review at scale is hard; accuracy and reliability are unverified from the outside."
+    }
+   ]
+  }
  },
  {
   "id": "K47",
@@ -473,7 +524,24 @@
   ],
   "my_take": "The best-evidenced thing here — a citation-grounded patent OS, well-funded, real integrations, named customers. If you want the 'this is genuinely real and working' pick, it's this one.",
   "logo": "https://www.google.com/s2/favicons?domain=ankar.ai&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fankar.ai%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fankar.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — why Ankar caps out.",
+   "risks": [
+    {
+     "h": "Niche ceiling",
+     "body": "Patent/IP is a defined, finite market — growth tops out faster than a horizontal play."
+    },
+    {
+     "h": "Incumbents add AI",
+     "body": "Clarivate, PatSnap and the patent incumbents bolt on genAI and squeeze a startup on price and distribution."
+    },
+    {
+     "h": "Commoditization",
+     "body": "Citation-grounded patent analysis becomes a frontier-model feature, not a standalone product."
+    }
+   ]
+  }
  },
  {
   "id": "SA6",
@@ -735,7 +803,24 @@
   ],
   "my_take": "I've argued hard against simple Word redlining tools — this is the exception. A very senior lawyer who lives in Word, a strong, friendly team, nice growth. If one of the traditional, incumbent-shaped plays actually makes it, it's this.",
   "logo": "https://www.google.com/s2/favicons?domain=www.definely.com&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.definely.com%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.definely.com%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — how Definely loses despite being the good one.",
+   "risks": [
+    {
+     "h": "The giants ship it free",
+     "body": "Microsoft Copilot and Harvey add native Word drafting/review; a standalone add-in struggles to justify itself."
+    },
+    {
+     "h": "Incumbent-shaped, incumbent fate",
+     "body": "A better redline tool in a crowded space with low switching costs is a feature war, not a moat."
+    },
+    {
+     "h": "Not agent-native",
+     "body": "Interop is the add-in surface; if the world goes agent-to-agent, a closed embedding is on the wrong side of it."
+    }
+   ]
+  }
  },
  {
   "id": "S14",
@@ -840,7 +925,24 @@
   ],
   "my_take": "One to watch, and I like it. Fact-checking and hallucination control is a real accountability play. The open question is interoperability — whether they do agents-talking-to-agents and full interop. If they lean into that, they're strong. Serious team, good partnerships.",
   "logo": "https://www.google.com/s2/favicons?domain=www.wexler.ai&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.wexler.ai%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.wexler.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — why Wexler's bet doesn't land.",
+   "risks": [
+    {
+     "h": "Closed, not interoperable",
+     "body": "The whole thesis rests on agents-talking-to-agents. If it ships as a closed app, it's eaten."
+    },
+    {
+     "h": "Hallucination control goes native",
+     "body": "Frontier models and platforms add fact-checking and citations natively; the standalone harness becomes redundant."
+    },
+    {
+     "h": "Litigation-only TAM",
+     "body": "Narrow if the fact-checking layer doesn't generalize beyond litigation."
+    }
+   ]
+  }
  },
  {
   "id": "S25",
@@ -950,7 +1052,24 @@
   ],
   "my_take": "Adjacent to the firm play — a privilege-safe, self-hosted litigation AI selling into regulated firms through TransPerfect. Not a firm itself, but the regulated-grade posture is the draw.",
   "logo": "https://www.google.com/s2/favicons?domain=www.cicero.com.ai&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.cicero.com.ai%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.cicero.com.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — how Cicero gets squeezed.",
+   "risks": [
+    {
+     "h": "Single-channel dependency",
+     "body": "Distribution leans heavily on TransPerfect — lose or sour that channel and growth stalls."
+    },
+    {
+     "h": "Vendor, not a firm",
+     "body": "It sells into regulated firms but isn't one, so it competes with everyone and owns no relationship."
+    },
+    {
+     "h": "Commodity base",
+     "body": "Self-hosted open Llama is a thin proprietary moat; the privilege-safe posture is copyable."
+    }
+   ]
+  }
  },
  {
   "id": "S32",
@@ -1076,7 +1195,24 @@
     "points": -3
    }
   ],
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.scissero.com%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.scissero.com%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — how Scissero fails despite the niche.",
+   "risks": [
+    {
+     "h": "The design tell scales",
+     "body": "A founder who neglects brand and storytelling in 2026 struggles to sell and raise — the awful site is a signal, not a cosmetic."
+    },
+    {
+     "h": "Services don't compound like software",
+     "body": "An AI-augmented firm still scales with lawyers — linear, people-bound — not like a product."
+    },
+    {
+     "h": "Tailwind is policy-dependent",
+     "body": "The SRA sandwich/sandbox advantage shifts with regulation; lean on it and you're exposed when it moves."
+    }
+   ]
+  }
  },
  {
   "id": "S92",
@@ -1188,7 +1324,24 @@
   ],
   "my_take": "Building toward the thing that matters: interoperability guardrails, hallucination prevention, plugging into existing stacks, iterating fast. Closer to the governed-guardrail layer than anyone — and that layer is still unowned. This is the space worth owning.",
   "logo": "https://www.google.com/s2/favicons?domain=www.truthsystems.ai&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.truthsystems.ai%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.truthsystems.ai%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — how Truth Systems loses the space it's closest to.",
+   "risks": [
+    {
+     "h": "Guardrails go native",
+     "body": "Frontier models and platforms ship hallucination-control and audit natively; the standalone layer thins."
+    },
+    {
+     "h": "Small raise, contested category",
+     "body": "$4M seed against a layer the giants will contest the moment it's clearly valuable."
+    },
+    {
+     "h": "Category-creation is slow and dear",
+     "body": "Educating the market on a 'governed layer' burns capital before revenue catches up."
+    }
+   ]
+  }
  },
  {
   "id": "K30",
@@ -1288,7 +1441,24 @@
   ],
   "my_take": "Scored low, but I liked it on the floor — GDPR and compliance, staying on top of the regs, generating your reports and certificates. It feels stalled and early, but it's a real model. This one's my gut, not the numbers.",
   "logo": "https://www.google.com/s2/favicons?domain=awesomecompliance.com&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fawesomecompliance.com%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fawesomecompliance.com%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — why my floor-pick is a long shot.",
+   "risks": [
+    {
+     "h": "Stalled",
+     "body": "It feels stuck — a 2022-era raise and no obvious momentum since."
+    },
+    {
+     "h": "Crowded GDPR ground",
+     "body": "A graveyard of thin compliance/reporting tools sit on exactly the same patch."
+    },
+    {
+     "h": "Weak on the fundamentals",
+     "body": "I liked it on the floor, but there's no agentic/interop edge under the model — this is my gut, not the numbers."
+    }
+   ]
+  }
  },
  {
   "id": "K56",
@@ -1401,7 +1571,24 @@
   ],
   "my_take": "The clearest 'be the AI firm' play — roughly 80% AI draft, lawyer sign-off, YC and 20VC behind it. The inverse of arming the firms: become one.",
   "logo": "https://www.google.com/s2/favicons?domain=www.moritzlegal.com&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.moritzlegal.com%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fwww.moritzlegal.com%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — why 'be the AI firm' stalls.",
+   "risks": [
+    {
+     "h": "Margin ceiling",
+     "body": "80% AI / 20% lawyer is still a firm — throughput and margin are bounded by people, not code."
+    },
+    {
+     "h": "Crowded model",
+     "body": "Everyone's racing the same AI-native-firm playbook; without a real edge it's undifferentiated."
+    },
+    {
+     "h": "Liability is yours",
+     "body": "Being the firm carries the malpractice and liability that arming the firms avoids."
+    }
+   ]
+  }
  },
  {
   "id": "K24",
@@ -1506,6 +1693,23 @@
   ],
   "my_take": "KomplyAI is real — MIT-validated, a government contract, a serious regulatory corpus. But it's vertical GRC documentation tooling, not the embedded agentic guardrail layer the 80/20 flip demands. I'm flagging it because the space matters, not because they own it.",
   "logo": "https://www.google.com/s2/favicons?domain=komplyai.com&sz=128",
-  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fkomplyai.com%2F?w=1200&h=750"
+  "screenshot": "https://s.wordpress.com/mshots/v1/https%3A%2F%2Fkomplyai.com%2F?w=1200&h=750",
+  "premortem": {
+   "intro": "The bear case before the deck — why KomplyAI isn't the answer.",
+   "risks": [
+    {
+     "h": "Not the agentic layer",
+     "body": "It's vertical GRC documentation tooling, not the embedded guardrail layer the 80/20 flip demands."
+    },
+    {
+     "h": "Too wide",
+     "body": "A broad GRC thesis with no sharp wedge — it spreads thin and owns no beachhead."
+    },
+    {
+     "h": "Thin on what matters",
+     "body": "No API/agentic/interop, no disclosed institutional funding, no 'lives where lawyers work.'"
+    }
+   ]
+  }
  }
 ]

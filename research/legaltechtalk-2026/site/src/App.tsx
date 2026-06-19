@@ -209,7 +209,19 @@ function useHashRoute() {
   useEffect(() => {
     const on = () => {
       setRoute(get());
-      if (window.location.hash.startsWith("#/")) window.scrollTo(0, 0);
+      const h = window.location.hash;
+      if (h.startsWith("#/")) {
+        window.scrollTo(0, 0);
+      } else if (h.length > 1) {
+        // Section anchor (e.g. #watching). When coming back from a detail
+        // page the target only exists after the re-render — wait a frame.
+        const id = h.slice(1);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            document.getElementById(id)?.scrollIntoView()
+          )
+        );
+      }
     };
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);

@@ -48,10 +48,13 @@ export function CompanyCard({ c, showScore = true }: { c: Company; showScore?: b
         </div>
       )}
 
-      <p className="prose-p !mb-0 mt-3 text-sm">
+      <p className="prose-p !mb-0 mt-3 text-sm line-clamp-3">
         <span className="italic">My take: </span>
         {c.my_take}
       </p>
+      <span className="mt-3 inline-block text-sm font-bold text-ink underline decoration-seal underline-offset-4">
+        Deep take &amp; scores →
+      </span>
       </div>
     </a>
   );
