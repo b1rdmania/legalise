@@ -13,10 +13,7 @@ function Nav() {
   ];
   return (
     <nav className="sticky top-0 z-20 bg-paper/90 backdrop-blur border-b border-rule">
-      <div className="mx-auto max-w-page px-6 h-12 flex items-center justify-between">
-        <a href="#top" className="font-bold tracking-tight2 text-sm">
-          LegalTechTalk 2026 · the read
-        </a>
+      <div className="mx-auto max-w-page px-6 h-12 flex items-center justify-end">
         <div className="hidden sm:flex items-center gap-5 text-sm text-prose">
           {links.map(([id, label]) => (
             <a key={id} href={`#${id}`} className="hover:text-ink">
@@ -47,71 +44,58 @@ function Grid({ items }: { items: Company[] }) {
   );
 }
 
-// A full-width bar — for entries that sit alongside the scored cards but aren't
-// scored teardowns (our own build; the floor pick). Carries the same logo +
-// screenshot imagery as the cards so the section reads consistently.
-function Bar({
-  title,
-  tag,
-  body,
-  href,
-  external,
-  logo,
-  screenshot,
-}: {
-  title: string;
-  tag?: string;
-  body: string;
-  href: string;
-  external?: boolean;
-  logo: string;
-  screenshot: string;
-}) {
-  const ext = external
-    ? { target: "_blank", rel: "noopener noreferrer" }
-    : {};
-  return (
-    <a
-      href={href}
-      {...ext}
-      className="flex border border-rule rounded-card overflow-hidden bg-panel/40 hover:border-ink transition-colors"
-    >
-      <img
-        src={screenshot}
-        alt=""
-        className="hidden sm:block w-48 md:w-56 shrink-0 self-stretch object-cover object-top border-r border-rule bg-wash"
-        loading="lazy"
-      />
-      <div className="p-5 min-w-0">
-        <div className="flex items-center gap-3">
-          <img
-            src={logo}
-            alt=""
-            width={28}
-            height={28}
-            className="rounded shrink-0 bg-paper"
-            loading="lazy"
-          />
-          <span className="font-bold text-lg leading-tight underline decoration-rule underline-offset-4">
-            {title}
-          </span>
-          {tag && (
-            <span className="text-[10px] uppercase tracking-track1 text-seal border border-seal px-1 py-0.5 whitespace-nowrap">
-              {tag}
-            </span>
-          )}
-        </div>
-        <p className="prose-p !mb-0 mt-3 text-sm">{body}</p>
-      </div>
-    </a>
-  );
-}
-
 // Legalise's own imagery (it isn't in the scored data).
 const LEGALISE_LOGO =
   "https://www.google.com/s2/favicons?domain=legalise.dev&sz=128";
 const LEGALISE_SHOT =
   "https://s.wordpress.com/mshots/v1/https%3A%2F%2Flegalise.dev%2F?w=1200&h=750";
+
+// Our own build — same card shape as CompanyCard (so it sits the same size in
+// the grid), but no score and it clicks through to the in-site Legalise page.
+function LegaliseCard() {
+  return (
+    <a
+      href="#/legalise"
+      className="block border border-rule rounded-card overflow-hidden bg-panel/40 hover:border-ink transition-colors"
+    >
+      <img
+        src={LEGALISE_SHOT}
+        alt=""
+        className="w-full aspect-[16/10] object-cover object-top border-b border-rule bg-wash"
+        loading="lazy"
+      />
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src={LEGALISE_LOGO}
+              alt=""
+              width={28}
+              height={28}
+              className="rounded shrink-0 bg-paper"
+              loading="lazy"
+            />
+            <span className="font-bold text-lg leading-tight underline decoration-rule underline-offset-4 truncate">
+              Legalise
+            </span>
+          </div>
+          <span className="text-[10px] uppercase tracking-track1 text-seal border border-seal px-1 py-0.5 whitespace-nowrap">
+            ours · beta
+          </span>
+        </div>
+        <p className="prose-p !mb-0 mt-3 text-sm line-clamp-3">
+          <span className="italic">My take: </span>
+          The one we built. Early beta, but it&apos;s starting to address exactly
+          this — the guardrails and documentation layer, so the work stays
+          accountable when the AI does it.
+        </p>
+        <span className="mt-3 inline-block text-sm font-bold text-ink underline decoration-seal underline-offset-4">
+          Read the full thing →
+        </span>
+      </div>
+    </a>
+  );
+}
 
 function TheRead({ rows }: { rows: Company[] }) {
   const watching = byTier(rows, "scorecard").sort((a, b) => b.comp - a.comp);
@@ -222,16 +206,13 @@ function TheRead({ rows }: { rows: Company[] }) {
       <section id="space" className="scroll-mt-12 bg-wash border-b border-rule">
         <div className="mx-auto max-w-page px-6 py-16">
           <h2 className="font-redaction35 text-3xl tracking-tight2 mb-3">
-            The space nobody&apos;s serving
+            AI compliance guardrails and documentation
           </h2>
           <div className="max-w-2xl text-[1.05rem] leading-[1.7] text-prose mb-8">
             <p className="mb-5">
-              <b className="text-ink">
-                AI compliance guardrails and documentation
-              </b>{" "}
-              — what a regulator or an insurer needs to see. On our thesis this is
+              What a regulator or an insurer needs to see. On our thesis this is
               the most important space on the floor, and it&apos;s badly
-              underserved. Nobody owns it yet.
+              underserved — nobody owns it yet.
             </p>
             <p className="!mb-0">
               The flip is why it matters. When humans do 80% of the work, the
@@ -240,25 +221,12 @@ function TheRead({ rows }: { rows: Company[] }) {
               wide open, and it&apos;s where the real value sits.
             </p>
           </div>
-          <Grid items={space} />
-          <div className="mt-4 space-y-4">
-            {eye && (
-              <Bar
-                title={eye.name}
-                body={eye.my_take}
-                href={`#/c/${eye.id}`}
-                logo={eye.logo}
-                screenshot={eye.screenshot}
-              />
-            )}
-            <Bar
-              title="Legalise"
-              tag="ours · beta"
-              href="#/legalise"
-              logo={LEGALISE_LOGO}
-              screenshot={LEGALISE_SHOT}
-              body="The one we built. Early beta, but it's starting to address exactly this — the guardrails and documentation layer, so the work stays accountable when the AI does it. Read the full thing →"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            {space.map((c) => (
+              <CompanyCard key={c.id} c={c} />
+            ))}
+            {eye && <CompanyCard c={eye} showScore={false} />}
+            <LegaliseCard />
           </div>
         </div>
       </section>
