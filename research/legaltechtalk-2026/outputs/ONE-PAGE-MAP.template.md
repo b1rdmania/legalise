@@ -27,4 +27,4 @@
 - <Company> — <one-line reason>
 
 ---
-*Built from a 20-company scored screen (triaged from ~120 exhibitors). Method: METHODOLOGY.md.*
+*Built from a 20-company scored screen (triaged from ~120 exhibitors). Method: BRIEF.md (canonical brief) + methodology.md (reproducible doctrine).*
