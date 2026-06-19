@@ -144,8 +144,7 @@ function TheRead({ rows }: { rows: Company[] }) {
                 This is the play. Legal is flipping from 80% human to 80% AI —
                 the demand engine. When humans do the work, the guardrails are
                 the humans; when AI does it, they have to be built, and
-                regulators and insurers will require them. Nobody owns that
-                layer. It&apos;s worth more than any company on the floor.
+                regulators and insurers will require them.
               </p>
             </div>
           </div>
