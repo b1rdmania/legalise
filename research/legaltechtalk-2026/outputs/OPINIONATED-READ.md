@@ -9,7 +9,7 @@
 Three things are real. Most of the rest is an app that becomes a feature in someone else's product inside a year.
 - **The rails win.** Infrastructure other people's agents plug into (knowledge retrieval, legal-data APIs, MCP layers) is the only moat that compounds. Apps come and go; the layer underneath stays.
 - **The vertical apps are renting their moat.** "The AI associate for [X]" is a prompt and a logo. The good ones have real data or real integration. The rest are one frontier-model release from dead.
-- **Services firms in a software costume don't count.** A law firm with an internal AI tool is a law firm, not a vendor. Off-thesis. *(See widening note — this is the boundary that Thesis 2 deliberately reopens.)*
+- **Services firms in a software costume don't count.** A law firm with an internal AI tool is a law firm, not a vendor. Off-thesis under Thesis 1 — but this is exactly the boundary **Thesis 2 deliberately reopens** (see the Thesis-2 cohort: Moritz, Cicero).
 
 ## The gems, and the game-theory on each
 
@@ -31,7 +31,7 @@ Blunt. Evidence in the scorecard; this is the read.
 - **Dead-ish — diagramming-as-data:** Structureflow, Jigsaw. Nice tools, real logos, but closed surface, not agentic, niche-bound. Good businesses, capped ceilings. Not where the thesis points.
 - **Crowded and thin — compliance/GRC:** KomplyAI (9/35, no funding, no agentic signal), Awesome Compliance. A graveyard of thin workflow tools on the same ground. Truth Systems is the only one to watch, and only if it goes deeper than browser-layer enforcement.
 - **(Moved to Thesis 2, not killed):** Moritz. Under Thesis 1 it looked like a "services firm in software clothing" (13/35). It isn't a kill — it's the **Thesis-2 flagship**: the "be the regulated AI firm" model (the inverse of the infra plays, which arm the firms). Re-scored 19/35 under the right lens. See the Thesis-2 section in the scorecard.
-- **Most exposed — horizontal agent-builders:** Airia, Eudia, Newcode, Wexler, Casey. "Spin up bespoke legal agents" is the most clonable shape there is, a frontier-model quarter from commoditised. Casey especially — solo founder, unconfirmed everything, severe name-collision. Watch, don't bet.
+- **Most exposed — horizontal agent-builders:** Airia, Eudia, Newcode, Wexler, Casey. "Spin up bespoke legal agents" is the most clonable shape there is, a frontier-model quarter from commoditised. Casey (verified: real, three founders led by ex-DLA Piper Vipul Ladwa, ex-108 AI; the name-collision and the $40M/Lawhive mix-up are resolved) is credible but genuinely early — no funding, no named customers. Watch, don't bet.
 
 ## What it means
 - **The white space is governed infrastructure.** Everyone's building un-governed infra or governed apps. Nobody owns the governed *layer* — audit, privilege posture, regulator-ready, on the rails. That's the gap, and it's your thesis.

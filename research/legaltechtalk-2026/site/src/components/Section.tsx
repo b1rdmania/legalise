@@ -18,7 +18,7 @@ export function Section({
   return (
     <section
       id={id}
-      className="border-t border-rule py-16 md:py-20 scroll-mt-8"
+      className="border-t border-rule py-16 md:py-20 scroll-mt-16"
     >
       <div className="mx-auto max-w-page px-6">
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
