@@ -38,15 +38,15 @@ function R({ id, children }: { id: string; children: string }) {
   );
 }
 
-// Killed — named in the list only. Out of the data and the scores entirely:
-// no review page, no score, no image. Just the verdict.
-const KILLED: [string, string][] = [
-  ["Structureflow", "A feature, not an app to scale — diagramming that gets swept into someone else's product inside a year."],
-  ["Jigsaw", "A pretty diagramming tool with no legs. Real logos, capped ceiling — a feature, not a company."],
-  ["Vesence", "You could rebuild this open-source in a month. No moat, no reason it survives a frontier-model release."],
-  ["Eudia", "A feature, not an app — horizontal legal-ops glue that gets absorbed by the platforms it sits between."],
-  ["Newcode", "Bespoke legal agents — the most clonable shape on the floor. The logo's a pilot, not a moat."],
-  ["Kuberno", "Killed on design — the brand and UI don't clear the bar, and there's no agentic edge underneath."],
+// The kill-list editorial: dead sectors + the named examples in each. These
+// are named here only — out of the scored data, no review pages, no scores.
+const KILL_SECTORS: { sector: string; why: string; examples: string }[] = [
+  { sector: "Standalone vertical apps, no interop", why: "Features, not companies — gone the moment a horizontal agent ships the vertical.", examples: "Crimson · Emma Legal · PhaseLaw · Pivot · Mage Legal" },
+  { sector: "Diagramming-as-data", why: "Pretty, real logos, capped ceiling — a feature, not an app to scale.", examples: "Structureflow · Jigsaw" },
+  { sector: "Horizontal agent-builders", why: "The most clonable shape on the floor — a frontier-model release from commoditised.", examples: "Eudia · Newcode · Casey" },
+  { sector: "Undifferentiated drafting & redline", why: "Nothing the giants don't already do — or you'd rebuild it open-source in a month.", examples: "August · Vesence" },
+  { sector: "Stale incumbents & back-office", why: "No momentum, no agentic edge — a death-rattle rebrand or a tool that never clears the bar.", examples: "LUPL · Kuberno" },
+  { sector: "Geo-capped niche tools", why: "Single-jurisdiction, capped TAM — they can't reach the market that matters.", examples: "Pandektes · Orbital · Aloi · Augmetec" },
 ];
 
 function Grid({ items }: { items: Company[] }) {
@@ -173,17 +173,18 @@ function TheRead({ rows }: { rows: Company[] }) {
             The kill list
           </h2>
           <p className="text-muted mb-8">
-            The bottom of the floor. Same call on all of them: a feature, not an
-            app to scale.
+            The dead categories, and who&apos;s in each. The same call across the
+            board: a feature, not an app to scale.
           </p>
-          <ul className="divide-y divide-rule border-y border-rule">
-            {KILLED.map(([name, take]) => (
-              <li key={name} className="py-4">
-                <span className="font-bold">{name}</span>
-                <p className="prose-p !mb-0 mt-1 text-sm">{take}</p>
-              </li>
+          <div className="divide-y divide-rule border-y border-rule">
+            {KILL_SECTORS.map((s) => (
+              <div key={s.sector} className="py-4">
+                <p className="font-bold text-ink">{s.sector}</p>
+                <p className="prose-p !mb-0 mt-1 text-sm">{s.why}</p>
+                <p className="text-muted text-sm mt-1 tech-token">{s.examples}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
 
