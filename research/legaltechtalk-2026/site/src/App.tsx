@@ -22,6 +22,14 @@ function Nav() {
               {label}
             </a>
           ))}
+          <a
+            href="https://legalise.dev/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-ink hover:text-seal"
+          >
+            About me ↗
+          </a>
         </div>
       </div>
     </nav>
@@ -48,27 +56,21 @@ function TheRead({ rows }: { rows: Company[] }) {
     <main>
       <header id="top" className="border-b border-rule">
         <div className="mx-auto max-w-2xl px-6 pt-14 pb-10 md:pt-16">
+          <p className="text-prose text-[1.1rem] leading-[1.6] mb-4">
+            I walked the booths so you didn&apos;t have to
+          </p>
           <h1 className="font-redaction35 text-4xl md:text-5xl leading-[1.06] tracking-tight2 text-ink">
             Most of it is dead within a year.
           </h1>
-          <p className="text-prose text-[1.1rem] leading-[1.6] mt-5">
-            I walked all the booths so you didn&apos;t have to. Here&apos;s my
-            thesis, and the projects I liked.
-          </p>
-          <a
-            href="https://legalise.dev/about"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-block text-sm font-bold text-ink underline decoration-seal underline-offset-4 hover:decoration-ink"
-          >
-            About the author ↗
-          </a>
         </div>
       </header>
 
       <div className="border-b border-rule">
         <div className="mx-auto max-w-2xl px-6 py-12 text-[1.05rem] leading-[1.75] text-prose">
-          <p>
+          <p className="text-ink font-bold">
+            Here&apos;s my thesis, the projects I liked.
+          </p>
+          <p className="mt-6">
             Lawyers running four platforms that can&apos;t swap data, in a world
             where agents do the work, is absurd. A front-end on proprietary data is
             a wrapper. It&apos;s gone. They might get acqui-hired on brand, but as
@@ -181,8 +183,16 @@ function TheRead({ rows }: { rows: Company[] }) {
       </section>
 
       <footer className="border-t border-rule">
-        <div className="mx-auto max-w-2xl px-6 py-12 text-muted text-sm">
-          LegalTechTalk 2026. I walked every booth — these are my notes.
+        <div className="mx-auto max-w-2xl px-6 py-12 text-muted text-sm flex flex-wrap items-center justify-between gap-3">
+          <span>LegalTechTalk 2026. I walked every booth — these are my notes.</span>
+          <a
+            href="https://legalise.dev/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-ink hover:text-seal"
+          >
+            About me ↗
+          </a>
         </div>
       </footer>
     </main>
