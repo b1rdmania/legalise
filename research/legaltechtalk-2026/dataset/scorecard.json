@@ -1,6 +1,7 @@
 [
  {
   "id": "P26",
+  "tier": "scorecard",
   "name": "DeepJudge",
   "cat": "knowledge",
   "U": 3.5,
@@ -16,6 +17,7 @@
  },
  {
   "id": "S61",
+  "tier": "scorecard",
   "name": "Lawstronaut",
   "cat": "infra-platform",
   "U": 4,
@@ -31,6 +33,7 @@
  },
  {
   "id": "K44",
+  "tier": "scorecard",
   "name": "Syllo",
   "cat": "ediscovery",
   "U": 4,
@@ -46,6 +49,7 @@
  },
  {
   "id": "K47",
+  "tier": "scorecard",
   "name": "Ankar",
   "cat": "ip",
   "U": 3,
@@ -61,6 +65,7 @@
  },
  {
   "id": "SA6",
+  "tier": "scorecard",
   "name": "Moonlit.AI",
   "cat": "research",
   "U": 4,
@@ -76,6 +81,7 @@
  },
  {
   "id": "K8",
+  "tier": "scorecard",
   "name": "Airia",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -91,6 +97,7 @@
  },
  {
   "id": "A6",
+  "tier": "scorecard",
   "name": "Definely",
   "cat": "drafting-redline",
   "U": 3,
@@ -106,6 +113,7 @@
  },
  {
   "id": "P7",
+  "tier": "scorecard",
   "name": "Leah (ex-ContractPodAi)",
   "cat": "clm",
   "U": 3,
@@ -121,6 +129,7 @@
  },
  {
   "id": "K57",
+  "tier": "scorecard",
   "name": "August",
   "cat": "drafting-redline",
   "U": 3,
@@ -136,6 +145,7 @@
  },
  {
   "id": "S4",
+  "tier": "scorecard",
   "name": "Eudia",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -151,6 +161,7 @@
  },
  {
   "id": "P22",
+  "tier": "scorecard",
   "name": "Vesence",
   "cat": "drafting-redline",
   "U": 3,
@@ -166,6 +177,7 @@
  },
  {
   "id": "S59",
+  "tier": "scorecard",
   "name": "Newcode.ai",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -181,6 +193,7 @@
  },
  {
   "id": "S11",
+  "tier": "scorecard",
   "name": "Pandektes",
   "cat": "research",
   "U": 4,
@@ -196,6 +209,7 @@
  },
  {
   "id": "S64",
+  "tier": "scorecard",
   "name": "Kuberno",
   "cat": "compliance-risk",
   "U": 3,
@@ -211,6 +225,7 @@
  },
  {
   "id": "S14",
+  "tier": "scorecard",
   "name": "Wexler AI",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -226,6 +241,7 @@
  },
  {
   "id": "S22",
+  "tier": "scorecard",
   "name": "Structureflow",
   "cat": "other",
   "U": 4,
@@ -241,6 +257,7 @@
  },
  {
   "id": "M7",
+  "tier": "scorecard",
   "name": "Orbital",
   "cat": "research",
   "U": 3,
@@ -256,6 +273,7 @@
  },
  {
   "id": "S25",
+  "tier": "featured",
   "name": "Cicero (by Automatise)",
   "cat": "ediscovery",
   "U": 3,
@@ -271,6 +289,7 @@
  },
  {
   "id": "S32",
+  "tier": "scorecard",
   "name": "Scissero",
   "cat": "drafting-redline",
   "U": 2,
@@ -286,6 +305,7 @@
  },
  {
   "id": "S92",
+  "tier": "scorecard",
   "name": "Truth Systems",
   "cat": "compliance-risk",
   "U": 3,
@@ -301,6 +321,7 @@
  },
  {
   "id": "S38",
+  "tier": "scorecard",
   "name": "Jigsaw",
   "cat": "knowledge",
   "U": 4,
@@ -316,6 +337,7 @@
  },
  {
   "id": "S56",
+  "tier": "parked",
   "name": "Crimson",
   "cat": "ediscovery",
   "U": 3,
@@ -331,6 +353,7 @@
  },
  {
   "id": "S24",
+  "tier": "parked",
   "name": "Emma Legal",
   "cat": "research",
   "U": 3,
@@ -346,6 +369,7 @@
  },
  {
   "id": "SA3",
+  "tier": "parked",
   "name": "PhaseLaw",
   "cat": "ediscovery",
   "U": 3,
@@ -361,6 +385,7 @@
  },
  {
   "id": "K61",
+  "tier": "parked",
   "name": "Aloi",
   "cat": "knowledge",
   "U": 3,
@@ -376,6 +401,7 @@
  },
  {
   "id": "A3",
+  "tier": "parked",
   "name": "Augmetec",
   "cat": "ediscovery",
   "U": 3,
@@ -391,6 +417,7 @@
  },
  {
   "id": "K28",
+  "tier": "parked",
   "name": "LUPL",
   "cat": "practice-mgmt",
   "U": 3,
@@ -406,6 +433,7 @@
  },
  {
   "id": "SA9",
+  "tier": "parked",
   "name": "Casey",
   "cat": "agentic-horizontal",
   "U": 3,
@@ -421,6 +449,7 @@
  },
  {
   "id": "K30",
+  "tier": "featured",
   "name": "Awesome Compliance (ACT)",
   "cat": "compliance-risk",
   "U": 2,
@@ -436,6 +465,7 @@
  },
  {
   "id": "M6",
+  "tier": "parked",
   "name": "Mage Legal",
   "cat": "ediscovery",
   "U": 2,
@@ -451,6 +481,7 @@
  },
  {
   "id": "SA4",
+  "tier": "parked",
   "name": "Pivot (yourpivot)",
   "cat": "ediscovery",
   "U": 3,
@@ -466,6 +497,7 @@
  },
  {
   "id": "K56",
+  "tier": "featured",
   "name": "Moritz",
   "cat": "services-consulting",
   "U": 3,
@@ -481,6 +513,7 @@
  },
  {
   "id": "K24",
+  "tier": "featured",
   "name": "KomplyAI",
   "cat": "compliance-risk",
   "U": 2,

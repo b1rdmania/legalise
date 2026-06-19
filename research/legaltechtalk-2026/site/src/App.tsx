@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Scorecard } from "./components/Scorecard";
 import { CompanyDetail } from "./components/CompanyDetail";
+import { loadCompanies, byTier, nicheLabel, type Company } from "./data/scorecard";
 
 function Nav() {
   const links = [
     ["kill", "Kill list"],
     ["watching", "Worth watching"],
+    ["firm", "Firm play"],
     ["space", "The space"],
-    ["floor", "The floor"],
+    ["floor", "The twenty"],
   ];
   return (
     <nav className="sticky top-0 z-20 bg-paper/90 backdrop-blur border-b border-rule">
@@ -59,6 +61,57 @@ const KILL: [string, string][] = [
     "A frontier-model quarter from commoditised. Airia, Eudia, Newcode, Wexler, Casey.",
   ],
 ];
+
+// The rest of the floor — parked: real enough to note, not enough to feature.
+// Data-driven from tier === "parked"; links out, dossier link, slot for more.
+function RestOfFloor() {
+  const [parked, setParked] = useState<Company[] | null>(null);
+  useEffect(() => {
+    loadCompanies()
+      .then((all) => setParked(byTier(all, "parked")))
+      .catch(() => setParked([]));
+  }, []);
+  if (!parked || parked.length === 0) return null;
+  return (
+    <section id="rest" className="scroll-mt-12 border-t border-rule">
+      <div className="mx-auto max-w-2xl px-6 py-14">
+        <h2 className="font-redaction35 text-2xl tracking-tight2 mb-2 text-ink">
+          The rest of the floor
+        </h2>
+        <p className="text-muted text-sm mb-8">
+          Real enough to note, not enough to feature — they didn&apos;t make the
+          twenty. Names link out; fuller links to come.
+        </p>
+        <ul className="divide-y divide-rule border-y border-rule">
+          {parked.map((c) => (
+            <li
+              key={c.id}
+              className="py-3 flex items-baseline justify-between gap-4"
+            >
+              <div className="min-w-0">
+                <a
+                  href={c.site}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold underline decoration-rule underline-offset-4 hover:decoration-ink"
+                >
+                  {c.name}
+                </a>
+                <span className="text-muted text-sm"> · {nicheLabel(c.cat)}</span>
+              </div>
+              <a
+                href={`#/c/${c.id}`}
+                className="text-muted text-xs tech-token whitespace-nowrap hover:text-ink"
+              >
+                dossier →
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
 
 function TheRead() {
   return (
@@ -133,10 +186,23 @@ function TheRead() {
                 The eye, not the screen
               </p>
               <p className="prose-p !mb-0 text-sm">
-                The niches I liked anyway. One doing GDPR specifically —
-                regulations, reports, certificates. Looks stalled; I think they
-                raised back in 2022, but it&apos;s a real model. Plus three or
-                four others. They all had flaws.
+                The one I liked anyway:{" "}
+                <b className="text-ink">
+                  <A href="https://www.awesomecompliance.com/">
+                    Awesome Compliance
+                  </A>
+                </b>{" "}
+                — GDPR and the EU AI Act at the unglamorous end: ROPAs, DPIAs,
+                risk reports, the documentation a regulator actually asks for. It
+                scores low on my screen — early, pre-seed, thin on interop — but
+                the model is real and it&apos;s pointed at the space that matters.
+                The screen would bin it; the eye keeps it.{" "}
+                <a
+                  href="#/c/K30"
+                  className="underline decoration-rule underline-offset-4 hover:decoration-ink"
+                >
+                  The dossier →
+                </a>
               </p>
             </div>
           </div>
@@ -192,6 +258,54 @@ function TheRead() {
           </div>
         </section>
 
+        {/* Thesis 2 — the regulated-firm play. Read on a different lens. */}
+        <section id="firm" className="scroll-mt-12 border-b border-rule">
+          <div className="mx-auto max-w-2xl px-6 py-16 text-[1.05rem] leading-[1.75] text-prose">
+            <p className="eyebrow mb-3">A different game</p>
+            <h2 className="font-redaction35 text-3xl tracking-tight2 mb-6 text-ink">
+              The regulated-firm play
+            </h2>
+            <p className="mb-6">
+              Two here shouldn&apos;t be scored like software, because they
+              aren&apos;t selling it. The screen rates them low and the screen is
+              wrong about them — they&apos;re playing a different game:{" "}
+              <i>be the regulated AI firm.</i> An entity that already carries the
+              licences, the insurance and the accountability, deploying AI inside
+              that wrapper. You can&apos;t clone a regulated posture in a quarter.
+            </p>
+            <p className="mb-6">
+              <b className="text-ink">
+                <A href="https://www.moritz.law/">Moritz</A>
+              </b>{" "}
+              is the flagship — a funded, well-pedigreed AI-native law firm. As a
+              tech vendor it&apos;s off-thesis; as a <i>firm</i> with an AI engine
+              and real liability on the line, it&apos;s the cleanest expression of
+              the model on the floor.{" "}
+              <a
+                href="#/c/K56"
+                className="underline decoration-rule underline-offset-4 hover:decoration-ink"
+              >
+                The dossier →
+              </a>
+            </p>
+            <p className="!mb-0">
+              <b className="text-ink">
+                <A href="https://cicero.com.au/">Cicero</A>
+              </b>{" "}
+              is the adjacent read — a Sydney litigation AI running self-hosted
+              models with named firm customers and a real eDiscovery integration:
+              a vendor wearing the regulated posture rather than a firm. Same
+              lens, one step out.{" "}
+              <a
+                href="#/c/S25"
+                className="underline decoration-rule underline-offset-4 hover:decoration-ink"
+              >
+                The dossier →
+              </a>
+            </p>
+          </div>
+        </section>
+
         {/* The prize — featured. */}
         <section id="space" className="scroll-mt-12 bg-wash border-b border-rule">
           <div className="mx-auto max-w-2xl px-6 py-20 text-[1.05rem] leading-[1.75] text-prose">
@@ -200,15 +314,18 @@ function TheRead() {
               The space worth owning
             </h2>
             <p className="mb-6">
-              <A href="https://komplyai.com/">KomplyAI</A> is the one I want to
-              give more context on — not because the company is the answer (it
-              isn&apos;t; it launched a few years back, went too wide on its
-              thesis, and the backend looks poor), but because the space is.{" "}
+              <A href="https://komplyai.com/">KomplyAI</A> is how I want to point
+              at it. Credit where it&apos;s due — it&apos;s a real company: an
+              MIT CSAIL case study, an Australian government contract, years of
+              curated regulatory corpus behind it. But it&apos;s vertical GRC
+              documentation tooling, not the embedded, agentic guardrail layer
+              the flip demands — the thing that sits inside the work and proves
+              what the AI did. The point isn&apos;t that they&apos;re bad; it&apos;s
+              that even the credible one isn&apos;t the layer.{" "}
               <b className="text-ink">
-                AI compliance guardrails and documentation.
+                AI compliance guardrails and documentation
               </b>{" "}
-              Someone is going to eat it. I don&apos;t think it&apos;s them —
-              I&apos;m flagging it because the space matters.
+              — the space above them is still unowned.
             </p>
             <p className="!mb-0">
               The flip is the demand engine. When humans do 80% of the work, the
@@ -224,15 +341,20 @@ function TheRead() {
         <section id="floor" className="scroll-mt-12">
           <div className="mx-auto max-w-page px-6 py-16">
             <h2 className="font-redaction35 text-3xl tracking-tight2 mb-2">
-              The whole floor, by niche
+              The twenty, by niche
             </h2>
             <p className="text-muted text-sm mb-8 max-w-2xl">
-              Everyone I looked at, scored and sorted by niche — every name links
-              out. The receipts behind the read.
+              The twenty that carry the read — scored and sorted by niche, every
+              name links out. The receipts. The regulated-firm pair sit up in{" "}
+              <a href="#firm" className="underline decoration-rule underline-offset-4 hover:decoration-ink">the firm play</a>;
+              the also-rans are in{" "}
+              <a href="#rest" className="underline decoration-rule underline-offset-4 hover:decoration-ink">the rest of the floor</a>.
             </p>
             <Scorecard />
           </div>
         </section>
+
+        <RestOfFloor />
 
         <footer className="border-t border-rule">
           <div className="mx-auto max-w-2xl px-6 py-12 text-muted text-sm leading-relaxed">

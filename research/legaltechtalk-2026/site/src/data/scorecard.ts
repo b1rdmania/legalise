@@ -11,11 +11,17 @@ export interface Source {
   accessed: string;
   what_it_supports: string;
 }
+export type Tier = "scorecard" | "featured" | "parked";
+
 export interface Company {
   id: string;
   name: string;
   cat: string;
   site: string;
+  // Editorial tier: the 20 that carry the screen ("scorecard"), the four read
+  // outside the table ("featured" — Moritz, Cicero, KomplyAI, ACT), and the
+  // rest-of-the-floor parking lot ("parked"). Absent = scorecard.
+  tier?: Tier;
   comp: number;
   conf: "low" | "medium" | "high" | string;
   verdict: string;
@@ -37,6 +43,10 @@ export async function loadCompanies(): Promise<Company[]> {
   const rows = (await res.json()) as Company[];
   return rows.slice().sort((a, b) => b.comp - a.comp);
 }
+
+export const tierOf = (c: Company): Tier => c.tier ?? "scorecard";
+export const byTier = (rows: Company[], tier: Tier): Company[] =>
+  rows.filter((c) => tierOf(c) === tier);
 
 // Thesis-2 cohort (read on the regulated-firm lens, not the interop rubric).
 export const THESIS2_IDS = new Set(["K56", "S25"]); // Moritz, Cicero

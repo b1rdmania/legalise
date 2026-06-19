@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   loadCompanies,
+  byTier,
   nicheLabel,
   nichesIn,
   THESIS2_IDS,
@@ -53,7 +54,11 @@ export function Scorecard() {
   const [niche, setNiche] = useState<string>("all");
 
   useEffect(() => {
-    loadCompanies().then(setRows).catch((e) => setErr(String(e)));
+    // The Map shows only the 20 that carry the screen; featured + parked are
+    // rendered in their own sections (Thesis-2 callout, the prize, the footer).
+    loadCompanies()
+      .then((all) => setRows(byTier(all, "scorecard")))
+      .catch((e) => setErr(String(e)));
   }, []);
 
   const niches = useMemo(() => (rows ? nichesIn(rows) : []), [rows]);

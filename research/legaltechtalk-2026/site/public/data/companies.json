@@ -1,6 +1,7 @@
 [
  {
   "id": "P26",
+  "tier": "scorecard",
   "name": "DeepJudge",
   "cat": "knowledge",
   "site": "https://www.deepjudge.ai/",
@@ -134,6 +135,7 @@
  },
  {
   "id": "S61",
+  "tier": "scorecard",
   "name": "Lawstronaut",
   "cat": "infra-platform",
   "site": "https://lawstronaut.com/",
@@ -254,6 +256,7 @@
  },
  {
   "id": "K44",
+  "tier": "scorecard",
   "name": "Syllo",
   "cat": "ediscovery",
   "site": "https://syllo.ai/",
@@ -357,6 +360,7 @@
  },
  {
   "id": "K47",
+  "tier": "scorecard",
   "name": "Ankar",
   "cat": "ip",
   "site": "https://ankar.ai/",
@@ -461,6 +465,7 @@
  },
  {
   "id": "SA6",
+  "tier": "scorecard",
   "name": "Moonlit.AI",
   "cat": "research",
   "site": "https://www.moonlit.ai/",
@@ -574,6 +579,7 @@
  },
  {
   "id": "K8",
+  "tier": "scorecard",
   "name": "Airia",
   "cat": "agentic-horizontal",
   "site": "https://airia.com/",
@@ -710,6 +716,7 @@
  },
  {
   "id": "A6",
+  "tier": "scorecard",
   "name": "Definely",
   "cat": "drafting-redline",
   "site": "https://www.definely.com/",
@@ -821,6 +828,7 @@
  },
  {
   "id": "P7",
+  "tier": "scorecard",
   "name": "Leah (ex-ContractPodAi)",
   "cat": "clm",
   "site": "https://leahai.com/",
@@ -946,6 +954,7 @@
  },
  {
   "id": "K57",
+  "tier": "scorecard",
   "name": "August",
   "cat": "drafting-redline",
   "site": "https://www.august.law/",
@@ -1045,6 +1054,7 @@
  },
  {
   "id": "S4",
+  "tier": "scorecard",
   "name": "Eudia",
   "cat": "agentic-horizontal",
   "site": "https://eudia.com/",
@@ -1166,6 +1176,7 @@
  },
  {
   "id": "P22",
+  "tier": "scorecard",
   "name": "Vesence",
   "cat": "drafting-redline",
   "site": "https://www.vesence.com/",
@@ -1270,6 +1281,7 @@
  },
  {
   "id": "S59",
+  "tier": "scorecard",
   "name": "Newcode.ai",
   "cat": "agentic-horizontal",
   "site": "https://newcode.ai/",
@@ -1365,6 +1377,7 @@
  },
  {
   "id": "S11",
+  "tier": "scorecard",
   "name": "Pandektes",
   "cat": "research",
   "site": "https://www.pandektes.com/",
@@ -1464,6 +1477,7 @@
  },
  {
   "id": "S64",
+  "tier": "scorecard",
   "name": "Kuberno",
   "cat": "compliance-risk",
   "site": "https://kuberno.com/",
@@ -1566,6 +1580,7 @@
  },
  {
   "id": "S14",
+  "tier": "scorecard",
   "name": "Wexler AI",
   "cat": "agentic-horizontal",
   "site": "https://www.wexler.ai/",
@@ -1667,6 +1682,7 @@
  },
  {
   "id": "S22",
+  "tier": "scorecard",
   "name": "Structureflow",
   "cat": "other",
   "site": "https://www.structureflow.co/",
@@ -1764,6 +1780,7 @@
  },
  {
   "id": "M7",
+  "tier": "scorecard",
   "name": "Orbital",
   "cat": "research",
   "site": "https://www.orbital.tech/",
@@ -1883,6 +1900,7 @@
  },
  {
   "id": "S25",
+  "tier": "featured",
   "name": "Cicero (by Automatise)",
   "cat": "ediscovery",
   "site": "https://www.cicero.com.ai/",
@@ -1989,6 +2007,7 @@
  },
  {
   "id": "S32",
+  "tier": "scorecard",
   "name": "Scissero",
   "cat": "drafting-redline",
   "site": "https://www.scissero.com/",
@@ -2105,6 +2124,7 @@
  },
  {
   "id": "S92",
+  "tier": "scorecard",
   "name": "Truth Systems",
   "cat": "compliance-risk",
   "site": "https://www.truthsystems.ai/",
@@ -2213,6 +2233,7 @@
  },
  {
   "id": "S38",
+  "tier": "scorecard",
   "name": "Jigsaw",
   "cat": "knowledge",
   "site": "https://www.jigsawcreate.com/",
@@ -2323,6 +2344,7 @@
  },
  {
   "id": "S56",
+  "tier": "parked",
   "name": "Crimson",
   "cat": "ediscovery",
   "site": "https://www.crimson.law/",
@@ -2438,6 +2460,7 @@
  },
  {
   "id": "S24",
+  "tier": "parked",
   "name": "Emma Legal",
   "cat": "research",
   "site": "https://www.emma.legal/",
@@ -2531,6 +2554,7 @@
  },
  {
   "id": "SA3",
+  "tier": "parked",
   "name": "PhaseLaw",
   "cat": "ediscovery",
   "site": "https://www.phase.law/",
@@ -2623,6 +2647,7 @@
  },
  {
   "id": "K61",
+  "tier": "parked",
   "name": "Aloi",
   "cat": "knowledge",
   "site": "https://www.aloi.law/",
@@ -2716,6 +2741,7 @@
  },
  {
   "id": "A3",
+  "tier": "parked",
   "name": "Augmetec",
   "cat": "ediscovery",
   "site": "https://augmetec.com/",
@@ -2840,6 +2866,7 @@
  },
  {
   "id": "K28",
+  "tier": "parked",
   "name": "LUPL",
   "cat": "practice-mgmt",
   "site": "https://www.lupl.com/",
@@ -2937,6 +2964,7 @@
  },
  {
   "id": "SA9",
+  "tier": "parked",
   "name": "Casey",
   "cat": "agentic-horizontal",
   "site": "https://www.casey.legal/",
@@ -3034,6 +3062,7 @@
  },
  {
   "id": "K30",
+  "tier": "featured",
   "name": "Awesome Compliance (ACT)",
   "cat": "compliance-risk",
   "site": "https://awesomecompliance.com/",
@@ -3130,6 +3159,7 @@
  },
  {
   "id": "M6",
+  "tier": "parked",
   "name": "Mage Legal",
   "cat": "ediscovery",
   "site": "https://magelegal.com/",
@@ -3222,6 +3252,7 @@
  },
  {
   "id": "SA4",
+  "tier": "parked",
   "name": "Pivot (yourpivot)",
   "cat": "ediscovery",
   "site": "https://yourpivot.co/",
@@ -3319,6 +3350,7 @@
  },
  {
   "id": "K56",
+  "tier": "featured",
   "name": "Moritz",
   "cat": "services-consulting",
   "site": "https://www.moritzlegal.com/",
@@ -3428,6 +3460,7 @@
  },
  {
   "id": "K24",
+  "tier": "featured",
   "name": "KomplyAI",
   "cat": "compliance-risk",
   "site": "https://komplyai.com/",
