@@ -82,33 +82,33 @@ function TheRead({ rows }: { rows: Company[] }) {
           <p className="mt-7 mb-4 font-bold text-ink">Three things matter.</p>
           <div className="divide-y divide-rule border-y border-rule">
             <div className="py-4">
-              <p className="font-bold text-ink !mb-0">
-                Infra and data layers.{" "}
-                <span className="font-normal text-prose">
-                  The rails agents plug into. Build the layer everyone&apos;s agents
-                  call, not the front-end. Apps come and go; the layer stays.
-                </span>
+              <p className="!mb-0">
+                <a href="#watching" className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">
+                  Infra and data layers.
+                </a>{" "}
+                The rails agents plug into. Build the layer everyone&apos;s agents
+                call, not the front-end. Apps come and go; the layer stays.
               </p>
             </div>
             <div className="py-4">
-              <p className="font-bold text-ink !mb-0">
-                AI-augmented regulated law firms.{" "}
-                <span className="font-normal text-prose">
-                  A small group playing a different game: not selling software,
-                  becoming the AI-native firm. A serious model.
-                </span>
+              <p className="!mb-0">
+                <a href="#firm" className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">
+                  AI-augmented regulated law firms.
+                </a>{" "}
+                A small group playing a different game: not selling software,
+                becoming the AI-native firm. A serious model.
               </p>
             </div>
             <div className="py-4">
-              <p className="font-bold text-ink !mb-0">
-                The guardrails and compliance layer.{" "}
-                <span className="font-normal text-prose">
-                  This is the play. Legal is flipping from 80% human to 80% AI —
-                  the demand engine. When humans do the work, the guardrails are
-                  the humans; when AI does it, they have to be built, and
-                  regulators and insurers will require them. Nobody owns that
-                  layer. It&apos;s worth more than any company on the floor.
-                </span>
+              <p className="!mb-0">
+                <a href="#space" className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink">
+                  The guardrails and compliance layer.
+                </a>{" "}
+                This is the play. Legal is flipping from 80% human to 80% AI —
+                the demand engine. When humans do the work, the guardrails are
+                the humans; when AI does it, they have to be built, and
+                regulators and insurers will require them. Nobody owns that
+                layer. It&apos;s worth more than any company on the floor.
               </p>
             </div>
           </div>
@@ -145,39 +145,37 @@ function TheRead({ rows }: { rows: Company[] }) {
       </section>
 
       <section id="space" className="scroll-mt-12 bg-wash border-b border-rule">
-        <div className="mx-auto max-w-2xl px-6 py-20 text-[1.05rem] leading-[1.75] text-prose">
-          <p className="eyebrow mb-3">The prize</p>
-          <h2 className="font-redaction35 text-3xl md:text-4xl tracking-tight2 mb-6 text-ink">
+        <div className="mx-auto max-w-page px-6 py-16">
+          <h2 className="font-redaction35 text-3xl tracking-tight2 mb-3">
             The space worth owning
           </h2>
-          <p className="mb-6">
-            The un-won category is <b className="text-ink">AI compliance
-            guardrails and documentation</b> — what a regulator or an insurer
-            needs to see. Nobody owns it yet.
-          </p>
-          <p className="mb-10">
-            The flip is the demand engine. When humans do 80% of the work, the
-            guardrails <i>are</i> the humans. When AI does 80%, they have to be
-            productised — and regulators and insurers will require it. There&apos;s
-            a monetisation layer here. That&apos;s the play.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            {space.map((c) => (
-              <CompanyCard key={c.id} c={c} />
-            ))}
+          <div className="max-w-2xl text-[1.05rem] leading-[1.7] text-prose mb-8">
+            <p className="mb-5">
+              The un-won category is{" "}
+              <b className="text-ink">
+                AI compliance guardrails and documentation
+              </b>{" "}
+              — what a regulator or an insurer needs to see. Nobody owns it yet.
+            </p>
+            <p className="!mb-0">
+              The flip is the demand engine. When humans do 80% of the work, the
+              guardrails <i>are</i> the humans. When AI does 80%, they have to be
+              productised — and regulators and insurers will require it.
+              There&apos;s a monetisation layer here. That&apos;s the play.
+            </p>
           </div>
+          <Grid items={space} />
           {eye && (
-            <div className="mt-6 border-l-2 border-seal pl-5">
-              <p className="text-seal text-xs uppercase tracking-track1 mb-1">
-                One I just liked on the floor
-              </p>
-              <p className="!mb-0 text-sm">
-                <a href={`#/c/${eye.id}`} className="font-bold underline decoration-rule underline-offset-4">
-                  {eye.name}
-                </a>{" "}
-                — {eye.my_take}
-              </p>
-            </div>
+            <p className="max-w-2xl text-[1.05rem] leading-[1.7] text-prose mt-8">
+              And one more —{" "}
+              <a
+                href={`#/c/${eye.id}`}
+                className="font-bold text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
+              >
+                {eye.name}
+              </a>{" "}
+              — {eye.my_take}
+            </p>
           )}
         </div>
       </section>
