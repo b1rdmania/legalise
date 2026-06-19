@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  loadScorecard,
+  loadCompanies,
   nicheLabel,
   nichesIn,
   THESIS2_IDS,
-  type ScoreRow,
+  type Company,
 } from "../data/scorecard";
 
 const confDot: Record<string, string> = {
@@ -13,28 +13,22 @@ const confDot: Record<string, string> = {
   low: "bg-rule",
 };
 
-function Card({ row }: { row: ScoreRow }) {
+function Card({ row }: { row: Company }) {
   const isT2 = THESIS2_IDS.has(row.id);
   return (
-    <div className="border border-rule rounded-card p-5 bg-panel/40 flex flex-col">
+    <a
+      href={`#/c/${row.id}`}
+      className="block border border-rule rounded-card p-5 bg-panel/40 hover:border-ink transition-colors"
+    >
       <div className="flex items-baseline justify-between gap-3">
-        <h4 className="font-bold text-lg leading-tight">
-          <a
-            href={row.site}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline decoration-rule underline-offset-4 hover:decoration-ink"
-          >
-            {row.name}
-          </a>
-          <span className="text-muted font-normal"> ↗</span>
-        </h4>
+        <span className="font-bold text-lg leading-tight underline decoration-rule underline-offset-4">
+          {row.name}
+        </span>
         <span className="tech-token font-bold whitespace-nowrap">
           {row.comp.toFixed(0)}
           <span className="text-muted font-normal">/35</span>
         </span>
       </div>
-
       <div className="mt-1 flex items-center gap-2 text-sm text-muted">
         <span>{nicheLabel(row.cat)}</span>
         <span className="inline-flex items-center">
@@ -47,36 +41,33 @@ function Card({ row }: { row: ScoreRow }) {
           </span>
         )}
       </div>
-
-      <p className="prose-p !mb-0 mt-3 text-sm">{row.verdict}</p>
-    </div>
+      <p className="prose-p !mb-0 mt-3 text-sm line-clamp-4">{row.verdict}</p>
+      <span className="text-muted text-xs tech-token mt-3 inline-block">Read the full dossier →</span>
+    </a>
   );
 }
 
 export function Scorecard() {
-  const [rows, setRows] = useState<ScoreRow[] | null>(null);
+  const [rows, setRows] = useState<Company[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [niche, setNiche] = useState<string>("all");
 
   useEffect(() => {
-    loadScorecard().then(setRows).catch((e) => setErr(String(e)));
+    loadCompanies().then(setRows).catch((e) => setErr(String(e)));
   }, []);
 
   const niches = useMemo(() => (rows ? nichesIn(rows) : []), [rows]);
 
-  // Companies for the active niche (or all), each niche sorted by composite desc.
   const groups = useMemo(() => {
     if (!rows) return [];
     const cats = niche === "all" ? niches.map((n) => n.cat) : [niche];
     return cats.map((cat) => ({
       cat,
-      items: rows
-        .filter((r) => r.cat === cat)
-        .sort((a, b) => b.comp - a.comp),
+      items: rows.filter((r) => r.cat === cat).sort((a, b) => b.comp - a.comp),
     }));
   }, [rows, niche, niches]);
 
-  if (err) return <p className="prose-p text-seal">Could not load scorecard: {err}</p>;
+  if (err) return <p className="prose-p text-seal">Could not load companies: {err}</p>;
   if (!rows) return <p className="prose-p">Loading the screen…</p>;
 
   const chip = (key: string, label: string, count: number) => {
@@ -86,9 +77,7 @@ export function Scorecard() {
         key={key}
         onClick={() => setNiche(key)}
         className={`text-sm border px-3 py-1 transition-colors ${
-          active
-            ? "bg-ink text-paper border-ink"
-            : "border-rule text-prose hover:border-ink"
+          active ? "bg-ink text-paper border-ink" : "border-rule text-prose hover:border-ink"
         }`}
       >
         {label} <span className="tech-token opacity-60">{count}</span>

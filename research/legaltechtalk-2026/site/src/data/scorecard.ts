@@ -1,32 +1,46 @@
-// Shape of each row in /public/data/scorecard.json (copied from
-// dataset/scorecard.json — the single source of truth for the screen).
-export interface ScoreRow {
+// Single data source for the site: /public/data/companies.json — the scorecard
+// merged with each company's dossier (scores+justifications, facts, red flags,
+// cited sources). Regenerate from dataset/ + dossiers/ if the research changes.
+
+export interface ScoreDim {
+  score: number;
+  justification: string;
+}
+export interface Source {
+  url: string;
+  accessed: string;
+  what_it_supports: string;
+}
+export interface Company {
   id: string;
   name: string;
   cat: string;
-  site: string; // official site, or a working source link where the site is unconfirmed
-  U: number; // Uniqueness
-  T: number; // Thesis-fit (weighted x2 in composite)
-  I: number; // Investability
-  D: number; // Defensibility
-  X: number; // Interoperability
-  Tm: number; // Team
-  comp: number; // composite /35
+  site: string;
+  comp: number;
   conf: "low" | "medium" | "high" | string;
   verdict: string;
+  U: number;
+  T: number;
+  I: number;
+  D: number;
+  X: number;
+  Tm: number;
+  scores: Record<string, ScoreDim>;
+  facts: Record<string, string | string[]>;
+  red_flags: string[];
+  sources: Source[];
 }
 
-export async function loadScorecard(): Promise<ScoreRow[]> {
-  const res = await fetch(`${import.meta.env.BASE_URL}data/scorecard.json`);
-  if (!res.ok) throw new Error(`scorecard.json: ${res.status}`);
-  return (await res.json()) as ScoreRow[];
+export async function loadCompanies(): Promise<Company[]> {
+  const res = await fetch(`${import.meta.env.BASE_URL}data/companies.json`);
+  if (!res.ok) throw new Error(`companies.json: ${res.status}`);
+  const rows = (await res.json()) as Company[];
+  return rows.slice().sort((a, b) => b.comp - a.comp);
 }
 
 // Thesis-2 cohort (read on the regulated-firm lens, not the interop rubric).
 export const THESIS2_IDS = new Set(["K56", "S25"]); // Moritz, Cicero
 
-// Display labels + ordering for the niche selector. Order = how the buckets
-// read down the page (rails first, dead-ish last).
 export const NICHE_LABEL: Record<string, string> = {
   "infra-platform": "Infrastructure",
   knowledge: "Knowledge / KM",
@@ -41,15 +55,13 @@ export const NICHE_LABEL: Record<string, string> = {
   "services-consulting": "Services / firm model",
   other: "Other",
 };
-
 const NICHE_ORDER = Object.keys(NICHE_LABEL);
 
 export function nicheLabel(cat: string): string {
   return NICHE_LABEL[cat] ?? cat;
 }
 
-// Niches present in the data, in display order, with counts.
-export function nichesIn(rows: ScoreRow[]): { cat: string; count: number }[] {
+export function nichesIn(rows: Company[]): { cat: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const r of rows) counts.set(r.cat, (counts.get(r.cat) ?? 0) + 1);
   return NICHE_ORDER.filter((c) => counts.has(c)).map((c) => ({
@@ -57,3 +69,28 @@ export function nichesIn(rows: ScoreRow[]): { cat: string; count: number }[] {
     count: counts.get(c)!,
   }));
 }
+
+// Pretty labels + order for the dossier facts block on a detail page.
+export const FACT_LABEL: [string, string][] = [
+  ["founded", "Founded"],
+  ["hq", "HQ"],
+  ["total_funding", "Total funding"],
+  ["last_round", "Last round"],
+  ["lead_investor", "Lead investor"],
+  ["headcount", "Headcount"],
+  ["customers", "Customers"],
+  ["integrations", "Integrations"],
+  ["agentic_interop", "Agentic / interop"],
+  ["tech_model", "Tech model"],
+  ["pricing", "Pricing"],
+  ["name_collision_check", "Name-collision check"],
+];
+
+export const DIM_LABEL: [string, string][] = [
+  ["uniqueness", "Uniqueness"],
+  ["thesis_fit", "Thesis-fit"],
+  ["investability", "Investability"],
+  ["defensibility", "Defensibility"],
+  ["interoperability", "Interoperability"],
+  ["team", "Team"],
+];

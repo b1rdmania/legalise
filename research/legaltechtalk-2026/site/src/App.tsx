@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Scorecard } from "./components/Scorecard";
+import { CompanyDetail } from "./components/CompanyDetail";
 
 function Nav() {
   const links = [
@@ -58,11 +60,9 @@ const KILL: [string, string][] = [
   ],
 ];
 
-export function App() {
+function TheRead() {
   return (
-    <>
-      <Nav />
-      <main>
+    <main>
         {/* The read — the front door. Whole argument in the first screen. */}
         <header id="top" className="border-b border-rule">
           <div className="mx-auto max-w-2xl px-6 pt-16 pb-14 md:pt-24">
@@ -243,6 +243,32 @@ export function App() {
           </div>
         </footer>
       </main>
+  );
+}
+
+function useHashRoute() {
+  const get = (): { company: string | null } => {
+    const m = window.location.hash.match(/^#\/c\/(.+)$/);
+    return { company: m ? decodeURIComponent(m[1]) : null };
+  };
+  const [route, setRoute] = useState(get);
+  useEffect(() => {
+    const on = () => {
+      setRoute(get());
+      if (window.location.hash.startsWith("#/c/")) window.scrollTo(0, 0);
+    };
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  return route;
+}
+
+export function App() {
+  const route = useHashRoute();
+  return (
+    <>
+      <Nav />
+      {route.company ? <CompanyDetail id={route.company} /> : <TheRead />}
     </>
   );
 }
