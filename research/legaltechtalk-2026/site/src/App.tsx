@@ -48,19 +48,24 @@ function Grid({ items }: { items: Company[] }) {
 }
 
 // A full-width bar — for entries that sit alongside the scored cards but aren't
-// scored teardowns (our own build; the floor pick).
+// scored teardowns (our own build; the floor pick). Carries the same logo +
+// screenshot imagery as the cards so the section reads consistently.
 function Bar({
   title,
   tag,
   body,
   href,
   external,
+  logo,
+  screenshot,
 }: {
   title: string;
   tag?: string;
   body: string;
   href: string;
   external?: boolean;
+  logo: string;
+  screenshot: string;
 }) {
   const ext = external
     ? { target: "_blank", rel: "noopener noreferrer" }
@@ -69,20 +74,44 @@ function Bar({
     <a
       href={href}
       {...ext}
-      className="block border border-rule rounded-card p-5 bg-panel/40 hover:border-ink transition-colors"
+      className="flex border border-rule rounded-card overflow-hidden bg-panel/40 hover:border-ink transition-colors"
     >
-      <span className="font-bold text-lg underline decoration-rule underline-offset-4">
-        {title}
-      </span>
-      {tag && (
-        <span className="ml-3 text-[10px] uppercase tracking-track1 text-seal border border-seal px-1 py-0.5 align-middle">
-          {tag}
-        </span>
-      )}
-      <p className="prose-p !mb-0 mt-2 text-sm">{body}</p>
+      <img
+        src={screenshot}
+        alt=""
+        className="hidden sm:block w-48 md:w-56 shrink-0 self-stretch object-cover object-top border-r border-rule bg-wash"
+        loading="lazy"
+      />
+      <div className="p-5 min-w-0">
+        <div className="flex items-center gap-3">
+          <img
+            src={logo}
+            alt=""
+            width={28}
+            height={28}
+            className="rounded shrink-0 bg-paper"
+            loading="lazy"
+          />
+          <span className="font-bold text-lg leading-tight underline decoration-rule underline-offset-4">
+            {title}
+          </span>
+          {tag && (
+            <span className="text-[10px] uppercase tracking-track1 text-seal border border-seal px-1 py-0.5 whitespace-nowrap">
+              {tag}
+            </span>
+          )}
+        </div>
+        <p className="prose-p !mb-0 mt-3 text-sm">{body}</p>
+      </div>
     </a>
   );
 }
+
+// Legalise's own imagery (it isn't in the scored data).
+const LEGALISE_LOGO =
+  "https://www.google.com/s2/favicons?domain=legalise.dev&sz=128";
+const LEGALISE_SHOT =
+  "https://s.wordpress.com/mshots/v1/https%3A%2F%2Flegalise.dev%2F?w=1200&h=750";
 
 function TheRead({ rows }: { rows: Company[] }) {
   const watching = byTier(rows, "scorecard").sort((a, b) => b.comp - a.comp);
@@ -209,12 +238,16 @@ function TheRead({ rows }: { rows: Company[] }) {
                 title={eye.name}
                 body={eye.my_take}
                 href={`#/c/${eye.id}`}
+                logo={eye.logo}
+                screenshot={eye.screenshot}
               />
             )}
             <Bar
               title="Legalise"
               tag="ours · beta"
               href="#/legalise"
+              logo={LEGALISE_LOGO}
+              screenshot={LEGALISE_SHOT}
               body="The one we built. Early beta, but it's starting to address exactly this — the guardrails and documentation layer, so the work stays accountable when the AI does it. Read the full thing →"
             />
           </div>
