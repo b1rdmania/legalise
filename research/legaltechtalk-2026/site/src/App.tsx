@@ -71,9 +71,9 @@ export function App() {
         <p className="prose-p max-w-2xl">
           The opinionated buckets: the rails (infrastructure others build on),
           the renters (apps borrowing a moat), the dead (wrappers on a
-          countdown), and the un-won space. The full screen — 33 booths scored,
-          thesis-fit weighted ×2 — is below. Slim it to the top 20 for the
-          one-glance cut.
+          countdown), and the un-won space. Below is the full screen — 33 booths
+          scored, thesis-fit weighted ×2 — browsable by niche. Pick a niche, or
+          scan them all; every name links to the company.
         </p>
         <div className="mt-8">
           <Scorecard />
