@@ -1,227 +1,175 @@
-import { Section, Eyebrow } from "./components/Section";
 import { Scorecard } from "./components/Scorecard";
-import { Nav } from "./components/Nav";
-import { GEMS, WATCH } from "./data/gems";
 
-function Hero() {
-  return (
-    <header id="top" className="border-b border-rule">
-      <div className="mx-auto max-w-page px-6 pt-16 pb-16 md:pt-24 md:pb-20">
-        <Eyebrow>LegalTechTalk 2026 · InterContinental O2 · 17–18 June</Eyebrow>
-        <h1 className="font-redaction35 text-4xl md:text-6xl leading-[1.05] tracking-tight2 mb-8 max-w-4xl">
-          I walked the booths so you didn&apos;t have to.
-        </h1>
-        <p className="prose-p text-lg md:text-xl max-w-2xl">
-          Most of what&apos;s on that floor is shockingly bad and dead within a
-          year. Not &ldquo;will struggle&rdquo; — dead as a concept. This is the
-          screen, the scorecard, and the calls. Boots on the ground, named and
-          blunt.
-        </p>
-        <p className="text-muted text-sm mt-6 tech-token">
-          A research artifact · honest opinion on disclosed, cited facts · calls
-          marked provisional where evidence is thin.
-        </p>
-      </div>
-    </header>
-  );
-}
-
-function ThesisStrip() {
-  const cols: [string, JSX.Element][] = [
-    [
-      "The macro driver",
-      <>
-        Legal is flipping from <b>80% human / 20% AI</b> to{" "}
-        <b>80% AI / 20% human.</b> Everything is read against what survives the
-        flip.
-      </>,
-    ],
-    [
-      "The spine",
-      <>
-        Real = agentic, interoperable, lives where lawyers work. Front-end +
-        proprietary data + no agent-to-agent = a wrapper with a countdown.
-      </>,
-    ],
-    [
-      "Eye beats screen",
-      <>
-        Where the judgment disagrees with the scorecard, the judgment wins —
-        annotated. The score is the floor; the eye is the product.
-      </>,
-    ],
+function Nav() {
+  const links = [
+    ["watching", "Worth watching"],
+    ["space", "The space"],
+    ["niches", "Niches"],
+    ["kill", "Kill list"],
+    ["floor", "The floor"],
   ];
   return (
-    <div className="bg-wash border-b border-rule">
-      <div className="mx-auto max-w-page px-6 py-10 grid gap-8 md:grid-cols-3">
-        {cols.map(([h, body]) => (
-          <div key={h}>
-            <Eyebrow>{h}</Eyebrow>
-            <p className="prose-p !mb-0">{body}</p>
-          </div>
-        ))}
+    <nav className="sticky top-0 z-20 bg-paper/90 backdrop-blur border-b border-rule">
+      <div className="mx-auto max-w-page px-6 h-12 flex items-center justify-between">
+        <a href="#top" className="font-bold tracking-tight2 text-sm">
+          LegalTechTalk 2026 · the read
+        </a>
+        <div className="hidden sm:flex items-center gap-5 text-sm text-prose">
+          {links.map(([id, label]) => (
+            <a key={id} href={`#${id}`} className="hover:text-ink">
+              {label}
+            </a>
+          ))}
+        </div>
       </div>
-    </div>
+    </nav>
   );
 }
 
-function Gems() {
+function A({ href, children }: { href: string; children: string }) {
   return (
-    <Section id="gems" eyebrow="02 — The gems" title="What’s real, and the game-theory">
-      <p className="prose-p max-w-2xl">
-        Three things are real; most of the rest is an app that becomes a feature
-        in someone else&apos;s product inside a year. For each gem: what it is,
-        why it&apos;s real, and the endgame — who acquires it, who eats it, and
-        where the white space hides.
-      </p>
-
-      <div className="mt-8 space-y-5">
-        {GEMS.map((g) => (
-          <div key={g.name} className="border border-rule rounded-card p-6 bg-panel/40">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="font-bold text-xl">
-                <a
-                  href={g.site}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline decoration-rule underline-offset-4 hover:decoration-ink"
-                >
-                  {g.name}
-                </a>
-                <span className="text-muted font-normal"> ↗</span>
-              </h3>
-              <span className="eyebrow !mb-0 text-right">{g.tag}</span>
-            </div>
-            <p className="prose-p !mb-0 mt-3">{g.what}</p>
-            <p className="prose-p !mb-0 mt-3 text-sm">
-              <span className="font-bold">Game-theory — </span>
-              {g.game}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <h3 className="eyebrow mt-12 mb-4">Worth a deeper pass</h3>
-      <div className="grid gap-4 md:grid-cols-3">
-        {WATCH.map((w) => (
-          <div
-            key={w.name}
-            className={`rounded-card p-5 ${
-              w.highlight ? "border-2 border-seal bg-panel" : "border border-rule bg-panel/40"
-            }`}
-          >
-            <div className="flex items-baseline justify-between">
-              <h4 className="font-bold text-lg">
-                <a
-                  href={w.site}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline decoration-rule underline-offset-4 hover:decoration-ink"
-                >
-                  {w.name}
-                </a>
-                <span className="text-muted font-normal"> ↗</span>
-              </h4>
-              {w.highlight && (
-                <span className="text-[10px] uppercase tracking-track1 text-seal">
-                  Raising now
-                </span>
-              )}
-            </div>
-            <p className="prose-p !mb-0 mt-2 text-sm">{w.note}</p>
-          </div>
-        ))}
-      </div>
-    </Section>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline decoration-rule underline-offset-4 hover:decoration-ink"
+    >
+      {children}
+    </a>
   );
 }
-
-const KILL = [
-  ["Dead segment", "Standalone vertical LLM apps, no interop (Crimson, Emma, PhaseLaw, Pivot, Mage). Features, not companies — gone the moment a horizontal agent or incumbent ships the vertical."],
-  ["Dead-ish", "Diagramming-as-data (Structureflow, Jigsaw). Good apps, real logos, capped ceilings — closed surface, not agentic."],
-  ["Crowded / thin", "Compliance-GRC — a graveyard of thin workflow tools on the same ground. Except where it points at the white space above."],
-  ["Re-read, not killed", "Moritz — not a wrapper but the Thesis-2 flagship: “be the regulated AI firm.” The inverse of the infra plays."],
-  ["Most exposed", "Horizontal agent-builders (Airia, Eudia, Newcode, Wexler, Casey). The most clonable shape there is — a frontier-model quarter from commoditised."],
-  ["Liked-but-flawed niches", "The GDPR/certificates model (stalled, real model) and a few others — annotated where the eye beats the screen."],
-];
 
 export function App() {
   return (
     <>
       <Nav />
       <main>
-        <Hero />
-        <ThesisStrip />
+        <header id="top" className="border-b border-rule">
+          <div className="mx-auto max-w-2xl px-6 pt-16 pb-14 md:pt-24">
+            <p className="eyebrow mb-4">LegalTechTalk 2026 · the O2 · 17–18 June</p>
+            <h1 className="font-redaction35 text-4xl md:text-5xl leading-[1.08] tracking-tight2">
+              I walked the booth so you didn&apos;t have to. Most of what I saw is
+              shockingly bad and dead within a year.
+            </h1>
+            <p className="text-muted text-sm mt-6">
+              A first-hand read. The opinions are mine; the facts behind them are
+              disclosed and sourced.
+            </p>
+          </div>
+        </header>
 
-        <Section id="map" eyebrow="01 — The map" title="The floor, browsable by niche">
-          <p className="prose-p max-w-2xl">
-            The opinionated buckets: the rails (infrastructure others build on),
-            the renters (apps borrowing a moat), the dead (wrappers on a
-            countdown), and the un-won space. The full screen — 33 booths scored,
-            thesis-fit weighted ×2. Pick a niche or scan them all; every name
-            links to the company.
+        <article className="mx-auto max-w-2xl px-6 py-16 text-[1.05rem] leading-[1.75] text-prose">
+          <h2 className="font-bold text-ink text-xl mb-3">The thesis</h2>
+          <p className="mb-10">
+            We&apos;re moving to a position where thinking you&apos;re getting
+            lawyers using four different platforms that don&apos;t swap data and
+            that agents can&apos;t talk to is ridiculous. If something just has a
+            front-end and proprietary data, it&apos;s dead. It&apos;s a wrapper.
+            It&apos;s gone. They might hold out to get acqui-hired if they&apos;ve
+            got brand and a following, but they&apos;re dead as concepts.
           </p>
-          <div className="mt-8">
+
+          <h2 id="watching" className="font-bold text-ink text-xl mb-3 scroll-mt-16">
+            The ones worth watching
+          </h2>
+          <p className="mb-5">
+            <A href="https://www.deepjudge.ai/">DeepJudge</A> — the knowledge
+            layer agents plug into. Retrieval that Harvey, CoCounsel and MCP
+            agents call into. The moat and the kill are the same thing: its
+            biggest partners, Harvey and Thomson Reuters, are also its most
+            obvious substitutes. The day TR decides retrieval is core, DeepJudge
+            is a feature. It gets bought at a premium or absorbed for free.
+          </p>
+          <p className="mb-5">
+            <A href="https://lawstronaut.com/">Lawstronaut</A> — the legal-data
+            API / MCP layer. The most thesis-pure thing in the room: agents call
+            it for the slice of law they need, with provenance. Earliest and
+            thinnest of the lot, all self-reported. It wins on who builds on it,
+            and nobody does yet.
+          </p>
+          <p className="mb-5">
+            <A href="https://syllo.ai/">Syllo</A> — agentic document review at
+            AmLaw scale, litigator-founded, real money behind it. Closer to
+            revenue than the infra plays. Hinges on interop depth: open layer it
+            survives, closed app it gets eaten the day Relativity bolts on genAI.
+          </p>
+          <div className="my-8 border-l-2 border-seal pl-5">
+            <p className="text-seal text-xs uppercase tracking-track1 mb-1">
+              Raising now
+            </p>
+            <p className="!mb-0">
+              One to flag: <A href="https://www.moonlit.ai/">Moonlit AI</A> is
+              currently raising. The timely one — worth getting the deck and a
+              proper look at the backend.
+            </p>
+          </div>
+
+          <h2 id="space" className="font-bold text-ink text-xl mb-3 scroll-mt-16">
+            The space worth owning
+          </h2>
+          <p className="mb-5">
+            <A href="https://komplyai.com/">KomplyAI</A> is the one I want to give
+            more context on — not because the company is the answer (it
+            isn&apos;t; it launched a few years back, went too wide on its thesis,
+            and the backend designs look poor), but because the space is. AI
+            compliance guardrails and documentation. Someone is going to eat it.
+            I don&apos;t think it&apos;s them — I&apos;m flagging it because the
+            space matters.
+          </p>
+          <p className="mb-10">
+            The flip is the demand engine. When humans do 80% of the work, the
+            guardrails <i>are</i> the humans. When AI does 80%, they have to be
+            productised — and regulators and insurers will require it. Nobody owns
+            that layer yet. There&apos;s a monetisation layer here. That&apos;s
+            the play.
+          </p>
+
+          <h2 id="niches" className="font-bold text-ink text-xl mb-3 scroll-mt-16">
+            The niches I liked
+          </h2>
+          <p className="mb-10">
+            There was one doing GDPR specifically — staying on top of the
+            regulations, outputting your reports, doing your certificates. They
+            seem stalled; I think they raised back in 2022. But it&apos;s an
+            interesting model. I liked three or four others too. They all had
+            flaws.
+          </p>
+
+          <h2 id="kill" className="font-bold text-ink text-xl mb-3 scroll-mt-16">
+            The kill list
+          </h2>
+          <p className="mb-10">
+            The bottom, and it&apos;s long. Standalone vertical apps with no
+            interop: features, not companies — gone the moment a horizontal agent
+            ships the vertical. Diagramming tools: nice apps, capped ceilings.
+            Services firms in software clothing: not vendors. Horizontal
+            agent-builders: the most clonable shape there is.
+          </p>
+
+          <h2 className="font-bold text-ink text-xl mb-3">Scope</h2>
+          <p className="!mb-0">
+            I&apos;ve deliberately kept the $500M+ Series B names out of scope. I
+            might be opinionated on them, but that doesn&apos;t help anybody.
+          </p>
+        </article>
+
+        <section id="floor" className="border-t border-rule scroll-mt-12">
+          <div className="mx-auto max-w-page px-6 py-16">
+            <h2 className="font-bold text-ink text-xl mb-2">The whole floor, by niche</h2>
+            <p className="text-muted text-sm mb-8 max-w-2xl">
+              Everyone I looked at, scored and sorted by niche. Every name links
+              out. The verdicts are the receipts behind the read above.
+            </p>
             <Scorecard />
           </div>
-        </Section>
-
-        <Gems />
-
-        <Section id="whitespace" eyebrow="03 — The white space" title="The category nobody owns">
-          <p className="prose-p max-w-2xl">
-            The un-won category is <b>AI compliance guardrails + documentation</b>{" "}
-            — what a regulator or an insurer needs to see: audit, accountability,
-            supervised autonomy. The governed layer nobody owns.
-          </p>
-          <p className="prose-p max-w-2xl">
-            Flagged via <b>KomplyAI</b> — itself a kill (too wide, thin backend),
-            but the <i>space</i> is wide open. The 80/20 flip is its forced,
-            growing buyer: when AI does 80%, regulators and insurers will{" "}
-            <i>require</i> the guardrails. The hinge:{" "}
-            <b>kill the company, own the space.</b>
-          </p>
-        </Section>
-
-        <Section id="killlist" eyebrow="04 — The kill-list" title="The long bottom, with teeth">
-          <p className="prose-p max-w-2xl">
-            Blunt, segment-level. Evidence is in the scorecard; this is the read.
-          </p>
-          <div className="mt-6 grid gap-4 md:grid-cols-2 max-w-4xl">
-            {KILL.map(([h, body]) => (
-              <div key={h} className="border-l-2 border-rule pl-4">
-                <p className="font-bold">{h}</p>
-                <p className="prose-p !mb-0 text-sm">{body}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section id="meaning" eyebrow="05 — What it means" title="So what do you do">
-          <p className="prose-p max-w-2xl">
-            <b>White space</b> = the governed / guardrails layer (§3).{" "}
-            <b>Acquire</b> = real-but-early infra before a partner absorbs it
-            (Moonlit is raising now).{" "}
-            <b>Build, don&rsquo;t buy</b> = the entire dead segment.
-          </p>
-          <p className="prose-p max-w-2xl">
-            Deliberately out of scope: the $500M+ Series B giants. Opinions on
-            them help no one and just pick a fight.
-          </p>
-        </Section>
+        </section>
 
         <footer className="border-t border-rule">
-          <div className="mx-auto max-w-page px-6 py-12 space-y-3">
-            <p className="text-prose text-sm max-w-2xl">
-              <b>Method:</b> ~20-company scored screen triaged from ~120
-              exhibitors; thesis-fit weighted ×2. Low-confidence calls were
-              web-verified (6 of 8 upgraded to medium). Every kill is structured
-              as disclosed, cited facts → honest opinion, clearly marked.
-            </p>
-            <p className="text-muted text-sm tech-token">
-              LegalTechTalk 2026 teardown · evidence in the scorecard, judgment in
-              the read · {new Date().getFullYear()}.
-            </p>
+          <div className="mx-auto max-w-2xl px-6 py-12 text-muted text-sm leading-relaxed">
+            I triaged about 120 booths, looked hard at ~20, and scored them —
+            weighting one thing double: does it survive the flip. The
+            low-confidence calls I web-checked. Every kill rests on facts I&apos;ve
+            disclosed; the verdicts are mine. LegalTechTalk 2026.
           </div>
         </footer>
       </main>
