@@ -25,7 +25,18 @@ re-mirror + redeploy (commands at the bottom).
     Andy chose the public launch knowingly. This raises the bar on accuracy/legal — see
     the KomplyAI reframe below, which is now a live-site correctness + exposure issue.
 
-### DECIDED editorial re-cut (implement in source, then re-mirror)
+### ✅ IMPLEMENTED 2026-06-19 (source `8a9b9b9` → mirror `dd9e331` → live)
+The re-cut below is **built and deployed**. `tier` field added to `companies.json` +
+`dataset/scorecard.json` (20 scorecard / 4 featured / 9 parked); the Map filters to the 20;
+new `#firm` (Moritz+Cicero Thesis-2) and `#rest` (parked footer) sections; KomplyAI reframed
+in `#space`; Awesome Compliance named in the eye-beats-screen callout. Live + verified at
+https://legaltech-teardown.pages.dev.
+**Residual tension to resolve (editorial, left for Andy/next agent):** the kill-list prose in
+`App.tsx` still names several companies that are now in the top-20 scorecard as kills
+(Airia, Eudia, Newcode, Wexler, Structureflow, Jigsaw). Score keeps them; the kill-list voice
+buries them. Reconcile the prose or accept the "screen vs eye" split deliberately.
+
+### DECIDED editorial re-cut (now built — see above)
 **1. Scorecard 33 → 20.** Andy: *"30 felt like filler; 20 feels editorial."* The cut falls
 on a natural line — **composite ≥ 21.** Below that is early, thin-interop vertical apps.
 
