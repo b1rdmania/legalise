@@ -20,13 +20,39 @@ const ACT_RAIL = ["assistant", "workflows", "workflows", "documents", "audit"] a
 
 const QUESTION = "What's the deadline to file the ET1 in this matter?";
 
+// Scenario dates are anchored to "now" so the demo never shows a deadline
+// that has already lapsed. Khan's dismissal sits ~6 weeks in the past; the
+// (unsupported) raw-model deadline is a clean +3 months from it — still in
+// the future on any day the demo is shown.
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const shiftDays = (base: Date, n: number) => {
+  const d = new Date(base);
+  d.setDate(d.getDate() + n);
+  return d;
+};
+const shiftMonths = (base: Date, n: number) => {
+  const d = new Date(base);
+  d.setMonth(d.getMonth() + n);
+  return d;
+};
+const DISMISSAL = shiftDays(new Date(), -45);
+const D = {
+  dismissal: fmtDate(DISMISSAL),
+  deadline: fmtDate(shiftMonths(DISMISSAL, 3)),
+  hearing: fmtDate(shiftDays(DISMISSAL, -2)),
+  post: fmtDate(shiftDays(DISMISSAL, -12)),
+  grievance: fmtDate(shiftDays(DISMISSAL, -42)),
+  nda: fmtDate(shiftDays(DISMISSAL, 50)),
+};
+
 const RAW_HTML = `
-<p>The deadline to file the ET1 is <span class="ann ann-bluff">12 June 2026</span>.</p>
-<p>Under the Employment Rights Act 1996, an unfair-dismissal claim must be presented within three months of the effective date of termination. <span class="ann ann-bluff">As established in <em>Henderson v Brent London Borough Council</em> [2019] EWCA Civ 1021, the three-month period runs cleanly from the date of the dismissal letter</span>, giving a firm and calculable deadline. Ms Khan was dismissed on 12 March 2026, so <span class="ann ann-bluff">the period expires exactly three months later, on 12 June 2026</span>.</p>
+<p>The deadline to file the ET1 is <span class="ann ann-bluff">${D.deadline}</span>.</p>
+<p>Under the Employment Rights Act 1996, an unfair-dismissal claim must be presented within three months of the effective date of termination. <span class="ann ann-bluff">As established in <em>Henderson v Brent London Borough Council</em> [2019] EWCA Civ 1021, the three-month period runs cleanly from the date of the dismissal letter</span>, giving a firm and calculable deadline. Ms Khan was dismissed on ${D.dismissal}, so <span class="ann ann-bluff">the period expires exactly three months later, on ${D.deadline}</span>.</p>
 <p><span class="ann ann-slop">It is important to note that this is a firm deadline and the claim should be filed by that date to preserve Ms Khan's position.</span> <span class="ann ann-bluff">Given the procedural failings, the claim is very likely to succeed at hearing.</span></p>`;
 
 const REDLINE_HTML = `
-<p>The deadline to file the ET1 is <del>12 June 2026</del> <ins>not fixed by the documents alone — see below</ins>.</p>
+<p>The deadline to file the ET1 is <del>${D.deadline}</del> <ins>not fixed by the documents alone — see below</ins>.</p>
 <p>Under the Employment Rights Act 1996 (s.111), an unfair-dismissal claim is normally presented within three months <ins>less one day</ins> of the effective date of termination. <del>As established in Henderson v Brent London Borough Council [2019] EWCA Civ 1021, the three-month period runs cleanly from the date of the dismissal letter.</del> <ins>⚑ No authority by that citation appears in the matter, and the matter contains no case law at all. Two things the documents do not settle are also load-bearing: (a) whether ACAS early conciliation has started; and (b) the exact effective date of termination given the payment in lieu of notice.</ins></p>
 <p><del>It is important to note that this</del> <ins>This</ins> is a time-critical deadline. <del>Given the procedural failings, the claim is very likely to succeed at hearing.</del> <ins>Confirm the ACAS position and the effective date of termination before relying on any date.</ins></p>`;
 
@@ -59,19 +85,19 @@ const DOCS: { key: string; label: string; filename: string; text: string }[] = [
     key: "dismissal",
     label: "Dismissal letter",
     filename: "khan-dismissal-letter.pdf",
-    text: "ACME TRADING LTD\n12 March 2026\n\nDear Ms Khan,\n\nFollowing the disciplinary hearing held on 10 March 2026, the company has concluded that your conduct — a post published on social media on 28 February 2026 — constitutes gross misconduct under the Acme Social Media Policy.\n\nYou are summarily dismissed with effect from today, 12 March 2026. You will receive a payment in lieu of your notice period.\n\nThe hearing was chaired by Mr R. Caldwell, Warehouse Operations Manager.\n\nYours sincerely,\nFor and on behalf of Acme Trading Ltd",
+    text: `ACME TRADING LTD\n${D.dismissal}\n\nDear Ms Khan,\n\nFollowing the disciplinary hearing held on ${D.hearing}, the company has concluded that your conduct — a post published on social media on ${D.post} — constitutes gross misconduct under the Acme Social Media Policy.\n\nYou are summarily dismissed with effect from today, ${D.dismissal}. You will receive a payment in lieu of your notice period.\n\nThe hearing was chaired by Mr R. Caldwell, Warehouse Operations Manager.\n\nYours sincerely,\nFor and on behalf of Acme Trading Ltd`,
   },
   {
     key: "witness",
     label: "Witness statement",
     filename: "witness-statement-khan.docx",
-    text: "WITNESS STATEMENT OF JASMINE KHAN\n\n1. The post treated as gross misconduct was made from my personal Instagram account, outside working hours, to a closed audience of 47 followers. None were customers, suppliers, or colleagues.\n\n2. On 29 January 2026 I raised a grievance about Mr Caldwell's conduct toward female members of the warehouse team.\n\n3. The disciplinary hearing on 10 March 2026 was chaired by Mr Caldwell — the same manager who was the subject of my grievance.",
+    text: `WITNESS STATEMENT OF JASMINE KHAN\n\n1. The post treated as gross misconduct was made from my personal Instagram account, outside working hours, to a closed audience of 47 followers. None were customers, suppliers, or colleagues.\n\n2. On ${D.grievance} I raised a grievance about Mr Caldwell's conduct toward female members of the warehouse team.\n\n3. The disciplinary hearing on ${D.hearing} was chaired by Mr Caldwell — the same manager who was the subject of my grievance.`,
   },
   {
     key: "nda",
     label: "Mutual NDA",
     filename: "synthetic-mutual-nda.docx",
-    text: "MUTUAL NON-DISCLOSURE AGREEMENT\nbetween Acme Trading Ltd and North Mill Consulting Limited · 1 May 2026\n\n3.2  Confidentiality obligations shall continue in force without limit of time.\n\n4.1  Each party shall comply with applicable data protection law.\n\n5.1  The receiving party shall indemnify the disclosing party against all losses without limitation.\n\n[No governing-law or jurisdiction clause.]",
+    text: `MUTUAL NON-DISCLOSURE AGREEMENT\nbetween Acme Trading Ltd and North Mill Consulting Limited · ${D.nda}\n\n3.2  Confidentiality obligations shall continue in force without limit of time.\n\n4.1  Each party shall comply with applicable data protection law.\n\n5.1  The receiving party shall indemnify the disclosing party against all losses without limitation.\n\n[No governing-law or jurisdiction clause.]`,
   },
 ];
 
@@ -206,11 +232,15 @@ export function GuidedDemo() {
   const globalItems: RailItem[] = [
     { key: "matters", label: "Matters", icon: <NavIcon name="matters" />, href: "/" },
   ];
+  // The matter rail is a passive progress indicator here: it lights up the
+  // surface the current act touches, but does NOT navigate. (Wiring onSelect
+  // turned it into a mislabeled scrubber — clicking "Files" jumped the story
+  // backward. Forward/back belongs to the footer step button + Back link.)
   const matterItems: RailItem[] = [
-    { key: "assistant", label: "Chat", icon: <NavIcon name="assistant" />, active: railActive === "assistant", onSelect: () => setAct(0) },
-    { key: "documents", label: "Files", icon: <NavIcon name="documents" />, active: railActive === "documents", onSelect: () => setAct(3) },
-    { key: "workflows", label: "Skills", icon: <NavIcon name="workflows" />, active: railActive === "workflows", onSelect: () => setAct(1) },
-    { key: "audit", label: "Record", icon: <NavIcon name="audit" />, active: railActive === "audit", onSelect: () => setAct(4) },
+    { key: "assistant", label: "Chat", icon: <NavIcon name="assistant" />, active: railActive === "assistant" },
+    { key: "documents", label: "Files", icon: <NavIcon name="documents" />, active: railActive === "documents" },
+    { key: "workflows", label: "Skills", icon: <NavIcon name="workflows" />, active: railActive === "workflows" },
+    { key: "audit", label: "Record", icon: <NavIcon name="audit" />, active: railActive === "audit" },
   ];
 
   // The forward action for the pinned footer, by act + state. In-context
@@ -515,6 +545,22 @@ export function GuidedDemo() {
                     <Coachmark>
                       The refusal carries the same weight as an approval. The citation check's refusal of <strong>Henderson v Brent</strong> is struck onto the record, not hidden. The model drafted and you signed. That is the whole product: choose a skill, install it, run it, and stand behind what it produced.
                     </Coachmark>
+
+                    {/* Where a convinced stranger goes next — the demo no longer
+                        dead-ends at "Replay". Deepen, verify, or get in touch. */}
+                    <div className="mt-10 border-t border-rule pt-6">
+                      <SectionRule label="Where this goes" />
+                      <p className="mt-4 text-sm leading-relaxed text-prose">
+                        This walk was on rails. The same loop — admit a skill, run it inside the matter, sign it, read the record — is the product. It is open source, and in private beta for evaluators.
+                      </p>
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <a href="/architecture" className="inline-flex items-center bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]">See how it's built →</a>
+                        <a href="https://github.com/b1rdmania/legalise" className="inline-flex items-center border border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px]">Read the source</a>
+                      </div>
+                      <p className="mt-4 text-xs text-muted">
+                        Evaluating it for a firm or a regulator? <a href="mailto:andrew@legalise.dev" className="text-seal hover:underline">Get in touch</a>.
+                      </p>
+                    </div>
                   </div>
                 )}
 

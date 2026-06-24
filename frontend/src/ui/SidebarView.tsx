@@ -35,11 +35,14 @@ function SectionLabel({ children }: { children: ReactNode }) {
 }
 
 function NavLink({ item }: { item: RailItem }) {
+  const interactive = Boolean(item.href || item.onSelect);
   const className =
     "mx-2 flex items-center gap-3 min-h-[40px] px-3 rounded-item text-sm text-left transition-colors " +
     (item.active
       ? "bg-panel-sel text-ink font-semibold"
-      : "text-prose hover:bg-panel-hover hover:text-ink");
+      : interactive
+        ? "text-prose hover:bg-panel-hover hover:text-ink"
+        : "text-prose");
   const inner = (
     <>
       {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
@@ -53,10 +56,19 @@ function NavLink({ item }: { item: RailItem }) {
       </a>
     );
   }
+  if (item.onSelect) {
+    return (
+      <button type="button" onClick={item.onSelect} data-testid={item.testid} className={"w-[calc(100%-1rem)] " + className} aria-current={item.active ? "page" : undefined}>
+        {inner}
+      </button>
+    );
+  }
+  // Neither a route nor a handler → a presentational progress indicator
+  // (the guided demo rail reflects the current act but does not navigate).
   return (
-    <button type="button" onClick={item.onSelect} data-testid={item.testid} className={"w-[calc(100%-1rem)] " + className} aria-current={item.active ? "page" : undefined}>
+    <div data-testid={item.testid} className={className} aria-current={item.active ? "page" : undefined}>
       {inner}
-    </button>
+    </div>
   );
 }
 
