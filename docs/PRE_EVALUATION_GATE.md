@@ -79,3 +79,67 @@ If both gates pass but the operational gate has open residual risks,
 invite only friendly evaluators with written caveats.
 
 Live-client matters need a separate approval decision.
+
+## Manual BYO-key gate — run record
+
+**2026-06-24 · PASSED · provider: Anthropic · model: claude-opus-4-7**
+
+Full path walked end to end on a local stack (env=development, infra
+compose) with a real Anthropic key entered in Settings → Provider keys.
+Non-client synthetic pack (Okafor v Pennine Freight Ltd — invented facts);
+the public demo matter and the seeded Khan shortcuts were not used.
+
+All nine steps passed:
+
+1. account created via the register endpoint;
+2. Anthropic key added in Settings → Provider keys;
+3. fresh matter created (no model picker at creation — see F2);
+4. two synthetic `.txt` documents uploaded to object storage;
+5. governed skill `github.b1rdmania.pre-motion` run from Chat — **real keyed
+   model call** (`model.invoked`: model `claude-opus-4-7`, provider
+   `anthropic`, 5,898 tokens in), not the keyless `stub-echo`;
+6. source anchors present — both documents cited, with the "Legalise does
+   not certify they prove the claim" framing;
+7. signed with observations;
+8. Activity shows advice-boundary, skill-run, `model.call`, completion,
+   output-decision and sign-off rows; **audit chain verified (21 links)**;
+9. worker-backed export produced a working-pack zip containing matter
+   metadata, original document bytes (content-addressed), signed-output
+   bytes, sign-off, audit + reconstruction (29-entry timeline), and a
+   human-verification checklist (`WORKING_PACK.md` / `README.md`).
+
+Positives confirmed beyond the checklist:
+
+- rubber-stamp detector fired ("signed in 32s — faster than a plausible read
+  of this output"); author≠signer self-sign flagged;
+- `model.call` telemetry records metadata only (model, provider, token
+  counts, ids) — no prompt, response, or document text. (Operational-gate
+  positive: observability scrubbing.)
+
+Findings (non-blocking; none stopped the loop):
+
+- **F1 [FIXED]** Registration rejected reserved-TLD emails (`.test`/`.local`)
+  with the raw email-validator message. Friendly validator added in
+  `backend/app/api/auth_schemas.py`.
+- **F2 [UX]** Profile "Default model" applies only to *new* matters; a matter
+  created before it was set silently used the env default (`claude-opus-4-7`).
+  No in-chat model indicator/picker — an evaluator cannot easily see or
+  control which model a matter runs on.
+- **F3 [UX/sec]** Settings → Provider keys renders the key in plain text (no
+  password mask / reveal toggle), despite "never shown after submission".
+- **F4 [observability]** `model.invoked` records `tokens_in` but
+  `tokens_out: 0` and `cost_micros`/`currency` null — output-token and cost
+  accounting not captured.
+- **F5 [UX]** After a successful export, reloading the working-pack page shows
+  "Start export" again rather than a download link; the completed pack is
+  reachable only via the job result / Activity.
+- **F6 [hardening — recommend]** `worker.run_job` returns silently when the
+  job row is not visible to its session ("job <id> not found — skipping"),
+  leaving the export wedged at "queued" with no error and no timeout. In this
+  run that was triggered by the worker pointing at a different database
+  (`legalise_test`) than the app (`legalise`) after a container recreate — an
+  environment artifact, not a product defect — but the silent-drop behaviour
+  means any worker/DB split or enqueue-before-commit race surfaces to the user
+  as an eternal spinner. Recommend `run_job` mark the job failed (or retry) on
+  not-found, and the export UI time out a stuck job. Maps to the
+  operational-gate "worker running wherever the backend is" item.

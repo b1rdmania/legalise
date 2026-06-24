@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 
+from email_validator import EmailNotValidError, validate_email
 from fastapi_users import schemas
 from pydantic import AliasChoices, Field, field_validator
 
@@ -32,6 +33,24 @@ class UserCreate(schemas.BaseUserCreate):
         default=None,
         validation_alias=AliasChoices("channel", "signup_channel"),
     )
+
+    # The raw email-validator message ("The part after the @-sign is a
+    # special-use or reserved name...") leaks library internals on signup.
+    # Catch it before EmailStr runs and return one human line instead.
+    # Same validator (check_deliverability=False) as EmailStr, so which
+    # addresses pass is unchanged — only the failure message is friendlier.
+    @field_validator("email", mode="before")
+    @classmethod
+    def _friendly_email(cls, v: object) -> object:
+        if isinstance(v, str):
+            try:
+                validate_email(v, check_deliverability=False)
+            except EmailNotValidError as exc:
+                raise ValueError(
+                    "Enter a valid email address. Test or reserved domains "
+                    "(such as .test or .local) are not accepted."
+                ) from exc
+        return v
 
     @field_validator("persona", mode="before")
     @classmethod
