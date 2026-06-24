@@ -143,3 +143,35 @@ Findings (non-blocking; none stopped the loop):
   as an eternal spinner. Recommend `run_job` mark the job failed (or retry) on
   not-found, and the export UI time out a stuck job. Maps to the
   operational-gate "worker running wherever the backend is" item.
+
+## Restore rehearsal — run record
+
+**2026-06-24 · PASSED · scope: local self-host restore drill**
+
+Rehearsed the self-host Postgres restore path in a disposable scratch database
+using the populated local stack from the manual BYO-key gate.
+
+Steps:
+
+1. dumped the running app database with `pg_dump -U legalise -Fc legalise`;
+2. created scratch database `legalise_restore_drill_20260624`;
+3. restored with `pg_restore -U legalise -d legalise_restore_drill_20260624
+   --clean --if-exists`;
+4. confirmed restored schema head and audit row counts:
+   `alembic_version=0035`, `audit_entries=423`, `audit_chain=423`;
+5. confirmed both WORM triggers survived the restore:
+   `enforce_audit_worm`, `enforce_audit_chain_worm`;
+6. ran the application verifier against the restored database:
+   `ok audit_chain scope=all scopes audit_entries=423 chain_entries=423
+   scopes=20`.
+
+Doctor also passed the restore-critical checks against the scratch database:
+`db.reachable`, `db.migrations_current`, `db.audit_table_present`, and
+`audit.chain_verifies`. It retained the same pre-existing local seed-data
+failure as the source database (`khan.demo_present`: Khan matter present but no
+`seed.matter.created` audit row), so that was not treated as a restore
+regression.
+
+This closes the operational-gate rehearsal item for local/self-host restore
+evidence. Hosted restore still needs a Neon PITR branch rehearsal before
+live-client use.
