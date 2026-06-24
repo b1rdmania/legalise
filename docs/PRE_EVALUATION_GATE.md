@@ -125,15 +125,18 @@ Findings (non-blocking; none stopped the loop):
   created before it was set silently used the env default (`claude-opus-4-7`).
   No in-chat model indicator/picker — an evaluator cannot easily see or
   control which model a matter runs on.
-- **F3 [UX/sec]** Settings → Provider keys renders the key in plain text (no
-  password mask / reveal toggle), despite "never shown after submission".
+- **F3 [WITHDRAWN — false positive]** Initially flagged the provider-key
+  field as plain text, but the input is already `type="password"` with
+  `autoComplete="off"`. The gate walk read the value from the automation
+  accessibility tree, not the rendered (masked) screen. No change needed.
 - **F4 [observability]** `model.invoked` records `tokens_in` but
   `tokens_out: 0` and `cost_micros`/`currency` null — output-token and cost
   accounting not captured.
-- **F5 [UX]** After a successful export, reloading the working-pack page shows
-  "Start export" again rather than a download link; the completed pack is
-  reachable only via the job result / Activity.
-- **F6 [hardening — recommend]** `worker.run_job` returns silently when the
+- **F5 [FIXED]** After a successful export, reloading the working-pack page
+  showed "Start export" again rather than a download link. The succeeded
+  export's id is now persisted so a reload rehydrates the download
+  (`MatterLifecycle` ExportPanel); only failed/cancelled jobs are cleared.
+- **F6 [FIXED #237]** `worker.run_job` returns silently when the
   job row is not visible to its session ("job <id> not found — skipping"),
   leaving the export wedged at "queued" with no error and no timeout. In this
   run that was triggered by the worker pointing at a different database
