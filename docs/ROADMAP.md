@@ -8,6 +8,12 @@ Open-source UK legal AI workspace, regulator-shaped, hosted as a limited
 evaluation environment. Legalise is open source; legalise.dev is a runnable
 evaluation copy. The hosted site is not for live client matters.
 
+Evaluator backend access is gated by
+[`PRE_EVALUATION_GATE.md`](./PRE_EVALUATION_GATE.md): one automated
+single-matter golden loop, one manual BYO-key run, and the operational
+checks that must be true before serious legal users evaluate the
+workspace.
+
 Shipped surfaces:
 
 - **Matter-first workspace** ordered around the chat-led loop: Chat, Files,
