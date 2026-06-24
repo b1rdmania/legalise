@@ -126,9 +126,12 @@ Findings (non-blocking; none stopped the loop):
   (`claude-opus-4-7`) and the profile "Default model" never flowed anywhere.
   The form now exposes a Default model field pre-filled from the account
   default (`NewMatter.tsx`), so the model is visible, chosen at creation, and
-  the profile setting actually flows. Residual (by design, not addressed): a
-  matter's model is fixed after creation, and there is no in-chat model
-  indicator for an existing matter.
+  the profile setting actually flows. `create_matter` also resolves the model
+  `body -> account default -> settings default`, so API callers that omit it
+  inherit the profile default too (`MatterCreate.default_model_id` now defaults
+  to `None`). Residual (by design, not addressed): a matter's model is fixed
+  after creation, and there is no in-chat model indicator for an existing
+  matter.
 - **F3 [WITHDRAWN — false positive]** Initially flagged the provider-key
   field as plain text, but the input is already `type="password"` with
   `autoComplete="off"`. The gate walk read the value from the automation
@@ -137,14 +140,17 @@ Findings (non-blocking; none stopped the loop):
   token total as `tokens_in` with `tokens_out: 0` and cost null. This is a
   *deliberate, documented* simplification (`runtime.py` pins the 0 sentinel
   and notes a future protocol extension), not a regression. Proper fix is a
-  cross-cutting provider-interface change: return `(text, tokens_in,
-  tokens_out)` from `ModelProvider.call` (anthropic/openai already expose the
-  split via `usage`; ollama/stub estimate), carry both on `ModelResult`, and
-  have `runtime._provider_call` pass `result.tokens_out` instead of the
+  cross-cutting provider-interface change. Decided shape (reviewer): providers
+  return `ProviderCallResult(text, usage=ModelUsage(...))` rather than widening
+  the tuple — a dataclass so cost, currency, cached tokens, provider request
+  ids and finish reasons can be added without another signature churn.
+  `ModelProvider.call` returns it (anthropic/openai already expose the split
+  via `usage`; ollama/stub estimate), the gateway maps it onto `ModelResult`,
+  and `runtime._provider_call` passes `result.tokens_out` instead of the
   sentinel — touching all four providers, the gateway unpack, and ~10 tests.
-  Cost stays null until a pricing table exists. Deferred: not safely
-  verifiable in one session without the full backend suite, and lower-priority
-  observability rather than a correctness gap.
+  Cost/`cost_micros` stays null until an explicit pricing table exists.
+  Deferred: not safely verifiable in one session without the full backend
+  suite, and lower-priority observability rather than a correctness gap.
 - **F5 [FIXED]** After a successful export, reloading the working-pack page
   showed "Start export" again rather than a download link. The succeeded
   export's id is now persisted so a reload rehydrates the download

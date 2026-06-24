@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
+from app.core.config import settings
 from app.core.db import get_session
 from app.core.limits import check_matter_create, check_document_upload
 from app.core.document_uploads import (
@@ -78,7 +79,10 @@ class MatterCreate(BaseModel):
     case_theory: str | None = None
     pivot_fact: str | None = None
     privilege_posture: str = Field(default=PRIVILEGE_MIXED)
-    default_model_id: str = Field(default="claude-opus-4-7", max_length=64)
+    # None means "not specified" — create_matter resolves the effective model
+    # from body -> the account default -> the settings default, so API callers
+    # that omit it inherit the profile default instead of a hardcoded id.
+    default_model_id: str | None = Field(default=None, max_length=64)
     facts: dict = Field(default_factory=dict)
     retention_until: date | None = None
 
@@ -245,7 +249,14 @@ async def create_matter(
         case_theory=body.case_theory,
         pivot_fact=body.pivot_fact,
         privilege_posture=body.privilege_posture,
-        default_model_id=body.default_model_id,
+        # body -> account default -> settings default. So the profile
+        # "Default model" flows to new matters via the API too, not just the
+        # new-matter form (gate finding F2).
+        default_model_id=(
+            body.default_model_id
+            or user.default_model_id
+            or settings.default_model_id
+        ),
         facts=body.facts,
         retention_until=body.retention_until,
         created_by_id=user.id,
