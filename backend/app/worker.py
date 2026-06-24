@@ -54,8 +54,25 @@ async def run_job(ctx: dict[str, Any], job_id_str: str) -> None:
     async with session_factory() as session:
         job = await session.scalar(select(Job).where(Job.id == job_id))
         if job is None:
-            logger.error("run_job: job %s not found — skipping", job_id)
-            return
+            # The id was queued but its row isn't visible to this worker's
+            # session. Callers commit the row before enqueuing (see
+            # exports._enqueue_or_mark_failed), so a brief absence can only be
+            # replication/visibility lag — and arq will retry. A *persistent*
+            # absence means the worker is connected to a different database
+            # than the API (the failure mode the pre-eval gate F6 caught).
+            #
+            # Either way, do NOT return silently: a clean return marks the arq
+            # job successful and leaves the DB row wedged at "queued" forever
+            # with no error. Raise so arq retries, then records a hard failure
+            # that surfaces the lag or the misconfiguration instead of hiding
+            # it. (The export UI also times out a stuck job — see
+            # MatterLifecycle — so the user isn't left on an eternal spinner.)
+            logger.error(
+                "run_job: job %s not found in this worker's database — row not "
+                "yet visible, or worker connected to the wrong database",
+                job_id,
+            )
+            raise RuntimeError(f"run_job: job {job_id} not found in worker database")
 
         matter = await session.scalar(
             select(Matter).where(Matter.id == job.matter_id)

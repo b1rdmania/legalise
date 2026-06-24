@@ -24,6 +24,12 @@ import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
 
 const EXPORT_LS_KEY = (slug: string) => `legalise.export.${slug}`;
 const POLL_MS = 3000;
+// A healthy worker finishes an export in seconds. If a job is still
+// non-terminal after this long it is wedged — e.g. a worker pointed at the
+// wrong database, the failure mode the pre-eval gate F6 caught — so we stop
+// polling and surface it instead of spinning forever. (The worker side now
+// also fails loud rather than dropping the job silently; see worker.run_job.)
+const EXPORT_TIMEOUT_MS = 120000;
 const TERMINAL: ReadonlySet<string> = new Set(["succeeded", "failed", "cancelled"]);
 
 export function MatterLifecycle({ slug }: { slug: string }) {
@@ -80,22 +86,38 @@ function ExportPanel({ slug }: { slug: string }) {
   const [job, setJob] = useState<JobRead | null>(null);
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
   const timer = useRef<number | null>(null);
+  const startedAt = useRef<number | null>(null);
 
   const poll = useCallback(
     (jobId: string) => {
       getJob(slug, jobId)
         .then((j) => {
           setJob(j);
-          if (!TERMINAL.has(j.status)) {
-            timer.current = window.setTimeout(() => poll(jobId), POLL_MS);
-          } else {
+          if (TERMINAL.has(j.status)) {
             try {
               window.localStorage.removeItem(EXPORT_LS_KEY(slug));
             } catch {
               /* ignore */
             }
+            return;
           }
+          // Still queued/running. Stop and surface if it has been stuck
+          // past the timeout — a healthy export never takes this long.
+          if (
+            startedAt.current !== null &&
+            Date.now() - startedAt.current > EXPORT_TIMEOUT_MS
+          ) {
+            setTimedOut(true);
+            try {
+              window.localStorage.removeItem(EXPORT_LS_KEY(slug));
+            } catch {
+              /* ignore */
+            }
+            return;
+          }
+          timer.current = window.setTimeout(() => poll(jobId), POLL_MS);
         })
         .catch(() => undefined);
     },
@@ -110,7 +132,10 @@ function ExportPanel({ slug }: { slug: string }) {
     } catch {
       resumeId = null;
     }
-    if (resumeId) poll(resumeId);
+    if (resumeId) {
+      startedAt.current = Date.now();
+      poll(resumeId);
+    }
     return () => {
       if (timer.current) window.clearTimeout(timer.current);
     };
@@ -119,9 +144,11 @@ function ExportPanel({ slug }: { slug: string }) {
   const start = async () => {
     setStarting(true);
     setErr(null);
+    setTimedOut(false);
     try {
       const j = await createMatterExport(slug);
       setJob(j);
+      startedAt.current = Date.now();
       try {
         window.localStorage.setItem(EXPORT_LS_KEY(slug), j.id);
       } catch {
@@ -135,7 +162,7 @@ function ExportPanel({ slug }: { slug: string }) {
     }
   };
 
-  const inProgress = job !== null && !TERMINAL.has(job.status);
+  const inProgress = job !== null && !TERMINAL.has(job.status) && !timedOut;
   const succeeded = job?.status === "succeeded";
   const failed = job?.status === "failed" || job?.status === "cancelled";
 
@@ -205,6 +232,13 @@ function ExportPanel({ slug }: { slug: string }) {
       {failed && (
         <p className="mt-2 text-sm text-seal">
           Export {job?.status}. {job?.error_message ?? ""}
+        </p>
+      )}
+      {timedOut && (
+        <p className="mt-2 text-sm text-seal" data-testid="export-timeout">
+          This export is taking longer than expected and may be stuck. Start it
+          again, or check Activity. If it keeps stalling, the matter's worker may
+          not be running.
         </p>
       )}
 
