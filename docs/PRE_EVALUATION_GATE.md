@@ -121,17 +121,30 @@ Findings (non-blocking; none stopped the loop):
 - **F1 [FIXED]** Registration rejected reserved-TLD emails (`.test`/`.local`)
   with the raw email-validator message. Friendly validator added in
   `backend/app/api/auth_schemas.py`.
-- **F2 [UX]** Profile "Default model" applies only to *new* matters; a matter
-  created before it was set silently used the env default (`claude-opus-4-7`).
-  No in-chat model indicator/picker — an evaluator cannot easily see or
-  control which model a matter runs on.
+- **F2 [FIXED — new matters]** Root cause: the new-matter form sent no model,
+  so every matter silently took the backend `MatterCreate` default
+  (`claude-opus-4-7`) and the profile "Default model" never flowed anywhere.
+  The form now exposes a Default model field pre-filled from the account
+  default (`NewMatter.tsx`), so the model is visible, chosen at creation, and
+  the profile setting actually flows. Residual (by design, not addressed): a
+  matter's model is fixed after creation, and there is no in-chat model
+  indicator for an existing matter.
 - **F3 [WITHDRAWN — false positive]** Initially flagged the provider-key
   field as plain text, but the input is already `type="password"` with
   `autoComplete="off"`. The gate walk read the value from the automation
   accessibility tree, not the rendered (masked) screen. No change needed.
-- **F4 [observability]** `model.invoked` records `tokens_in` but
-  `tokens_out: 0` and `cost_micros`/`currency` null — output-token and cost
-  accounting not captured.
+- **F4 [DEFERRED — scoped follow-up]** `model.invoked` records the combined
+  token total as `tokens_in` with `tokens_out: 0` and cost null. This is a
+  *deliberate, documented* simplification (`runtime.py` pins the 0 sentinel
+  and notes a future protocol extension), not a regression. Proper fix is a
+  cross-cutting provider-interface change: return `(text, tokens_in,
+  tokens_out)` from `ModelProvider.call` (anthropic/openai already expose the
+  split via `usage`; ollama/stub estimate), carry both on `ModelResult`, and
+  have `runtime._provider_call` pass `result.tokens_out` instead of the
+  sentinel — touching all four providers, the gateway unpack, and ~10 tests.
+  Cost stays null until a pricing table exists. Deferred: not safely
+  verifiable in one session without the full backend suite, and lower-priority
+  observability rather than a correctness gap.
 - **F5 [FIXED]** After a successful export, reloading the working-pack page
   showed "Start export" again rather than a download link. The succeeded
   export's id is now persisted so a reload rehydrates the download

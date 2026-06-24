@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { createMatter } from "../lib/api";
+import { useAuth } from "../auth/AuthProvider";
 import { navigate } from "../lib/route";
 import type { ReactNode } from "react";
 import { ErrorCallout, PageHeader } from "../ui/primitives";
@@ -32,13 +33,19 @@ function Field({
 }
 
 export function NewMatter() {
-  const [form, setForm] = useState({
+  const { user } = useAuth();
+  // A matter's model is fixed at creation. Pre-fill from the account's
+  // default so the profile setting actually flows to new matters (it used
+  // to be ignored — every matter silently got the backend default), and so
+  // an evaluator can see and change which model this matter will run on.
+  const [form, setForm] = useState(() => ({
     title: "",
     matter_type: "employment_tribunal",
     cause: "s.94 ERA 1996, unfair dismissal",
     case_theory: "",
     pivot_fact: "",
-  });
+    default_model_id: user?.default_model_id ?? "claude-opus-4-7",
+  }));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +54,12 @@ export function NewMatter() {
     setSubmitting(true);
     setError(null);
     try {
-      const matter = await createMatter(form);
+      // Omit a blank model so the backend applies its own default rather
+      // than receiving an empty id.
+      const matter = await createMatter({
+        ...form,
+        default_model_id: form.default_model_id.trim() || undefined,
+      });
       navigate(`/matters/${matter.slug}`);
     } catch (err) {
       setError(String(err));
@@ -95,6 +107,18 @@ export function NewMatter() {
             value={form.cause}
             onChange={(e) => setForm({ ...form, cause: e.target.value })}
             className={inputCls}
+          />
+        </Field>
+
+        <Field
+          label="Default model"
+          hint="runs this matter's skills; a claude-/gpt- model needs a provider key in Settings"
+        >
+          <input
+            value={form.default_model_id}
+            onChange={(e) => setForm({ ...form, default_model_id: e.target.value })}
+            placeholder="claude-opus-4-7"
+            className={inputCls + " tech-token"}
           />
         </Field>
 
