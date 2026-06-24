@@ -96,10 +96,16 @@ function ExportPanel({ slug }: { slug: string }) {
         .then((j) => {
           setJob(j);
           if (TERMINAL.has(j.status)) {
-            try {
-              window.localStorage.removeItem(EXPORT_LS_KEY(slug));
-            } catch {
-              /* ignore */
+            // Keep a succeeded export's id so a later reload rehydrates the
+            // download link (the resume effect re-fetches it); only a
+            // failed/cancelled job is cleared. A new Start export overwrites
+            // the key. (Gate finding F5: completed export not surfaced on reload.)
+            if (j.status !== "succeeded") {
+              try {
+                window.localStorage.removeItem(EXPORT_LS_KEY(slug));
+              } catch {
+                /* ignore */
+              }
             }
             return;
           }
