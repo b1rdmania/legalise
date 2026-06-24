@@ -164,6 +164,14 @@ jobs:
             -e POSTGRES_DSN="$POSTGRES_DSN" \
             backend python -m alembic upgrade head
 
+      - name: Start worker
+        working-directory: ${{ github.workspace }}
+        # Golden-loop export is part of the pre-evaluation contract.
+        # Export completion is worker-owned, so Playwright must run
+        # with the same durable worker process group the app uses in
+        # development/production.
+        run: docker compose -f infra/docker-compose.yml up -d --build worker
+
       - name: Build frontend
         # Vite env vars are baked in at build time.
         #
