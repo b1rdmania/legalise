@@ -296,7 +296,7 @@ above; this table is the index, not the argument.
   (Neon London) are UK-region, but Cloudflare R2 object storage is
   EU-placed (Western Europe), and frontier model providers are US-based
   under contractual terms. Residency is therefore *partial*, documented
-  honestly in `docs/TRUST.md` and `REGULATORY_PLUMBING.md`.
+  honestly in `docs/TRUST.md` (§3, §5).
 - **At-rest disk encryption of the database / object store beyond
   provider defaults.** We rely on Neon / Fly / R2 platform defaults; no
   application-layer envelope encryption of matter bodies is implemented
@@ -307,7 +307,6 @@ above; this table is the index, not the argument.
 ## Maps to
 
 - Trust narrative + sub-processor list + residency honesty: `docs/TRUST.md`
-- Auth surface: `docs/AUTH.md`
+- Auth, gates, and model-gateway surface: `docs/ARCHITECTURE.md` (§4–5, §7)
 - Forward-looking controls (KMS, anchoring, residency cert): `docs/ROADMAP.md`
-- Regulatory framing: `REGULATORY_PLUMBING.md`
 - Vulnerability reporting + disclosure SLA: `SECURITY.md`

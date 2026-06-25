@@ -1,19 +1,31 @@
 # Legalise
 
-Open-source infrastructure for solicitor-owned AI preparation in
-England & Wales.
+An open-source **governance layer for legal AI** — audit trails and named
+human sign-off for matter work. A few weeks in the making: an open
+experiment, not a finished platform.
 
-Open a matter. Add documents. Run skills. Review outputs with
-cited sources visible. **Sign the output as a record of professional
-judgement.** Export the matter record.
+A closed legal-AI platform can't be forked by a curious dev on a Tuesday.
+This one can. The governance layer is meant to **bolt onto whatever you're
+already building** — not a walled garden, and not limited to the skills in
+the bundled demo. To show that's more than a line, there's a fork of MikeOS
+with the Legalise modules dropped straight in.
 
-The demo loop is deliberately small: add a Claude-style legal skill,
-enable it on Khan v Acme, run it from chat, watch the supervised run,
-then inspect the card and signed record it leaves behind.
+The question it pokes at: as legal work goes from 20% AI to 80% AI, what do
+courts, clients, insurers, and regulators start asking about who did what,
+and when? Audit trails and a named signature are one answer worth testing in
+the open. It might be solving a problem no one needs solved, and there are
+UX rough edges and backend quirks — take it as an open experiment in the
+space. Fork it, break it, integrate it, or copy the repo into your agent and
+ask it what it thinks.
 
-Legalise is open source. The hosted site is a limited evaluation
-environment. Real AI workflows require your own model key. Legalise
-does not provide model access and is not for live client matters.
+The bundled demo loop is deliberately small: add a legal skill, enable it on
+the Khan v Acme sample matter, run it from chat, watch the supervised run,
+then inspect the signed record it leaves behind.
+
+Legalise is open source and runs locally today. The hosted site is a limited
+evaluation environment, and **hosted accounts are not open for sign-up right
+now**. Real AI workflows require your own model key — Legalise does not
+provide model access, and it is not for live client matters.
 
 ---
 
@@ -33,10 +45,11 @@ it, and the system preserves what was signed — content pinned by a
 hash, available for export as a defensible record.
 
 The audit trail makes the work inspectable. The signature makes a
-human accountable. Together they are the product. Audit alone is just
-the receipt.
+human accountable. Together, that is the governance layer. Audit alone is
+just the receipt.
 
-The full thesis lives in [`docs/MANIFESTO.md`](./docs/MANIFESTO.md). The claim boundary lives in [`docs/SUPERVISED_AUTONOMY.md`](./docs/SUPERVISED_AUTONOMY.md). The hosted site is only an evaluation environment.
+What Legalise does and does not claim lives in [`docs/TRUST.md`](./docs/TRUST.md)
+(gaps listed first). The full doc set is indexed in [`docs/`](./docs/).
 
 ---
 
@@ -157,7 +170,7 @@ The doctrine:
 
 ## Try it
 
-[legalise.dev](https://legalise.dev) hosts the public demo (a guided walk through the Khan v Acme workspace) and the architecture write-up. Hosted workspace accounts are in **private beta** — to join the testing, email <andrew@legalise.dev>. To run the full workspace yourself today, fork and run the stack locally (below).
+[legalise.dev](https://legalise.dev) hosts the public demo (a guided walk through the Khan v Acme workspace) and the architecture write-up. **Hosted workspace accounts are not open for sign-up right now** — the hosted backend is request-only and currently paused. To run the full workspace yourself today, fork and run the stack locally (below).
 
 Stack: Postgres + MinIO + Redis + Gotenberg + FastAPI + React.
 
@@ -240,8 +253,8 @@ compose for you, the manual path is:
   Local quickstart uses source builds by default; set
   `LEGALISE_USE_PREBUILT_IMAGES=true` to pull the published
   backend/frontend images instead.
-- Common setup errors and their fixes live in [`docs/TROUBLESHOOTING.md`](./docs/TROUBLESHOOTING.md).
-- Backup and disaster recovery (sources of truth, Neon PITR, pg_dump cron, restore scenarios, post-restore verification) lives in [`docs/OPERATIONS.md`](./docs/OPERATIONS.md).
+- For setup problems, run `legalise doctor` (above) for diagnostics, and open an issue if a fresh fork won't come up.
+- Backup, restore, and deployment/operations runbooks are maintained by the project outside this public repo — open an issue if you're self-hosting and need them.
 
 ## Status
 
@@ -294,10 +307,11 @@ Evaluation release. Honest about what's in and what isn't.
   The remaining hardening gate is operational WORM: split DB roles,
   app-role revokes, and external notary/anchoring so a DB superuser
   cannot bypass the controls unnoticed.
-- Sigstore-level signature verification on installed modules is
-  structural today; cryptographic chain verification is hardening
-  backlog. (Registered-publisher ed25519 verification ships as the
-  `verified` grade; the registry of publisher keys is still small.)
+- Module signature verification is structural today. The cryptographic
+  `verified` grade (ed25519 against a registered publisher key) is
+  implemented but **no publisher key is registered yet**, so every imported
+  skill currently resolves to `structure_verified`. Sigstore-level chain
+  verification is hardening backlog.
 - Single workspace by design. There is no organisation or multi-tenant
   model in the beta: one deployment is one workspace, the admin flag is
   the only privileged role, and matters are owner-scoped. This is a
@@ -315,14 +329,18 @@ Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
 ## Read deeper
 
-- [`docs/MANIFESTO.md`](./docs/MANIFESTO.md): commitments that don't move
-- [`docs/TRUST.md`](./docs/TRUST.md): privilege architecture, sub-processor list, open gaps
-- [`docs/SUPERVISED_AUTONOMY.md`](./docs/SUPERVISED_AUTONOMY.md): launch definition and claim boundary
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md): stack rationale and decisions
-- [`docs/ENGINEERING.md`](./docs/ENGINEERING.md): bespoke vs boring; what's custom, what's stock
-- [`docs/AUTH.md`](./docs/AUTH.md): auth and provider-key model
-- [`docs/MODULE_DEVELOPMENT.md`](./docs/MODULE_DEVELOPMENT.md): write a new module
+Start with [`docs/`](./docs/) — the curated doc set. Highlights:
+
+- [`docs/TRUST.md`](./docs/TRUST.md): privilege architecture, sub-processor list, open gaps (read this first)
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): how the system works today, cited to code
+- [`docs/EVALUATING.md`](./docs/EVALUATING.md): the walkthrough, the evaluation gate, and the gate run records
+- [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md): adversary model and what we don't defend against
+- [`docs/ROADMAP.md`](./docs/ROADMAP.md): shipped, deferred, parked
 - [`docs/ATTRIBUTIONS.md`](./docs/ATTRIBUTIONS.md): library credits and licence notes
+
+Operator and contributor material (ops runbooks, engineering notes, design
+specs) is maintained by the project outside this public repo — open an issue
+if you're self-hosting and need something that isn't covered here.
 
 ## Caveat
 
