@@ -40,7 +40,7 @@ primary_region = "lhr"
   # single machine before any new app instances start serving traffic.
   # This prevents the boot-time migration race that occurs when multiple
   # Fly machines start concurrently. The app itself does NOT run
-  # migrations at boot (see backend/entrypoint.sh and docs/RUNBOOK.md).
+  # migrations at boot (see backend/entrypoint.sh and docs/ARCHITECTURE.md).
   release_command = "alembic upgrade head"
 
 # Process groups. `app` serves HTTP. `worker` runs the arq queue that

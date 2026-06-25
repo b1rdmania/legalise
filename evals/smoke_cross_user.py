@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Cross-user access-control eval.
 
-Asserts the §7 invariant from HANDOVER_AUTH.md: a matter slug owned by
+Asserts the auth invariant documented in docs/TRUST.md: a matter slug owned by
 User A returns 404 (not 403) when accessed via User B's session. The
 eval covers load-bearing endpoints that resolve a matter by slug:
 matter detail, audit, audit chain, chronology, documents GET,
 documents POST (multipart), privilege PATCH, export POST.
 
-The slug invariant is per-owner unique (HANDOVER_AUTH.md §3e Option A),
+The slug invariant is per-owner unique,
 so both users can hold a matter named `eval-cross-user-{n}` without
 collision. We confirm that here too: User B creates a matter with
 User A's slug and receives 201, not 409.

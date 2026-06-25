@@ -5,7 +5,7 @@ working-pack-shaped record this workspace can supervise: one read-only
 matter per pack, one WORM artifact per document, sign-off through the
 existing ``core/signoff.py`` path.
 
-The honesty boundary (docs/REGISTER_SIDECAR.md): this workspace did not
+The honesty boundary: this workspace did not
 watch the external work happen. There are exactly two grades of hash
 claim, and each document records which one it carries:
 

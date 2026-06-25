@@ -85,7 +85,7 @@ Two house rules enforced before commit:
 
 ```bash
 # No em or en dashes in chrome strings or public docs.
-rg -n "—|–" frontend/src/ README.md EXECUTIVE_SUMMARY.md ARCHITECTURE.md docs/MANIFESTO.md docs/ROADMAP.md
+rg -n "—|–" frontend/src/ README.md docs/*.md
 
 # No __pycache__ or .pyc tracked.
 git ls-files | rg "__pycache__|\.pyc$"
@@ -103,11 +103,10 @@ by intent — solicitor voice, not chrome.
 If you're skimming the repo to evaluate, in this order:
 
 1. [`README.md`](./README.md) — what it is, what it does
-2. [`docs/ENGINEERING.md`](./docs/ENGINEERING.md) — bespoke vs boring
-3. [`docs/DESIGN.md`](./docs/DESIGN.md) — visual contract (v0.4 FROZEN)
-4. [`docs/JOY.md`](./docs/JOY.md) — product-feel doctrine
-5. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — stack rationale
-6. [`docs/TRUST.md`](./docs/TRUST.md) — privilege, audit, sub-processors
+2. [`docs/TRUST.md`](./docs/TRUST.md) — privilege, audit, sub-processors, open gaps
+3. [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — stack rationale and current substrate
+4. [`docs/EVALUATING.md`](./docs/EVALUATING.md) — walkthrough and gate records
+5. [`docs/ROADMAP.md`](./docs/ROADMAP.md) — shipped, deferred, parked
 
 ## Pull requests
 

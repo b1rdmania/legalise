@@ -28,7 +28,7 @@ PERSONAS: frozenset[str] = frozenset(
     }
 )
 
-# Launch channel tags (?c=...). Documented in docs/OPERATIONS.md §Launch.
+# Launch channel tags (?c=...). Summarised in docs/EVALUATING.md.
 CHANNELS: frozenset[str] = frozenset({"hn", "li", "x", "conf"})
 
 DOMAIN_CLASS_FIRM = "firm-like"
