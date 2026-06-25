@@ -70,13 +70,14 @@ reading the architecture.
   the application role loses UPDATE/DELETE on `audit_entries` by
   grant — is provisioned and asserted on every CI build (a build fails
   if the app role can mutate audit rows). Turning it on for the hosted
-  stack is an operational switch; the runbook is in `OPERATIONS.md`.
+  stack is an operational switch; the runbook is maintained by the project
+  outside this public repo.
 - **Application-layer encryption of stored prompts/responses is not yet
   implemented.** We rely on Neon/Fly/R2 at-rest encryption defaults.
 - **One deployment is one workspace.** There is no organisation or
   multi-tenant model in the beta. Teams that need separation run one
   deployment each. This is deliberate scope, recorded in the README
-  Status section and `OPERATIONS.md`.
+  Status section.
 - **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon
   London) are in the UK. Cloudflare R2 placement is EU (Western Europe),
   not UK-specific. Anthropic and OpenAI commercial APIs are US-served
@@ -244,8 +245,8 @@ exercised in CI on every build: the backend job provisions the
 build if that role can update or delete an audit row
 (`infra/verify-worm-role-split.sh` plus
 `backend/tests/test_audit_worm_role_split.py`). Operational adoption on
-a production deployment is a connection-string switch, documented in
-`OPERATIONS.md`.
+a production deployment is a connection-string switch, documented in the
+project's operations runbook.
 
 **Third-party verification.** Every audit row is hash-chained: an
 append-only `audit_chain` table links each entry to the previous one
@@ -285,6 +286,10 @@ shape-only: the signature is present and plausible, the publisher is in
 the registry, and `signed_by` matches — but no cryptography was performed
 and a well-formed forgery would pass. The status string says exactly which
 check ran; publishers without a registered key can never reach `verified`.
+As of the evaluation release no publisher key is registered in the bundled
+registry (`backend/app/core/publishers.py`), so in practice every imported
+skill resolves to `structure_verified` today — `verified` only becomes
+reachable once a publisher registers a public key.
 
 What the current release does **not** yet cover: prompt-injection scanning, automated
 `SKILL.md` linting, organisation-level skill allowlists,
@@ -386,7 +391,7 @@ unless they prefer anonymity.
 | 2026-05-14 | Added §9 skill provenance and approval: Git review as approval trail, `PLUGINS_REPO_REF` pinning, and `plugin.invoked` audit provenance |
 | 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path (Lawve + GitHub) — pinned-SHA provenance, trust ceremony as the only install route |
 | 2026-06-12 | Currency pass: audit WORM recorded as trigger-enforced with hash chain (role split remains); object storage and durable jobs removed from §3 gaps (shipped); single-workspace scope added to §3; Pre-Motion audit-row count corrected; R2 v0.2 marker dropped |
-| 2026-06-12 | §3/§8: WORM role split now exercised in CI on every build (provisioned role, REVOKE asserted, build fails if the app role can mutate audit rows); production adoption runbook added to `OPERATIONS.md` |
+| 2026-06-12 | §3/§8: WORM role split now exercised in CI on every build (provisioned role, REVOKE asserted, build fails if the app role can mutate audit rows); production adoption runbook added to the operations runbook |
 
 This file changes when the architecture changes. `git log docs/TRUST.md`
 is the canonical history.

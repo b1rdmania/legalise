@@ -9,7 +9,7 @@ evaluation environment. Legalise is open source; legalise.dev is a runnable
 evaluation copy. The hosted site is not for live client matters.
 
 Evaluator backend access is gated by
-[`PRE_EVALUATION_GATE.md`](./PRE_EVALUATION_GATE.md): one automated
+[`EVALUATING.md`](./EVALUATING.md): one automated
 single-matter golden loop, one manual BYO-key run, and the operational
 checks that must be true before serious legal users evaluate the
 workspace.
@@ -160,8 +160,7 @@ Theme: publisher trust and portability.
 - **Disclosure list** as a workspace module with TAR / predictive coding
   flags.
 - **Review panels.** Multi-perspective skill runs should be exposed as
-  named review panels, not user-facing agents. See
-  [`docs/architecture/REVIEW_PANELS.md`](./architecture/REVIEW_PANELS.md).
+  named review panels, not user-facing agents.
 
 ## v0.4+: additional verticals
 
@@ -202,6 +201,14 @@ Theme: publisher trust and portability.
   local, what may go to frontier providers, and what was actually sent.
 - A public claim boundary for evals. Evals are evidence of a tested posture, not
   proof that the system gives legal advice.
+- **Audit-entry signatures (Ed25519).** Deliberately out of scope for the
+  evaluation launch, noted and costed. The hash-chain (migration 0030) already
+  gives tamper-evidence; signing would add authenticity + independent
+  verifiability (verify with the public key, no trust in our DB). ~half a day,
+  reusing the existing `audit-chain-entry-v1` canonical form and the ed25519 in
+  `app/core/signing.py`. Build trigger and full box tracked in a GitHub issue:
+  a technical reviewer in the loop who will verify a signature themselves. Not the
+  human sign-off thesis — the machine signs its record, the human signs the work.
 
 ## Chat shape: shipped
 
