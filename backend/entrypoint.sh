@@ -9,7 +9,7 @@
 #
 #   Production environments (everything else):
 #     Boot does NOT run migrations. Migrations are a deploy-time release
-#     step (see fly.toml [deploy] release_command and docs/RUNBOOK.md).
+#     step (see fly.toml [deploy] release_command and docs/ARCHITECTURE.md).
 #     To override for a one-off run, set MIGRATIONS_ON_BOOT=true.
 #
 # `exec` matters: it lets uvicorn replace this shell as PID 1 so SIGTERM

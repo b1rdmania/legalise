@@ -7,7 +7,7 @@
 # via UI, bootstrap CLI, install Contract Review via the trust
 # ceremony, grant on Khan v Acme, invoke via stub-echo, read the
 # reconstruction. Exit non-zero means something is wrong; `legalise
-# doctor` and docs/TROUBLESHOOTING.md should explain why.
+# doctor` should say which substrate check failed.
 #
 # The spec resets the local database (truncate users/matters/audit/
 # everything) on every run. This is destructive — DO NOT run on a
@@ -52,7 +52,7 @@ echo
 # wipes the DB before running, so a doctor `khan.demo_present` fail
 # is reset-repairable and not a smoke blocker — we tolerate that one
 # specifically and bail on everything else. Any other fail must be
-# fixed by the operator first (see docs/TROUBLESHOOTING.md).
+# fixed by the operator first.
 echo "→ Pre-flight: legalise doctor"
 doctor_out=$(docker compose -f "$COMPOSE_FILE" exec -T backend \
   python -m app.tools.doctor 2>&1) && doctor_status=$? || doctor_status=$?
@@ -78,7 +78,7 @@ if [[ $doctor_status -ne 0 ]]; then
 ✗ doctor failed on checks smoke cannot repair:
 $(printf '  - %s\n' $failing_names)
 
-  Fix these before re-running smoke. See docs/TROUBLESHOOTING.md.
+  Fix these before re-running smoke. Start with the failing doctor row.
 EOF
     exit 1
   fi

@@ -1,6 +1,6 @@
 /**
  * Supervised exports — the register sidecar's face on /register
- * (docs/REGISTER_SIDECAR.md).
+ * Imported read-only matter bundles.
  *
  * Each certificate is an external workspace's export held under
  * supervision here: where it came from, how many documents, how each

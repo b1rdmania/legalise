@@ -2,7 +2,7 @@
  * Launch channel tag capture (Gate 4).
  *
  * Tagged launch URLs carry `?c=hn|li|x|conf` (documented in
- * docs/OPERATIONS.md §Launch instrumentation). The tag is remembered in
+ * docs/EVALUATING.md launch instrumentation notes). The tag is remembered in
  * sessionStorage so it survives the landing → signup navigation, then
  * sent with the register payload. Allowlisted; anything else is ignored.
  * Session-scoped on purpose — this is a launch-attribution breadcrumb,

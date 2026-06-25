@@ -1,4 +1,4 @@
-// External packs — the register sidecar (docs/REGISTER_SIDECAR.md).
+// External packs — imported read-only matter bundles.
 //
 // An external workspace's export, ingested as a read-only matter and
 // supervised here: per-document hash manifest (verified-at-source vs

@@ -106,7 +106,7 @@ const MAPPING: { primitive: string; counterpart: string }[] = [
 const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = [
   {
     section: "Identity & access",
-    docs: [{ label: "AUTH.md", file: `${BLOB}/docs/AUTH.md` }],
+    docs: [{ label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` }],
   },
   {
     section: "Inference gateway / keys",
@@ -115,41 +115,38 @@ const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = 
   {
     section: "Privilege gate",
     docs: [
-      { label: "POSTURE_GATE_UX.md", file: `${BLOB}/docs/spec/POSTURE_GATE_UX.md` },
-      { label: "ADVICE_BOUNDARY.md", file: `${BLOB}/docs/architecture/ADVICE_BOUNDARY.md` },
+      { label: "ARCHITECTURE.md", file: `${BLOB}/docs/ARCHITECTURE.md` },
+      { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
     ],
   },
   {
     section: "Anonymisation",
-    docs: [{ label: "SANDBOX_STRATEGY.md", file: `${BLOB}/docs/architecture/SANDBOX_STRATEGY.md` }],
+    docs: [{ label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` }],
   },
   {
     section: "Admission / signing",
     docs: [
-      { label: "SIGNING.md", file: `${BLOB}/docs/architecture/SIGNING.md` },
-      { label: "TRUST_CEREMONY.md", file: `${BLOB}/docs/architecture/TRUST_CEREMONY.md` },
-      { label: "MANIFEST_V2_SCHEMA.md", file: `${BLOB}/docs/architecture/MANIFEST_V2_SCHEMA.md` },
+      { label: "ARCHITECTURE.md", file: `${BLOB}/docs/ARCHITECTURE.md` },
+      { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
     ],
   },
   {
     section: "The record",
     docs: [
-      { label: "AUDIT_COVERAGE_MATRIX.md", file: `${BLOB}/docs/spec/AUDIT_COVERAGE_MATRIX.md` },
-      { label: "AUDIT_RECONSTRUCTION.md", file: `${BLOB}/docs/architecture/AUDIT_RECONSTRUCTION.md` },
-      { label: "AUDIT_EMISSION_MAP.md", file: `${BLOB}/docs/spec/AUDIT_EMISSION_MAP.md` },
+      { label: "ARCHITECTURE.md", file: `${BLOB}/docs/ARCHITECTURE.md` },
+      { label: "EVALUATING.md", file: `${BLOB}/docs/EVALUATING.md` },
     ],
   },
   {
     section: "Sign-off / output",
     docs: [
-      { label: "OUTPUT_LIFECYCLE.md", file: `${BLOB}/docs/architecture/OUTPUT_LIFECYCLE.md` },
-      { label: "REVIEW_PANELS.md", file: `${BLOB}/docs/architecture/REVIEW_PANELS.md` },
-      { label: "SUPERVISION_LEGIBILITY_M13.md", file: `${BLOB}/docs/spec/SUPERVISION_LEGIBILITY_M13.md` },
+      { label: "ARCHITECTURE.md", file: `${BLOB}/docs/ARCHITECTURE.md` },
+      { label: "EVALUATING.md", file: `${BLOB}/docs/EVALUATING.md` },
     ],
   },
   {
     section: "Supervised autonomy",
-    docs: [{ label: "SUPERVISED_AUTONOMY.md", file: `${BLOB}/docs/SUPERVISED_AUTONOMY.md` }],
+    docs: [{ label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` }],
   },
   {
     section: "Compliance / regulatory",
@@ -157,7 +154,7 @@ const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = 
   },
   {
     section: "Claim boundary",
-    docs: [{ label: "CLAIM_BOUNDARY.md", file: `${BLOB}/docs/CLAIM_BOUNDARY.md` }],
+    docs: [{ label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` }],
   },
   {
     section: "Threat model",
@@ -166,8 +163,8 @@ const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = 
   {
     section: "Top-level",
     docs: [
-      { label: "ARCHITECTURE.md", file: `${BLOB}/ARCHITECTURE.md` },
-      { label: "ENGINEERING.md", file: `${BLOB}/docs/ENGINEERING.md` },
+      { label: "ARCHITECTURE.md", file: `${BLOB}/docs/ARCHITECTURE.md` },
+      { label: "EVALUATING.md", file: `${BLOB}/docs/EVALUATING.md` },
       { label: "ROADMAP.md", file: `${BLOB}/docs/ROADMAP.md` },
     ],
   },
@@ -188,23 +185,23 @@ const STATUS_MATRIX: {
   { capability: "Hash-chained audit, dual-implementation verify", status: "shipped", verification: "audit_chain.py · GET /audit/chain" },
   { capability: "Named sign-off over artifact SHA-256", status: "shipped", verification: "signoff.py" },
   { capability: "Skill admission ceremony, two signature grades", status: "shipped", verification: "signing.py · trust_ceremony.py" },
-  { capability: "Per-user matter isolation, session revocation", status: "shipped", verification: "matter_access.py · AUTH.md" },
+  { capability: "Per-user matter isolation, session revocation", status: "shipped", verification: "matter_access.py · TRUST.md" },
   { capability: "Audit-role split asserted in CI", status: "shipped", verification: "SECURITY.md (build gate)" },
-  { capability: "WORM role flipped on hosted deployment", status: "deferred", verification: "OPERATIONS.md" },
-  { capability: "Organisation / team / SSO / MFA", status: "deferred", verification: "AUTH.md · ROADMAP.md" },
+  { capability: "WORM role flipped on hosted deployment", status: "deferred", verification: "TRUST.md · ROADMAP.md" },
+  { capability: "Organisation / team / SSO / MFA", status: "deferred", verification: "TRUST.md · ROADMAP.md" },
   { capability: "Multi-tenancy (one deploy = one workspace today)", status: "deferred", verification: "ROADMAP.md" },
   { capability: "Manifest web-of-trust / publisher registry at scale", status: "deferred", verification: "TRUST.md" },
   { capability: "Durable job recovery, regulator reconstruction", status: "deferred", verification: "ROADMAP.md" },
   { capability: "SBOM / SLSA / signed images / SOC 2 / ISO", status: "deferred", verification: "not present — roadmap only" },
   { capability: "Hosted demo touches Anthropic commercial API", status: "accepted", verification: "TRUST.md (no-training terms)" },
-  { capability: "R2 storage EU-placed, not UK-specific", status: "accepted", verification: "OPERATIONS.md" },
+  { capability: "R2 storage EU-placed, not UK-specific", status: "accepted", verification: "TRUST.md" },
 ];
 
 const CITATIONS: { label: string; href: string }[] = [
   { label: "Trust", href: `${REPO}/blob/master/docs/TRUST.md` },
   { label: "Security", href: `${REPO}/blob/master/SECURITY.md` },
-  { label: "Manifesto", href: `${REPO}/blob/master/docs/MANIFESTO.md` },
-  { label: "Operations", href: `${REPO}/blob/master/docs/OPERATIONS.md` },
+  { label: "Architecture", href: `${REPO}/blob/master/docs/ARCHITECTURE.md` },
+  { label: "Evaluating", href: `${REPO}/blob/master/docs/EVALUATING.md` },
   { label: "Roadmap", href: `${REPO}/blob/master/docs/ROADMAP.md` },
   { label: "Apache 2.0", href: `${REPO}/blob/master/LICENSE` },
 ];
@@ -862,7 +859,7 @@ export function Architecture() {
             items={[
               { label: "matter_access.py", file: SRC.matterAccess },
               { label: "config.py", file: SRC.config },
-              { label: "AUTH.md", file: `${BLOB}/docs/AUTH.md` },
+              { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
             ]}
           />
         </Section>
@@ -1155,7 +1152,7 @@ export function Architecture() {
               { label: "audit_chain.py", file: SRC.auditChain },
               { label: "GET /audit/chain", file: SRC.auditChainEndpoint },
               { label: "SECURITY.md", file: `${BLOB}/SECURITY.md` },
-              { label: "OPERATIONS.md", file: `${BLOB}/docs/OPERATIONS.md` },
+              { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
             ]}
           />
           <Figure

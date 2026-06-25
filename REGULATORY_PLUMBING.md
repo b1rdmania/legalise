@@ -37,7 +37,7 @@ The posture flows through the chronology and contract review modules and influen
 
 **Why it matters.** Legal advice privilege, litigation privilege, common-interest privilege, and joint-defence privilege are real and waivable. Extracting privileged content into AI-assisted outputs that get shared can risk waiver depending on what's distributed and to whom. A workspace that treats privilege as a property rather than an afterthought makes the waiver analysis tractable.
 
-**v1 implementation.** Matter form has the posture selector. Each module's behaviour is documented in `ARCHITECTURE.md` § "Privilege posture enforcement". Posture changes create audit entries.
+**v1 implementation.** Matter form has the posture selector. Each module's behaviour is documented in `docs/ARCHITECTURE.md` §4. Posture changes create audit entries.
 
 **Not in v1.** Refusal to start an LLM call where posture/data combination is invalid (currently a soft warning). Hardened in v0.2.
 

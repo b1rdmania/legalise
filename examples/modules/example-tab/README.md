@@ -21,4 +21,4 @@ Reads the current matter, calls the model gateway with a fixed prompt, logs an a
 - `frontend/index.tsx` — TanStack Router page component
 - `frontend/components/Hello.tsx` — one component
 
-See `/docs/MODULE_DEVELOPMENT.md` for the full guide.
+See `docs/ARCHITECTURE.md` for the current module/runtime shape.
