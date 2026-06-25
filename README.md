@@ -1,31 +1,10 @@
 # Legalise
 
-An open-source **governance layer for legal AI** — audit trails and named
-human sign-off for matter work. A few weeks in the making: an open
-experiment, not a finished platform.
+An open-source governance layer for legal AI: human sign-off and a
+tamper-evident audit trail for AI-assisted legal work.
 
-A closed legal-AI platform can't be forked by a curious dev on a Tuesday.
-This one can. The governance layer is meant to **bolt onto whatever you're
-already building** — not a walled garden, and not limited to the skills in
-the bundled demo. To show that's more than a line, there's a fork of MikeOS
-with the Legalise modules dropped straight in.
-
-The question it pokes at: as legal work goes from 20% AI to 80% AI, what do
-courts, clients, insurers, and regulators start asking about who did what,
-and when? Audit trails and a named signature are one answer worth testing in
-the open. It might be solving a problem no one needs solved, and there are
-UX rough edges and backend quirks — take it as an open experiment in the
-space. Fork it, break it, integrate it, or copy the repo into your agent and
-ask it what it thinks.
-
-The bundled demo loop is deliberately small: add a legal skill, enable it on
-the Khan v Acme sample matter, run it from chat, watch the supervised run,
-then inspect the signed record it leaves behind.
-
-Legalise is open source and runs locally today. The hosted site is a limited
-evaluation environment, and **hosted accounts are not open for sign-up right
-now**. Real AI workflows require your own model key — Legalise does not
-provide model access, and it is not for live client matters.
+Open source, runs locally, bring your own model key. Evaluation release —
+not for live client matters.
 
 ---
 
