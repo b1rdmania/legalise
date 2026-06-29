@@ -29,11 +29,14 @@ from app.core.matter_fs import (
 from app.core.storage import (
     get_storage_backend,
     uploaded_key,
-    matter_prefix,
     StorageWriteError,
     StorageDeleteError,
 )
 from app.core.audit_chain import verify_audit_chain
+from app.core.matter_lifecycle import (
+    MatterHasActiveJobsError,
+    tombstone_matter,
+)
 from app.core.model_catalog import is_known_model, model_catalog
 from app.core.indexing import index_document, reindex_matter
 from app.core.text_extraction import extract as extract_text
@@ -50,7 +53,6 @@ from app.models import (
     Document,
     DocumentComment,
     DocumentEdit,
-    Job,
     Matter,
     User,
     UserApiKey,
@@ -61,9 +63,6 @@ from app.models import (
     STATUS_CLOSED,
     STATUS_ARCHIVED,
     TAG_VALUES,
-    JOB_ACTIVE_STATUSES,
-    JOB_KIND_EXPORT,
-    JOB_STATUS_SUCCEEDED,
 )
 from app.models.document_comment import COMMENT_STATUS_OPEN
 from app.models.document_edit import EDIT_STATUS_PENDING
@@ -966,58 +965,34 @@ async def delete_matter(
     if matter is None or matter.status == STATUS_ARCHIVED:
         raise HTTPException(404, f"matter not found: {slug}")
 
-    # Refuse if active jobs exist for this matter
-    from sqlalchemy import func as sa_func
-    active_count = (
-        await session.scalar(
-            select(sa_func.count(Job.id)).where(
-                Job.matter_id == matter.id,
-                Job.status.in_(JOB_ACTIVE_STATUSES),
-            )
-        )
-    ) or 0
-    if active_count > 0:
+    # The destructive tombstone (active-job gate, storage purge, audit
+    # rows, status=archived, grant cascade) is the shared
+    # `tombstone_matter` helper — the SAME path the retention sweeper
+    # runs. The route only translates its domain errors into HTTP and
+    # owns the commit. External behaviour is unchanged.
+    try:
+        await tombstone_matter(session, matter, actor_id=user.id)
+    except MatterHasActiveJobsError as exc:
         raise HTTPException(
             409,
             detail={
                 "error": "matter_has_active_jobs",
-                "active_job_count": active_count,
+                "active_job_count": exc.active_count,
                 "message": (
                     "This matter has active jobs. Wait for them to complete "
                     "or cancel them before deleting the matter."
                 ),
             },
-        )
-
-    # Warn if no successful export exists
-    export_count = (
-        await session.scalar(
-            select(sa_func.count(Job.id)).where(
-                Job.matter_id == matter.id,
-                Job.kind == JOB_KIND_EXPORT,
-                Job.status == JOB_STATUS_SUCCEEDED,
-            )
-        )
-    ) or 0
-
-    # Attempt storage cleanup FIRST, before writing the matter.deleted
-    # audit row or setting status=archived. Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md
-    # §2 P1: a 204 response must mean the storage bytes are actually
-    # gone, not "we tried and the matter is archived anyway." A
-    # storage failure must leave the matter live and reachable so the
-    # user can retry, and must not emit a `matter.deleted` row claiming
-    # the delete happened.
-    try:
-        storage = get_storage_backend()
-        prefix = matter_prefix(user.id, matter.id)
-        storage.delete_prefix(prefix)
+        ) from exc
     except StorageDeleteError as exc:
-        # No commit has been issued on this path yet; the request
-        # session will roll back via the dependency teardown when
-        # HTTPException propagates. We deliberately do NOT call
-        # `session.rollback()` here because the test conftest wraps
-        # each request in a SAVEPOINT and the explicit rollback
-        # confuses that nesting.
+        # Fail-closed: a 204 must mean the storage bytes are actually
+        # gone (HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1). No commit has
+        # been issued, so the request session rolls back via dependency
+        # teardown when this HTTPException propagates — the matter stays
+        # live and un-archived. We deliberately do NOT call
+        # `session.rollback()` here because the test conftest wraps each
+        # request in a SAVEPOINT and an explicit rollback confuses that
+        # nesting.
         raise HTTPException(
             502,
             detail={
@@ -1030,75 +1005,6 @@ async def delete_matter(
                 ),
             },
         ) from exc
-
-    # Storage cleanup succeeded — write the deletion audit row(s) and
-    # tombstone the matter in a single transaction. Tombstone design:
-    # the matter row stays (with status=archived), so audit FKs
-    # continue to resolve. No UPDATE on audit_entries (Unit 6 WORM
-    # trigger forbids it, and there's no referential reason).
-    await _write_audit(
-        session,
-        actor=user,
-        matter=matter,
-        action="matter.deleted",
-        resource_type="matter",
-        resource_id=matter.slug,
-        payload={
-            "title": matter.title,
-            "had_export": export_count > 0,
-            "export_count": export_count,
-        },
-    )
-    if export_count == 0:
-        await _write_audit(
-            session,
-            actor=user,
-            matter=matter,
-            action="matter.deleted_without_export",
-            resource_type="matter",
-            resource_id=matter.slug,
-            payload={
-                "warning": "Matter deleted without a prior successful export."
-            },
-        )
-
-    matter.status = STATUS_ARCHIVED
-
-    # Cascade grant revocation. Scoping is keyed on the first-class
-    # scope_type/scope_id columns (backfilled from the snapshot JSONB
-    # in migration 0019), so existing matter-scoped grants are picked
-    # up; workspace-scoped grants (scope_type='workspace') are not.
-    from app.models import (
-        SCOPE_TYPE_MATTER,
-        WorkspaceSkillCapabilityGrant as _WSCG,
-    )
-
-    grants_to_revoke = (
-        await session.scalars(
-            select(_WSCG).where(
-                _WSCG.scope_type == SCOPE_TYPE_MATTER,
-                _WSCG.scope_id == matter.id,
-            )
-        )
-    ).all()
-    revoked_count = 0
-    for grant_row in grants_to_revoke:
-        await session.delete(grant_row)
-        revoked_count += 1
-    if revoked_count:
-        await audit.log(
-            session,
-            "module.grant.revoked",
-            actor_id=user.id,
-            matter_id=matter.id,
-            module=None,
-            resource_type="capability_grant",
-            resource_id=matter.slug,
-            payload={
-                "count": revoked_count,
-                "reason": "matter_archived",
-            },
-        )
 
     await session.commit()
     return Response(status_code=204)

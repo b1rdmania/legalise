@@ -250,6 +250,11 @@ Evaluation release. Honest about what's in and what isn't.
   endpoint merging audit, state-machine, and advice-boundary sources into one
   timeline.
 - Real-DB E2E test infrastructure exercised on every push.
+- **Deterministic eval harness** ([agent-kit](https://github.com/b1rdmania/agent-kit)):
+  CI-gateable records that run the *real* production functions — retrieval
+  grounding (real citations from real documents), posture refusal, the keyless
+  document matcher, and audit-chain integrity. See
+  [`evals/agent-kit/`](./evals/agent-kit/).
 
 **Live-matter readiness gates (still open):**
 
@@ -268,7 +273,9 @@ Evaluation release. Honest about what's in and what isn't.
   submissions.
 - Configurable prompt shroud before cloud-model dispatch.
 - Legal-quality evals for grounding, citation integrity, refusal, and module
-  regressions.
+  regressions. Deterministic structural/regression evals ship today (see the
+  agent-kit harness above); the remaining work is *quality* grading
+  (LLM-as-judge for answer correctness), which is not built.
 
 Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 

@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
 from app.core.db import get_session
-from app.core.user_keys import upsert_user_provider_key
+from app.core.user_keys import ProviderUpstreamError, upsert_user_provider_key
 from app.models import User, UserApiKey
 
 
@@ -32,6 +32,50 @@ router = APIRouter()
 
 SUPPORTED_PROVIDERS = ("anthropic", "openai")
 Provider = Literal["anthropic", "openai"]
+
+# Providers verified with a live probe at save time. Keyless providers
+# (ollama, stub-echo) never reach this router and need no verification.
+_VERIFIABLE_PROVIDERS = {"anthropic", "openai"}
+
+
+async def _verify_provider_key(provider: str, api_key: str) -> None:
+    """Probe `provider` with the candidate `api_key` before we persist it.
+
+    Sends the smallest possible call (one-token "ping") so a key that the
+    provider rejects fails here rather than silently on the user's first
+    chat turn.
+
+    Outcome contract:
+      - auth failure (upstream 401/403, `provider_invalid_key`) -> raise
+        HTTPException(400); the caller must NOT persist.
+      - transient failure (connection error, 429, 5xx, or any other
+        upstream code) -> return cleanly; the key is persisted unverified
+        rather than blocking a save because the provider is momentarily
+        unreachable.
+      - success -> return cleanly.
+    """
+    if provider == "anthropic":
+        from app.providers.anthropic_provider import AnthropicProvider
+
+        prov = AnthropicProvider(api_key=None)
+    elif provider == "openai":
+        from app.providers.openai_provider import OpenAIProvider
+
+        prov = OpenAIProvider(api_key=None)
+    else:  # pragma: no cover - guarded by _VERIFIABLE_PROVIDERS upstream
+        return
+
+    try:
+        await prov.call("ping", api_key=api_key, max_tokens=1)
+    except ProviderUpstreamError as exc:
+        if exc.upstream_status in (401, 403):
+            raise HTTPException(
+                400,
+                f"the key was rejected by {provider}; check it and try again",
+            ) from exc
+        # Transient (connection / 429 / 5xx / unknown) — don't block the
+        # save just because the provider is momentarily unreachable.
+        return
 
 
 class UserApiKeyRead(BaseModel):
@@ -68,6 +112,11 @@ async def upsert_key(
 ) -> UserApiKey:
     if body.provider not in SUPPORTED_PROVIDERS:
         raise HTTPException(400, f"provider must be one of {SUPPORTED_PROVIDERS}")
+    # Reject a bad key at save time. Auth failures raise HTTPException(400)
+    # here so we never persist; transient provider errors fall through and
+    # the key is saved unverified. Keyless providers are skipped.
+    if body.provider in _VERIFIABLE_PROVIDERS:
+        await _verify_provider_key(body.provider, body.api_key)
     # Detect whether this is a fresh insert or a rotation, before the upsert
     # collapses the row.
     existing = await session.scalar(
