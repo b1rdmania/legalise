@@ -21,6 +21,7 @@ ACAS dates, the s.207B "stop the clock" deadline, plus a seeded chronology.
 from __future__ import annotations
 
 import hashlib
+import logging
 from datetime import date, datetime, timezone
 
 from sqlalchemy import select
@@ -30,6 +31,8 @@ from app.core.matter_fs import materialise_matter, append_history, record_docume
 from app.models import AuditEntry, Document, Event, Matter, PRIVILEGE_MIXED, STATUS_OPEN, User
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
+
+logger = logging.getLogger(__name__)
 
 
 # Doctrine for seed-bootstrap audit rows. Locked. Three action types,
@@ -569,6 +572,26 @@ async def _seed_audit_rows_present(session: AsyncSession, matter_id) -> bool:
     return row is not None
 
 
+async def _index_seed_matter(session: AsyncSession, matter: Matter) -> None:
+    """Index the seeded documents so retrieval works immediately.
+
+    The seed path inserts Documents + extracted bodies directly, bypassing
+    the upload route (which indexes inline). Without this, a fresh user opens
+    Khan, asks a question, and retrieval finds nothing until a manual reindex.
+
+    Resilient by contract: ``reindex_matter`` indexes each document
+    independently and never commits, so the seed's own commit persists the
+    chunks. Any unexpected failure here must never break signup/seed, so it is
+    logged and swallowed.
+    """
+    from app.core.indexing import reindex_matter
+
+    try:
+        await reindex_matter(session, matter.id)
+    except Exception:
+        logger.exception("seed indexing failed for matter %s", matter.slug)
+
+
 async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter:
     """Create the Khan sample matter, two seed documents, and seven
     chronology events under the given user's scope. Idempotent: an existing
@@ -648,6 +671,9 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
             await _write_seed_audit_rows(session, existing, current_docs, current_events)
 
         await ensure_demo_skill_on_matter(session, user=user, matter=existing)
+        # Index seeded docs so retrieval works immediately; commit persists
+        # the chunks reindex_matter staged (it does not commit itself).
+        await _index_seed_matter(session, existing)
         await session.commit()
         materialise_matter(existing)
         return existing
@@ -695,6 +721,10 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
         "chronology.seeded",
         f"{3} documents + 7 events; 1 disclosure-tainted (dismissal letter)",
     )
+
+    # Index seeded docs so retrieval works immediately; commit persists the
+    # chunks reindex_matter staged (it does not commit itself).
+    await _index_seed_matter(session, matter)
 
     await session.commit()
     await session.refresh(matter)

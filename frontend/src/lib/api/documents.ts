@@ -15,6 +15,9 @@ export interface MatterDocument {
   from_disclosure: boolean;
   uploaded_at: string;
   uploaded_by_id: string;
+  // Matter-wide retrieval index state (Wave 1-3). Optional: older
+  // payloads and some shells omit it.
+  index_status?: string;
   comment_count?: number;
   open_comment_count?: number;
   version_count?: number;

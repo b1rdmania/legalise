@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     ollama_url: str = "http://ollama:11434"
     default_model_id: str = "claude-opus-4-7"
 
+    # Retrieval embedding backend. "fastembed" (default) runs a local,
+    # keyless ONNX model (BAAI/bge-small-en-v1.5, 384-dim) so privileged
+    # content is never sent to a third party to be indexed. "hash" is a
+    # deterministic, dependency-free fallback for tests / keyless CI.
+    embedding_backend: str = Field(
+        default="fastembed", alias="LEGALISE_EMBEDDING_BACKEND"
+    )
+
     # Auth — fastapi-users with cookie transport + DatabaseStrategy.
     # SESSION_SECRET signs short-lived JWTs for email-verify and
     # password-reset flows (cookie sessions are validated against the

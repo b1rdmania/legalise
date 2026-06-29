@@ -12,6 +12,7 @@ surface, not a domain skill. v0.2 may move it to a forkable skill.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import uuid
@@ -23,9 +24,11 @@ from sqlalchemy import desc as sql_desc
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import retrieval
 from app.core.advice_boundary import AdviceBoundaryDenied
 from app.core.api import audit as audit_api
 from app.core.capabilities import CapabilityDenied
+from app.core.retrieval import RetrievalHit
 from app.core.model_gateway import PrivilegePosture, ProviderKeyMissing
 from app.core.model_gateway import gateway as model_gateway
 from app.core.phase1_runtime.exceptions import Phase1Blocked
@@ -64,7 +67,7 @@ If the user's intent is one of the structured workflows below, return a suggeste
 
 - anonymise_document: PII detection + redaction on a document
 
-You see two document sections. "Document index" lists every document in the matter (id, date, filename, tag) but NOT its contents. "Documents" carries the full extracted text of only the documents the user attached, or the few most recent if none were attached. You have only READ the documents whose bodies appear in the Documents section. Do not claim to have read, summarised, quoted, or relied on any document that is only in the index. If a question needs a document you can see in the index but have not read, say so plainly and tell the user to attach it (or open it) by id. Never invent document contents. When the answer rests only on documents you have read, say which ones; if you could not see the whole matter, say so.
+You see two document sections. "Document index" lists every document in the matter (id, date, filename, tag) but NOT its contents — these are the titles you can see. "Documents" carries the actual passages you have read. When the user has not attached specific documents, the Documents section holds the passages retrieved as most RELEVANT to their question, searched across the whole matter (not just the most recent documents) — but ONLY from documents that have finished indexing. Documents still pending or failed indexing are not searchable yet and will not appear there; if the answer might depend on one of those, say so plainly. When the user attaches specific documents, the Documents section instead holds the full extracted text of exactly those. You have only READ the text that appears in the Documents section. Do not claim to have read, summarised, quoted, or relied on any document that is only in the index. If a question needs a document you can see in the index but have not read, say so plainly and tell the user to attach it (or open it) by id. Never invent document contents. When the answer rests only on documents you have read, say which ones; if you could not see the whole matter, say so.
 
 Cite document content with [doc:<document_id>] using the UUID from the document sections. Cite chronology with [chron:<event_id>] using the UUID from the Chronology section. IDs verbatim, never titles. The workspace resolves them to a clickable label.
 
@@ -85,7 +88,9 @@ Only call tools listed in the Tools section. Put selected document UUIDs into ar
 _CHARS_PER_TOKEN = 4
 _HISTORY_MESSAGE_LIMIT = 20
 _CHRONOLOGY_EVENT_LIMIT = 12
-_RECENT_DOCUMENT_LIMIT = 3
+# How many chunks to retrieve per turn when no documents are attached. Hits
+# are grouped by document, so this maps to a smaller number of documents.
+_RETRIEVAL_K = 8
 # The matter spine: a cheap, always-present orientation layer so the
 # assistant knows the whole matter exists even though it only reads a few
 # document bodies per turn. Metadata only — titles, not contents.
@@ -97,6 +102,16 @@ _SUMMARY_INTENT_RE = re.compile(
     r"\b(summarise|summarize|summary|sum up|brief)\b", re.I
 )
 _INVOKABLE_KINDS: frozenset[str] = frozenset({"skill", "tool", "workflow"})
+
+# One-line orientation lines for the Documents section, so the model knows
+# whether it is reading retrieved passages or attached full bodies.
+_RETRIEVED_DOCS_NOTE = (
+    "Passages retrieved as most relevant to the new user message, searched "
+    "across the whole matter. Only indexed documents are searchable; "
+    "documents still pending or failed indexing are not shown here."
+)
+_SELECTED_DOCS_NOTE = "Full extracted text of the documents the user attached."
+
 AssistantEventHandler = Callable[[str, dict[str, Any]], Awaitable[None]]
 
 
@@ -145,30 +160,28 @@ async def _load_chronology(
     return list(rows.all())
 
 
-async def _load_document_snippets(
+async def _load_selected_snippets(
     session: AsyncSession,
     matter_id: uuid.UUID,
     selected_ids: list[uuid.UUID],
 ) -> list[tuple[Document, str]]:
-    if selected_ids:
-        rows = await session.scalars(
-            select(Document).where(
-                Document.matter_id == matter_id,
-                Document.id.in_(selected_ids),
-            )
-        )
-        documents = list(rows.all())
-    else:
-        rows = await session.scalars(
-            select(Document)
-            .where(Document.matter_id == matter_id)
-            .order_by(Document.uploaded_at.desc())
-            .limit(_RECENT_DOCUMENT_LIMIT)
-        )
-        documents = list(rows.all())
+    """Full extracted bodies for the documents the user explicitly attached.
 
+    The selected-documents path is deliberately unchanged from P2: when the
+    user attaches documents, the assistant reads those whole, not retrieved
+    fragments. The passive recent-3 fallback is gone — when nothing is
+    attached the caller uses ``_load_retrieved_snippets`` instead.
+    """
+    if not selected_ids:
+        return []
+    rows = await session.scalars(
+        select(Document).where(
+            Document.matter_id == matter_id,
+            Document.id.in_(selected_ids),
+        )
+    )
     out: list[tuple[Document, str]] = []
-    for doc in documents:
+    for doc in rows.all():
         body = await session.scalar(
             select(DocumentBody).where(
                 DocumentBody.document_id == doc.id,
@@ -178,6 +191,87 @@ async def _load_document_snippets(
         text = body.extracted_text if body and body.extracted_text else ""
         out.append((doc, _truncate(text, _PER_DOCUMENT_CHAR_BUDGET)))
     return out
+
+
+async def _load_retrieved_snippets(
+    session: AsyncSession,
+    matter_id: uuid.UUID,
+    query: str,
+    k: int,
+) -> tuple[list[tuple[Document, str]], list[RetrievalHit]]:
+    """Hybrid retrieval across the matter, grouped into per-document snippets.
+
+    Calls ``retrieval.search_documents`` (matter-scoped, indexed-only, hybrid),
+    groups the returned chunk hits by their parent document, loads each parent
+    ``Document``, and joins that document's relevant chunk text into a single
+    snippet. The output shape matches the selected path — ``(Document, text)``
+    — so the existing ``_format_documents`` / ``[doc:id]`` citation flow works
+    unchanged. Documents appear in relevance order (the order their best chunk
+    first surfaced in the fused ranking); chunks within a document are joined in
+    reading order. Also returns the raw hits so the caller can audit them.
+    """
+    hits = await retrieval.search_documents(session, matter_id, query, k=k)
+    if not hits:
+        return [], []
+
+    grouped: dict[uuid.UUID, list[RetrievalHit]] = {}
+    for hit in hits:
+        grouped.setdefault(hit.document_id, []).append(hit)
+
+    rows = await session.scalars(
+        select(Document).where(
+            Document.matter_id == matter_id,
+            Document.id.in_(grouped.keys()),
+        )
+    )
+    documents = {doc.id: doc for doc in rows.all()}
+
+    out: list[tuple[Document, str]] = []
+    for document_id, doc_hits in grouped.items():
+        doc = documents.get(document_id)
+        if doc is None:
+            continue
+        ordered = sorted(doc_hits, key=lambda h: h.chunk_index)
+        joined = "\n…\n".join(h.text for h in ordered if h.text)
+        out.append((doc, _truncate(joined, _PER_DOCUMENT_CHAR_BUDGET)))
+    return out, hits
+
+
+async def _audit_retrieval_search(
+    session: AsyncSession,
+    *,
+    actor_id: uuid.UUID,
+    matter_id: uuid.UUID,
+    query: str,
+    k: int,
+    hits: list[RetrievalHit],
+) -> None:
+    """Record one ``retrieval.search`` row per turn: what the AI searched for.
+
+    The raw query is never stored — only its SHA-256 hash, matching the
+    model.call ``prompt_hash`` convention (so privileged matter content does
+    not leak into the audit log). The payload carries the shape of the search
+    and the distinct documents it surfaced. Added to the request session so it
+    commits inside the turn transaction alongside the assistant message.
+    """
+    document_ids = sorted({str(hit.document_id) for hit in hits})
+    await audit_api.log(
+        session,
+        "retrieval.search",
+        actor_id=actor_id,
+        matter_id=matter_id,
+        module="assistant",
+        resource_type="matter",
+        resource_id=str(matter_id),
+        prompt_hash=hashlib.sha256(query.encode("utf-8")).hexdigest(),
+        payload={
+            "source": "retrieval",
+            "query_char_len": len(query),
+            "k": k,
+            "hit_count": len(hits),
+            "document_ids": document_ids,
+        },
+    )
 
 
 async def _load_document_index(
@@ -566,6 +660,7 @@ def _assemble_prompt(
     document_total: int,
     outputs: list[tuple[MatterArtifact, str]],
     snippets: list[tuple[Document, str]],
+    retrieval_used: bool,
     tools: list[AssistantToolSpec],
     user_content: str,
     token_budget: int,
@@ -590,6 +685,7 @@ def _assemble_prompt(
         _format_outputs(outputs),
         "",
         "## Documents",
+        _RETRIEVED_DOCS_NOTE if retrieval_used else _SELECTED_DOCS_NOTE,
         _format_documents(snippets),
         "",
         "## Tools",
@@ -781,9 +877,28 @@ async def run_assistant_turn(
         session, matter.id, _DOCUMENT_INDEX_LIMIT
     )
     outputs = await _load_output_summary(session, matter.id, _OUTPUT_SUMMARY_LIMIT)
-    snippets = await _load_document_snippets(
-        session, matter.id, list(request.selected_document_ids)
-    )
+
+    # Document context. Selected path (P2): attached documents read whole.
+    # Otherwise: hybrid retrieval across the whole matter, indexed-only,
+    # audited as the "what did the AI search for" trail.
+    selected_ids = list(request.selected_document_ids)
+    retrieval_used = not selected_ids
+    retrieval_hits: list[RetrievalHit] = []
+    if selected_ids:
+        snippets = await _load_selected_snippets(session, matter.id, selected_ids)
+    else:
+        snippets, retrieval_hits = await _load_retrieved_snippets(
+            session, matter.id, request.content, _RETRIEVAL_K
+        )
+        await _audit_retrieval_search(
+            session,
+            actor_id=actor_id,
+            matter_id=matter.id,
+            query=request.content,
+            k=_RETRIEVAL_K,
+            hits=retrieval_hits,
+        )
+
     tools = await _load_assistant_tools(session)
     if on_event is not None:
         await on_event(
@@ -796,6 +911,8 @@ async def run_assistant_turn(
                 "document_total": document_total,
                 "output_count": len(outputs),
                 "document_count": len(snippets),
+                "retrieved_chunk_count": len(retrieval_hits),
+                "retrieved_document_count": len(snippets) if retrieval_used else 0,
                 "tool_count": len(tools),
             },
         )
@@ -809,6 +926,7 @@ async def run_assistant_turn(
         document_total=document_total,
         outputs=outputs,
         snippets=snippets,
+        retrieval_used=retrieval_used,
         tools=tools,
         user_content=request.content,
         token_budget=context_token_budget,

@@ -128,6 +128,11 @@ export function AssistantTab({
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  // Per-assistant-message retrieval note, keyed by message id. Populated
+  // from the SSE context.loaded event when the turn searched the matter.
+  const [retrievalNotes, setRetrievalNotes] = useState<
+    Map<string, { docs: number; chunks: number }>
+  >(new Map());
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [moduleEntries, setModuleEntries] = useState<V2ManifestEntry[]>([]);
   const [installedModules, setInstalledModules] = useState<Map<string, InstalledModule>>(
@@ -273,13 +278,28 @@ export function AssistantTab({
         selected_document_ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
       });
       let sawResult = false;
+      let retrieval: { docs: number; chunks: number } | null = null;
       for await (const event of stream) {
         if (event.event === "error") {
           throw streamEventError(event);
         }
         setAgentSteps((prev) => nextAgentSteps(prev, event));
+        if (event.event === "context.loaded") {
+          const docs = event.data.retrieved_document_count ?? 0;
+          const chunks = event.data.retrieved_chunk_count ?? 0;
+          if (docs > 0 || chunks > 0) retrieval = { docs, chunks };
+        }
         if (event.event !== "result") continue;
         sawResult = true;
+        const assistantId = event.data.assistant.id;
+        if (retrieval) {
+          const note = retrieval;
+          setRetrievalNotes((prev) => {
+            const next = new Map(prev);
+            next.set(assistantId, note);
+            return next;
+          });
+        }
         setMessages((prev) => {
           const without = prev.filter((m) => m.id !== optimistic.id);
           return [...without, event.data.user, event.data.assistant];
@@ -536,20 +556,34 @@ export function AssistantTab({
             ))}
           </div>
         )}
-        {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            message={m}
-            docs={docs}
-            chronology={chronology}
-            onDocChip={dispatchDocChip}
-            onChronChip={dispatchChronChip}
-            onAction={dispatchAction}
-            onSources={(message) => setWorkPane({ kind: "sources", message })}
-            onVersions={(message) => setWorkPane({ kind: "versions", message })}
-            onRecord={(message) => setWorkPane({ kind: "activity", message })}
-          />
-        ))}
+        {messages.map((m) => {
+          const note = m.role === "assistant" ? retrievalNotes.get(m.id) : undefined;
+          return (
+            <div key={m.id}>
+              <MessageBubble
+                message={m}
+                docs={docs}
+                chronology={chronology}
+                onDocChip={dispatchDocChip}
+                onChronChip={dispatchChronChip}
+                onAction={dispatchAction}
+                onSources={(message) => setWorkPane({ kind: "sources", message })}
+                onVersions={(message) => setWorkPane({ kind: "versions", message })}
+                onRecord={(message) => setWorkPane({ kind: "activity", message })}
+              />
+              {note && (
+                <p
+                  className="mt-1 pl-1 text-[11px] text-muted"
+                  data-testid="retrieval-note"
+                >
+                  Searched the matter — {note.chunks} passage
+                  {note.chunks === 1 ? "" : "s"} from {note.docs} document
+                  {note.docs === 1 ? "" : "s"}.
+                </p>
+              )}
+            </div>
+          );
+        })}
         {activeRunnerSkill && (
           <GenericSkillRunner
             slug={matter.slug}

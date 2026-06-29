@@ -36,6 +36,7 @@ from app.models.matter import (
     STATUS_VALUES,
 )
 from app.models.document import Document, TAG_VALUES
+from app.models.document_chunk import DocumentChunk, EMBEDDING_DIM
 from app.models.event import Event
 from app.models.audit import AuditEntry
 from app.models.auth_throttle import AuthThrottleEvent
@@ -154,6 +155,8 @@ __all__ = [
     "UserApiKey",
     "Matter",
     "Document",
+    "DocumentChunk",
+    "EMBEDDING_DIM",
     "Event",
     "AuditEntry",
     "AuditChainEntry",

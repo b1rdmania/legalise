@@ -33,6 +33,9 @@ export type AssistantStreamEvent =
         chronology_event_count: number;
         document_count: number;
         tool_count: number;
+        // Matter-wide retrieval (Wave 1-3). Optional: older backends omit them.
+        retrieved_document_count?: number;
+        retrieved_chunk_count?: number;
       };
     }
   | { event: "turn.accepted"; data: { user_message_id: string } }

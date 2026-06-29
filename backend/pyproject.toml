@@ -18,6 +18,7 @@ dependencies = [
   "alembic>=1.14.0",
   "asyncpg>=0.30.0",
   "psycopg[binary]>=3.2.3",
+  "pgvector>=0.3.0",
   "pydantic>=2.10.0",
   "pydantic-settings>=2.7.0",
   "python-multipart>=0.0.19",
@@ -54,6 +55,15 @@ anonymisation = [
   "presidio-analyzer>=2.2.358",
   "presidio-anonymizer>=2.2.358",
   "spacy>=3.7",
+]
+# Retrieval embedding backend (fastembed — BAAI/bge-small-en-v1.5, 384-dim,
+# ONNX/CPU, no torch). Kept an extra so the base install stays light; the
+# base boots without it because the hash embedding backend
+# (LEGALISE_EMBEDDING_BACKEND=hash) needs no dependencies. Install this extra
+# for the local, keyless default backend that indexes privileged content
+# in-tenant. See app/core/embeddings.py.
+retrieval = [
+  "fastembed>=0.4,<1.0",
 ]
 dev = [
   "ruff>=0.8.0",
