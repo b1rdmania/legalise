@@ -51,7 +51,7 @@ class Matter(Base):
     pivot_fact: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     privilege_posture: Mapped[str] = mapped_column(String(32), nullable=False, default=PRIVILEGE_MIXED)
-    default_model_id: Mapped[str] = mapped_column(String(64), nullable=False, default="claude-opus-4-7")
+    default_model_id: Mapped[str] = mapped_column(String(64), nullable=False, default="claude-sonnet-4-6")
 
     # Free-form key/value bag for matter-type-specific fields (EDT, ACAS dates, etc.)
     facts: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
