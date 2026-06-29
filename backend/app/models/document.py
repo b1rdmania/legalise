@@ -24,6 +24,16 @@ TAG_SIGNED = "signed"
 TAG_VALUES = {TAG_DISCLOSURE, TAG_DRAFT, TAG_CLEARED, TAG_SIGNED}
 
 
+# Retrieval indexing status (P3 — see docs/RETRIEVAL_DESIGN.md). A document is
+# searchable only once it reaches INDEX_INDEXED; until then the assistant must
+# say so. INDEX_EMPTY means there was no extracted text worth chunking.
+INDEX_PENDING = "pending"
+INDEX_INDEXED = "indexed"
+INDEX_FAILED = "failed"
+INDEX_EMPTY = "empty"
+INDEX_STATUS_VALUES = {INDEX_PENDING, INDEX_INDEXED, INDEX_FAILED, INDEX_EMPTY}
+
+
 class Document(Base):
     __tablename__ = "documents"
 
@@ -42,6 +52,14 @@ class Document(Base):
 
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     uploaded_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    # Retrieval indexing (P3). Defaults to 'pending'; the upload hook (or the
+    # reindex path) chunks + embeds the extracted body and flips this to
+    # 'indexed' / 'empty' / 'failed'.
+    index_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=INDEX_PENDING, default=INDEX_PENDING
+    )
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self) -> str:
         return f"<Document {self.filename} sha256={self.sha256[:8]}>"

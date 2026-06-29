@@ -34,6 +34,7 @@ from app.core.storage import (
     StorageDeleteError,
 )
 from app.core.audit_chain import verify_audit_chain
+from app.core.indexing import index_document, reindex_matter
 from app.core.text_extraction import extract as extract_text
 from app.core.api import (
     PROVIDER_HTTP_EXCEPTIONS,
@@ -473,6 +474,33 @@ async def upload_document(
             },
         )
 
+    # Retrieval indexing (P3). Runs inline in the upload transaction after a
+    # successful extraction, but an indexing failure must NEVER break the
+    # upload: the bytes + extracted body are already persisted; the document
+    # is just not searchable yet (index_status stays 'failed', reindexable
+    # later). The body must be flushed first so index_document can read it.
+    if extract_result.extraction_method != "failed":
+        await session.flush()
+        try:
+            index_status = await index_document(session, doc)
+            await _write_audit(
+                session,
+                actor=user,
+                matter=matter,
+                action="document.indexed",
+                module="retrieval",
+                resource_type="document",
+                resource_id=str(doc.id),
+                payload={
+                    "index_status": index_status,
+                    "embedding_backend": settings.embedding_backend,
+                },
+            )
+        except Exception:
+            # index_document already set doc.index_status='failed' and logged.
+            # Swallow so the upload still succeeds; the doc is reindexable.
+            pass
+
     await session.commit()
     await session.refresh(doc)
     record_document(
@@ -557,6 +585,57 @@ async def list_documents(
             pending_edit_count,
         ) in rows.all()
     ]
+
+
+class ReindexSummary(BaseModel):
+    indexed: int
+    empty: int
+    failed: int
+
+
+@router.post("/{slug}/reindex", response_model=ReindexSummary)
+async def reindex_documents(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ReindexSummary:
+    """Reindex every document in the matter for retrieval (P3).
+
+    Owner-only. Chunks + embeds each document's extracted body into
+    ``document_chunks`` (idempotent — existing chunks are swept first). Lets a
+    fork backfill documents uploaded before retrieval existed. Returns the
+    per-status count and emits a ``matter.reindexed`` audit row.
+    """
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    if matter is None:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    summary = await reindex_matter(session, matter.id)
+
+    await _write_audit(
+        session,
+        actor=user,
+        matter=matter,
+        action="matter.reindexed",
+        module="retrieval",
+        resource_type="matter",
+        resource_id=matter.slug,
+        payload={
+            "indexed": summary["indexed"],
+            "empty": summary["empty"],
+            "failed": summary["failed"],
+            "embedding_backend": settings.embedding_backend,
+        },
+    )
+    await session.commit()
+
+    return ReindexSummary(
+        indexed=summary["indexed"],
+        empty=summary["empty"],
+        failed=summary["failed"],
+    )
 
 
 @router.patch("/{slug}/privilege", response_model=MatterRead)
