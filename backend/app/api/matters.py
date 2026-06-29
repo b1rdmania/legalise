@@ -34,6 +34,7 @@ from app.core.storage import (
     StorageDeleteError,
 )
 from app.core.audit_chain import verify_audit_chain
+from app.core.model_catalog import is_known_model, model_catalog
 from app.core.indexing import index_document, reindex_matter
 from app.core.text_extraction import extract as extract_text
 from app.core.api import (
@@ -52,6 +53,7 @@ from app.models import (
     Job,
     Matter,
     User,
+    UserApiKey,
     PRIVILEGE_VALUES,
     PRIVILEGE_MIXED,
     STATUS_VALUES,  # noqa: F401 — exported for future endpoints
@@ -69,6 +71,12 @@ from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
 from app.models.document_version import DocumentVersion, VERSION_KIND_UPLOAD
 
 router = APIRouter()
+
+# Separate router for the model catalog. Mounted at /api/models in
+# app.main (the matters_router lives under /api/matters, so the catalog
+# can't hang off it). Kept here so the catalog schemas + endpoint sit
+# next to the matter create/PATCH code that consumes the same catalog.
+models_router = APIRouter()
 
 
 # ---------- schemas ---------------------------------------------------------
@@ -114,6 +122,28 @@ class MatterRead(BaseModel):
 
 class PrivilegePatch(BaseModel):
     privilege_posture: str
+
+
+class MatterModelPatch(BaseModel):
+    """Body for changing a matter's model after creation.
+
+    `default_model_id` is required and validated against the curated
+    catalog (`is_known_model`) in the endpoint — unknown ids are 422.
+    """
+
+    default_model_id: str = Field(min_length=1, max_length=64)
+
+
+class ModelCatalogEntryRead(BaseModel):
+    id: str
+    label: str
+    # "anthropic" | "openai" | "ollama" | "none"
+    provider: str
+    requires_key: bool
+    note: str
+    # True when this entry needs no key, OR the current user has a stored
+    # key for its provider. Lets the picker show "ready" vs "needs a key".
+    key_configured: bool
 
 
 class AuditEntryRead(BaseModel):
@@ -228,6 +258,38 @@ async def _write_audit(
 
 
 # ---------- endpoints -------------------------------------------------------
+
+@models_router.get("", response_model=list[ModelCatalogEntryRead])
+async def list_models(
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> list[ModelCatalogEntryRead]:
+    """Return the curated model catalog for the picker.
+
+    Each entry is annotated with `key_configured` against THIS user's
+    stored provider keys: keyless models (provider "ollama"/"none") are
+    always ready; keyed models (anthropic/openai) are ready only when the
+    user has a stored key for that provider.
+    """
+    rows = await session.scalars(
+        select(UserApiKey.provider).where(UserApiKey.user_id == user.id)
+    )
+    configured_providers = set(rows.all())
+    return [
+        ModelCatalogEntryRead(
+            id=entry.id,
+            label=entry.label,
+            provider=entry.provider,
+            requires_key=entry.requires_key,
+            note=entry.note,
+            key_configured=(
+                not entry.requires_key
+                or entry.provider in configured_providers
+            ),
+        )
+        for entry in model_catalog()
+    ]
+
 
 @router.post("", response_model=MatterRead, status_code=status.HTTP_201_CREATED)
 async def create_matter(
@@ -674,6 +736,60 @@ async def set_privilege_posture(
     await session.commit()
     await session.refresh(matter)
     append_history(matter.slug, matter.created_by_id, "privilege.set", f"{previous} → {body.privilege_posture}")
+    materialise_matter(matter)
+    return matter
+
+
+@router.patch("/{slug}", response_model=MatterRead)
+async def update_matter(
+    slug: str,
+    body: MatterModelPatch,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> Matter:
+    """Change a matter's model after creation (owner-only).
+
+    Validates `default_model_id` against the curated catalog — an unknown
+    id is rejected with 422 (unlike create, which stays lenient). Emits a
+    `matter.model.changed` audit row carrying from/to, and returns the
+    matter in the same shape as `GET /api/matters/{slug}`.
+    """
+    if not is_known_model(body.default_model_id):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"unknown model id: {body.default_model_id}",
+        )
+
+    matter = await session.scalar(
+        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
+    )
+    # Archived matters return 404 — same as the other matter endpoints.
+    if matter is None or matter.status == STATUS_ARCHIVED:
+        raise HTTPException(404, f"matter not found: {slug}")
+
+    previous = matter.default_model_id
+    if previous == body.default_model_id:
+        return matter  # no-op — no duplicate audit row
+
+    matter.default_model_id = body.default_model_id
+
+    await _write_audit(
+        session,
+        actor=user,
+        matter=matter,
+        action="matter.model.changed",
+        resource_type="matter",
+        resource_id=matter.slug,
+        payload={"from": previous, "to": body.default_model_id},
+    )
+    await session.commit()
+    await session.refresh(matter)
+    append_history(
+        matter.slug,
+        matter.created_by_id,
+        "matter.model.changed",
+        f"{previous} → {body.default_model_id}",
+    )
     materialise_matter(matter)
     return matter
 

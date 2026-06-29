@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from pathlib import Path
 
-from app.api import matters_router
+from app.api import matters_router, models_router
 from app.api.account import router as account_router
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
@@ -302,6 +302,9 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(usage_router, prefix="/api", tags=["usage"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])
+# Model catalog for the picker. Own prefix (the matters_router catch-all
+# /{slug} route would otherwise shadow it under /api/matters).
+app.include_router(models_router, prefix="/api/models", tags=["models"])
 # Audit reconstruction nested under /api/matters. Registered AFTER the
 # broad matters router so the catch-all /{slug} route doesn't shadow this
 # specific /{slug}/audit/reconstruction path. Registration order is the

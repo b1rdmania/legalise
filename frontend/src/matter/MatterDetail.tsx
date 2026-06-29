@@ -191,7 +191,15 @@ export function MatterDetail({ slug }: { slug: string }) {
               onChangePosture={onPostureChange}
             />
           )}
-          {tab === "overview" && <OverviewTab matter={matter} />}
+          {tab === "overview" && (
+            <OverviewTab
+              matter={matter}
+              onMatterUpdated={(m) => {
+                setMatter(m);
+                onMatterLoaded(m);
+              }}
+            />
+          )}
           {tab === "assistant" && (
             <AssistantTab
               matter={matter}

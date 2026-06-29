@@ -1,17 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { POSTURE_DOT_COLOR, postureDot, postureLabel, posturePaused } from "./posture";
+import {
+  POSTURE_DOT_COLOR,
+  postureDot,
+  postureExplain,
+  postureLabel,
+  posturePaused,
+} from "./posture";
 
 describe("posture presentation vocabulary", () => {
-  it("collapses A_cleared and B_mixed to Active", () => {
-    expect(postureLabel("A_cleared")).toBe("Active");
-    expect(postureLabel("B_mixed")).toBe("Active");
+  it("gives A_cleared and B_mixed distinct, meaningful labels", () => {
+    expect(postureLabel("A_cleared")).toBe("Cloud cleared");
+    expect(postureLabel("B_mixed")).toBe("Mixed (default)");
     expect(posturePaused("A_cleared")).toBe(false);
     expect(posturePaused("B_mixed")).toBe(false);
   });
 
-  it("maps C_paused to Paused", () => {
-    expect(postureLabel("C_paused")).toBe("Paused");
+  it("maps C_paused to a paused, no-AI label", () => {
+    expect(postureLabel("C_paused")).toBe("Paused (no AI)");
     expect(posturePaused("C_paused")).toBe(true);
+  });
+
+  it("explains each state in one plain line", () => {
+    expect(postureExplain("A_cleared")).toMatch(/any model may run/i);
+    expect(postureExplain("B_mixed")).toMatch(/default access/i);
+    expect(postureExplain("C_paused")).toMatch(/no model may run/i);
   });
 
   it("dot colours follow the two states", () => {

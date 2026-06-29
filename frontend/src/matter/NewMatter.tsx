@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { createMatter } from "../lib/api";
+import { createMatter, listModels, type ModelOption } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { navigate } from "../lib/route";
 import type { ReactNode } from "react";
@@ -48,6 +48,38 @@ export function NewMatter() {
   }));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [models, setModels] = useState<ModelOption[] | null>(null);
+
+  // Load the selectable model list. Once it arrives, make sure the
+  // pre-filled selection points at a model that actually exists — if the
+  // account default isn't on the list, fall back to the first model that
+  // doesn't need a key the user lacks, else the first model.
+  useEffect(() => {
+    let live = true;
+    listModels()
+      .then((rows) => {
+        if (!live) return;
+        setModels(rows);
+        setForm((f) => {
+          const has = rows.some((m) => m.id === f.default_model_id);
+          if (has) return f;
+          const usable =
+            rows.find((m) => !m.requires_key || m.key_configured) ?? rows[0];
+          return usable ? { ...f, default_model_id: usable.id } : f;
+        });
+      })
+      .catch(() => {
+        // Model list unavailable — leave the field as-is; the backend
+        // still validates on create.
+        if (live) setModels([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const selectedModel = models?.find((m) => m.id === form.default_model_id) ?? null;
+  const selectedNeedsKey = !!selectedModel?.requires_key && !selectedModel.key_configured;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -112,14 +144,49 @@ export function NewMatter() {
 
         <Field
           label="Default model"
-          hint="runs this matter's skills; a claude-/gpt- model needs a provider key in Settings"
+          hint="the model that runs this matter's skills; fixed at creation"
         >
-          <input
-            value={form.default_model_id}
-            onChange={(e) => setForm({ ...form, default_model_id: e.target.value })}
-            placeholder="claude-opus-4-7"
-            className={inputCls + " tech-token"}
-          />
+          {models === null ? (
+            <div className={inputCls + " flex items-center text-muted"}>Loading models…</div>
+          ) : models.length === 0 ? (
+            <input
+              value={form.default_model_id}
+              onChange={(e) => setForm({ ...form, default_model_id: e.target.value })}
+              placeholder="claude-opus-4-7"
+              className={inputCls + " tech-token"}
+            />
+          ) : (
+            <select
+              value={form.default_model_id}
+              onChange={(e) => setForm({ ...form, default_model_id: e.target.value })}
+              className={inputCls}
+            >
+              {models.map((m) => {
+                const needsKey = m.requires_key && !m.key_configured;
+                const provider = m.provider
+                  ? m.provider.charAt(0).toUpperCase() + m.provider.slice(1)
+                  : "";
+                return (
+                  <option key={m.id} value={m.id} disabled={needsKey}>
+                    {m.label}
+                    {needsKey ? ` (needs ${provider || "provider"} key — add in Settings)` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          )}
+          {selectedNeedsKey && (
+            <p className="text-xs text-muted">
+              This model needs a provider key you haven't added.{" "}
+              <a
+                href="/settings/keys"
+                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              >
+                Add one in Settings
+              </a>
+              , or pick a keyless model.
+            </p>
+          )}
         </Field>
 
         <Field label="Case theory" hint="optional">
