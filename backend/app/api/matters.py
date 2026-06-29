@@ -756,7 +756,7 @@ async def update_matter(
     """
     if not is_known_model(body.default_model_id):
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"unknown model id: {body.default_model_id}",
         )
 

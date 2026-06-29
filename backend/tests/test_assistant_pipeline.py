@@ -195,6 +195,9 @@ class _AssistantSession:
             def first(self_inner):
                 return None
 
+            def all(self_inner):
+                return []
+
         return _Row()
 
     async def commit(self) -> None:
@@ -305,8 +308,10 @@ class TestAssistantPipeline:
             for o in session.added
             if isinstance(o, AuditEntry) and o.module == "assistant"
         ]
-        assert len(audit_rows) == 1
-        assert audit_rows[0].action == "module.assistant.message"
+        assert {row.action for row in audit_rows} == {
+            "module.assistant.message",
+            "retrieval.search",
+        }
 
     @pytest.mark.asyncio
     async def test_suggested_actions_round_trip(self) -> None:
@@ -413,13 +418,30 @@ class TestAssistantPipeline:
         )
         gateway = _KeylessFakeGateway()
 
-        _, assistant_row = await run_assistant_turn(
-            session=session,
-            matter=matter,
-            actor_id=uuid.uuid4(),
-            request=AssistantPostRequest(content="Summarise the dismissal letter"),
-            gateway=gateway,
-        )
+        async def _fake_search_documents(*_args: Any, **_kwargs: Any):
+            return [
+                assistant_pipeline.RetrievalHit(
+                    document_id=dismissal.id,
+                    chunk_index=0,
+                    text=dismissal_body.extracted_text or "",
+                    char_start=0,
+                    char_end=len(dismissal_body.extracted_text or ""),
+                    score=1.0,
+                )
+            ]
+
+        with patch.object(
+            assistant_pipeline.retrieval,
+            "search_documents",
+            _fake_search_documents,
+        ):
+            _, assistant_row = await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Summarise the dismissal letter"),
+                gateway=gateway,
+            )
 
         assert "Summary of khan-dismissal-letter.pdf" in assistant_row.content
         assert f"[doc:{dismissal.id}]" in assistant_row.content
@@ -674,8 +696,11 @@ class TestAssistantPipeline:
             for o in session.added
             if isinstance(o, AuditEntry) and o.module == "assistant"
         ]
-        assert audit_rows[0].payload["tool_call_count"] == 1
-        assert audit_rows[0].payload["tool_invocation_id"] == str(invocation_id)
+        message_audit = next(
+            row for row in audit_rows if row.action == "module.assistant.message"
+        )
+        assert message_audit.payload["tool_call_count"] == 1
+        assert message_audit.payload["tool_invocation_id"] == str(invocation_id)
 
     @pytest.mark.asyncio
     async def test_tool_loop_emits_progress_events(self) -> None:
@@ -1006,6 +1031,7 @@ class TestAssistantPipeline:
             document_total=0,
             outputs=[],
             snippets=[],
+            retrieval_used=False,
             tools=[],
             user_content=user_msg,
             token_budget=200,
@@ -1067,9 +1093,11 @@ class TestAssistantFailureModes:
             for o in session.added
             if isinstance(o, AuditEntry) and o.module == "assistant"
         ]
-        assert len(audit_rows) == 1
-        assert audit_rows[0].payload["parse_failed"] is True
-        assert audit_rows[0].payload["tool_call_count"] == 0
+        message_audit = next(
+            row for row in audit_rows if row.action == "module.assistant.message"
+        )
+        assert message_audit.payload["parse_failed"] is True
+        assert message_audit.payload["tool_call_count"] == 0
 
     @pytest.mark.asyncio
     async def test_tool_error_reports_failure_and_audits_it(self) -> None:
@@ -1109,9 +1137,11 @@ class TestAssistantFailureModes:
             for o in session.added
             if isinstance(o, AuditEntry) and o.module == "assistant"
         ]
-        assert len(audit_rows) == 1
-        assert audit_rows[0].payload["tool_failed"] is True
-        assert audit_rows[0].payload["tool_invocation_id"] is None
+        message_audit = next(
+            row for row in audit_rows if row.action == "module.assistant.message"
+        )
+        assert message_audit.payload["tool_failed"] is True
+        assert message_audit.payload["tool_invocation_id"] is None
 
     @pytest.mark.asyncio
     async def test_empty_tool_registry_is_stated_in_the_prompt(self) -> None:
