@@ -692,6 +692,42 @@ def _maybe_deterministic_document_summary(
     )
 
 
+def _keyless_retrieval_answer(
+    sources: list[AssistantSource],
+) -> tuple[str, list[SuggestedAction]] | None:
+    """Keyless fallback for a general question (not a named-document summary).
+
+    No model key is configured, so the workspace cannot write an answer that
+    reasons over the matter. But retrieval still ran, so rather than dead-end
+    on the key-missing banner we show the passages it surfaced — explicitly
+    labelled as retrieval, not generation, so no one mistakes it for a model
+    answer. Returns None only when retrieval found nothing to show, in which
+    case the caller falls through to the honest "add a key" banner.
+    """
+    if not sources:
+        return None
+    doc_count = len({source.document_id for source in sources})
+    docs = "document" if doc_count == 1 else "documents"
+    content = (
+        "No model key is configured, so I can't write an answer that reasons "
+        "over the matter. Below are the passages most relevant to your "
+        f"question — {len(sources)} from {doc_count} {docs}, retrieved from "
+        "this matter's own documents. Review them directly, or add a model "
+        "key in Settings to get a written answer."
+    )
+    top = sources[0]
+    return (
+        content,
+        [
+            SuggestedAction(
+                type="view_document",
+                label="Open document",
+                params={"document_id": top.document_id},
+            )
+        ],
+    )
+
+
 def _assemble_prompt(
     *,
     matter: Matter,
@@ -993,7 +1029,11 @@ async def run_assistant_turn(
         await on_event("turn.accepted", {"user_message_id": str(user_row.id)})
 
     async def _persist_deterministic_summary(
-        content_out: str, actions: list[SuggestedAction]
+        content_out: str,
+        actions: list[SuggestedAction],
+        *,
+        sources: list[AssistantSource] | None = None,
+        kind: str = "document_summary",
     ) -> AssistantMessage:
         assistant_row = AssistantMessage(
             matter_id=matter.id,
@@ -1001,7 +1041,7 @@ async def run_assistant_turn(
             role=ROLE_ASSISTANT,
             content=content_out,
             suggested_actions=[a.model_dump(mode="json") for a in actions],
-            sources=[],
+            sources=[s.model_dump(mode="json") for s in (sources or [])],
             model_used="deterministic-summary",
             prompt_hash=None,
             response_hash=None,
@@ -1014,7 +1054,7 @@ async def run_assistant_turn(
                 "turn.deterministic",
                 {
                     "assistant_message_id": str(assistant_row.id),
-                    "kind": "document_summary",
+                    "kind": kind,
                 },
             )
 
@@ -1032,7 +1072,7 @@ async def run_assistant_turn(
                 "context_token_budget": context_token_budget,
                 "selected_document_count": len(request.selected_document_ids),
                 "parse_failed": False,
-                "deterministic": "document_summary",
+                "deterministic": kind,
             },
         )
         await session.commit()
@@ -1057,18 +1097,31 @@ async def run_assistant_turn(
             caller_module="assistant",
         )
     except ProviderKeyMissing:
-        # Keyless fallback: a summary-shaped request over an identifiable
-        # document still answers deterministically (extract, honestly
-        # labelled) so the demo loop works without a key. Anything else
-        # propagates to the router's provider_key_missing envelope.
+        # Keyless fallback so a fresh, keyless fork still demos itself.
+        # First choice: a summary-shaped request over an identifiable
+        # document answers deterministically (extract, honestly labelled).
         deterministic = _maybe_deterministic_document_summary(
             user_content=request.content,
             snippets=snippets,
         )
-        if deterministic is None:
+        if deterministic is not None:
+            content_out, actions = deterministic
+            assistant_row = await _persist_deterministic_summary(content_out, actions)
+            return user_row, assistant_row
+        # Second choice: any other question, but retrieval found passages —
+        # show them, labelled as retrieval not generation, with sources so
+        # the "what the AI saw" panel still renders. Only a question that
+        # surfaced nothing propagates to the router's key-missing banner.
+        keyless = _keyless_retrieval_answer(message_sources)
+        if keyless is None:
             raise
-        content_out, actions = deterministic
-        assistant_row = await _persist_deterministic_summary(content_out, actions)
+        content_out, actions = keyless
+        assistant_row = await _persist_deterministic_summary(
+            content_out,
+            actions,
+            sources=message_sources,
+            kind="keyless_retrieval",
+        )
         return user_row, assistant_row
 
     parse_failed = False

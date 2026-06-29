@@ -458,6 +458,88 @@ class TestAssistantPipeline:
         assert f"[doc:{dismissal.id}]" in assistant_row.content
 
     @pytest.mark.asyncio
+    async def test_keyless_general_question_falls_back_to_retrieval(self) -> None:
+        """No key + a general (non-summary) question that retrieval can answer:
+        rather than dead-end on the key-missing banner, show the retrieved
+        passages, honestly labelled, with sources so the 'what the AI saw'
+        panel still renders. A keyless fork must still demo itself."""
+        matter = _make_matter()
+        document = _make_document(matter.id)
+        document.filename = "khan-dismissal-letter.pdf"
+        body = _make_document_body(document.id)
+        session = _AssistantSession(
+            matter,
+            documents=[document],
+            bodies={document.id: body},
+        )
+        gateway = _KeylessFakeGateway()
+
+        async def _fake_search_documents(*_args: Any, **_kwargs: Any):
+            return [
+                assistant_pipeline.RetrievalHit(
+                    document_id=document.id,
+                    chunk_index=0,
+                    text=body.extracted_text or "",
+                    char_start=0,
+                    char_end=len(body.extracted_text or ""),
+                    score=1.0,
+                )
+            ]
+
+        with patch.object(
+            assistant_pipeline.retrieval,
+            "search_documents",
+            _fake_search_documents,
+        ):
+            _, assistant_row = await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(
+                    content="What was the stated reason for the dismissal?"
+                ),
+                gateway=gateway,
+            )
+
+        assert len(gateway.calls) == 1  # model attempted first
+        assert "No model key is configured" in assistant_row.content
+        assert assistant_row.model_used == "deterministic-summary"
+        assert len(assistant_row.sources) >= 1  # sources still render
+        assert str(document.id) in {s["document_id"] for s in assistant_row.sources}
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["deterministic"] == "keyless_retrieval"
+
+    @pytest.mark.asyncio
+    async def test_keyless_question_with_no_retrieval_raises(self) -> None:
+        """No key AND retrieval found nothing to show: there is no honest
+        extract to offer, so the turn propagates ProviderKeyMissing for the
+        router's 'add a key' banner rather than inventing an answer."""
+        from app.core.model_gateway import ProviderKeyMissing
+
+        matter = _make_matter()
+        session = _AssistantSession(matter, documents=[], bodies={})
+        gateway = _KeylessFakeGateway()
+
+        async def _no_hits(*_args: Any, **_kwargs: Any):
+            return []
+
+        with patch.object(
+            assistant_pipeline.retrieval, "search_documents", _no_hits
+        ):
+            with pytest.raises(ProviderKeyMissing):
+                await run_assistant_turn(
+                    session=session,
+                    matter=matter,
+                    actor_id=uuid.uuid4(),
+                    request=AssistantPostRequest(content="Draft a wholly new letter"),
+                    gateway=gateway,
+                )
+
+    @pytest.mark.asyncio
     async def test_prompt_includes_matter_and_chronology(self) -> None:
         matter = _make_matter()
         event = _make_event(matter.id)
