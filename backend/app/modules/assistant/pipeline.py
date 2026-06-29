@@ -141,17 +141,43 @@ def _truncate(text: str, char_budget: int) -> str:
 
 
 async def _load_history(
-    session: AsyncSession, matter_id: uuid.UUID, limit: int
+    session: AsyncSession, thread_id: uuid.UUID, limit: int
 ) -> list[AssistantMessage]:
+    """The recent turns of one thread, oldest-first, capped at ``limit``.
+
+    Scoped by ``thread_id`` so each thread in a matter keeps a separate
+    history — two conversations on the same matter never bleed into each
+    other.
+    """
     rows = await session.scalars(
         select(AssistantMessage)
-        .where(AssistantMessage.matter_id == matter_id)
+        .where(AssistantMessage.thread_id == thread_id)
         .order_by(AssistantMessage.created_at.desc())
         .limit(limit)
     )
     history = list(rows.all())
     history.reverse()
     return history
+
+
+_THREAD_TITLE_WORD_LIMIT = 6
+_THREAD_TITLE_CHAR_LIMIT = 80
+
+
+def derive_thread_title(user_content: str) -> str:
+    """A short thread title from the first ~6 words of the user message.
+
+    Whitespace-collapsed, capped at six words / 80 chars. Falls back to a
+    generic label when the message has no usable words.
+    """
+    words = re.sub(r"\s+", " ", user_content).strip().split(" ")
+    words = [w for w in words if w]
+    if not words:
+        return "New chat"
+    title = " ".join(words[:_THREAD_TITLE_WORD_LIMIT])
+    if len(title) > _THREAD_TITLE_CHAR_LIMIT:
+        title = title[:_THREAD_TITLE_CHAR_LIMIT].rstrip() + "…"
+    return title
 
 
 async def _load_chronology(
@@ -943,14 +969,19 @@ async def run_assistant_turn(
     session: AsyncSession,
     matter: Matter,
     actor_id: uuid.UUID,
+    thread_id: uuid.UUID,
     actor_role: str = "owner",
     request: AssistantPostRequest,
     gateway=model_gateway,
     context_token_budget: int = _DEFAULT_CONTEXT_TOKEN_BUDGET,
     on_event: AssistantEventHandler | None = None,
 ) -> tuple[AssistantMessage, AssistantMessage]:
-    """Persist the user turn, call the model, persist + audit the reply."""
-    history = await _load_history(session, matter.id, _HISTORY_MESSAGE_LIMIT)
+    """Persist the user turn, call the model, persist + audit the reply.
+
+    ``thread_id`` scopes the conversation: the router resolves or creates
+    the thread before calling, and history is loaded for that thread only.
+    """
+    history = await _load_history(session, thread_id, _HISTORY_MESSAGE_LIMIT)
     events = await _load_chronology(session, matter.id)
     chronology_total = await _chronology_total(session, matter.id)
     document_index, document_total = await _load_document_index(
@@ -1019,6 +1050,7 @@ async def run_assistant_turn(
 
     user_row = AssistantMessage(
         matter_id=matter.id,
+        thread_id=thread_id,
         actor_id=actor_id,
         role=ROLE_USER,
         content=request.content,
@@ -1039,6 +1071,7 @@ async def run_assistant_turn(
     ) -> AssistantMessage:
         assistant_row = AssistantMessage(
             matter_id=matter.id,
+            thread_id=thread_id,
             actor_id=actor_id,
             role=ROLE_ASSISTANT,
             content=content_out,
@@ -1249,6 +1282,7 @@ async def run_assistant_turn(
 
     assistant_row = AssistantMessage(
         matter_id=matter.id,
+        thread_id=thread_id,
         actor_id=actor_id,
         role=ROLE_ASSISTANT,
         content=content_out,
@@ -1297,4 +1331,4 @@ async def run_assistant_turn(
     return user_row, assistant_row
 
 
-__all__ = ["run_assistant_turn", "SYSTEM_PROMPT"]
+__all__ = ["run_assistant_turn", "derive_thread_title", "SYSTEM_PROMPT"]

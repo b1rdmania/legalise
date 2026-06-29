@@ -5,6 +5,8 @@ import {
   documentOriginalUrl,
   listGrants,
   listAssistantMessages,
+  listThreads,
+  getThreadMessages,
   listInstalledModules,
   postAssistantMessageStream,
   ProviderKeyMissingError,
@@ -15,6 +17,7 @@ import {
   type AssistantMessage,
   type AssistantSource,
   type AssistantStreamEvent,
+  type AssistantThread,
   type ChronologyEvent,
   type GrantRow,
   type InstalledModule,
@@ -128,6 +131,10 @@ export function AssistantTab({
   const [error, setError] = useState<string | null>(null);
   const [keyMissingProvider, setKeyMissingProvider] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(Boolean(initialMessages));
+  // Multiple chat threads per matter. In demo/disabled mode the switcher is
+  // hidden and these stay empty/null — the existing single-thread UX.
+  const [threads, setThreads] = useState<AssistantThread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   // Per-assistant-message retrieval note, keyed by message id. Populated
   // from the SSE context.loaded event when the turn searched the matter.
@@ -145,27 +152,87 @@ export function AssistantTab({
   const [workPane, setWorkPane] = useState<AssistantWorkPaneState | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Initial fetch (skip in demo: initialMessages provided).
+  // Initial fetch (skip in demo: initialMessages provided). Load the
+  // matter's threads and open the most-recently-active one. If retrieving
+  // threads fails (older backend), fall back to the flat message list so
+  // the chat still works.
   useEffect(() => {
     if (initialMessages) return;
     let cancelled = false;
-    listAssistantMessages(matter.slug)
-      .then((rows) => {
-        if (!cancelled) {
-          setMessages(rows);
-          setLoaded(true);
+    listThreads(matter.slug)
+      .then(async (rows) => {
+        if (cancelled) return;
+        setThreads(rows);
+        const active = rows[0] ?? null;
+        if (active) {
+          setActiveThreadId(active.id);
+          const msgs = await getThreadMessages(matter.slug, active.id);
+          if (!cancelled) setMessages(msgs);
+        } else {
+          setActiveThreadId(null);
+          setMessages([]);
         }
+        if (!cancelled) setLoaded(true);
       })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(formatError(err));
-          setLoaded(true);
-        }
+      .catch(() => {
+        if (cancelled) return;
+        listAssistantMessages(matter.slug)
+          .then((rows) => {
+            if (!cancelled) {
+              setMessages(rows);
+              setLoaded(true);
+            }
+          })
+          .catch((err) => {
+            if (!cancelled) {
+              setError(formatError(err));
+              setLoaded(true);
+            }
+          });
       });
     return () => {
       cancelled = true;
     };
   }, [matter.slug, initialMessages]);
+
+  const refreshThreads = async () => {
+    try {
+      const rows = await listThreads(matter.slug);
+      setThreads(rows);
+    } catch {
+      // non-fatal: the switcher just won't refresh
+    }
+  };
+
+  const switchThread = async (threadId: string) => {
+    if (threadId === activeThreadId || pending) return;
+    setActiveThreadId(threadId);
+    setError(null);
+    setKeyMissingProvider(null);
+    setLoaded(false);
+    try {
+      const msgs = await getThreadMessages(matter.slug, threadId);
+      setMessages(msgs);
+    } catch (err) {
+      setError(formatError(err));
+      setMessages([]);
+    } finally {
+      setLoaded(true);
+    }
+  };
+
+  // Start a fresh conversation: clear the visible thread. The next sent
+  // message creates the thread server-side; we then capture its id and
+  // refresh the list.
+  const startNewChat = () => {
+    if (pending) return;
+    setActiveThreadId(null);
+    setMessages([]);
+    setError(null);
+    setKeyMissingProvider(null);
+    setInput("");
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
 
   // Auto-scroll to newest message.
   useEffect(() => {
@@ -274,11 +341,14 @@ export function AssistantTab({
     setMessages((prev) => [...prev, optimistic]);
     setInput("");
     try {
+      const wasNewThread = activeThreadId === null;
       const stream = postAssistantMessageStream(matter.slug, {
         content,
         selected_document_ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+        thread_id: activeThreadId ?? undefined,
       });
       let sawResult = false;
+      let newThreadId: string | null = null;
       let retrieval: { docs: number; chunks: number } | null = null;
       for await (const event of stream) {
         if (event.event === "error") {
@@ -292,6 +362,7 @@ export function AssistantTab({
         }
         if (event.event !== "result") continue;
         sawResult = true;
+        newThreadId = event.data.thread_id ?? null;
         const assistantId = event.data.assistant.id;
         if (retrieval) {
           const note = retrieval;
@@ -308,6 +379,14 @@ export function AssistantTab({
       }
       if (!sawResult) {
         throw new Error("Assistant stream ended before returning a result.");
+      }
+      // The server may have opened a new thread for this turn. Adopt its id
+      // and refresh the switcher so the new conversation appears.
+      if (newThreadId && newThreadId !== activeThreadId) {
+        setActiveThreadId(newThreadId);
+      }
+      if (wasNewThread || newThreadId) {
+        void refreshThreads();
       }
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
@@ -518,6 +597,16 @@ export function AssistantTab({
             )}
           </div>
         </div>
+
+        {!disabled && !initialMessages && (
+          <ThreadSwitcher
+            threads={threads}
+            activeThreadId={activeThreadId}
+            disabled={pending}
+            onSwitch={switchThread}
+            onNewChat={startNewChat}
+          />
+        )}
 
         {attachedDocs.length > 0 && (
           <section
@@ -866,6 +955,72 @@ export function AssistantTab({
           onOpenPack={openWorkingPack}
         />
       ) : null}
+    </div>
+  );
+}
+
+// Compact thread switcher: the matter's conversations as a scrollable row
+// of chips plus a "New chat" affordance. Swiss/minimal — uses the same rail
+// tokens (rule/ink/seal/paper) as the rest of the chat. Hidden in demo and
+// read-only shells.
+function ThreadSwitcher({
+  threads,
+  activeThreadId,
+  disabled,
+  onSwitch,
+  onNewChat,
+}: {
+  threads: AssistantThread[];
+  activeThreadId: string | null;
+  disabled: boolean;
+  onSwitch: (threadId: string) => void;
+  onNewChat: () => void;
+}) {
+  // Nothing to switch between and no started conversation: just offer "New
+  // chat" so the affordance is always present without adding clutter.
+  return (
+    <div
+      className="mb-4 flex items-center gap-2 border-t border-rule pt-3"
+      data-testid="chat-thread-switcher"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+        {threads.map((thread) => {
+          const active = thread.id === activeThreadId;
+          return (
+            <button
+              key={thread.id}
+              type="button"
+              onClick={() => onSwitch(thread.id)}
+              disabled={disabled}
+              title={thread.title ?? "Untitled chat"}
+              data-testid={`chat-thread-${thread.id}`}
+              aria-current={active ? "true" : undefined}
+              className={
+                "shrink-0 max-w-[200px] truncate rounded-item border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 " +
+                (active
+                  ? "border-ink bg-paper-sunken text-ink"
+                  : "border-rule bg-paper text-muted hover:border-ink hover:text-ink")
+              }
+            >
+              {thread.title ?? "Untitled chat"}
+            </button>
+          );
+        })}
+        {activeThreadId === null && (
+          <span className="shrink-0 rounded-item border border-ink bg-paper-sunken px-2.5 py-1 text-xs text-ink">
+            New chat
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onNewChat}
+        disabled={disabled || activeThreadId === null}
+        data-testid="chat-new-thread"
+        className="shrink-0 text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50 disabled:no-underline"
+      >
+        + New chat
+      </button>
     </div>
   );
 }
