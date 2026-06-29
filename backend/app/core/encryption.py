@@ -13,6 +13,7 @@ import os
 import secrets
 from dataclasses import dataclass
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from app.core.config import settings
@@ -119,7 +120,26 @@ def encrypt(plaintext: str) -> Encrypted:
     return Encrypted(ciphertext=ct, nonce=nonce)
 
 
+class KeyDecryptionError(RuntimeError):
+    """A stored key exists but cannot be decrypted with the current secret.
+
+    Almost always means LEGALISE_KEY_ENCRYPTION_SECRET changed (or was unset
+    and a new random per-process key was generated) since the key was saved,
+    so the AES-GCM tag no longer verifies. The fix is to re-add the key. We
+    raise a typed error with a real message because the underlying
+    ``InvalidTag`` stringifies to "" — which otherwise surfaces as a blank
+    error in the chat.
+    """
+
+
 def decrypt(ciphertext: bytes, nonce: bytes) -> str:
     cipher = AESGCM(_key())
-    pt = cipher.decrypt(nonce, ciphertext, associated_data=None)
+    try:
+        pt = cipher.decrypt(nonce, ciphertext, associated_data=None)
+    except InvalidTag as exc:
+        raise KeyDecryptionError(
+            "Stored provider key could not be decrypted. The encryption "
+            "secret has changed since it was saved — re-add your key in "
+            "Settings."
+        ) from exc
     return pt.decode("utf-8")
