@@ -209,9 +209,11 @@ export function MatterDetail({ slug }: { slug: string }) {
           {tab === "chronology" && (
             <ChronologyTab
               chron={chron}
+              slug={slug}
               showSoF={showSoF}
               setShowSoF={setShowSoF}
               onConfirmGate={onConfirmGate}
+              onReload={load}
             />
           )}
           {tab === "workflows" && (

@@ -15,8 +15,33 @@ function truncateUuid(value: string): string {
   return `${value.slice(0, 8)}…${value.slice(-4)}`;
 }
 
+// An action with no module is an http/middleware (forensic) row: the
+// substrate, not the story. Kept, but hidden from the default timeline.
+function isTechnicalRow(e: AuditEntry): boolean {
+  return e.module == null;
+}
+
+function isBlockedAction(action: string): boolean {
+  return (
+    action.includes(".blocked") ||
+    action.includes(".refused") ||
+    action.includes(".denied")
+  );
+}
+
+// "2026-04-04T13:02:09Z" → "4 Apr, 13:02"
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function shortTimestamp(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return iso.slice(0, 16).replace("T", " ");
+  const month = Number(m[2]);
+  if (month < 1 || month > 12) return iso.slice(0, 16).replace("T", " ");
+  return `${Number(m[3])} ${SHORT_MONTHS[month - 1]}, ${m[4]}:${m[5]}`;
+}
+
 export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter?: Matter | null }) {
   const [moduleFilter, setModuleFilter] = useState<string>("");
+  const [showTechnical, setShowTechnical] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const modules = useMemo(() => {
@@ -26,12 +51,27 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
     return Array.from(set).sort();
   }, [audit]);
 
+  const technicalCount = useMemo(
+    () => (audit ? audit.filter(isTechnicalRow).length : 0),
+    [audit],
+  );
+
+  // Default view = the human story (semantic rows). Technical/http rows are
+  // folded in only when the toggle is on, or when the user explicitly picks
+  // the http filter. The module dropdown still narrows within whatever set.
   const visible = useMemo(() => {
     if (!audit) return [] as AuditEntry[];
-    if (!moduleFilter) return audit;
-    if (moduleFilter === "__http__") return audit.filter((e) => e.module == null);
-    return audit.filter((e) => e.module === moduleFilter);
-  }, [audit, moduleFilter]);
+    if (moduleFilter === "__http__") return audit.filter(isTechnicalRow);
+    if (moduleFilter) return audit.filter((e) => e.module === moduleFilter);
+    return showTechnical ? audit : audit.filter((e) => !isTechnicalRow(e));
+  }, [audit, moduleFilter, showTechnical]);
+
+  const hiddenTechnical = useMemo(() => {
+    if (moduleFilter === "__http__" || showTechnical) return 0;
+    // When a specific module is selected there are no technical rows in it,
+    // so the only case where technical rows are hidden is the default view.
+    return moduleFilter ? 0 : technicalCount;
+  }, [moduleFilter, showTechnical, technicalCount]);
 
   const selected = useMemo(() => {
     if (!selectedId || !audit) return null;
@@ -51,25 +91,35 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
 
   return (
     <div>
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-t border-rule bg-paper text-[11px] tech-token">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 border-b border-t border-rule bg-paper text-[11px]">
         <span className="text-muted uppercase tracking-[0.18em] text-[10px]">Filter</span>
         <select
           value={moduleFilter}
           onChange={(e) => setModuleFilter(e.target.value)}
-          className="bg-paper rounded-item border border-rule px-2 py-1 text-ink"
+          className="bg-paper rounded-item border border-rule px-2 py-1 text-ink tech-token"
         >
-          <option value="">All ({audit.length})</option>
+          <option value="">All activity</option>
           {modules.map((m) => (
             <option key={m} value={m}>
               {m} ({audit.filter((e) => e.module === m).length})
             </option>
           ))}
-          <option value="__http__">
-            http (middleware) ({audit.filter((e) => e.module == null).length})
-          </option>
+          <option value="__http__">http (middleware) ({technicalCount})</option>
         </select>
+        {moduleFilter !== "__http__" && (
+          <label className="flex items-center gap-2 text-muted select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showTechnical}
+              onChange={(e) => setShowTechnical(e.target.checked)}
+              className="accent-seal"
+            />
+            Show technical / HTTP events ({technicalCount})
+          </label>
+        )}
         <span className="text-muted ml-auto">
-          {visible.length} of {audit.length}
+          Showing {visible.length} event{visible.length === 1 ? "" : "s"}
+          {hiddenTechnical > 0 && ` · ${hiddenTechnical} technical event${hiddenTechnical === 1 ? "" : "s"} hidden`}
         </span>
       </div>
       {visible.length === 0 ? (
@@ -77,48 +127,44 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
           No entries match this filter.
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <div className="min-w-[1020px]">
-            <div className="grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-3 bg-paper border-b border-ink text-[10px] uppercase tracking-[0.18em] text-muted">
-              <span>Timestamp</span>
-              <span>Module</span>
-              <span>Action</span>
-              <span>Model</span>
-              <span>Tokens</span>
-              <span>Latency</span>
-              <span>Hash</span>
-            </div>
-            {visible.map((e) => {
-              const isSelected = selectedId === e.id;
-              // Blocked / refused / denied actions are the audit-trail
-              // events that matter most for "what didn't happen and why".
-              // Surface them with the seal accent so they're scannable.
-              const isBlocked =
-                e.action.includes(".blocked") ||
-                e.action.includes(".refused") ||
-                e.action.includes(".denied");
-              return (
+        <ol className="divide-y divide-rule/60">
+          {visible.map((e) => {
+            const isSelected = selectedId === e.id;
+            // Blocked / refused / denied entries are the events that matter
+            // most for "what didn't happen and why" — keep the seal accent.
+            const isBlocked = isBlockedAction(e.action);
+            const isTechnical = isTechnicalRow(e);
+            return (
+              <li key={e.id}>
                 <button
                   type="button"
-                  key={e.id}
                   onClick={() => setSelectedId(e.id)}
                   className={
-                    "w-full text-left grid grid-cols-[170px_100px_180px_140px_70px_70px_1fr] gap-4 px-4 py-2.5 border-b border-rule/60 transition-colors text-[11px] items-baseline " +
+                    "w-full text-left flex items-baseline gap-4 px-4 py-3 transition-colors " +
                     (isSelected ? "bg-wash" : "hover:bg-wash")
                   }
                 >
-                  <span className="tech-token text-muted">{e.timestamp.slice(0, 19).replace("T", " ")}</span>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted truncate">{e.module ?? "-"}</span>
-                  <span className={"tech-token truncate " + (isBlocked ? "text-seal line-through decoration-1" : "text-ink")}>{e.action}</span>
-                  <span className="tech-token text-prose truncate">{e.model_used ?? "-"}</span>
-                  <span className="tech-token text-ink">{e.token_count ?? "-"}</span>
-                  <span className="tech-token text-ink">{e.latency_ms != null ? `${e.latency_ms}ms` : "-"}</span>
-                  <span className="tech-token text-muted truncate">{(e.prompt_hash ?? "-").slice(0, 8)}</span>
+                  <span className="tech-token text-[10px] text-muted shrink-0 w-[96px] tabular-nums">
+                    {shortTimestamp(e.timestamp)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={
+                        "block text-sm leading-snug " +
+                        (isBlocked ? "text-seal font-medium" : "text-ink")
+                      }
+                    >
+                      {narrateEntry(e)}
+                    </span>
+                    <span className="mt-0.5 block tech-token text-[10px] text-muted truncate">
+                      {isTechnical ? "http (middleware)" : e.module ?? "system"} · {e.action}
+                    </span>
+                  </span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              </li>
+            );
+          })}
+        </ol>
       )}
 
       {selected && (

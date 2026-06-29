@@ -122,6 +122,8 @@ export const deleteAccount = async (): Promise<void> => {
   throw new Error(`deleteAccount: ${r.status} ${r.statusText}`);
 };
 
+export type ChronologyEventStatus = "proposed" | "accepted" | "rejected";
+
 export interface ChronologyEvent {
   id: string;
   event_date: string;
@@ -134,6 +136,8 @@ export interface ChronologyEvent {
   proceedings_refs: string[];
   created_at: string;
   redacted: boolean;
+  status?: ChronologyEventStatus;
+  source_document_id?: string | null;
 }
 
 export interface GateState {
@@ -159,6 +163,23 @@ export const confirmGate = (slug: string, acknowledgement: string) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ acknowledgement }),
   }).then((r) => jsonOrThrow<GateState>(r));
+
+// Auto-build proposes events from the matter's documents using its AI model.
+// Returns the proposed events; a person must accept each before it counts.
+export const buildChronology = (slug: string) =>
+  apiFetch(`${API}/matters/${slug}/chronology/build`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<ChronologyEvent[]>(r));
+
+export const acceptChronologyEvent = (slug: string, eventId: string) =>
+  apiFetch(`${API}/matters/${slug}/chronology/events/${eventId}/accept`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<ChronologyEvent>(r));
+
+export const rejectChronologyEvent = (slug: string, eventId: string) =>
+  apiFetch(`${API}/matters/${slug}/chronology/events/${eventId}/reject`, {
+    method: "POST",
+  }).then((r) => jsonOrThrow<ChronologyEvent>(r));
 
 // ---------------------------------------------------------------------------
 // Matter lifecycle + export (LMF UX v1) — over the stable LMF endpoints

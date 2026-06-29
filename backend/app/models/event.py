@@ -15,6 +15,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
 
+# Review lifecycle for a chronology event. Auto-build proposes events the
+# solicitor then accepts or rejects; manually-created and seeded events are
+# "accepted" on creation so the existing read surface is unchanged.
+STATUS_PROPOSED = "proposed"
+STATUS_ACCEPTED = "accepted"
+STATUS_REJECTED = "rejected"
+STATUS_VALUES = {STATUS_PROPOSED, STATUS_ACCEPTED, STATUS_REJECTED}
+
+
 class Event(Base):
     __tablename__ = "events"
 
@@ -27,6 +36,15 @@ class Event(Base):
 
     source_doc_ids: Mapped[list[uuid.UUID]] = mapped_column(ARRAY(UUID(as_uuid=True)), nullable=False, default=list)
     priv_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Propose -> review -> accept lifecycle. New rows default to "accepted"
+    # (manual / seeded events keep current behaviour); the auto-build path
+    # sets "proposed" explicitly. The CPR 31.22 taint of a row is NOT stored
+    # here — it is derived at read time from whether any `source_doc_ids`
+    # document has `from_disclosure=True` (see chronology/router.py).
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=STATUS_ACCEPTED, default=STATUS_ACCEPTED
+    )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     created_by_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
