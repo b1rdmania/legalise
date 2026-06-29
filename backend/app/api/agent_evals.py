@@ -45,6 +45,7 @@ from app.core.audit_chain import verify_audit_chain
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.posture_gate import _evaluate_posture
+from app.core.retrieval import search_documents
 from app.models.matter import Matter
 from app.modules.assistant.pipeline import _match_requested_document
 
@@ -172,10 +173,68 @@ async def _case_chain_intact(
     }
 
 
+async def _case_retrieval_grounding(
+    session: AsyncSession, inp: dict[str, Any]
+) -> dict[str, Any]:
+    """Run the real hybrid retrieval and report what it grounded on.
+
+    This is the grounding/citation eval: it calls the production
+    ``search_documents`` (matter-scoped, indexed-chunks-only, keyless
+    via fastembed) — the same function every assistant turn runs — and
+    returns the sources it found, so a dataset can assert that a real
+    question retrieves real passages from real documents in the matter.
+
+    Input: ``matter_slug`` (which matter to search) + ``query`` (the
+    question) + optional ``k`` (max hits, default 8). Nothing is
+    re-implemented; the adapter only shapes the hits into the contract.
+
+    The retrieval is matter-scoped at the query level, so every returned
+    source belongs to the named matter — ``document_ids`` proves which
+    documents the answer would have been able to cite. ``well_formed``
+    asserts citation integrity: every hit carries a positive char span
+    and a score, i.e. an anchorable, rankable passage.
+    """
+    slug = inp.get("matter_slug")
+    if not slug:
+        return {"error": "retrieval_grounding needs input.matter_slug"}
+    matter = await _matter_by_slug(session, slug)
+    if matter is None:
+        return {"error": f"matter not found for slug {slug!r}"}
+
+    query = inp.get("query") or ""
+    k = inp.get("k", 8)
+    if not isinstance(k, int) or k <= 0:
+        return {"error": "retrieval_grounding k must be a positive integer"}
+
+    hits = await search_documents(session, matter.id, query, k=k)
+    sources = [
+        {
+            "document_id": str(hit.document_id),
+            "char_start": hit.char_start,
+            "char_end": hit.char_end,
+            "score": hit.score,
+        }
+        for hit in hits
+    ]
+    document_ids = list(dict.fromkeys(s["document_id"] for s in sources))
+    well_formed = all(
+        s["char_end"] > s["char_start"] >= 0 and isinstance(s["score"], (int, float))
+        for s in sources
+    )
+    return {
+        "source_count": len(sources),
+        "document_ids": document_ids,
+        "document_count": len(document_ids),
+        "sources": sources,
+        "well_formed": well_formed,
+    }
+
+
 _CASES = {
     "posture_refusal": _case_posture_refusal,
     "deterministic_summary": _case_deterministic_summary,
     "chain_intact": _case_chain_intact,
+    "retrieval_grounding": _case_retrieval_grounding,
 }
 
 
