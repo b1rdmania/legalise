@@ -147,6 +147,7 @@ class _AssistantSession:
         self.bodies = bodies or {}
         self.installed_modules = installed_modules or []
         self.added: list[Any] = []
+        self.bind = None
 
     def add(self, obj: Any) -> None:
         if isinstance(obj, AssistantMessageRow) and obj.id is None:
@@ -288,13 +289,23 @@ class TestAssistantPipeline:
         session = _AssistantSession(matter, events=[event])
         gateway = _AssistantFakeGateway()
 
-        user_row, assistant_row = await run_assistant_turn(
-            session=session,
-            matter=matter,
-            actor_id=uuid.uuid4(),
-            request=AssistantPostRequest(content="What is the dismissal date?"),
-            gateway=gateway,
-        )
+        async def _fake_audit_out_of_band(request_session, action, **kwargs):
+            from app.core.api import audit
+
+            await audit.log(request_session, action, **kwargs)
+
+        with patch.object(
+            assistant_pipeline,
+            "audit_out_of_band",
+            _fake_audit_out_of_band,
+        ):
+            user_row, assistant_row = await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="What is the dismissal date?"),
+                gateway=gateway,
+            )
 
         assistant_rows = [
             o for o in session.added if isinstance(o, AssistantMessageRow)
