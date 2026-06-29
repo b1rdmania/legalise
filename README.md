@@ -280,6 +280,7 @@ Start with [`docs/`](./docs/):
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): how it works today, cited to code
 - [`docs/EVALUATING.md`](./docs/EVALUATING.md): the walkthrough, the evaluation gate, the run records
 - [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md): adversary model and what we don't defend
+- [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md): what is not production-grade and what a fork must build (read before building on top)
 - [`docs/ROADMAP.md`](./docs/ROADMAP.md): shipped, deferred, parked
 - [`docs/ATTRIBUTIONS.md`](./docs/ATTRIBUTIONS.md): credits and licence notes
 

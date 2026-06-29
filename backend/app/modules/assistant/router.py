@@ -182,7 +182,16 @@ async def post_message_stream(
                     }
                 )
         except Exception as exc:
-            await queue.put({"event": "error", "data": {"message": str(exc)}})
+            # Never emit a blank error: some exceptions (notably
+            # cryptography's InvalidTag on a key that can't be decrypted)
+            # stringify to "", which surfaces as an empty error bubble in
+            # the chat. Fall back to the exception type so the user always
+            # gets something actionable.
+            message = str(exc).strip() or (
+                f"The model call failed ({type(exc).__name__}). "
+                "Check your provider key in Settings."
+            )
+            await queue.put({"event": "error", "data": {"message": message}})
         finally:
             await queue.put(_SSE_SENTINEL)
 

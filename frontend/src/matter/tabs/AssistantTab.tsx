@@ -962,7 +962,10 @@ function streamEventError(event: Extract<AssistantStreamEvent, { event: "error" 
   if (keyMissing) return keyMissing;
   const upstream = tryParseProviderUpstream(event.data);
   if (upstream) return upstream;
-  return new Error(event.data.message || "Assistant stream failed.");
+  return new Error(
+    event.data.message ||
+      "The assistant could not complete this turn. If you have a provider key, check it in Settings.",
+  );
 }
 
 function nextAgentSteps(
