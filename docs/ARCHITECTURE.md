@@ -39,6 +39,17 @@ the primary surface, with documents, skills, activity, and approvals
 summoned as tabs around it
 (`frontend/src/matter/MatterDetail.tsx`, `frontend/src/matter/tabs/AssistantTab.tsx`).
 
+**What the assistant actually sees.** Context for a chat turn is assembled, not
+retrieved wholesale. The assistant is scoped to one matter and cannot read
+another, but it does not ingest the entire matter. Each turn assembles the
+documents the user explicitly selects — or, if none are selected, the 3 most
+recent documents — plus a capped chronology digest and recent chat messages,
+all under a token budget that can truncate. This is a conversational interface
+optimised for cost, not exhaustive matter ingestion. Audited matter-wide
+retrieval (embeddings/search over the whole matter) is planned (P3 in
+`docs/PRODUCT_PLAN.md`) but **not yet built**; the assistant must not be relied
+on to have seen documents the user did not put in front of it.
+
 ---
 
 ## 2. System shape

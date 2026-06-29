@@ -8,8 +8,8 @@
 // skills-as-plugins cut; skills now run from Chat via the generic
 // runner.
 //
-// Bare /matters/{slug} lands on Documents (the documents key) — opening
-// a matter shows what is in it first.
+// Bare /matters/{slug} lands on Overview — opening a matter shows the
+// matter at a glance first; documents and chat are one click away.
 //
 // User-facing tab labels (Chat / Documents / Skills / Activity)
 // intentionally do not match the underlying URL keys
@@ -18,6 +18,7 @@
 // a later slice that restructures the matter shell.
 
 export type TabKey =
+  | "overview"
   | "assistant"
   | "documents"
   | "chronology"
@@ -29,12 +30,14 @@ export type TabKey =
 // when needed. URL keys stay stable (assistant/documents/workflows)
 // for route compatibility.
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
+  { key: "overview", label: "Overview" },
   { key: "assistant", label: "Chat" },
   { key: "documents", label: "Documents" },
   { key: "workflows", label: "Skills" },
 ];
 
 export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
+  overview: "Overview",
   assistant: "Chat",
   documents: "Documents",
   chronology: "Chronology",
@@ -44,6 +47,7 @@ export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
 };
 
 const VALID_KEYS: ReadonlySet<string> = new Set<TabKey>([
+  "overview",
   "assistant",
   "documents",
   "chronology",

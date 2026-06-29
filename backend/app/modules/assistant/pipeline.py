@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import desc as sql_desc
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.advice_boundary import AdviceBoundaryDenied
@@ -38,7 +38,14 @@ from app.core.runtime import (
     dispatch_capability,
 )
 from app.core.structured_output import StructuredOutputError, parse_model_json
-from app.models import Document, Event, InstalledModule, Matter
+from app.models import (
+    Document,
+    Event,
+    InstalledModule,
+    Matter,
+    MatterArtifact,
+    MatterSignoff,
+)
 from app.models.assistant import ROLE_ASSISTANT, ROLE_USER, AssistantMessage
 from app.models.document_body import BODY_KIND_EXTRACTED, DocumentBody
 
@@ -57,7 +64,9 @@ If the user's intent is one of the structured workflows below, return a suggeste
 
 - anonymise_document: PII detection + redaction on a document
 
-Cite document content with [doc:<document_id>] using the UUID from the Documents section. Cite chronology with [chron:<event_id>] using the UUID from the Chronology section. IDs verbatim, never titles. The workspace resolves them to a clickable label.
+You see two document sections. "Document index" lists every document in the matter (id, date, filename, tag) but NOT its contents. "Documents" carries the full extracted text of only the documents the user attached, or the few most recent if none were attached. You have only READ the documents whose bodies appear in the Documents section. Do not claim to have read, summarised, quoted, or relied on any document that is only in the index. If a question needs a document you can see in the index but have not read, say so plainly and tell the user to attach it (or open it) by id. Never invent document contents. When the answer rests only on documents you have read, say which ones; if you could not see the whole matter, say so.
+
+Cite document content with [doc:<document_id>] using the UUID from the document sections. Cite chronology with [chron:<event_id>] using the UUID from the Chronology section. IDs verbatim, never titles. The workspace resolves them to a clickable label.
 
 England & Wales only. If asked about other jurisdictions, say so and stop.
 
@@ -77,6 +86,11 @@ _CHARS_PER_TOKEN = 4
 _HISTORY_MESSAGE_LIMIT = 20
 _CHRONOLOGY_EVENT_LIMIT = 12
 _RECENT_DOCUMENT_LIMIT = 3
+# The matter spine: a cheap, always-present orientation layer so the
+# assistant knows the whole matter exists even though it only reads a few
+# document bodies per turn. Metadata only — titles, not contents.
+_DOCUMENT_INDEX_LIMIT = 80
+_OUTPUT_SUMMARY_LIMIT = 12
 _PER_DOCUMENT_CHAR_BUDGET = 3000 * _CHARS_PER_TOKEN
 _DEFAULT_CONTEXT_TOKEN_BUDGET = 12000
 _SUMMARY_INTENT_RE = re.compile(
@@ -164,6 +178,74 @@ async def _load_document_snippets(
         text = body.extracted_text if body and body.extracted_text else ""
         out.append((doc, _truncate(text, _PER_DOCUMENT_CHAR_BUDGET)))
     return out
+
+
+async def _load_document_index(
+    session: AsyncSession, matter_id: uuid.UUID, limit: int
+) -> tuple[list[Document], int]:
+    """Every document in the matter, metadata only, newest first, capped.
+
+    Returns (documents, total_count) so the prompt can be honest when the
+    list is truncated.
+    """
+    total = (
+        await session.scalar(
+            select(func.count())
+            .select_from(Document)
+            .where(Document.matter_id == matter_id)
+        )
+    ) or 0
+    rows = await session.scalars(
+        select(Document)
+        .where(Document.matter_id == matter_id)
+        .order_by(Document.uploaded_at.desc())
+        .limit(limit)
+    )
+    return list(rows.all()), int(total)
+
+
+async def _chronology_total(session: AsyncSession, matter_id: uuid.UUID) -> int:
+    total = (
+        await session.scalar(
+            select(func.count())
+            .select_from(Event)
+            .where(Event.matter_id == matter_id)
+        )
+    ) or 0
+    return int(total)
+
+
+async def _load_output_summary(
+    session: AsyncSession, matter_id: uuid.UUID, limit: int
+) -> list[tuple[MatterArtifact, str]]:
+    """Recent generated outputs with their current sign-off decision.
+
+    Current decision is the newest sign-off per artifact (matching the
+    signoff state machine), or "awaiting sign-off" if none.
+    """
+    artifacts = list(
+        (
+            await session.scalars(
+                select(MatterArtifact)
+                .where(MatterArtifact.matter_id == matter_id)
+                .order_by(MatterArtifact.created_at.desc())
+                .limit(limit)
+            )
+        ).all()
+    )
+    if not artifacts:
+        return []
+    signoffs = (
+        await session.scalars(
+            select(MatterSignoff)
+            .where(MatterSignoff.matter_id == matter_id)
+            .order_by(MatterSignoff.signed_at.desc())
+        )
+    ).all()
+    latest: dict[uuid.UUID, str] = {}
+    for row in signoffs:
+        latest.setdefault(row.artifact_id, row.decision)
+    return [(a, latest.get(a.id, "awaiting sign-off")) for a in artifacts]
 
 
 def _text(value: Any) -> str | None:
@@ -258,26 +340,73 @@ def _format_history(history: list[AssistantMessage]) -> str:
 
 
 def _format_matter_facts(matter: Matter) -> str:
-    counterparty = ""
-    if isinstance(matter.facts, dict):
-        counterparty = str(matter.facts.get("counterparty", "")).strip()
     parts = [
         f"Title: {matter.title}",
         f"Type: {matter.matter_type}",
+        f"Status: {matter.status}",
         f"Privilege posture: {matter.privilege_posture}",
         f"Opened: {matter.opened_at.isoformat() if matter.opened_at else 'unknown'}",
     ]
-    if counterparty:
-        parts.append(f"Counterparty: {counterparty}")
+    if matter.cause:
+        parts.append(f"Cause: {matter.cause}")
+    if matter.retention_until:
+        parts.append(f"Retention until: {matter.retention_until.isoformat()}")
+    if isinstance(matter.facts, dict):
+        client = str(matter.facts.get("client", "")).strip()
+        counterparty = str(matter.facts.get("counterparty", "")).strip()
+        if client:
+            parts.append(f"Client: {client}")
+        if counterparty:
+            parts.append(f"Counterparty: {counterparty}")
+    if matter.case_theory:
+        parts.append(f"Case theory: {matter.case_theory}")
+    if matter.pivot_fact:
+        parts.append(f"Pivot fact: {matter.pivot_fact}")
     return "\n".join(parts)
 
 
-def _format_chronology(events: list[Event]) -> str:
+def _format_chronology(events: list[Event], total: int) -> str:
     if not events:
         return "(no chronology events)"
-    return "\n".join(
+    lines = [
         f"[chron:{event.id}] {event.event_date.isoformat()} - {event.description}"
         for event in events
+    ]
+    if total > len(events):
+        lines.append(
+            f"(showing {len(events)} of {total} events; ask to open the "
+            "chronology for the rest)"
+        )
+    return "\n".join(lines)
+
+
+def _format_document_index(documents: list[Document], total: int) -> str:
+    if not documents:
+        return "(no documents uploaded)"
+    lines: list[str] = []
+    for doc in documents:
+        date = doc.uploaded_at.date().isoformat() if doc.uploaded_at else "unknown"
+        bits = [f"[doc:{doc.id}]", date, doc.filename]
+        if doc.tag:
+            bits.append(f"({doc.tag})")
+        if doc.from_disclosure:
+            bits.append("[disclosure]")
+        lines.append(" ".join(bits))
+    header = f"{total} document(s) in this matter. Titles only — not contents."
+    if len(documents) < total:
+        header += (
+            f" Showing the {len(documents)} most recent by upload date; ask to "
+            "open or attach others by id."
+        )
+    return header + "\n" + "\n".join(lines)
+
+
+def _format_outputs(outputs: list[tuple[MatterArtifact, str]]) -> str:
+    if not outputs:
+        return "(no generated outputs yet)"
+    return "\n".join(
+        f"{artifact.kind} ({artifact.created_at.date().isoformat()}): {decision}"
+        for artifact, decision in outputs
     )
 
 
@@ -432,22 +561,33 @@ def _assemble_prompt(
     matter: Matter,
     history: list[AssistantMessage],
     events: list[Event],
+    chronology_total: int,
+    document_index: list[Document],
+    document_total: int,
+    outputs: list[tuple[MatterArtifact, str]],
     snippets: list[tuple[Document, str]],
     tools: list[AssistantToolSpec],
     user_content: str,
     token_budget: int,
 ) -> str:
-    # Context budget covers history + chronology + docs + tools + matter
-    # facts. The new user message and the JSON instruction are appended
-    # AFTER truncation so they survive even when the budget is exhausted.
-    # Matter facts are tiny and always kept verbatim. The truncation order
-    # below trims history/docs/chronology first if they overflow.
+    # The matter spine (facts, document index, chronology, outputs) is the
+    # cheap always-present orientation layer and is ordered FIRST so it
+    # survives the single tail truncation below. The expensive full document
+    # bodies, tool list, and conversation history come after — they absorb
+    # truncation when the budget overflows. The new user message and the JSON
+    # instruction are appended AFTER truncation so they always survive.
     context_sections = [
         "## Matter",
         _format_matter_facts(matter),
         "",
+        "## Document index",
+        _format_document_index(document_index, document_total),
+        "",
         "## Chronology",
-        _format_chronology(events),
+        _format_chronology(events, chronology_total),
+        "",
+        "## Outputs",
+        _format_outputs(outputs),
         "",
         "## Documents",
         _format_documents(snippets),
@@ -636,6 +776,11 @@ async def run_assistant_turn(
     """Persist the user turn, call the model, persist + audit the reply."""
     history = await _load_history(session, matter.id, _HISTORY_MESSAGE_LIMIT)
     events = await _load_chronology(session, matter.id)
+    chronology_total = await _chronology_total(session, matter.id)
+    document_index, document_total = await _load_document_index(
+        session, matter.id, _DOCUMENT_INDEX_LIMIT
+    )
+    outputs = await _load_output_summary(session, matter.id, _OUTPUT_SUMMARY_LIMIT)
     snippets = await _load_document_snippets(
         session, matter.id, list(request.selected_document_ids)
     )
@@ -646,6 +791,10 @@ async def run_assistant_turn(
             {
                 "history_message_count": len(history),
                 "chronology_event_count": len(events),
+                "chronology_total": chronology_total,
+                "document_index_count": len(document_index),
+                "document_total": document_total,
+                "output_count": len(outputs),
                 "document_count": len(snippets),
                 "tool_count": len(tools),
             },
@@ -655,6 +804,10 @@ async def run_assistant_turn(
         matter=matter,
         history=history,
         events=events,
+        chronology_total=chronology_total,
+        document_index=document_index,
+        document_total=document_total,
+        outputs=outputs,
         snippets=snippets,
         tools=tools,
         user_content=request.content,

@@ -545,6 +545,22 @@ def matter_prefix(user_id: uuid.UUID, matter_id: uuid.UUID) -> str:
     return f"users/{user_id}/matters/{matter_id}/"
 
 
+def document_prefix(
+    user_id: uuid.UUID,
+    matter_id: uuid.UUID,
+    document_id: uuid.UUID,
+) -> str:
+    """Return the key prefix for all objects belonging to one document.
+
+    Covers the uploaded binary (``uploaded_key``) and the editor's
+    embedded assets (``document_asset_key``), both of which live under
+    ``users/{user_id}/matters/{matter_id}/documents/{document_id}/``.
+    Passing this to ``delete_prefix`` removes every storage object scoped
+    to a single document — the per-document analogue of ``matter_prefix``.
+    """
+    return f"users/{user_id}/matters/{matter_id}/documents/{document_id}/"
+
+
 __all__ = [
     "StorageError",
     "StorageWriteError",
@@ -559,4 +575,5 @@ __all__ = [
     "generated_key",
     "document_asset_key",
     "matter_prefix",
+    "document_prefix",
 ]

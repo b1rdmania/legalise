@@ -613,6 +613,16 @@ export const endDocumentEditSession = async (
   }
 };
 
+export const deleteDocument = async (documentId: string): Promise<void> => {
+  const res = await apiFetch(`${API}/documents/${documentId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${text}`);
+  }
+};
+
 export const createDocumentComment = (
   documentId: string,
   payload: {

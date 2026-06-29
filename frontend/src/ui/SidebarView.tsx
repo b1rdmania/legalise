@@ -238,6 +238,8 @@ export function NavIcon({ name }: { name: string }) {
       return <svg {...c}><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 2h4.5A1.5 1.5 0 0 1 14 6.5v5A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5z" /></svg>;
     case "library":
       return <svg {...c}><rect x="2.5" y="2.5" width="4.5" height="4.5" /><rect x="9" y="2.5" width="4.5" height="4.5" /><rect x="2.5" y="9" width="4.5" height="4.5" /><rect x="9" y="9" width="4.5" height="4.5" /></svg>;
+    case "overview":
+      return <svg {...c}><rect x="2.5" y="2.5" width="11" height="11" rx="1" /><path d="M2.5 6h11M6 6v7.5" /></svg>;
     case "assistant":
       return <svg {...c}><path d="M3 3h10v7H6l-3 3V3z" /></svg>;
     case "documents":

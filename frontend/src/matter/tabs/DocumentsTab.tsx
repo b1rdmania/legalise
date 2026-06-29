@@ -3,7 +3,7 @@ import type { ChangeEvent, DragEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { FileUp } from "lucide-react";
 import type { MatterDocument } from "../../lib/api";
-import { UploadError } from "../../lib/api";
+import { UploadError, deleteDocument } from "../../lib/api";
 import { EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
 import { LedgerLine, SectionRule } from "../../ui/certificate";
 
@@ -62,6 +62,7 @@ export function DocumentsTab({
   slug,
   docs,
   onUpload,
+  onReload,
 }: {
   slug: string;
   docs: MatterDocument[] | null;
@@ -70,6 +71,7 @@ export function DocumentsTab({
     tag?: string,
     fromDisclosure?: boolean,
   ) => void | Promise<void>;
+  onReload?: () => void;
 }) {
   const [tag, setTag] = useState("");
   const [fromDisclosure, setFromDisclosure] = useState(false);
@@ -103,6 +105,25 @@ export function DocumentsTab({
       }
     }
     setIngress({ kind: "done", count: files.length });
+  };
+
+  const onDelete = async (doc: MatterDocument) => {
+    if (
+      !window.confirm(
+        `Delete "${doc.filename}"? This removes it from this matter.`,
+      )
+    ) {
+      return;
+    }
+    setUploadError(null);
+    try {
+      await deleteDocument(doc.id);
+      onReload?.();
+    } catch {
+      setUploadError(
+        `Could not delete ${doc.filename}. Try again in a moment.`,
+      );
+    }
   };
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -226,10 +247,33 @@ export function DocumentsTab({
 
       {!docs && <LoadingLine label="loading documents" />}
       {docs && docs.length === 0 && (
-        <EmptyState
-          title="No documents yet"
-          body="Add your first document above. Drop a file or click to browse."
-        />
+        <>
+          <EmptyState
+            title="No documents yet"
+            body="Add your first document above. Drop a file or click to browse."
+          />
+          <div className="mt-6 rounded-card border border-rule bg-paper p-5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
+              The happy path
+            </p>
+            <ol className="mt-4 space-y-3">
+              {[
+                "Add documents",
+                "Ask the assistant",
+                "Run a skill",
+                "Sign the output",
+                "Export the working pack",
+              ].map((step, i) => (
+                <li key={step} className="flex items-baseline gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rule text-[11px] text-muted">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm text-ink">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
       )}
       {docs && docs.length > 0 && (
         <div>
@@ -309,6 +353,13 @@ export function DocumentsTab({
                       >
                         Open →
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(d)}
+                        className="text-sm text-muted hover:text-seal"
+                      >
+                        Delete
+                      </button>
                     </span>
                   }
                 >
