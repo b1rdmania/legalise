@@ -538,11 +538,25 @@ export function AssistantTab({
     }
   };
 
+  const showThreadRail = !disabled && !initialMessages;
+
   return (
     <div
-      className="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-[760px] flex-col px-1"
+      className={
+        "mx-auto flex min-h-[calc(100vh-96px)] w-full gap-6 px-1 " +
+        (showThreadRail ? "max-w-[1000px]" : "max-w-[760px]")
+      }
       data-testid="chat-led-workspace"
     >
+      {showThreadRail && (
+        <ThreadRail
+          threads={threads}
+          activeThreadId={activeThreadId}
+          disabled={pending}
+          onSwitch={switchThread}
+          onNewChat={startNewChat}
+        />
+      )}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="mb-6 pt-1">
           <h1 className="max-w-2xl text-[30px] font-semibold leading-[1.05] tracking-tight2 text-ink sm:text-[34px]">
@@ -597,16 +611,6 @@ export function AssistantTab({
             )}
           </div>
         </div>
-
-        {!disabled && !initialMessages && (
-          <ThreadSwitcher
-            threads={threads}
-            activeThreadId={activeThreadId}
-            disabled={pending}
-            onSwitch={switchThread}
-            onNewChat={startNewChat}
-          />
-        )}
 
         {attachedDocs.length > 0 && (
           <section
@@ -959,11 +963,57 @@ export function AssistantTab({
   );
 }
 
-// Compact thread switcher: the matter's conversations as a scrollable row
-// of chips plus a "New chat" affordance. Swiss/minimal — uses the same rail
-// tokens (rule/ink/seal/paper) as the rest of the chat. Hidden in demo and
-// read-only shells.
-function ThreadSwitcher({
+// Group a matter's threads into recency buckets (Today / Yesterday /
+// Previous 7 days / Older), ordered most-recently-active first within each
+// bucket. A thread's recency is its last message, or its creation time if it
+// has no messages yet. Mirrors the ChatGPT/Grok conversation-sidebar pattern.
+const _THREAD_BUCKETS = [
+  "Today",
+  "Yesterday",
+  "Previous 7 days",
+  "Older",
+] as const;
+
+function groupThreadsByRecency(
+  threads: AssistantThread[],
+): { label: string; threads: AssistantThread[] }[] {
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
+  const dayMs = 86_400_000;
+
+  const recency = (t: AssistantThread) =>
+    new Date(t.last_message_at ?? t.created_at).getTime();
+  const bucketOf = (t: AssistantThread): (typeof _THREAD_BUCKETS)[number] => {
+    const ts = recency(t);
+    if (ts >= startOfToday) return "Today";
+    if (ts >= startOfToday - dayMs) return "Yesterday";
+    if (ts >= startOfToday - 7 * dayMs) return "Previous 7 days";
+    return "Older";
+  };
+
+  const byBucket = new Map<string, AssistantThread[]>();
+  for (const t of threads) {
+    const b = bucketOf(t);
+    (byBucket.get(b) ?? byBucket.set(b, []).get(b)!).push(t);
+  }
+  return _THREAD_BUCKETS.filter((label) => byBucket.has(label)).map((label) => ({
+    label,
+    threads: byBucket
+      .get(label)!
+      .sort((a, b) => recency(b) - recency(a)),
+  }));
+}
+
+// Left sub-rail of the matter's chat conversations — the ChatGPT/Grok
+// sidebar pattern, scoped to one matter (chats live inside a matter, like a
+// project). "+ New chat" pinned to the top; conversations grouped by recency
+// below. Swiss/minimal, shares the chat rail tokens (rule/ink/seal/paper).
+// Hidden on narrow viewports and in demo / read-only shells.
+function ThreadRail({
   threads,
   activeThreadId,
   disabled,
@@ -976,52 +1026,67 @@ function ThreadSwitcher({
   onSwitch: (threadId: string) => void;
   onNewChat: () => void;
 }) {
-  // Nothing to switch between and no started conversation: just offer "New
-  // chat" so the affordance is always present without adding clutter.
+  const groups = groupThreadsByRecency(threads);
+  const startingNew = activeThreadId === null;
   return (
-    <div
-      className="mb-4 flex items-center gap-2 border-t border-rule pt-3"
-      data-testid="chat-thread-switcher"
+    <aside
+      className="hidden w-56 shrink-0 flex-col border-r border-rule pr-4 pt-1 md:flex"
+      data-testid="chat-thread-rail"
+      aria-label="Conversations in this matter"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-        {threads.map((thread) => {
-          const active = thread.id === activeThreadId;
-          return (
-            <button
-              key={thread.id}
-              type="button"
-              onClick={() => onSwitch(thread.id)}
-              disabled={disabled}
-              title={thread.title ?? "Untitled chat"}
-              data-testid={`chat-thread-${thread.id}`}
-              aria-current={active ? "true" : undefined}
-              className={
-                "shrink-0 max-w-[200px] truncate rounded-item border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 " +
-                (active
-                  ? "border-ink bg-paper-sunken text-ink"
-                  : "border-rule bg-paper text-muted hover:border-ink hover:text-ink")
-              }
-            >
-              {thread.title ?? "Untitled chat"}
-            </button>
-          );
-        })}
-        {activeThreadId === null && (
-          <span className="shrink-0 rounded-item border border-ink bg-paper-sunken px-2.5 py-1 text-xs text-ink">
-            New chat
-          </span>
-        )}
-      </div>
       <button
         type="button"
         onClick={onNewChat}
-        disabled={disabled || activeThreadId === null}
+        disabled={disabled || startingNew}
         data-testid="chat-new-thread"
-        className="shrink-0 text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50 disabled:no-underline"
+        className="mb-4 flex items-center gap-2 rounded-item border border-rule bg-paper px-2.5 py-1.5 text-[13px] text-ink transition-colors hover:border-ink disabled:opacity-50"
       >
-        + New chat
+        <span aria-hidden="true" className="text-base leading-none">+</span>
+        New chat
       </button>
-    </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        {startingNew && (
+          <div
+            className="truncate rounded-item bg-paper-sunken px-2.5 py-1.5 text-[13px] text-ink"
+            data-testid="chat-thread-draft"
+          >
+            New chat
+          </div>
+        )}
+        {groups.map((group) => (
+          <div key={group.label}>
+            <div className="mb-1 px-2.5 text-[11px] uppercase tracking-wide text-muted">
+              {group.label}
+            </div>
+            <div className="flex flex-col">
+              {group.threads.map((thread) => {
+                const active = thread.id === activeThreadId;
+                return (
+                  <button
+                    key={thread.id}
+                    type="button"
+                    onClick={() => onSwitch(thread.id)}
+                    disabled={disabled}
+                    title={thread.title ?? "Untitled chat"}
+                    data-testid={`chat-thread-${thread.id}`}
+                    aria-current={active ? "true" : undefined}
+                    className={
+                      "truncate rounded-item px-2.5 py-1.5 text-left text-[13px] transition-colors disabled:opacity-50 " +
+                      (active
+                        ? "bg-paper-sunken text-ink"
+                        : "text-muted hover:bg-paper-sunken hover:text-ink")
+                    }
+                  >
+                    {thread.title ?? "Untitled chat"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 }
 
