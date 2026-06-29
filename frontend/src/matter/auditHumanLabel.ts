@@ -79,6 +79,11 @@ export function humanActionLabel(entry: TimelineEntry): string {
   const exact = EXACT[action];
   if (exact) return exact;
 
+  // A model call that never left the workspace because no provider key was
+  // configured. The action is module-scoped (e.g. module.assistant.model
+  // .key_missing), so match on the suffix rather than enumerating modules.
+  if (action.endsWith(".model.key_missing")) return "Model call blocked — no API key";
+
   const failed = action.endsWith(".failed") || action.endsWith(".error");
   const blocked =
     action.endsWith(".blocked") ||

@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import retrieval
 from app.core.advice_boundary import AdviceBoundaryDenied
 from app.core.api import audit as audit_api
+from app.core.api import audit_out_of_band
 from app.core.capabilities import CapabilityDenied
 from app.core.retrieval import RetrievalHit
 from app.core.model_gateway import PrivilegePosture, ProviderKeyMissing
@@ -285,11 +286,18 @@ async def _audit_retrieval_search(
     The raw query is never stored — only its SHA-256 hash, matching the
     model.call ``prompt_hash`` convention (so privileged matter content does
     not leak into the audit log). The payload carries the shape of the search
-    and the distinct documents it surfaced. Added to the request session so it
-    commits inside the turn transaction alongside the assistant message.
+    and the distinct documents it surfaced.
+
+    Written out-of-band (its own committed transaction) rather than on the
+    request session. The search has genuinely already run by this point, so
+    the row is honest on its own — and, load-bearing: it stops the request
+    session from holding the audit chain's per-scope advisory lock (migration
+    0030 trigger) across the subsequent model call. Holding it there deadlocks
+    every model-failure path, which append their failure audit on a separate
+    connection that would block forever on the lock the parked turn holds.
     """
     document_ids = sorted({str(hit.document_id) for hit in hits})
-    await audit_api.log(
+    await audit_out_of_band(
         session,
         "retrieval.search",
         actor_id=actor_id,

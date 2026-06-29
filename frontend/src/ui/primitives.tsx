@@ -16,7 +16,7 @@ export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
     <div className="border border-ink p-3 my-3 text-sm">
       <div className="font-semibold text-ink mb-1">{label} API key required</div>
       <p className="leading-relaxed text-prose m-0">
-        Add a {label} API key in Settings to use this model. Or switch to stub-echo for the demo.
+        Add your {label} API key in Settings to use this model. Or switch to stub-echo for the demo.
       </p>
       <a
         href="/settings"

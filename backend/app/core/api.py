@@ -333,6 +333,19 @@ async def audit_failure(
         await audit_session.commit()
 
 
+# Neutral alias for the same independent-committed-transaction write.
+# `audit_failure` is named for its commonest use (failure provenance that
+# must survive a rollback), but the identical mechanism is also the right
+# tool for a *success-path* audit row that must NOT keep the audit chain's
+# per-scope advisory lock (migration 0030 trigger) held on the request
+# session across a later long, fallible operation. The assistant writes its
+# `retrieval.search` row this way: holding that lock across the model call
+# deadlocks the model-failure paths, which append their own audit on a
+# separate connection that would otherwise block on it. Same code, clearer
+# intent at the call site — see pipeline._audit_retrieval_search.
+audit_out_of_band = audit_failure
+
+
 # AI gateway
 # ----------
 # Re-exports the module-level singleton from app.core.model_gateway.
@@ -354,6 +367,7 @@ __all__ = [
     "get_matter",
     "audit",
     "audit_failure",
+    "audit_out_of_band",
     "audit_storage_write_failure",
     "http_error",
     "PROVIDER_HTTP_EXCEPTIONS",

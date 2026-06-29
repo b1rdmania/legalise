@@ -490,7 +490,7 @@ export function OverviewTab({
               </DescItem>
             )}
             {matter.pivot_fact && (
-              <DescItem label="Pivot fact">
+              <DescItem label="Key fact">
                 <p className="text-sm text-ink">{matter.pivot_fact}</p>
               </DescItem>
             )}
