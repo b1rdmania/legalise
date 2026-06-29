@@ -91,7 +91,7 @@ packs before we should trust the extracted-event quality.
 
 ## Next Build Order
 
-### N0 — Coherent workspace (UX / IA overhaul) [IN PROGRESS]
+### N0 — Coherent workspace (UX / IA overhaul) [DONE]
 
 An independent UX review (benchmarked against real apps via Mobbin) found the
 bones are sound but the navigation hides the whole point: the governance
