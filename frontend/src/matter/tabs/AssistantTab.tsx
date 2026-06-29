@@ -13,6 +13,7 @@ import {
   providerUpstreamMessage,
   tryParseProviderUpstream,
   type AssistantMessage,
+  type AssistantSource,
   type AssistantStreamEvent,
   type ChronologyEvent,
   type GrantRow,
@@ -373,6 +374,24 @@ export function AssistantTab({
       search: { from: "assistant" },
     });
   };
+  // A retrieved source: open the document reader at the cited passage,
+  // passing the char range so the reader can highlight the exact slice.
+  // Read-only/public shells (onDocumentChip) only get the document id.
+  const dispatchSource = (source: AssistantSource) => {
+    if (onDocumentChip) {
+      onDocumentChip(source.document_id);
+      return;
+    }
+    void navigate({
+      to: "/matters/$slug/documents/$documentId",
+      params: { slug: matter.slug, documentId: source.document_id },
+      search: {
+        from: "assistant",
+        hl_start: source.char_start,
+        hl_end: source.char_end,
+      },
+    });
+  };
   // The timeline doesn't yet carry per-event anchoring, so the
   // chronology chip still drops the user on the Chronology tab.
   // Accepting the eventId keeps the callback shape future-proof
@@ -580,6 +599,34 @@ export function AssistantTab({
                   {note.chunks === 1 ? "" : "s"} from {note.docs} document
                   {note.docs === 1 ? "" : "s"}.
                 </p>
+              )}
+              {m.role === "assistant" && m.sources && m.sources.length > 0 && (
+                <div className="mt-2 pl-1" data-testid="assistant-sources">
+                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
+                    Sources
+                  </p>
+                  <ul className="mt-1 space-y-1.5">
+                    {m.sources.map((source, i) => (
+                      <li key={`${source.document_id}-${source.char_start}-${i}`}>
+                        <button
+                          type="button"
+                          onClick={() => dispatchSource(source)}
+                          className="group block w-full text-left"
+                          data-testid="assistant-source-row"
+                        >
+                          <span className="text-[11px] font-medium text-ink underline underline-offset-4 decoration-rule group-hover:decoration-seal group-hover:text-seal">
+                            {source.title}
+                          </span>
+                          {source.snippet.trim() && (
+                            <span className="mt-0.5 block text-[11px] leading-4 text-muted">
+                              {sourceExcerpt(source.snippet)}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           );
@@ -921,6 +968,12 @@ function toolLabel(moduleId: string, capabilityId: string): string {
   const moduleLabel = moduleId.split(".").at(-1)?.replace(/[-_]/g, " ") || moduleId;
   const capabilityLabel = capabilityId.replace(/[-_]/g, " ");
   return `Running ${moduleLabel}: ${capabilityLabel}`;
+}
+
+function sourceExcerpt(snippet: string, max = 160): string {
+  const compact = snippet.trim().replace(/\s+/g, " ");
+  if (compact.length <= max) return compact;
+  return `${compact.slice(0, max - 1).trimEnd()}…`;
 }
 
 const DOC_CITATION_RE = /\[doc:([A-Za-z0-9_.\-]+)\]/g;

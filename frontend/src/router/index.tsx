@@ -516,6 +516,15 @@ type MatterDocumentDetailSearch = {
   quote?: string;
   quote_found?: string;
   quoteFound?: string;
+  // Char range of a retrieved passage (assistant source click-through).
+  // Offsets into the extracted-text body; the reader highlights the slice.
+  hl_start?: number;
+  hl_end?: number;
+};
+const numberOrUndefined = (v: unknown): number | undefined => {
+  const n =
+    typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : undefined;
 };
 const matterDocumentDetailRoute = createRoute({
   getParentRoute: () => authedRoute,
@@ -526,6 +535,8 @@ const matterDocumentDetailRoute = createRoute({
     quote: typeof s.quote === "string" ? s.quote : undefined,
     quote_found: typeof s.quote_found === "string" ? s.quote_found : undefined,
     quoteFound: typeof s.quoteFound === "string" ? s.quoteFound : undefined,
+    hl_start: numberOrUndefined(s.hl_start),
+    hl_end: numberOrUndefined(s.hl_end),
   }),
   component: () => {
     const { slug, documentId } = matterDocumentDetailRoute.useParams();

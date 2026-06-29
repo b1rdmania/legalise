@@ -49,6 +49,10 @@ class AssistantMessage(Base):
     suggested_actions: Mapped[list] = mapped_column(
         JSONB, nullable=False, default=list
     )
+    # Retrieved passages the assistant reply rests on (P4). One entry per
+    # retrieval hit: {document_id, title, snippet, char_start, char_end,
+    # score}. Empty on user rows and on non-retrieval turns.
+    sources: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     model_used: Mapped[str | None] = mapped_column(Text, nullable=True)
     prompt_hash: Mapped[str | None] = mapped_column(Text, nullable=True)

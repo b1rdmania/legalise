@@ -28,6 +28,7 @@ from .schemas import (
     AssistantMessage,
     AssistantPostRequest,
     AssistantPostResponse,
+    AssistantSource,
     SuggestedAction,
 )
 
@@ -51,11 +52,17 @@ def _to_schema(row: AssistantMessageRow) -> AssistantMessage:
         for a in (row.suggested_actions or [])
         if isinstance(a, dict)
     ]
+    sources = [
+        AssistantSource.model_validate(s)
+        for s in (row.sources or [])
+        if isinstance(s, dict)
+    ]
     return AssistantMessage(
         id=row.id,
         role=row.role,  # type: ignore[arg-type]
         content=row.content,
         suggested_actions=actions,
+        sources=sources,
         model_used=row.model_used,
         created_at=row.created_at,
     )

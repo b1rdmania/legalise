@@ -10,11 +10,26 @@ export interface SuggestedAction {
   params: Record<string, string>;
 }
 
+// A retrieved passage the assistant relied on for an answer. Char offsets
+// index into the document's extracted-text body so the reader can locate
+// and highlight the exact slice for review before sign-off.
+export interface AssistantSource {
+  document_id: string;
+  title: string;
+  snippet: string;
+  char_start: number;
+  char_end: number;
+  score: number;
+}
+
 export interface AssistantMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   suggested_actions: SuggestedAction[];
+  // Passages retrieved for this reply (assistant messages only). Optional:
+  // older backends and user messages omit it.
+  sources?: AssistantSource[];
   model_used?: string | null;
   created_at: string;
 }

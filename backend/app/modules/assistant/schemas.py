@@ -35,11 +35,27 @@ class AssistantToolCall(BaseModel):
     args: dict[str, object] = Field(default_factory=dict)
 
 
+class AssistantSource(BaseModel):
+    """One retrieved passage the assistant reply rests on.
+
+    Persisted per assistant turn so the frontend can render "Sources" and
+    deep-link to the exact char range in the parent document.
+    """
+
+    document_id: str
+    title: str
+    snippet: str
+    char_start: int
+    char_end: int
+    score: float
+
+
 class AssistantMessage(BaseModel):
     id: UUID
     role: Literal["user", "assistant"]
     content: str
     suggested_actions: list[SuggestedAction] = Field(default_factory=list)
+    sources: list[AssistantSource] = Field(default_factory=list)
     model_used: str | None = None
     created_at: datetime
 
