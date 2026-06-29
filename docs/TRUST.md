@@ -26,7 +26,14 @@ and review; the system drafts and records.
 The trust model is built around supervised autonomy, not unsupervised
 automation. Legalise should make it clear what the AI saw, what it did, which
 permission allowed it, which human remained accountable, and what record would
-be available to a firm, insurer, client, or regulator afterwards. The audit log
+be available to a firm, insurer, client, or regulator afterwards. On "what the
+AI saw": the assistant is scoped to one matter and cannot see others, but within
+a matter it does not ingest everything. It works from the documents the user
+selects (or the few most recent if none are selected), a capped chronology
+digest, and recent chat history, all under a token budget that can truncate.
+This is a conversational interface optimised for cost, not exhaustive matter
+ingestion; audited matter-wide retrieval is planned (`docs/PRODUCT_PLAN.md` P3)
+but not yet built. The audit log
 is the receipt for that supervision model; it is not a claim that v0.1 is a
 regulated practice system. Firms that need a four-eyes rule can deploy with
 `SIGNOFF_AUTHOR_MUST_DIFFER` set, which blocks an author from signing their

@@ -62,3 +62,69 @@ async def get_document_body(
     if body is None:
         raise HTTPException(404, "document body not available")
     return body
+
+
+@router.delete("/{document_id}", status_code=204, response_class=Response)
+async def delete_document(
+    document_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> Response:
+    """Hard-delete a single document and its storage bytes.
+
+    Authorisation: only the owning matter's creator may delete; any other
+    user (or a missing document) gets 404, never 403 — same cross-user
+    convention as the rest of the documents API.
+
+    Hard delete: the ``documents`` row is removed outright. Every dependent
+    table (``document_bodies``, ``document_versions``, ``document_edits``
+    via versions, ``document_comments``, ``document_edit_sessions``,
+    ``document_working_drafts``) carries ``ON DELETE CASCADE``, so Postgres
+    sweeps the children. Audit rows reference documents by string
+    ``resource_id`` (no FK) and stay intact as the historical record.
+
+    Storage cleanup is the gate — mirroring the matter-delete path. The
+    document's storage objects (uploaded binary + editor assets) are
+    removed FIRST; if that fails we return 502, the document stays live,
+    and no ``document.deleted`` audit row is written (fail-closed).
+    """
+    doc, matter = await _owned_live_document(session, document_id, user)
+
+    # Capture identity before the row is deleted / expired.
+    filename = doc.filename
+    sha256 = doc.sha256
+    doc_id_str = str(doc.id)
+
+    # Storage cleanup first. A 204 must mean the bytes are actually gone;
+    # a storage failure leaves the document reachable so the user can
+    # retry, and emits no `document.deleted` row claiming success.
+    try:
+        storage = get_storage_backend()
+        storage.delete_prefix(document_prefix(user.id, matter.id, doc.id))
+    except StorageDeleteError as exc:
+        raise HTTPException(
+            502,
+            detail={
+                "error": "document_storage_delete_failed",
+                "document_id": doc_id_str,
+                "message": (
+                    "Failed to delete document storage objects. The "
+                    "document has NOT been deleted; please retry. If the "
+                    "error persists, contact the operator."
+                ),
+            },
+        ) from exc
+
+    await audit.log(
+        session,
+        "document.deleted",
+        actor_id=user.id,
+        matter_id=matter.id,
+        resource_type="document",
+        resource_id=doc_id_str,
+        payload={"filename": filename, "sha256": sha256},
+    )
+
+    await session.delete(doc)
+    await session.commit()
+    return Response(status_code=204)

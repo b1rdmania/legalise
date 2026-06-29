@@ -54,7 +54,7 @@ export function Drawer({
     // Record, outputs, and working pack stay reachable from cards and
     // context links; they are not primary destinations in the chat-led shell.
     const rawTab = route.name === "detail" ? route.tab : undefined;
-    const currentTab = rawTab && isTabKey(rawTab) ? rawTab : "assistant";
+    const currentTab = rawTab && isTabKey(rawTab) ? rawTab : "overview";
     const activeKey = sidebarActiveFor(currentTab);
     primary = SIDEBAR_NAV.map((t) => ({
       href: `/matters/${matter.slug}/${t.key}`,

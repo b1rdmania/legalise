@@ -81,9 +81,14 @@ about any AI tool used on a matter:
 4. Who stayed accountable?
 
 **What it saw.** Every matter has a spine: documents, chronology, parties,
-retention clock, privilege posture. The AI sees only what lives in the matter.
-Cross-matter access is scoped in the application layer and every access is
-audited (enforced in the application, not a structural guarantee).
+retention clock, privilege posture. The assistant is scoped to one matter and
+cannot see other matters. Within a matter it does not ingest everything: it
+works from the documents you select, or the few most recent if you select none,
+plus a capped chronology digest and recent chat, under a token budget that can
+truncate. It is a conversational interface, not an exhaustive matter view;
+audited matter-wide retrieval is on the roadmap (`docs/PRODUCT_PLAN.md` P3), not
+yet live. Cross-matter access is scoped in the application layer and every
+access is audited (enforced in the application, not a structural guarantee).
 Disclosure-tainted chronology entries carry a CPR 31.22 flag; the chronology
 gate withholds detail until the user acknowledges it, and the acknowledgement
 is audited.
@@ -149,9 +154,17 @@ Stack: Postgres, MinIO, Redis, Gotenberg, FastAPI, React.
    local dev the first user is verified, seeded with Khan v Acme, and promoted to
    workspace admin automatically. No bootstrap CLI step is needed.
 
-4. **Run the loop.** Open Khan v Acme, use Chat, then **Skills → Add skill** to
-   inspect a Lawve skill, convert it to a governed draft, run the trust ceremony,
-   enable it on the matter, and run it from chat.
+4. **Run the loop.** The five steps the workspace exists for, in order:
+
+   1. **Create a matter** — or open the seeded Khan v Acme.
+   2. **Add documents** — drag/drop into the matter; bodies are extracted.
+   3. **Ask the assistant** — Chat over the documents you select.
+   4. **Run a skill** — **Skills → Add skill** to inspect a Lawve skill, convert
+      it to a governed draft, run the trust ceremony, enable it on the matter,
+      then run it from chat.
+   5. **Sign the output, then export the working pack** — review the output and
+      record a sign-off, then export the matter ZIP (documents, audit trail,
+      outputs, sign-off records, source anchors, integrity flag).
 
 5. **Check the stack with `legalise doctor`.** Inspection only; verifies the
    database is reachable, migrations are current, MinIO is responding, plugins

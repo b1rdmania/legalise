@@ -326,6 +326,13 @@ export function AssistantTab({
       void sendMessage(`${workflowPrompt}\n\nRequested from: ${a.label}`, selectedIds);
       return;
     }
+    // "Open document" is a secondary action on an inline summary: take
+    // the user to the specific document reader rather than dropping them
+    // on the Documents tab (which loses the file). The summary stays in chat.
+    if (a.type === "view_document" && a.params.document_id) {
+      dispatchDocChip(a.params.document_id);
+      return;
+    }
     const target = ACTION_TARGET[a.type];
     if (target) setTabAndHash(target);
   };

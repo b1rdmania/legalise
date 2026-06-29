@@ -23,6 +23,7 @@ import { MatterSkillsTab } from "./MatterSkillsTab";
 import { PostureBanner } from "./PostureBanner";
 import { isTabKey, type TabKey } from "./tabs/types";
 import { DocumentsTab } from "./tabs/DocumentsTab";
+import { OverviewTab } from "./tabs/OverviewTab";
 import { ChronologyTab } from "./tabs/ChronologyTab";
 import { AuditTab } from "./tabs/AuditTab";
 import { ApprovalsTab } from "./tabs/ApprovalsTab";
@@ -39,12 +40,11 @@ export function MatterDetail({ slug }: { slug: string }) {
   // posture banner reads the current user role.
   const auth = useAuth();
   const route = useRoute();
-  // Bare /matters/:slug lands on Documents — when you open a matter you
-  // expect to see what is in it, and the documents are the point. Chat
-  // and the rest are one click away. Deep links to a specific tab
-  // (/matters/:slug/:tab) still win.
+  // Bare /matters/:slug lands on Overview — when you open a matter you
+  // expect a summary of it first. Documents, chat and the rest are one
+  // click away. Deep links to a specific tab (/matters/:slug/:tab) still win.
   const initialTab: TabKey =
-    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "documents";
+    route.name === "detail" && route.tab && isTabKey(route.tab) ? route.tab : "overview";
   const [tab, setTab] = useState<TabKey>(initialTab);
   const initialChatDocumentId =
     typeof window !== "undefined"
@@ -62,7 +62,7 @@ export function MatterDetail({ slug }: { slug: string }) {
     if (route.name === "detail" && route.tab && isTabKey(route.tab)) {
       setTab(route.tab);
     } else if (route.name === "detail" && !route.tab) {
-      setTab("documents");
+      setTab("overview");
     }
   }, [route]);
 
@@ -174,6 +174,16 @@ export function MatterDetail({ slug }: { slug: string }) {
         <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-12 py-12">
           {error && matter && <ErrorCallout message={error} compact />}
           {matter && (
+            <div className="mb-4 flex justify-end">
+              <a
+                href={`/matters/${slug}/lifecycle`}
+                className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              >
+                Export / Close / Delete
+              </a>
+            </div>
+          )}
+          {matter && (
             <PostureBanner
               posture={matter.privilege_posture}
               user={auth.user}
@@ -181,6 +191,7 @@ export function MatterDetail({ slug }: { slug: string }) {
               onChangePosture={onPostureChange}
             />
           )}
+          {tab === "overview" && <OverviewTab matter={matter} />}
           {tab === "assistant" && (
             <AssistantTab
               matter={matter}
@@ -193,7 +204,7 @@ export function MatterDetail({ slug }: { slug: string }) {
             />
           )}
           {tab === "documents" && (
-            <DocumentsTab slug={slug} docs={docs} onUpload={onUpload} />
+            <DocumentsTab slug={slug} docs={docs} onUpload={onUpload} onReload={load} />
           )}
           {tab === "chronology" && (
             <ChronologyTab
