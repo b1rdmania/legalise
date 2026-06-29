@@ -157,6 +157,10 @@ export function narrateEntry(entry: AuditEntry): string {
     return "Opened the output for review.";
   }
 
+  if (a.endsWith(".model.key_missing")) {
+    return "A model call was blocked — no API key is configured for this provider. Nothing left the workspace.";
+  }
+
   if (a === "advice_boundary.check.completed") {
     return "Checked how far this output may go (the advice boundary) — within bounds.";
   }
