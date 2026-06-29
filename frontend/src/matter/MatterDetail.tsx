@@ -175,12 +175,7 @@ export function MatterDetail({ slug }: { slug: string }) {
           {error && matter && <ErrorCallout message={error} compact />}
           {matter && (
             <div className="mb-4 flex justify-end">
-              <a
-                href={`/matters/${slug}/lifecycle`}
-                className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              >
-                Export / Close / Delete
-              </a>
+              <MatterActionsMenu slug={slug} />
             </div>
           )}
           {matter && (
@@ -224,33 +219,99 @@ export function MatterDetail({ slug }: { slug: string }) {
               onReload={load}
             />
           )}
-          {tab === "workflows" && (
-            <div className="space-y-8">
-              <MatterSkillsTab slug={matter.slug} />
-              <details className="border-t border-rule pt-6">
-                <summary className="cursor-pointer text-xs uppercase tracking-widest text-muted hover:text-seal">
-                  Permissions detail
-                </summary>
-                <p className="mt-2 text-xs text-muted">
-                  Direct grant management. The simplified view above is
-                  the primary surface for this matter; this section
-                  exists for operators who need to inspect or edit
-                  specific capability grants.
+          {tab === "workflows" && <MatterSkillsTab slug={matter.slug} />}
+          {tab === "permissions" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-semibold text-ink">Permissions</h1>
+                <p className="mt-2 text-sm text-muted max-w-prose">
+                  Direct capability-grant management for this matter — for
+                  operators who need to inspect or edit which skills and
+                  models are permitted. Day-to-day, skills are run from the
+                  Skills tab.
                 </p>
-                <div className="mt-6 space-y-8">
-                  <GrantsPanel
-                    slug={matter.slug}
-                    defaultModelId={matter.default_model_id}
-                    requiredProvider={matter.required_provider}
-                  />
-                </div>
-              </details>
+              </div>
+              <div className="space-y-8">
+                <GrantsPanel
+                  slug={matter.slug}
+                  defaultModelId={matter.default_model_id}
+                  requiredProvider={matter.required_provider}
+                />
+              </div>
             </div>
           )}
           {tab === "audit" && <AuditTab audit={audit} matter={matter} />}
           {tab === "approvals" && <ApprovalsTab slug={matter.slug} />}
         </main>
         </div>
+    </div>
+  );
+}
+
+// Matter actions menu — the real home for the lifecycle surface
+// (Export / Close / Delete) plus the operator Permissions entry, which
+// used to be an 11px underlined link and a buried <details>. Routine
+// actions are grouped; the destructive Delete is visually separated
+// (divider + seal colour). Export / Close / Delete all land on the
+// existing /lifecycle page (route unchanged); Permissions opens the
+// in-shell permissions surface.
+function MatterActionsMenu({ slug }: { slug: string }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("[data-matter-actions]")) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const lifecycle = `/matters/${slug}/lifecycle`;
+  const itemCls = "block px-3 py-2 text-sm text-ink hover:bg-panel-hover";
+
+  return (
+    <div className="relative" data-matter-actions>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-item border border-rule px-3 py-1.5 text-sm text-ink hover:bg-panel-hover transition-colors"
+      >
+        Manage matter
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M3 4.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-1 w-56 bg-paper border border-rule rounded-item shadow-panel overflow-hidden z-20"
+        >
+          <a href={lifecycle} role="menuitem" className={itemCls}>
+            Export
+          </a>
+          <a href={lifecycle} role="menuitem" className={itemCls}>
+            Close &amp; archive
+          </a>
+          <a href={`/matters/${slug}/permissions`} role="menuitem" className={itemCls}>
+            Permissions
+          </a>
+          <div className="border-t border-rule" />
+          <a
+            href={lifecycle}
+            role="menuitem"
+            className="block px-3 py-2 text-sm text-seal hover:bg-panel-hover"
+          >
+            Delete matter
+          </a>
+        </div>
+      )}
     </div>
   );
 }

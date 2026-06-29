@@ -107,6 +107,8 @@ export function Sidebar({
     route.name === "matterAudit" ||
     route.name === "matterArtifacts" ||
     route.name === "matterArtifactDetail" ||
+    route.name === "matterArtifactSign" ||
+    route.name === "matterSignoff" ||
     route.name === "matterDocumentDetail" ||
     route.name === "matterLifecycle"
       ? route.slug
@@ -127,6 +129,9 @@ export function Sidebar({
     {
       key: "library",
       label: "Skill library",
+      // browse + install skills (catalogue). Distinct from "My skills"
+      // (the register / track record at /register) and the in-matter
+      // "Skills" tab (run skills on this matter).
       href: "/skills",
       icon: <NavIcon name="library" />,
       active:
@@ -139,7 +144,7 @@ export function Sidebar({
     },
     {
       key: "register",
-      label: "Your skills",
+      label: "My skills",
       href: "/register",
       icon: <NavIcon name="audit" />,
       active: !onMatterArea && route.name === "register",
@@ -159,6 +164,41 @@ export function Sidebar({
                   ? onMatterDocumentDetail || (route.name === "detail" && matterTab === "documents")
                   : route.name === "detail" && matterTab === t.key,
           })),
+        ]
+      : undefined;
+
+  // Governance lane — the inspect → approve → sign loop. Outputs and
+  // Activity are full-page routes (artifacts / audit→ReconstructionView);
+  // Approvals is an in-shell tab. URL keys are kept exactly as-is. The
+  // sign-off path is reachable from here: Outputs → an output → Review & sign.
+  const matterGovernanceItems: RailItem[] | undefined =
+    onMatterArea && matterSlug
+      ? [
+          {
+            key: "artifacts",
+            label: "Outputs",
+            href: `/matters/${matterSlug}/artifacts`,
+            icon: <NavIcon name="artifacts" />,
+            active:
+              route.name === "matterArtifacts" ||
+              route.name === "matterArtifactDetail" ||
+              route.name === "matterArtifactSign" ||
+              route.name === "matterSignoff",
+          },
+          {
+            key: "approvals",
+            label: "Approvals",
+            href: `/matters/${matterSlug}/approvals`,
+            icon: <NavIcon name="approvals" />,
+            active: route.name === "detail" && matterTab === "approvals",
+          },
+          {
+            key: "audit",
+            label: "Activity",
+            href: `/matters/${matterSlug}/audit`,
+            icon: <NavIcon name="audit" />,
+            active: route.name === "matterAudit",
+          },
         ]
       : undefined;
 
@@ -182,6 +222,7 @@ export function Sidebar({
       matterTitle={matter?.title || matterSlug || undefined}
       matterPosture={matter ? posture(matter.privilege_posture) : undefined}
       matterItems={matterItems}
+      matterGovernanceItems={matterGovernanceItems}
       adminItems={adminItems}
       utilItems={utilItems}
       open={open}

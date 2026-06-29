@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { listApiKeys, listMatters, type Matter } from "../lib/api";
-import { postureDot, postureLabel } from "../lib/posture";
+import { postureLabel, postureTone } from "../lib/posture";
 import { EmptyState, ErrorCallout, PageHeader } from "../ui/primitives";
 import { LedgerLine, SectionRule } from "../ui/certificate";
 
@@ -33,8 +33,7 @@ export function MatterList() {
       <PageHeader
         display
         title="Matters"
-        whisper="The cause list"
-        description="Every matter this workspace holds, entered in the order it was opened. An entry records the matter's type, whether it stands open or closed, and the posture of its privilege. Open an entry to take up the matter."
+        description="Every matter in this workspace. Each row shows its type, status, and AI-access state. Open a matter to work on it."
         actions={
           <a
             href="/matters/new"
@@ -76,8 +75,8 @@ export function MatterList() {
 
       {matters && matters.length === 0 && (
         <EmptyState
-          title="Nothing entered"
-          body="The cause list holds no matters yet. Open one to make the first entry."
+          title="No matters yet"
+          body="You haven't created any matters yet. Create one to get started."
           action={
             <a
               href="/matters/new"
@@ -91,10 +90,7 @@ export function MatterList() {
 
       {matters && matters.length > 0 && (
         <section>
-          <SectionRule
-            label="Schedule of matters"
-            right={String(matters.length)}
-          />
+          <SectionRule label="All matters" right={String(matters.length)} />
           <div className="mt-1">
             {matters.map((m, i) => (
               <a
@@ -110,12 +106,18 @@ export function MatterList() {
                       <span className="text-[10px] uppercase tracking-[0.18em] text-ink">
                         {m.status}
                       </span>
-                      <span
-                        className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: postureDot(m.privilege_posture) }}
-                        title={`AI access: ${postureLabel(m.privilege_posture)}`}
-                        aria-label={`AI access: ${postureLabel(m.privilege_posture)}`}
-                      />
+                      {(() => {
+                        const tone = postureTone(m.privilege_posture);
+                        return (
+                          <span
+                            className="inline-flex shrink-0 items-center px-2 py-0.5 text-[10px] uppercase tracking-[0.14em]"
+                            style={{ color: tone.color, backgroundColor: tone.bg }}
+                            title={`AI access: ${postureLabel(m.privilege_posture)}`}
+                          >
+                            {postureLabel(m.privilege_posture)}
+                          </span>
+                        );
+                      })()}
                       <span className="tech-token text-[11px] text-muted">
                         {m.opened_at.slice(0, 10)}
                       </span>

@@ -24,15 +24,24 @@ export type TabKey =
   | "chronology"
   | "workflows"
   | "audit"
-  | "approvals";
+  | "approvals"
+  // Operator surface: the matter's capability grants. Reached from the
+  // matter "Manage" menu, not the primary rail — kept out of the
+  // run-skills (workflows) tab so that tab stays "run skills here".
+  | "permissions";
 
-// The matter loop. Chat is the product; files and skills are summoned
-// when needed. URL keys stay stable (assistant/documents/workflows)
-// for route compatibility.
+// The matter loop, surfaced in the primary rail lane. Chat is the
+// product; files, chronology and skills are one click away. The
+// governance surfaces (Outputs / Approvals / Activity) are promoted
+// into the rail too, but as a separate "Governance" group wired in the
+// rail adapters (ui/Sidebar.tsx, ui/Drawer.tsx) because some of them
+// are full-page routes rather than in-shell tabs. URL keys stay stable
+// (assistant/documents/workflows) for route compatibility.
 export const SIDEBAR_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Overview" },
   { key: "assistant", label: "Chat" },
   { key: "documents", label: "Documents" },
+  { key: "chronology", label: "Chronology" },
   { key: "workflows", label: "Skills" },
 ];
 
@@ -44,6 +53,7 @@ export const MATTER_TAB_LABELS: Readonly<Record<TabKey, string>> = {
   workflows: "Skills",
   audit: "Activity",
   approvals: "Approvals",
+  permissions: "Permissions",
 };
 
 const VALID_KEYS: ReadonlySet<string> = new Set<TabKey>([
@@ -54,6 +64,7 @@ const VALID_KEYS: ReadonlySet<string> = new Set<TabKey>([
   "workflows",
   "audit",
   "approvals",
+  "permissions",
 ]);
 
 export function isTabKey(v: string): v is TabKey {

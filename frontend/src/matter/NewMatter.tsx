@@ -6,6 +6,20 @@ import { navigate } from "../lib/route";
 import type { ReactNode } from "react";
 import { ErrorCallout, PageHeader } from "../ui/primitives";
 
+// Real UK matter types. Values are stable identifiers — other code matches
+// "employment_tribunal" and "civil" exactly, so those strings must not
+// change. Labels are what the user reads.
+const MATTER_TYPES: { value: string; label: string }[] = [
+  { value: "employment_tribunal", label: "Employment Tribunal" },
+  { value: "civil", label: "Civil Litigation" },
+  { value: "commercial_contract", label: "Commercial Contract" },
+  { value: "family", label: "Family" },
+  { value: "property", label: "Property / Conveyancing" },
+  { value: "personal_injury", label: "Personal Injury" },
+  { value: "debt_recovery", label: "Debt Recovery" },
+  { value: "other", label: "Other" },
+];
+
 // Ledger-label form field (DESIGN.md P27): labels carry the 0.18em
 // clerk's-ledger tier rather than the generic eyebrow-sm.
 function Field({
@@ -127,11 +141,17 @@ export function NewMatter() {
         </Field>
 
         <Field label="Matter type">
-          <input
+          <select
             value={form.matter_type}
             onChange={(e) => setForm({ ...form, matter_type: e.target.value })}
             className={inputCls}
-          />
+          >
+            {MATTER_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Cause">
@@ -198,10 +218,11 @@ export function NewMatter() {
           />
         </Field>
 
-        <Field label="Pivot fact" hint="optional">
+        <Field label="Key fact" hint="optional">
           <input
             value={form.pivot_fact}
             onChange={(e) => setForm({ ...form, pivot_fact: e.target.value })}
+            placeholder="The single fact the matter turns on"
             className={inputCls}
           />
         </Field>

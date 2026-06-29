@@ -483,27 +483,37 @@ export function AssistantTab({
                 <span>{runnableSkillCount} runnable skill{runnableSkillCount === 1 ? "" : "s"}</span>
               </>
             )}
-            <span aria-hidden="true">·</span>
-            <button
-              type="button"
-              onClick={openRecord}
-              className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              data-testid="open-record-link"
-            >
-              Activity
-            </button>
+            {/* Activity lives on the matter rail (WS1); the old faint
+                header link was redundant chrome and has been removed.
+                openRecord is still used by the work pane + context rail. */}
             {onPostureChange && !disabled && (
               <>
                 <span aria-hidden="true">·</span>
-                <button
-                  type="button"
-                  onClick={onTogglePause}
-                  disabled={postureSubmitting}
-                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
-                  data-testid="chat-pause-toggle"
-                >
-                  {posturePaused(matter.privilege_posture) ? "Resume AI" : "Pause AI"}
-                </button>
+                {/* Shortcut to the SAME posture state owned by PostureBanner.
+                    Reflects matter.privilege_posture and calls the shared
+                    onPostureChange — not an independent toggle. The status
+                    word makes that legible; full messaging stays with the
+                    banner. */}
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className={
+                      posturePaused(matter.privilege_posture)
+                        ? "text-seal"
+                        : "text-muted"
+                    }
+                  >
+                    {posturePaused(matter.privilege_posture) ? "AI paused" : "AI active"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onTogglePause}
+                    disabled={postureSubmitting}
+                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
+                    data-testid="chat-pause-toggle"
+                  >
+                    {posturePaused(matter.privilege_posture) ? "Resume AI" : "Pause AI"}
+                  </button>
+                </span>
               </>
             )}
           </div>
@@ -590,43 +600,12 @@ export function AssistantTab({
                 onVersions={(message) => setWorkPane({ kind: "versions", message })}
                 onRecord={(message) => setWorkPane({ kind: "activity", message })}
               />
-              {note && (
-                <p
-                  className="mt-1 pl-1 text-[11px] text-muted"
-                  data-testid="retrieval-note"
-                >
-                  Searched the matter — {note.chunks} passage
-                  {note.chunks === 1 ? "" : "s"} from {note.docs} document
-                  {note.docs === 1 ? "" : "s"}.
-                </p>
-              )}
-              {m.role === "assistant" && m.sources && m.sources.length > 0 && (
-                <div className="mt-2 pl-1" data-testid="assistant-sources">
-                  <p className="text-[11px] font-semibold uppercase tracking-track2 text-muted">
-                    Sources
-                  </p>
-                  <ul className="mt-1 space-y-1.5">
-                    {m.sources.map((source, i) => (
-                      <li key={`${source.document_id}-${source.char_start}-${i}`}>
-                        <button
-                          type="button"
-                          onClick={() => dispatchSource(source)}
-                          className="group block w-full text-left"
-                          data-testid="assistant-source-row"
-                        >
-                          <span className="text-[11px] font-medium text-ink underline underline-offset-4 decoration-rule group-hover:decoration-seal group-hover:text-seal">
-                            {source.title}
-                          </span>
-                          {source.snippet.trim() && (
-                            <span className="mt-0.5 block text-[11px] leading-4 text-muted">
-                              {sourceExcerpt(source.snippet)}
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {m.role === "assistant" && (
+                <AssistantSawPanel
+                  note={note}
+                  sources={m.sources}
+                  onSource={dispatchSource}
+                />
               )}
             </div>
           );
@@ -716,13 +695,18 @@ export function AssistantTab({
           <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
             {/* Left: attachment chips + workflows stub */}
             <div className="flex items-center gap-3 relative">
+              {/* Single attach affordance: this control opens the picker
+                  popover below. Label says exactly what it does so there
+                  is only one obvious way to attach documents. */}
               <button
                 type="button"
                 onClick={() => setAttachOpen((v) => !v)}
+                aria-expanded={attachOpen}
+                aria-haspopup="menu"
                 data-testid="chat-documents-toggle"
                 className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
               >
-                + Documents
+                Attach documents{selectedDocIds.size > 0 ? ` (${selectedDocIds.size})` : ""}
               </button>
               <button
                 type="button"
@@ -890,6 +874,88 @@ type AssistantWorkPaneState = {
   kind: "sources" | "versions" | "activity";
   message: AssistantMessage;
 };
+
+// The audited-retrieval affordance: "what the AI actually saw" for a
+// single reply. This is the product's differentiator, so it reads as a
+// first-class part of the answer — a bordered panel with a heading, the
+// retrieval note as a clear line (not a grey 11px aside), and readable
+// rows that stay click-through to the cited passage via onSource
+// (dispatchSource). Visible/obvious by default when sources exist;
+// collapsible when a reply cites many of them.
+function AssistantSawPanel({
+  note,
+  sources,
+  onSource,
+}: {
+  note?: { docs: number; chunks: number };
+  sources?: AssistantSource[];
+  onSource: (source: AssistantSource) => void;
+}) {
+  const list = sources ?? [];
+  const hasSources = list.length > 0;
+  const collapsible = list.length > 5;
+  const [open, setOpen] = useState(!collapsible);
+
+  if (!note && !hasSources) return null;
+
+  const heading = hasSources
+    ? `Sources the assistant used (${list.length})`
+    : "What the AI saw";
+
+  return (
+    <section
+      className="mt-3 rounded-card border border-rule bg-paper-sunken px-3 py-2.5"
+      data-testid="assistant-sources"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-track2 text-ink">
+          {heading}
+        </p>
+        {hasSources && collapsible && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="text-[11px] text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            data-testid="assistant-sources-toggle"
+          >
+            {open ? "Hide" : `Show all ${list.length}`}
+          </button>
+        )}
+      </div>
+      {note && (
+        <p className="mt-1.5 text-xs leading-5 text-prose" data-testid="retrieval-note">
+          Searched the matter — {note.chunks} passage
+          {note.chunks === 1 ? "" : "s"} from {note.docs} document
+          {note.docs === 1 ? "" : "s"}.
+        </p>
+      )}
+      {hasSources && open && (
+        <ul className="mt-2 space-y-2">
+          {list.map((source, i) => (
+            <li key={`${source.document_id}-${source.char_start}-${i}`}>
+              <button
+                type="button"
+                onClick={() => onSource(source)}
+                className="group block w-full rounded-item border border-rule bg-paper px-2.5 py-2 text-left transition-colors hover:border-ink"
+                data-testid="assistant-source-row"
+              >
+                <span className="block text-xs font-semibold text-ink underline underline-offset-4 decoration-rule group-hover:decoration-seal group-hover:text-seal">
+                  {source.title}
+                </span>
+                {source.snippet.trim() && (
+                  <span className="mt-1 block text-xs leading-5 text-muted">
+                    {sourceExcerpt(source.snippet)}
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 function streamEventError(event: Extract<AssistantStreamEvent, { event: "error" }>): Error {
   const keyMissing = providerKeyMissingFromBody(event.data);
