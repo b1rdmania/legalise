@@ -110,6 +110,19 @@ export function narrateEntry(entry: AuditEntry): string {
     return doc ? `Summarised ${doc}.` : "Summarised a document.";
   }
 
+  if (a === "retrieval.search") {
+    const ids = (entry.payload ?? {})["document_ids"];
+    const docCount = Array.isArray(ids) ? ids.length : null;
+    if (docCount != null) {
+      return `Searched the matter's documents — matched ${docCount} document${docCount === 1 ? "" : "s"}.`;
+    }
+    const hits = payloadNum(entry, "hit_count");
+    if (hits != null) {
+      return `Searched the matter's documents — ${hits} passage${hits === 1 ? "" : "s"} matched.`;
+    }
+    return "The assistant searched the matter's documents; the record keeps the query length and which documents matched.";
+  }
+
   if (a === "module.enabled") return "Enabled a skill on this matter.";
   if (a === "module.grant.created") return "Granted a skill permission to run.";
   if (a === "module.grant.revoked") return "Revoked a skill's permission.";

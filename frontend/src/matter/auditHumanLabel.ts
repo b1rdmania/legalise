@@ -13,6 +13,7 @@ const EXACT: Record<string, string> = {
   "module.capability.invoked": "Skill run started",
   "module.capability.completed": "Skill run completed",
   "module.capability.failed": "Skill run failed",
+  "retrieval.search": "Searched the matter",
   "model.invoked": "Model called",
   "model.completed": "Model response received",
   "model.failed": "Model call failed",

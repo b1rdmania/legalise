@@ -167,6 +167,8 @@ class DocumentRead(BaseModel):
     from_disclosure: bool
     uploaded_at: datetime
     uploaded_by_id: uuid.UUID
+    index_status: str
+    indexed_at: datetime | None = None
     comment_count: int = 0
     open_comment_count: int = 0
     version_count: int = 0

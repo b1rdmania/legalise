@@ -42,6 +42,41 @@ function plural(count: number, singular: string, pluralLabel = `${singular}s`): 
   return `${count} ${count === 1 ? singular : pluralLabel}`;
 }
 
+// Map the matter-wide retrieval index state to a light status chip.
+// Returns null for unknown/absent status so older payloads stay quiet.
+function indexStatusChip(
+  status: string | undefined,
+): { label: string; title: string; className: string } | null {
+  switch (status) {
+    case "indexed":
+      return {
+        label: "Searchable",
+        title: "Indexed for matter-wide retrieval",
+        className: "text-seal",
+      };
+    case "pending":
+      return {
+        label: "Indexing…",
+        title: "Being indexed for matter-wide retrieval",
+        className: "text-muted",
+      };
+    case "failed":
+      return {
+        label: "Not searchable",
+        title: "Indexing failed; this document is not retrievable",
+        className: "text-muted",
+      };
+    case "empty":
+      return {
+        label: "No text",
+        title: "No extractable text to index",
+        className: "text-muted",
+      };
+    default:
+      return null;
+  }
+}
+
 type IngressStatus =
   | { kind: "idle" }
   | { kind: "uploading"; done: number; total: number; current: string }
@@ -333,6 +368,17 @@ export function DocumentsTab({
                   label={`${formatBytes(d.size_bytes)} · ${formatDate(d.uploaded_at)}`}
                   right={
                     <span className="flex items-baseline gap-3">
+                      {(() => {
+                        const chip = indexStatusChip(d.index_status);
+                        return chip ? (
+                          <span
+                            className={`text-[11px] ${chip.className}`}
+                            title={chip.title}
+                          >
+                            {chip.label}
+                          </span>
+                        ) : null;
+                      })()}
                       {workStatus.length > 0 && (
                         <span
                           className="flex items-baseline gap-1.5 text-[11px] text-muted"
