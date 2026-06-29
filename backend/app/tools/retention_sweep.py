@@ -25,10 +25,16 @@ together (so the audit advisory lock is released per matter and one
 failure doesn't roll back the rest). On a per-matter error we log it and
 continue to the next matter.
 
+Blast radius: ``--limit N`` caps a run to at most N matters, the
+longest-lapsed first (ordered by ``retention_until`` ascending). This
+stops a first ``--apply`` from purging every expired matter at once;
+re-run to continue. No cap by default.
+
 Usage::
 
     docker compose exec backend python -m app.tools.retention_sweep
     docker compose exec backend python -m app.tools.retention_sweep --apply
+    docker compose exec backend python -m app.tools.retention_sweep --apply --limit 50
 
 Exit codes:
     0  ran cleanly (dry-run, or apply with no per-matter failures)
@@ -67,10 +73,14 @@ def _build_session_factory():
     return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-def _select_expired(today: date):
+def _select_expired(today: date, *, limit: int | None = None):
     """The exact selection query: retention lapsed, not already a
-    tombstone. Shared by dry-run and apply so they can never diverge."""
-    return (
+    tombstone. Shared by dry-run and apply so they can never diverge.
+
+    Ordered most-overdue-first (oldest ``retention_until``), so a
+    ``limit`` blast-radius cap purges the longest-lapsed matters first
+    and leaves the rest for the next run."""
+    stmt = (
         select(Matter)
         .where(
             Matter.retention_until.is_not(None),
@@ -79,19 +89,26 @@ def _select_expired(today: date):
         )
         .order_by(Matter.retention_until.asc())
     )
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    return stmt
 
 
-async def _sweep(session: AsyncSession, *, apply: bool, today: date) -> int:
-    expired = list((await session.scalars(_select_expired(today))).all())
+async def _sweep(
+    session: AsyncSession, *, apply: bool, today: date, limit: int | None = None
+) -> int:
+    expired = list((await session.scalars(_select_expired(today, limit=limit))).all())
+    capped = limit is not None and len(expired) == limit
 
     if not expired:
         print(f"retention sweep ({today.isoformat()}): 0 matters past retention. Nothing to do.")
         return EXIT_OK
 
     mode = "APPLY" if apply else "DRY-RUN"
+    cap_note = f" (capped at --limit {limit}; re-run for more)" if capped else ""
     print(
         f"retention sweep ({today.isoformat()}) [{mode}]: "
-        f"{len(expired)} matter(s) past retention:"
+        f"{len(expired)} matter(s) past retention{cap_note}:"
     )
     for matter in expired:
         overdue = (today - matter.retention_until).days
@@ -163,14 +180,28 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
             "only prints what it would do and changes nothing."
         ),
     )
-    return parser.parse_args(argv)
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "blast-radius cap: process at most N matters (the longest-lapsed "
+            "first). Prevents a first run from purging every expired matter "
+            "at once. Re-run to continue. Default: no cap."
+        ),
+    )
+    args = parser.parse_args(argv)
+    if args.limit is not None and args.limit <= 0:
+        parser.error("--limit must be a positive integer")
+    return args
 
 
 async def _main_async(args: argparse.Namespace) -> int:
     factory = _build_session_factory()
     today = date.today()
     async with factory() as session:
-        return await _sweep(session, apply=args.apply, today=today)
+        return await _sweep(session, apply=args.apply, today=today, limit=args.limit)
 
 
 def main(argv: list[str] | None = None) -> int:

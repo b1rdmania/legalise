@@ -142,3 +142,27 @@ async def test_apply_tombstones_expired_only(client, db_session) -> None:
         ).all()
     )
     assert fresh_purged == []
+
+
+@pytest.mark.asyncio
+async def test_limit_caps_blast_radius_to_most_overdue(client, db_session) -> None:
+    """--limit N processes at most N matters, longest-lapsed first."""
+    await _signup_and_login(client, EMAIL, PASSWORD)
+    today = date.today()
+
+    older_id = await _make_matter(client, "Older Expired", today - timedelta(days=90))
+    newer_id = await _make_matter(client, "Newer Expired", today - timedelta(days=2))
+
+    # Selection honours the cap and orders most-overdue first.
+    selected = list((await db_session.scalars(_select_expired(today, limit=1))).all())
+    assert [m.id for m in selected] == [older_id]
+
+    # Apply with the cap: only the longest-lapsed matter is tombstoned;
+    # the other expired matter survives for the next run.
+    code = await _sweep(db_session, apply=True, today=today, limit=1)
+    assert code == EXIT_OK
+
+    older = await db_session.scalar(select(Matter).where(Matter.id == older_id))
+    newer = await db_session.scalar(select(Matter).where(Matter.id == newer_id))
+    assert older is not None and older.status == "archived"
+    assert newer is not None and newer.status != "archived"
