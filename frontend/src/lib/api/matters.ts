@@ -49,6 +49,7 @@ export interface ModelOption {
   provider: string | null;
   requires_key: boolean;
   note: string | null;
+  recommended?: boolean;
   key_configured: boolean;
 }
 

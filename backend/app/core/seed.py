@@ -687,7 +687,8 @@ async def seed_demo_matter_for_user(session: AsyncSession, user: User) -> Matter
         case_theory=KHAN_CASE_THEORY,
         pivot_fact=KHAN_PIVOT_FACT,
         privilege_posture=PRIVILEGE_MIXED,
-        default_model_id="claude-opus-4-7",
+        # Matches settings.default_model_id (Sonnet) — the recommended model.
+        default_model_id="claude-sonnet-4-6",
         facts=KHAN_FACTS,
         opened_at=datetime(2026, 5, 12, 15, 45, 8, tzinfo=timezone.utc),
         retention_until=date(2032, 7, 3),

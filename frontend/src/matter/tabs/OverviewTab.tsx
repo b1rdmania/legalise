@@ -450,6 +450,7 @@ export function OverviewTab({
                   return (
                     <option key={m.id} value={m.id} disabled={needsKey}>
                       {m.label}
+                      {m.recommended ? " (recommended)" : ""}
                       {needsKey ? " (needs provider key — add in Settings)" : ""}
                     </option>
                   );

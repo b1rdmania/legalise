@@ -141,6 +141,8 @@ class ModelCatalogEntryRead(BaseModel):
     provider: str
     requires_key: bool
     note: str
+    # True for the curated recommended default, so the picker can mark it.
+    recommended: bool = False
     # True when this entry needs no key, OR the current user has a stored
     # key for its provider. Lets the picker show "ready" vs "needs a key".
     key_configured: bool
@@ -282,6 +284,7 @@ async def list_models(
             provider=entry.provider,
             requires_key=entry.requires_key,
             note=entry.note,
+            recommended=entry.recommended,
             key_configured=(
                 not entry.requires_key
                 or entry.provider in configured_providers
