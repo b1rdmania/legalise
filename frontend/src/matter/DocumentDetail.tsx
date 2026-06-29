@@ -257,11 +257,22 @@ export function DocumentDetail({
       const search = s.location.search as Record<string, unknown> | undefined;
       const raw = search?.from;
       const quoteFound = search?.quote_found ?? search?.quoteFound;
+      const toNumber = (v: unknown): number | null => {
+        const n =
+          typeof v === "number"
+            ? v
+            : typeof v === "string" && v.trim() !== ""
+              ? Number(v)
+              : NaN;
+        return Number.isFinite(n) ? n : null;
+      };
       return {
         fromTab: typeof raw === "string" && isTabKey(raw) ? (raw as TabKey) : null,
         quote: typeof search?.quote === "string" ? search.quote : null,
         quoteFound:
           quoteFound === "true" ? true : quoteFound === "false" ? false : null,
+        hlStart: toNumber(search?.hl_start),
+        hlEnd: toNumber(search?.hl_end),
       };
     },
   });
@@ -448,6 +459,42 @@ export function DocumentDetail({
     };
   }, [slug, documentId]);
 
+  // When arriving with a highlighted passage (cited quote or assistant
+  // source char-range), scroll the rendered anchor into view once the
+  // editor has painted the <mark>. Best-effort with a bounded retry —
+  // the rich editor mounts a frame or two after the body resolves.
+  useEffect(() => {
+    const hasHighlight = Boolean(
+      activeReaderQuote ||
+        sourceContext.quote ||
+        (sourceContext.hlStart != null && sourceContext.hlEnd != null),
+    );
+    if (!hasHighlight || !body) return;
+    let cancelled = false;
+    let frame = 0;
+    let attempts = 0;
+    const tick = () => {
+      if (cancelled) return;
+      const el = document.querySelector('[data-source-anchor="true"]');
+      if (el) {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        return;
+      }
+      if (attempts++ < 20) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [
+    activeReaderQuote,
+    sourceContext.quote,
+    sourceContext.hlStart,
+    sourceContext.hlEnd,
+    body,
+  ]);
+
   if (q.status === "loading") {
     return (
       <div className="page-shell">
@@ -519,7 +566,19 @@ export function DocumentDetail({
   const editorText =
     selectedResolvedVersion?.resolved_text ?? body?.extracted_text ?? "";
   const editorJson = selectedResolvedVersion?.resolved_json as TiptapNode | null | undefined;
-  const currentReaderQuote = activeReaderQuote ?? sourceContext.quote;
+  // Assistant source click-through carries a char range, not a quote. Map
+  // it to the exact substring of the extracted-text body so the existing
+  // quote-highlight pipeline can locate and mark it. Skipped when the range
+  // is absent or out of bounds (e.g. against a saved version's text).
+  const hlQuote = (() => {
+    const { hlStart, hlEnd } = sourceContext;
+    if (hlStart == null || hlEnd == null || !editorText) return null;
+    const start = Math.max(0, Math.min(hlStart, editorText.length));
+    const end = Math.max(start, Math.min(hlEnd, editorText.length));
+    const slice = editorText.slice(start, end).trim();
+    return slice.length >= 3 ? slice : null;
+  })();
+  const currentReaderQuote = activeReaderQuote ?? sourceContext.quote ?? hlQuote;
   const sourceQuoteFoundInReader = currentReaderQuote
     ? Boolean(findNormalizedRange(editorText, currentReaderQuote))
     : null;
@@ -934,7 +993,7 @@ export function DocumentDetail({
           </div>
         </header>
 
-        {arrivedFromChat && sourceContext.quote && (
+        {arrivedFromChat && currentReaderQuote && (
           <p
             className="mt-4 border-l-2 border-rule bg-paper px-4 py-3 text-sm text-muted"
             data-testid="from-chat-note"

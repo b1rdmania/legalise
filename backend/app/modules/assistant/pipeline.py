@@ -55,6 +55,7 @@ from app.models.document_body import BODY_KIND_EXTRACTED, DocumentBody
 from .schemas import (
     AssistantPostRequest,
     AssistantResponseEnvelope,
+    AssistantSource,
     AssistantToolCall,
     SuggestedAction,
 )
@@ -102,6 +103,8 @@ _SUMMARY_INTENT_RE = re.compile(
     r"\b(summarise|summarize|summary|sum up|brief)\b", re.I
 )
 _INVOKABLE_KINDS: frozenset[str] = frozenset({"skill", "tool", "workflow"})
+# Per-source excerpt length surfaced to the client under "Sources".
+_SOURCE_SNIPPET_CHARS = 240
 
 # One-line orientation lines for the Documents section, so the model knows
 # whether it is reading retrieved passages or attached full bodies.
@@ -235,6 +238,37 @@ async def _load_retrieved_snippets(
         joined = "\n…\n".join(h.text for h in ordered if h.text)
         out.append((doc, _truncate(joined, _PER_DOCUMENT_CHAR_BUDGET)))
     return out, hits
+
+
+def _build_sources(
+    snippets: list[tuple[Document, str]],
+    hits: list[RetrievalHit],
+) -> list[AssistantSource]:
+    """One ``AssistantSource`` per retrieval hit, in fused-rank order.
+
+    Titles come from the parent ``Document`` objects already loaded for the
+    snippets, so this adds no queries. Hits whose parent document was not
+    surfaced (e.g. dropped during grouping) are skipped — we only cite
+    passages the model actually saw.
+    """
+    titles = {str(doc.id): doc.filename for doc, _ in snippets}
+    sources: list[AssistantSource] = []
+    for hit in hits:
+        document_id = str(hit.document_id)
+        title = titles.get(document_id)
+        if title is None:
+            continue
+        sources.append(
+            AssistantSource(
+                document_id=document_id,
+                title=title,
+                snippet=_truncate(hit.text, _SOURCE_SNIPPET_CHARS),
+                char_start=hit.char_start,
+                char_end=hit.char_end,
+                score=hit.score,
+            )
+        )
+    return sources
 
 
 async def _audit_retrieval_search(
@@ -899,6 +933,11 @@ async def run_assistant_turn(
             hits=retrieval_hits,
         )
 
+    # Sources the answer rests on. Retrieval path only: one per hit. The
+    # selected-docs path leaves this empty (the user chose the documents), as
+    # does the deterministic-summary path below.
+    message_sources = _build_sources(snippets, retrieval_hits)
+
     tools = await _load_assistant_tools(session)
     if on_event is not None:
         await on_event(
@@ -938,6 +977,7 @@ async def run_assistant_turn(
         role=ROLE_USER,
         content=request.content,
         suggested_actions=[],
+        sources=[],
     )
     session.add(user_row)
     await session.flush()
@@ -953,6 +993,7 @@ async def run_assistant_turn(
             role=ROLE_ASSISTANT,
             content=content_out,
             suggested_actions=[a.model_dump(mode="json") for a in actions],
+            sources=[],
             model_used="deterministic-summary",
             prompt_hash=None,
             response_hash=None,
@@ -1149,6 +1190,7 @@ async def run_assistant_turn(
         role=ROLE_ASSISTANT,
         content=content_out,
         suggested_actions=[a.model_dump(mode="json") for a in actions],
+        sources=[s.model_dump(mode="json") for s in message_sources],
         model_used=result.model_used,
         prompt_hash=result.prompt_hash,
         response_hash=result.response_hash,
