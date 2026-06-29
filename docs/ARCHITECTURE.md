@@ -41,14 +41,14 @@ summoned as tabs around it
 
 **What the assistant actually sees.** Context for a chat turn is assembled, not
 retrieved wholesale. The assistant is scoped to one matter and cannot read
-another, but it does not ingest the entire matter. Each turn assembles the
-documents the user explicitly selects — or, if none are selected, the 3 most
-recent documents — plus a capped chronology digest and recent chat messages,
-all under a token budget that can truncate. This is a conversational interface
-optimised for cost, not exhaustive matter ingestion. Audited matter-wide
-retrieval (embeddings/search over the whole matter) is planned (P3 in
-`docs/PRODUCT_PLAN.md`) but **not yet built**; the assistant must not be relied
-on to have seen documents the user did not put in front of it.
+another. Each turn assembles the matter spine, capped chronology context, recent
+chat messages, and audited retrieval hits from indexed document chunks, all
+under a token budget that can truncate. Retrieval is hybrid: pgvector embeddings
+plus full-text search, with a keyless local embedding backend in the default
+Docker image and a hash fallback for slim/offline installs. Search activity is
+written to the audit log as `retrieval.search`, including hit counts and the
+documents/chunks considered, so the assistant's evidence path can be replayed
+instead of inferred.
 
 ---
 

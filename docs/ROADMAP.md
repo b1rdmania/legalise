@@ -119,12 +119,14 @@ surfaces above). What remains before live-matter posture:
 - **Shared module discovery helper.** The Skills page and Assistant both
   discover added skills. v0.1 accepts the duplication; v0.2 centralises
   discovery behind one helper before capability enforcement lands.
+- **Chronology extraction quality.** The chronology auto-build plumbing is in
+  place, but extraction quality still needs a real keyed run against synthetic
+  legal packs before it should be presented as product-grade.
 
 Other work already on the roadmap:
 
 - Enterprise SSO via WorkOS or Stytch (Microsoft 365, Google Workspace, SAML, SCIM)
 - MCP-runtime skills (imported skills exposing MCP servers)
-- Vector search over matter documents (pgvector + ingest pipeline)
 - Audit-log export bundle carrying the chain head (the hash chain and
   third-party verify endpoint shipped; the export bundle remains)
 - WORM role enforcement on `audit_entries`: revoke UPDATE/DELETE for a

@@ -204,7 +204,7 @@ All nine steps passed:
 
 1. account created via the register endpoint;
 2. Anthropic key added in Settings → Provider keys;
-3. fresh matter created (no model picker at creation — see F2);
+3. fresh matter created with the intended model selected;
 4. two synthetic `.txt` documents uploaded to object storage;
 5. governed skill `github.b1rdmania.pre-motion` run from Chat — **real keyed
    model call** (`model.invoked`: model `claude-opus-4-7`, provider

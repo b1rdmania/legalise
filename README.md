@@ -82,13 +82,13 @@ about any AI tool used on a matter:
 
 **What it saw.** Every matter has a spine: documents, chronology, parties,
 retention clock, privilege posture. The assistant is scoped to one matter and
-cannot see other matters. Within a matter it does not ingest everything: it
-works from the documents you select, or the few most recent if you select none,
-plus a capped chronology digest and recent chat, under a token budget that can
-truncate. It is a conversational interface, not an exhaustive matter view;
-audited matter-wide retrieval is on the roadmap (`docs/PRODUCT_PLAN.md` P3), not
-yet live. Cross-matter access is scoped in the application layer and every
-access is audited (enforced in the application, not a structural guarantee).
+cannot see other matters. Within a matter it works from the structured spine,
+audited retrieval over indexed document chunks, capped chronology context, and
+recent chat, all under a token budget that can truncate. Search/read activity is
+recorded as audit evidence, including the document chunks the assistant relied
+on, so "what did the AI see?" is inspectable rather than implied. Cross-matter
+access is scoped in the application layer and every access is audited (enforced
+in the application, not a structural guarantee).
 Disclosure-tainted chronology entries carry a CPR 31.22 flag; the chronology
 gate withholds detail until the user acknowledges it, and the acknowledgement
 is audited.
