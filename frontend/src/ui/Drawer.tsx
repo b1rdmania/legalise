@@ -132,7 +132,7 @@ export function Drawer({
           <div className="px-4 py-3 border-b border-rule">
             <div className="eyebrow-sm mb-1">Matter</div>
             <div className="text-[16px] font-semibold text-ink truncate">{matter.slug}</div>
-            <div className="text-xs text-muted mt-1">AI {postureLabel(matter.privilege_posture)}</div>
+            <div className="text-xs text-muted mt-1">AI access: {postureLabel(matter.privilege_posture)}</div>
           </div>
         )}
 

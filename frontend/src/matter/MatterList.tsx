@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { listApiKeys, listMatters, type Matter } from "../lib/api";
-import { postureLabel } from "../lib/posture";
+import { postureDot, postureLabel } from "../lib/posture";
 import { EmptyState, ErrorCallout, PageHeader } from "../ui/primitives";
 import { LedgerLine, SectionRule } from "../ui/certificate";
 
@@ -106,13 +106,16 @@ export function MatterList() {
                   index={i + 1}
                   label={formatType(m.matter_type)}
                   right={
-                    <span className="flex items-baseline gap-3">
+                    <span className="flex items-center gap-3">
                       <span className="text-[10px] uppercase tracking-[0.18em] text-ink">
                         {m.status}
                       </span>
-                      <span className="hidden text-[10px] uppercase tracking-[0.18em] text-muted sm:inline">
-                        {postureLabel(m.privilege_posture)}
-                      </span>
+                      <span
+                        className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: postureDot(m.privilege_posture) }}
+                        title={`AI access: ${postureLabel(m.privilege_posture)}`}
+                        aria-label={`AI access: ${postureLabel(m.privilege_posture)}`}
+                      />
                       <span className="tech-token text-[11px] text-muted">
                         {m.opened_at.slice(0, 10)}
                       </span>

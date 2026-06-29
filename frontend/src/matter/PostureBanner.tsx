@@ -22,7 +22,7 @@
 
 import { useState } from "react";
 import type { CurrentUser } from "../lib/api";
-import { posturePaused } from "../lib/posture";
+import { postureLabel, posturePaused } from "../lib/posture";
 
 type Posture = "A_cleared" | "B_mixed" | "C_paused" | string;
 
@@ -66,7 +66,7 @@ export function PostureBanner({
   // C_paused is the always-banner case. Even admins see it.
   if (posture === "C_paused") {
     return (
-      <BannerShell tone="paused" badge="C_paused" badgeLabel="Paused">
+      <BannerShell tone="paused" badge="C_paused" badgeLabel={postureLabel("C_paused")}>
         <p className="font-medium text-ink">
           AI is paused on this matter. No skills can run regardless of role.
         </p>
@@ -90,7 +90,7 @@ export function PostureBanner({
     if (satisfies) return null;
 
     return (
-      <BannerShell tone="mixed" badge="B_mixed" badgeLabel="Active">
+      <BannerShell tone="mixed" badge="B_mixed" badgeLabel={postureLabel("B_mixed")}>
         <p className="font-medium text-ink">
           Only qualified solicitors can run skills on this matter.
         </p>

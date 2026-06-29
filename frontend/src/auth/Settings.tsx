@@ -5,9 +5,11 @@ import {
   deleteAccount,
   deleteApiKey,
   listApiKeys,
+  listModels,
   updateProfile,
   upsertApiKey,
   type CurrentUser,
+  type ModelOption,
   type UserApiKeyRead,
 } from "../lib/api";
 import { navigate } from "../lib/route";
@@ -120,8 +122,19 @@ function SettingsProfile({
   const [name, setName] = useState(user.name ?? "");
   const [password, setPassword] = useState("");
   const [defaultModel, setDefaultModel] = useState(user.default_model_id ?? "");
+  const [models, setModels] = useState<ModelOption[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyField, setBusyField] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    listModels()
+      .then((rows) => live && setModels(rows))
+      .catch(() => live && setModels([]));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // Persisted (last-saved) values - drive the dirty flag per field.
   const [savedName, setSavedName] = useState(user.name ?? "");
@@ -250,13 +263,40 @@ function SettingsProfile({
       <div>
         <label className="eyebrow mb-2 block">Default model</label>
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={defaultModel}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
-            placeholder="claude-opus-4-7"
-            className={inputCls + " tech-token"}
-          />
+          {models && models.length > 0 ? (
+            <select
+              value={defaultModel}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setDefaultModel(e.target.value)}
+              className={inputCls}
+            >
+              {/* Allow "no default" so the backend default applies. */}
+              <option value="">No default (use system default)</option>
+              {models.map((m) => {
+                const needsKey = m.requires_key && !m.key_configured;
+                const provider = m.provider
+                  ? m.provider.charAt(0).toUpperCase() + m.provider.slice(1)
+                  : "";
+                return (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                    {m.requires_key
+                      ? ` — needs ${provider || "provider"} key${
+                          needsKey ? " (not configured)" : " (configured)"
+                        }`
+                      : " — no key needed"}
+                  </option>
+                );
+              })}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={defaultModel}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
+              placeholder="claude-opus-4-7"
+              className={inputCls + " tech-token"}
+            />
+          )}
           <FieldSave
             dirty={defaultModel !== savedModel}
             busy={busyField === "default_model_id"}
@@ -265,7 +305,10 @@ function SettingsProfile({
             }
           />
         </div>
-        <p className="text-xs text-muted mt-2">Model id used for new matters when none specified.</p>
+        <p className="text-xs text-muted mt-2">
+          Used for new matters when none is chosen. A model that needs a provider key
+          only runs once that key is added below.
+        </p>
       </div>
 
       {/* Usage Plan */}
@@ -421,7 +464,16 @@ function SettingsKeys() {
                 key={k.provider}
                 className="grid grid-cols-[140px_1fr_160px_100px] gap-4 px-4 py-3 border-b border-rule tech-token text-[11px] items-center"
               >
-                <span className="text-ink font-bold uppercase">{k.provider}</span>
+                <span className="flex flex-col">
+                  <span className="text-ink font-bold uppercase">{k.provider}</span>
+                  <span className="normal-case font-sans text-[10px] text-muted tracking-normal">
+                    {k.provider === "anthropic"
+                      ? "Claude models"
+                      : k.provider === "openai"
+                        ? "GPT models"
+                        : "model calls"}
+                  </span>
+                </span>
                 <span className="text-muted">{k.created_at.slice(0, 10)}</span>
                 <span className="text-muted">
                   {k.last_used_at ? k.last_used_at.slice(0, 16).replace("T", " ") : "-"}
@@ -445,14 +497,17 @@ function SettingsKeys() {
           Saving a key writes a <span className="tech-token">user.key.configured</span> audit
           row and switches your model calls from the keyless demo model to your provider.
         </p>
-        <Field label="Provider">
+        <Field
+          label="Provider"
+          hint="Anthropic key is used by Claude models; OpenAI key by GPT models"
+        >
           <select
             value={provider}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => setProvider(e.target.value as "anthropic" | "openai")}
             className={inputCls}
           >
-            <option value="anthropic">Anthropic</option>
-            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic — used by Claude models</option>
+            <option value="openai">OpenAI — used by GPT models</option>
           </select>
         </Field>
         <Field label="API key" hint="stored encrypted; the full key is never shown after submission">
@@ -492,11 +547,12 @@ function ProviderStatus({ hasKey }: { hasKey: boolean }) {
   }
   return (
     <div className="border border-rule bg-wash p-4">
-      <div className="text-sm font-semibold text-ink">Key configured, not tested</div>
+      <div className="text-sm font-semibold text-ink">Key stored — not yet verified</div>
       <p className="mt-1 text-sm text-muted">
-        Your provider key is on file and will be used for model calls.
-        Legalise has not validated it against the provider, so a wrong or
-        expired key only surfaces when a call is made.
+        Verified: the key's format is stored and encrypted, and it will be
+        used for your model calls. Not verified: Legalise has not made a test
+        call to the provider, so a wrong, revoked, or out-of-credit key only
+        shows up on the first real call.
       </p>
     </div>
   );

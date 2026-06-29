@@ -39,6 +39,31 @@ export interface MatterCreate {
   retention_until?: string | null;
 }
 
+// A selectable model, as the backend advertises it. `requires_key` ==
+// true means the model only runs when the matching provider key is on
+// file; `key_configured` is whether the *current user* has that key.
+// `provider` is null for keyless models. `note` is optional backend copy.
+export interface ModelOption {
+  id: string;
+  label: string;
+  provider: string | null;
+  requires_key: boolean;
+  note: string | null;
+  key_configured: boolean;
+}
+
+export const listModels = () =>
+  apiFetch(`${API}/models`).then((r) => jsonOrThrow<ModelOption[]>(r));
+
+// Change which model a matter runs on. Backend validates the id
+// (422 on unknown). Returns the updated matter.
+export const updateMatterModel = (slug: string, default_model_id: string) =>
+  apiFetch(`${API}/matters/${encodeURIComponent(slug)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ default_model_id }),
+  }).then((r) => jsonOrThrow<Matter>(r));
+
 export interface BootstrapState {
   user_count: number;
   has_superuser: boolean;
