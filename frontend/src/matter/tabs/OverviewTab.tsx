@@ -289,7 +289,7 @@ export function OverviewTab({
           to="/matters/$slug/artifacts"
           params={{ slug }}
           data-testid="overview-pending-signoff-cta"
-          className="mb-6 flex items-center justify-between gap-4 rounded-card border border-seal/40 bg-seal/5 p-5 transition-colors hover:border-seal"
+          className="mb-6 flex items-center justify-between gap-4 rounded-card border border-ink bg-paper-sunken p-5 transition-colors hover:bg-wash"
         >
           <div>
             <p className="text-sm font-semibold text-ink">
@@ -392,46 +392,64 @@ export function OverviewTab({
         </dl>
       </div>
 
+      {/* Audit integrity — the trust surface. States the property passively
+          (append-only, hash-chained) and lets the user PROVE it on demand by
+          recomputing every hash. Verify is explicit, not on-load, because the
+          recompute has a real cost on a large matter. */}
+      <div className="mt-6 rounded-card border border-rule bg-paper p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-xs uppercase tracking-widest text-muted">Audit integrity</h2>
+            <p className="mt-1 text-sm text-ink">
+              Every action on this matter is recorded in an append-only,
+              hash-chained log the application cannot edit or delete.
+            </p>
+            {verify.state === "done" && verify.data.ok && (
+              <p data-testid="overview-verify-result" className="mt-2 text-sm font-medium text-ink">
+                ✓ Chain intact — {verify.data.audit_entry_count} event
+                {verify.data.audit_entry_count === 1 ? "" : "s"} verified, hashes recomputed.
+              </p>
+            )}
+            {verify.state === "done" && !verify.data.ok && (
+              <p data-testid="overview-verify-result" className="mt-2 text-sm font-medium text-seal">
+                ⚠ Verification found {verify.data.issues.length} issue
+                {verify.data.issues.length === 1 ? "" : "s"}: {verify.data.issues.join(", ")}.
+              </p>
+            )}
+            {verify.state === "error" && (
+              <p className="mt-2 text-sm text-seal">
+                Couldn&apos;t verify the chain — try again.
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={runVerify}
+            disabled={verify.state === "running"}
+            data-testid="overview-verify-chain"
+            className="shrink-0 rounded-item border border-ink px-3 py-1.5 text-sm text-ink transition-colors hover:bg-paper-sunken disabled:opacity-50"
+          >
+            {verify.state === "running"
+              ? "Verifying…"
+              : verify.state === "done" && verify.data.ok
+                ? "Re-verify"
+                : "Verify integrity"}
+          </button>
+        </div>
+      </div>
+
       {/* Recent activity — the last few audit events, in plain English. */}
       <div className="mt-6 rounded-card border border-rule bg-paper p-5">
         <div className="mb-3 flex items-baseline justify-between gap-4">
           <h2 className="text-xs uppercase tracking-widest text-muted">Recent activity</h2>
-          <div className="flex items-baseline gap-4">
-            <button
-              type="button"
-              onClick={runVerify}
-              disabled={verify.state === "running"}
-              data-testid="overview-verify-chain"
-              className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
-            >
-              {verify.state === "running" ? "Verifying…" : "Verify chain"}
-            </button>
-            <Link
-              to="/matters/$slug/audit"
-              params={{ slug }}
-              className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-            >
-              Activity →
-            </Link>
-          </div>
-        </div>
-        {verify.state === "done" && (
-          <p
-            data-testid="overview-verify-result"
-            className={
-              "mb-3 text-xs " + (verify.data.ok ? "text-ink" : "text-seal")
-            }
+          <Link
+            to="/matters/$slug/audit"
+            params={{ slug }}
+            className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
-            {verify.data.ok
-              ? `✓ Chain intact — ${verify.data.audit_entry_count} event${verify.data.audit_entry_count === 1 ? "" : "s"} verified.`
-              : `⚠ Verification found ${verify.data.issues.length} issue${verify.data.issues.length === 1 ? "" : "s"}: ${verify.data.issues.join(", ")}.`}
-          </p>
-        )}
-        {verify.state === "error" && (
-          <p className="mb-3 text-xs text-seal">
-            Couldn&apos;t verify the chain — try again.
-          </p>
-        )}
+            Activity →
+          </Link>
+        </div>
         {audit.state === "error" ? (
           <p className="text-sm text-muted">Activity is unavailable right now.</p>
         ) : audit.state === "loading" ? (
