@@ -177,10 +177,10 @@ export function SignOff({ slug, artifactId }: { slug: string; artifactId: string
         <LoadingLine label="loading output" />
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr]">
-          {/* The instrument under execution (DESIGN.md P27): the artifact
-              summary as a certificate, the payload below it. */}
+          {/* The output under review: the artifact summary as a
+              certificate, the payload below it. */}
           <section>
-            <SectionRule label="The instrument" />
+            <SectionRule label="The output" />
             <div className="mt-4">
               <CertCard>
                 <CertEyebrow left="Output" right={artifact.kind} />

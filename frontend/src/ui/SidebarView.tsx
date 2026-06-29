@@ -96,6 +96,7 @@ export function SidebarView({
   matterTitle,
   matterPosture,
   matterItems,
+  matterGovernanceItems,
   matterFooter,
   adminItems,
   utilItems,
@@ -111,6 +112,11 @@ export function SidebarView({
   matterTitle?: string;
   matterPosture?: RailPosture;
   matterItems?: RailItem[];
+  // Governance lane (Outputs / Approvals / Activity) — rendered under a
+  // "Governance" label after the primary matter items so the rail tells
+  // the whole inspect → approve → sign loop. Optional: the demo caller
+  // does not pass it.
+  matterGovernanceItems?: RailItem[];
   matterFooter?: ReactNode;
   adminItems?: RailItem[];
   utilItems: RailItem[];
@@ -183,6 +189,14 @@ export function SidebarView({
               {matterItems.map((it) => (
                 <NavLink key={it.key} item={it} />
               ))}
+              {matterGovernanceItems && matterGovernanceItems.length > 0 && (
+                <>
+                  <SectionLabel>Governance</SectionLabel>
+                  {matterGovernanceItems.map((it) => (
+                    <NavLink key={it.key} item={it} />
+                  ))}
+                </>
+              )}
               {matterFooter}
             </>
           )}
@@ -248,6 +262,10 @@ export function NavIcon({ name }: { name: string }) {
       return <svg {...c}><path d="M8.5 2L4 9h3l-.5 5L11 7H8l.5-5z" /></svg>;
     case "audit":
       return <svg {...c}><path d="M3 4h10M3 8h10M3 12h6" /></svg>;
+    case "chronology":
+      return <svg {...c}><circle cx="8" cy="8" r="6" /><path d="M8 4.5V8l2.5 1.5" /></svg>;
+    case "approvals":
+      return <svg {...c}><path d="M3 8.5l3 3 7-8" /></svg>;
     case "artifacts":
       return <svg {...c}><path d="M4 2h6l2.5 2.5V14H4z" /><path d="M6 9.5l1.3 1.3L10 8" /></svg>;
     case "lifecycle":

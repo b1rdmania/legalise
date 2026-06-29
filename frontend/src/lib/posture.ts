@@ -47,3 +47,19 @@ export const POSTURE_DOT_COLOR = {
 export function postureDot(p: string): string {
   return posturePaused(p) ? POSTURE_DOT_COLOR.paused : POSTURE_DOT_COLOR.active;
 }
+
+// Distinct tone per AI-access state, so the three read apart at a glance
+// (postureDot only distinguishes paused from active, collapsing cleared and
+// mixed into the same green). cleared = green, mixed = neutral/amber,
+// paused = seal/red. Used for the readable text chip in the matter list.
+export const POSTURE_TONE = {
+  A_cleared: { color: "#3F7A5A", bg: "rgba(63,122,90,0.10)" },
+  B_mixed: { color: "#8A6D1A", bg: "rgba(138,109,26,0.10)" },
+  C_paused: { color: "#8B0000", bg: "rgba(139,0,0,0.10)" },
+} as const;
+
+export function postureTone(p: string): { color: string; bg: string } {
+  if (p === "A_cleared") return POSTURE_TONE.A_cleared;
+  if (posturePaused(p)) return POSTURE_TONE.C_paused;
+  return POSTURE_TONE.B_mixed;
+}

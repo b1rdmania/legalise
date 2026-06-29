@@ -56,13 +56,26 @@ export function Drawer({
     const rawTab = route.name === "detail" ? route.tab : undefined;
     const currentTab = rawTab && isTabKey(rawTab) ? rawTab : "overview";
     const activeKey = sidebarActiveFor(currentTab);
-    primary = SIDEBAR_NAV.map((t) => ({
-      href: `/matters/${matter.slug}/${t.key}`,
-      label: t.label,
-      active: activeKey === t.key,
-    }));
+    // Primary lane (Overview · Chat · Documents · Chronology · Skills)
+    // then the Governance lane (Outputs · Approvals · Activity) so the
+    // inspect → approve → sign loop is reachable on mobile too. URL keys
+    // unchanged (artifacts / approvals / audit).
+    primary = [
+      ...SIDEBAR_NAV.map((t) => ({
+        href: `/matters/${matter.slug}/${t.key}`,
+        label: t.label,
+        active: activeKey === t.key,
+      })),
+      { href: `/matters/${matter.slug}/artifacts`, label: "Outputs" },
+      {
+        href: `/matters/${matter.slug}/approvals`,
+        label: "Approvals",
+        active: activeKey === "approvals",
+      },
+      { href: `/matters/${matter.slug}/audit`, label: "Activity" },
+    ];
     secondary = [
-      { href: "/skills", label: "Skills" },
+      { href: "/skills", label: "Skill library" },
       { href: "/settings/profile", label: "Settings" },
       { label: "Sign out", onClick: onSignOut },
     ];
@@ -70,7 +83,7 @@ export function Drawer({
     // Workspace no matter: Matters · Skills · - · Settings · Sign out
     primary = [
       { href: "/matters", label: "Matters", active: isList },
-      { href: "/skills", label: "Skills", active: isModules },
+      { href: "/skills", label: "Skill library", active: isModules },
     ];
     secondary = [
       { href: "/settings/profile", label: "Settings", active: isSettings },
@@ -81,7 +94,7 @@ export function Drawer({
     // user never sees marketing CTAs once signed in.
     primary = [
       { href: "/matters", label: "Matters" },
-      { href: "/skills", label: "Skills" },
+      { href: "/skills", label: "Skill library" },
     ];
     secondary = [
       { href: "/settings/profile", label: "Settings" },

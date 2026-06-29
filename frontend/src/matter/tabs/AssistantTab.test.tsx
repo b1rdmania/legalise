@@ -162,15 +162,17 @@ describe("AssistantTab — in-chat skill picker", () => {
     expect(setTabAndHash).not.toHaveBeenCalled();
   });
 
-  it("exposes ambient Activity and document attachment controls in the chat shell", async () => {
+  it("exposes a single document attachment control in the chat shell", async () => {
+    // The faint header "Activity" link was removed (redundant with the
+    // matter rail, WS1). Attaching documents has one obvious control that
+    // opens the picker rather than routing to the Documents tab.
     const setTabAndHash = vi.fn();
     mountChat({ setTabAndHash });
 
-    expect(await screen.findByTestId("open-record-link")).toHaveTextContent(
-      /Activity/i,
-    );
+    const attach = await screen.findByTestId("chat-documents-toggle");
+    expect(attach).toHaveTextContent(/Attach documents/i);
 
-    fireEvent.click(screen.getByTestId("chat-documents-toggle"));
+    fireEvent.click(attach);
     expect(setTabAndHash).not.toHaveBeenCalledWith("documents");
   });
 
