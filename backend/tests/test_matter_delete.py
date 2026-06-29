@@ -269,8 +269,13 @@ async def test_delete_matter_storage_failure_fails_closed(
         def delete_object(self, *a, **k):
             raise RuntimeError("unused")
 
+    # The storage purge now lives in the shared `tombstone_matter`
+    # helper (app.core.matter_lifecycle), called by both the route and
+    # the retention sweeper. Patch it where it is used.
+    from app.core import matter_lifecycle
+
     monkeypatch.setattr(
-        matters_api, "get_storage_backend", lambda: _ExplodingStorage()
+        matter_lifecycle, "get_storage_backend", lambda: _ExplodingStorage()
     )
 
     await _signup_and_login(client, EMAIL, PASSWORD)
