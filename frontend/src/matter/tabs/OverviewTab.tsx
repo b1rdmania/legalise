@@ -8,12 +8,14 @@ import {
   listSignoffs,
   listAssistantMessages,
   listAudit,
+  verifyAuditChain,
   type Matter,
   type ModelOption,
   type MatterDocument,
   type ArtifactSummary,
   type Signoff,
   type AuditEntry,
+  type AuditVerifyResponse,
 } from "../../lib/api";
 import { useAuth } from "../../auth/AuthProvider";
 import { postureExplain, postureLabel } from "../../lib/posture";
@@ -117,6 +119,26 @@ export function OverviewTab({
   const [signoffs, setSignoffs] = useState<Loadable<Signoff[]>>({ state: "loading" });
   const [messageCount, setMessageCount] = useState<Loadable<number>>({ state: "loading" });
   const [audit, setAudit] = useState<Loadable<AuditEntry[]>>({ state: "loading" });
+
+  // One-click audit-chain verification — recomputes every hash and re-links
+  // the chain on demand, so "the trail is intact" is something the user can
+  // check, not just be told. Read-only on the server.
+  type VerifyState =
+    | { state: "idle" }
+    | { state: "running" }
+    | { state: "done"; data: AuditVerifyResponse }
+    | { state: "error" };
+  const [verify, setVerify] = useState<VerifyState>({ state: "idle" });
+
+  const runVerify = async () => {
+    setVerify({ state: "running" });
+    try {
+      const data = await verifyAuditChain(slug);
+      setVerify({ state: "done", data });
+    } catch {
+      setVerify({ state: "error" });
+    }
+  };
 
   // Keep the displayed model in sync if the parent reloads the matter.
   useEffect(() => {
@@ -260,6 +282,29 @@ export function OverviewTab({
         </p>
       </div>
 
+      {/* Sign-off is the matter's main decision point — when outputs are
+          waiting, lead with it as a call to action, not a buried stat. */}
+      {awaitingReview > 0 && (
+        <Link
+          to="/matters/$slug/artifacts"
+          params={{ slug }}
+          data-testid="overview-pending-signoff-cta"
+          className="mb-6 flex items-center justify-between gap-4 rounded-card border border-seal/40 bg-seal/5 p-5 transition-colors hover:border-seal"
+        >
+          <div>
+            <p className="text-sm font-semibold text-ink">
+              {awaitingReview} output{awaitingReview === 1 ? "" : "s"} awaiting sign-off
+            </p>
+            <p className="mt-0.5 text-xs text-muted">
+              Nothing is final until a named solicitor reviews and signs it.
+            </p>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-seal">
+            Review &amp; sign &rarr;
+          </span>
+        </Link>
+      )}
+
       {/* Orientation — parties, dates, and where the work is up to. */}
       <div className="rounded-card border border-rule bg-paper p-5">
         <div className="mb-3 flex items-baseline justify-between gap-4">
@@ -351,14 +396,42 @@ export function OverviewTab({
       <div className="mt-6 rounded-card border border-rule bg-paper p-5">
         <div className="mb-3 flex items-baseline justify-between gap-4">
           <h2 className="text-xs uppercase tracking-widest text-muted">Recent activity</h2>
-          <Link
-            to="/matters/$slug/audit"
-            params={{ slug }}
-            className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-          >
-            Activity →
-          </Link>
+          <div className="flex items-baseline gap-4">
+            <button
+              type="button"
+              onClick={runVerify}
+              disabled={verify.state === "running"}
+              data-testid="overview-verify-chain"
+              className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
+            >
+              {verify.state === "running" ? "Verifying…" : "Verify chain"}
+            </button>
+            <Link
+              to="/matters/$slug/audit"
+              params={{ slug }}
+              className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            >
+              Activity →
+            </Link>
+          </div>
         </div>
+        {verify.state === "done" && (
+          <p
+            data-testid="overview-verify-result"
+            className={
+              "mb-3 text-xs " + (verify.data.ok ? "text-ink" : "text-seal")
+            }
+          >
+            {verify.data.ok
+              ? `✓ Chain intact — ${verify.data.audit_entry_count} event${verify.data.audit_entry_count === 1 ? "" : "s"} verified.`
+              : `⚠ Verification found ${verify.data.issues.length} issue${verify.data.issues.length === 1 ? "" : "s"}: ${verify.data.issues.join(", ")}.`}
+          </p>
+        )}
+        {verify.state === "error" && (
+          <p className="mb-3 text-xs text-seal">
+            Couldn&apos;t verify the chain — try again.
+          </p>
+        )}
         {audit.state === "error" ? (
           <p className="text-sm text-muted">Activity is unavailable right now.</p>
         ) : audit.state === "loading" ? (

@@ -95,7 +95,7 @@ export function MatterList() {
             {matters.map((m, i) => (
               <a
                 key={m.id}
-                href={`/matters/${m.slug}/assistant`}
+                href={`/matters/${m.slug}`}
                 className="block transition-colors hover:bg-wash"
               >
                 <LedgerLine
