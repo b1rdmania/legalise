@@ -37,7 +37,19 @@ export interface AssistantMessage {
 export type AssistantPostResponse = {
   user: AssistantMessage;
   assistant: AssistantMessage;
+  // The thread this turn landed in. Present when the server created a new
+  // thread for a turn that omitted thread_id.
+  thread_id?: string | null;
 };
+
+// A named conversation within a matter. A matter can hold several.
+export interface AssistantThread {
+  id: string;
+  title: string | null;
+  created_at: string;
+  message_count: number;
+  last_message_at: string | null;
+}
 
 export type AssistantStreamEvent =
   | { event: "turn.start"; data: { slug: string } }
@@ -80,7 +92,26 @@ export const listAssistantMessages = (slug: string) =>
   apiFetch(`${API}/matters/${slug}/assistant/messages`)
     .then((r) => jsonOrThrow<AssistantMessage[]>(r));
 
-export const postAssistantMessage = (slug: string, body: { content: string; selected_document_ids?: string[] }) =>
+// Threads on a matter, most-recently-active first.
+export const listThreads = (slug: string) =>
+  apiFetch(`${API}/matters/${slug}/assistant/threads`)
+    .then((r) => jsonOrThrow<AssistantThread[]>(r));
+
+export const createThread = (slug: string, title?: string) =>
+  apiFetch(`${API}/matters/${slug}/assistant/threads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: title ?? null }),
+  }).then((r) => jsonOrThrow<AssistantThread>(r));
+
+export const getThreadMessages = (slug: string, threadId: string) =>
+  apiFetch(`${API}/matters/${slug}/assistant/threads/${threadId}/messages`)
+    .then((r) => jsonOrThrow<AssistantMessage[]>(r));
+
+export const postAssistantMessage = (
+  slug: string,
+  body: { content: string; selected_document_ids?: string[]; thread_id?: string },
+) =>
   apiFetch(`${API}/matters/${slug}/assistant/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -89,7 +120,7 @@ export const postAssistantMessage = (slug: string, body: { content: string; sele
 
 export async function* postAssistantMessageStream(
   slug: string,
-  body: { content: string; selected_document_ids?: string[] },
+  body: { content: string; selected_document_ids?: string[]; thread_id?: string },
   signal?: AbortSignal,
 ): AsyncIterableIterator<AssistantStreamEvent> {
   const resp = await apiFetch(`${API}/matters/${slug}/assistant/messages/stream`, {

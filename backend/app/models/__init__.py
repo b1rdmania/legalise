@@ -66,7 +66,7 @@ from app.models.workspace_skill_capability_grant import (
     WorkspaceSkillCapabilityGrant,
 )
 from app.models.matter_citation import MatterCitation
-from app.models.assistant import AssistantMessage
+from app.models.assistant import AssistantMessage, AssistantThread
 from app.models.job import (
     Job,
     JOB_STATUS_QUEUED,
@@ -177,6 +177,7 @@ __all__ = [
     "SCOPE_TYPE_VALUES",
     "MatterCitation",
     "AssistantMessage",
+    "AssistantThread",
     "Job",
     "JOB_STATUS_QUEUED",
     "JOB_STATUS_RUNNING",

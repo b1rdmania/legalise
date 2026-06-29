@@ -25,6 +25,7 @@ from app.core.model_gateway import (
 )
 from app.models import AuditEntry, Document, DocumentBody, Event, InstalledModule, Matter
 from app.models.assistant import AssistantMessage as AssistantMessageRow
+from app.models.assistant import AssistantThread as AssistantThreadRow
 from app.modules.assistant import pipeline as assistant_pipeline
 from app.modules.assistant.pipeline import run_assistant_turn
 from app.modules.assistant.schemas import AssistantPostRequest
@@ -150,9 +151,9 @@ class _AssistantSession:
         self.bind = None
 
     def add(self, obj: Any) -> None:
-        if isinstance(obj, AssistantMessageRow) and obj.id is None:
+        if isinstance(obj, (AssistantMessageRow, AssistantThreadRow)) and obj.id is None:
             obj.id = uuid.uuid4()
-        if isinstance(obj, AssistantMessageRow) and obj.created_at is None:
+        if isinstance(obj, (AssistantMessageRow, AssistantThreadRow)) and obj.created_at is None:
             obj.created_at = datetime.now(UTC)
         self.added.append(obj)
 
@@ -279,6 +280,81 @@ def _make_document_body(document_id: uuid.UUID) -> DocumentBody:
     )
 
 
+class _ThreadScopedSession:
+    """Async-session stub whose AssistantMessage reads honour ``thread_id``.
+
+    Just enough of the session contract for ``_load_history``: it filters the
+    in-memory messages by the ``thread_id`` bound into the SELECT, so a test
+    can prove two threads in one matter keep separate history.
+    """
+
+    def __init__(self, messages: list[AssistantMessageRow]) -> None:
+        self.messages = messages
+        self.bind = None
+
+    async def scalars(self, stmt: Any, *args: Any, **kwargs: Any):
+        params = stmt.compile().params
+        thread_id = next(
+            (v for k, v in params.items() if k.startswith("thread_id")), None
+        )
+        rows = [m for m in self.messages if m.thread_id == thread_id]
+        rows.sort(key=lambda m: m.created_at, reverse=True)
+        return _Scalars(rows)
+
+
+def _make_thread_message(
+    thread_id: uuid.UUID, content: str, *, when: datetime
+) -> AssistantMessageRow:
+    return AssistantMessageRow(
+        id=uuid.uuid4(),
+        matter_id=uuid.uuid4(),
+        thread_id=thread_id,
+        actor_id=uuid.uuid4(),
+        role="user",
+        content=content,
+        suggested_actions=[],
+        created_at=when,
+    )
+
+
+class TestAssistantThreadHistory:
+    """Two threads in one matter must keep entirely separate history."""
+
+    @pytest.mark.asyncio
+    async def test_threads_keep_separate_history(self) -> None:
+        from app.modules.assistant.pipeline import _load_history
+
+        thread_a = uuid.uuid4()
+        thread_b = uuid.uuid4()
+        base = datetime.now(UTC)
+        messages = [
+            _make_thread_message(thread_a, "A first", when=base),
+            _make_thread_message(thread_b, "B only", when=base),
+            _make_thread_message(thread_a, "A second", when=base),
+        ]
+        session = _ThreadScopedSession(messages)
+
+        history_a = await _load_history(session, thread_a, 20)
+        history_b = await _load_history(session, thread_b, 20)
+
+        a_contents = {m.content for m in history_a}
+        b_contents = {m.content for m in history_b}
+        assert a_contents == {"A first", "A second"}
+        assert b_contents == {"B only"}
+        # B's message never leaks into A's history and vice versa.
+        assert "B only" not in a_contents
+        assert "A first" not in b_contents
+
+    def test_derive_thread_title_first_six_words(self) -> None:
+        from app.modules.assistant.pipeline import derive_thread_title
+
+        title = derive_thread_title(
+            "  Stress-test the   dismissal claim against Acme Ltd please "
+        )
+        assert title == "Stress-test the dismissal claim against Acme"
+        assert derive_thread_title("   ") == "New chat"
+
+
 class TestAssistantPipeline:
     """Assistant turn persists, audits, round-trips actions, gates posture."""
 
@@ -303,6 +379,7 @@ class TestAssistantPipeline:
                 session=session,
                 matter=matter,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 request=AssistantPostRequest(content="What is the dismissal date?"),
                 gateway=gateway,
             )
@@ -336,6 +413,7 @@ class TestAssistantPipeline:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(content="Should I file a pre-motion?"),
             gateway=gateway,
         )
@@ -365,6 +443,7 @@ class TestAssistantPipeline:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(
                 content="Summarise this document",
                 selected_document_ids=[document.id],
@@ -404,6 +483,7 @@ class TestAssistantPipeline:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(content="Summarise this document"),
             gateway=gateway,
         )
@@ -450,6 +530,7 @@ class TestAssistantPipeline:
                 session=session,
                 matter=matter,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 request=AssistantPostRequest(content="Summarise the dismissal letter"),
                 gateway=gateway,
             )
@@ -495,6 +576,7 @@ class TestAssistantPipeline:
                 session=session,
                 matter=matter,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 request=AssistantPostRequest(
                     content="What was the stated reason for the dismissal?"
                 ),
@@ -535,6 +617,7 @@ class TestAssistantPipeline:
                     session=session,
                     matter=matter,
                     actor_id=uuid.uuid4(),
+                    thread_id=uuid.uuid4(),
                     request=AssistantPostRequest(content="Draft a wholly new letter"),
                     gateway=gateway,
                 )
@@ -550,6 +633,7 @@ class TestAssistantPipeline:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(content="Summarise the matter."),
             gateway=gateway,
         )
@@ -604,6 +688,7 @@ class TestAssistantPipeline:
                 session=session,
                 matter=matter,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 request=AssistantPostRequest(content="Review the contract"),
                 gateway=gateway,
             )
@@ -775,6 +860,7 @@ class TestAssistantPipeline:
                 session=session,
                 matter=matter,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 actor_role="qualified_solicitor",
                 request=AssistantPostRequest(content="Review the attached NDA"),
                 gateway=gateway,
@@ -859,6 +945,7 @@ class TestAssistantPipeline:
                 session=session,
                 matter=matter,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 request=AssistantPostRequest(content="Review this contract"),
                 gateway=gateway,
                 on_event=_capture,
@@ -913,12 +1000,14 @@ class TestAssistantPipeline:
             session,
             matter,
             actor_id,
+            thread_id,
             actor_role,
             request,
             on_event=None,
         ):
             assert request.content == "Review this contract"
             assert actor_id == user.id
+            assert thread_id is not None
             assert actor_role == "owner"
             assert on_event is not None
             await on_event(
@@ -1107,6 +1196,7 @@ class TestAssistantPipeline:
                 id=uuid.uuid4(),
                 matter_id=matter.id,
                 actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
                 role="user",
                 content="filler " * 500,
                 suggested_actions=[],
@@ -1174,6 +1264,7 @@ class TestAssistantFailureModes:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(content="What is the dismissal date?"),
             gateway=gateway,
         )
@@ -1217,6 +1308,7 @@ class TestAssistantFailureModes:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(content="Run the contract review"),
             gateway=gateway,
         )
@@ -1248,6 +1340,7 @@ class TestAssistantFailureModes:
             session=session,
             matter=matter,
             actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
             request=AssistantPostRequest(content="What can you run?"),
             gateway=gateway,
         )

@@ -23,6 +23,40 @@ ROLE_ASSISTANT = "assistant"
 ROLE_VALUES = {ROLE_USER, ROLE_ASSISTANT}
 
 
+class AssistantThread(Base):
+    """A named conversation within a matter.
+
+    A matter can hold several independent assistant threads, each with its
+    own message history. Messages reference a thread via
+    ``AssistantMessage.thread_id``. ``title`` is nullable — a fresh thread
+    is titled from its first user message on the first turn.
+    """
+
+    __tablename__ = "assistant_threads"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    matter_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("matters.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+
+    def __repr__(self) -> str:
+        return f"<AssistantThread {self.id} matter={self.matter_id}>"
+
+
 class AssistantMessage(Base):
     __tablename__ = "assistant_messages"
     __table_args__ = (
@@ -39,6 +73,14 @@ class AssistantMessage(Base):
         UUID(as_uuid=True),
         ForeignKey("matters.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
+    )
+    # Nullable for back-compat: rows predating the threads migration are
+    # backfilled into a per-matter "Main thread". New rows always set it.
+    thread_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("assistant_threads.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
     actor_id: Mapped[uuid.UUID] = mapped_column(

@@ -60,14 +60,34 @@ class AssistantMessage(BaseModel):
     created_at: datetime
 
 
+class AssistantThread(BaseModel):
+    """A named conversation within a matter, with cheap rollup counts."""
+
+    id: UUID
+    title: str | None = None
+    created_at: datetime
+    message_count: int = 0
+    last_message_at: datetime | None = None
+
+
+class AssistantThreadCreateRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=200)
+
+
 class AssistantPostRequest(BaseModel):
     content: str = Field(min_length=1, max_length=8000)
     selected_document_ids: list[UUID] = Field(default_factory=list)
+    # Optional target thread. When omitted, the router creates a fresh
+    # thread (titled from the first user message) and uses it.
+    thread_id: UUID | None = None
 
 
 class AssistantPostResponse(BaseModel):
     user: AssistantMessage
     assistant: AssistantMessage
+    # The thread this turn landed in. Lets a client that omitted thread_id
+    # (starting a new conversation) learn the id the server created.
+    thread_id: UUID | None = None
 
 
 class AssistantResponseEnvelope(BaseModel):
