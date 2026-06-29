@@ -44,6 +44,8 @@ from app.core.matter_access import resolve_owned_open_matter
 from app.core.matter_fs import append_history
 from app.core.api import audit
 from app.models import AuditEntry, Document, Event, Matter, User
+from app.models.event import STATUS_ACCEPTED, STATUS_REJECTED
+from .build import build_chronology
 
 
 router = APIRouter()
@@ -62,6 +64,7 @@ class ChronologyEventRead(BaseModel):
     source_doc_ids: list[uuid.UUID]
     source_doc_filenames: list[str]
     priv_flag: bool
+    status: str                    # proposed | accepted | rejected
     from_disclosure: bool          # derived: any source doc is from disclosure
     proceedings_refs: list[str]    # derived: union of source docs' disclosure refs
     created_at: datetime
@@ -85,6 +88,14 @@ class ChronologyResponse(BaseModel):
 
 class GateConfirmBody(BaseModel):
     acknowledgement: str  # e.g. "I confirm the implied undertaking under CPR 31.22"
+
+
+class ChronologyBuildResponse(BaseModel):
+    matter_slug: str
+    proposed: list[ChronologyEventRead]   # the freshly proposed events
+    document_count: int                   # documents read for the build
+    parse_failed: bool = False            # model response could not be parsed
+    error: str | None = None              # provider failure class, if any
 
 
 # ---------- helpers ---------------------------------------------------------
@@ -149,6 +160,7 @@ def _event_to_read(
             source_doc_ids=list(event.source_doc_ids or []),
             source_doc_filenames=[],
             priv_flag=event.priv_flag,
+            status=event.status,
             from_disclosure=True,
             proceedings_refs=[],
             created_at=event.created_at,
@@ -163,6 +175,7 @@ def _event_to_read(
         source_doc_ids=list(event.source_doc_ids or []),
         source_doc_filenames=[d.filename for d in source_docs],
         priv_flag=event.priv_flag,
+        status=event.status,
         from_disclosure=from_disclosure,
         proceedings_refs=[
             d.disclosure_proceedings_ref for d in source_docs if d.disclosure_proceedings_ref
@@ -269,3 +282,167 @@ async def confirm_gate(
     events, docs_by_id = await _load_chronology(session, matter)
     tainted_count = sum(1 for e in events if _event_is_tainted(e, docs_by_id))
     return await _gate_state(session, matter, user, tainted_count)
+
+
+@router.post(
+    "/{slug}/chronology/build",
+    response_model=ChronologyBuildResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def build(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ChronologyBuildResponse:
+    """Owner-only. Read the matter's documents and propose dated events.
+
+    Each extracted event is persisted as ``status="proposed"`` for the
+    solicitor to accept or reject. Disclosure-tainted events (their source
+    document is from disclosure) stay behind the same CPR 31.22 read gate as
+    every other event — taint is derived from `source_doc_ids`, not stored.
+
+    Resilient: a missing key, paused posture, provider error, or unparseable
+    model response yields zero proposed events and a 200 with an empty list.
+    """
+    matter = await resolve_owned_open_matter(session, slug, user.id)
+
+    build_result = await build_chronology(session=session, matter=matter, actor=user)
+
+    await audit.log(
+        session,
+        "chronology.build",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="chronology",
+        resource_type="chronology",
+        resource_id=matter.slug,
+        payload={
+            "document_count": build_result.document_count,
+            "proposed_count": len(build_result.events),
+            "parse_failed": build_result.parse_failed,
+            "error": build_result.error,
+            "default_model_id": matter.default_model_id,
+        },
+    )
+    await session.commit()
+    append_history(
+        matter.slug,
+        matter.created_by_id,
+        "chronology.build",
+        f"{len(build_result.events)} event(s) proposed from "
+        f"{build_result.document_count} document(s)",
+    )
+
+    # Re-derive the read shape (incl. disclosure taint) for the new rows.
+    _, docs_by_id = await _load_chronology(session, matter)
+    redact_required = any(
+        _event_is_tainted(e, docs_by_id) for e in build_result.events
+    )
+    gate = await _gate_state(
+        session,
+        matter,
+        user,
+        sum(1 for e in build_result.events if _event_is_tainted(e, docs_by_id)),
+    )
+    redact = redact_required and not gate.confirmed
+    proposed = [
+        _event_to_read(e, docs_by_id, redact_tainted=redact)
+        for e in build_result.events
+    ]
+
+    return ChronologyBuildResponse(
+        matter_slug=matter.slug,
+        proposed=proposed,
+        document_count=build_result.document_count,
+        parse_failed=build_result.parse_failed,
+        error=build_result.error,
+    )
+
+
+async def _set_event_status(
+    *,
+    session: AsyncSession,
+    matter: Matter,
+    user: User,
+    event_id: uuid.UUID,
+    new_status: str,
+    action: str,
+) -> ChronologyEventRead:
+    """Owner-only status transition for one event, audited."""
+    event = await session.scalar(
+        select(Event).where(
+            Event.id == event_id,
+            Event.matter_id == matter.id,
+        )
+    )
+    if event is None:
+        raise HTTPException(404, f"event not found: {event_id}")
+
+    event.status = new_status
+    await audit.log(
+        session,
+        action,
+        actor_id=user.id,
+        matter_id=matter.id,
+        module="chronology",
+        resource_type="chronology_event",
+        resource_id=str(event.id),
+        payload={"status": new_status},
+    )
+    await session.commit()
+    await session.refresh(event)
+
+    _, docs_by_id = await _load_chronology(session, matter)
+    gate_required = _event_is_tainted(event, docs_by_id)
+    confirmed_at = None
+    if gate_required:
+        gate = await _gate_state(session, matter, user, 1)
+        confirmed_at = gate.confirmed_at
+    redact = gate_required and confirmed_at is None
+    return _event_to_read(event, docs_by_id, redact_tainted=redact)
+
+
+@router.post(
+    "/{slug}/chronology/events/{event_id}/accept",
+    response_model=ChronologyEventRead,
+    status_code=status.HTTP_200_OK,
+)
+async def accept_event(
+    slug: str,
+    event_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ChronologyEventRead:
+    """Owner-only. Accept a proposed event into the chronology."""
+    matter = await resolve_owned_open_matter(session, slug, user.id)
+    return await _set_event_status(
+        session=session,
+        matter=matter,
+        user=user,
+        event_id=event_id,
+        new_status=STATUS_ACCEPTED,
+        action="chronology.event.accepted",
+    )
+
+
+@router.post(
+    "/{slug}/chronology/events/{event_id}/reject",
+    response_model=ChronologyEventRead,
+    status_code=status.HTTP_200_OK,
+)
+async def reject_event(
+    slug: str,
+    event_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> ChronologyEventRead:
+    """Owner-only. Reject a proposed event."""
+    matter = await resolve_owned_open_matter(session, slug, user.id)
+    return await _set_event_status(
+        session=session,
+        matter=matter,
+        user=user,
+        event_id=event_id,
+        new_status=STATUS_REJECTED,
+        action="chronology.event.rejected",
+    )

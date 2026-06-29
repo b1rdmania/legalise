@@ -126,7 +126,68 @@ export function narrateEntry(entry: AuditEntry): string {
   if (a === "module.enabled") return "Enabled a skill on this matter.";
   if (a === "module.grant.created") return "Granted a skill permission to run.";
   if (a === "module.grant.revoked") return "Revoked a skill's permission.";
+  if (a === "module.capability.invoked") return "Ran a skill.";
 
-  // Honest fallback: the action string, undecorated.
-  return a;
+  if (a === "model.call") {
+    const model = entry.model_used;
+    const tokens = entry.token_count;
+    const lead = model
+      ? `Sent a prompt to the ${model} model`
+      : "Sent a prompt to the model";
+    const tail =
+      tokens != null
+        ? `; ${tokens} token${tokens === 1 ? "" : "s"} used, and the prompt and response are recorded by hash.`
+        : "; the prompt and response are recorded by hash.";
+    return lead + tail;
+  }
+
+  if (a === "document.deleted") {
+    const f = payloadStr(entry, "filename");
+    return f ? `Deleted ${f}.` : "Deleted a document.";
+  }
+  if (a === "document.indexed") {
+    const f = payloadStr(entry, "filename");
+    return f ? `Indexed ${f} for search.` : "Indexed a document for search.";
+  }
+  if (a === "matter.reindexed") {
+    return "Re-indexed the matter's documents for search.";
+  }
+
+  if (a === "output.review.opened") {
+    return "Opened the output for review.";
+  }
+
+  if (a === "advice_boundary.check.completed") {
+    return "Checked how far this output may go (the advice boundary) — within bounds.";
+  }
+  if (
+    a === "advice_boundary.check.blocked" ||
+    a === "advice_boundary.check.denied"
+  ) {
+    return "Held the output back at the advice boundary.";
+  }
+
+  if (a === "external.pack.ingested") {
+    return "Ingested an external workspace export for supervision.";
+  }
+
+  if (a === "auth.rate_limited") {
+    return "Auth rate limit reached — a request was throttled.";
+  }
+
+  // Honest fallback: humanise the raw action so even unmapped actions read
+  // as a tolerable sentence (e.g. "foo.bar_baz" → "Foo bar baz.").
+  return humaniseAction(a);
+}
+
+/** Turn a dotted/underscored action string into a sentence-cased phrase. */
+function humaniseAction(action: string): string {
+  const words = action
+    .split(/[._]+/)
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  if (!words) return action;
+  const sentence = words.charAt(0).toUpperCase() + words.slice(1);
+  return sentence.endsWith(".") ? sentence : `${sentence}.`;
 }
