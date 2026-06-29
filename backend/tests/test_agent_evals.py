@@ -13,6 +13,7 @@ output shape of every case including negatives.
 from __future__ import annotations
 
 import uuid
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -286,3 +287,92 @@ async def test_chain_intact_broken_chain(eval_client, monkeypatch) -> None:
     body = resp.json()
     assert body["output"]["verified"] is False
     assert body["output"]["issues"] == ["count_mismatch"]
+
+
+# ── retrieval_grounding ──────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_retrieval_grounding_shapes_real_hits(eval_client, monkeypatch) -> None:
+    class _FakeMatter:
+        id = uuid.uuid4()
+
+    doc_a, doc_b = uuid.uuid4(), uuid.uuid4()
+
+    async def _fake_search(session, matter_id, query, *, k=8):
+        assert matter_id == _FakeMatter.id
+        assert query == "why was Khan dismissed"
+        return [
+            SimpleNamespace(document_id=doc_a, char_start=0, char_end=120, score=0.5),
+            SimpleNamespace(document_id=doc_a, char_start=120, char_end=240, score=0.4),
+            SimpleNamespace(document_id=doc_b, char_start=0, char_end=80, score=0.3),
+        ]
+
+    eval_client.fake_session._scalar_results.append(_FakeMatter())
+    monkeypatch.setattr("app.api.agent_evals.search_documents", _fake_search)
+    resp = await eval_client.post(
+        "/api/evals/agent",
+        json=_payload(
+            {
+                "case": "retrieval_grounding",
+                "matter_slug": "khan-v-acme",
+                "query": "why was Khan dismissed",
+            }
+        ),
+        headers=_headers(),
+    )
+    out = resp.json()["output"]
+    assert out["source_count"] == 3
+    # Two distinct documents, deduped and order-preserved.
+    assert out["document_ids"] == [str(doc_a), str(doc_b)]
+    assert out["document_count"] == 2
+    assert out["well_formed"] is True
+    assert out["sources"][0]["char_end"] == 120
+
+
+@pytest.mark.asyncio
+async def test_retrieval_grounding_empty_when_no_hits(eval_client, monkeypatch) -> None:
+    class _FakeMatter:
+        id = uuid.uuid4()
+
+    async def _fake_search(session, matter_id, query, *, k=8):
+        return []
+
+    eval_client.fake_session._scalar_results.append(_FakeMatter())
+    monkeypatch.setattr("app.api.agent_evals.search_documents", _fake_search)
+    resp = await eval_client.post(
+        "/api/evals/agent",
+        json=_payload(
+            {"case": "retrieval_grounding", "matter_slug": "khan-v-acme", "query": ""}
+        ),
+        headers=_headers(),
+    )
+    out = resp.json()["output"]
+    assert out["source_count"] == 0
+    assert out["sources"] == []
+    assert out["document_ids"] == []
+    # Vacuously well-formed — no hits to violate the contract.
+    assert out["well_formed"] is True
+
+
+@pytest.mark.asyncio
+async def test_retrieval_grounding_unknown_matter_is_error(eval_client) -> None:
+    resp = await eval_client.post(
+        "/api/evals/agent",
+        json=_payload(
+            {"case": "retrieval_grounding", "matter_slug": "missing", "query": "x"}
+        ),
+        headers=_headers(),
+    )
+    assert resp.status_code == 200
+    assert "missing" in resp.json()["error"]
+
+
+@pytest.mark.asyncio
+async def test_retrieval_grounding_requires_slug(eval_client) -> None:
+    resp = await eval_client.post(
+        "/api/evals/agent",
+        json=_payload({"case": "retrieval_grounding", "query": "x"}),
+        headers=_headers(),
+    )
+    assert "matter_slug" in resp.json()["error"]

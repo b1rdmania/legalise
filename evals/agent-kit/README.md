@@ -12,11 +12,18 @@ functions — nothing is reimplemented for the eval:
 | `posture_refusal` | `core/posture_gate._evaluate_posture` (the policy core behind every capability gate) | `{refused, reason, posture}` |
 | `deterministic_summary` | `modules/assistant/pipeline._match_requested_document` (keyless filename/tag matcher) | `{matched_document}` |
 | `chain_intact` | `core/audit_chain.verify_audit_chain` | `{verified, audit_entry_count, chain_entry_count, scopes_verified, issues}` |
+| `retrieval_grounding` | `core/retrieval.search_documents` (the hybrid pgvector + full-text retrieval every assistant turn runs) | `{source_count, document_ids, document_count, sources, well_formed}` |
 
 `posture_refusal` takes either `matter_slug` (reads the live posture
 off the matter row) or an explicit `posture` (deterministic regardless
 of deployment state). `chain_intact` takes an optional `matter_slug`
 to narrow to one scope; absent, it verifies every chain scope.
+`retrieval_grounding` takes `matter_slug` + `query` (+ optional `k`):
+it runs the real matter-scoped retrieval and returns the passages it
+grounded on, so a record can assert that a real question retrieves real
+anchorable passages from real documents — the "what did the AI see"
+claim, checked rather than implied. `well_formed` asserts every hit has
+a positive char span and a score (citation integrity).
 
 ## Auth
 
