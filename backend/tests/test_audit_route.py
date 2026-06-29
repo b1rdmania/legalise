@@ -56,6 +56,30 @@ async def test_audit_returns_bootstrap_seed_rows_for_fresh_user(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_verify_endpoint_reports_intact_chain(client) -> None:
+    """GET /audit/verify re-runs the hash chain for the matter scope and
+    reports it intact, with matching audit/chain counts and no issues."""
+    await _signup_and_login(client)
+
+    resp = await client.get(f"/api/matters/{KHAN_SLUG}/audit/verify")
+    assert resp.status_code == 200, resp.text
+
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["issues"] == []
+    assert body["audit_entry_count"] > 0
+    assert body["audit_entry_count"] == body["chain_entry_count"]
+    assert body["scopes_verified"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_verify_endpoint_404_for_unknown_matter(client) -> None:
+    await _signup_and_login(client)
+    resp = await client.get("/api/matters/no-such-matter/audit/verify")
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
 async def test_seed_audit_rows_are_system_actor_with_seed_payload(client) -> None:
     await _signup_and_login(client)
 

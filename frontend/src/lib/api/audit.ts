@@ -124,6 +124,23 @@ export const getReconstruction = (
   ).then((r) => jsonOrThrow<ReconstructionResponse>(r));
 };
 
+export interface AuditVerifyResponse {
+  ok: boolean;
+  audit_entry_count: number;
+  chain_entry_count: number;
+  scopes_verified: number;
+  issues: string[];
+}
+
+// Re-run the hash-chain verification for a matter. Read-only on the server;
+// returns whether the chain is intact and the counts behind that claim.
+export const verifyAuditChain = (
+  slug: string,
+): Promise<AuditVerifyResponse> =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/audit/verify`,
+  ).then((r) => jsonOrThrow<AuditVerifyResponse>(r));
+
 export interface AuditEntry {
   id: string;
   timestamp: string;

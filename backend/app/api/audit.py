@@ -38,6 +38,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit
+from app.core.audit_chain import verify_audit_chain
 from app.core.audit_reconstruction import (
     DEFAULT_LIMIT,
     MAX_LIMIT,
@@ -70,6 +71,16 @@ class ReconstructionResponse(BaseModel):
     entries: list[TimelineEntryOut]
     next_cursor: str | None
     total_in_window_estimate: int
+
+
+class AuditVerifyResponse(BaseModel):
+    """Result of re-running the hash-chain verification for a matter."""
+
+    ok: bool
+    audit_entry_count: int
+    chain_entry_count: int
+    scopes_verified: int
+    issues: list[str]
 
 
 async def _load_matter_or_403(
@@ -230,6 +241,34 @@ async def get_reconstruction(
         entries=[TimelineEntryOut(**e.to_dict()) for e in page.entries],
         next_cursor=page.next_cursor,
         total_in_window_estimate=page.total_in_window_estimate,
+    )
+
+
+@router.get(
+    "/{slug}/audit/verify",
+    response_model=AuditVerifyResponse,
+)
+async def verify_matter_audit_chain(
+    slug: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> AuditVerifyResponse:
+    """Re-run the hash-chain verification for this matter's audit scope.
+
+    Recomputes every entry hash and re-links the chain, returning whether
+    it is intact and the counts behind that claim. Read-only — it makes no
+    DB writes (so clicking it repeatedly never churns the chain), the same
+    contract the agent-kit `chain_intact` eval uses. Owner / superuser only,
+    via the same strict predicate as reconstruction.
+    """
+    matter = await _load_matter_or_403(session, slug=slug, user=user)
+    result = await verify_audit_chain(session, matter_id=matter.id)
+    return AuditVerifyResponse(
+        ok=result.ok,
+        audit_entry_count=result.audit_entry_count,
+        chain_entry_count=result.chain_entry_count,
+        scopes_verified=result.scopes_verified,
+        issues=[issue.code for issue in result.issues],
     )
 
 
