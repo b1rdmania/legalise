@@ -25,6 +25,11 @@ export function SignUp() {
           </a>
           .
         </p>
+        <p className="border-l-2 border-rule pl-4 text-sm text-muted">
+          The hosted workspace is for <strong className="font-semibold text-ink">evaluation only — not for live client matters</strong>.
+          Real regulated use needs your firm&apos;s own supervision, policies,
+          model-key posture, and professional indemnity cover.
+        </p>
       </div>
 
       <div className="mt-12 max-w-3xl">
