@@ -379,6 +379,107 @@ function SignOutButton() {
   );
 }
 
+// Pick the model new matters start on. Writes user.default_model_id via the
+// profile PATCH; matter creation already prefers it over the system default.
+// Shown as cards (not a bare <select>) so each model's note, its recommended
+// status, and whether it needs a key you haven't added are all legible.
+function DefaultModelPicker() {
+  const auth = useAuth();
+  const [models, setModels] = useState<ModelOption[] | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const current = auth.user?.default_model_id ?? null;
+
+  useEffect(() => {
+    let live = true;
+    listModels()
+      .then((r) => live && setModels(r))
+      .catch(() => live && setModels([]));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const choose = async (id: string) => {
+    if (id === current || saving) return;
+    setSaving(id);
+    setError(null);
+    try {
+      await updateProfile({ default_model_id: id });
+      await auth.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div>
+      <SectionRule label="Default model" />
+      <p className="prose-p mb-0 mt-3">
+        The model new matters start on. Each matter can override it on its
+        Overview. A model marked “needs key” runs only once you have added that
+        provider’s key below.
+      </p>
+      {error && <ErrorCallout message={error} />}
+      {!models && <LoadingLine label="loading models" />}
+      {models && (
+        <div className="mt-4 flex flex-col gap-2">
+          {models.map((m) => {
+            const needsKey = m.requires_key && !m.key_configured;
+            // When the user has set no explicit default, the recommended
+            // model is the one that will actually be used — show it as current.
+            const active = current ? m.id === current : Boolean(m.recommended);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                disabled={needsKey || saving !== null}
+                onClick={() => void choose(m.id)}
+                className={
+                  "text-left border p-4 transition-colors " +
+                  (active
+                    ? "border-ink bg-wash"
+                    : "border-rule hover:border-ink") +
+                  (needsKey ? " opacity-50 cursor-not-allowed" : "")
+                }
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-ink">
+                    {m.label}
+                  </span>
+                  {m.recommended && (
+                    <span className="text-[10px] uppercase tracking-widest border border-rule px-1.5 py-0.5 text-muted">
+                      Recommended
+                    </span>
+                  )}
+                  {active && (
+                    <span className="text-[10px] uppercase tracking-widest text-ink">
+                      · current
+                    </span>
+                  )}
+                  {needsKey && (
+                    <span className="text-[10px] uppercase tracking-widest text-seal">
+                      needs key
+                    </span>
+                  )}
+                  {saving === m.id && (
+                    <span className="text-[10px] uppercase tracking-widest text-muted">
+                      saving…
+                    </span>
+                  )}
+                </div>
+                {m.note && <p className="mt-1 text-xs text-muted">{m.note}</p>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsKeys() {
   const [keys, setKeys] = useState<UserApiKeyRead[] | null>(null);
   const [provider, setProvider] = useState<"anthropic" | "openai">("anthropic");
@@ -434,6 +535,8 @@ function SettingsKeys() {
 
   return (
     <div className="flex flex-col gap-8">
+      <DefaultModelPicker />
+
       <div>
         <SectionRule label="Provider keys" />
         <p className="prose-p mb-0 mt-3">

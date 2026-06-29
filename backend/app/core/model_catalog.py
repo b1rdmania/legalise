@@ -32,6 +32,7 @@ class ModelEntry:
     provider: str  # "anthropic" | "openai" | "ollama" | "none"
     requires_key: bool
     note: str
+    recommended: bool = False
 
 
 # Curated, editable list. Order is presentation order in the picker.
@@ -49,7 +50,8 @@ _CATALOG: list[ModelEntry] = [
         label="Claude Sonnet 4.6 — balanced",
         provider="anthropic",
         requires_key=True,
-        note="Strong quality at lower cost and latency.",
+        note="Strong quality at lower cost and latency. Recommended default.",
+        recommended=True,
     ),
     ModelEntry(
         id="claude-haiku-4-5",
