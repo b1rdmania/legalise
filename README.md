@@ -46,9 +46,8 @@ Skills produce outputs the user reviews, signs, and exports:
   `signed`, `signed_with_observations`, or `rejected`. The signature pins the
   output by hash; the history is append-only. Supervisor Review is an optional
   second path.
-- **Source anchors.** An output carries the documents it cited. Document anchors
-  are server-known, independent of the model. Where the model supplied a quote,
-  Legalise checks it against the extracted body (`quote_found_in_source`): cited
+- **Source anchors.** Each output carries the documents it cited — server-known,
+  independent of the model. Quotes are checked against the source text: cited
   for review, not certified.
 - **Export.** The matter ZIP carries documents, audit trail, outputs, sign-off
   records, source anchors, and an integrity flag showing whether each signed
@@ -76,48 +75,29 @@ under the same sign-off and source-anchor handling.
 ## What it proves
 
 A regulator, insurer, supervisor, or partner eventually asks four questions
-about any AI tool used on a matter:
+about any AI tool used on a matter. Legalise answers each with a record, not a
+promise:
 
-1. What did it see?
-2. Under what protection?
-3. What did it produce?
-4. Who stayed accountable?
+**1. What did it see?** The assistant is scoped to one matter and can't see
+others. Every document it reads is logged — so "what did the AI look at" is a
+trail, not a guess.
 
-**What it saw.** Every matter has a spine: documents, chronology, parties,
-retention clock, privilege posture. The assistant is scoped to one matter and
-cannot see other matters. Within a matter it works from the structured spine,
-audited retrieval over indexed document chunks, capped chronology context, and
-recent chat, all under a token budget that can truncate. Search/read activity is
-recorded as audit evidence, including the document chunks the assistant relied
-on, so "what did the AI see?" is inspectable rather than implied. Cross-matter
-access is scoped in the application layer and every access is audited (enforced
-in the application, not a structural guarantee).
-Disclosure-tainted chronology entries carry a CPR 31.22 flag; the chronology
-gate withholds detail until the user acknowledges it, and the acknowledgement
-is audited.
+**2. Under what protection?** Each matter sets how AI may touch privileged
+material — **cloud allowed**, **mixed** (the default), or **paused** (local
+model only) — and the rule is checked before every model call. Disclosure-
+restricted material (CPR 31.22) is flagged and withheld until acknowledged.
 
-**Under what protection.** Every matter carries a privilege posture, read
-before each model call:
+**3. What did it produce?** Prompt, response, model, tokens, and posture are
+hashed and stored. Any answer reconstructs from its audit row.
 
-- `A_cleared`: privileged material excluded or cleared; cloud providers permitted.
-- `B_mixed`: opt-in per provider; the default.
-- `C_paused`: privileged or unresolved; cloud calls refused at the gateway,
-  local model (Ollama) only.
+**4. Who stayed accountable?** A named solicitor signs each output by hash; the
+record shows whether the signer wrote it. Every model call, change, and refusal
+writes one row to an append-only log — a Postgres trigger blocks edits and
+deletes, and rows hash-chain.
 
-**What it produced.** Prompt, response, model, tokens, latency, posture, and
-calling module are hashed and stored. Any interaction reconstructs from the
-audit row.
-
-**Who stayed accountable.** A named human signs each output, and the record
-shows whether the signer was the author. Every model call, mutation, chronology
-entry, and denial writes one row to an append-only audit log: timestamped,
-hashed, tied to the matter and the actor. A Postgres trigger rejects UPDATE and
-DELETE, and rows mirror into a hash chain.
-
-One caveat, stated plainly: this is tamper-evidence, not tamper-proofing. A
-database superuser can still rewrite and re-link history. External anchoring
-would close that and is not built. See
-[`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
+Caveat, plainly: this is tamper-**evident**, not tamper-proof. A database
+superuser can still rewrite and re-link history; external anchoring would close
+that and isn't built. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
 
 No background calls. No invisible inference. If it touched the matter, it's logged.
 
@@ -222,67 +202,15 @@ If you don't want quickstart to clone the skills catalogue or start compose:
 
 ## Status
 
-Evaluation release. Honest about what's in and what isn't.
+Evaluation release — honest about what's in and what isn't.
 
-**Shipped:**
-
-- Matter surface ordered as the loop (Documents / Chat / Skills), with Activity,
-  signed outputs, and working-pack export.
-- Files as first-class records: routed detail page, body / versions /
-  anonymisation / edit surfaces, original-file retrieval through an owner-only
-  backend proxy with a `document.original.accessed` audit row on access.
-- Governed skills per matter, readiness shown from a single backend
-  `Matter.required_provider` field, so the UI does no model-family guessing.
-- Two module runtimes:
-  - **Native modules** (`examples.contract-review`, `examples.pre-motion`)
-    emitting source anchors and `findings_pack` / `motion_draft` /
-    `evidence_list` artifacts.
-  - **Prompt runtime** for Lawve `SKILL.md` imports: manifest-contained
-    instructions, server-built document anchors, optional `quote_found_in_source`.
-- **Professional sign-off** as the matter's main decision point: append-only
-  history, hash pinning, promoted in Activity.
-- **Source anchors v1** across the prompt runtime and the example modules.
-- **Export gating v1.1:** sign-off status, integrity flag, and source anchors in
-  the export bundle, with a README describing the honesty boundaries.
-- Capability enforcement at five runtime boundaries; per-matter grants;
-  idempotent re-grants.
-- Privilege-aware gateway across Anthropic, OpenAI, Ollama, and a keyless
-  `stub-echo` demo provider.
-- `fastapi-users` cookie sessions, email verification, per-user AES-256-GCM
-  provider keys, owner-only matter access (no superuser sign or read shortcut;
-  sign-off is personal accountability).
-- Audit middleware on every model call and matter mutation; a reconstruction
-  endpoint merging audit, state-machine, and advice-boundary sources into one
-  timeline.
-- Real-DB E2E test infrastructure exercised on every push.
-- **Deterministic eval harness** ([agent-kit](https://github.com/b1rdmania/agent-kit)):
-  CI-gateable records that run the *real* production functions — retrieval
-  grounding (real citations from real documents), posture refusal, the keyless
-  document matcher, and audit-chain integrity. See
-  [`evals/agent-kit/`](./evals/agent-kit/).
-
-**Live-matter readiness gates (still open):**
-
-- Append-only audit is enforced for normal paths by a Postgres trigger and a
-  hash chain. The remaining hardening is operational WORM: split DB roles,
-  app-role revokes, and external anchoring so a DB superuser cannot bypass the
-  controls unnoticed.
-- Module signature verification is structural today. The cryptographic
-  `verified` grade (ed25519 against a registered publisher key) is implemented
-  but **no publisher key is registered yet**, so every import resolves to
-  `structure_verified`. Sigstore-level chain verification is backlog.
-- Single workspace by design: one deployment is one workspace, the admin flag is
-  the only privileged role, matters are owner-scoped. A tenancy model deserves
-  its own design pass. Self-hosters who need separation run one deployment per team.
-- Hosted evaluation limits on storage, runs, active jobs, artefacts, and module
-  submissions.
-- Configurable prompt shroud before cloud-model dispatch.
-- Legal-quality evals for grounding, citation integrity, refusal, and module
-  regressions. Deterministic structural/regression evals ship today (see the
-  agent-kit harness above); the remaining work is *quality* grading
-  (LLM-as-judge for answer correctness), which is not built.
-
-Full roadmap: [`docs/ROADMAP.md`](./docs/ROADMAP.md).
+- **What works** is in the [CHANGELOG](./CHANGELOG.md), and you can run all of
+  it: the full matter loop, audited retrieval, sign-off, export, and a
+  deterministic eval harness ([agent-kit](https://github.com/b1rdmania/agent-kit))
+  that gates grounding, refusal, and audit-chain integrity in CI.
+- **What's deliberately out of scope, or not production-grade**, is in
+  [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md) — gaps first.
+- **What's planned** is in [`docs/ROADMAP.md`](./docs/ROADMAP.md).
 
 ## Docs
 
@@ -290,7 +218,7 @@ Start with [`docs/`](./docs/):
 
 - [`docs/TRUST.md`](./docs/TRUST.md): privilege architecture, sub-processors, open gaps (read first)
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md): how it works today, cited to code
-- [`docs/EVALUATING.md`](./docs/EVALUATING.md): the walkthrough, the evaluation gate, the run records
+- [`docs/EVALUATING.md`](./docs/EVALUATING.md): the walkthrough and the evaluation gate
 - [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md): adversary model and what we don't defend
 - [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md): what is not production-grade and what a fork must build (read before building on top)
 - [`docs/ROADMAP.md`](./docs/ROADMAP.md): shipped, deferred, parked
