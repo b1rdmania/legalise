@@ -6,8 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.0-beta] — 2026-06-30
+
+First tagged evaluation release. An open-source governance layer for UK legal
+AI: human sign-off and a tamper-evident audit trail over AI-assisted legal
+work. Runs locally, bring your own model key. **Not for live client matters.**
+
 ### Added
 
+- **Governance-first matter Overview** — the landing screen leads with sign-off status, a plain-English activity feed, the privilege posture, and a one-click **Verify integrity** that recomputes the audit hash chain on demand.
+- **Audited hybrid retrieval** (pgvector + full-text, keyless fastembed): the assistant cites real passages from the matter's own documents, with click-back to the source span.
+- **Multiple named chat threads per matter**, with a left conversation sub-rail.
+- **Background document indexing** on the worker — uploads return immediately and index out-of-band.
+- **Opt-in scheduled retention enforcement** — a daily, blast-capped, audited sweep, off by default.
+- **Per-matter token budget** — a spend guard that refuses a new turn once the matter's recorded token usage reaches the configured ceiling (`LEGALISE_MATTER_TOKEN_BUDGET`, off by default).
+- **Rolling-summary conversation memory** — older turns are summarised into the thread instead of silently dropped past the recent window.
+- **Optional error tracking** — env-gated Sentry hook (`SENTRY_DSN`), off by default, `send_default_pii=False` so matter content never leaves the app.
+- Deterministic **eval harness** (agent-kit): grounding, refusal, and audit-chain integrity as CI-gateable checks against the real production functions.
+- Provider key **verified on save**; **Sonnet** the default model.
+- **Multi-arch container images** (`linux/amd64`, `linux/arm64`).
 - GitHub skill importer: `/api/modules/external/github/skill` + `/draft` convert a `SKILL.md` from any public GitHub repository into a governed module draft at a pinned commit SHA — same contract as the Lawve importer, same trust ceremony, scripts never executed. The Add-a-skill page accepts a repo URL.
 
 ### Removed
@@ -22,6 +39,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 
+- Fresh-fork cold start: `.env.example` shipped an invalid encryption-secret placeholder that stopped the backend from booting (validated by a clean cold-clone smoke test).
+- Audit-chain advisory-lock deadlocks on the keyless-chat and new-thread paths.
 - `/auth/login` returned HTTP 500 on every attempt. `AccessToken.user_id` inherited a FK to `user.id` from the fastapi-users mixin; our table is `users`. ORM override added in `app/models/user.py`.
 - `/api/matters/{slug}/chronology` returned HTTP 500 on the tainted-event path. `_gate_state` referenced `AuditEntry` without importing it.
 
