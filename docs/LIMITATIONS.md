@@ -77,15 +77,6 @@ rows carry `token_count` and cost columns (`app/core/audit_cost.py`) but nothing
 enforces a limit against them. **Fork:** count real tokens, enforce budgets,
 refuse calls that would exceed them.
 
-### Synchronous indexing
-
-Document chunking and embedding run inline in the upload request
-(`app/api/matters.py` `upload_document` → `app/core/indexing.py`). A large or
-bulk upload blocks the request and can time out; indexing failure is swallowed
-so the upload still succeeds but the document is not searchable until reindexed.
-**Fork:** move chunking and embedding to a background worker with a queue,
-status, and retry.
-
 ### Conversation memory cap
 
 The assistant loads only the last 20 messages of a thread, chronological, with
@@ -93,13 +84,14 @@ no rolling summary (`pipeline.py` `_HISTORY_MESSAGE_LIMIT`, `_load_history`); on
 overflow, history truncates first. Long conversations silently drop their
 earliest turns. **Fork:** add a rolling summary or retrieval over older turns.
 
-### Retention is recorded, not enforced
+### Retention enforcement is opt-in
 
-A matter carries `retention_until` (`app/models/matter.py`), but nothing on the
-hosted deployment purges data when the clock passes. A dry-run sweeper exists
-(`python -m app.tools.retention_sweep`) and reuses the audited tombstone path,
-but it is not yet wired to a schedule. **Fork:** run the sweeper on a schedule
-(or otherwise enforce the clock) and rehearse it.
+A matter carries `retention_until` (`app/models/matter.py`). Enforcement runs as
+a daily worker sweep that purges lapsed matters via the audited tombstone, but
+it is **off by default** (`LEGALISE_RETENTION_SWEEP_ENABLED`) because it deletes
+data — a deployment opts in, with a per-run blast-radius cap, after previewing
+with the dry-run CLI (`python -m app.tools.retention_sweep`). **Fork:** enable
+it, choose the cap/schedule, and rehearse it.
 
 ### No production monitoring or incident response
 
