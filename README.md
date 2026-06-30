@@ -1,10 +1,13 @@
 # Legalise
 
-An open-source governance layer for legal AI: human sign-off and a
+> ⚠️ **Evaluation release — a reference implementation, not production
+> software. Not for live client matters.** See
+> [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md) for what is and isn't ready.
+
+An open-source governance layer for UK legal AI: human sign-off and a
 tamper-evident audit trail for AI-assisted legal work.
 
-Open source, runs locally, bring your own model key. Evaluation release,
-not for live client matters.
+Open source, runs locally, bring your own model key.
 
 ---
 
@@ -123,9 +126,10 @@ No background calls. No invisible inference. If it touched the matter, it's logg
 ## Try it
 
 [legalise.dev](https://legalise.dev) hosts a guided demo of the Khan v Acme
-workspace and the architecture write-up. **Hosted accounts are not open for
-sign-up right now**; the backend is request-only and paused. To run the full
-workspace, fork and run it locally.
+workspace and the architecture write-up. **Hosted evaluator access is by
+request** — open sign-up isn't enabled; email
+[andrew@legalise.dev](mailto:andrew@legalise.dev) for backend access. To run
+the full workspace yourself, fork and run it locally.
 
 Stack: Postgres, MinIO, Redis, Gotenberg, FastAPI, React.
 
