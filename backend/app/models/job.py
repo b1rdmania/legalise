@@ -38,6 +38,11 @@ JOB_ACTIVE_STATUSES = {JOB_STATUS_QUEUED, JOB_STATUS_RUNNING}
 
 # Kind constants
 JOB_KIND_EXPORT = "export"
+# Background document indexing (chunk + embed). Spawned automatically by the
+# upload hot path so a large document indexes out-of-band instead of blocking
+# the request. Unlike export it is not user-initiated, so it is exempt from the
+# interactive active-job ceiling — see app.core.jobs.create_job.
+JOB_KIND_INDEX = "index"
 
 # Per-user active-job ceiling is canonical at `app.core.limits.get_limits().active_jobs`
 # (env-overridable via `LEGALISE_LIMIT_ACTIVE_JOBS`). The hard-coded constant

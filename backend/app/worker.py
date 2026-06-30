@@ -27,9 +27,11 @@ from app.core.config import settings
 from app.core.jobs import update_stage, update_status
 from app.models import (
     JOB_KIND_EXPORT,
+    JOB_KIND_INDEX,
     JOB_STATUS_FAILED,
     JOB_STATUS_RUNNING,
     JOB_STATUS_SUCCEEDED,
+    Document,
     Job,
     Matter,
 )
@@ -56,7 +58,7 @@ async def run_job(ctx: dict[str, Any], job_id_str: str) -> None:
         if job is None:
             # The id was queued but its row isn't visible to this worker's
             # session. Callers commit the row before enqueuing (see
-            # exports._enqueue_or_mark_failed), so a brief absence can only be
+            # core.jobs.enqueue_or_mark_failed), so a brief absence can only be
             # replication/visibility lag — and arq will retry. A *persistent*
             # absence means the worker is connected to a different database
             # than the API (the failure mode the pre-eval gate F6 caught).
@@ -133,6 +135,8 @@ async def _dispatch(
     """Route to the correct pipeline based on job.kind."""
     if job.kind == JOB_KIND_EXPORT:
         return await _run_export(session, job, matter)
+    if job.kind == JOB_KIND_INDEX:
+        return await _run_index(session, job, matter)
     raise ValueError(f"unknown job kind: {job.kind}")
 
 
@@ -151,6 +155,67 @@ async def _run_export(
     export_key = await build_matter_export(session, matter, job.id)
 
     return {"export_key": export_key}
+
+
+async def _run_index(
+    session: AsyncSession, job: Job, matter: Matter
+) -> dict[str, Any]:
+    """Chunk + embed a single document out-of-band.
+
+    Moved off the synchronous upload request: the upload now persists the
+    bytes + extracted body, marks the document ``index_status='pending'``,
+    and enqueues this job. Here we do the heavy work and flip the status to
+    ``indexed`` / ``empty`` / ``failed``. The worker owns its own session, so
+    the audit-chain advisory lock is never held across the upload request.
+    """
+    from app.core.api import audit
+    from app.core.indexing import index_document
+
+    document_id_str = job.input_payload.get("document_id")
+    if not document_id_str:
+        raise ValueError("index job is missing input_payload['document_id']")
+    document_id = uuid.UUID(document_id_str)
+
+    await update_stage(session, job, stage="embedding", progress=50)
+    await session.commit()
+
+    document = await session.scalar(
+        select(Document).where(
+            Document.id == document_id,
+            Document.matter_id == matter.id,
+        )
+    )
+    if document is None:
+        # The document was deleted (or the matter forked away) between upload
+        # and indexing. Fail the job cleanly rather than crash — there is
+        # nothing left to index.
+        raise ValueError(
+            f"document {document_id} not found for matter {matter.id} — "
+            "deleted before indexing ran"
+        )
+
+    index_status = await index_document(session, document)
+
+    # The "document.indexed" audit row used to be written inline by the upload
+    # route; it now belongs here, in the worker session that actually did the
+    # indexing. index_document does not commit — run_job's terminal
+    # update_status(SUCCEEDED) commit flushes the chunks, the status flip, and
+    # this audit row together.
+    await audit.log(
+        session,
+        "document.indexed",
+        actor_id=job.created_by_id,
+        matter_id=matter.id,
+        module="retrieval",
+        resource_type="document",
+        resource_id=str(document.id),
+        payload={
+            "index_status": index_status,
+            "embedding_backend": settings.embedding_backend,
+        },
+    )
+
+    return {"document_id": str(document.id), "index_status": index_status}
 
 
 # ---------------------------------------------------------------------------

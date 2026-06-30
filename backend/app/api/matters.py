@@ -38,7 +38,8 @@ from app.core.matter_lifecycle import (
     tombstone_matter,
 )
 from app.core.model_catalog import is_known_model, model_catalog
-from app.core.indexing import index_document, reindex_matter
+from app.core.indexing import reindex_matter
+from app.core.jobs import create_job, enqueue_or_mark_failed
 from app.core.text_extraction import extract as extract_text
 from app.core.api import (
     PROVIDER_HTTP_EXCEPTIONS,
@@ -53,6 +54,7 @@ from app.models import (
     Document,
     DocumentComment,
     DocumentEdit,
+    JOB_KIND_INDEX,
     Matter,
     User,
     UserApiKey,
@@ -64,6 +66,7 @@ from app.models import (
     STATUS_ARCHIVED,
     TAG_VALUES,
 )
+from app.models.document import INDEX_PENDING
 from app.models.document_comment import COMMENT_STATUS_OPEN
 from app.models.document_edit import EDIT_STATUS_PENDING
 from app.models.document_body import DocumentBody, BODY_KIND_EXTRACTED
@@ -540,38 +543,43 @@ async def upload_document(
             },
         )
 
-    # Retrieval indexing (P3). Runs inline in the upload transaction after a
-    # successful extraction, but an indexing failure must NEVER break the
-    # upload: the bytes + extracted body are already persisted; the document
-    # is just not searchable yet (index_status stays 'failed', reindexable
-    # later). The body must be flushed first so index_document can read it.
-    if extract_result.extraction_method != "failed":
-        await session.flush()
-        try:
-            index_status = await index_document(session, doc)
-            await _write_audit(
-                session,
-                actor=user,
-                matter=matter,
-                action="document.indexed",
-                module="retrieval",
-                resource_type="document",
-                resource_id=str(doc.id),
-                payload={
-                    "index_status": index_status,
-                    "embedding_backend": settings.embedding_backend,
-                },
-            )
-        except Exception:
-            # index_document already set doc.index_status='failed' and logged.
-            # Swallow so the upload still succeeds; the doc is reindexable.
-            pass
+    # Retrieval indexing (P3) is now OUT-OF-BAND. Chunking + embedding a large
+    # document can take seconds; running it inline blocked the upload request
+    # and risked a timeout on big docs. Instead the upload persists the bytes +
+    # extracted body, marks the document ``pending``, and hands the work to the
+    # arq worker via an index job. The worker writes the ``document.indexed``
+    # audit row in its own session — see app/worker.py:_run_index.
+    #
+    # We enqueue one index job per uploaded document regardless of extraction
+    # outcome: index_document handles an empty / failed-extraction body by
+    # flipping the status to ``empty``, so the document never sticks at
+    # ``pending`` forever.
+    doc.index_status = INDEX_PENDING
 
+    index_job = await create_job(
+        session,
+        matter_id=matter.id,
+        created_by_id=user.id,
+        kind=JOB_KIND_INDEX,
+        input_payload={"document_id": str(doc.id)},
+    )
+
+    # Commit BEFORE enqueue: the worker must see the committed document + job
+    # rows, and the request session must not hold the audit-chain advisory lock
+    # across the enqueue (the historical deadlock). The pending doc + job +
+    # audit rows are all flushed here.
     await session.commit()
     await session.refresh(doc)
+
     record_document(
         matter.slug, matter.created_by_id, str(doc.id), doc.filename, doc.sha256, doc.size_bytes, doc.tag
     )
+
+    # Hand the job to the worker. A Redis failure marks the job failed and
+    # raises 503 — but the document itself is already committed + recorded and
+    # is reindexable (POST /reindex) once Redis is healthy.
+    await enqueue_or_mark_failed(session, index_job)
+
     return doc
 
 
