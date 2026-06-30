@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Fixed
 - `doctor` masked the DB/Redis password in `db.reachable` / `redis.reachable` output (it was printing full DSNs).
+- `doctor` s3 check now round-trips an object on the configured bucket instead of calling `list_buckets()`, which a least-privilege (bucket-scoped) Cloudflare R2 token correctly denies — it was reporting `AccessDenied` / "storage down" while uploads actually worked.
 
 ## [0.2.1] — 2026-06-30
 
