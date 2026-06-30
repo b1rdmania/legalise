@@ -210,6 +210,9 @@ If you don't want quickstart to clone the skills catalogue or start compose:
 - GHCR images are published by `.github/workflows/container-images.yml`. Local
   quickstart builds from source by default; set
   `LEGALISE_USE_PREBUILT_IMAGES=true` to pull the published images instead.
+  The published images are currently **`linux/amd64` only** — on Apple Silicon
+  or other arm64 hosts the prebuilt path fails to pull, so use the default
+  source build (it builds for your architecture and is the validated path).
 - For setup problems, run `legalise doctor` and open an issue if a fresh fork
   won't come up.
 - Backup, restore, and operations runbooks are maintained outside this public
