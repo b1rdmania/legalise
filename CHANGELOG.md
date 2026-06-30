@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Added
+- `MIGRATION_DSN` — a privileged DSN for `alembic`, so the app can run under a reduced-privilege role (the WORM role split) while migrations keep DDL authority. Unset = use `POSTGRES_DSN` (single-role deployments unchanged).
+
+### Fixed
+- `doctor` masked the DB/Redis password in `db.reachable` / `redis.reachable` output (it was printing full DSNs).
+
 ## [0.2.1] — 2026-06-30
 
 Hardening on top of the first cut — closing three "not production-grade" gaps.

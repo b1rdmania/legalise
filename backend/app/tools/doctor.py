@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,6 +73,16 @@ def _print(result: CheckResult) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _mask_dsn(dsn: str) -> str:
+    """Hide the password in a connection string before printing.
+
+    doctor output is read over `fly ssh`, copied into chats, etc., so the
+    raw DSN (with the DB/Redis password) must never be echoed. Replaces the
+    `:password@` userinfo segment with `:***@`, leaving host/db visible.
+    """
+    return re.sub(r"(://[^:/@]+:)[^@]*(@)", r"\1***\2", dsn)
+
+
 async def check_db_reachable(session: AsyncSession) -> CheckResult:
     try:
         await session.execute(text("SELECT 1"))
@@ -79,10 +90,10 @@ async def check_db_reachable(session: AsyncSession) -> CheckResult:
         return CheckResult(
             "db.reachable",
             "fail",
-            f"cannot reach Postgres at {settings.postgres_dsn}: {exc.__class__.__name__}",
+            f"cannot reach Postgres at {_mask_dsn(settings.postgres_dsn)}: {exc.__class__.__name__}",
             "is the `db` service up? `docker compose ps db` and check healthcheck",
         )
-    return CheckResult("db.reachable", "ok", settings.postgres_dsn)
+    return CheckResult("db.reachable", "ok", _mask_dsn(settings.postgres_dsn))
 
 
 async def check_db_migrations_current(session: AsyncSession) -> CheckResult:
@@ -250,7 +261,7 @@ async def check_redis_reachable() -> CheckResult:
         return CheckResult(
             "redis.reachable",
             "fail",
-            f"PING failed at {settings.redis_url}: {exc.__class__.__name__}",
+            f"PING failed at {_mask_dsn(settings.redis_url)}: {exc.__class__.__name__}",
             "is the `redis` service up? `docker compose ps redis`",
         )
     finally:
@@ -259,7 +270,7 @@ async def check_redis_reachable() -> CheckResult:
         except Exception:  # noqa: BLE001
             pass
     if pong is True or pong == b"PONG" or pong == "PONG":
-        return CheckResult("redis.reachable", "ok", settings.redis_url)
+        return CheckResult("redis.reachable", "ok", _mask_dsn(settings.redis_url))
     return CheckResult(
         "redis.reachable",
         "fail",
