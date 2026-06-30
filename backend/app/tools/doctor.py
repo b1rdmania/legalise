@@ -294,15 +294,25 @@ def _build_s3_client():
 
 
 def check_s3_endpoint_reachable() -> CheckResult:
+    # Round-trip a tiny object on the CONFIGURED bucket — exactly what the app
+    # does on upload. Do NOT use list_buckets(): a correctly bucket-scoped
+    # Cloudflare R2 token (least privilege) denies that account-level call with
+    # AccessDenied even though object put/get/delete work fine, producing a
+    # false "storage is down" alarm.
+    key = "_doctor/healthcheck"
     try:
         client = _build_s3_client()
-        client.list_buckets()
+        client.put_object(Bucket=settings.s3_bucket, Key=key, Body=b"ok")
+        client.get_object(Bucket=settings.s3_bucket, Key=key)["Body"].read()
+        client.delete_object(Bucket=settings.s3_bucket, Key=key)
     except Exception as exc:  # noqa: BLE001
         return CheckResult(
             "s3.endpoint_reachable",
             "fail",
-            f"cannot reach S3 endpoint {settings.s3_endpoint}: {exc.__class__.__name__}",
-            "is the `minio` service up? `docker compose ps minio`",
+            f"cannot round-trip an object on {settings.s3_bucket} at "
+            f"{settings.s3_endpoint}: {exc.__class__.__name__}",
+            "check S3_ACCESS_KEY/S3_SECRET_KEY and the bucket grant; "
+            "locally, is `minio` up? `docker compose ps minio`",
         )
     return CheckResult("s3.endpoint_reachable", "ok", settings.s3_endpoint)
 
