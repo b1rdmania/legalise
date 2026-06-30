@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-06-30
+
+Hardening on top of the first cut — closing three "not production-grade" gaps.
+Still an evaluation release; still a work in progress.
+
+### Added
+
+- **Per-matter token budget** — a spend guard that refuses a new turn once the matter's recorded token usage reaches the configured ceiling (`LEGALISE_MATTER_TOKEN_BUDGET`, off by default).
+- **Rolling-summary conversation memory** — older turns are summarised into the thread instead of silently dropped past the recent window.
+- **Optional error tracking** — env-gated Sentry hook (`SENTRY_DSN`), off by default, `send_default_pii=False` so matter content never leaves the app.
+
+### Docs
+
+- `LIMITATIONS.md`: token (budget now enforces, cost partial), memory (rolling summary), monitoring (Sentry hook + structured logs), embedder (reframed as a deliberate privilege tradeoff).
+- README: published images noted as multi-arch (`amd64` + `arm64`).
+
 ## [0.2.0-beta] — 2026-06-30
 
 First tagged evaluation release. An open-source governance layer for UK legal
@@ -19,9 +35,6 @@ work. Runs locally, bring your own model key. **Not for live client matters.**
 - **Multiple named chat threads per matter**, with a left conversation sub-rail.
 - **Background document indexing** on the worker — uploads return immediately and index out-of-band.
 - **Opt-in scheduled retention enforcement** — a daily, blast-capped, audited sweep, off by default.
-- **Per-matter token budget** — a spend guard that refuses a new turn once the matter's recorded token usage reaches the configured ceiling (`LEGALISE_MATTER_TOKEN_BUDGET`, off by default).
-- **Rolling-summary conversation memory** — older turns are summarised into the thread instead of silently dropped past the recent window.
-- **Optional error tracking** — env-gated Sentry hook (`SENTRY_DSN`), off by default, `send_default_pii=False` so matter content never leaves the app.
 - Deterministic **eval harness** (agent-kit): grounding, refusal, and audit-chain integrity as CI-gateable checks against the real production functions.
 - Provider key **verified on save**; **Sonnet** the default model.
 - **Multi-arch container images** (`linux/amd64`, `linux/arm64`).
