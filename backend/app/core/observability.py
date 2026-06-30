@@ -244,6 +244,46 @@ def _make_exception_handler(app: FastAPI):
     return _handler
 
 
+def init_error_tracking() -> None:
+    """Initialise optional Sentry error tracking — only when SENTRY_DSN is set.
+
+    When ``settings.sentry_dsn`` is falsy (the default), this does NOTHING:
+    no ``sentry_sdk.init`` call, no network, no SDK side effects. The app
+    boots identically whether or not Sentry is configured.
+
+    PRIVACY (mandatory): ``send_default_pii=False`` is always passed. Matter
+    content, prompts, document bodies, and provider keys must NEVER be sent
+    to Sentry — only exception types, stack traces (code locations, not data
+    values), and minimal request metadata. Do not add any scope/breadcrumb
+    code here that attaches request bodies or matter data to Sentry events.
+
+    Call once from the lifespan context in ``main.py``, alongside
+    ``init_observability``.
+    """
+    from app.core.config import settings  # avoid circular at module load
+
+    if not settings.sentry_dsn:
+        # Default path: no DSN → no init, no network. Stay silent.
+        return
+
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        # PRIVACY: never attach PII (headers, cookies, request bodies, user
+        # data) to events. Matter content stays out of Sentry by construction.
+        send_default_pii=False,
+    )
+
+    _obs_logger.info(
+        "legalise.obs.sentry_init",
+        environment=settings.environment,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+    )
+
+
 def init_observability(app: FastAPI) -> None:
     """Initialise observability for the FastAPI application.
 

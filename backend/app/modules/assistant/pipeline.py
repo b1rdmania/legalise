@@ -14,17 +14,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import desc as sql_desc
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import retrieval
+from app.core.config import settings
 from app.core.advice_boundary import AdviceBoundaryDenied
 from app.core.api import audit as audit_api
 from app.core.api import audit_out_of_band
@@ -50,7 +53,12 @@ from app.models import (
     MatterArtifact,
     MatterSignoff,
 )
-from app.models.assistant import ROLE_ASSISTANT, ROLE_USER, AssistantMessage
+from app.models.assistant import (
+    ROLE_ASSISTANT,
+    ROLE_USER,
+    AssistantMessage,
+    AssistantThread,
+)
 from app.models.document_body import BODY_KIND_EXTRACTED, DocumentBody
 
 from .schemas import (
@@ -90,6 +98,9 @@ Only call tools listed in the Tools section. Put selected document UUIDs into ar
 # Approximate token budgeting — 4 chars per token is the standard rough
 # heuristic used elsewhere in the workspace (e.g. StubProvider).
 _CHARS_PER_TOKEN = 4
+# The recent-window size: how many of a thread's latest turns are carried
+# verbatim into context. Turns older than this are folded into the thread's
+# rolling summary instead of being dropped.
 _HISTORY_MESSAGE_LIMIT = 20
 _CHRONOLOGY_EVENT_LIMIT = 12
 # How many chunks to retrieve per turn when no documents are attached. Hits
@@ -117,6 +128,21 @@ _RETRIEVED_DOCS_NOTE = (
     "documents still pending or failed indexing are not shown here."
 )
 _SELECTED_DOCS_NOTE = "Full extracted text of the documents the user attached."
+
+logger = logging.getLogger(__name__)
+
+# Rolling-summary memory. When a thread grows past the recent window, the
+# turns that age out are folded into a model-written summary so they are not
+# silently lost. The summary itself is capped so it can never crowd the rest
+# of the context.
+_ROLLING_SUMMARY_CHAR_BUDGET = 1500 * _CHARS_PER_TOKEN
+_SUMMARY_SYSTEM_PROMPT = (
+    "You maintain a running summary of a UK legal-matter chat thread. Fold the "
+    "prior summary and the older turns below into one concise, factual summary "
+    "of what the conversation has established so far — decisions, facts found, "
+    "documents discussed, and open questions. Plain English, terse, no "
+    "preamble. Return the summary text only, not JSON."
+)
 
 AssistantEventHandler = Callable[[str, dict[str, Any]], Awaitable[None]]
 
@@ -770,6 +796,7 @@ def _assemble_prompt(
     tools: list[AssistantToolSpec],
     user_content: str,
     token_budget: int,
+    rolling_summary: str | None = None,
 ) -> str:
     # The matter spine (facts, document index, chronology, outputs) is the
     # cheap always-present orientation layer and is ordered FIRST so it
@@ -796,6 +823,18 @@ def _assemble_prompt(
         "",
         "## Tools",
         _format_tools(tools),
+    ]
+    # Rolling summary of the turns that have aged out of the recent window,
+    # so a long thread keeps its earlier context instead of dropping it. Sits
+    # inside the truncated context block, so it is sized against the budget
+    # like every other section.
+    if rolling_summary:
+        context_sections += [
+            "",
+            "## Summary of earlier conversation",
+            _truncate(rolling_summary, _ROLLING_SUMMARY_CHAR_BUDGET),
+        ]
+    context_sections += [
         "",
         "## Conversation so far",
         _format_history(history),
@@ -964,6 +1003,123 @@ def _final_tool_prompt(
     )
 
 
+async def _matter_token_usage(
+    session: AsyncSession, matter_id: uuid.UUID
+) -> int:
+    """Cumulative recorded assistant token usage across the whole matter.
+
+    Enforcement is on REAL recorded usage (``token_count`` on assistant rows,
+    summed across every thread), not the char-per-token heuristic the context
+    sizing uses — that heuristic stays as-is for prompt budgeting only.
+    """
+    used = await session.scalar(
+        select(func.coalesce(func.sum(AssistantMessage.token_count), 0)).where(
+            AssistantMessage.matter_id == matter_id
+        )
+    )
+    return int(used or 0)
+
+
+async def _thread_message_count(
+    session: AsyncSession, thread_id: uuid.UUID
+) -> int:
+    total = await session.scalar(
+        select(func.count())
+        .select_from(AssistantMessage)
+        .where(AssistantMessage.thread_id == thread_id)
+    )
+    return int(total or 0)
+
+
+async def _refresh_rolling_summary(
+    *,
+    session: AsyncSession,
+    matter: Matter,
+    actor_id: uuid.UUID,
+    thread_id: uuid.UUID,
+    prior_summary: str | None,
+    gateway,
+) -> None:
+    """Fold turns that have aged out of the recent window into the summary.
+
+    Best-effort and runs AFTER the turn is persisted and committed, so it can
+    never block or break the user's reply. The main turn already released the
+    audit chain's per-scope advisory lock at its commit, so the summary model
+    call is made first, THEN its audit row is written and committed — the lock
+    is never held across the model call (the deadlock class migration 0030
+    guards against).
+
+    Skipped entirely when the thread has not overflowed the recent window.
+    """
+    total = await _thread_message_count(session, thread_id)
+    if total <= _HISTORY_MESSAGE_LIMIT:
+        return
+
+    # The turns beyond the recent window — the oldest ones, the ones the
+    # verbatim history no longer carries. These are what the summary covers.
+    rows = await session.scalars(
+        select(AssistantMessage)
+        .where(AssistantMessage.thread_id == thread_id)
+        .order_by(AssistantMessage.created_at.asc())
+        .limit(total - _HISTORY_MESSAGE_LIMIT)
+    )
+    older = list(rows.all())
+    if not older:
+        return
+
+    parts: list[str] = []
+    if prior_summary:
+        parts += ["## Prior summary", prior_summary, ""]
+    parts += ["## Older turns now leaving the window", _format_history(older)]
+    summary_prompt = "\n".join(parts)
+
+    try:
+        result = await gateway.call(
+            session=session,
+            matter_id=matter.id,
+            actor_id=actor_id,
+            prompt=summary_prompt,
+            model=matter.default_model_id,
+            posture=PrivilegePosture(matter.privilege_posture),
+            system=_SUMMARY_SYSTEM_PROMPT,
+            resource_type="assistant_thread",
+            resource_id=str(thread_id),
+            payload={"stage": "assistant.summary", "module": "assistant"},
+            caller_module="assistant",
+        )
+    except Exception as exc:  # best-effort: a failed summary never fails a turn
+        logger.warning(
+            "rolling summary refresh failed for thread %s: %s", thread_id, exc
+        )
+        return
+
+    summary_text = _truncate(result.text or "", _ROLLING_SUMMARY_CHAR_BUDGET)
+    if not summary_text:
+        return
+
+    now = datetime.now(UTC)
+    await session.execute(
+        update(AssistantThread)
+        .where(AssistantThread.id == thread_id)
+        .values(rolling_summary=summary_text, summary_updated_at=now)
+    )
+    await audit_api.log(
+        session,
+        "assistant.summary.updated",
+        actor_id=actor_id,
+        matter_id=matter.id,
+        module="assistant",
+        resource_type="assistant_thread",
+        resource_id=str(thread_id),
+        token_count=result.token_count,
+        payload={
+            "older_turn_count": len(older),
+            "had_prior_summary": bool(prior_summary),
+        },
+    )
+    await session.commit()
+
+
 async def run_assistant_turn(
     *,
     session: AsyncSession,
@@ -981,6 +1137,69 @@ async def run_assistant_turn(
     ``thread_id`` scopes the conversation: the router resolves or creates
     the thread before calling, and history is loaded for that thread only.
     """
+    # Per-matter token budget (spend guard). Enforced on REAL recorded usage
+    # — the sum of token_count across the matter's assistant rows — not the
+    # char-per-token heuristic the context sizing uses. 0 = no limit, so the
+    # common case skips this entirely and behaves exactly as before.
+    if settings.matter_token_budget > 0:
+        used = await _matter_token_usage(session, matter.id)
+        if used >= settings.matter_token_budget:
+            user_row = AssistantMessage(
+                matter_id=matter.id,
+                thread_id=thread_id,
+                actor_id=actor_id,
+                role=ROLE_USER,
+                content=request.content,
+                suggested_actions=[],
+                sources=[],
+            )
+            session.add(user_row)
+            await session.flush()
+            if on_event is not None:
+                await on_event("turn.accepted", {"user_message_id": str(user_row.id)})
+            assistant_row = AssistantMessage(
+                matter_id=matter.id,
+                thread_id=thread_id,
+                actor_id=actor_id,
+                role=ROLE_ASSISTANT,
+                content=(
+                    "This matter has reached its configured token budget "
+                    f"({used} tokens used of {settings.matter_token_budget}). "
+                    "Raise LEGALISE_MATTER_TOKEN_BUDGET or continue in a new "
+                    "matter."
+                ),
+                suggested_actions=[],
+                sources=[],
+                model_used="budget-guard",
+                prompt_hash=None,
+                response_hash=None,
+                token_count=0,
+            )
+            session.add(assistant_row)
+            await session.flush()
+            if on_event is not None:
+                await on_event(
+                    "turn.refused",
+                    {
+                        "assistant_message_id": str(assistant_row.id),
+                        "reason": "budget_exceeded",
+                    },
+                )
+            await audit_api.log(
+                session,
+                "assistant.budget.exceeded",
+                actor_id=actor_id,
+                matter_id=matter.id,
+                module="assistant",
+                resource_type="assistant_message",
+                resource_id=str(assistant_row.id),
+                payload={"used": used, "budget": settings.matter_token_budget},
+            )
+            await session.commit()
+            await session.refresh(user_row)
+            await session.refresh(assistant_row)
+            return user_row, assistant_row
+
     history = await _load_history(session, thread_id, _HISTORY_MESSAGE_LIMIT)
     events = await _load_chronology(session, matter.id)
     chronology_total = await _chronology_total(session, matter.id)
@@ -988,6 +1207,18 @@ async def run_assistant_turn(
         session, matter.id, _DOCUMENT_INDEX_LIMIT
     )
     outputs = await _load_output_summary(session, matter.id, _OUTPUT_SUMMARY_LIMIT)
+
+    # Rolling-summary memory. When the thread has grown past the recent window,
+    # carry its summary of the aged-out turns into context alongside the recent
+    # turns. Below the window (or no summary yet) behaviour is unchanged.
+    thread_row = await session.scalar(
+        select(AssistantThread).where(AssistantThread.id == thread_id)
+    )
+    thread_summary = thread_row.rolling_summary if thread_row else None
+    thread_message_total = await _thread_message_count(session, thread_id)
+    summary_for_context = (
+        thread_summary if thread_message_total > _HISTORY_MESSAGE_LIMIT else None
+    )
 
     # Document context. Selected path (P2): attached documents read whole.
     # Otherwise: hybrid retrieval across the whole matter, indexed-only,
@@ -1046,6 +1277,7 @@ async def run_assistant_turn(
         tools=tools,
         user_content=request.content,
         token_budget=context_token_budget,
+        rolling_summary=summary_for_context,
     )
 
     user_row = AssistantMessage(
@@ -1328,6 +1560,21 @@ async def run_assistant_turn(
     await session.commit()
     await session.refresh(user_row)
     await session.refresh(assistant_row)
+
+    # Refresh the thread's rolling summary AFTER the turn is persisted and
+    # committed, so summarisation can never block or break the reply. Only
+    # reached on keyed turns — keyless turns return from the fallback paths
+    # above, keeping their current drop-oldest behaviour (no summarisation).
+    # Best-effort: a failed summary must never fail the turn.
+    await _refresh_rolling_summary(
+        session=session,
+        matter=matter,
+        actor_id=actor_id,
+        thread_id=thread_id,
+        prior_summary=thread_summary,
+        gateway=gateway,
+    )
+
     return user_row, assistant_row
 
 

@@ -54,6 +54,15 @@ changes or is unset, every restart rotates the master key and orphans all stored
 user keys (they fail to decrypt and must be re-added). Plan key custody and
 rotation.
 
+### Local keyless embedder — privilege over tuning
+
+Retrieval embeds with `BAAI/bge-small-en-v1.5` (fastembed), which runs locally
+and keylessly. This is a deliberate tradeoff, not a gap: privileged content is
+never sent off the box to be indexed. The cost is that it's a general-purpose
+embedder, not tuned for legal text — there is no drop-in UK-legal-tuned model,
+and swapping it would trade away the privilege story for marginal retrieval
+gains. A fork with a different privilege posture can evaluate a tuned embedder.
+
 ### No certifications — a fork's programme, not an evaluation release's
 
 No SOC 2, no ISO 27001, no Cyber Essentials. These belong to a fork pursuing
@@ -68,21 +77,14 @@ nobody mistakes the repo for a procurement-ready product.
 Fine for a single reviewer running a local fork or a guided demo. Not fine for
 live client matters.
 
-### No token or cost modelling
+### Token budgets enforce; cost modelling is partial
 
-Context is assembled then truncated by a character budget, not a token count
-(`pipeline.py` `_truncate`, `_DEFAULT_CONTEXT_TOKEN_BUDGET`). No real token
-counting, no per-request or per-matter ceiling, no rate-of-spend guard. Audit
-rows carry `token_count` and cost columns (`app/core/audit_cost.py`) but nothing
-enforces a limit against them. **Fork:** count real tokens, enforce budgets,
-refuse calls that would exceed them.
-
-### Conversation memory cap
-
-The assistant loads only the last 20 messages of a thread, chronological, with
-no rolling summary (`pipeline.py` `_HISTORY_MESSAGE_LIMIT`, `_load_history`); on
-overflow, history truncates first. Long conversations silently drop their
-earliest turns. **Fork:** add a rolling summary or retrieval over older turns.
+A per-matter cumulative token budget (`LEGALISE_MATTER_TOKEN_BUDGET`, 0 = off)
+refuses a new turn once the matter's recorded usage reaches the ceiling — a real
+spend guard on real recorded usage. Two honest gaps remain: context *sizing*
+still uses a character heuristic, not a real tokenizer, and there is no monetary
+(£) cost ceiling — only token counts. **Fork:** add real per-request token
+counting and a cost (not just token) budget if you need pound-denominated caps.
 
 ### Retention enforcement is opt-in
 
@@ -93,16 +95,14 @@ data — a deployment opts in, with a per-run blast-radius cap, after previewing
 with the dry-run CLI (`python -m app.tools.retention_sweep`). **Fork:** enable
 it, choose the cap/schedule, and rehearse it.
 
-### No production monitoring or incident response
+### Monitoring is a hook, not a stack
 
-No metrics, alerting, on-call, or incident runbook in the public repo. **Fork:**
-add them before any real use.
-
-### Embeddings are a general-purpose model
-
-`BAAI/bge-small-en-v1.5` runs locally and keylessly, so privileged content never
-leaves the box for indexing — a privilege win, but it is not tuned for legal
-text. **Fork:** evaluate a domain-tuned embedder against the privilege story.
+Structured logging is built in, and optional error tracking ships as an
+env-gated Sentry hook (`SENTRY_DSN`, off by default, `send_default_pii=False` so
+matter content never leaves the app). What's not here: metrics/dashboards,
+alerting, on-call, and incident runbooks — the runbooks are deliberately kept
+out of the public repo. **Fork:** wire your own metrics + alerting and bring the
+operational runbooks before any real use.
 
 ---
 
