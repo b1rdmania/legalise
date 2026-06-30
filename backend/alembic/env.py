@@ -16,7 +16,14 @@ from app.core.config import settings
 from app.models import Base  # noqa: F401  — imports all models so Base.metadata is populated
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.postgres_dsn)
+# Migrations need DDL. When the app runs under a reduced-privilege role
+# (e.g. the WORM role split, where the app role lacks UPDATE/DELETE on
+# audit_entries and has no schema authority), point alembic at a privileged
+# MIGRATION_DSN instead. Falls back to POSTGRES_DSN when unset, so single-role
+# deployments are unchanged.
+config.set_main_option(
+    "sqlalchemy.url", settings.migration_dsn or settings.postgres_dsn
+)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

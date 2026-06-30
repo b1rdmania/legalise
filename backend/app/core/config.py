@@ -161,6 +161,13 @@ class Settings(BaseSettings):
         default=3, alias="LEGALISE_RETENTION_SWEEP_HOUR"
     )
 
+    # Privileged DSN for schema migrations (alembic). When the app role is
+    # reduced-privilege (WORM role split: legalise_app lacks DDL and cannot
+    # mutate audit_entries), set this to a role with DDL authority so
+    # `alembic upgrade` works while the app stays restricted. Unset = use
+    # postgres_dsn (single-role deployments).
+    migration_dsn: str | None = Field(default=None, alias="MIGRATION_DSN")
+
     # Per-matter cumulative assistant token budget. 0 = no limit (the
     # default). When > 0, a new assistant turn is refused once the matter's
     # recorded token usage reaches the ceiling — the spend guard the audit
