@@ -1,105 +1,92 @@
 # Trust & Security
 
-> Status: **evaluation release source of truth.** This document describes the
-> system as it is built today, plus the items we have committed to land before
-> any live-client or firm-pilot posture. It is the file that backs
-> `legalise.dev/trust` when that route exists.
+> Status: **evaluation release source of truth.** Describes the system as built
+> today, plus items committed before any live-client or firm-pilot posture.
 
 Legalise is an open-source workspace for England & Wales solicitor work. Every
-architectural decision documented here exists in service of three regulatory
-constraints: legal professional privilege (LPP), the SRA Code of Conduct, and
-UK GDPR. Where the evaluation release cannot yet enforce a constraint, we say
-so plainly; we do not paper over a gap with aspirational language.
+decision here serves three constraints: legal professional privilege (LPP), the
+SRA Code of Conduct, and UK GDPR. Where the evaluation release cannot yet enforce
+a constraint, we say so plainly rather than paper over it.
 
-This document is not legal advice. The firm using Legalise remains the
-controller and accountable party.
+This is not legal advice. The firm using Legalise is the controller and the
+accountable party.
 
 ---
 
 ## 1. What Legalise is
 
 A matter-first AI workspace with a model gateway, a privilege-posture access
-control, an audit log, and a governed skill-import path (the Lawve
-catalogue or any public GitHub repo with a `SKILL.md`). Solicitors author
-and review; the system drafts and records.
+control, an audit log, and a governed skill-import path (the Lawve catalogue or
+any public GitHub repo with a `SKILL.md`). Solicitors author and review; the
+system drafts and records.
 
-The trust model is built around supervised autonomy, not unsupervised
-automation. Legalise should make it clear what the AI saw, what it did, which
-permission allowed it, which human remained accountable, and what record would
-be available to a firm, insurer, client, or regulator afterwards. On "what the
-AI saw": the assistant is scoped to one matter and cannot see others. Within a
-matter it uses the structured matter spine, capped chronology context, recent
-chat history, and audited retrieval over indexed document chunks, all under a
-token budget that can truncate. Retrieval is in-tenant and keyless by default
-(`fastembed` in the Docker image), so privileged document indexing does not
-require sending text to a model provider. The audit log is the receipt for that
-supervision model; it is not a claim that v0.1 is a regulated practice system.
-Firms that need a four-eyes rule can deploy with
-`SIGNOFF_AUTHOR_MUST_DIFFER` set, which blocks an author from signing their
-own output (rejecting it stays allowed) — off by default so a sole
-practitioner can still sign their own work as themselves.
+The model is supervised autonomy, not unsupervised automation: Legalise records
+what the AI saw, what it did, which permission allowed it, and which human stayed
+accountable. The assistant is scoped to one matter and cannot see others, and
+works under a token budget that can truncate. Retrieval is in-tenant and keyless
+by default (`fastembed`), so indexing privileged documents does not send text to
+a model provider. The audit log is the receipt for this; it is not a claim that
+v0.1 is a regulated practice system.
+
+Firms needing a four-eyes rule can set `SIGNOFF_AUTHOR_MUST_DIFFER`, blocking an
+author from signing their own output (rejecting stays allowed). Off by default,
+so a sole practitioner can sign their own work.
 
 ## 2. What Legalise is not
 
 - Not legal advice. Every artefact is a draft for solicitor review.
-- Not a regulated reserved-activities provider. Solicitors using Legalise
-  remain personally accountable to the SRA.
+- Not a regulated reserved-activities provider. Solicitors remain personally
+  accountable to the SRA.
 - Not a substitute for client KYC, conflict-checks, or money-laundering
-  obligations under MLR 2017. Those remain the firm's responsibility.
-- Not a court-filing platform. ET1 PDF rendering is on the v0.3 roadmap
-  but does not file.
+  obligations under MLR 2017. Those remain the firm's.
+- Not a court-filing platform. ET1 PDF rendering is on the v0.3 roadmap but does
+  not file.
 - **Not certified** against any framework today. No SOC 2, no ISO 27001, no
-  Cyber Essentials. See Section 4 for the planned sequencing.
+  Cyber Essentials. See Section 12.
 
 ### Hosted demo and BYO model keys
 
-Legalise is open source. The hosted site is a limited evaluation environment,
-not a regulated legal service. Users must provide their own model provider
-credentials to run real AI workflows. Legalise does not bundle, resell, or
-intermediate model access. The hosted site should not be used for live client
-matters.
+The hosted site is a limited evaluation environment, not a regulated legal
+service. Users must supply their own model provider credentials. Legalise does
+not bundle, resell, or intermediate model access. Do not use the hosted site for
+live client matters.
 
 ## 3. What the evaluation release does not yet do (read this first)
 
-We list gaps at the top, not the bottom. Anyone considering a procurement
-conversation about the hosted evaluation environment should see them before
-reading the architecture.
+Gaps are at the top, not the bottom. Anyone weighing a procurement conversation
+about the hosted environment should see them before the architecture.
 
-- **Self-hosted production use needs your own master encryption key.** The current release ships authentication (fastapi-users cookie sessions, email verification, AES-256-GCM per-user API key storage), but the self-host operator owns the master key. Lose it and stored provider keys become unrecoverable; share it and an operator can decrypt user keys offline.
-- **Retention is recorded, not enforced.** Every matter has a
-  `retention_until` field; nothing actively sweeps and deletes when that
-  date passes.
-- **Audit WORM role split is exercised in CI, not yet enabled on the
-  hosted deployment.** A Postgres trigger rejects UPDATE and DELETE on
-  `audit_entries`, and every row is hash-chained so any out-of-band
-  rewrite is detectable. The second layer — a database role split where
-  the application role loses UPDATE/DELETE on `audit_entries` by
-  grant — is provisioned and asserted on every CI build (a build fails
-  if the app role can mutate audit rows). Turning it on for the hosted
-  stack is an operational switch; the runbook is maintained by the project
-  outside this public repo.
+- **Self-hosted production needs your own master encryption key.** The release
+  ships authentication (fastapi-users cookie sessions, email verification,
+  AES-256-GCM per-user API key storage), but the self-host operator owns the
+  master key. Lose it and stored provider keys are unrecoverable; share it and an
+  operator can decrypt user keys offline.
+- **Retention is recorded, not enforced.** Every matter has a `retention_until`
+  field; nothing sweeps and deletes when that date passes.
+- **Audit WORM role split is exercised in CI, not yet enabled on the hosted
+  deployment.** The append-only trigger and hash chain (§8) are active, so any
+  out-of-band rewrite is detectable; the second-layer role split is asserted in
+  every CI build but not yet switched on for the hosted stack.
 - **Application-layer encryption of stored prompts/responses is not yet
-  implemented.** We rely on Neon/Fly/R2 at-rest encryption defaults.
-- **One deployment is one workspace.** There is no organisation or
-  multi-tenant model in the beta. Teams that need separation run one
-  deployment each. This is deliberate scope, recorded in the README
-  Status section.
-- **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon
-  London) are in the UK. Cloudflare R2 placement is EU (Western Europe),
-  not UK-specific. Anthropic and OpenAI commercial APIs are US-served
-  under contractual no-training terms.
-- **Anthropic / OpenAI UK addenda are not yet signed by us.** The standard
-  commercial terms apply, which include the no-training-on-customer-data
-  posture, but the UK IDTA paperwork is an open action.
+  implemented.** We rely on Neon/Fly/R2 at-rest defaults.
+- **One deployment is one workspace.** No organisation or multi-tenant model in
+  the beta. Teams needing separation run one deployment each. Deliberate scope,
+  recorded in the README.
+- **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon London) are
+  in the UK. Cloudflare R2 placement is EU (Western Europe), not UK-specific.
+  Anthropic and OpenAI commercial APIs are US-served under contractual no-training
+  terms.
+- **Anthropic / OpenAI UK addenda are not yet signed by us.** Standard commercial
+  terms apply (including no-training); the UK IDTA paperwork is an open action.
 - **DPIA is owed, not published.** A v0.2 deliverable.
-- **No published vulnerability disclosure programme yet.** See Section 11
-  for the interim channel.
-- **Solicitor PII insurance increasingly carries AI-use exclusions.** This
-  is the firm's policy, not ours, but it can block a pilot — firms must
-  check their cover. Legalise does not provide indemnity.
+- **No published vulnerability disclosure programme yet.** See Section 13 for the
+  interim channel.
+- **Solicitor PII insurance increasingly carries AI-use exclusions.** The firm's
+  policy, not ours, but it can block a pilot — firms must check their cover.
+  Legalise does not provide indemnity.
 
-If any of the above is a blocker for a given firm's procurement, the answer
-today is "we are not the right tool for you yet."
+If any of the above blocks a firm's procurement, the answer today is "we are not
+the right tool for you yet."
 
 ---
 
@@ -122,10 +109,10 @@ solicitor ──▶ Legalise frontend (browser)
                 └─▶ matter filesystem materialisation (Fly volume, lhr) ── matter.md, history.md, chronology.md
 ```
 
-**No customer data flows anywhere not on the diagram above.** No analytics
-provider, no error-tracking SaaS that ingests prompts, no third-party feature
-flag service that sees matter content. Sentry / OpenTelemetry land v0.2 and
-will be scoped to operational telemetry only (no prompts, no responses).
+**No customer data flows anywhere not on this diagram.** No analytics, no
+error-tracking SaaS that ingests prompts, no third-party feature-flag service
+that sees matter content. Sentry / OpenTelemetry land v0.2, scoped to
+operational telemetry only (no prompts, no responses).
 
 ---
 
@@ -138,34 +125,28 @@ will be scoped to operational telemetry only (no prompts, no responses).
 | Ollama (self-hosted) | Local LLM provider | In-tenant — not a sub-processor when run locally | n/a |
 | Fly.io, Inc. | Application hosting | lhr region (London) | UK IDTA addendum |
 | Neon, Inc. | Managed Postgres | London (lhr) region | UK IDTA addendum |
-| Cloudflare, Inc. | Object storage (R2), CDN, DNS | R2 jurisdiction: `eu` (Western Europe placement). CDN: edge | UK IDTA addendum + UK addendum to DPA |
+| Cloudflare, Inc. | Object storage (R2), CDN, DNS | R2 jurisdiction: `eu` (Western Europe). CDN: edge | UK IDTA addendum + UK addendum to DPA |
 | GitHub, Inc. (Microsoft) | Source code, CI/CD | US | UK IDTA addendum |
 
 **Honest framing:** Anthropic, OpenAI and Cloudflare are US-headquartered.
-Anthropic and OpenAI both contractually commit to no training on customer
-data via the commercial APIs we use. R2 placement is EU (Western Europe),
-not UK-specific. Backend and database are UK-region. We do not claim "UK
-data residency end-to-end" because it is not literally true.
-
-This list is maintained here. Any change to it is a change to this file,
-visible in `git log`.
+Anthropic and OpenAI both contractually commit to no training on customer data
+via the commercial APIs we use. R2 placement is EU (Western Europe), not
+UK-specific. Backend and database are UK-region. We do not claim "UK data
+residency end-to-end" because it is not literally true. Any change to this list
+is a change to this file, visible in `git log`.
 
 ---
 
 ## 6. Legal professional privilege (LPP)
 
-LPP exists in two forms relevant to Legalise:
+Two forms are relevant: **legal advice privilege** (solicitor–client
+communications for legal advice) and **litigation privilege** (third-party
+communications whose dominant purpose is actual or contemplated litigation).
 
-- **Legal advice privilege** — communications between solicitor and client for
-  the purpose of giving or receiving legal advice.
-- **Litigation privilege** — communications with third parties where the
-  dominant purpose is actual or contemplated litigation.
-
-Privilege can be **waived by disclosure to a third party**. A cloud LLM
-provider that can read or train on the content is a third party for this
-purpose. Anthropic and OpenAI commercial APIs contract to neither read nor
-train; that contractual posture is what makes the routing to these providers
-defensible. **A local Ollama instance is not a third party at all.**
+Privilege can be **waived by disclosure to a third party**. A cloud LLM provider
+that can read or train on the content is such a third party. Anthropic and OpenAI
+commercial APIs contract to neither read nor train, which is what makes routing
+to them defensible. **A local Ollama instance is not a third party at all.**
 
 ### The privilege-posture access control
 
@@ -173,168 +154,119 @@ Every matter carries one of three postures:
 
 | Posture | Behaviour |
 |---|---|
-| `A_cleared` | All providers permitted. Used when privilege has been waived (e.g. material is in a public-record disclosure list) or the matter never carried privilege |
-| `B_mixed` | **Default.** Local Ollama provider preferred when reachable. Frontier providers (Anthropic / OpenAI) permitted with their no-training contractual posture. The audit log records which provider served each call |
-| `C_paused` | No LLM call permitted. The gateway raises `PrivilegePaused` before any network traffic. Used when material is highly sensitive or the firm is mid-conflict-check |
+| `A_cleared` | All providers permitted. Used when privilege has been waived (e.g. material is in a public disclosure list) or never carried privilege |
+| `B_mixed` | **Default.** Local Ollama preferred when reachable. Frontier providers permitted under their no-training posture. The audit log records which provider served each call |
+| `C_paused` | No LLM call permitted. The gateway raises `PrivilegePaused` before any network traffic. Used for highly sensitive material or mid-conflict-check |
 
-The posture is read from the database **at call time, in the same session as
-the request**, not from a value the caller passes. This closes the race
-where a caller reads `B_mixed`, an administrator flips to `C_paused`, and
-the stale value is used for dispatch.
-
-The change-of-posture event is itself audited.
+The posture is read from the database **at call time** — not from a value the
+caller passes — closing the race where a stale `B_mixed` is used after an admin
+flips to `C_paused`. The change-of-posture event is audited.
 
 ---
 
 ## 7. CPR 31.22 implied undertaking
 
 Documents obtained under disclosure (CPR Part 31) may only be used for the
-proceedings in which they were disclosed. Using them for any other purpose
-is contempt, subject to the carve-outs in CPR 31.22(1)(a)-(c) and 31.22(2).
+proceedings in which they were disclosed; other use is contempt, subject to the
+carve-outs in CPR 31.22(1)(a)-(c) and 31.22(2).
 
 Legalise treats every document tagged `from_disclosure=True` (with its
-`disclosure_proceedings_ref`) as carrying the implied undertaking. Any
-chronology event whose source document is so tagged is treated as
-31.22-tainted.
+`disclosure_proceedings_ref`) as carrying the implied undertaking, and any
+chronology event sourced from such a document as 31.22-tainted. When a matter has
+≥1 tainted event and the user has no `chronology.gate.confirmed` audit row, the
+chronology endpoint **withholds the event description, source filenames, and
+proceedings references** — the user sees that gated material exists, not what it
+says. Confirmation (a `POST` to `/api/matters/{slug}/chronology/gate` with the
+acknowledgement text) is logged and unlocks full detail.
 
-### Server-side access gate
-
-When a matter has ≥1 tainted chronology event and the requesting user has
-no `chronology.gate.confirmed` audit row for that matter, the chronology
-endpoint **withholds the event description, source filenames, and
-proceedings references** in its response. The user sees that gated material
-exists; they do not see what it says.
-
-Confirmation is a `POST` to `/api/matters/{slug}/chronology/gate` with the
-acknowledgement text. The audit log records the action, the user, the
-matter, and the acknowledgement. The next `GET` returns full detail.
-
-This is a forcing function so the solicitor consciously acknowledges
-CPR 31.22 before composing anything that draws on disclosed material.
-**It is not a substitute for the rule itself, which applies regardless of
-acknowledgement.**
+This forces conscious acknowledgement of CPR 31.22 before composing on disclosed
+material. **It is not a substitute for the rule itself, which applies regardless
+of acknowledgement.**
 
 ---
 
 ## 8. Audit trail
 
-The audit shape depends on whether the request reached its semantic
-work or was refused at the door:
+The audit shape depends on whether a request reached its semantic work.
+Successful mutations write a **semantic row** (e.g. `matter.create`,
+`privilege.set`) plus an **HTTP forensic row**. Model-backed runs add
+`model.call` rows carrying `model_used`,
+`prompt_hash`, `response_hash`, `token_count`, and `latency_ms` — the prompt and
+response themselves are **not** stored, only their SHA-256 hashes. Requests
+blocked before semantic work commits (a C_paused run, a validation rejection)
+write **only the HTTP forensic row** with the failure status; they stay traceable
+by path and status but write no semantic row. The trade-off is transactional
+integrity: semantic rows commit only when the operation commits.
 
-- **Successful semantic mutations** produce a **semantic row** written
-  by the router (`matter.create`, `document.upload`, `privilege.set`,
-  `chronology.gate.confirmed`) plus an **HTTP forensic row** written
-  by the audit middleware (`http.{method}` + path + status code).
-- **Model-backed successful module runs** add `model.call` rows from
-  the gateway, one per provider call (the example Pre-Motion skill
-  makes one call per run). Each `model.call` carries
-  `model_used`, `prompt_hash`, `response_hash`, `token_count`, and
-  `latency_ms`. The prompt and response themselves are **not** stored
-  in the audit row, only their SHA-256 hashes.
-- **Requests blocked before semantic work commits** — for example a
-  C_paused skill run or a validation rejection at the router
-  boundary — produce **only the
-  HTTP forensic row**, carrying the failure status (typically 409 or
-  400). Blocked attempts are still traceable via the path and
-  status, but they do not write a "started/blocked" semantic row.
-  The trade-off is transactional integrity: semantic rows commit
-  only when the semantic operation commits.
+`audit_entries` is append-only by enforcement, in two independent layers: a
+Postgres trigger that rejects UPDATE and DELETE on every row whatever the role,
+and a role split (`infra/postgres-roles.sql`) that removes UPDATE/DELETE from the
+application role by grant. The split is exercised in CI on every build (the build
+fails if `legalise_app` can mutate an audit row). Production adoption is a
+connection-string switch, in the operations runbook.
 
-The `audit_entries` table is append-only by enforcement, in two
-independent layers. First, a Postgres trigger rejects UPDATE and DELETE
-on every row, whatever role issues them. Second, a database role split
-(`infra/postgres-roles.sql`) removes UPDATE/DELETE on `audit_entries`
-from the application role by grant, so a mutation is refused at the
-privilege check before the trigger even runs. The role split is
-exercised in CI on every build: the backend job provisions the
-`legalise_app` role, runs the migrations and grants, and fails the
-build if that role can update or delete an audit row
-(`infra/verify-worm-role-split.sh` plus
-`backend/tests/test_audit_worm_role_split.py`). Operational adoption on
-a production deployment is a connection-string switch, documented in the
-project's operations runbook.
-
-**Third-party verification.** Every audit row is hash-chained: an
-append-only `audit_chain` table links each entry to the previous one
-per matter, so the chain's head hash is the matter record's
-fingerprint — it commits to every entry beneath it. Exporting that
-head hash (or publishing it anywhere — an email, a filing, a public
-log) lets anyone later prove the record was not rewritten: if the
-trail changes, the head no longer recomputes. The verify endpoint
-(`GET /api/matters/{slug}/audit/chain`) recomputes every link from the
-raw audit rows and reports the head plus any breaks.
+**Third-party verification.** Every row is hash-chained via an append-only
+`audit_chain` table, so the head hash commits to every entry beneath it.
+Publishing that head hash lets anyone later prove the record was not rewritten —
+if the trail changes, the head no longer recomputes. This is tamper-evident, not
+tamper-proof. The verify endpoint (`GET /api/matters/{slug}/audit/chain`)
+recomputes every link and reports the head plus any breaks.
 
 ---
 
 ## 9. Skill provenance and approval
 
-`SKILL.md` is the review unit. Every installed skill has plain-text
-frontmatter (`name`, `description`, optional `argument-hint`) and a prompt
-body. Legalise exposes both through the installed-skills discovery page so a
-firm's internal tech team can review what will run before solicitors use it.
+`SKILL.md` is the review unit: plain-text frontmatter (`name`, `description`,
+optional `argument-hint`) and a prompt body, both exposed through the
+installed-skills page so a firm's tech team can review what will run.
 
-Git is the approval trail. Skills import from a source repository (the
-Lawve catalogue or any public GitHub repo) at a **pinned commit SHA**
-recorded in the installed manifest's `source_url`. Reviewing a skill means
-reviewing its `SKILL.md` at that SHA; updating it is a fresh import through
-the trust ceremony, so a prompt change can never reach the runtime
-silently.
+Git is the approval trail. Skills import at a **pinned commit SHA** in the
+manifest's `source_url`. Reviewing a skill means reviewing its `SKILL.md` at that
+SHA; updating it is a fresh import through the trust ceremony, so a prompt change
+can never reach the runtime silently. Every invocation is audited
+(`module.capability.invoked` plus the gateway's `model.call`), so "which skills
+ran against which matters?" is answerable from the log.
 
-Runtime provenance is separate and audited. Every skill invocation records
-`module.capability.invoked` plus the gateway's `model.call`, so "which
-skills ran against which matters?" is answerable from the audit log.
+Manifest signatures come in two honest grades. `verified` means an ed25519
+signature cryptographically checks out against the publisher's registered public
+key. `structure_verified` means shape-only: signature present and plausible,
+publisher in the registry, `signed_by` matches — but no cryptography was performed
+and a well-formed forgery would pass. As of the evaluation release no publisher
+key is registered (`backend/app/core/publishers.py`), so every imported skill
+resolves to `structure_verified` today; `verified` is reachable only once a
+publisher registers a public key.
 
-Manifest signatures come in two honest grades. `verified` means the
-manifest carries an ed25519 signature that cryptographically checks out
-against the publisher's registered public key — only the holder of that
-publisher's private key could have produced it. `structure_verified` means
-shape-only: the signature is present and plausible, the publisher is in
-the registry, and `signed_by` matches — but no cryptography was performed
-and a well-formed forgery would pass. The status string says exactly which
-check ran; publishers without a registered key can never reach `verified`.
-As of the evaluation release no publisher key is registered in the bundled
-registry (`backend/app/core/publishers.py`), so in practice every imported
-skill resolves to `structure_verified` today — `verified` only becomes
-reachable once a publisher registers a public key.
-
-What the current release does **not** yet cover: prompt-injection scanning, automated
-`SKILL.md` linting, organisation-level skill allowlists,
-or per-workspace enable/disable policy. Those are v0.2 concerns.
+The current release does **not** yet cover prompt-injection scanning, automated
+`SKILL.md` linting, organisation-level skill allowlists, or per-workspace
+enable/disable policy. Those are v0.2 concerns.
 
 ---
 
 ## 10. Authentication
 
-The current release ships **fastapi-users** with cookie sessions (HttpOnly, Secure,
-SameSite=Lax), email verification via Resend, and password reset via
-one-time token. Sessions are backed by a server-side `access_token`
-table — revocation is real, not just client-side.
+The release ships **fastapi-users** with cookie sessions (HttpOnly, Secure,
+SameSite=Lax), email verification via Resend, and password reset via one-time
+token. Sessions are backed by a server-side `access_token` table — revocation is
+real, not just client-side.
 
-**Abuse throttling.** The unauthenticated auth surface is per-IP rate
-limited at the application layer: 5 registrations and 10
-verification-email / password-reset requests per IP per hour, counted
-via a sliding window recomputed from Postgres (no Redis counter, so the
-limit holds across instances). Throttled requests return 429, and the
-first rejection in a window writes an `auth.rate_limited` audit row.
+**Abuse throttling.** The unauthenticated auth surface is per-IP rate limited: 5
+registrations and 10 verification-email / password-reset requests per IP per
+hour, via a sliding window recomputed from Postgres (no Redis counter, so the
+limit holds across instances). Throttled requests return 429; the first rejection
+in a window writes an `auth.rate_limited` audit row.
 
-**Bring-your-own provider keys.** Each user adds their Anthropic or
-OpenAI key under Settings → API keys. The privilege-aware model gateway
-reads the user's key for every call on their matters. Server-side keys
-are stored AES-256-GCM-encrypted under a master key supplied to the
-backend via env var (`LEGALISE_KEY_ENCRYPTION_SECRET`, 32-byte hex);
-a key is decrypted only at call time and never logged.
+**BYO provider keys.** Each user adds their Anthropic or OpenAI key under
+Settings → API keys; the gateway reads it for every call on their matters. Keys
+are stored AES-256-GCM-encrypted under a master key from env var
+(`LEGALISE_KEY_ENCRYPTION_SECRET`, 32-byte hex), decrypted only at call time and
+never logged.
 
-**Slug tenancy.** Matter slugs are unique per user, not globally.
-Two users can each hold a matter at `khan-v-acme-trading-2026` without
-collision. Cross-user reads return 404 (not 403) so user A cannot
-learn that user B holds a matter at a particular slug.
+**Slug tenancy.** Matter slugs are unique per user, not globally. Cross-user
+reads return 404 (not 403) so user A cannot learn that user B holds a matter at a
+given slug.
 
-**Signup auto-seed.** On email verification (or in dev, on register
-via the autoverify path), the new user's workspace is seeded with the
-Khan v Acme demo matter — same idempotent path as the dev-boot seed.
-
-WorkOS / Stytch SSO with Microsoft 365 / SAML / org-level audit is
-the enterprise-adoption milestone. The current release covers the
+WorkOS / Stytch SSO with Microsoft 365 / SAML / org-level audit is the
+enterprise-adoption milestone, not yet built. The current release covers the
 sole-practitioner and small-firm case via direct signup.
 
 ---
@@ -343,48 +275,47 @@ sole-practitioner and small-firm case via direct signup.
 
 - **In transit:** TLS 1.2+ for all external connections. Fly.io and Neon
   terminate TLS; their internal hop is also encrypted.
-- **At rest:** Postgres-at-rest encryption (Neon default, AES-256). R2
-  objects encrypted at rest by Cloudflare. Matter materialisation on the
-  Fly volume relies on Fly's underlying storage encryption.
-- **Application layer:** per-user provider API keys are stored
-  AES-256-GCM-encrypted (Section 10). Stored prompts/responses are
-  not yet application-layer encrypted — tracked for v0.2.
+- **At rest:** Postgres-at-rest (Neon default, AES-256); R2 objects encrypted by
+  Cloudflare; matter materialisation on the Fly volume relies on Fly's storage
+  encryption.
+- **Application layer:** per-user provider API keys are AES-256-GCM-encrypted
+  (Section 10). Stored prompts/responses are not yet application-layer encrypted —
+  tracked for v0.2.
 
 ---
 
 ## 12. Compliance posture
 
-We do not claim certifications we do not hold. As of the evaluation release:
-
-**No certification has been awarded against any framework as of the evaluation release.**
-The table below is planned sequencing, not achieved assurance.
+We do not claim certifications we do not hold. **No certification has been awarded
+against any framework as of the evaluation release.** The table is planned
+sequencing, not achieved assurance.
 
 | Framework | Where we are | Planned next |
 |---|---|---|
-| **UK GDPR / DPA 2018** | Designed against the principles (per-matter scoping, processor agreements with sub-processors, audit log of personal-data processing). The DPIA is owed, not published. Records of processing (Art. 30) and a public DPIA summary are v0.2 deliverables. The firm using Legalise is the controller and remains accountable | Author DPIA; publish ROPA |
-| **SRA Code of Conduct** | Designed to support solicitor accountability (audit trail, confidentiality via privilege posture). Legalise is not the regulated entity — the firm is | No further action — this is a perpetual support obligation, not a target |
-| **Cyber Essentials Plus** | Not certified. Planned after the live-matter readiness foundations | Engage assessor; remediation work; certificate |
-| **ISO 27001** | Not certified. Not started | Open ISMS scope; controls implementation |
+| **UK GDPR / DPA 2018** | Designed against the principles (per-matter scoping, processor agreements, audit log of personal-data processing). The DPIA is owed, not published. ROPA (Art. 30) and a public DPIA summary are v0.2 deliverables. The firm is the controller and remains accountable | Author DPIA; publish ROPA |
+| **SRA Code of Conduct** | Designed to support solicitor accountability (audit trail, confidentiality via privilege posture). Legalise is not the regulated entity — the firm is | A perpetual support obligation, not a target |
+| **Cyber Essentials Plus** | Not certified. Planned after live-matter readiness foundations | Engage assessor; remediate; certificate |
+| **ISO 27001** | Not certified. Not started | Open ISMS scope; implement controls |
 | **SOC 2 Type II** | Not certified. Considered only on demand from US-owned firms. Not on the v0.2/v0.3 timeline | n/a until trigger |
-| **HIPAA** | Out of scope. Legalise is not designed for US healthcare workflows | n/a |
+| **HIPAA** | Out of scope. Legalise is not for US healthcare workflows | n/a |
 
-None of these have been started. The ordering (Cyber Essentials Plus
-first, then ISO 27001, then SOC 2) follows what UK firms ask for first.
+None of these have been started. The ordering (Cyber Essentials Plus, then ISO
+27001, then SOC 2) follows what UK firms ask for first.
 
 ---
 
 ## 13. Reporting a vulnerability
 
-Security reports should follow the root [`SECURITY.md`](../SECURITY.md). In
-summary:
+Reports should follow the root [`SECURITY.md`](../SECURITY.md):
 
 - Email: `security@legalise.dev` (forwarded to maintainers)
-- Encrypted disclosure: GitHub Security Advisories on `github.com/b1rdmania/legalise`
+- Encrypted disclosure: GitHub Security Advisories on
+  `github.com/b1rdmania/legalise`
 - Please give us **90 days** before public disclosure, longer for issues
   affecting deployed users
 
-We do not have a paid bug bounty. We will name researchers in the changelog
-unless they prefer anonymity.
+We have no paid bug bounty. We name researchers in the changelog unless they
+prefer anonymity.
 
 ---
 
@@ -392,12 +323,10 @@ unless they prefer anonymity.
 
 | Date | Change |
 |---|---|
-| 2026-05-13 | First draft (v0.1 source of truth) |
-| 2026-05-13 | Sweep: "Compliant by design" → "Designed against principles"; gaps promoted to §3 (read this first); compliance table reframed as planned sequencing, not achieved assurance; insurance note added |
-| 2026-05-14 | Added §9 skill provenance and approval: Git review as approval trail, `PLUGINS_REPO_REF` pinning, and `plugin.invoked` audit provenance |
-| 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path (Lawve + GitHub) — pinned-SHA provenance, trust ceremony as the only install route |
-| 2026-06-12 | Currency pass: audit WORM recorded as trigger-enforced with hash chain (role split remains); object storage and durable jobs removed from §3 gaps (shipped); single-workspace scope added to §3; Pre-Motion audit-row count corrected; R2 v0.2 marker dropped |
-| 2026-06-12 | §3/§8: WORM role split now exercised in CI on every build (provisioned role, REVOKE asserted, build fails if the app role can mutate audit rows); production adoption runbook added to the operations runbook |
+| 2026-05-13 | First draft (v0.1); gaps promoted to §3; compliance reframed as planned sequencing |
+| 2026-05-14 | §9 skill provenance added (Git review as approval trail, SHA pinning) |
+| 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path |
+| 2026-06-12 | Audit WORM trigger-enforced with hash chain; single-workspace scope added; WORM role split now exercised in CI |
 
-This file changes when the architecture changes. `git log docs/TRUST.md`
-is the canonical history.
+This file changes when the architecture changes; `git log docs/TRUST.md` is the
+canonical history.

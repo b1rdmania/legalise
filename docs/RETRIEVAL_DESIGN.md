@@ -1,69 +1,27 @@
 # Retrieval design (P3)
 
-> The real product build: turn the assistant from "reads a few documents" into
-> "retrieves the relevant passages across the whole matter", with every search
-> and read logged so "what did the AI see?" is a precise audit trail.
+> Turn the assistant from "reads a few documents" into "retrieves the relevant passages across the whole matter", with every search and read logged so "what did the AI see?" is a precise audit trail.
 
 ## Decisions
 
-- **Embedding backend: local + keyless by default.** `fastembed`
-  (BAAI/bge-small-en-v1.5, **384-dim**, ONNX, CPU, no torch). A deterministic
-  hash backend (also 384-dim) is the fallback for tests / keyless CI. Selected
-  by `LEGALISE_EMBEDDING_BACKEND` (default `fastembed`, `hash` for tests).
-  - Why local: a fork works with no keys, and **privileged content is never
-    sent to a third party to be indexed** — the search index is in-tenant. This
-    extends the privilege posture to retrieval, it doesn't weaken it.
-  - OpenAI / Ollama embedding backends can be added behind the same interface
-    later; the dimension is fixed at 384 for v1 so the pgvector column is stable.
-- **Store: pgvector** (already enabled). New `document_chunks` table holds the
-  chunk text + `vector(384)` embedding + a generated `tsvector` for keyword
-  search. Hybrid retrieval = vector similarity ∪ full-text, merged and ranked.
-- **Indexing: async on upload.** After extraction, chunk + embed in the
-  background; track per-document indexing status so the UI and the assistant
-  can be honest about what is and isn't searchable yet.
-- **Access: governed, audited tools.** The assistant calls `search_documents`
-  and `read_document` rather than passively receiving stuffed bodies. Each call
-  writes an audit row, so the matter record shows exactly what the agent
-  searched for and which documents it read.
+- **Embedding backend: local + keyless by default.** `fastembed` (BAAI/bge-small-en-v1.5, 384-dim, ONNX, CPU), with a deterministic 384-dim hash backend as the test/keyless fallback (`LEGALISE_EMBEDDING_BACKEND`). A fork works with no keys, and **privileged content is never sent to a third party to be indexed** — the index is in-tenant. OpenAI / Ollama backends can slot in behind the same interface; the dimension is fixed at 384 for v1 so the pgvector column is stable.
+- **Store: pgvector.** A `document_chunks` table holds chunk text + `vector(384)` + a generated `tsvector`. Hybrid retrieval = vector similarity ∪ full-text, merged and ranked.
+- **Indexing: async on upload.** Chunk + embed in the background after extraction; track per-document status so the UI can be honest about what's searchable yet.
+- **Access: governed, audited tools.** The assistant calls `search_documents` and `read_document` rather than receiving stuffed bodies; each call writes an audit row.
 
 ## Schema (`document_chunks`)
 
-| column | type | note |
-|---|---|---|
-| id | uuid pk | |
-| document_id | uuid fk → documents ON DELETE CASCADE | hard-delete sweeps chunks |
-| matter_id | uuid fk → matters | scope filter |
-| chunk_index | int | order within document |
-| text | text | the chunk body |
-| char_start / char_end | int | offsets into extracted_text (for click-back later) |
-| embedding | vector(384) | nullable until embedded |
-| tsv | tsvector (generated from text) | GIN index |
-| created_at | timestamptz | |
+`id` (uuid pk), `document_id` (fk → documents, ON DELETE CASCADE), `matter_id` (fk → matters, scope filter), `chunk_index`, `text`, `char_start` / `char_end` (offsets into extracted_text for click-back), `embedding vector(384)` (nullable until embedded), `tsv` (generated), `created_at`.
 
-Indexes: HNSW (or ivfflat) on `embedding` (cosine), GIN on `tsv`, btree on
-`document_id` and `matter_id`.
+Indexes: HNSW/ivfflat on `embedding` (cosine), GIN on `tsv`, btree on `document_id` and `matter_id`.
 
-## Pipeline changes
+## Pipeline and build order
 
-1. **Embed on upload** — after extraction, enqueue a chunk+embed job; mark the
-   document `indexed` / `pending` / `failed` with a reindex path.
-2. **Retrieval tools** in `app/core/` callable from the assistant runtime:
-   - `search_documents(matter_id, query, k)` → top-k chunks (hybrid), each with
-     `[doc:id]`, snippet, score. Emits `retrieval.search` audit.
-   - `read_document(matter_id, document_id)` → full extracted body (budgeted).
-     Emits `retrieval.read` audit.
-3. **Assistant**: expose the two tools alongside skills; the matter spine (P2)
-   already gives the index, so the agent searches deliberately instead of being
-   stuffed. Passive 3-recent stuffing is removed once tools are wired.
-
-## Build order
-
-1. Foundation: migration + `DocumentChunk` model; `app/core/embeddings.py`
-   (interface + fastembed + hash fallback); `app/core/chunking.py`.
-2. Indexing: embed-on-upload hook + status field + reindex endpoint.
-3. Retrieval: hybrid query + `search_documents` / `read_document` + audit rows.
-4. Assistant wiring: tools in the runtime; drop passive stuffing.
-5. Frontend: show "searched for X / read Y" in the activity + assistant UI.
+1. Migration + `DocumentChunk` model; `embeddings.py` (interface + fastembed + hash fallback); `chunking.py`.
+2. Embed-on-upload hook + status field (`indexed` / `pending` / `failed`) + reindex endpoint.
+3. Hybrid query + retrieval tools, each writing audit rows: `search_documents(matter_id, query, k)` → top-k chunks (emits `retrieval.search`); `read_document(matter_id, document_id)` → budgeted body (emits `retrieval.read`).
+4. Assistant wiring: expose both tools; drop passive 3-recent stuffing.
+5. Frontend: show "searched for X / read Y" in activity + assistant UI.
 
 ## Honesty boundaries
 
