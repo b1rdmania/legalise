@@ -154,6 +154,38 @@ async def _run_export(
 
 
 # ---------------------------------------------------------------------------
+# Scheduled task: retention sweep
+# ---------------------------------------------------------------------------
+
+
+async def scheduled_retention_sweep(ctx: dict[str, Any]) -> None:
+    """Daily retention enforcement, gated behind LEGALISE_RETENTION_SWEEP_ENABLED.
+
+    OFF by default — it purges matters past ``retention_until`` via the
+    audited tombstone, so a deployment opts in explicitly. When enabled it
+    applies with the configured blast-radius limit (longest-lapsed first).
+    The dry-run CLI (`python -m app.tools.retention_sweep`) stays the way to
+    preview before trusting the schedule.
+    """
+    if not settings.retention_sweep_enabled:
+        return
+
+    from datetime import date
+
+    from app.tools.retention_sweep import run_retention_sweep
+
+    session_factory: async_sessionmaker[AsyncSession] = ctx["session_factory"]
+    async with session_factory() as session:
+        code = await run_retention_sweep(
+            session,
+            apply=True,
+            today=date.today(),
+            limit=settings.retention_sweep_limit,
+        )
+    logger.info("scheduled retention sweep finished (exit=%s)", code)
+
+
+# ---------------------------------------------------------------------------
 # arq WorkerSettings
 # ---------------------------------------------------------------------------
 
@@ -181,6 +213,16 @@ class WorkerSettings:
     """arq worker configuration."""
 
     functions = [run_job]
+    # Daily retention enforcement at the configured UTC hour. The function
+    # is a no-op unless LEGALISE_RETENTION_SWEEP_ENABLED is set, so the cron
+    # is always registered but harmless by default.
+    cron_jobs = [
+        arq.cron(
+            scheduled_retention_sweep,
+            hour=settings.retention_sweep_hour,
+            minute=0,
+        )
+    ]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = arq.connections.RedisSettings.from_dsn(settings.redis_url)

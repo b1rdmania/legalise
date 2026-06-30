@@ -164,6 +164,14 @@ async def _sweep(
     return EXIT_PARTIAL if failed else EXIT_OK
 
 
+async def run_retention_sweep(
+    session: AsyncSession, *, apply: bool, today: date, limit: int | None = None
+) -> int:
+    """Public entry point for the sweep, shared by the CLI and the worker
+    cron. Returns the same exit-style code as ``_sweep``."""
+    return await _sweep(session, apply=apply, today=today, limit=limit)
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="retention_sweep",
