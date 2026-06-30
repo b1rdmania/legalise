@@ -383,9 +383,9 @@ a third party (it is the single egress in `docs/THREAT_MODEL.md`).
   separately by `backend/app/core/audit_cost.py`; upstream failures emit
   `model.call.error` via `audit_failure`.
 
-Note: the matter default model id in code is `claude-opus-4-7`
-(`config.py:41`, `matter.py:54`) — a per-matter default, overridable,
-and worth refreshing as model ids advance.
+Note: the matter default model is the recommended Anthropic model
+(currently `claude-sonnet-4-6`, set in `config.py` / `matter.py`) — a
+per-matter default, overridable, and refreshed as model ids advance.
 
 ---
 

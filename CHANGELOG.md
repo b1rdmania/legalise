@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Docs
+- README: eval-release warning raised to a callout at the top; "Try it" updated (hosted access is by request, not "paused"); positioning tightened to "UK legal AI".
+- ARCHITECTURE: default-model note made version-agnostic (was a stale `claude-opus-4-7`).
+
 ### Added
 - `MIGRATION_DSN` — a privileged DSN for `alembic`, so the app can run under a reduced-privilege role (the WORM role split) while migrations keep DDL authority. Unset = use `POSTGRES_DSN` (single-role deployments unchanged).
 
