@@ -41,6 +41,11 @@ dependencies = [
   # and its tests still write str. Upgrade is a v0.2 housekeeping item.
   "python-frontmatter>=1.1,<1.2",
   "jsonschema>=4.21",
+  # Optional error tracking. Only initialised when SENTRY_DSN is set
+  # (see app/core/observability.py:init_error_tracking). send_default_pii
+  # is forced False — matter content / prompts / document bodies are never
+  # sent to Sentry, only exception types + stack traces + minimal metadata.
+  "sentry-sdk[fastapi]>=2.0",
 ]
 
 [project.optional-dependencies]

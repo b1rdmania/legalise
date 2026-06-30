@@ -44,6 +44,15 @@ class AssistantThread(Base):
         index=True,
     )
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Rolling-summary conversation memory. As a thread grows past the recent
+    # window (``_HISTORY_MESSAGE_LIMIT`` turns), older turns are folded into
+    # this summary instead of being silently dropped from context. Null until
+    # the thread first overflows the window. ``summary_updated_at`` records the
+    # last refresh.
+    rolling_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summary_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),

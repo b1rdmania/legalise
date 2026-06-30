@@ -47,7 +47,7 @@ from app.api.agent_evals import router as agent_evals_router
 from app.core.audit import AuditMiddleware
 from app.core.capabilities import CapabilityDenied
 from app.core.config import settings
-from app.core.observability import init_observability
+from app.core.observability import init_error_tracking, init_observability
 from app.core.encryption import assert_auth_secrets_present, assert_master_key_present
 from app.core.model_gateway import gateway as model_gateway
 from app.core.seed import seed_demo_matter
@@ -71,6 +71,10 @@ async def lifespan(app: FastAPI):
     # Unit 8 — observability: configure structlog + global exception handler.
     # Must run before any log emission so the processor chain is in place.
     init_observability(app)
+
+    # Optional error tracking (Sentry). No-op unless SENTRY_DSN is set;
+    # send_default_pii is forced False so matter content never leaves the app.
+    init_error_tracking()
 
     engine = create_async_engine(settings.postgres_dsn, echo=False)
     app.state.engine = engine

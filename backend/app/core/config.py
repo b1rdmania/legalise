@@ -161,6 +161,23 @@ class Settings(BaseSettings):
         default=3, alias="LEGALISE_RETENTION_SWEEP_HOUR"
     )
 
+    # Per-matter cumulative assistant token budget. 0 = no limit (the
+    # default). When > 0, a new assistant turn is refused once the matter's
+    # recorded token usage reaches the ceiling — the spend guard the audit
+    # already has the data for. Per-request output is bounded separately by
+    # the gateway's max_tokens.
+    matter_token_budget: int = Field(
+        default=0, alias="LEGALISE_MATTER_TOKEN_BUDGET"
+    )
+
+    # Error tracking. Unset (default) disables it entirely — no SDK init, no
+    # network. Set SENTRY_DSN to capture unhandled exceptions; the sample
+    # rate controls performance tracing (0 = errors only).
+    sentry_dsn: str | None = Field(default=None, alias="SENTRY_DSN")
+    sentry_traces_sample_rate: float = Field(
+        default=0.0, alias="SENTRY_TRACES_SAMPLE_RATE"
+    )
+
     # Unit 8 — observability
     # Log format: "console" (human-readable, default) or "json" (log drain).
     log_format: str = "console"
