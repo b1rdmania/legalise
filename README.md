@@ -24,6 +24,21 @@ does not claim is in [`docs/TRUST.md`](./docs/TRUST.md), gaps first.
 
 ---
 
+## What you can do with it
+
+- **Evaluate supervised autonomy.** Run a skill over a matter's documents,
+  review the output, sign it, verify the audit chain — then export the working
+  pack to see exactly what a regulator or insurer would receive.
+- **Fork it as a reference architecture.** The governance substrate — capability
+  gates, privilege posture, professional sign-off, hash-chained audit — is
+  tested and runnable. Adapt it for your own legal AI, or another regulated
+  domain.
+- **Self-host for internal use.** Run it on your own infrastructure with your
+  own model keys; privileged content is never sent off the box to be indexed.
+  Your supervision, your PII cover, your call on posture per matter.
+
+---
+
 ## What's in the repo
 
 A worked evaluation workspace around the Khan v Acme sample matter, ordered as
