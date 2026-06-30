@@ -77,6 +77,7 @@ from app.models.job import (
     JOB_STATUS_VALUES,
     JOB_ACTIVE_STATUSES,
     JOB_KIND_EXPORT,
+    JOB_KIND_INDEX,
 )
 
 # Substrate primitives.
@@ -187,6 +188,7 @@ __all__ = [
     "JOB_STATUS_VALUES",
     "JOB_ACTIVE_STATUSES",
     "JOB_KIND_EXPORT",
+    "JOB_KIND_INDEX",
     "PRIVILEGE_CLEARED",
     "PRIVILEGE_MIXED",
     "PRIVILEGE_PAUSED",

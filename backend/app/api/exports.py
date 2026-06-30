@@ -36,20 +36,21 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-import arq
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import current_user
-from app.core.config import settings
 from app.core.api import audit
 from app.core.db import get_session
-from app.core.jobs import ActiveJobLimitReached, create_job, update_status
+from app.core.jobs import (
+    ActiveJobLimitReached,
+    create_job,
+    enqueue_or_mark_failed,
+)
 from app.core.matter_access import resolve_owned_open_matter
 from app.models import (
-    JOB_STATUS_FAILED,
     Job,
     Matter,
     User,
@@ -72,48 +73,6 @@ async def _resolve_matter_owned(
     return 404 — per HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 1, export
     routes must not be reachable for tombstoned matters."""
     return await resolve_owned_open_matter(session, slug, user_id)
-
-
-async def _enqueue_job(job_id: uuid.UUID) -> None:
-    """Push job_id onto the arq queue. Redis never receives matter content."""
-    redis = await arq.create_pool(arq.connections.RedisSettings.from_dsn(settings.redis_url))
-    try:
-        await redis.enqueue_job("run_job", str(job_id))
-    finally:
-        await redis.aclose()
-
-
-async def _enqueue_or_mark_failed(session: AsyncSession, job: Job) -> None:
-    """Enqueue ``job`` for the worker. On Redis failure, transition the
-    job to FAILED with ``error_code="enqueue_failed"`` and raise 503.
-
-    Per HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1 — replaces the
-    previous silent-pass which left export jobs queued forever when
-    Redis was unreachable.
-    """
-    try:
-        await _enqueue_job(job.id)
-    except Exception as exc:
-        await update_status(
-            session,
-            job,
-            JOB_STATUS_FAILED,
-            error_code="enqueue_failed",
-            error_message=f"Failed to enqueue export job: {type(exc).__name__}",
-        )
-        await session.commit()
-        raise HTTPException(
-            503,
-            detail={
-                "error": "job_enqueue_failed",
-                "job_id": str(job.id),
-                "message": (
-                    "Failed to queue the export job for execution. "
-                    "Please try again; the previous attempt has been "
-                    "marked failed and freed your active-job slot."
-                ),
-            },
-        ) from exc
 
 
 def _job_row(job: Job) -> dict[str, Any]:
@@ -176,7 +135,7 @@ async def create_export_job(
 
     await session.commit()
 
-    await _enqueue_or_mark_failed(session, job)
+    await enqueue_or_mark_failed(session, job)
 
     return _job_row(job)
 

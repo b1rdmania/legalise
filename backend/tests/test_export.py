@@ -311,7 +311,7 @@ async def test_create_export_job_returns_job_row(client) -> None:
     assert create.status_code == 201, create.text
     slug = create.json()["slug"]
 
-    with patch("app.api.exports._enqueue_job") as mock_enqueue:
+    with patch("app.core.jobs.enqueue_job") as mock_enqueue:
         mock_enqueue.return_value = None
         resp = await client.post(f"/api/matters/{slug}/export")
 
@@ -335,7 +335,7 @@ async def test_export_cross_user_returns_404(client) -> None:
     await client.post("/auth/logout")
 
     await _signup_and_login(client, EMAIL_OTHER, PASSWORD_OTHER)
-    with patch("app.api.exports._enqueue_job") as mock_enqueue:
+    with patch("app.core.jobs.enqueue_job") as mock_enqueue:
         mock_enqueue.return_value = None
         resp = await client.post(f"/api/matters/{slug}/export")
     assert resp.status_code == 404, resp.text
@@ -356,7 +356,7 @@ async def test_download_export_returns_409_when_not_ready(client, db_session) ->
     assert create.status_code == 201, create.text
     slug = create.json()["slug"]
 
-    with patch("app.api.exports._enqueue_job") as mock_enqueue:
+    with patch("app.core.jobs.enqueue_job") as mock_enqueue:
         mock_enqueue.return_value = None
         export_resp = await client.post(f"/api/matters/{slug}/export")
     assert export_resp.status_code == 200, export_resp.text
@@ -377,12 +377,12 @@ async def test_create_export_enqueue_failure_marks_failed_and_503(
     previous behaviour was to swallow the failure and return success).
     The job row must transition to FAILED and the API must return
     503 with error=job_enqueue_failed."""
-    from app.api import exports as exports_api
+    from app.core import jobs as jobs_module
 
     async def _explode(*_args, **_kwargs):
         raise RuntimeError("redis unreachable")
 
-    monkeypatch.setattr(exports_api, "_enqueue_job", _explode)
+    monkeypatch.setattr(jobs_module, "enqueue_job", _explode)
     await _signup_and_login(client, EMAIL, PASSWORD)
 
     create = await client.post(

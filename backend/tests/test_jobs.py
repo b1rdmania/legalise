@@ -139,12 +139,12 @@ async def test_export_enqueue_failure_marks_job_failed(
     """If Redis enqueue raises after the job row is committed, the row
     must be transitioned to FAILED with error_code=enqueue_failed and
     the API must return 503 — never a silent success."""
-    from app.api import exports as exports_api
+    from app.core import jobs as jobs_module
 
     async def _explode(*_args, **_kwargs):
         raise RuntimeError("redis unreachable")
 
-    monkeypatch.setattr(exports_api, "_enqueue_job", _explode)
+    monkeypatch.setattr(jobs_module, "enqueue_job", _explode)
     await _signup_and_login(client)
 
     resp = await client.post(f"/api/matters/{KHAN_SLUG}/export")
@@ -162,14 +162,14 @@ async def test_enqueue_failed_job_does_not_consume_active_slot(
     must free the slot so the user can retry without hitting 429."""
     from sqlalchemy import select
 
-    from app.api import exports as exports_api
+    from app.core import jobs as jobs_module
     from app.core.jobs import get_active_job_count
     from app.models import User
 
     async def _explode(*_args, **_kwargs):
         raise RuntimeError("redis unreachable")
 
-    monkeypatch.setattr(exports_api, "_enqueue_job", _explode)
+    monkeypatch.setattr(jobs_module, "enqueue_job", _explode)
     await _signup_and_login(client)
 
     user = await db_session.scalar(select(User).where(User.email == TEST_EMAIL))
@@ -206,12 +206,12 @@ async def test_active_job_limit_enforcement_matches_reporting(
     )
 
     # Patch the Redis enqueue so we don't actually need Redis.
-    from app.api import exports as exports_api
+    from app.core import jobs as jobs_module
 
     async def _noop_enqueue(*_args, **_kwargs):
         return None
 
-    monkeypatch.setattr(exports_api, "_enqueue_job", _noop_enqueue)
+    monkeypatch.setattr(jobs_module, "enqueue_job", _noop_enqueue)
     await _signup_and_login(client)
 
     # First job — succeeds.

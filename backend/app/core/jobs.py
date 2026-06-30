@@ -17,21 +17,34 @@ the queue and read everything else from Postgres.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import Any
 
+import arq
+from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.api import audit as audit_api
+from app.core.config import settings
 from app.models.job import (
     JOB_ACTIVE_STATUSES,
+    JOB_KIND_INDEX,
     JOB_STATUS_CANCELLED,
     JOB_STATUS_FAILED,
     JOB_STATUS_RUNNING,
     JOB_STATUS_SUCCEEDED,
     Job,
 )
+
+
+# Background (system-spawned) job kinds. These are NOT user-initiated, so they
+# must not be throttled by — nor consume slots in — the interactive active-job
+# ceiling, which exists to bound concurrent *user-initiated* pipeline runs
+# (exports). A bulk upload can spawn one index job per document; throttling
+# those would wedge uploads and starve a user's real export slot.
+BACKGROUND_JOB_KINDS = frozenset({JOB_KIND_INDEX})
 
 
 class ActiveJobLimitReached(Exception):
@@ -52,14 +65,25 @@ class ActiveJobLimitReached(Exception):
         )
 
 
-async def get_active_job_count(session: AsyncSession, user_id: uuid.UUID) -> int:
-    """Return the number of queued or running jobs for this user."""
-    result = await session.execute(
-        select(func.count(Job.id)).where(
-            Job.created_by_id == user_id,
-            Job.status.in_(JOB_ACTIVE_STATUSES),
-        )
-    )
+async def get_active_job_count(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    exclude_kinds: Iterable[str] = (),
+) -> int:
+    """Return the number of queued or running jobs for this user.
+
+    ``exclude_kinds`` drops background/system kinds (e.g. index) from the
+    count so they do not crowd out a user's interactive active-job slots.
+    """
+    conditions = [
+        Job.created_by_id == user_id,
+        Job.status.in_(JOB_ACTIVE_STATUSES),
+    ]
+    exclude = tuple(exclude_kinds)
+    if exclude:
+        conditions.append(Job.kind.notin_(exclude))
+    result = await session.execute(select(func.count(Job.id)).where(*conditions))
     return result.scalar_one()
 
 
@@ -81,14 +105,23 @@ async def create_job(
     HANDOVER_SUBSTRATE_R2_REVIEW.md §Issue 2, enforcement and the
     `/api/me/usage` reporting endpoint now share one source of truth.
     """
-    # Local import: avoid a top-level cycle with core.limits which
-    # itself imports from app.models.job for ACTIVE_JOBS_LIMIT.
-    from app.core.limits import get_limits
+    # Background kinds (index) are exempt from the interactive ceiling: they
+    # are spawned automatically by the upload hot path, not by a user clicking
+    # "run", so they must neither be throttled nor count against a user's
+    # interactive slots. We skip the cap check for them AND exclude them from
+    # the active count so a bulk upload's pending index jobs never 429 a later
+    # export.
+    if kind not in BACKGROUND_JOB_KINDS:
+        # Local import: avoid a top-level cycle with core.limits which
+        # itself imports from app.models.job for ACTIVE_JOBS_LIMIT.
+        from app.core.limits import get_limits
 
-    cap = get_limits().active_jobs
-    active = await get_active_job_count(session, created_by_id)
-    if active >= cap:
-        raise ActiveJobLimitReached(created_by_id, active, cap)
+        cap = get_limits().active_jobs
+        active = await get_active_job_count(
+            session, created_by_id, exclude_kinds=BACKGROUND_JOB_KINDS
+        )
+        if active >= cap:
+            raise ActiveJobLimitReached(created_by_id, active, cap)
 
     job = Job(
         id=uuid.uuid4(),
@@ -211,6 +244,55 @@ async def append_event(
         resource_id=str(job.id),
         payload=payload or {},
     )
+
+
+async def enqueue_job(job_id: uuid.UUID) -> None:
+    """Push ``job_id`` onto the arq queue. Redis never receives matter content
+    — only the id; the worker reads everything else from Postgres."""
+    redis = await arq.create_pool(
+        arq.connections.RedisSettings.from_dsn(settings.redis_url)
+    )
+    try:
+        await redis.enqueue_job("run_job", str(job_id))
+    finally:
+        await redis.aclose()
+
+
+async def enqueue_or_mark_failed(session: AsyncSession, job: Job) -> None:
+    """Enqueue ``job`` for the worker. On Redis failure, transition the job to
+    FAILED with ``error_code="enqueue_failed"`` and raise 503.
+
+    Shared by the export route and the upload-indexing path. Per
+    HANDOVER_SUBSTRATE_REVIEW_FIXES.md §2 P1 — replaces the previous
+    silent-pass which left jobs queued forever when Redis was unreachable.
+
+    The caller MUST have already committed the job row before calling this so
+    the worker can see it. For the upload path this also means the request
+    session is not holding the audit-chain advisory lock across the enqueue.
+    """
+    try:
+        await enqueue_job(job.id)
+    except Exception as exc:
+        await update_status(
+            session,
+            job,
+            JOB_STATUS_FAILED,
+            error_code="enqueue_failed",
+            error_message=f"Failed to enqueue {job.kind} job: {type(exc).__name__}",
+        )
+        await session.commit()
+        raise HTTPException(
+            503,
+            detail={
+                "error": "job_enqueue_failed",
+                "job_id": str(job.id),
+                "message": (
+                    "Failed to queue the job for execution. Please try again; "
+                    "the previous attempt has been marked failed and freed your "
+                    "active-job slot."
+                ),
+            },
+        ) from exc
 
 
 def _module_name(kind: str) -> str:

@@ -81,7 +81,7 @@ async def test_export_download_404_after_matter_deleted(
         slug = create.json()["slug"]
 
         # 2. Create export job (mock Redis)
-        with patch("app.api.exports._enqueue_job") as mock_enqueue:
+        with patch("app.core.jobs.enqueue_job") as mock_enqueue:
             mock_enqueue.return_value = None
             export_resp = await client.post(f"/api/matters/{slug}/export")
         assert export_resp.status_code == 200, export_resp.text
@@ -121,7 +121,7 @@ async def test_export_download_404_after_matter_deleted(
         assert resp.status_code == 404, resp.text
 
         # 7. New export creation also 404s
-        with patch("app.api.exports._enqueue_job") as mock_enqueue2:
+        with patch("app.core.jobs.enqueue_job") as mock_enqueue2:
             mock_enqueue2.return_value = None
             new_export = await client.post(f"/api/matters/{slug}/export")
         assert new_export.status_code == 404, new_export.text
