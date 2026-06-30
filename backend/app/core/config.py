@@ -146,6 +146,21 @@ class Settings(BaseSettings):
     # it in the X-Agent-Kit-Secret header.
     agent_kit_secret: str | None = Field(default=None, alias="AGENT_KIT_SECRET")
 
+    # Retention enforcement. The sweeper (app.tools.retention_sweep) can run
+    # on the worker as a daily arq cron, purging matters past retention_until
+    # via the audited tombstone. OFF by default — it deletes data, so a
+    # deployment opts in explicitly. `limit` caps the per-run blast radius
+    # (longest-lapsed first); `hour` is the UTC hour the daily sweep runs.
+    retention_sweep_enabled: bool = Field(
+        default=False, alias="LEGALISE_RETENTION_SWEEP_ENABLED"
+    )
+    retention_sweep_limit: int = Field(
+        default=50, alias="LEGALISE_RETENTION_SWEEP_LIMIT"
+    )
+    retention_sweep_hour: int = Field(
+        default=3, alias="LEGALISE_RETENTION_SWEEP_HOUR"
+    )
+
     # Unit 8 — observability
     # Log format: "console" (human-readable, default) or "json" (log drain).
     log_format: str = "console"
