@@ -612,6 +612,43 @@ export function AssistantTab({
           </div>
         </div>
 
+        {/* Mobile thread control — the left ThreadRail is desktop-only
+            (md:flex), so below md a compact dropdown + New chat keeps thread
+            switching reachable on phones. */}
+        {showThreadRail && (
+          <div
+            className="mb-4 flex items-center gap-2 border-b border-rule pb-3 md:hidden"
+            data-testid="chat-thread-mobile"
+          >
+            <select
+              value={activeThreadId ?? "__new__"}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v !== "__new__" && v !== activeThreadId) switchThread(v);
+              }}
+              disabled={pending}
+              aria-label="Switch conversation"
+              className="min-w-0 flex-1 rounded-item border border-rule bg-paper px-2.5 py-1.5 text-[13px] text-ink disabled:opacity-50"
+            >
+              {activeThreadId === null && <option value="__new__">New chat</option>}
+              {threads.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title ?? "Untitled chat"}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={startNewChat}
+              disabled={pending || activeThreadId === null}
+              data-testid="chat-new-thread-mobile"
+              className="shrink-0 rounded-item border border-ink px-2.5 py-1.5 text-[13px] text-ink transition-colors hover:bg-paper-sunken disabled:opacity-50"
+            >
+              + New
+            </button>
+          </div>
+        )}
+
         {attachedDocs.length > 0 && (
           <section
             className="mb-4 border-t border-rule py-2"
