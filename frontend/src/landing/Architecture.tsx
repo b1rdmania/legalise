@@ -272,14 +272,14 @@ function SpineDiagram() {
         >
           REFUSALS TOO
         </text>
-        <line x1="0" y1={railY + 0.5} x2={W} y2={railY + 0.5} stroke="#181818" strokeWidth="1.5" />
+        <rect x="0" y={railY} width={W} height="20" fill="#181818" />
         <text
           x={W / 2}
-          y={railY + 22}
+          y={railY + 14}
           textAnchor="middle"
           fontSize="9"
           letterSpacing="2"
-          fill="#181818"
+          fill="#f5f3ee"
           fontFamily="ui-monospace, monospace"
         >
           THE RECORD · HASH-CHAINED · EXPORTABLE

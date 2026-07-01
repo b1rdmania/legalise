@@ -3,22 +3,24 @@ export function Waitlist() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
       <div className="eyebrow text-muted mb-4">HOSTED ACCESS</div>
       <h1 className="text-4xl sm:text-5xl font-bold tracking-tight2 text-ink leading-[1.05] max-w-2xl mb-6">
-        Evaluation signup is open.
+        Hosted access is by request.
       </h1>
       <p className="prose-p max-w-2xl">
         Legalise is open source. The hosted site is an evaluation
-        environment — not a live-client product. Create an account to run
-        the Khan v Acme sample matter on the keyless demo model, or bring
-        your own Anthropic / OpenAI key.
+        environment — not a live-client product. The guided demo and the
+        repository are open now; a hosted evaluation account is by request —
+        email <a href="mailto:andrew@legalise.dev" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">andrew@legalise.dev</a>{" "}
+        to run the Khan v Acme sample on the keyless demo model, or with your
+        own Anthropic / OpenAI key.
       </p>
       <div className="border border-rule p-6 sm:p-8 mt-8">
         <div className="eyebrow-sm text-muted mb-3">GET STARTED</div>
         <h2 className="text-xl font-semibold tracking-tight2 text-ink mb-3">
-          Create an evaluation account
+          Request an evaluation account
         </h2>
         <p className="text-sm text-prose leading-relaxed max-w-xl mb-6">
-          Open evaluation, bring-your-own-key. If you just want to inspect
-          the work, fork the repo and run it locally.
+          Bring your own key. If you just want to inspect the work, fork the
+          repo and run it locally.
         </p>
         <div className="flex flex-wrap items-center gap-4">
           <a
@@ -36,7 +38,7 @@ export function Waitlist() {
             Fork on GitHub
           </a>
           <a href="/auth/signup" className="text-sm text-muted hover:text-ink transition-colors">
-            Create an account
+            Request an account
           </a>
         </div>
       </div>
