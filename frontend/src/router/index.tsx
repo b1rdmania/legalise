@@ -46,6 +46,7 @@ import { About } from "../landing/About";
 import { Waitlist } from "../landing/Waitlist";
 import { SignIn } from "../auth/SignIn";
 import { SignUp } from "../auth/SignUp";
+import { Register } from "../auth/Register";
 import { ForgotPassword } from "../auth/ForgotPassword";
 import { ResetPassword } from "../auth/ResetPassword";
 import { VerifyPending } from "../auth/VerifyPending";
@@ -170,6 +171,20 @@ const signupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/signup",
   component: () => (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignUp />),
+});
+
+// Self-serve hosted registration form. Public; if already signed in,
+// bounce to the workspace.
+const joinRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/join",
+  beforeLoad: () => {
+    const snap = getAuthSnapshot();
+    if (!snap.loading && snap.user) {
+      throw redirect({ to: "/matters" });
+    }
+  },
+  component: () => <Register />,
 });
 
 const forgotRoute = createRoute({
@@ -601,6 +616,7 @@ const routeTree = rootRoute.addChildren([
   signinRoute,
   loginRoute,
   signupRoute,
+  joinRoute,
   forgotRoute,
   resetRoute,
   verifyPendingRoute,

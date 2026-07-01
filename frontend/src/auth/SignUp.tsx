@@ -49,29 +49,27 @@ export function SignUp() {
 
       <div className="mt-14 max-w-xl border-t border-rule pt-8">
         <h2 className="text-lg font-bold tracking-tight2 text-ink">Prefer hosted?</h2>
-        <div className="mt-4 space-y-4 text-base leading-relaxed text-prose">
+        <div className="mt-4 space-y-5 text-base leading-relaxed text-prose">
           <p>
-            The hosted site is an evaluation environment —{" "}
+            Run it on our infrastructure instead. The hosted site is an
+            evaluation environment —{" "}
             <strong className="font-semibold text-ink">not for live client matters</strong>.
-            A hosted account is by request while the backend is in evaluation:
-            email{" "}
-            <a
-              href="mailto:andrew@legalise.dev"
-              className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-            >
-              andrew@legalise.dev
-            </a>
-            .
+            Bring your own key, or use the keyless demo model.
           </p>
-          <p className="text-sm text-muted">
-            Already have an account?{" "}
+          <div className="flex flex-wrap items-center gap-4">
+            <a
+              href="/auth/join"
+              className="border border-ink hover:bg-ink hover:text-paper text-ink px-4 py-2 transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            >
+              Create an account
+            </a>
             <a
               href="/auth/login"
-              className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              className="text-sm text-muted hover:text-ink transition-colors"
             >
               Sign in &rarr;
             </a>
-          </p>
+          </div>
         </div>
       </div>
     </div>
