@@ -94,6 +94,7 @@ class ChronologyBuildResponse(BaseModel):
     matter_slug: str
     proposed: list[ChronologyEventRead]   # the freshly proposed events
     document_count: int                   # documents read for the build
+    duplicates_skipped: int = 0           # events the matter already had, not re-proposed
     parse_failed: bool = False            # model response could not be parsed
     error: str | None = None              # provider failure class, if any
 
@@ -354,6 +355,7 @@ async def build(
         matter_slug=matter.slug,
         proposed=proposed,
         document_count=build_result.document_count,
+        duplicates_skipped=build_result.duplicates_skipped,
         parse_failed=build_result.parse_failed,
         error=build_result.error,
     )
