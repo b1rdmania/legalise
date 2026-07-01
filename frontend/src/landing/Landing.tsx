@@ -31,7 +31,7 @@ export function Landing() {
         </div>
         <div className="relative z-10 px-4 sm:px-6 md:px-16 lg:px-24 py-20 md:py-32 max-w-3xl">
           <div className="eyebrow text-muted mb-6">
-            Open source · England &amp; Wales · v0.1
+            Open source · England &amp; Wales · Evaluation release
           </div>
           <h1 className="font-redaction35 text-[40px] sm:text-[56px] md:text-[64px] leading-[1.04] tracking-tight2 text-ink max-w-2xl">
             AI can draft the case. It cannot sign it.

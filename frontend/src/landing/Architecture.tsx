@@ -633,14 +633,17 @@ export function Architecture() {
           </h1>
           <div className="mt-6 max-w-2xl text-base leading-relaxed text-prose">
             <p>
-              Legalise is an open-source workspace for legal AI work in England
-              and Wales. This page documents how it is built: the subsystems,
-              how they fit together, and where in the repository to verify each
-              claim. Every code reference links to the file that implements it.
+              Legalise is an open-source governance layer for legal AI in
+              England and Wales — an evaluation of the guardrails around it:
+              supervision, human sign-off, and a tamper-evident record. It is
+              not a finished product. This page documents how it is built: the
+              subsystems, how they fit together, and where in the repository to
+              verify each claim.
             </p>
             <p className="mt-4">
-              This is an open experiment, not a finished answer. The code is
-              canonical; if this page and the repository disagree, trust the{" "}
+              Every code reference links to the file that implements it. The
+              code is canonical; where this page and the repository disagree,
+              trust the{" "}
               <a
                 href={REPO}
                 target="_blank"
