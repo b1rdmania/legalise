@@ -48,7 +48,7 @@ const SRC = {
   publishers: `${BLOB}/backend/app/core/publishers.py`,
   githubImport: `${BLOB}/backend/app/core/github_import.py`,
   auditChain: `${BLOB}/backend/app/core/audit_chain.py`,
-  auditChainEndpoint: `${BLOB}/backend/app/api/matters.py#L663`,
+  auditChainEndpoint: `${BLOB}/backend/app/api/audit.py#L247`,
   signoff: `${BLOB}/backend/app/core/signoff.py`,
   config: `${BLOB}/backend/app/core/config.py`,
   presidio: `${BLOB}/backend/app/modules/anonymisation/presidio_engine.py`,
@@ -182,12 +182,14 @@ const STATUS_MATRIX: {
   { capability: "Single-egress inference gateway", status: "shipped", verification: "model_gateway.py" },
   { capability: "Bring-your-own keys, encrypted at rest", status: "shipped", verification: "encryption.py · user_keys.py" },
   { capability: "Privilege gate read from DB per call", status: "shipped", verification: "posture_gate.py" },
-  { capability: "Hash-chained audit, dual-implementation verify", status: "shipped", verification: "audit_chain.py · GET /audit/chain" },
+  { capability: "Hash-chained audit, one-click verify", status: "shipped", verification: "audit_chain.py · GET /audit/verify" },
   { capability: "Named sign-off over artifact SHA-256", status: "shipped", verification: "signoff.py" },
   { capability: "Skill admission ceremony, two signature grades", status: "shipped", verification: "signing.py · trust_ceremony.py" },
   { capability: "Per-user matter isolation, session revocation", status: "shipped", verification: "matter_access.py · TRUST.md" },
   { capability: "Audit-role split asserted in CI", status: "shipped", verification: "SECURITY.md (build gate)" },
-  { capability: "WORM role flipped on hosted deployment", status: "deferred", verification: "TRUST.md · ROADMAP.md" },
+  { capability: "WORM role split enabled on the hosted deployment", status: "shipped", verification: "verify-worm-role-split.sh · TRUST.md" },
+  { capability: "Deterministic evals: grounding, refusal, chain integrity", status: "shipped", verification: "evals/agent-kit · agent_evals.py" },
+  { capability: "Retention enforcement (opt-in scheduled sweep)", status: "shipped", verification: "retention_sweep.py" },
   { capability: "Organisation / team / SSO / MFA", status: "deferred", verification: "TRUST.md · ROADMAP.md" },
   { capability: "Multi-tenancy (one deploy = one workspace today)", status: "deferred", verification: "ROADMAP.md" },
   { capability: "Manifest web-of-trust / publisher registry at scale", status: "deferred", verification: "TRUST.md" },
@@ -674,7 +676,12 @@ export function Architecture() {
           <div className="mt-6 max-w-xl text-base leading-relaxed text-prose">
             <p>
               How Legalise runs AI under supervision. Every claim here links
-              to the code that backs it.
+              to the code behind it.
+            </p>
+            <p className="mt-4">
+              This is an experiment, not a finished answer. We have not solved
+              supervised legal AI. We have built one attempt at it, and shown
+              the working.
             </p>
           </div>
         </header>
@@ -1121,7 +1128,7 @@ export function Architecture() {
               trail no longer adds up to the same head. A Postgres trigger
               written in PL/pgSQL writes the chain the moment a row lands. The
               verify endpoint{" "}
-              <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/chain</code>{" "}
+              <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/verify</code>{" "}
               recomputes the same hashes separately in Python from the raw
               rows and reports the head plus any breaks. Two pieces of code do
               the same sum, and CI fails the build if they ever disagree. A
@@ -1129,15 +1136,16 @@ export function Architecture() {
               prove nothing.
             </p>
             <p>
-              The table is append-only, enforced in two layers. A Postgres
-              trigger rejects UPDATE and DELETE on every row, whatever role
-              tries it, and a database role split removes the application
-              role's permission to UPDATE or DELETE on the audit table. CI
-              checks the role split on every build and fails if the app role
-              can change an audit row. Turning it on for the hosted deployment
-              is a one-line connection-string change, documented in
-              Operations. That switch is not yet flipped on the hosted stack,
-              and the honesty section says so.
+              The table is append-only, in two layers. A Postgres trigger
+              rejects UPDATE and DELETE on every row, whatever role tries it. A
+              database role split also strips the application role of
+              permission to change or delete audit rows, so the app is refused
+              before the trigger even runs. CI checks the split on every build,
+              and it is now enabled on the hosted deployment: the app connects
+              as a role that cannot rewrite the log, verified end to end. A
+              database superuser can still disable the trigger and rewrite
+              history; the honesty section says so, and the external anchoring
+              that would close that gap is not built.
             </p>
             <p>
               The working pack holds the outputs, the source context, the
@@ -1150,7 +1158,7 @@ export function Architecture() {
           <SourceRow
             items={[
               { label: "audit_chain.py", file: SRC.auditChain },
-              { label: "GET /audit/chain", file: SRC.auditChainEndpoint },
+              { label: "GET /audit/verify", file: SRC.auditChainEndpoint },
               { label: "SECURITY.md", file: `${BLOB}/SECURITY.md` },
               { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
             ]}
