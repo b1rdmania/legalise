@@ -510,6 +510,78 @@ function GatewayDiagram() {
   );
 }
 
+function AuditChainDiagram() {
+  const rows = [
+    { action: "model.call", hash: "9f2a…" },
+    { action: "output.written", hash: "c71b…" },
+    { action: "output.signed", hash: "4e08…" },
+  ];
+  const W = 720;
+  const boxW = 132;
+  const boxH = 52;
+  const gap = 66;
+  const headW = 116;
+  const y = 34;
+  const midY = y + boxH / 2;
+  const headX = rows.length * (boxW + gap);
+  return (
+    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
+      <svg
+        viewBox={`0 0 ${W} 150`}
+        role="img"
+        aria-label="The audit chain: each entry carries the hash of the entry before it, up to a head hash that fingerprints the whole matter"
+        className="block w-full"
+      >
+        <defs>
+          <marker id="ah-ink" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6" fill="none" stroke="#181818" strokeWidth="1" />
+          </marker>
+          <marker id="ah-seal" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6" fill="none" stroke="#8B0000" strokeWidth="1.2" />
+          </marker>
+        </defs>
+        {rows.map((r, i) => {
+          const x = i * (boxW + gap);
+          const cx = x + boxW / 2;
+          return (
+            <g key={r.action}>
+              <rect x={x + 0.5} y={y + 0.5} width={boxW} height={boxH} fill="none" stroke="#181818" strokeWidth="1" />
+              <text x={cx} y={y + 21} textAnchor="middle" fontSize="9" letterSpacing="1" fill="#181818" fontFamily="ui-monospace, monospace">{r.action}</text>
+              <text x={cx} y={y + 39} textAnchor="middle" fontSize="9" letterSpacing="1" fill="#8B0000" fontFamily="ui-monospace, monospace">hash {r.hash}</text>
+              {i < rows.length - 1 && (
+                <>
+                  <line x1={x + boxW} y1={midY} x2={x + boxW + gap - 2} y2={midY} stroke="#181818" strokeWidth="1" markerEnd="url(#ah-ink)" />
+                  <text x={x + boxW + gap / 2} y={midY - 7} textAnchor="middle" fontSize="7.5" fill="#9b9b93" fontFamily="ui-monospace, monospace">prev</text>
+                </>
+              )}
+            </g>
+          );
+        })}
+        {/* Head node — filled, the published fingerprint. */}
+        <line
+          x1={(rows.length - 1) * (boxW + gap) + boxW}
+          y1={midY}
+          x2={headX - 2}
+          y2={midY}
+          stroke="#8B0000"
+          strokeWidth="1.4"
+          markerEnd="url(#ah-seal)"
+        />
+        <rect x={headX + 0.5} y={y + 0.5} width={headW} height={boxH} fill="#8B0000" stroke="#8B0000" strokeWidth="1" />
+        <text x={headX + headW / 2} y={y + 21} textAnchor="middle" fontSize="9" letterSpacing="1.5" fill="#f5f3ee" fontFamily="ui-monospace, monospace">HEAD</text>
+        <text x={headX + headW / 2} y={y + 39} textAnchor="middle" fontSize="7.5" fill="#f5f3ee" fontFamily="ui-monospace, monospace">fingerprint</text>
+        <text x={W / 2} y={128} textAnchor="middle" fontSize="8.5" letterSpacing="1.5" fill="#181818" fontFamily="ui-monospace, monospace">
+          CHANGE ANY ROW · EVERY HASH AFTER IT BREAKS
+        </text>
+      </svg>
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+        Each entry carries the hash of the one before it, up to a head that
+        fingerprints the whole matter.
+      </figcaption>
+    </figure>
+  );
+}
+
 function StatusTag({ status }: { status: "shipped" | "deferred" | "accepted" }) {
   const isShipped = status === "shipped";
   return (
@@ -945,6 +1017,7 @@ export function Architecture() {
           reports the head plus any breaks. Two pieces of code do the same sum,
           and CI fails the build if they ever disagree.
         </P>
+        <AuditChainDiagram />
         <P>
           The table is append-only in two layers. A Postgres trigger rejects
           UPDATE and DELETE on every row, whatever role tries it. A database role
