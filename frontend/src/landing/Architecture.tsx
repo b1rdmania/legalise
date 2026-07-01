@@ -1,37 +1,21 @@
 /**
- * /architecture — the MACHINE page, for the technical reader (firm IT /
- * security / infra, or a builder evaluating the design). The founder
- * narrative moved to /about; this page is grounded entirely in what the
- * code does, every claim sourced from the repo.
+ * /architecture — technical documentation for Legalise: what each subsystem
+ * is, how it is built, and where in the repository to verify each claim.
+ * Grounded entirely in the code on master; every code claim links to the file
+ * that implements it.
  *
- * Order: tight masthead → skim layer (five lines + jump index) → exhibit
- * (why it matters) → what/why/how → identity & access → inference gateway →
- * privilege gate → anonymisation → admission → the refusal → the record →
- * sign-off → sovereignty → standing (closing argument) → deeper-reading
- * doc map → status matrix → honesty (gaps stated, not buried) → colophon.
- * The middle reads as one clean machine; philosophy sits at the ends.
- *
- * Diagrams (all hand-drawn inline SVG, no deps): SpineDiagram (the flat
- * spine), RequestPathDiagram (nodes + the check at each, refusal in
- * seal), GatewayDiagram (the single-egress internals). Every section
- * that makes a code claim ends in a SourceRow of GitHub deep-links.
+ * Diagrams are hand-drawn inline SVG, no deps: SpineDiagram (the matter
+ * spine), RequestPathDiagram (the checks at each node), GatewayDiagram (the
+ * single-egress internals).
  */
 
 import { Footer } from "../ui/Footer";
-import {
-  CertCard,
-  CertEyebrow,
-  Colophon,
-  LedgerRow,
-  SectionRule,
-} from "../ui/certificate";
 
 const REPO = "https://github.com/b1rdmania/legalise";
 const BLOB = `${REPO}/blob/master`;
 
-/** Deep-links to the files that actually implement each claim. The page
- * names a file in prose, then links straight to the line of code, so a
- * reader can check the claim instead of trusting it. */
+/** Deep-links to the files that implement each claim. Prose names a file,
+ * then links to the code so a reader can check the claim. */
 const SRC = {
   gateway: `${BLOB}/backend/app/core/model_gateway.py`,
   gatewayCall: `${BLOB}/backend/app/core/model_gateway.py#L319`,
@@ -58,9 +42,7 @@ const SRC = {
   matterAccess: `${BLOB}/backend/app/core/matter_access.py`,
 };
 
-/** A small inline "read the code" pointer, set right under the prose that
- * makes the claim. Monospace, seal underline on hover — looks like a
- * citation, behaves like one. */
+/** An inline "read the code" link, monospace, set next to the claim. */
 function Src({ file, children }: { file: string; children: React.ReactNode }) {
   return (
     <a
@@ -74,13 +56,12 @@ function Src({ file, children }: { file: string; children: React.ReactNode }) {
   );
 }
 
-/** A cluster of source pointers under a section — "here is every file
- * behind what you just read." */
+/** A cluster of source links under a section. */
 function SourceRow({ items }: { items: { label: string; file: string }[] }) {
   return (
     <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-rule/50 pt-4">
       <span className="tech-token text-[10px] uppercase tracking-[0.2em] text-muted">
-        Read the source:
+        Source:
       </span>
       {items.map((it) => (
         <Src key={it.label} file={it.file}>
@@ -91,18 +72,7 @@ function SourceRow({ items }: { items: { label: string; file: string }[] }) {
   );
 }
 
-/** The regulated-profession mapping — the page's one certificate. */
-const MAPPING: { primitive: string; counterpart: string }[] = [
-  { primitive: "Skill manifest", counterpart: "Practicing certificate" },
-  { primitive: "Trust ceremony", counterpart: "Instructing counsel" },
-  { primitive: "Permission bands", counterpart: "Rights of audience" },
-  { primitive: "Audit chain", counterpart: "Disciplinary record" },
-  { primitive: "Professional sign-off", counterpart: "Supervised practice" },
-];
-
-/** The "deeper reading" map: each section of this page → its canonical
- * doc(s) in the repo. The page is the readable index; these are the
- * depth. Every path verified present on master. */
+/** Each section of this page → its canonical doc(s) in the repository. */
 const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = [
   {
     section: "Identity & access",
@@ -170,10 +140,8 @@ const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = 
   },
 ];
 
-/** The shipped-vs-deferred matrix, built from the Honesty prose + TRUST.md.
- * "shipped" means in the code on master; "deferred" means designed/staged
- * but not built; "accepted" means a deliberate trade we are not closing.
- * No SBOM/SLSA/SOC2/ISO/signed-images claims — Legalise has none. */
+/** Shipped-vs-deferred matrix. "shipped" = in the code on master; "deferred"
+ * = designed/staged but not built; "accepted" = a deliberate trade. */
 const STATUS_MATRIX: {
   capability: string;
   status: "shipped" | "deferred" | "accepted";
@@ -208,70 +176,25 @@ const CITATIONS: { label: string; href: string }[] = [
   { label: "Apache 2.0", href: `${REPO}/blob/master/LICENSE` },
 ];
 
+/** The contents list at the top of the page. */
+const CONTENTS: { id: string; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "built", label: "How it is built" },
+  { id: "identity", label: "Identity and access" },
+  { id: "gateway", label: "The inference gateway" },
+  { id: "gate", label: "The privilege gate" },
+  { id: "anon", label: "Anonymisation" },
+  { id: "admission", label: "Skill admission" },
+  { id: "refusal", label: "Refusals" },
+  { id: "record", label: "The audit record" },
+  { id: "signoff", label: "Sign-off" },
+  { id: "deployment", label: "Deployment and self-hosting" },
+  { id: "status", label: "Status" },
+  { id: "docs", label: "Reference documents" },
+  { id: "limits", label: "What is not solved" },
+];
 
-/** Muted looping clip in figure chrome — the demo proving a section's
- * claim in motion. */
-function VideoFigure({
-  src,
-  index,
-  caption,
-}: {
-  src: string;
-  index: number;
-  caption: string;
-}) {
-  return (
-    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
-      <video
-        src={src}
-        className="block w-full border border-rule/60"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        // React doesn't reliably write the muted ATTRIBUTE before the
-        // autoplay policy check runs; set it imperatively so the clips
-        // actually start.
-        ref={(el) => {
-          if (el) {
-            el.muted = true;
-            void el.play().catch(() => undefined);
-          }
-        }}
-      />
-      <figcaption className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-        <span className="text-seal">Fig. {String(index).padStart(2, "0")}</span> · {caption}
-      </figcaption>
-    </figure>
-  );
-}
-
-/** Bordered figure with a clerk's caption — the page's only image chrome. */
-function Figure({
-  src,
-  alt,
-  index,
-  caption,
-}: {
-  src: string;
-  alt: string;
-  index: number;
-  caption: string;
-}) {
-  return (
-    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
-      <img src={src} alt={alt} className="block w-full border border-rule/60" loading="lazy" />
-      <figcaption className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-        <span className="text-seal">Fig. {String(index).padStart(2, "0")}</span> · {caption}
-      </figcaption>
-    </figure>
-  );
-}
-
-/** The matter spine, drawn flat: six stations over one record rail.
- * Ink hairlines; the gate's tick is the one seal mark — refusals land
- * on the record like everything else. */
+/** The matter spine: six stations over one record rail. */
 function SpineDiagram() {
   const stations = [
     "DOCUMENTS",
@@ -288,7 +211,7 @@ function SpineDiagram() {
   const railY = 132;
   const gap = (W - stations.length * boxW) / (stations.length - 1);
   return (
-    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-4">
+    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
       <svg viewBox={`0 0 ${W} 170`} role="img" aria-label="The matter spine: documents, matter, gate, model, output, and sign-off, each writing to one hash-chained record" className="block w-full">
         {stations.map((label, i) => {
           const x = i * (boxW + gap);
@@ -362,18 +285,15 @@ function SpineDiagram() {
           THE RECORD · HASH-CHAINED · EXPORTABLE
         </text>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-        Fig. 02 · The matter spine · every station writes to one record
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+        The matter spine: every station writes to one hash-chained record.
       </figcaption>
     </figure>
   );
 }
 
-/** The request path drawn as nodes, top to bottom, with the checks
- * written beside each node and the one refusal branch in seal red. This
- * is the "what actually happens to a request" diagram. Same hand-drawn
- * idiom as SpineDiagram: ink hairlines, monospace labels, seal for the
- * gate and the refusal. */
+/** The request path drawn as nodes top to bottom, with the check each node
+ * runs written beside it and the refusal branch marked. */
 function RequestPathDiagram() {
   const W = 720;
   const boxW = 300;
@@ -382,7 +302,6 @@ function RequestPathDiagram() {
   const stepGap = 30;
   const y0 = 20;
 
-  // Each node: label, the check it runs, and (optional) what it refuses.
   const nodes = [
     { label: "REQUEST", check: "authenticated session · HttpOnly cookie", refuse: null },
     { label: "MATTER", check: "owned by this user? cross-user → 404", refuse: null },
@@ -403,7 +322,7 @@ function RequestPathDiagram() {
   const totalH = y0 + nodes.length * rowH;
 
   return (
-    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-4">
+    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
       <svg
         viewBox={`0 0 ${W} ${totalH}`}
         role="img"
@@ -435,7 +354,6 @@ function RequestPathDiagram() {
               >
                 {n.label}
               </text>
-              {/* the check, written to the right of the node */}
               <text
                 x={boxX + boxW + 16}
                 y={cy - 2}
@@ -456,7 +374,6 @@ function RequestPathDiagram() {
                   {n.refuse}
                 </text>
               )}
-              {/* connector down to the next node */}
               {i < nodes.length - 1 && (
                 <line
                   x1={boxX + boxW / 2}
@@ -484,17 +401,15 @@ function RequestPathDiagram() {
           </marker>
         </defs>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-        Fig. 07 · The request path · what runs, and what is checked, at every node
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+        The request path: what runs, and what is checked, at every node.
       </figcaption>
     </figure>
   );
 }
 
-/** The inference gateway, drawn from the inside: many callers, one box,
- * the key decrypted at the last moment, one wire out to a provider. The
- * point of the picture is the single egress — everything funnels through
- * one component before anything can leave. */
+/** The inference gateway drawn from the inside: many callers, one box, the
+ * key decrypted at the last moment, one wire out to a provider. */
 function GatewayDiagram() {
   const W = 720;
   const H = 320;
@@ -511,14 +426,13 @@ function GatewayDiagram() {
   ];
 
   return (
-    <figure className="mt-8 max-w-3xl border border-ink/70 bg-paper p-4">
+    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label="The inference gateway: every caller funnels into one gateway component, which reads the privilege posture, decrypts the user's key at call time, and is the only component that talks to a model provider"
         className="block w-full"
       >
-        {/* callers on the left */}
         {callers.map((c, i) => {
           const cy = 70 + i * 60;
           return (
@@ -532,7 +446,6 @@ function GatewayDiagram() {
           );
         })}
 
-        {/* the gateway box */}
         <rect x={gx} y={gy} width={gw} height={gh} fill="none" stroke="#181818" strokeWidth="1.5" />
         <text x={gx + gw / 2} y={gy + 24} textAnchor="middle" fontSize="11" letterSpacing="1.5" fill="#181818" fontFamily="ui-monospace, monospace">
           THE GATEWAY
@@ -556,13 +469,11 @@ function GatewayDiagram() {
           </text>
         ))}
 
-        {/* the single egress line */}
         <line x1={gx + gw} y1={gy + gh / 2} x2={560} y2={gy + gh / 2} stroke="#181818" strokeWidth="1.5" markerEnd="url(#gw-arrow)" />
         <text x={(gx + gw + 560) / 2} y={gy + gh / 2 - 8} textAnchor="middle" fontSize="8" letterSpacing="1" fill="#8B0000" fontFamily="ui-monospace, monospace">
           ONLY WIRE OUT
         </text>
 
-        {/* providers on the right */}
         {providers.map((p, i) => {
           const py = 60 + i * 64;
           return (
@@ -592,49 +503,13 @@ function GatewayDiagram() {
           </marker>
         </defs>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-        Fig. 08 · The inference gateway · many callers in, one wire out
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+        The inference gateway: many callers in, one wire out.
       </figcaption>
     </figure>
   );
 }
 
-function Prose({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mt-6 max-w-3xl space-y-5 text-base leading-relaxed text-prose">
-      {children}
-    </div>
-  );
-}
-
-function Section({
-  id,
-  label,
-  right,
-  title,
-  children,
-}: {
-  id?: string;
-  label: string;
-  right?: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section id={id} className="mt-16 scroll-mt-8">
-      {/* P35: the schedule labels carry the seal — the page's wayfinding
-          runs in oxblood. */}
-      <SectionRule label={<span className="text-seal">{label}</span>} right={right} />
-      <h2 className="mt-6 text-2xl md:text-3xl font-bold tracking-tight2 text-ink leading-tight max-w-2xl">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-/** The skim layer: the system in five lines, plus a jump index of the
- * sections. A technical reader skims this once, then deep-reads. */
 function StatusTag({ status }: { status: "shipped" | "deferred" | "accepted" }) {
   const isShipped = status === "shipped";
   return (
@@ -648,405 +523,325 @@ function StatusTag({ status }: { status: "shipped" | "deferred" | "accepted" }) 
   );
 }
 
+/** A plain section heading with a scroll anchor. */
+function H2({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <h2
+      id={id}
+      className="mt-16 scroll-mt-8 text-2xl md:text-[28px] font-bold tracking-tight2 text-ink"
+    >
+      {children}
+    </h2>
+  );
+}
+
+function H3({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="mt-8 text-lg font-semibold tracking-tight2 text-ink">
+      {children}
+    </h3>
+  );
+}
+
+function P({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-5 max-w-3xl text-base leading-relaxed text-prose">
+      {children}
+    </p>
+  );
+}
+
 export function Architecture() {
   return (
     <div className="max-w-page mx-auto">
       <div className="px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20">
-        {/* Honest note: this page is provisional; the repo is canonical. */}
-        <div className="mb-10 max-w-2xl border border-rule bg-wash px-4 py-3 text-sm leading-relaxed text-muted">
-          This page is a temporary version, and parts of it are LLM-written
-          slop. For the real read, go to the docs and the actual code on{" "}
-          <a
-            href="https://github.com/b1rdmania/legalise"
-            target="_blank"
-            rel="noreferrer"
-            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-          >
-            GitHub
-          </a>
-          .
-        </div>
-        {/* Masthead — the monument carries the page alone (P30). The
-            technical reader's orientation, not the founder's story (that
-            lives on /about). */}
         <header>
           <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
             Architecture
           </h1>
-          <div className="mt-6 max-w-xl text-base leading-relaxed text-prose">
+          <div className="mt-6 max-w-2xl text-base leading-relaxed text-prose">
             <p>
-              How Legalise runs AI under supervision. Every claim here links
-              to the code behind it.
+              Legalise is an open-source workspace for legal AI work in England
+              and Wales. This page documents how it is built: the subsystems,
+              how they fit together, and where in the repository to verify each
+              claim. Every code reference links to the file that implements it.
             </p>
             <p className="mt-4">
-              This is an experiment, not a finished answer. We have not solved
-              supervised legal AI. We have built one attempt at it, and shown
-              the working.
-            </p>
-          </div>
-        </header>
-
-        {/* Exhibit: the cost of unsupervised capability, already in the
-            law reports. Early by design — this is why the page exists. */}
-        <section className="mt-16">
-          <SectionRule label={<span className="text-seal">The cost of capability alone</span>} />
-          <Prose>
-            <p>
-              This already happens. Damien Charlotin's database of AI
-              hallucination cases has found{" "}
+              This is an open experiment, not a finished answer. The code is
+              canonical; if this page and the repository disagree, trust the{" "}
               <a
-                href="https://www.damiencharlotin.com/hallucinations/"
+                href={REPO}
                 target="_blank"
                 rel="noreferrer"
                 className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
               >
-                more than 1,500 court decisions
-              </a>{" "}
-              where generative AI put made-up content, usually fake citations,
-              in front of a judge. Lawyers are being punished now, in public,
-              with their names on the orders. Supervision is not a nice extra.
-              It is the product.
+                repository
+              </a>
+              .
             </p>
-          </Prose>
-          <Figure
-            src="/architecture/fig-hallucinations.png"
-            alt="Damien Charlotin's AI Hallucination Cases database: more than 1,500 legal decisions involving hallucinated AI content"
-            index={1}
-            caption="The hallucination case database · damiencharlotin.com · 1,500+ decisions and counting"
-          />
-        </section>
-
-        <Section id="what" label="01 · What this is" title="A matter workspace where the AI works under supervision.">
-          <Prose>
-            <p>
-              Legalise is an open-source workspace for legal AI work in
-              England and Wales. A "matter" is one legal case or file. A
-              solicitor opens a matter, uploads its documents, and works in
-              chat. The model answers with its sources attached, and it can
-              run skills, which are small, vetted units of legal work. A
-              letter before claim. A disclosure list. A summary of a witness
-              statement.
-            </p>
-            <p>
-              Every output is a draft until a named person reviews it, edits
-              it with tracked changes, and signs it. Everything the system
-              does, including what it refuses to do, is written to one
-              tamper-evident record. That is the whole product: chat,
-              governed skills, sign-off, and the record.
-            </p>
-          </Prose>
-        </Section>
-
-        <Section id="why" label="02 · Why" title="The hard part is proof, not capability.">
-          <Prose>
-            <p>
-              The hard question in legal AI is not whether the model can do
-              the work. It is whether a firm can show, later and on demand,
-              what the AI saw, under whose supervision it acted, and who took
-              responsibility for the output. Regulators and professional
-              indemnity insurers think in those terms. In the US,{" "}
-              <em>United States v. Heppner</em> held that AI work a client
-              generated on their own, outside their lawyer's direction, was
-              not privileged. (Privilege is the legal protection that keeps
-              certain lawyer-client work confidential.) England has not ruled
-              directly, but the principle is the same: unsupervised AI use is
-              where privilege and responsibility break down. The answer has
-              to be built into the system. You cannot reconstruct it from a
-              chat history afterwards.
-            </p>
-            <p>
-              The matter is the unit that makes proof possible. Documents,
-              model calls, outputs, signatures, and the record all hang off
-              one matter, owned by one user, governed by one privilege
-              setting, written into one audit log. Outside that frame the
-              legal use case stops being legal. It becomes a generic question
-              that happens to mention the law.
-            </p>
-          </Prose>
-        </Section>
-
-        <Section id="built" label="03 · How it is built" title="Built on a conventional stack.">
-          <Prose>
-            <p>
-              Python, FastAPI, and Postgres on the back end. React on the
-              front end. Nothing on that list will surprise anyone in 2030,
-              which is the point. The new part is how the pieces fit
-              together, and the pieces that matter survive swapping out any
-              model provider.
-            </p>
-          </Prose>
-          <SpineDiagram />
-          <Prose>
-            <p>
-              The spine above is the shape. The diagram below shows the
-              detail: the same path drawn as the steps a request passes
-              through, with the check each step runs written beside it. Read
-              it top to bottom. A request only reaches the next step if the
-              current one lets it through.
-            </p>
-          </Prose>
-          <RequestPathDiagram />
-          <Prose>
-            <p>
-              Documents belong to a matter. Before any model is called, the
-              gate reads that matter's privilege setting from the database,
-              and a paused matter stops the request right there. The model
-              runs on your own keys. The output is a draft until a person
-              signs it. Every step writes to the same hash-chained,
-              exportable record, refusals included. Skills only arrive by
-              import, from the Lawve catalogue or any public GitHub
-              repository, read at a fixed commit and admitted through a
-              ceremony.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "model_gateway.py", file: SRC.gateway },
-              { label: "posture_gate.py", file: SRC.postureGate },
-              { label: "audit_chain.py", file: SRC.auditChain },
-              { label: "signoff.py", file: SRC.signoff },
-              { label: "github_import.py", file: SRC.githubImport },
-            ]}
-          />
-          <div className="mt-10 max-w-3xl">
-            <SectionRule label={<span className="text-seal">The documents</span>} />
-            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-              {CITATIONS.map((c) => (
-                <a
-                  key={c.label}
-                  href={c.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs uppercase tracking-[0.18em] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-                >
-                  {c.label}
-                </a>
-              ))}
-            </div>
           </div>
-        </Section>
 
-        <Section id="identity" label="04 · Identity and access" title="Each user sees only their own matters, and every action is logged.">
-          <Prose>
-            <p>
-              Login uses fastapi-users with cookie sessions (HttpOnly,
-              Secure, SameSite=Lax) backed by a server-side{" "}
-              <code className="tech-token">access_token</code> table. So
-              signing out actually revokes the session on the server, not
-              just clears a cookie in the browser. Passwords are hashed with
-              the library's Argon2/bcrypt scheme. Email verification runs
-              through Resend, and a password reset uses a one-time token that
-              expires quickly. Requests from people who are not logged in are
-              rate limited by IP address: five registrations and ten
-              verification or reset requests per IP per hour. The count comes
-              from a sliding window recomputed from Postgres, so the limit
-              holds even when the app runs on several machines at once. The
-              first rejection in a window writes an{" "}
-              <code className="tech-token">auth.rate_limited</code> row.
-            </p>
-            <p>
-              Matters belong to one user, not to everyone. A matter's short
-              name is unique per{" "}
-              <code className="tech-token">(slug, created_by_id)</code>, so
-              two users can each have a matter with the same name without
-              clashing. Reading another user's matter returns 404, not 403,
-              so user A cannot even learn that user B has a matter with a
-              given name. Access decisions, changes, and model calls each
-              write their own audit row.
-            </p>
-            <p>
-              Be clear about the limits. This is built for the sole
-              practitioner and the small firm. There is no organisation or
-              team object, no single sign-on, no two-factor login, and one
-              deployment is one workspace. Those are planned for v0.2 and
-              later, not shipped.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "matter_access.py", file: SRC.matterAccess },
-              { label: "config.py", file: SRC.config },
-              { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
-            ]}
-          />
-        </Section>
+          {/* Contents */}
+          <nav aria-label="Contents" className="mt-8 max-w-2xl border-t border-rule/50 pt-4">
+            <ul className="flex flex-wrap gap-x-5 gap-y-2">
+              {CONTENTS.map((c) => (
+                <li key={c.id}>
+                  <a
+                    href={`#${c.id}`}
+                    className="text-[13px] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+                  >
+                    {c.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </header>
 
-        <Section id="gateway" label="05 · The inference gateway" title="Every model call leaves through one gateway, on keys you provide.">
-          <Prose>
-            <p>
-              Every model call goes through one gateway. The providers
-              (Anthropic, OpenAI, local Ollama, and a keyless stub for
-              development) sit behind a single interface, and the gateway is
-              the only part of the system that talks to a model provider. So
-              there is one exit point. If you want to know what can leave for
-              a third party, you read one file.
-            </p>
-            <p>
-              You bring your own keys. Each user stores an Anthropic or OpenAI
-              key under Settings, encrypted with AES-256-GCM (the ciphertext,
-              a 12-byte nonce, and the auth tag stored together) under a
-              master key given to the back end through an environment
-              variable. In production the app refuses to start if that master
-              key is missing, the wrong length, or not valid hex. If a user
-              has no key for a provider that needs one, the call fails safely
-              with a clear error and an audit row. There is no quiet fallback
-              to a server-owned key in production.
-            </p>
-            <p>
-              The honest cost: we do not pay for, sit between, or resell model
-              usage. The hosted site is for evaluation, and real calls need
-              your own provider credentials.
-            </p>
-          </Prose>
-          <GatewayDiagram />
-          <Prose>
-            <p>
-              Inside the box, every call runs the same five steps in order.
-              Read the matter's privilege setting from the database. Refuse
-              outright if the matter is paused. Pick the provider for the
-              requested model. Decrypt your key, now and not before. Make the
-              call, hash the prompt and response, write the audit row. The
-              decrypted key lives only for the length of the call and never
-              touches a log or the audit row.
-            </p>
-            <p>
-              One small thing that matters more than it looks. The gateway
-              works out which provider a model name belongs to in a single
-              helper, used both by the gateway and by any check that runs
-              before the call. So a check can never be stricter than the call
-              it is checking. If a renamed model id would change routing, both
-              sides change at once.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "ModelGateway.call", file: SRC.gatewayCall },
-              { label: "_select_provider", file: SRC.gatewaySelect },
-              { label: "user_keys.py", file: SRC.userKeys },
-              { label: "encryption.py", file: SRC.encryption },
-              { label: "providers/", file: SRC.providers },
-            ]}
-          />
-        </Section>
+        <H2 id="overview">Overview</H2>
+        <P>
+          A <em>matter</em> is one legal case or file. A solicitor opens a
+          matter, uploads its documents, and works in chat. The model answers
+          with its sources attached and can run skills, which are small, vetted
+          units of legal work such as a letter before claim, a disclosure list,
+          or a witness-statement summary.
+        </P>
+        <P>
+          Every output is a draft until a named person reviews it, edits it with
+          tracked changes, and signs it. Everything the system does, including
+          what it refuses, is written to one tamper-evident record. Documents,
+          model calls, outputs, signatures, and the audit log all hang off one
+          matter, owned by one user and governed by one privilege setting.
+        </P>
 
-        <Section id="gate" label="06 · The privilege gate" title="The matter's posture is read from the database before every call.">
-          <Prose>
-            <p>
-              Every matter has one of three privilege settings.{" "}
-              <code className="tech-token">A_cleared</code> allows all
-              providers. <code className="tech-token">B_mixed</code>, the
-              default, prefers a local Ollama provider when one is set up and
-              a frontier model was asked for, and otherwise allows the
-              frontier providers under their no-training contract terms.{" "}
-              <code className="tech-token">C_paused</code> allows no model call
-              at all.
-            </p>
-            <p>
-              What matters is where the setting is read. The gateway reads it
-              from the matter row, in the same session as the request, never
-              from a value the caller handed in. That closes a gap: a caller
-              reads <code className="tech-token">B_mixed</code>, an
-              administrator switches the matter to{" "}
-              <code className="tech-token">C_paused</code>, and the old value
-              gets used anyway. On a paused matter the gateway stops before
-              any network traffic. The same gate guards privilege-gated tools.
-              A privilege-gated tool with no matter attached is refused rather
-              than allowed to skip the check by leaving its matter off. The
-              change of setting is itself audited.
-            </p>
-            <p>
-              The gate works at two levels, not one. The gateway blocks model
-              calls on a paused matter. A second gate,{" "}
-              <code className="tech-token">check_posture</code>, runs before
-              any capability does, so even a non-model action is stopped on a
-              paused matter, and a non-solicitor on a privileged matter gets a
-              refusal that fits the setting rather than a grant. The whole
-              policy is a six-line table in one file. Changing it is a code
-              change someone has to review, not a switch anyone can flip in
-              production.
-            </p>
-            <p>
-              Calls made by a skill carry one more check. A call made for a{" "}
-              <code className="tech-token">(plugin, skill)</code> pair must
-              hold the <code className="tech-token">model.invoke</code> grant
-              for that pair, and a tool that writes a privileged resource also
-              needs its matching write permission.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "posture_gate.py", file: SRC.postureGate },
-              { label: "gateway.call (DB read)", file: SRC.gatewayCall },
-              { label: "invoke_tool", file: SRC.invokeTool },
-              { label: "capabilities.py", file: SRC.capabilities },
-            ]}
-          />
-        </Section>
+        <H2 id="built">How it is built</H2>
+        <P>
+          Python, FastAPI, and Postgres on the back end; React on the front
+          end. The parts that matter survive swapping out any model provider.
+          The diagram below is the shape of a matter: six stations over one
+          record rail.
+        </P>
+        <SpineDiagram />
+        <P>
+          The next diagram shows the same path as the steps a request passes
+          through, with the check each step runs written beside it. Read it top
+          to bottom; a request reaches the next step only if the current one
+          lets it through.
+        </P>
+        <RequestPathDiagram />
+        <P>
+          Documents belong to a matter. Before any model is called, the gate
+          reads that matter's privilege setting from the database, and a paused
+          matter stops the request there. The model runs on the user's own keys.
+          The output is a draft until a person signs it. Every step writes to the
+          same hash-chained, exportable record, refusals included. Skills arrive
+          only by import, from the Lawve catalogue or any public GitHub
+          repository, read at a fixed commit and admitted through a ceremony.
+        </P>
+        <SourceRow
+          items={[
+            { label: "model_gateway.py", file: SRC.gateway },
+            { label: "posture_gate.py", file: SRC.postureGate },
+            { label: "audit_chain.py", file: SRC.auditChain },
+            { label: "signoff.py", file: SRC.signoff },
+            { label: "github_import.py", file: SRC.githubImport },
+          ]}
+        />
+        <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+          {CITATIONS.map((c) => (
+            <a
+              key={c.label}
+              href={c.href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs uppercase tracking-[0.18em] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+            >
+              {c.label}
+            </a>
+          ))}
+        </div>
 
-        <Section id="anon" label="07 · Anonymisation" title="An optional layer that strips identifying details before a call.">
-          <Prose>
-            <p>
-              Before sending a document to a model, a solicitor can
-              pseudonymise it, meaning replace names and other identifying
-              details with placeholders. The layer runs Microsoft Presidio
-              with three UK-specific detectors added on top of the spaCy
-              defaults: postcodes, National Insurance numbers, and GBP
-              amounts, the shapes the base detectors miss in UK
-              correspondence. Detected text is replaced with stable tokens
-              (PARTY_1, ORG_1, and so on), and the mapping is stored so a
-              re-run produces the same result.
-            </p>
-            <p>
-              Two honest limits. First, Presidio is an optional install. The
-              slim deployment image does not include it, and a real run in
-              that state fails cleanly with install guidance rather than
-              quietly passing text straight through. Second, in{" "}
-              <code className="tech-token">auto</code> mode, if Presidio seems
-              to be catching too little on a long document, the layer can fall
-              back to a Claude pass through the same gateway. That fallback is
-              a model call, so it goes through the same privilege gate and
-              gets the same audit row. Pseudonymisation reduces what a
-              provider sees. It is not a guarantee, and the gate above it
-              still decides whether the provider may be called at all.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "presidio_engine.py", file: SRC.presidio },
-              { label: "pipeline.py", file: SRC.presidioPipeline },
-            ]}
-          />
-        </Section>
+        <H2 id="identity">Identity and access</H2>
+        <P>
+          Login uses fastapi-users with cookie sessions (HttpOnly, Secure,
+          SameSite=Lax) backed by a server-side{" "}
+          <code className="tech-token">access_token</code> table, so signing out
+          revokes the session on the server rather than clearing a cookie in the
+          browser. Passwords are hashed with the library's Argon2/bcrypt scheme.
+          Email verification runs through Resend, and a password reset uses a
+          short-lived one-time token. Requests from unauthenticated users are
+          rate limited by IP: five registrations and ten verification or reset
+          requests per IP per hour. The count comes from a sliding window
+          recomputed from Postgres, so the limit holds across several machines.
+          The first rejection in a window writes an{" "}
+          <code className="tech-token">auth.rate_limited</code> row.
+        </P>
+        <P>
+          Matters belong to one user. A matter's short name is unique per{" "}
+          <code className="tech-token">(slug, created_by_id)</code>, so two users
+          can each hold a matter with the same name. Reading another user's
+          matter returns 404, not 403, so user A cannot learn that user B has a
+          matter with a given name. Access decisions, changes, and model calls
+          each write their own audit row.
+        </P>
+        <P>
+          Limits: this targets the sole practitioner and small firm. There is no
+          organisation or team object, no single sign-on, no two-factor login,
+          and one deployment is one workspace. Those are planned for v0.2 and
+          later, not shipped.
+        </P>
+        <SourceRow
+          items={[
+            { label: "matter_access.py", file: SRC.matterAccess },
+            { label: "config.py", file: SRC.config },
+            { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
+          ]}
+        />
 
-        <Section id="admission" label="08 · Admission" title="Skills are checked and admitted before they can run.">
-          <Prose>
-            <p>
-              Anyone can propose a skill from a public GitHub repository that
-              has a SKILL.md file. The importer reads it at a fixed commit,
-              checks the licence, and produces a draft that the system can
-              govern. Admission scans the manifest's structure, its declared
-              permissions, and whether the source matches, then stops at one
-              human decision: approve and enable, or refuse. The record keeps
-              both outcomes the same way.
-            </p>
-            <p>
-              Signatures come in two honest grades.{" "}
-              <code className="tech-token">verified</code> means the manifest
-              carries an ed25519 signature that checks out cryptographically
-              against the publisher's registered public key, so only the
-              holder of the matching private key could have produced it.{" "}
-              <code className="tech-token">structure_verified</code> means
-              shape only. The signature is present and looks plausible, the
-              publisher is in the registry, but no cryptography was run, so a
-              well-made forgery would pass. The status string says exactly
-              which check ran, and a publisher with no registered key can
-              never reach <code className="tech-token">verified</code>.
-            </p>
-          </Prose>
-          {/* A real capability from examples/modules/contract_review —
-              what a skill declares before it is allowed to exist. */}
-          <div className="mt-8 max-w-3xl border border-ink/70 bg-paper p-2">
-            <pre className="tech-token overflow-x-auto whitespace-pre border border-rule/60 bg-wash p-4 text-[11px] leading-5 text-prose">
+        <H2 id="gateway">The inference gateway</H2>
+        <P>
+          Every model call goes through one gateway. The providers (Anthropic,
+          OpenAI, local Ollama, and a keyless stub for development) sit behind a
+          single interface, and the gateway is the only component that talks to a
+          model provider. There is one exit point, so what can leave for a third
+          party is defined in one file.
+        </P>
+        <P>
+          Users bring their own keys. Each user stores an Anthropic or OpenAI key
+          under Settings, encrypted with AES-256-GCM (ciphertext, a 12-byte
+          nonce, and the auth tag stored together) under a master key passed to
+          the back end via an environment variable. In production the app refuses
+          to start if that master key is missing, the wrong length, or not valid
+          hex. If a user has no key for a provider that needs one, the call fails
+          safely with a clear error and an audit row. There is no quiet fallback
+          to a server-owned key in production. The hosted site is for evaluation;
+          real calls require the user's own provider credentials.
+        </P>
+        <GatewayDiagram />
+        <P>
+          Inside the box, every call runs the same five steps in order: read the
+          matter's privilege setting from the database; refuse if the matter is
+          paused; pick the provider for the requested model; decrypt the key, now
+          and not before; make the call, hash the prompt and response, write the
+          audit row. The decrypted key lives only for the length of the call and
+          never touches a log or the audit row.
+        </P>
+        <P>
+          The gateway resolves which provider a model name belongs to in a single
+          helper, used both by the gateway and by any check that runs before the
+          call. A check can therefore never be stricter than the call it checks;
+          if a renamed model id would change routing, both sides change at once.
+        </P>
+        <SourceRow
+          items={[
+            { label: "ModelGateway.call", file: SRC.gatewayCall },
+            { label: "_select_provider", file: SRC.gatewaySelect },
+            { label: "user_keys.py", file: SRC.userKeys },
+            { label: "encryption.py", file: SRC.encryption },
+            { label: "providers/", file: SRC.providers },
+          ]}
+        />
+
+        <H2 id="gate">The privilege gate</H2>
+        <P>
+          Every matter has one of three privilege settings.{" "}
+          <code className="tech-token">A_cleared</code> allows all providers.{" "}
+          <code className="tech-token">B_mixed</code>, the default, prefers a
+          local Ollama provider when one is configured and a frontier model was
+          asked for, and otherwise allows the frontier providers under their
+          no-training contract terms.{" "}
+          <code className="tech-token">C_paused</code> allows no model call at
+          all.
+        </P>
+        <P>
+          The gateway reads the setting from the matter row, in the same session
+          as the request, never from a value the caller handed in. That closes a
+          gap where a caller reads{" "}
+          <code className="tech-token">B_mixed</code>, an administrator switches
+          the matter to <code className="tech-token">C_paused</code>, and the old
+          value is used anyway. On a paused matter the gateway stops before any
+          network traffic, and the change of setting is itself audited.
+        </P>
+        <P>
+          The gate works at two levels. The gateway blocks model calls on a
+          paused matter. A second gate,{" "}
+          <code className="tech-token">check_posture</code>, runs before any
+          capability, so even a non-model action is stopped on a paused matter,
+          and a non-solicitor on a privileged matter gets a refusal that fits the
+          setting rather than a grant. A privilege-gated tool with no matter
+          attached is refused rather than allowed to skip the check. The policy
+          is a six-line table in one file; changing it is a reviewed code change,
+          not a switch anyone can flip in production.
+        </P>
+        <P>
+          Calls made by a skill carry one more check: a call for a{" "}
+          <code className="tech-token">(plugin, skill)</code> pair must hold the{" "}
+          <code className="tech-token">model.invoke</code> grant for that pair,
+          and a tool that writes a privileged resource also needs its matching
+          write permission.
+        </P>
+        <SourceRow
+          items={[
+            { label: "posture_gate.py", file: SRC.postureGate },
+            { label: "gateway.call (DB read)", file: SRC.gatewayCall },
+            { label: "invoke_tool", file: SRC.invokeTool },
+            { label: "capabilities.py", file: SRC.capabilities },
+          ]}
+        />
+
+        <H2 id="anon">Anonymisation</H2>
+        <P>
+          Before sending a document to a model, a solicitor can pseudonymise it:
+          replace names and other identifying details with placeholders. The
+          layer runs Microsoft Presidio with three UK-specific detectors added on
+          top of the spaCy defaults: postcodes, National Insurance numbers, and
+          GBP amounts. Detected text is replaced with stable tokens
+          (PARTY_1, ORG_1, and so on), and the mapping is stored so a re-run
+          produces the same result.
+        </P>
+        <P>
+          Two limits. First, Presidio is an optional install; the slim
+          deployment image omits it, and a real run in that state fails cleanly
+          with install guidance rather than passing text straight through.
+          Second, in <code className="tech-token">auto</code> mode, if Presidio
+          appears to catch too little on a long document, the layer can fall back
+          to a Claude pass through the same gateway. That fallback is a model
+          call, so it goes through the same privilege gate and gets the same
+          audit row. Pseudonymisation reduces what a provider sees; it is not a
+          guarantee, and the gate still decides whether the provider may be
+          called at all.
+        </P>
+        <SourceRow
+          items={[
+            { label: "presidio_engine.py", file: SRC.presidio },
+            { label: "pipeline.py", file: SRC.presidioPipeline },
+          ]}
+        />
+
+        <H2 id="admission">Skill admission</H2>
+        <P>
+          Anyone can propose a skill from a public GitHub repository that has a
+          SKILL.md file. The importer reads it at a fixed commit, checks the
+          licence, and produces a draft the system can govern. Admission scans
+          the manifest's structure, its declared permissions, and whether the
+          source matches, then stops at one human decision: approve and enable,
+          or refuse. The record keeps both outcomes the same way.
+        </P>
+        <H3>The two signature grades</H3>
+        <P>
+          <code className="tech-token">verified</code> means the manifest carries
+          an ed25519 signature that checks out cryptographically against the
+          publisher's registered public key, so only the holder of the matching
+          private key could have produced it.{" "}
+          <code className="tech-token">structure_verified</code> means shape only:
+          the signature is present and plausible and the publisher is in the
+          registry, but no cryptography was run, so a well-made forgery would
+          pass. The status string says which check ran, and a publisher with no
+          registered key can never reach{" "}
+          <code className="tech-token">verified</code>.
+        </P>
+        <div className="mt-8 max-w-3xl border border-rule bg-paper p-2">
+          <pre className="tech-token overflow-x-auto whitespace-pre border border-rule/60 bg-wash p-4 text-[11px] leading-5 text-prose">
 {`{
   "id": "review",
   "kind": "skill",
@@ -1059,384 +854,234 @@ export function Architecture() {
   "data_movement": { "local_only": true, "external_destinations": [] },
   "advice_tier_max": "draft_advice"
 }`}
-            </pre>
-            <p className="px-1 pt-2 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted">
-              A capability from the contract-review manifest · declared, checked, then admitted
-            </p>
-          </div>
-          <Prose>
-            <p>
-              The two grades come from one rule, in one file. If the
-              publisher has a registered ed25519 public key, the signature is
-              checked against it with real cryptography, and the result is{" "}
-              <code className="tech-token">verified</code> or{" "}
-              <code className="tech-token">invalid</code>. If there is no
-              registered key, the verifier checks shape only and reports{" "}
-              <code className="tech-token">structure_verified</code>. The name
-              is deliberately not <code className="tech-token">verified</code>,
-              because shape is not proof. What gets signed is a fixed hash of
-              the manifest with the signature fields removed, so the exact
-              bytes being signed are pinned and re-saving the file cannot
-              change them.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "signing.py", file: SRC.signing },
-              { label: "publishers.py", file: SRC.publishers },
-              { label: "github_import.py", file: SRC.githubImport },
-              { label: "trust_ceremony.py", file: SRC.trustCeremony },
-              { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
-            ]}
-          />
-        </Section>
+          </pre>
+          <p className="px-1 pt-2 pb-1 text-[11px] text-muted">
+            A capability from the contract-review manifest: declared, checked,
+            then admitted.
+          </p>
+        </div>
+        <P>
+          The two grades come from one rule in one file. If the publisher has a
+          registered ed25519 public key, the signature is checked against it with
+          real cryptography and the result is{" "}
+          <code className="tech-token">verified</code> or{" "}
+          <code className="tech-token">invalid</code>. If there is no registered
+          key, the verifier checks shape only and reports{" "}
+          <code className="tech-token">structure_verified</code>. What gets signed
+          is a fixed hash of the manifest with the signature fields removed, so
+          the exact bytes being signed are pinned and re-saving the file cannot
+          change them.
+        </P>
+        <SourceRow
+          items={[
+            { label: "signing.py", file: SRC.signing },
+            { label: "publishers.py", file: SRC.publishers },
+            { label: "github_import.py", file: SRC.githubImport },
+            { label: "trust_ceremony.py", file: SRC.trustCeremony },
+            { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
+          ]}
+        />
 
-        <Section id="refusal" label="09 · The refusal" title="The gate refuses, and the refusal is kept.">
-          <Prose>
-            <p>
-              The gate from section 06 is only worth something if its
-              refusals are kept and visible. When a paused matter refuses a
-              privileged read, the refusal lands in the demo's record as a
-              struck entry, in the same row shape, the same ledger, and seal
-              red, rather than vanishing into a log nobody reads.
-            </p>
-            <p>
-              Refusals are recorded with the same weight as approvals. You
-              can watch it in the demo: the paused matter refuses a privileged
-              read, and the record keeps it.
-            </p>
-          </Prose>
-          <VideoFigure
-            src="/architecture/clip-refusal.mp4"
-            index={4}
-            caption="The refusal, in conversation · pause, refusal, resume · live from the demo"
-          />
-        </Section>
+        <H2 id="refusal">Refusals</H2>
+        <P>
+          The privilege gate is only worth something if its refusals are kept and
+          visible. When a paused matter refuses a privileged read, the refusal
+          lands in the record as a struck entry, in the same row shape and the
+          same ledger as any other action, rather than vanishing into a log
+          nobody reads. Refusals are recorded with the same weight as approvals.
+        </P>
 
-        <Section id="record" label="10 · The record" title="Every action writes a hash-chained audit row you can check.">
-          <Prose>
-            <p>
-              Every model call writes an audit row holding the model used,
-              the SHA-256 hashes of the prompt and response (never the text
-              itself), the token count, and the latency. Every change to a
-              matter writes a row too. The rows are hash-chained, which means
-              an append-only table links each entry to the one before it for
-              that matter, so the chain's head hash is the matter's
-              fingerprint and stands for every entry under it. Publish that
-              head hash, in an email, a filing, or a public log, and anyone
-              can later prove the trail was not rewritten, because a changed
-              trail no longer adds up to the same head. A Postgres trigger
-              written in PL/pgSQL writes the chain the moment a row lands. The
-              verify endpoint{" "}
-              <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/verify</code>{" "}
-              recomputes the same hashes separately in Python from the raw
-              rows and reports the head plus any breaks. Two pieces of code do
-              the same sum, and CI fails the build if they ever disagree. A
-              hash chain whose only checker is the code that wrote it would
-              prove nothing.
-            </p>
-            <p>
-              The table is append-only, in two layers. A Postgres trigger
-              rejects UPDATE and DELETE on every row, whatever role tries it. A
-              database role split also strips the application role of
-              permission to change or delete audit rows, so the app is refused
-              before the trigger even runs. CI checks the split on every build,
-              and it is now enabled on the hosted deployment: the app connects
-              as a role that cannot rewrite the log, verified end to end. A
-              database superuser can still disable the trigger and rewrite
-              history; the honesty section says so, and the external anchoring
-              that would close that gap is not built.
-            </p>
-            <p>
-              The working pack holds the outputs, the source context, the
-              signatures, and the audit trail. It is what a solicitor uses to
-              answer the questions a regulator, a client, or opposing counsel
-              will eventually ask: what did your AI see, when, under what
-              protection, and what did it produce.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "audit_chain.py", file: SRC.auditChain },
-              { label: "GET /audit/verify", file: SRC.auditChainEndpoint },
-              { label: "SECURITY.md", file: `${BLOB}/SECURITY.md` },
-              { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
-            ]}
-          />
-          <Figure
-            src="/architecture/fig-refusal-record.png"
-            alt="The matter record with the blocked entry struck in seal red and its detail drawer open, leading with a plain-English account"
-            index={5}
-            caption="The blocked entry on the record, struck and kept"
-          />
-        </Section>
+        <H2 id="record">The audit record</H2>
+        <P>
+          Every model call writes an audit row holding the model used, the
+          SHA-256 hashes of the prompt and response (never the text itself), the
+          token count, and the latency. Every change to a matter writes a row
+          too. The rows are hash-chained: an append-only table links each entry
+          to the one before it for that matter, so the chain's head hash is the
+          matter's fingerprint and stands for every entry under it. Publish that
+          head hash and anyone can later prove the trail was not rewritten,
+          because a changed trail no longer adds up to the same head. A Postgres
+          trigger written in PL/pgSQL writes the chain the moment a row lands.
+          The verify endpoint{" "}
+          <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/verify</code>{" "}
+          recomputes the same hashes separately in Python from the raw rows and
+          reports the head plus any breaks. Two pieces of code do the same sum,
+          and CI fails the build if they ever disagree.
+        </P>
+        <P>
+          The table is append-only in two layers. A Postgres trigger rejects
+          UPDATE and DELETE on every row, whatever role tries it. A database role
+          split also strips the application role of permission to change or
+          delete audit rows, so the app is refused before the trigger runs. CI
+          checks the split on every build, and it is enabled on the hosted
+          deployment: the app connects as a role that cannot rewrite the log,
+          verified end to end. A database superuser can still disable the trigger
+          and rewrite history; the external anchoring that would close that gap is
+          not built (see below).
+        </P>
+        <P>
+          The exported working pack holds the outputs, the source context, the
+          signatures, and the audit trail: what a solicitor uses to answer what
+          the AI saw, when, under what protection, and what it produced.
+        </P>
+        <SourceRow
+          items={[
+            { label: "audit_chain.py", file: SRC.auditChain },
+            { label: "GET /audit/verify", file: SRC.auditChainEndpoint },
+            { label: "SECURITY.md", file: `${BLOB}/SECURITY.md` },
+            { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
+          ]}
+        />
 
-        <Section id="signoff" label="11 · Sign-off" title="A person reviews and signs every output.">
-          <Prose>
-            <p>
-              Every output is a draft until a named human reviews it, changes
-              it where needed, and signs what they are prepared to stand
-              behind. Edits show up as inline tracked changes: deletions
-              struck through, insertions underlined, and each acceptance or
-              rejection gets its own audit row. A firm that wants a four-eyes
-              rule (two people, not one) can deploy with{" "}
-              <code className="tech-token">SIGNOFF_AUTHOR_MUST_DIFFER</code>{" "}
-              set, which stops an author signing their own output (rejecting
-              it stays allowed). It is off by default so a sole practitioner
-              can still sign their own work.
-            </p>
-            <p>
-              Sign-off decisions build up per skill: signed, signed with
-              observations, or rejected. That is a supervised practice
-              history, produced by the system as it runs, not a benchmark
-              score. Closed platforms have not published theirs, and have no
-              reason to start.
-            </p>
-          </Prose>
-          <VideoFigure
-            src="/architecture/clip-signature.mp4"
-            index={6}
-            caption="The signature · tracked changes, a named signer, output.signed on the ledger"
-          />
-          <Prose>
-            <p>
-              The signature pins the exact output the signer saw. It is taken
-              over a SHA-256 of the file, so a signature can never quietly
-              come to mean a different document. The record also notes when a
-              sign-off lands too fast for the length of the output, judged
-              against a rough ten-minutes-per-thousand-words baseline. It
-              flags this; it does not block it.
-            </p>
-          </Prose>
-          <SourceRow
-            items={[
-              { label: "signoff.py", file: SRC.signoff },
-              { label: "SIGNOFF_AUTHOR_MUST_DIFFER", file: SRC.config },
-            ]}
-          />
-        </Section>
+        <H2 id="signoff">Sign-off</H2>
+        <P>
+          Every output is a draft until a named human reviews it, changes it
+          where needed, and signs it. Edits show up as inline tracked changes:
+          deletions struck through, insertions underlined, and each acceptance or
+          rejection gets its own audit row. A firm that wants a four-eyes rule
+          (two people, not one) can deploy with{" "}
+          <code className="tech-token">SIGNOFF_AUTHOR_MUST_DIFFER</code> set,
+          which stops an author signing their own output (rejecting it stays
+          allowed). It is off by default so a sole practitioner can sign their own
+          work.
+        </P>
+        <P>
+          Sign-off decisions accumulate per skill: signed, signed with
+          observations, or rejected. The signature pins the exact output the
+          signer saw: it is taken over a SHA-256 of the file, so a signature
+          cannot quietly come to mean a different document. The record also notes
+          when a sign-off lands faster than a rough ten-minutes-per-thousand-words
+          baseline would suggest for the length of the output. It flags this; it
+          does not block it.
+        </P>
+        <SourceRow
+          items={[
+            { label: "signoff.py", file: SRC.signoff },
+            { label: "SIGNOFF_AUTHOR_MUST_DIFFER", file: SRC.config },
+          ]}
+        />
 
-        <Section id="sovereignty" label="12 · Sovereignty and deployment" title="Open source, and it runs on your own keys.">
-          <Prose>
-            <p>
-              The architecture was model-agnostic from the start. The gateway
-              treats providers as interchangeable, and the original build ran
-              against local models, GPT, and Claude without caring which. For
-              the demo, that breadth earned less than it cost, so the working
-              build is tuned tightly to Anthropic and the Claude skills
-              format. The known cost of that choice: demo traffic touches
-              Anthropic's commercial API, under its no-training contract
-              terms, with the data questions that carries. This is a proof of
-              concept, and the trade is deliberate.
-            </p>
-            <p>
-              The project is Apache-2.0 and you can host it yourself. The back
-              end (Fly <code className="tech-token">lhr</code>) and Postgres
-              (Neon London) sit in the UK. R2 object storage is placed in the
-              EU, not specifically the UK, and we do not claim end-to-end UK
-              residency because that is not literally true. If you self-host,
-              you own the master encryption key. Because{" "}
-              <code className="tech-token">B_mixed</code> prefers a registered
-              local Ollama provider, a firm building on top of this can tune
-              it to run entirely on local models as those get stronger. At
-              that point no client data needs to leave the building, and a
-              local model is not a third party for privilege at all.
-            </p>
-          </Prose>
-        </Section>
+        <H2 id="deployment">Deployment and self-hosting</H2>
+        <P>
+          The architecture is model-agnostic: the gateway treats providers as
+          interchangeable, and the original build ran against local models, GPT,
+          and Claude. For the demo, the working build is tuned tightly to
+          Anthropic and the Claude skills format. The known cost of that choice:
+          demo traffic touches Anthropic's commercial API, under its no-training
+          contract terms, with the data questions that carries.
+        </P>
+        <P>
+          The project is Apache-2.0 and can be self-hosted. The back end (Fly{" "}
+          <code className="tech-token">lhr</code>) and Postgres (Neon London) sit
+          in the UK. R2 object storage is placed in the EU, not specifically the
+          UK, so end-to-end UK residency is not claimed. If you self-host, you own
+          the master encryption key. Because{" "}
+          <code className="tech-token">B_mixed</code> prefers a registered local
+          Ollama provider, a firm building on this can tune it to run entirely on
+          local models; at that point no client data needs to leave the building,
+          and a local model is not a third party for privilege.
+        </P>
 
-        {/* Standing (A5): moved out of the technical spine to here, the
-            closing argument — why the machine above is the institution. */}
-        <Section id="standing" label="13 · Standing" title="Standing, not capability, is what the profession trusts.">
-          <Prose>
-            <p>
-              The frontier models are available to everyone, including your
-              opponent. What does not become a commodity is the apparatus
-              around the work: who was allowed to do it, what they were
-              allowed to see, who signed it, and what the record says when
-              someone asks later. The profession solved this centuries ago,
-              not with better lawyers but with standing: a practicing
-              certificate, rights of audience, a disciplinary record,
-              supervised practice. Legalise applies that same structure to AI
-              counsel. The mapping is direct:
-            </p>
-          </Prose>
-          <div className="mt-8 max-w-xl">
-            <CertCard>
-              <CertEyebrow left="System" right="Profession" />
-              <dl className="mt-4 space-y-1 text-[11px] text-muted">
-                {MAPPING.map((m) => (
-                  <LedgerRow key={m.primitive} label={m.primitive} tone="ink">
-                    {m.counterpart}
-                  </LedgerRow>
-                ))}
-              </dl>
-            </CertCard>
-          </div>
-          <Figure
-            src="/architecture/fig-certificates.png"
-            alt="Two skills rendered as certificates in the demo workspace, each declaring what it reads and writes"
-            index={3}
-            caption="Skills in a matter, rendered as their certificates"
-          />
-        </Section>
-
-        {/* Plain-words recap of the security primitives, for the reader
-            who wants the gist before the spec. */}
-        <section id="plain" className="mt-16 scroll-mt-8">
-          <SectionRule label={<span className="text-seal">In plain words</span>} />
-          <ul className="mt-6 max-w-3xl space-y-3 text-base leading-relaxed text-prose">
-            <li>
-              <span className="font-semibold text-ink">Your model key is locked away.</span>{" "}
-              It is scrambled (AES-256) before it is stored, and unlocked only
-              for the moment it makes a call. The server will not start without
-              the secret that unlocks it.
-            </li>
-            <li>
-              <span className="font-semibold text-ink">The log cannot be edited in secret.</span>{" "}
-              Each entry carries a fingerprint of the one before it, so changing
-              any past line breaks every fingerprint after it. Anyone can
-              re-check the whole chain from one link.
-            </li>
-            <li>
-              <span className="font-semibold text-ink">The database refuses to change or delete those log lines.</span>
-            </li>
-            <li>
-              <span className="font-semibold text-ink">Skills can be signed.</span>{" "}
-              A real signature is marked verified. One without a registered key
-              can only ever be structure-checked, never verified.
-            </li>
-            <li>
-              <span className="font-semibold text-ink">A sign-off is tied to the exact document it approved.</span>{" "}
-              Swap the document afterwards and the signature stops matching.
-            </li>
-          </ul>
-        </section>
-
-        {/* Deeper reading (A1): the page is the readable index; each
-            section maps to its canonical doc(s) in the repo. */}
-        <section id="docs" className="mt-16 scroll-mt-8">
-          <SectionRule label={<span className="text-seal">Deeper reading</span>} />
-          <Prose>
-            <p>
-              This page is the map. Each section above has one or more main
-              documents in the repository that carry the full detail. They
-              are listed here so the depth lives in the docs and the page
-              stays readable.
-            </p>
-          </Prose>
-          <dl className="mt-8 max-w-3xl space-y-4">
-            {DOC_MAP.map((row) => (
-              <div
-                key={row.section}
-                className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-rule/50 pt-4 sm:grid-cols-[180px_1fr]"
-              >
-                <dt className="text-[11px] uppercase tracking-[0.18em] text-muted">
-                  {row.section}
-                </dt>
-                <dd className="flex flex-wrap gap-x-5 gap-y-2">
-                  {row.docs.map((d) => (
-                    <Src key={d.label} file={d.file}>
-                      {d.label}
-                    </Src>
-                  ))}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-
-        {/* Shipped-vs-deferred matrix (A7): what is in the code, what is
-            staged, and what is a deliberate trade — each with where to
-            check it. No SBOM/SLSA/SOC2/ISO claimed as shipped. */}
-        <section id="status" className="mt-16 scroll-mt-8">
-          <SectionRule label={<span className="text-seal">Status</span>} />
-          <Prose>
-            <p>
-              Shipped means it is in the code on master. Deferred means it is
-              designed or staged but not built. Accepted means a deliberate
-              trade we are not closing. Each row points at where to check.
-            </p>
-          </Prose>
-          <div className="mt-8 max-w-3xl overflow-x-auto border border-ink/70 bg-paper">
-            <table className="w-full border-collapse text-left text-sm text-prose">
-              <thead>
-                <tr className="border-b border-rule/60">
-                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
-                    Capability
-                  </th>
-                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
-                    Status
-                  </th>
-                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
-                    Verification
-                  </th>
+        <H2 id="status">Status</H2>
+        <P>
+          Shipped means it is in the code on master. Deferred means it is designed
+          or staged but not built. Accepted means a deliberate trade. Each row
+          points at where to check.
+        </P>
+        <div className="mt-8 max-w-3xl overflow-x-auto border border-rule bg-paper">
+          <table className="w-full border-collapse text-left text-sm text-prose">
+            <thead>
+              <tr className="border-b border-rule/60">
+                <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+                  Capability
+                </th>
+                <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+                  Status
+                </th>
+                <th className="px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+                  Verification
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {STATUS_MATRIX.map((row) => (
+                <tr key={row.capability} className="border-b border-rule/40 last:border-0">
+                  <td className="px-3 py-2 align-top">{row.capability}</td>
+                  <td className="px-3 py-2 align-top">
+                    <StatusTag status={row.status} />
+                  </td>
+                  <td className="tech-token px-3 py-2 align-top text-[11px] text-muted">
+                    {row.verification}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {STATUS_MATRIX.map((row) => (
-                  <tr key={row.capability} className="border-b border-rule/40 last:border-0">
-                    <td className="px-3 py-2 align-top">{row.capability}</td>
-                    <td className="px-3 py-2 align-top">
-                      <StatusTag status={row.status} />
-                    </td>
-                    <td className="tech-token px-3 py-2 align-top text-[11px] text-muted">
-                      {row.verification}
-                    </td>
-                  </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <H2 id="docs">Reference documents</H2>
+        <P>
+          Each section above maps to one or more documents in the repository that
+          carry the full detail.
+        </P>
+        <dl className="mt-8 max-w-3xl space-y-4">
+          {DOC_MAP.map((row) => (
+            <div
+              key={row.section}
+              className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-rule/50 pt-4 sm:grid-cols-[180px_1fr]"
+            >
+              <dt className="text-[11px] uppercase tracking-[0.18em] text-muted">
+                {row.section}
+              </dt>
+              <dd className="flex flex-wrap gap-x-5 gap-y-2">
+                {row.docs.map((d) => (
+                  <Src key={d.label} file={d.file}>
+                    {d.label}
+                  </Src>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              </dd>
+            </div>
+          ))}
+        </dl>
 
-        <Section id="honesty" label="14 · Honesty" title="What is not solved.">
-          <Prose>
-            <p>
-              The hosted site is an evaluation environment, not a practice
-              environment. It is not a law firm and it does not give legal
-              advice. Real model calls require your own provider keys; we do
-              not pay for, or sit between, your model usage.
-            </p>
-            <p>
-              One deployment is one workspace. Serving many separate
-              organisations from one deployment is deliberately out of scope
-              for the beta. Firm-grade isolation needs its own design pass,
-              not a column on a table. Manifest signing is young: the scheme
-              works, but the web of trust around it does not exist yet.
-              Durable job recovery, formal write-once storage roles, and
-              production-grade regulator reconstruction are planned
-              engineering work, not solved problems.
-            </p>
-            <p>
-              And the models hallucinate. Citations give the reviewer
-              something concrete to check, but they are not a guarantee. The
-              system makes review explicit and recorded. It does not make
-              review optional, and it never will. That limit is the point of
-              the product, not something we hope to remove.
-            </p>
-            <p>
-              If any of this is wrong, or you can break it, the repository is
-              open:{" "}
-              <a
-                href={`${REPO}/issues`}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-              >
-                issues and contributions welcome
-              </a>
-              .
-            </p>
-          </Prose>
-        </Section>
+        <H2 id="limits">What is not solved</H2>
+        <P>
+          The hosted site is an evaluation environment, not a practice
+          environment. It is not a law firm and does not give legal advice. Real
+          model calls require your own provider keys; Legalise does not pay for,
+          or sit between, your model usage.
+        </P>
+        <P>
+          One deployment is one workspace. Serving many separate organisations
+          from one deployment is out of scope for the beta; firm-grade isolation
+          needs its own design pass. Manifest signing is young: the scheme works,
+          but the web of trust around it does not exist yet. Durable job
+          recovery, formal write-once storage roles, and production-grade
+          regulator reconstruction are planned engineering work, not solved
+          problems. A database superuser can still disable the audit trigger; the
+          external anchoring that would close that gap is not built.
+        </P>
+        <P>
+          Models hallucinate. Citations give the reviewer something concrete to
+          check, but they are not a guarantee. The system makes review explicit
+          and recorded; it does not make review optional.
+        </P>
+        <P>
+          If any of this is wrong, or you can break it, the repository is open:{" "}
+          <a
+            href={`${REPO}/issues`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+          >
+            issues and contributions welcome
+          </a>
+          .
+        </P>
 
-        <Colophon>
-          The record shows what the AI did, what it refused, and who signed it
-          off.
-        </Colophon>
-
-        <Footer />
+        <div className="mt-16">
+          <Footer />
+        </div>
       </div>
     </div>
   );
