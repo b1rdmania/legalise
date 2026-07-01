@@ -79,6 +79,7 @@ class BuildResult:
     document_count: int
     parse_failed: bool = False
     error: str | None = None
+    duplicates_skipped: int = 0
 
 
 # --- defensive model-output schemas -----------------------------------------
@@ -241,8 +242,28 @@ async def build_chronology(
 
     coerced = _coerce_events(envelope, known_docs=known_docs)
 
+    # Dedup: a re-run must not re-propose events the matter already has (in
+    # any status). Key on (date, whitespace-normalised lowercase description),
+    # and dedup within this batch too. This fixes the "build again → duplicate
+    # events" bug.
+    def _key(d: date, desc: str) -> tuple[date, str]:
+        return (d, " ".join(desc.split()).lower())
+
+    existing = await session.execute(
+        select(Event.event_date, Event.description).where(
+            Event.matter_id == matter.id
+        )
+    )
+    seen_keys = {_key(d, desc) for d, desc in existing.all()}
+
     created: list[Event] = []
+    duplicates = 0
     for event_date, description, source_doc_id in coerced:
+        key = _key(event_date, description)
+        if key in seen_keys:
+            duplicates += 1
+            continue
+        seen_keys.add(key)
         event = Event(
             matter_id=matter.id,
             event_date=event_date,
@@ -261,7 +282,11 @@ async def build_chronology(
     if created:
         await session.flush()
 
-    return BuildResult(events=created, document_count=len(documents))
+    return BuildResult(
+        events=created,
+        document_count=len(documents),
+        duplicates_skipped=duplicates,
+    )
 
 
 __all__ = ["build_chronology", "BuildResult", "BUILD_SYSTEM_PROMPT"]
