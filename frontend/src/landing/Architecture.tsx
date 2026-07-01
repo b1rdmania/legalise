@@ -179,6 +179,7 @@ const CITATIONS: { label: string; href: string }[] = [
 /** The contents list at the top of the page. */
 const CONTENTS: { id: string; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "limits", label: "What is not solved" },
   { id: "built", label: "How it is built" },
   { id: "identity", label: "Identity and access" },
   { id: "gateway", label: "The inference gateway" },
@@ -191,7 +192,6 @@ const CONTENTS: { id: string; label: string }[] = [
   { id: "deployment", label: "Deployment and self-hosting" },
   { id: "status", label: "Status" },
   { id: "docs", label: "Reference documents" },
-  { id: "limits", label: "What is not solved" },
 ];
 
 /** The matter spine: six stations over one record rail. */
@@ -286,7 +286,7 @@ function SpineDiagram() {
         </text>
       </svg>
       <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
-        The matter spine: every station writes to one hash-chained record.
+        Every stage writes to one hash-chained record.
       </figcaption>
     </figure>
   );
@@ -504,7 +504,7 @@ function GatewayDiagram() {
         </defs>
       </svg>
       <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
-        The inference gateway: many callers in, one wire out.
+        Every model call leaves through one gateway.
       </figcaption>
     </figure>
   );
@@ -614,12 +614,49 @@ export function Architecture() {
           matter, owned by one user and governed by one privilege setting.
         </P>
 
+        <H2 id="limits">What is not solved</H2>
+        <P>
+          Read this first. The hosted site is an evaluation environment, not a
+          practice one: not a law firm, no legal advice, and not for live client
+          matters. Model calls run on your own keys — Legalise does not pay for
+          or sit between your model usage.
+        </P>
+        <P>
+          Not built yet: one deployment is one workspace (no multi-tenancy, SSO,
+          or organisation roles); manifest signing works, but the web of trust
+          around it does not exist yet; durable job recovery and production-grade
+          regulator reconstruction are planned, not solved; there are no
+          certifications (SOC 2, ISO 27001). Document storage is EU-placed, not
+          UK-specific.
+        </P>
+        <P>
+          The honest boundaries: the audit trail is tamper-evident, not
+          tamper-proof — a database superuser can disable the trigger and rewrite
+          history, and the external anchoring that would close that gap is not
+          built. A cloud provider sees the prompt in cleartext unless the
+          matter's posture pauses cloud calls. Models hallucinate; citations give
+          the reviewer something to check, not a guarantee. Review is explicit
+          and recorded — it is not optional.
+        </P>
+        <P>
+          If any of this is wrong, or you can break it, the repository is open:{" "}
+          <a
+            href={`${REPO}/issues`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+          >
+            issues and contributions welcome
+          </a>
+          .
+        </P>
+
         <H2 id="built">How it is built</H2>
         <P>
           Python, FastAPI, and Postgres on the back end; React on the front
-          end. The parts that matter survive swapping out any model provider.
-          The diagram below is the shape of a matter: six stations over one
-          record rail.
+          end. The governance parts do not depend on any one model provider.
+          The diagram shows a matter's six stages, each writing to the same
+          record.
         </P>
         <SpineDiagram />
         <P>
@@ -1043,41 +1080,6 @@ export function Architecture() {
             </div>
           ))}
         </dl>
-
-        <H2 id="limits">What is not solved</H2>
-        <P>
-          The hosted site is an evaluation environment, not a practice
-          environment. It is not a law firm and does not give legal advice. Real
-          model calls require your own provider keys; Legalise does not pay for,
-          or sit between, your model usage.
-        </P>
-        <P>
-          One deployment is one workspace. Serving many separate organisations
-          from one deployment is out of scope for the beta; firm-grade isolation
-          needs its own design pass. Manifest signing is young: the scheme works,
-          but the web of trust around it does not exist yet. Durable job
-          recovery, formal write-once storage roles, and production-grade
-          regulator reconstruction are planned engineering work, not solved
-          problems. A database superuser can still disable the audit trigger; the
-          external anchoring that would close that gap is not built.
-        </P>
-        <P>
-          Models hallucinate. Citations give the reviewer something concrete to
-          check, but they are not a guarantee. The system makes review explicit
-          and recorded; it does not make review optional.
-        </P>
-        <P>
-          If any of this is wrong, or you can break it, the repository is open:{" "}
-          <a
-            href={`${REPO}/issues`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-ink underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-          >
-            issues and contributions welcome
-          </a>
-          .
-        </P>
 
         <div className="mt-16">
           <Footer />
