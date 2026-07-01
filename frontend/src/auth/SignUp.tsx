@@ -12,8 +12,8 @@ export function SignUp() {
       </h1>
       <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
         <p>
-          We&apos;re beta testing the hosted backend next week. Sign-up
-          isn&apos;t open yet.
+          The hosted backend is in evaluation. Open sign-up isn&apos;t enabled
+          — access is by request.
         </p>
         <p>
           If you&apos;d like to join the testing, get in touch:{" "}
