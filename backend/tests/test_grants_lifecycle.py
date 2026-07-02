@@ -83,7 +83,7 @@ def _verified_manifest(module_id="legalise.r2-test", version="1.0.0", **override
         "signature": "x" * 64,
         "visibility": "first_party",
         "runtime": "native",
-        "entrypoint": {"python_module": "test.fixture", "entry": "M"},
+        "entrypoint": {"python_module": "app.core.runtime", "entry": "M"},
         "capabilities": [
             {
                 "id": "default",

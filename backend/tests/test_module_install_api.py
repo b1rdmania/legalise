@@ -38,7 +38,9 @@ def _verified_manifest(
         "signature": "x" * 64,
         "visibility": "first_party",
         "runtime": "native",
-        "entrypoint": {"python_module": "test.fixture", "entry": "M"},
+        # Must be a real importable module: install/update refuse native
+        # manifests whose entrypoint doesn't resolve on this image.
+        "entrypoint": {"python_module": "app.core.runtime", "entry": "M"},
         "capabilities": [
             {
                 "id": "default",
@@ -472,3 +474,40 @@ async def test_update_requires_admin(client) -> None:
         json={"new_manifest": _verified_manifest("anything.module")},
     )
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_start_install_unresolvable_entrypoint_rejected(client) -> None:
+    """A native manifest whose entrypoint module doesn't exist on this
+    image must be refused at ceremony start — installing it would make
+    every dispatch fail (the app.adapters.plugin_bridge incident)."""
+    clear_ceremonies()
+    await _register_admin(client)
+    stale = _verified_manifest("legalise.stale-entrypoint")
+    stale["entrypoint"] = {
+        "python_module": "app.adapters.plugin_bridge",
+        "entry": "M",
+    }
+    resp = await client.post(
+        "/api/modules/install",
+        json={"source": "manifest", "manifest": stale},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["error"] == "entrypoint_unresolvable"
+
+
+@pytest.mark.asyncio
+async def test_update_unresolvable_entrypoint_rejected(client) -> None:
+    await _register_admin(client)
+    manifest_v1 = _verified_manifest("legalise.entrypoint-test", "1.0.0")
+    await _install_via_ceremony(client, manifest_v1)
+
+    stale = _verified_manifest("legalise.entrypoint-test", "1.1.0")
+    stale["entrypoint"] = {"python_module": "app.gone.module", "entry": "M"}
+
+    resp = await client.post(
+        f"/api/modules/{manifest_v1['id']}/update",
+        json={"new_manifest": stale},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["error"] == "entrypoint_unresolvable"

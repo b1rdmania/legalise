@@ -873,6 +873,71 @@ class TestAssistantPipeline:
         assert tools[0].args_schema["properties"]["document_ids"]["type"] == "array"
 
     @pytest.mark.asyncio
+    async def test_tools_skip_unresolvable_native_entrypoints(self) -> None:
+        """A native install whose entrypoint no longer exists on this
+        image must not be advertised to the model — dispatching it can
+        only fail (the app.adapters.plugin_bridge incident)."""
+        matter = _make_matter()
+        stale_install = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="uk-litigation-legal.pre-motion",
+            version="1.0.0-legacy",
+            publisher="legacy",
+            visibility="first_party",
+            signature_status="unsigned",
+            signed_by=None,
+            install_path="<inline>",
+            manifest_snapshot={
+                "runtime": "native",
+                "entrypoint": {
+                    "python_module": "app.adapters.plugin_bridge",
+                    "entry": "PluginBridge",
+                },
+                "capabilities": [
+                    {"id": "run", "kind": "skill", "scope": "matter"}
+                ],
+            },
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        prompt_install = InstalledModule(
+            id=uuid.uuid4(),
+            module_id="github.example.skill",
+            version="0.0.0",
+            publisher="example",
+            visibility="community",
+            signature_status="unsigned",
+            signed_by=None,
+            install_path="<inline>",
+            manifest_snapshot={
+                "runtime": "prompt",
+                "entrypoint": {"prompt_source": "manifest"},
+                "capabilities": [
+                    {
+                        "id": "run",
+                        "kind": "skill",
+                        "scope": "matter",
+                        "ui": {"label": "Example skill"},
+                    }
+                ],
+            },
+            permissions_snapshot={},
+            installed_by_user_id=uuid.uuid4(),
+            enabled=True,
+        )
+        session = _AssistantSession(
+            matter,
+            installed_modules=[stale_install, prompt_install],
+        )
+
+        tools = await assistant_pipeline._load_assistant_tools(session)
+
+        assert [(t.module_id, t.capability_id) for t in tools] == [
+            ("github.example.skill", "run")
+        ]
+
+    @pytest.mark.asyncio
     async def test_tool_call_runs_once_and_finalises_reply(self) -> None:
         matter = _make_matter()
         session = _AssistantSession(matter)

@@ -29,6 +29,7 @@ entrypoint. Python's import cache makes this near-free.
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import uuid
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
@@ -177,6 +178,36 @@ class EntrypointResolutionError(Exception):
     """Raised when the manifest's entrypoint can't be imported or the
     entry class is missing. Translates to HTTP 500 — this is a
     install-side data problem, not a request-side error."""
+
+
+def native_entrypoint_error(manifest: dict[str, Any] | None) -> str | None:
+    """Why this manifest's native entrypoint can't run here — or None.
+
+    Prompt-runtime manifests need no Python import and always pass.
+    Native manifests must name a ``python_module`` importable in THIS
+    deployment: a manifest written against code that was later
+    refactored away (or that the image doesn't ship) would otherwise
+    install cleanly and then fail on every dispatch. Uses ``find_spec``
+    — resolvable without executing module code, which is the right bar
+    for a check that also runs at advertise time.
+    """
+    if not isinstance(manifest, dict) or manifest.get("runtime") != "native":
+        return None
+    entrypoint = manifest.get("entrypoint") or {}
+    python_module = entrypoint.get("python_module")
+    entry_name = entrypoint.get("entry")
+    if not python_module or not entry_name:
+        return "manifest missing entrypoint.python_module or .entry"
+    try:
+        spec = importlib.util.find_spec(python_module)
+    except (ImportError, ValueError):
+        spec = None
+    if spec is None:
+        return (
+            f"entrypoint module {python_module!r} is not importable in "
+            "this deployment"
+        )
+    return None
 
 
 def _resolve_entrypoint(installed_module: InstalledModule):

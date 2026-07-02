@@ -43,6 +43,7 @@ from app.core.runtime import (
     InvocationContext,
     ProviderResponse,
     dispatch_capability,
+    native_entrypoint_error,
 )
 from app.core.structured_output import StructuredOutputError, parse_model_json
 from app.models import (
@@ -497,6 +498,19 @@ async def _load_assistant_tools(session: AsyncSession) -> list[AssistantToolSpec
     out: list[AssistantToolSpec] = []
     for installed in latest.values():
         manifest = installed.manifest_snapshot or {}
+        # Never advertise a tool the dispatcher can't run: a stale native
+        # manifest (entrypoint refactored away, or code this image doesn't
+        # ship) otherwise becomes a guaranteed mid-chat failure the moment
+        # the model picks it.
+        entrypoint_problem = native_entrypoint_error(manifest)
+        if entrypoint_problem is not None:
+            logger.warning(
+                "skipping chat tool %s v%s: %s",
+                installed.module_id,
+                installed.version,
+                entrypoint_problem,
+            )
+            continue
         capabilities = manifest.get("capabilities")
         if not isinstance(capabilities, list):
             continue

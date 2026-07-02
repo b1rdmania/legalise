@@ -68,6 +68,20 @@ async def update_module_endpoint(
             detail={"error": "invalid_manifest", "validation_errors": errors},
         )
 
+    # Same gate as install: a native entrypoint that doesn't resolve
+    # here would update cleanly and fail on every dispatch.
+    from app.core.runtime import native_entrypoint_error
+
+    entrypoint_problem = native_entrypoint_error(new_manifest)
+    if entrypoint_problem is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "entrypoint_unresolvable",
+                "message": entrypoint_problem,
+            },
+        )
+
     # Round-2 Reviewer P1#3: enforce dependency resolution on update
     # too. An update can introduce new dependencies (or change
     # version ranges); we resolve them up-front the same way as
