@@ -16,18 +16,20 @@ Defaults (overridable via ``LEGALISE_RATE_LIMIT_<ROUTE>_PER_HOUR``):
 - ``auth.register``               5 / IP / hour
 - ``auth.request_verify_token``  10 / IP / hour
 - ``auth.forgot_password``       10 / IP / hour
+- ``auth.login``                 10 / IP / hour
 
 Set an override to ``0`` to disable that route's throttle (e.g. local
 load testing).
 
 Client IP resolution: the hosted instance sits behind Cloudflare → Fly,
-so the direct peer (``request.client.host``) is a proxy. We prefer
-``CF-Connecting-IP``, then ``Fly-Client-IP``, then the first hop of
-``X-Forwarded-For``, then the direct peer. Self-hosters terminating TLS
-themselves get the direct peer, which is correct for them. A client that
-can reach the origin directly could spoof these headers; the hosted
-deployment only exposes the origin via the proxy chain, and the
-worst-case failure is a throttle bypass — never an authz bypass.
+so the direct peer (``request.client.host``) is a proxy. ``CF-Connecting-IP``
+is only trusted when the request demonstrably arrived via Cloudflare:
+``Fly-Client-IP`` (set by Fly's proxy, not client-controllable) must fall
+inside Cloudflare's published ranges. A client hitting the .fly.dev origin
+directly gets its ``CF-Connecting-IP`` ignored — otherwise it could mint a
+fresh throttle bucket per request. Fallback order: ``Fly-Client-IP``, then
+the direct peer. Self-hosters without either proxy get the direct peer,
+which is correct for them.
 
 Throttled responses are 429 with the same ``detail``-envelope shape as
 ``limits.py``. The first rejection in a window also writes one
@@ -37,6 +39,7 @@ cannot flood the WORM audit log at request rate).
 
 from __future__ import annotations
 
+import ipaddress
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -50,12 +53,53 @@ RATE_LIMITED_ROUTES: dict[str, tuple[str, int]] = {
     "auth.register": ("REGISTER", 5),
     "auth.request_verify_token": ("REQUEST_VERIFY_TOKEN", 10),
     "auth.forgot_password": ("FORGOT_PASSWORD", 10),
+    "auth.login": ("LOGIN", 10),
 }
 
 WINDOW_SECONDS = 3600
 
-# Proxy headers in trust order for the hosted Cloudflare → Fly chain.
-_IP_HEADERS = ("cf-connecting-ip", "fly-client-ip")
+# Cloudflare's published egress ranges — https://www.cloudflare.com/ips/
+# (static list, embedded to stay dependency-free; refresh on the rare
+# occasions Cloudflare changes it). `CF-Connecting-IP` is only trusted
+# when `Fly-Client-IP` — set by Fly's proxy, not client-controllable —
+# falls inside one of these.
+_CLOUDFLARE_RANGES = tuple(
+    ipaddress.ip_network(cidr)
+    for cidr in (
+        # IPv4
+        "173.245.48.0/20",
+        "103.21.244.0/22",
+        "103.22.200.0/22",
+        "103.31.4.0/22",
+        "141.101.64.0/18",
+        "108.162.192.0/18",
+        "190.93.240.0/20",
+        "188.114.96.0/20",
+        "197.234.240.0/22",
+        "198.41.128.0/17",
+        "162.158.0.0/15",
+        "104.16.0.0/13",
+        "104.24.0.0/14",
+        "172.64.0.0/13",
+        "131.0.72.0/22",
+        # IPv6
+        "2400:cb00::/32",
+        "2606:4700::/32",
+        "2803:f800::/32",
+        "2405:b500::/32",
+        "2405:8100::/32",
+        "2a06:98c0::/29",
+        "2c0f:f248::/32",
+    )
+)
+
+
+def _is_cloudflare_ip(value: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return any(addr in network for network in _CLOUDFLARE_RANGES)
 
 
 def route_limit(route: str) -> int:
@@ -69,15 +113,15 @@ def route_limit(route: str) -> int:
 
 
 def client_ip(request: Request) -> str:
-    for header in _IP_HEADERS:
-        value = request.headers.get(header)
-        if value:
-            return value.strip()
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        first = forwarded.split(",")[0].strip()
-        if first:
-            return first
+    fly_ip = (request.headers.get("fly-client-ip") or "").strip()
+    cf_ip = (request.headers.get("cf-connecting-ip") or "").strip()
+    # CF-Connecting-IP is trustworthy only when the hop that reached Fly
+    # actually was Cloudflare; anyone hitting the .fly.dev origin directly
+    # can set the header to anything (module docstring, spoof scenario).
+    if cf_ip and fly_ip and _is_cloudflare_ip(fly_ip):
+        return cf_ip
+    if fly_ip:
+        return fly_ip
     if request.client and request.client.host:
         return request.client.host
     return "unknown"

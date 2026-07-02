@@ -146,12 +146,17 @@ async def check_matter_create(user_id: uuid.UUID, session: AsyncSession) -> None
 
     Called before the matter row is inserted — the count reflects the
     current committed state, so the imminent insert is not yet counted.
+    Archived (tombstoned) matters are excluded: deleting a matter frees
+    its slot.
     """
-    from app.models.matter import Matter
+    from app.models.matter import STATUS_ARCHIVED, Matter
 
     lim = get_limits()
     count = await session.scalar(
-        select(func.count(Matter.id)).where(Matter.created_by_id == user_id)
+        select(func.count(Matter.id)).where(
+            Matter.created_by_id == user_id,
+            Matter.status != STATUS_ARCHIVED,
+        )
     )
     current = count or 0
     if current >= lim.matters_per_user:
@@ -170,10 +175,12 @@ async def check_document_upload(
     This is called *after* the 413 size-cap check in the upload route so
     that oversized bodies still produce 413 (not 429).  Two checks run:
     1. documents_per_matter for this matter.
-    2. total_storage_bytes_per_user across all matters.
+    2. total_storage_bytes_per_user across all live matters — archived
+       matters' document bytes were purged on tombstone, so counting
+       them would charge the user for storage that no longer exists.
     """
     from app.models.document import Document
-    from app.models.matter import Matter
+    from app.models.matter import STATUS_ARCHIVED, Matter
 
     lim = get_limits()
 
@@ -189,7 +196,10 @@ async def check_document_upload(
     storage_used = await session.scalar(
         select(func.coalesce(func.sum(Document.size_bytes), 0)).join(
             Matter, Document.matter_id == Matter.id
-        ).where(Matter.created_by_id == user_id)
+        ).where(
+            Matter.created_by_id == user_id,
+            Matter.status != STATUS_ARCHIVED,
+        )
     )
     used = int(storage_used or 0)
     if used + content_length > lim.total_storage_bytes_per_user:
@@ -230,9 +240,9 @@ async def check_assistant_message(user_id: uuid.UUID, session: AsyncSession) -> 
 async def check_generated_artefact(user_id: uuid.UUID, session: AsyncSession) -> None:
     """Raise 429 if the user has generated ≥ generated_artefacts_per_day today (UTC).
 
-    Counts ``module.*.docx.exported`` and ``module.*.pdf.exported`` audit rows
-    for the user today.  AuditEntry.action is the discriminator:
-    ``module.<id>.docx.exported`` / ``module.<id>.pdf.exported``.
+    Counts ``*.exported`` audit rows for the user today — the DOCX/PDF
+    export routes write ``document.version.docx.exported`` /
+    ``document.version.pdf.exported`` on every render.
 
     Using the audit log avoids introducing a separate artefacts table before
     Unit 1 storage is fully wired.
@@ -245,7 +255,7 @@ async def check_generated_artefact(user_id: uuid.UUID, session: AsyncSession) ->
     count = await session.scalar(
         select(func.count(AuditEntry.id)).where(
             AuditEntry.actor_id == user_id,
-            AuditEntry.action.like("module.%.exported"),
+            AuditEntry.action.like("%.exported"),
             AuditEntry.timestamp >= today_start,
         )
     )
@@ -253,6 +263,33 @@ async def check_generated_artefact(user_id: uuid.UUID, session: AsyncSession) ->
     if current >= lim.generated_artefacts_per_day:
         raise _limit_exceeded(
             "generated_artefacts_per_day", current, lim.generated_artefacts_per_day
+        )
+
+
+async def check_workflow_run(user_id: uuid.UUID, session: AsyncSession) -> None:
+    """Raise 429 if the user has run ≥ workflow_runs_per_day capabilities today (UTC).
+
+    Counts ``module.capability.invoked`` audit rows — one per skill/tool/
+    workflow dispatch through the prompt runtime. Enforced at the HTTP
+    invoke endpoint (POST /api/matters/{slug}/invocations); assistant
+    tool-loop dispatches ride under assistant_messages_per_day instead.
+    """
+    from app.models.audit import AuditEntry
+
+    lim = get_limits()
+    today_start = _today_utc_start()
+
+    count = await session.scalar(
+        select(func.count(AuditEntry.id)).where(
+            AuditEntry.actor_id == user_id,
+            AuditEntry.action == "module.capability.invoked",
+            AuditEntry.timestamp >= today_start,
+        )
+    )
+    current = count or 0
+    if current >= lim.workflow_runs_per_day:
+        raise _limit_exceeded(
+            "workflow_runs_per_day", current, lim.workflow_runs_per_day
         )
 
 

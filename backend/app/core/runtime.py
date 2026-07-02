@@ -135,11 +135,10 @@ def make_provider_call(
         )
         return ProviderResponse(
             text=result.text,
-            # The requested model (what the matter asked for), not the
-            # provider's internal name. result.model_used carries the
-            # provider name; we map it to ProviderResponse.provider.
-            model_id=matter.default_model_id or result.model_used,
-            provider=result.model_used,
+            # result.model_used now carries the model actually run;
+            # result.provider carries the provider name.
+            model_id=result.model_used or matter.default_model_id,
+            provider=result.provider or result.model_used,
             tokens_in=result.token_count,
             # Sentinel — pinned at 0 so the audit row's
             # token_count = tokens_in + tokens_out stays honestly equal

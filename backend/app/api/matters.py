@@ -16,6 +16,7 @@ from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
 from app.core.limits import check_matter_create, check_document_upload
+from app.core.matter_access import resolve_owned_open_matter
 from app.core.document_uploads import (
     validate_upload_magic_bytes,
     validate_upload_mime,
@@ -388,11 +389,7 @@ async def upload_document(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(current_user),
 ) -> Document:
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user.id)
 
     if tag is not None and tag not in TAG_VALUES:
         raise HTTPException(400, f"tag must be one of {sorted(TAG_VALUES)}")
@@ -680,11 +677,7 @@ async def reindex_documents(
     fork backfill documents uploaded before retrieval existed. Returns the
     per-status count and emits a ``matter.reindexed`` audit row.
     """
-    matter = await session.scalar(
-        select(Matter).where(Matter.slug == slug, Matter.created_by_id == user.id)
-    )
-    if matter is None:
-        raise HTTPException(404, f"matter not found: {slug}")
+    matter = await resolve_owned_open_matter(session, slug, user.id)
 
     summary = await reindex_matter(session, matter.id)
 

@@ -37,7 +37,7 @@ class UsageResponse(BaseModel):
     assistant_messages_today: LimitEntry
     generated_artefacts_today: LimitEntry
     module_submissions_today: LimitEntry
-    workflow_runs_today: LimitEntry  # Pre-Motion + Contract Review jobs
+    workflow_runs_today: LimitEntry  # capability dispatches (skills/tools/workflows)
     active_jobs: LimitEntry  # queued + running, point-in-time
 
 
@@ -45,14 +45,18 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
     from app.models.assistant import AssistantMessage, ROLE_USER
     from app.models.audit import AuditEntry
     from app.models.document import Document
-    from app.models.matter import Matter
+    from app.models.matter import STATUS_ARCHIVED, Matter
 
     lim = get_limits()
     today_start = _today_utc_start()
 
-    # --- matter count ---
+    # --- matter count (live only — archived matters free their slot,
+    #     matching check_matter_create) ---
     matter_count = await session.scalar(
-        select(func.count(Matter.id)).where(Matter.created_by_id == user.id)
+        select(func.count(Matter.id)).where(
+            Matter.created_by_id == user.id,
+            Matter.status != STATUS_ARCHIVED,
+        )
     )
 
     # --- documents per matter (max across all matters) ---
@@ -66,11 +70,14 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
     )
     doc_max = await session.scalar(select(func.coalesce(func.max(doc_max_subq.c.doc_count), 0)))
 
-    # --- total storage ---
+    # --- total storage (live matters only, matching check_document_upload) ---
     storage_used = await session.scalar(
         select(func.coalesce(func.sum(Document.size_bytes), 0))
         .join(Matter, Document.matter_id == Matter.id)
-        .where(Matter.created_by_id == user.id)
+        .where(
+            Matter.created_by_id == user.id,
+            Matter.status != STATUS_ARCHIVED,
+        )
     )
 
     # --- assistant messages today ---
@@ -82,11 +89,11 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
         )
     )
 
-    # --- generated artefacts today ---
+    # --- generated artefacts today (matching check_generated_artefact) ---
     artefacts_today = await session.scalar(
         select(func.count(AuditEntry.id)).where(
             AuditEntry.actor_id == user.id,
-            AuditEntry.action.like("module.%.exported"),
+            AuditEntry.action.like("%.exported"),
             AuditEntry.timestamp >= today_start,
         )
     )
@@ -100,18 +107,15 @@ async def _get_usage(user: User, session: AsyncSession) -> UsageResponse:
         )
     )
 
-    # --- workflow runs today (job kinds other than export) ---
-    from app.models.job import (
-        JOB_ACTIVE_STATUSES,
-        JOB_KIND_EXPORT,
-        Job,
-    )
+    # --- workflow runs today (capability dispatches, matching
+    #     check_workflow_run — no workflow job kinds exist any more) ---
+    from app.models.job import JOB_ACTIVE_STATUSES, Job
 
     workflow_runs_today = await session.scalar(
-        select(func.count(Job.id)).where(
-            Job.created_by_id == user.id,
-            Job.kind != JOB_KIND_EXPORT,
-            Job.created_at >= today_start,
+        select(func.count(AuditEntry.id)).where(
+            AuditEntry.actor_id == user.id,
+            AuditEntry.action == "module.capability.invoked",
+            AuditEntry.timestamp >= today_start,
         )
     )
 

@@ -77,6 +77,7 @@ class _AssistantFakeGateway:
         model=None,
         posture=None,
         system=None,
+        max_tokens=None,
         resource_type=None,
         resource_id=None,
         payload=None,
@@ -88,6 +89,7 @@ class _AssistantFakeGateway:
                 "system": system,
                 "model": model,
                 "posture": posture,
+                "max_tokens": max_tokens,
                 "payload": payload or {},
             }
         )
@@ -596,12 +598,11 @@ class TestAssistantPipeline:
         assert audit_rows[0].payload["deterministic"] == "keyless_retrieval"
 
     @pytest.mark.asyncio
-    async def test_keyless_question_with_no_retrieval_raises(self) -> None:
-        """No key AND retrieval found nothing to show: there is no honest
-        extract to offer, so the turn propagates ProviderKeyMissing for the
-        router's 'add a key' banner rather than inventing an answer."""
-        from app.core.model_gateway import ProviderKeyMissing
-
+    async def test_keyless_question_with_no_retrieval_persists_no_model_reply(self) -> None:
+        """No key AND retrieval found nothing to show: the turn must NOT
+        raise (a 422 used to roll back the user's message and leave the
+        pre-committed thread as an empty ghost). Both rows persist, with
+        an honest 'no model' assistant reply."""
         matter = _make_matter()
         session = _AssistantSession(matter, documents=[], bodies={})
         gateway = _KeylessFakeGateway()
@@ -612,15 +613,95 @@ class TestAssistantPipeline:
         with patch.object(
             assistant_pipeline.retrieval, "search_documents", _no_hits
         ):
-            with pytest.raises(ProviderKeyMissing):
-                await run_assistant_turn(
-                    session=session,
-                    matter=matter,
-                    actor_id=uuid.uuid4(),
-                    thread_id=uuid.uuid4(),
-                    request=AssistantPostRequest(content="Draft a wholly new letter"),
-                    gateway=gateway,
-                )
+            user_row, assistant_row = await run_assistant_turn(
+                session=session,
+                matter=matter,
+                actor_id=uuid.uuid4(),
+                thread_id=uuid.uuid4(),
+                request=AssistantPostRequest(content="Draft a wholly new letter"),
+                gateway=gateway,
+            )
+
+        assert user_row.content == "Draft a wholly new letter"
+        assert "No model key is configured" in assistant_row.content
+        assert "Settings" in assistant_row.content
+        assert assistant_row.model_used == "no-model"
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[0].payload["deterministic"] == "no_model"
+
+    @pytest.mark.asyncio
+    async def test_stub_echo_matter_wraps_raw_text_without_envelope(self) -> None:
+        """A matter pinned to the demo model never gets a JSON envelope
+        back, so the pipeline must wrap the raw echo as the reply (clearly
+        labelled) instead of failing the parse every turn."""
+        matter = _make_matter()
+        matter.default_model_id = "stub-echo"
+        session = _AssistantSession(matter)
+        gateway = _AssistantFakeGateway()
+
+        async def _raw_text_call(**kwargs):
+            gateway.calls.append(kwargs)
+            return ModelResult(
+                text="[stub-echo] What does the NDA say?",
+                model_used="stub-echo",
+                prompt_hash="ph",
+                response_hash="rh",
+                token_count=7,
+                latency_ms=1,
+            )
+
+        gateway.call = _raw_text_call
+
+        _, assistant_row = await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
+            request=AssistantPostRequest(content="What does the NDA say?"),
+            gateway=gateway,
+        )
+
+        assert assistant_row.content.startswith("[stub-echo]")
+        assert "Demo model" in assistant_row.content
+        audit_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.module == "assistant"
+        ]
+        assert audit_rows[-1].payload["parse_failed"] is False
+
+    @pytest.mark.asyncio
+    async def test_assistant_turn_passes_max_tokens(self) -> None:
+        """The assistant turn raises the output cap above the provider
+        default so long cited answers don't truncate mid-envelope."""
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        gateway = _AssistantFakeGateway()
+
+        await run_assistant_turn(
+            session=session,
+            matter=matter,
+            actor_id=uuid.uuid4(),
+            thread_id=uuid.uuid4(),
+            request=AssistantPostRequest(content="Summarise the matter."),
+            gateway=gateway,
+        )
+
+        assert gateway.calls[0]["max_tokens"] == assistant_pipeline._ASSISTANT_MAX_TOKENS
+
+    def test_system_prompt_forbids_uncited_law(self) -> None:
+        """The uncited-law rule ships in the system prompt."""
+        from app.modules.assistant.pipeline import SYSTEM_PROMPT
+
+        assert "Never invent citations" in SYSTEM_PROMPT
+        assert (
+            "Do not cite case law, statutes, or authorities from memory"
+            in SYSTEM_PROMPT
+        )
 
     @pytest.mark.asyncio
     async def test_prompt_includes_matter_and_chronology(self) -> None:

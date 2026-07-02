@@ -291,7 +291,10 @@ async def test_upstream_error_all_subcodes_audited(
     rows = fake_audit.rows_with_action("model.call.error")
     assert len(rows) == 1, f"expected one audit_failure call for {code}"
     row = rows[0]
-    assert row["model_used"] == "anthropic"
+    # model_used records the model actually attempted; the provider name
+    # lives in the payload.
+    assert row["model_used"] == "claude-opus-4-7"
+    assert row["payload"]["provider"] == "anthropic"
     assert row["module"] == "assistant"
     assert row["prompt_hash"] is not None
     err = row["payload"].get("error")
