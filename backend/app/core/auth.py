@@ -60,6 +60,11 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
     reset_password_token_secret = settings.session_secret
     verification_token_secret = settings.session_secret
+    # fastapi-users defaults both token lifetimes to 1 hour. That's too
+    # short for a verification email a user opens hours later — they'd hit
+    # VERIFY_USER_BAD_TOKEN and bounce. Give the sign-up link a full day;
+    # keep password reset at the tighter default.
+    verification_token_lifetime_seconds = 60 * 60 * 24  # 24 hours
 
     async def create(self, user_create, safe: bool = False, request: Request | None = None) -> User:
         """Gate 4 demand capture: derive email_domain + domain_class

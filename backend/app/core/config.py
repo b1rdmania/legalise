@@ -109,8 +109,12 @@ class Settings(BaseSettings):
     # Email — Resend transactional provider.
     resend_api_key: str | None = None
     email_from: str = "Legalise <no-reply@legalise.dev>"
-    email_verify_url_base: str = "http://localhost:5173/#/auth/verify"
-    password_reset_url_base: str = "http://localhost:5173/#/auth/reset"
+    # Path-form (not hash-form) — the SPA routes are path-based; the
+    # `#/auth/verify` shape only survives via a legacy-hash rewrite shim
+    # and shows an ugly interstitial URL. Production overrides these to
+    # https://legalise.dev/auth/{verify,reset}.
+    email_verify_url_base: str = "http://localhost:5173/auth/verify"
+    password_reset_url_base: str = "http://localhost:5173/auth/reset"
 
     # CORS. Override with the CORS_ORIGINS env var as a JSON array, e.g.
     # CORS_ORIGINS='["https://legalise.dev","http://localhost:3000"]'.

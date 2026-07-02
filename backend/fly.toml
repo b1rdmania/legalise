@@ -34,6 +34,13 @@ primary_region = "lhr"
   # they live in backend/Dockerfile as ARG + ENV (single source of
   # truth) to prevent the drift class that shipped 15 broken manifests.
   PLUGINS_ROOT = "/plugins"
+  # Auth email links. Path-form (SPA routes are path-based; the hash
+  # form only survives a legacy rewrite shim). NOTE: a same-named Fly
+  # *secret* overrides [env]; the current hosted secret still points at
+  # the `#/auth/verify` hash form, so drop it for these to take effect:
+  #   fly secrets unset EMAIL_VERIFY_URL_BASE PASSWORD_RESET_URL_BASE
+  EMAIL_VERIFY_URL_BASE = "https://legalise.dev/auth/verify"
+  PASSWORD_RESET_URL_BASE = "https://legalise.dev/auth/reset"
 
 [deploy]
   # Unit 3 — migration discipline. Alembic runs ONCE per deploy on a

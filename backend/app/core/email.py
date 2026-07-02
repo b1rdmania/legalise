@@ -99,6 +99,10 @@ def _render_html(
     )
     return (
         '<!doctype html><html><head><meta charset="utf-8">'
+        # Declare a light-only colour scheme so Apple Mail / Outlook dark
+        # mode don't invert the paper-ink palette into a muddy grey card.
+        '<meta name="color-scheme" content="light">'
+        '<meta name="supported-color-schemes" content="light">'
         f'<title>{heading}</title></head>'
         '<body style="margin:0;padding:0;background:#F4F4F4;'
         'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Inter,sans-serif">'
@@ -156,14 +160,14 @@ def _render_text(*, body_paragraphs: list[str], cta_label: str, cta_link: str, f
 async def send_verification(to: str, link: str) -> None:
     subject = "Confirm your Legalise account"
     body_paragraphs = [
-        "Welcome to Legalise — the open-source UK legal AI workspace.",
+        "Welcome to Legalise — an open-source governance layer for UK legal AI.",
         "Confirm your email below to activate your account. After that "
         "you can sign in, add a provider API key, and open the seeded "
         "Khan v Acme demo matter.",
     ]
     footer_lines = [
         "If you didn't sign up, ignore this message — no one can sign in to the account without confirming this email first.",
-        "This link expires shortly after issue.",
+        "This link expires 24 hours after issue.",
     ]
     html = _render_html(
         heading="Confirm your email",

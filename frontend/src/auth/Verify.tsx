@@ -29,7 +29,15 @@ export function Verify({ token }: { token: string | null }) {
       } catch (err) {
         if (!cancelled) {
           setStatus("error");
-          setError(String(err));
+          // fastapi-users returns VERIFY_USER_BAD_TOKEN for an expired,
+          // already-used, or malformed token — the common case. Show a
+          // human message, not the raw JSON envelope.
+          const msg = String(err);
+          setError(
+            /BAD_TOKEN|ALREADY_VERIFIED|400/i.test(msg)
+              ? "This link has expired or has already been used. Request a fresh one below."
+              : msg,
+          );
         }
       }
     })();
