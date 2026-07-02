@@ -113,6 +113,11 @@ class ModelResult:
     response_hash: str
     token_count: int
     latency_ms: int
+    # Provider that served the call ("anthropic", "openai", "ollama",
+    # "stub-echo"). `model_used` carries the model actually run; callers
+    # that need the provider name read this instead. Optional so existing
+    # test fakes constructing ModelResult keep working.
+    provider: str | None = None
 
 
 class ModelProvider(Protocol):
@@ -326,6 +331,7 @@ class ModelGateway:
         model: str | None = None,
         posture: PrivilegePosture | None = None,
         system: str | None = None,
+        max_tokens: int | None = None,
         resource_type: str | None = None,
         resource_id: str | None = None,
         payload: dict | None = None,
@@ -384,6 +390,21 @@ class ModelGateway:
         # dev-only server fallback isn't permitted, raise structured
         # ProviderKeyMissing — routers translate to 422 with a UI nudge.
         provider_kwargs: dict = {}
+        if max_tokens is not None:
+            provider_kwargs["max_tokens"] = max_tokens
+        # Pass the requested model through to keyed providers so the picked
+        # model actually runs (not the provider's construct-time default).
+        # Skipped when `requested` is a bare provider name (test passthrough)
+        # and for keyless providers (ollama serves its own default in
+        # B_mixed; forcing a frontier id onto it would be wrong).
+        if provider.name in _KEYED_PROVIDERS and requested != provider.name:
+            provider_kwargs["model"] = requested
+        # The model that will actually run — what audit rows must record.
+        served_model = (
+            provider_kwargs.get("model")
+            or getattr(provider, "default_model", None)
+            or provider.name
+        )
         if provider.name in _KEYED_PROVIDERS:
             user_key: str | None = None
             if actor_id is not None:
@@ -455,13 +476,14 @@ class ModelGateway:
                 module=caller_module,
                 resource_type=resource_type,
                 resource_id=resource_id,
-                model_used=provider.name,
+                model_used=served_model,
                 prompt_hash=_sha(prompt),
                 response_hash=None,
                 token_count=None,
                 latency_ms=latency_ms,
                 payload={
                     "requested_model": requested,
+                    "provider": provider.name,
                     "posture": effective_posture.value,
                     "error": {
                         "code": exc.code,
@@ -479,11 +501,12 @@ class ModelGateway:
 
         result = ModelResult(
             text=response_text,
-            model_used=provider.name,
+            model_used=served_model,
             prompt_hash=_sha(prompt),
             response_hash=_sha(response_text),
             token_count=tokens,
             latency_ms=latency_ms,
+            provider=provider.name,
         )
 
         # Audit the call. Session lifecycle is the caller's responsibility.
@@ -506,6 +529,7 @@ class ModelGateway:
             latency_ms=result.latency_ms,
             payload={
                 "requested_model": requested,
+                "provider": provider.name,
                 "posture": effective_posture.value,
                 **(payload or {}),
             },

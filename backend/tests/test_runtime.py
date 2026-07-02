@@ -332,11 +332,12 @@ async def test_adapter_maps_all_seven_provider_response_fields(
         captured.update(kwargs)
         return ModelResult(
             text="MODEL TEXT",
-            model_used="anthropic",
+            model_used="claude-opus-4-7",
             prompt_hash="h" * 64,
             response_hash="r" * 64,
             token_count=4321,
             latency_ms=100,
+            provider="anthropic",
         )
 
     monkeypatch.setattr(gateway_singleton, "call", _stub_call)

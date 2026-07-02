@@ -293,7 +293,7 @@ function SettingsProfile({
               type="text"
               value={defaultModel}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
-              placeholder="claude-opus-4-7"
+              placeholder="claude-sonnet-4-6"
               className={inputCls + " tech-token"}
             />
           )}

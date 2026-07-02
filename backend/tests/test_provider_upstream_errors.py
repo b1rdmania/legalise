@@ -160,7 +160,10 @@ async def test_gateway_translates_status_to_structured_error(
     rows = [c for c in fake_audit.calls if c["action"] == "model.call.error"]
     assert len(rows) == 1, "expected one audit_failure call on failure"
     row = rows[0]
-    assert row["model_used"] == "anthropic"
+    # model_used records the model actually attempted; the provider name
+    # lives in the payload.
+    assert row["model_used"] == "claude-opus-4-7"
+    assert row["payload"]["provider"] == "anthropic"
     assert row["prompt_hash"] is not None
     err = row["payload"].get("error")
     assert isinstance(err, dict)
@@ -263,3 +266,63 @@ async def test_assistant_route_translates_provider_upstream_to_502(client, monke
     assert detail["provider"] == "anthropic"
     assert detail["upstream_status"] == 429
     assert "anthropic" in detail["message"]
+
+
+# ---------------------------------------------------------------------------
+# Anthropic provider — output-limit truncation surfaces as a structured error
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_anthropic_truncation_raises_provider_truncated() -> None:
+    """stop_reason == "max_tokens" means the reply is incomplete — the
+    provider must raise (honest truncation message) rather than hand a
+    half-written body downstream to fail its JSON parse."""
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app.providers.anthropic_provider import AnthropicProvider
+
+    message = SimpleNamespace(
+        stop_reason="max_tokens",
+        content=[SimpleNamespace(type="text", text="truncated body…")],
+        usage=SimpleNamespace(input_tokens=10, output_tokens=2048),
+    )
+    client = MagicMock()
+    client.messages.create = AsyncMock(return_value=message)
+
+    provider = AnthropicProvider(api_key="sk-test", default_model="claude-haiku-4-5")
+    with patch(
+        "app.providers.anthropic_provider.AsyncAnthropic", return_value=client
+    ):
+        with pytest.raises(ProviderUpstreamError) as excinfo:
+            await provider.call("long question")
+
+    assert excinfo.value.code == "provider_truncated"
+    assert "truncated at the output limit" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_anthropic_normal_stop_returns_text() -> None:
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app.providers.anthropic_provider import AnthropicProvider
+
+    message = SimpleNamespace(
+        stop_reason="end_turn",
+        content=[SimpleNamespace(type="text", text="complete body")],
+        usage=SimpleNamespace(input_tokens=10, output_tokens=20),
+    )
+    client = MagicMock()
+    client.messages.create = AsyncMock(return_value=message)
+
+    provider = AnthropicProvider(api_key="sk-test", default_model="claude-haiku-4-5")
+    with patch(
+        "app.providers.anthropic_provider.AsyncAnthropic", return_value=client
+    ):
+        text, tokens = await provider.call("question", max_tokens=8192)
+
+    assert text == "complete body"
+    assert tokens == 30
+    assert client.messages.create.call_args.kwargs["max_tokens"] == 8192

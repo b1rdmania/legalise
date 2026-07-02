@@ -1,9 +1,16 @@
+import { lazy, Suspense } from "react";
 import type {
   AssistantMessage,
   ChronologyEvent,
   MatterDocument,
   SuggestedAction,
 } from "../lib/api";
+
+// react-markdown (+ remark-gfm) loads lazily: MessageBubble sits in the
+// statically-routed matter shell, so the markdown stack must not join the
+// first-paint bundle. The Suspense fallback is the old plain-text render,
+// so nothing flashes empty while the chunk arrives.
+const AssistantMarkdown = lazy(() => import("./AssistantMarkdown"));
 
 // Shared message renderer for matter assistant surfaces.
 //
@@ -110,8 +117,12 @@ function AssistantMessageView({
             ? ` · ${sourceCount} source${sourceCount === 1 ? "" : "s"}`
             : ""}
         </div>
-        <div className={`${proseSizing} text-ink leading-relaxed whitespace-pre-wrap`}>
-          {text}
+        {/* Citation strip-and-chip (extractCitations) has already run on
+            `text`; markdown renders the cleaned prose. */}
+        <div className={`${proseSizing} text-ink leading-relaxed`}>
+          <Suspense fallback={<div className="whitespace-pre-wrap">{text}</div>}>
+            <AssistantMarkdown content={text} />
+          </Suspense>
         </div>
         {citations.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
@@ -335,7 +346,13 @@ function extractCitations(
   const citations: Citation[] = [];
   const seen = new Set<string>();
   // Strip citation markers from inline text. Sources show as chips below.
-  const text = content.replace(CITATION_RE, "").replace(/[ \t]+([.,;:!?])/g, "$1").replace(/[ \t]{2,}/g, " ").trim();
+  // Only interior space runs collapse — leading indentation must survive
+  // for markdown nesting (lists, code blocks).
+  const text = content
+    .replace(CITATION_RE, "")
+    .replace(/[ \t]+([.,;:!?])/g, "$1")
+    .replace(/(\S)[ \t]{2,}/g, "$1 ")
+    .trim();
 
   let m: RegExpExecArray | null;
   CITATION_RE.lastIndex = 0;

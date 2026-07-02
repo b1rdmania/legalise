@@ -58,10 +58,12 @@ class AnthropicProvider:
         # is true in a dev environment. Production gateway refuses to fall
         # back even if this is set.
         self._fallback_key = api_key
-        self._default_model = default_model or settings.default_model_id
+        # Public: the gateway reads this to record the model actually run
+        # when the caller didn't pass one.
+        self.default_model = default_model or settings.default_model_id
 
     async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
-        model = kwargs.get("model") or self._default_model
+        model = kwargs.get("model") or self.default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
         api_key = kwargs.get("api_key") or self._fallback_key
         if not api_key:
@@ -99,6 +101,25 @@ class AnthropicProvider:
                 message=f"anthropic: {type(exc).__name__}: {exc}",
             ) from exc
 
+        # A hard stop at the output cap means the response is incomplete —
+        # surfacing the truncation honestly beats handing the caller a
+        # half-written body that fails its JSON-envelope parse downstream.
+        if getattr(message, "stop_reason", None) == "max_tokens":
+            logger.warning(
+                "legalise.provider.anthropic.truncated",
+                model=model,
+                max_tokens=max_tokens,
+            )
+            raise ProviderUpstreamError(
+                provider="anthropic",
+                code="provider_truncated",
+                upstream_status=None,
+                message=(
+                    "anthropic: response truncated at the output limit — "
+                    "try a narrower question"
+                ),
+            )
+
         # Concatenate text blocks; v0.1 ignores tool_use blocks.
         text_parts: list[str] = []
         for block in message.content:
@@ -107,6 +128,10 @@ class AnthropicProvider:
         text = "".join(text_parts)
 
         usage = message.usage
+        # Summed: the ModelProvider protocol returns one count and the
+        # audit plumbing carries one token_count column. Splitting
+        # input/output ripples through ModelResult, AssistantMessage and
+        # AuditEntry — not worth it for v0.1.
         tokens = (usage.input_tokens or 0) + (usage.output_tokens or 0)
 
         return text, tokens

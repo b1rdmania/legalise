@@ -28,15 +28,18 @@ from app.core.user_keys import ProviderKeyMissing
 
 class _AnthropicStub:
     """Stand-in with name='anthropic' so the gateway's KEYED_PROVIDERS
-    check fires. Records the api_key it was called with."""
+    check fires. Records the kwargs it was called with."""
 
     name = "anthropic"
+    default_model = "claude-default-model"
 
     def __init__(self) -> None:
         self.last_api_key: str | None = None
+        self.last_kwargs: dict = {}
 
     async def call(self, prompt: str, *, system=None, **kwargs):
         self.last_api_key = kwargs.get("api_key")
+        self.last_kwargs = dict(kwargs)
         return ("ok", 1)
 
 
@@ -172,3 +175,84 @@ async def test_user_key_passed_through_when_present(
             posture=PrivilegePosture.B_MIXED,
         )
     assert stub.last_api_key == "sk-user-key"
+
+
+# ---------------------------------------------------------------------------
+# Model passthrough + max_tokens — the picked model must actually run
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@patch.object(gw_module, "mark_user_key_used")
+@patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
+async def test_requested_model_is_forwarded_to_keyed_provider(
+    _mock_lookup, _mock_mark, gateway, actor_id
+):
+    """The user-picked model id reaches the provider AND is what the
+    result records — not the provider's construct-time default."""
+    g, stub = gateway
+
+    result = await g.call(
+        session=_StubSession(),
+        matter_id=None,
+        actor_id=actor_id,
+        prompt="hi",
+        model="claude-haiku-4-5",
+        posture=PrivilegePosture.A_CLEARED,
+    )
+    assert stub.last_kwargs.get("model") == "claude-haiku-4-5"
+    assert result.model_used == "claude-haiku-4-5"
+    assert result.provider == "anthropic"
+
+
+@pytest.mark.asyncio
+@patch.object(gw_module, "mark_user_key_used")
+@patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
+async def test_bare_provider_name_falls_back_to_provider_default(
+    _mock_lookup, _mock_mark, gateway, actor_id
+):
+    """`model="anthropic"` (test passthrough) sends no model kwarg; the
+    result records the provider's default model as the one actually run."""
+    g, stub = gateway
+
+    result = await g.call(
+        session=_StubSession(),
+        matter_id=None,
+        actor_id=actor_id,
+        prompt="hi",
+        model="anthropic",
+        posture=PrivilegePosture.A_CLEARED,
+    )
+    assert "model" not in stub.last_kwargs
+    assert result.model_used == "claude-default-model"
+    assert result.provider == "anthropic"
+
+
+@pytest.mark.asyncio
+@patch.object(gw_module, "mark_user_key_used")
+@patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
+async def test_max_tokens_forwarded_when_set(
+    _mock_lookup, _mock_mark, gateway, actor_id
+):
+    g, stub = gateway
+
+    await g.call(
+        session=_StubSession(),
+        matter_id=None,
+        actor_id=actor_id,
+        prompt="hi",
+        model="claude-haiku-4-5",
+        posture=PrivilegePosture.A_CLEARED,
+        max_tokens=8192,
+    )
+    assert stub.last_kwargs.get("max_tokens") == 8192
+
+    await g.call(
+        session=_StubSession(),
+        matter_id=None,
+        actor_id=actor_id,
+        prompt="hi",
+        model="claude-haiku-4-5",
+        posture=PrivilegePosture.A_CLEARED,
+    )
+    assert "max_tokens" not in stub.last_kwargs  # provider default applies

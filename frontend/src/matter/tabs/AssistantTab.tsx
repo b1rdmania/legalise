@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   getModulesV2,
   documentOriginalUrl,
+  listApiKeys,
   listGrants,
   listAssistantMessages,
   listThreads,
@@ -151,6 +152,44 @@ export function AssistantTab({
     useState<RunnableMatterSkill | null>(null);
   const [workPane, setWorkPane] = useState<AssistantWorkPaneState | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // Answers arrive whole (no token streaming) — after ~10s of a pending
+  // turn, one quiet honesty line appears under the step ticker.
+  const [longWait, setLongWait] = useState(false);
+  // Whether the user holds the key the matter's model needs. null =
+  // unknown/not applicable; false drives the passive header notice. Same
+  // source of truth as the Matters-page "Start here" banner (listApiKeys).
+  const [hasRequiredKey, setHasRequiredKey] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!thinking) {
+      setLongWait(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLongWait(true), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [thinking]);
+
+  useEffect(() => {
+    if (disabled || !matter.required_provider) {
+      setHasRequiredKey(null);
+      return;
+    }
+    let cancelled = false;
+    listApiKeys()
+      .then((keys) => {
+        if (cancelled) return;
+        setHasRequiredKey(
+          keys.some((k) => k.provider === matter.required_provider),
+        );
+      })
+      // On error stay silent rather than nag (same call as MatterList).
+      .catch(() => {
+        if (!cancelled) setHasRequiredKey(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [disabled, matter.required_provider]);
 
   // Initial fetch (skip in demo: initialMessages provided). Load the
   // matter's threads and open the most-recently-active one. If retrieving
@@ -240,6 +279,19 @@ export function AssistantTab({
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, thinking]);
 
+  // Composer autogrow: track content height up to ~8 rows, then scroll.
+  // Runs on every input change (including programmatic sets from the
+  // starter chips and the failed-send restore).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    // 8 rows × 24px line-height + vertical padding (py-3 = 24px).
+    const max = 8 * 24 + 24;
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+    el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
+  }, [input]);
+
   useEffect(() => {
     if (disabled) return;
     let cancelled = false;
@@ -290,12 +342,21 @@ export function AssistantTab({
     });
   }, [initialDocumentId, docsById]);
 
-  const recentDocs = useMemo(() => {
+  // All matter documents, newest first — the attach popover lists the lot
+  // (with a client-side title filter); the context rail shows the head.
+  const sortedDocs = useMemo(() => {
     if (!docs) return [];
-    return [...docs]
-      .sort((a, b) => (a.uploaded_at < b.uploaded_at ? 1 : -1))
-      .slice(0, 5);
+    return [...docs].sort((a, b) => (a.uploaded_at < b.uploaded_at ? 1 : -1));
   }, [docs]);
+
+  const recentDocs = useMemo(() => sortedDocs.slice(0, 5), [sortedDocs]);
+
+  const [attachFilter, setAttachFilter] = useState("");
+  const filteredAttachDocs = useMemo(() => {
+    const q = attachFilter.trim().toLowerCase();
+    if (!q) return sortedDocs;
+    return sortedDocs.filter((d) => (d.filename ?? "").toLowerCase().includes(q));
+  }, [sortedDocs, attachFilter]);
 
   const attachedDocs = useMemo(() => {
     const arr: MatterDocument[] = [];
@@ -390,6 +451,10 @@ export function AssistantTab({
       }
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      // The optimistic message is gone — give the user their prompt back
+      // in the composer so a failed send never eats the text. Attached
+      // docs are untouched (selection only clears on explicit remove).
+      setInput(content);
       if (err instanceof ProviderKeyMissingError) {
         setKeyMissingProvider(err.provider);
       } else {
@@ -406,11 +471,14 @@ export function AssistantTab({
     await sendMessage(input);
   };
 
+  // Enter sends; Shift+Enter inserts a newline (the universal chat
+  // convention). ⌘/Ctrl+Enter still sends. The isComposing guard keeps
+  // IME confirmation (e.g. Japanese input) from firing a send.
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      onSend();
-    }
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    onSend();
   };
 
   const dispatchAction = (a: SuggestedAction) => {
@@ -576,6 +644,23 @@ export function AssistantTab({
                 <span>{runnableSkillCount} runnable skill{runnableSkillCount === 1 ? "" : "s"}</span>
               </>
             )}
+            {matter.required_provider && hasRequiredKey === false && (
+              <>
+                <span aria-hidden="true">·</span>
+                {/* Passive notice: this matter's model needs a key the user
+                    hasn't added. Same muted register as the rest of the
+                    meta line — the hard stop stays with the send-time banner. */}
+                <span data-testid="chat-no-key-notice">
+                  No {providerLabel(matter.required_provider)} key yet —{" "}
+                  <a
+                    href="/settings/keys"
+                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  >
+                    add one in Settings
+                  </a>
+                </span>
+              </>
+            )}
             {/* Activity lives on the matter rail (WS1); the old faint
                 header link was redundant chrome and has been removed.
                 openRecord is still used by the work pane + context rail. */}
@@ -649,45 +734,6 @@ export function AssistantTab({
           </div>
         )}
 
-        {attachedDocs.length > 0 && (
-          <section
-            className="mb-4 border-t border-rule py-2"
-            data-testid="chat-attached-document-context"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap gap-2">
-                  {attachedDocs.map((doc) => (
-                    <span
-                      key={doc.id}
-                      className="inline-flex max-w-full items-center gap-2 rounded-item border border-rule bg-paper px-2 py-1 tech-token text-xs text-ink"
-                    >
-                      <span className="max-w-[360px] truncate">{doc.filename}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeDoc(doc.id)}
-                        className="text-muted hover:text-ink"
-                        aria-label={`Remove ${doc.filename}`}
-                      >
-                        x
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              {attachedDocs.length === 1 && (
-                <button
-                  type="button"
-                  onClick={() => dispatchDocChip(attachedDocs[0].id)}
-                  className="shrink-0 text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-                >
-                  Preview →
-                </button>
-              )}
-            </div>
-          </section>
-        )}
-
         <div
           ref={scrollRef}
           className="min-h-0 flex-1 space-y-6 overflow-y-auto border-t border-rule py-6"
@@ -698,7 +744,24 @@ export function AssistantTab({
             loading conversation
           </p>
         )}
-        {loaded && messages.length === 0 && (
+        {loaded && messages.length === 0 && docs !== null && docs.length === 0 && (
+          // With no documents, "Summarise the witness statement" is a doomed
+          // prompt — route to the Documents tab instead. The starter chips
+          // return once the matter has files.
+          <div className="grid gap-2 sm:grid-cols-2" data-testid="chat-empty-state-no-docs">
+            <button
+              type="button"
+              onClick={() => setTabAndHash("documents")}
+              className="group flex min-h-[44px] items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 text-left text-[14px] leading-5 text-ink transition-colors hover:border-ink hover:bg-paper-sunken"
+            >
+              <span>Upload your first document</span>
+              <span className="text-muted transition-colors group-hover:text-ink" aria-hidden>
+                →
+              </span>
+            </button>
+          </div>
+        )}
+        {loaded && messages.length === 0 && (docs === null || docs.length > 0) && (
           <div className="grid gap-2 sm:grid-cols-2" data-testid="chat-empty-state">
             {suggestions.map((s) => (
               <button
@@ -752,15 +815,22 @@ export function AssistantTab({
           />
         )}
         {thinking && (
-          <div className="flex justify-start">
-            <InlineAgentStatus steps={agentSteps} />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex justify-start">
+              <InlineAgentStatus steps={agentSteps} />
+            </div>
+            {longWait && (
+              <p className="text-xs text-muted" data-testid="chat-long-wait-note">
+                Long answers can take up to a minute.
+              </p>
+            )}
           </div>
         )}
         </div>
 
         {keyMissingProvider && <ProviderKeyMissingBanner provider={keyMissingProvider} />}
         {error && (
-          <div className="border border-[#D9304F] bg-[#FEF2F2] text-[#B91C1C] text-sm p-3 mt-3">
+          <div className="bg-paper border border-seal text-seal text-sm p-3 mt-3">
             <div className="font-semibold mb-1">Could not send message</div>
             <p className="leading-relaxed whitespace-pre-wrap">{error}</p>
           </div>
@@ -793,9 +863,14 @@ export function AssistantTab({
           ) : null
         ) : (
           <div className="sticky bottom-0 bg-paper pt-2">
-          {/* Context attachments as chips ABOVE the composer */}
+          {/* Context attachments as chips ABOVE the composer — the single
+              attached-doc surface (the duplicate row above the message list
+              was cut, launch punch list 2026-07-02). */}
           {attachedDocs.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
+            <div
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-2"
+              data-testid="chat-attached-document-context"
+            >
               {attachedDocs.map((d) => (
                 <button
                   key={d.id}
@@ -808,6 +883,15 @@ export function AssistantTab({
                   <span aria-hidden>×</span>
                 </button>
               ))}
+              {attachedDocs.length === 1 && (
+                <button
+                  type="button"
+                  onClick={() => dispatchDocChip(attachedDocs[0].id)}
+                  className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                >
+                  Preview →
+                </button>
+              )}
             </div>
           )}
 
@@ -924,10 +1008,26 @@ export function AssistantTab({
                   </button>
                 </div>
               )}
-              {attachOpen && recentDocs.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-2 rounded-item border border-rule bg-paper p-2 w-[280px] z-10">
-                  <ul className="space-y-2">
-                    {recentDocs.map((d) => {
+              {attachOpen && sortedDocs.length > 0 && (
+                <div
+                  className="absolute bottom-full left-0 mb-2 rounded-item border border-rule bg-paper p-2 w-[280px] z-10"
+                  data-testid="chat-attach-popover"
+                >
+                  {/* Every matter document is attachable; the filter keeps
+                      long lists workable without changing the popover shape. */}
+                  {sortedDocs.length > 5 && (
+                    <input
+                      type="text"
+                      value={attachFilter}
+                      onChange={(e) => setAttachFilter(e.target.value)}
+                      placeholder="Filter documents"
+                      aria-label="Filter documents"
+                      data-testid="chat-attach-filter"
+                      className="mb-2 w-full rounded-item border border-rule bg-paper px-2 py-1 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+                    />
+                  )}
+                  <ul className="max-h-56 space-y-2 overflow-y-auto">
+                    {filteredAttachDocs.map((d) => {
                       const checked = selectedDocIds.has(d.id);
                       return (
                         <li key={d.id}>
@@ -943,6 +1043,11 @@ export function AssistantTab({
                         </li>
                       );
                     })}
+                    {filteredAttachDocs.length === 0 && (
+                      <li className="px-1 py-0.5 text-xs text-muted">
+                        No documents match.
+                      </li>
+                    )}
                   </ul>
                   <button
                     type="button"
@@ -1610,6 +1715,10 @@ function RailPanel({
       <div className="mt-3">{children}</div>
     </section>
   );
+}
+
+function providerLabel(provider: string): string {
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
 
 function formatError(err: unknown): string {

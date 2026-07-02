@@ -45,6 +45,7 @@ from app.core.api import (
 from app.core.auth import current_user
 from app.core.config import settings
 from app.core.db import get_session
+from app.core.limits import check_generated_artefact
 from app.core.document_uploads import (
     validate_upload_magic_bytes,
     validate_upload_mime,

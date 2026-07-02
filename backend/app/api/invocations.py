@@ -48,6 +48,7 @@ from app.core.auth import current_user
 from app.core.capabilities import CapabilityDenied
 from app.core.db import get_session
 from app.core.grants_lifecycle import CapabilityScopeUnsupported
+from app.core.limits import check_workflow_run
 from app.core.phase1_runtime.exceptions import Phase1Blocked
 from app.core.posture_gate import PostureBlocked
 from app.core.runtime import (
@@ -126,6 +127,10 @@ async def invoke_capability_endpoint(
     user: User = Depends(current_user),
 ) -> InvocationResponse:
     matter = await _load_matter_or_404(session, slug=slug, user=user)
+
+    # 0. Evaluation limit — capability runs are capped per day (counted
+    #    from the module.capability.invoked audit rows dispatch writes).
+    await check_workflow_run(user.id, session)
 
     # 1. Module must be installed AND enabled.
     installed = await session.scalar(

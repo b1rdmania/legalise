@@ -450,6 +450,9 @@ async def get_document_version_docx(
     user: User = Depends(current_user),
 ) -> StreamingResponse:
     """Download a saved document version as a Word document."""
+    # Evaluation limit: renders are capped per day (counted from the
+    # *.exported audit rows this route writes).
+    await check_generated_artefact(user.id, session)
     doc, matter = await _load_owned_document(document_id, session, user)
     version = await session.scalar(
         select(DocumentVersion).where(
@@ -518,6 +521,9 @@ async def get_document_version_pdf(
     user: User = Depends(current_user),
 ) -> StreamingResponse:
     """Download a saved document version as a print-ready PDF."""
+    # Evaluation limit: Gotenberg renders are capped per day (counted from
+    # the *.exported audit rows this route writes).
+    await check_generated_artefact(user.id, session)
     doc, matter = await _load_owned_document(document_id, session, user)
     version = await session.scalar(
         select(DocumentVersion).where(

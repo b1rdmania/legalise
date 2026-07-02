@@ -83,6 +83,8 @@ You see two document sections. "Document index" lists every document in the matt
 
 Cite document content with [doc:<document_id>] using the UUID from the document sections. Cite chronology with [chron:<event_id>] using the UUID from the Chronology section. IDs verbatim, never titles. The workspace resolves them to a clickable label.
 
+Do not cite case law, statutes, or authorities from memory as established fact. When you state a legal proposition that no document in the matter supports, flag it as requiring verification. Never invent citations.
+
 England & Wales only. If asked about other jurisdictions, say so and stop.
 
 Return JSON only, matching this shape:
@@ -106,6 +108,10 @@ _CHRONOLOGY_EVENT_LIMIT = 12
 # How many chunks to retrieve per turn when no documents are attached. Hits
 # are grouped by document, so this maps to a smaller number of documents.
 _RETRIEVAL_K = 8
+# Output cap for the assistant turn itself. The provider default (2048) is
+# sized for short module calls; a chat answer that cites documents needs
+# headroom or it truncates mid-envelope and fails the JSON parse.
+_ASSISTANT_MAX_TOKENS = 8192
 # The matter spine: a cheap, always-present orientation layer so the
 # assistant knows the whole matter exists even though it only reads a few
 # document bodies per turn. Metadata only — titles, not contents.
@@ -900,8 +906,8 @@ def _make_assistant_provider_call(
         )
         return ProviderResponse(
             text=result.text,
-            model_id=matter.default_model_id or result.model_used,
-            provider=result.model_used,
+            model_id=result.model_used or matter.default_model_id,
+            provider=result.provider or result.model_used,
             tokens_in=result.token_count,
             tokens_out=0,
             cost_micros=None,
@@ -1300,6 +1306,7 @@ async def run_assistant_turn(
         *,
         sources: list[AssistantSource] | None = None,
         kind: str = "document_summary",
+        model_used: str = "deterministic-summary",
     ) -> AssistantMessage:
         assistant_row = AssistantMessage(
             matter_id=matter.id,
@@ -1309,7 +1316,7 @@ async def run_assistant_turn(
             content=content_out,
             suggested_actions=[a.model_dump(mode="json") for a in actions],
             sources=[s.model_dump(mode="json") for s in (sources or [])],
-            model_used="deterministic-summary",
+            model_used=model_used,
             prompt_hash=None,
             response_hash=None,
             token_count=0,
@@ -1358,6 +1365,7 @@ async def run_assistant_turn(
             model=matter.default_model_id,
             posture=PrivilegePosture(matter.privilege_posture),
             system=SYSTEM_PROMPT,
+            max_tokens=_ASSISTANT_MAX_TOKENS,
             resource_type="assistant_message",
             resource_id=str(user_row.id),
             payload={"stage": "assistant", "module": "assistant"},
@@ -1377,11 +1385,27 @@ async def run_assistant_turn(
             return user_row, assistant_row
         # Second choice: any other question, but retrieval found passages —
         # show them, labelled as retrieval not generation, with sources so
-        # the "what the AI saw" panel still renders. Only a question that
-        # surfaced nothing propagates to the router's key-missing banner.
+        # the "what the AI saw" panel still renders.
         keyless = _keyless_retrieval_answer(message_sources)
         if keyless is None:
-            raise
+            # Nothing to show at all. Raising a 422 here used to roll back
+            # the user's message while leaving the pre-committed thread as
+            # an empty ghost — the typed message was lost. Persist the turn
+            # instead, with an honest "no model" assistant reply, so the
+            # thread stays coherent and nothing is lost.
+            content_out = (
+                "No model key is configured, so I can't write an answer, "
+                "and this matter has no indexed passages relevant to your "
+                "question to show instead. Your message is saved. Add a "
+                "model key in Settings → API Keys to get a written answer."
+            )
+            assistant_row = await _persist_deterministic_summary(
+                content_out,
+                [],
+                kind="no_model",
+                model_used="no-model",
+            )
+            return user_row, assistant_row
         content_out, actions = keyless
         assistant_row = await _persist_deterministic_summary(
             content_out,
@@ -1392,23 +1416,36 @@ async def run_assistant_turn(
         return user_row, assistant_row
 
     parse_failed = False
-    try:
-        envelope = parse_model_json(result.text, AssistantResponseEnvelope)
-        content_out = envelope.content
-        actions: list[SuggestedAction] = list(envelope.suggested_actions)
-        tool_calls = list(envelope.tool_calls)
-    except StructuredOutputError:
-        # Show a controlled message in the chat thread. Raw provenance
-        # (response hash + token count) lives on the gateway's audit row.
-        # The module audit row gains `parse_failed: true` so this case is
-        # filterable.
-        parse_failed = True
+    if matter.default_model_id == "stub-echo":
+        # The demo provider echoes the prompt — it can never produce the
+        # JSON envelope, so demanding one fails every turn. Wrap the raw
+        # echo as the reply, clearly labelled as the keyless demo path.
         content_out = (
-            "I couldn't structure that response. Try rephrasing your "
-            "message, or check the model settings on this matter."
+            f"{result.text}\n\n"
+            "Demo model (stub-echo) — this is a deterministic echo, not a "
+            "reasoned answer. Pick a real model in the matter's settings "
+            "to chat about the matter."
         )
         actions = []
         tool_calls = []
+    else:
+        try:
+            envelope = parse_model_json(result.text, AssistantResponseEnvelope)
+            content_out = envelope.content
+            actions = list(envelope.suggested_actions)
+            tool_calls = list(envelope.tool_calls)
+        except StructuredOutputError:
+            # Show a controlled message in the chat thread. Raw provenance
+            # (response hash + token count) lives on the gateway's audit row.
+            # The module audit row gains `parse_failed: true` so this case is
+            # filterable.
+            parse_failed = True
+            content_out = (
+                "I couldn't structure that response. Try rephrasing your "
+                "message, or check the model settings on this matter."
+            )
+            actions = []
+            tool_calls = []
 
     tool_invocation_id: uuid.UUID | None = None
     tool_result: dict[str, Any] | None = None
@@ -1457,6 +1494,7 @@ async def run_assistant_turn(
                 model=matter.default_model_id,
                 posture=PrivilegePosture(matter.privilege_posture),
                 system=SYSTEM_PROMPT,
+                max_tokens=_ASSISTANT_MAX_TOKENS,
                 resource_type="assistant_message",
                 resource_id=str(user_row.id),
                 payload={

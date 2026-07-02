@@ -20,6 +20,18 @@ const MATTER_TYPES: { value: string; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
+// Cause pre-fill per matter type. Only Employment Tribunal has a canonical
+// one; everything else starts blank. The field re-derives when the type
+// changes (unless the user has typed their own cause).
+const CAUSE_PREFILL: Record<string, string> = {
+  employment_tribunal: "s.94 ERA 1996, unfair dismissal",
+};
+
+// Aligned with the catalog's recommended default. Only used until
+// /api/models responds (or if it never does); once the list arrives the
+// recommended/usable model wins.
+const FALLBACK_MODEL_ID = "claude-sonnet-4-6";
+
 // Ledger-label form field (DESIGN.md P27): labels carry the 0.18em
 // clerk's-ledger tier rather than the generic eyebrow-sm.
 function Field({
@@ -55,10 +67,10 @@ export function NewMatter() {
   const [form, setForm] = useState(() => ({
     title: "",
     matter_type: "employment_tribunal",
-    cause: "s.94 ERA 1996, unfair dismissal",
+    cause: CAUSE_PREFILL.employment_tribunal,
     case_theory: "",
     pivot_fact: "",
-    default_model_id: user?.default_model_id ?? "claude-opus-4-7",
+    default_model_id: user?.default_model_id ?? FALLBACK_MODEL_ID,
   }));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,8 +89,14 @@ export function NewMatter() {
         setForm((f) => {
           const has = rows.some((m) => m.id === f.default_model_id);
           if (has) return f;
+          // Prefer the catalog's recommended model (if the user can run
+          // it), then any usable model, then the first row.
           const usable =
-            rows.find((m) => !m.requires_key || m.key_configured) ?? rows[0];
+            rows.find(
+              (m) => m.recommended && (!m.requires_key || m.key_configured),
+            ) ??
+            rows.find((m) => !m.requires_key || m.key_configured) ??
+            rows[0];
           return usable ? { ...f, default_model_id: usable.id } : f;
         });
       })
@@ -143,7 +161,21 @@ export function NewMatter() {
         <Field label="Matter type">
           <select
             value={form.matter_type}
-            onChange={(e) => setForm({ ...form, matter_type: e.target.value })}
+            onChange={(e) => {
+              const nextType = e.target.value;
+              setForm((f) => {
+                // Re-derive the Cause pre-fill on type change — but never
+                // clobber a cause the user typed themselves.
+                const untouched =
+                  f.cause.trim() === "" ||
+                  f.cause === (CAUSE_PREFILL[f.matter_type] ?? "");
+                return {
+                  ...f,
+                  matter_type: nextType,
+                  cause: untouched ? CAUSE_PREFILL[nextType] ?? "" : f.cause,
+                };
+              });
+            }}
             className={inputCls}
           >
             {MATTER_TYPES.map((t) => (
@@ -172,7 +204,7 @@ export function NewMatter() {
             <input
               value={form.default_model_id}
               onChange={(e) => setForm({ ...form, default_model_id: e.target.value })}
-              placeholder="claude-opus-4-7"
+              placeholder={FALLBACK_MODEL_ID}
               className={inputCls + " tech-token"}
             />
           ) : (

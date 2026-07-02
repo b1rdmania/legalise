@@ -109,6 +109,28 @@ async def test_assistant_messages_returns_404_when_archived(client) -> None:
     assert resp.status_code == 404, resp.text
 
 
+@pytest.mark.asyncio
+async def test_upload_returns_404_when_matter_archived(client) -> None:
+    """POST /api/matters/{slug}/documents must 404 once the matter is
+    archived — no new content lands on a tombstoned matter."""
+    await _signup_and_login(client)
+    slug = await _create_and_archive(client)
+    resp = await client.post(
+        f"/api/matters/{slug}/documents",
+        files={"file": ("note.txt", b"hello archived world", "text/plain")},
+    )
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
+async def test_reindex_returns_404_when_matter_archived(client) -> None:
+    """POST /api/matters/{slug}/reindex must 404 on archived matter."""
+    await _signup_and_login(client)
+    slug = await _create_and_archive(client)
+    resp = await client.post(f"/api/matters/{slug}/reindex")
+    assert resp.status_code == 404, resp.text
+
+
 # ---------------------------------------------------------------------------
 # Sanity: live matters still work
 # ---------------------------------------------------------------------------

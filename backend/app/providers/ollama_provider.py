@@ -51,11 +51,13 @@ class OllamaProvider:
 
     def __init__(self, base_url: str, default_model: str = DEFAULT_MODEL):
         self._base_url = base_url.rstrip("/")
-        self._default_model = default_model
+        # Public: the gateway reads this to record the model actually run
+        # when the caller didn't pass one.
+        self.default_model = default_model
         self._client = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS)
 
     async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
-        model = kwargs.get("model") or self._default_model
+        model = kwargs.get("model") or self.default_model
         # Strip an `ollama/` prefix if the caller passed a fully-qualified id.
         if model.startswith("ollama/"):
             model = model[len("ollama/") :]

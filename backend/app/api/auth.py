@@ -15,12 +15,13 @@ The frontend can call these directly. We keep fastapi-users' standard
 names (login/logout/register) rather than aliasing to signin/signout —
 matching upstream docs reduces surprise for self-hosters.
 
-Abuse throttling: register, request-verify-token and forgot-password are
-per-IP rate limited (Postgres sliding window — see app/core/rate_limit.py).
+Abuse throttling: login, register, request-verify-token and forgot-password
+are per-IP rate limited (Postgres sliding window — see app/core/rate_limit.py).
 The fastapi-users routers are upstream factories, so the throttle rides in
-as router-level dependencies; the verify and reset routers each bundle a
-second route we do NOT throttle (/verify, /reset-password — both already
-gated by a single-use token), so those dependencies match on path.
+as router-level dependencies; the auth, verify and reset routers each bundle
+a second route we do NOT throttle (/logout, /verify, /reset-password — all
+already gated by a cookie or single-use token), so those dependencies match
+on path.
 """
 
 from __future__ import annotations
@@ -42,6 +43,14 @@ async def _throttle_register(
     await enforce_ip_rate_limit(request, session, "auth.register")
 
 
+async def _throttle_login(
+    request: Request, session: AsyncSession = Depends(get_session)
+) -> None:
+    # The auth router also serves POST /logout — cookie-gated, not throttled.
+    if request.url.path.endswith("/login"):
+        await enforce_ip_rate_limit(request, session, "auth.login")
+
+
 async def _throttle_request_verify_token(
     request: Request, session: AsyncSession = Depends(get_session)
 ) -> None:
@@ -59,7 +68,8 @@ async def _throttle_forgot_password(
 
 
 router.include_router(
-    fastapi_users.get_auth_router(auth_backend, requires_verification=True)
+    fastapi_users.get_auth_router(auth_backend, requires_verification=True),
+    dependencies=[Depends(_throttle_login)],
 )
 router.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),

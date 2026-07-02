@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import func, select
 
-from app.core.rate_limit import RATE_LIMITED_ROUTES, route_limit
+from app.core.rate_limit import RATE_LIMITED_ROUTES, client_ip, route_limit
 from app.models import AuditEntry, AuthThrottleEvent
 
 
@@ -116,8 +116,9 @@ async def test_register_different_ip_is_separate_bucket(client, monkeypatch) -> 
 
     assert (await _register(client, 0)).status_code == 201
     assert (await _register(client, 1)).status_code == 429
-    # Same socket, different proxy-asserted client IP — fresh bucket.
-    resp = await _register(client, 2, headers={"cf-connecting-ip": "203.0.113.7"})
+    # Same socket, different Fly-asserted client IP — fresh bucket.
+    # (Fly-Client-IP is set by Fly's proxy, not client-controllable.)
+    resp = await _register(client, 2, headers={"fly-client-ip": "203.0.113.7"})
     assert resp.status_code == 201, resp.text
 
 
@@ -134,7 +135,7 @@ async def test_register_window_slides_without_sleeping(
         db_session.add(AuthThrottleEvent(ip=ip, route="auth.register", created_at=stale))
     await db_session.commit()
 
-    resp = await _register(client, 0, headers={"cf-connecting-ip": ip})
+    resp = await _register(client, 0, headers={"fly-client-ip": ip})
     assert resp.status_code == 201, resp.text
 
     # The expired rows were swept by the opportunistic cleanup.
@@ -233,3 +234,133 @@ async def test_forgot_password_throttles_but_reset_password_does_not(
         json={"token": "not-a-real-token", "password": PASSWORD},
     )
     assert resp.status_code == 400, resp.text
+
+
+# ---------------------------------------------------------------------------
+# POST /auth/login
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_login_throttles_at_limit(client, db_session, monkeypatch) -> None:
+    """Login attempts (valid or not) throttle at the per-IP limit —
+    mirrors the register throttle wiring."""
+    monkeypatch.setenv("LEGALISE_RATE_LIMIT_LOGIN_PER_HOUR", "3")
+
+    for _ in range(3):
+        resp = await client.post(
+            "/auth/login",
+            data={"username": "nobody@example.com", "password": "wrong-password"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert resp.status_code == 400, resp.text  # bad credentials, not throttled
+
+    resp = await client.post(
+        "/auth/login",
+        data={"username": "nobody@example.com", "password": "wrong-password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert resp.status_code == 429, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error"] == "rate_limited"
+    assert detail["route"] == "auth.login"
+    assert detail["limit_per_hour"] == 3
+    assert resp.headers.get("retry-after") == "3600"
+
+    # Exactly one audit row for the first rejection.
+    assert await _audit_throttle_count(db_session) == 1
+
+
+@pytest.mark.asyncio
+async def test_logout_not_throttled_by_login_bucket(client, monkeypatch) -> None:
+    """POST /auth/logout shares the upstream auth router but is
+    cookie-gated — exhausting the login bucket must not 429 it."""
+    monkeypatch.setenv("LEGALISE_RATE_LIMIT_LOGIN_PER_HOUR", "1")
+
+    resp = await client.post(
+        "/auth/login",
+        data={"username": "nobody@example.com", "password": "wrong-password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert resp.status_code == 400
+    resp = await client.post(
+        "/auth/login",
+        data={"username": "nobody@example.com", "password": "wrong-password"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert resp.status_code == 429
+
+    # Bucket exhausted — /logout still serves (401: no cookie).
+    resp = await client.post("/auth/logout")
+    assert resp.status_code == 401, resp.text
+
+
+def test_login_shipped_default(monkeypatch) -> None:
+    monkeypatch.delenv("LEGALISE_RATE_LIMIT_LOGIN_PER_HOUR", raising=False)
+    assert route_limit("auth.login") == 10
+
+
+# ---------------------------------------------------------------------------
+# client_ip — header-trust hardening (spoof scenarios)
+# ---------------------------------------------------------------------------
+
+
+class _StubClient:
+    def __init__(self, host: str | None) -> None:
+        self.host = host
+
+
+class _StubRequest:
+    """Duck-typed Request: client_ip only reads .headers.get and .client."""
+
+    def __init__(self, headers: dict[str, str], peer: str | None = "10.0.0.1") -> None:
+        self.headers = {k.lower(): v for k, v in headers.items()}
+        self.client = _StubClient(peer) if peer else None
+
+
+class TestClientIpHeaderTrust:
+    def test_cf_header_trusted_when_hop_is_cloudflare(self) -> None:
+        # Fly-Client-IP inside Cloudflare's published ranges → the request
+        # really came via Cloudflare, so CF-Connecting-IP is authoritative.
+        request = _StubRequest(
+            {"cf-connecting-ip": "198.51.100.9", "fly-client-ip": "172.68.1.2"}
+        )
+        assert client_ip(request) == "198.51.100.9"
+
+    def test_cf_header_ignored_when_origin_hit_directly(self) -> None:
+        # Attacker hits the .fly.dev origin directly and forges the CF
+        # header: Fly saw the attacker's real IP, not Cloudflare, so the
+        # forged header must not mint a fresh throttle bucket.
+        request = _StubRequest(
+            {"cf-connecting-ip": "203.0.113.99", "fly-client-ip": "198.51.100.7"}
+        )
+        assert client_ip(request) == "198.51.100.7"
+
+    def test_cf_header_alone_ignored(self) -> None:
+        # No Fly hop at all (e.g. local/self-hosted): a bare CF header is
+        # client-controlled — fall through to the peer address.
+        request = _StubRequest({"cf-connecting-ip": "203.0.113.99"})
+        assert client_ip(request) == "10.0.0.1"
+
+    def test_cf_header_trusted_for_ipv6_cloudflare_hop(self) -> None:
+        request = _StubRequest(
+            {"cf-connecting-ip": "2001:db8::7", "fly-client-ip": "2606:4700::1234"}
+        )
+        assert client_ip(request) == "2001:db8::7"
+
+    def test_x_forwarded_for_never_trusted(self) -> None:
+        # XFF is trivially spoofable and no longer part of the chain.
+        request = _StubRequest({"x-forwarded-for": "203.0.113.5, 10.0.0.9"})
+        assert client_ip(request) == "10.0.0.1"
+
+    def test_garbage_fly_header_falls_back_to_itself(self) -> None:
+        # A malformed Fly-Client-IP can't be a Cloudflare hop; the CF
+        # header is ignored and the Fly value (still proxy-set) is used.
+        request = _StubRequest(
+            {"cf-connecting-ip": "203.0.113.99", "fly-client-ip": "not-an-ip"}
+        )
+        assert client_ip(request) == "not-an-ip"
+
+    def test_no_headers_no_peer_is_unknown(self) -> None:
+        request = _StubRequest({}, peer=None)
+        assert client_ip(request) == "unknown"

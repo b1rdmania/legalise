@@ -200,3 +200,127 @@ async def test_matter_create_limit_blocks_at_max(
     detail = r2.json()["detail"]
     assert detail["error"] == "evaluation_limit_reached"
     assert detail["limit"] == "matters_per_user"
+
+
+@pytest.mark.asyncio
+async def test_archived_matter_frees_matter_cap(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Tombstoning a matter frees its slot under matters_per_user."""
+    monkeypatch.setattr(
+        limits_module, "_limits", Limits(matters_per_user=2)
+    )
+    await _signup_and_login(client)
+
+    # Khan (auto-seeded) + Matter A = at the cap.
+    r1 = await client.post("/api/matters", json={"title": "Matter A"})
+    assert r1.status_code == 201, r1.text
+    slug_a = r1.json()["slug"]
+
+    r2 = await client.post("/api/matters", json={"title": "Matter B"})
+    assert r2.status_code == 429, r2.text
+
+    # Archive A — the slot comes back.
+    resp = await client.delete(f"/api/matters/{slug_a}")
+    assert resp.status_code == 204, resp.text
+    r3 = await client.post("/api/matters", json={"title": "Matter B"})
+    assert r3.status_code == 201, r3.text
+
+
+@pytest.mark.asyncio
+async def test_archived_matter_bytes_excluded_from_storage_cap(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Archived matters' purged document bytes stop counting against
+    total_storage_bytes_per_user."""
+    monkeypatch.setattr(
+        limits_module,
+        "_limits",
+        Limits(total_storage_bytes_per_user=100, matters_per_user=10),
+    )
+    await _signup_and_login(client)
+
+    # Archive the auto-seeded Khan matter so its seeded document bytes
+    # cannot skew the arithmetic below.
+    resp = await client.delete(f"/api/matters/{KHAN_SLUG}")
+    assert resp.status_code == 204, resp.text
+
+    body = b"x" * 80
+    r_a = await client.post("/api/matters", json={"title": "Storage A"})
+    assert r_a.status_code == 201
+    slug_a = r_a.json()["slug"]
+    up_a = await client.post(
+        f"/api/matters/{slug_a}/documents",
+        files={"file": ("a.txt", body, "text/plain")},
+    )
+    assert up_a.status_code == 201, up_a.text
+
+    r_b = await client.post("/api/matters", json={"title": "Storage B"})
+    assert r_b.status_code == 201
+    slug_b = r_b.json()["slug"]
+
+    # 80 (live A) + 80 (incoming) > 100 → blocked.
+    up_b = await client.post(
+        f"/api/matters/{slug_b}/documents",
+        files={"file": ("b.txt", body, "text/plain")},
+    )
+    assert up_b.status_code == 429, up_b.text
+    assert up_b.json()["detail"]["limit"] == "total_storage_bytes_per_user"
+
+    # Archive A — its bytes stop counting; the same upload now fits.
+    resp = await client.delete(f"/api/matters/{slug_a}")
+    assert resp.status_code == 204, resp.text
+    up_b2 = await client.post(
+        f"/api/matters/{slug_b}/documents",
+        files={"file": ("b.txt", body, "text/plain")},
+    )
+    assert up_b2.status_code == 201, up_b2.text
+
+
+@pytest.mark.asyncio
+async def test_docx_export_capped_by_generated_artefacts_limit(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The DOCX/PDF export routes enforce generated_artefacts_per_day."""
+    import uuid as uuid_module
+
+    monkeypatch.setattr(
+        limits_module, "_limits", Limits(generated_artefacts_per_day=0)
+    )
+    await _signup_and_login(client)
+
+    fake_doc = uuid_module.uuid4()
+    fake_version = uuid_module.uuid4()
+    resp = await client.get(
+        f"/api/documents/{fake_doc}/versions/{fake_version}/docx"
+    )
+    assert resp.status_code == 429, resp.text
+    assert resp.json()["detail"]["limit"] == "generated_artefacts_per_day"
+
+    resp = await client.get(
+        f"/api/documents/{fake_doc}/versions/{fake_version}/pdf"
+    )
+    assert resp.status_code == 429, resp.text
+    assert resp.json()["detail"]["limit"] == "generated_artefacts_per_day"
+
+
+@pytest.mark.asyncio
+async def test_invocations_capped_by_workflow_runs_limit(
+    client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """POST /api/matters/{slug}/invocations enforces workflow_runs_per_day."""
+    monkeypatch.setattr(
+        limits_module, "_limits", Limits(workflow_runs_per_day=0)
+    )
+    await _signup_and_login(client)
+
+    resp = await client.post(
+        f"/api/matters/{KHAN_SLUG}/invocations",
+        json={
+            "module_id": "legalise.anything",
+            "capability_id": "run",
+            "args": {},
+        },
+    )
+    assert resp.status_code == 429, resp.text
+    assert resp.json()["detail"]["limit"] == "workflow_runs_per_day"

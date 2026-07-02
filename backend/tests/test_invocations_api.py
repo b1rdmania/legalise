@@ -131,11 +131,12 @@ def stub_gateway(monkeypatch):
     async def _stub_call(**kwargs):
         return ModelResult(
             text=canned,
-            model_used="anthropic",
+            model_used="claude-sonnet-4-6",
             prompt_hash="x" * 64,
             response_hash="x" * 64,
             token_count=42,
             latency_ms=10,
+            provider="anthropic",
         )
 
     monkeypatch.setattr(gateway_singleton, "call", _stub_call)
@@ -172,11 +173,12 @@ def stub_gateway_two_findings(monkeypatch):
     async def _stub_call(**kwargs):
         return ModelResult(
             text=_stub_findings_json(),
-            model_used="anthropic",
+            model_used="claude-sonnet-4-6",
             prompt_hash="x" * 64,
             response_hash="x" * 64,
             token_count=1850,
             latency_ms=120,
+            provider="anthropic",
         )
 
     monkeypatch.setattr(gateway_singleton, "call", _stub_call)
