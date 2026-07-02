@@ -211,8 +211,8 @@ function SpineDiagram() {
   const railY = 132;
   const gap = (W - stations.length * boxW) / (stations.length - 1);
   return (
-    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
-      <svg viewBox={`0 0 ${W} 170`} role="img" aria-label="The matter spine: documents, matter, gate, model, output, and sign-off, each writing to one hash-chained record" className="block w-full">
+    <figure className="mt-8 max-w-3xl overflow-x-auto border border-rule bg-paper p-4">
+      <svg viewBox={`0 0 ${W} 170`} role="img" aria-label="The matter spine: documents, matter, gate, model, output, and sign-off, each writing to one hash-chained record" className="block w-full min-w-[720px]">
         {stations.map((label, i) => {
           const x = i * (boxW + gap);
           const cx = x + boxW / 2;
@@ -285,7 +285,7 @@ function SpineDiagram() {
           THE RECORD · HASH-CHAINED · EXPORTABLE
         </text>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-prose">
         Every stage writes to one hash-chained record.
       </figcaption>
     </figure>
@@ -322,12 +322,12 @@ function RequestPathDiagram() {
   const totalH = y0 + nodes.length * rowH;
 
   return (
-    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
+    <figure className="mt-8 max-w-3xl overflow-x-auto border border-rule bg-paper p-4">
       <svg
         viewBox={`0 0 ${W} ${totalH}`}
         role="img"
         aria-label="The request path: an authenticated request runs through matter ownership, the privilege gate (which can refuse), the inference gateway, a provider, a draft, human sign-off, and finally the hash-chained record"
-        className="block w-full"
+        className="block w-full min-w-[720px]"
       >
         {nodes.map((n, i) => {
           const y = y0 + i * rowH;
@@ -358,7 +358,7 @@ function RequestPathDiagram() {
                 x={boxX + boxW + 16}
                 y={cy - 2}
                 fontSize="8.5"
-                fill="#6b6b63"
+                fill="#524b40"
                 fontFamily="ui-monospace, monospace"
               >
                 {n.check}
@@ -401,7 +401,7 @@ function RequestPathDiagram() {
           </marker>
         </defs>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-prose">
         The request path: what runs, and what is checked, at every node.
       </figcaption>
     </figure>
@@ -426,12 +426,12 @@ function GatewayDiagram() {
   ];
 
   return (
-    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
+    <figure className="mt-8 max-w-3xl overflow-x-auto border border-rule bg-paper p-4">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label="The inference gateway: every caller funnels into one gateway component, which reads the privilege posture, decrypts the user's key at call time, and is the only component that talks to a model provider"
-        className="block w-full"
+        className="block w-full min-w-[720px]"
       >
         {callers.map((c, i) => {
           const cy = 70 + i * 60;
@@ -490,7 +490,7 @@ function GatewayDiagram() {
               <text x={630} y={py + 18} textAnchor="middle" fontSize="9" fill="#181818" fontFamily="ui-monospace, monospace">
                 {p.name}
               </text>
-              <text x={630} y={py + 32} textAnchor="middle" fontSize="7.5" fill="#6b6b63" fontFamily="ui-monospace, monospace">
+              <text x={630} y={py + 32} textAnchor="middle" fontSize="8.5" fill="#524b40" fontFamily="ui-monospace, monospace">
                 {p.note}
               </text>
             </g>
@@ -503,7 +503,7 @@ function GatewayDiagram() {
           </marker>
         </defs>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-prose">
         Every model call leaves through one gateway.
       </figcaption>
     </figure>
@@ -525,12 +525,12 @@ function AuditChainDiagram() {
   const midY = y + boxH / 2;
   const headX = rows.length * (boxW + gap);
   return (
-    <figure className="mt-8 max-w-3xl border border-rule bg-paper p-4">
+    <figure className="mt-8 max-w-3xl overflow-x-auto border border-rule bg-paper p-4">
       <svg
         viewBox={`0 0 ${W} 150`}
         role="img"
         aria-label="The audit chain: each entry carries the hash of the entry before it, up to a head hash that fingerprints the whole matter"
-        className="block w-full"
+        className="block w-full min-w-[720px]"
       >
         <defs>
           <marker id="ah-ink" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
@@ -551,7 +551,7 @@ function AuditChainDiagram() {
               {i < rows.length - 1 && (
                 <>
                   <line x1={x + boxW} y1={midY} x2={x + boxW + gap - 2} y2={midY} stroke="#181818" strokeWidth="1" markerEnd="url(#ah-ink)" />
-                  <text x={x + boxW + gap / 2} y={midY - 7} textAnchor="middle" fontSize="7.5" fill="#9b9b93" fontFamily="ui-monospace, monospace">prev</text>
+                  <text x={x + boxW + gap / 2} y={midY - 7} textAnchor="middle" fontSize="8.5" fill="#6b6b63" fontFamily="ui-monospace, monospace">prev</text>
                 </>
               )}
             </g>
@@ -569,12 +569,12 @@ function AuditChainDiagram() {
         />
         <rect x={headX + 0.5} y={y + 0.5} width={headW} height={boxH} fill="#8B0000" stroke="#8B0000" strokeWidth="1" />
         <text x={headX + headW / 2} y={y + 21} textAnchor="middle" fontSize="9" letterSpacing="1.5" fill="#f5f3ee" fontFamily="ui-monospace, monospace">HEAD</text>
-        <text x={headX + headW / 2} y={y + 39} textAnchor="middle" fontSize="7.5" fill="#f5f3ee" fontFamily="ui-monospace, monospace">fingerprint</text>
+        <text x={headX + headW / 2} y={y + 39} textAnchor="middle" fontSize="8.5" fill="#f5f3ee" fontFamily="ui-monospace, monospace">fingerprint</text>
         <text x={W / 2} y={128} textAnchor="middle" fontSize="8.5" letterSpacing="1.5" fill="#181818" fontFamily="ui-monospace, monospace">
           CHANGE ANY ROW · EVERY HASH AFTER IT BREAKS
         </text>
       </svg>
-      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-muted">
+      <figcaption className="px-1 pt-3 pb-1 text-[11px] text-prose">
         Each entry carries the hash of the one before it, up to a head that
         fingerprints the whole matter.
       </figcaption>
