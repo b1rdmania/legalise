@@ -86,6 +86,11 @@ services:
       LEGALISE_RATE_LIMIT_REGISTER_PER_HOUR: ${LEGALISE_RATE_LIMIT_REGISTER_PER_HOUR:-}
       LEGALISE_RATE_LIMIT_REQUEST_VERIFY_TOKEN_PER_HOUR: ${LEGALISE_RATE_LIMIT_REQUEST_VERIFY_TOKEN_PER_HOUR:-}
       LEGALISE_RATE_LIMIT_FORGOT_PASSWORD_PER_HOUR: ${LEGALISE_RATE_LIMIT_FORGOT_PASSWORD_PER_HOUR:-}
+      # Anthropic API base URL. Defaults to the real endpoint (no change to
+      # local/prod); the e2e workflow overrides it to an unreachable host so
+      # the settings-keys key probe connection-errors (transient -> persist
+      # unverified) instead of hitting a real 401 on its throwaway key.
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.anthropic.com}
       # Local/eval only: first registered user becomes workspace admin
       # automatically, removing the bootstrap_admin copy-paste from the
       # two-minute demo path. The e2e workflow exports false so it can
