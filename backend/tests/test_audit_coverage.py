@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import select
@@ -38,6 +39,20 @@ from app.models import (
     User,
     WorkspaceSkillCapabilityGrant,
 )
+
+
+@pytest.fixture(autouse=True)
+def _stub_provider_key_probe():
+    """POST /api/settings/keys probes the candidate key with a live provider
+    call before persisting (see test_settings_key_verification). The key
+    audit tests here use throwaway keys, so stub the probe to succeed —
+    otherwise it hits the real Anthropic API and the add 400s.
+    """
+    async def _ok_call(self, prompt, *, system=None, **kwargs):  # noqa: ANN001
+        return ("pong", 1)
+
+    with patch("app.providers.anthropic_provider.AnthropicProvider.call", _ok_call):
+        yield
 
 
 # ---------------------------------------------------------------------------

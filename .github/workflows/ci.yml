@@ -49,6 +49,11 @@ jobs:
           --health-retries 10
 
     env:
+      # The retrieval extra (fastembed) is intentionally NOT installed in CI
+      # (it downloads a model). Use the keyless hash embedding backend for
+      # tests — see app/core/embeddings.py. Without this the default
+      # 'fastembed' backend raises on any synchronous embedding call.
+      LEGALISE_EMBEDDING_BACKEND: hash
       # POSTGRES_DSN is read by `settings.postgres_dsn` and used by
       # alembic (sync psycopg driver). TEST_DATABASE_URL is read by
       # `backend/tests/conftest.py` for the async engine. Both point at

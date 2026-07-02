@@ -168,3 +168,39 @@ async def client(db_connection: AsyncConnection) -> AsyncIterator[AsyncClient]:
                 delattr(app.state, "session_factory")
             except AttributeError:
                 pass
+
+
+@pytest.fixture(autouse=True)
+def _eager_enqueue_jobs(monkeypatch):
+    """Resolve enqueued background jobs synchronously in tests.
+
+    Production pushes background jobs (e.g. document indexing) onto
+    arq/Redis for a worker to run. The test env has neither Redis nor a
+    worker, so an enqueued job would otherwise: 503 with no Redis, or —
+    with Redis but no worker — linger `queued` forever and block matter
+    deletion (`matter_has_active_jobs`). Instead, mark the job SUCCEEDED
+    inline via the test-bound session factory, so it lands in the same
+    SAVEPOINT the request wrote the job row into.
+
+    This does NOT run the job (no chunking/embedding); it only moves it to
+    a terminal state. Tests that exercise the enqueue/worker paths — the
+    503 path, the noop path, or a direct `_run_index` — re-patch
+    `app.core.jobs.enqueue_job` in their own body, which overrides this.
+    """
+    from app.main import app as main_app
+    from app.core.jobs import update_status
+    from app.models.job import Job, JOB_STATUS_SUCCEEDED
+
+    async def _eager_enqueue(job_id):
+        factory = getattr(main_app.state, "session_factory", None)
+        if factory is None:
+            # No test client/session in play — nothing to resolve.
+            return
+        async with factory() as session:
+            job = await session.get(Job, job_id)
+            if job is None:
+                return
+            await update_status(session, job, JOB_STATUS_SUCCEEDED)
+            await session.commit()
+
+    monkeypatch.setattr("app.core.jobs.enqueue_job", _eager_enqueue)

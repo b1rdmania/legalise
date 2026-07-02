@@ -521,7 +521,8 @@ async def test_contract_review_vertical_slice(
         assert model_row.tokens_in == 1850
         assert model_row.tokens_out == 0
         assert model_row.provider == "anthropic"
-        assert model_row.model_id == "claude-opus-4-7"
+        # Matter uses the default model (settings.default_model_id).
+        assert model_row.model_id == "claude-sonnet-4-6"
 
     # ------- (8) pull reconstruction view + assert canonical timeline -------
     recon = await client.get(
