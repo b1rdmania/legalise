@@ -78,6 +78,21 @@ async def start_install_endpoint(
             },
         )
 
+    # A native manifest whose entrypoint doesn't resolve in this
+    # deployment would install cleanly and then fail on every dispatch
+    # — refuse admission up front instead.
+    from app.core.runtime import native_entrypoint_error
+
+    entrypoint_problem = native_entrypoint_error(manifest)
+    if entrypoint_problem is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "error": "entrypoint_unresolvable",
+                "message": entrypoint_problem,
+            },
+        )
+
     # Enforce dependency resolution BEFORE the ceremony starts. The
     # 422 here is the canonical signal — there is no
     # CeremonyState.DEPENDENCY_MISSING terminal in the state machine.

@@ -957,3 +957,53 @@ async def test_legacy_grant_does_not_satisfy_matter_scoped_check(
             capability="matter.thing.do",
             matter_id=matter.id,
         )
+
+
+# ---------------------------------------------------------------------------
+# native_entrypoint_error
+# ---------------------------------------------------------------------------
+
+
+def test_native_entrypoint_error_none_for_prompt_runtime() -> None:
+    from app.core.runtime import native_entrypoint_error
+
+    assert native_entrypoint_error({"runtime": "prompt"}) is None
+    assert native_entrypoint_error(None) is None
+    assert native_entrypoint_error({}) is None
+
+
+def test_native_entrypoint_error_flags_missing_module() -> None:
+    from app.core.runtime import native_entrypoint_error
+
+    manifest = {
+        "runtime": "native",
+        "entrypoint": {
+            "python_module": "app.adapters.plugin_bridge",
+            "entry": "M",
+        },
+    }
+    problem = native_entrypoint_error(manifest)
+    assert problem is not None
+    assert "app.adapters.plugin_bridge" in problem
+
+
+def test_native_entrypoint_error_flags_missing_fields() -> None:
+    from app.core.runtime import native_entrypoint_error
+
+    assert native_entrypoint_error({"runtime": "native"}) is not None
+    assert (
+        native_entrypoint_error(
+            {"runtime": "native", "entrypoint": {"entry": "M"}}
+        )
+        is not None
+    )
+
+
+def test_native_entrypoint_error_passes_importable_module() -> None:
+    from app.core.runtime import native_entrypoint_error
+
+    manifest = {
+        "runtime": "native",
+        "entrypoint": {"python_module": "app.core.runtime", "entry": "M"},
+    }
+    assert native_entrypoint_error(manifest) is None

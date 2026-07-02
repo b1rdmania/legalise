@@ -387,6 +387,45 @@ def check_registry_discovery() -> CheckResult:
     )
 
 
+async def check_installed_entrypoints_resolvable(
+    session: AsyncSession,
+) -> CheckResult:
+    """Every ENABLED installed module must be dispatchable on this image.
+
+    Catches the stale-manifest class: a native install whose
+    ``entrypoint.python_module`` was refactored away (or isn't shipped
+    in this image) passes schema validation but fails every dispatch.
+    """
+    from app.core.runtime import native_entrypoint_error
+    from app.models import InstalledModule
+
+    rows = (
+        await session.scalars(
+            select(InstalledModule).where(InstalledModule.enabled.is_(True))
+        )
+    ).all()
+    broken = [
+        f"{row.module_id} v{row.version} ({problem})"
+        for row in rows
+        if (problem := native_entrypoint_error(row.manifest_snapshot))
+        is not None
+    ]
+    if broken:
+        return CheckResult(
+            "modules.entrypoints_resolvable",
+            "fail",
+            f"{len(broken)} enabled install(s) cannot dispatch: "
+            + "; ".join(broken),
+            "disable the row(s) or re-import the skill from its current "
+            "source — see installed_modules.manifest_snapshot.entrypoint",
+        )
+    return CheckResult(
+        "modules.entrypoints_resolvable",
+        "ok",
+        f"{len(rows)} enabled install(s), all dispatchable",
+    )
+
+
 def check_manifests_valid() -> CheckResult:
     """Run the v2 validator against every discovered module."""
     from app.core.registry import (
@@ -581,6 +620,10 @@ async def _run_all(*, create_bucket: bool) -> int:
     if db_ok.status == "ok":
         async with factory() as session:
             results.append(await check_khan_demo_present(session))
+        async with factory() as session:
+            results.append(
+                await check_installed_entrypoints_resolvable(session)
+            )
 
     # Provider mode — diagnostic only.
     results.append(check_provider_mode())
