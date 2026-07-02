@@ -96,12 +96,18 @@ async def tombstone_matter(
         StorageDeleteError: storage purge failed (nothing staged survives —
             the caller's transaction must roll back; fail-closed).
     """
-    # Refuse if active jobs exist for this matter.
+    # Refuse if active jobs exist for this matter. Background kinds (index)
+    # are excluded — consistent with get_active_job_count, which already
+    # drops them so a background job never gates an interactive action.
+    # A queued index job on a deleted matter fails cleanly worker-side.
+    from app.core.jobs import BACKGROUND_JOB_KINDS
+
     active_count = (
         await session.scalar(
             select(func.count(Job.id)).where(
                 Job.matter_id == matter.id,
                 Job.status.in_(JOB_ACTIVE_STATUSES),
+                Job.kind.notin_(BACKGROUND_JOB_KINDS),
             )
         )
     ) or 0
