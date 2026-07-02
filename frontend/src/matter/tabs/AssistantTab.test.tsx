@@ -571,3 +571,211 @@ describe("AssistantTab — pause affordance in the header meta line", () => {
     expect(screen.queryByTestId("chat-pause-toggle")).toBeNull();
   });
 });
+
+const someDoc = (
+  id: string,
+  filename: string,
+  uploadedAt = "2026-06-03T10:00:00",
+): MatterDocument =>
+  ({
+    id,
+    matter_id: "m-1",
+    filename,
+    mime_type: "text/plain",
+    size_bytes: 100,
+    sha256: "a".repeat(64),
+    tag: "draft",
+    from_disclosure: false,
+    uploaded_at: uploadedAt,
+    uploaded_by_id: "u-1",
+  }) as never;
+
+describe("AssistantTab — composer send keys", () => {
+  it("sends on Enter and keeps Shift+Enter as newline", async () => {
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "First line" } });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    expect(api.postAssistantMessageStream).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() =>
+      expect(api.postAssistantMessageStream).toHaveBeenCalledWith(
+        matter.slug,
+        expect.objectContaining({ content: "First line" }),
+      ),
+    );
+  });
+
+  it("still sends on Cmd/Ctrl+Enter", async () => {
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "Meta send" } });
+    fireEvent.keyDown(input, { key: "Enter", metaKey: true });
+    await waitFor(() =>
+      expect(api.postAssistantMessageStream).toHaveBeenCalledWith(
+        matter.slug,
+        expect.objectContaining({ content: "Meta send" }),
+      ),
+    );
+  });
+});
+
+describe("AssistantTab — failed send", () => {
+  it("restores the typed prompt into the composer on error", async () => {
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(
+      // eslint-disable-next-line require-yield
+      async function* () {
+        throw new Error("boom");
+      },
+    );
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "Do not lose me" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(/Could not send message/i)).toBeInTheDocument();
+    // The prompt is back in the composer — a failed send never eats the text.
+    expect(input).toHaveValue("Do not lose me");
+  });
+});
+
+describe("AssistantTab — doc-aware empty state", () => {
+  it("replaces starter chips with an upload action when the matter has no documents", async () => {
+    const setTabAndHash = vi.fn();
+    mountChat({ setTabAndHash, docs: [] });
+
+    const emptyState = await screen.findByTestId("chat-empty-state-no-docs");
+    expect(emptyState).toHaveTextContent(/Upload your first document/i);
+    expect(screen.queryByTestId("chat-empty-state")).toBeNull();
+    expect(screen.queryByText(/Stress-test this case/i)).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Upload your first document/i }),
+    );
+    expect(setTabAndHash).toHaveBeenCalledWith("documents");
+  });
+
+  it("shows the starter chips once the matter has documents", async () => {
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    expect(await screen.findByTestId("chat-empty-state")).toBeInTheDocument();
+    expect(screen.getByText(/Stress-test this case/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-empty-state-no-docs")).toBeNull();
+  });
+});
+
+describe("AssistantTab — attach popover", () => {
+  const manyDocs = Array.from({ length: 7 }, (_, i) =>
+    someDoc(`doc-${i}`, `bundle-${i}.pdf`, `2026-06-0${(i % 9) + 1}T10:00:00`),
+  );
+
+  it("lists every matter document, not just the 5 most recent", async () => {
+    mountChat({ docs: manyDocs });
+
+    fireEvent.click(await screen.findByTestId("chat-documents-toggle"));
+    const popover = await screen.findByTestId("chat-attach-popover");
+    expect(within(popover).getAllByRole("checkbox")).toHaveLength(7);
+  });
+
+  it("filters the list by title", async () => {
+    mountChat({ docs: manyDocs });
+
+    fireEvent.click(await screen.findByTestId("chat-documents-toggle"));
+    const filter = await screen.findByTestId("chat-attach-filter");
+    fireEvent.change(filter, { target: { value: "bundle-3" } });
+
+    const popover = screen.getByTestId("chat-attach-popover");
+    expect(within(popover).getAllByRole("checkbox")).toHaveLength(1);
+    expect(within(popover).getByText("bundle-3.pdf")).toBeInTheDocument();
+
+    fireEvent.change(filter, { target: { value: "no-such-doc" } });
+    expect(within(popover).queryAllByRole("checkbox")).toHaveLength(0);
+    expect(within(popover).getByText(/No documents match/i)).toBeInTheDocument();
+  });
+});
+
+describe("AssistantTab — no-key header notice", () => {
+  it("shows a passive notice when the matter's model needs a key the user lacks", async () => {
+    vi.spyOn(api, "listApiKeys").mockResolvedValue([]);
+    mountChat({
+      matter: { ...matter, required_provider: "anthropic" } as Matter,
+    });
+
+    const notice = await screen.findByTestId("chat-no-key-notice");
+    expect(notice).toHaveTextContent(/No Anthropic key yet/i);
+    expect(within(notice).getByRole("link")).toHaveAttribute(
+      "href",
+      "/settings/keys",
+    );
+  });
+
+  it("stays silent when the key is on file", async () => {
+    vi.spyOn(api, "listApiKeys").mockResolvedValue([
+      { provider: "anthropic", last_used_at: null, created_at: "2026-01-01" },
+    ]);
+    mountChat({
+      matter: { ...matter, required_provider: "anthropic" } as Matter,
+    });
+
+    await screen.findByTestId("docs-context-status");
+    await waitFor(() => expect(api.listApiKeys).toHaveBeenCalled());
+    expect(screen.queryByTestId("chat-no-key-notice")).toBeNull();
+  });
+
+  it("does not fetch keys for keyless models", async () => {
+    const spy = vi.spyOn(api, "listApiKeys").mockResolvedValue([]);
+    mountChat();
+    await screen.findByTestId("docs-context-status");
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe("AssistantTab — long-wait honesty line", () => {
+  it("does not show the note for a fast turn", async () => {
+    let releaseResult!: () => void;
+    const resultGate = new Promise<void>((resolve) => {
+      releaseResult = resolve;
+    });
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(
+      async function* () {
+        await resultGate;
+        yield {
+          event: "result",
+          data: {
+            user: {
+              id: "u-1",
+              role: "user",
+              content: "Slow question",
+              suggested_actions: [],
+              created_at: "",
+            },
+            assistant: {
+              id: "a-1",
+              role: "assistant",
+              content: "Slow answer",
+              suggested_actions: [],
+              created_at: "",
+            },
+          },
+        } as never;
+      },
+    );
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "Slow question" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    // The ticker appears immediately; the honesty line waits for the timer.
+    expect(await screen.findByText("Working...")).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-long-wait-note")).toBeNull();
+
+    releaseResult();
+    expect(await screen.findByText("Slow answer")).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-long-wait-note")).toBeNull();
+  });
+});

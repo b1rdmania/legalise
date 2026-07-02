@@ -8,7 +8,7 @@ export const primaryBtn =
 
 // Inline banner for the canonical `provider_key_missing` 422 error.
 // Border + text tokens only. No fill, no radius, no shadow. The deep
-// link to `#/settings` is what makes this a one-click resolution
+// link to `/settings/keys` is what makes this a one-click resolution
 // instead of a dead-end blob.
 export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
   const label = provider.charAt(0).toUpperCase() + provider.slice(1);
@@ -16,14 +16,23 @@ export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
     <div className="border border-ink p-3 my-3 text-sm">
       <div className="font-semibold text-ink mb-1">{label} API key required</div>
       <p className="leading-relaxed text-prose m-0">
-        Add your {label} API key in Settings to use this model. Or switch to stub-echo for the demo.
+        No model key yet. Add your {label} key in Settings to get written
+        answers — or walk the guided demo.
       </p>
-      <a
-        href="/settings"
-        className="inline-block mt-2 text-ink underline underline-offset-2 hover:text-prose transition-colors"
-      >
-        Open Settings
-      </a>
+      <div className="mt-2 flex flex-wrap items-center gap-4">
+        <a
+          href="/settings/keys"
+          className="text-ink underline underline-offset-2 hover:text-prose transition-colors"
+        >
+          Open Settings
+        </a>
+        <a
+          href="/guided-demo"
+          className="text-muted underline underline-offset-2 hover:text-prose transition-colors"
+        >
+          Walk the demo
+        </a>
+      </div>
     </div>
   );
 }
