@@ -82,7 +82,9 @@ services:
       # assert firm-mode enforcement. Same ${VAR:-default} pattern.
       LEGALISE_FIRM_ROLE_GATES_ENABLED: ${LEGALISE_FIRM_ROLE_GATES_ENABLED:-false}
       # Auth abuse throttle overrides. Empty default = the
-      # in-code limits; e2e exports 0 to disable for its register storm.
+      # in-code limits; e2e exports 0 to disable for its register storm
+      # and repeated per-test sign-ins.
+      LEGALISE_RATE_LIMIT_LOGIN_PER_HOUR: ${LEGALISE_RATE_LIMIT_LOGIN_PER_HOUR:-}
       LEGALISE_RATE_LIMIT_REGISTER_PER_HOUR: ${LEGALISE_RATE_LIMIT_REGISTER_PER_HOUR:-}
       LEGALISE_RATE_LIMIT_REQUEST_VERIFY_TOKEN_PER_HOUR: ${LEGALISE_RATE_LIMIT_REQUEST_VERIFY_TOKEN_PER_HOUR:-}
       LEGALISE_RATE_LIMIT_FORGOT_PASSWORD_PER_HOUR: ${LEGALISE_RATE_LIMIT_FORGOT_PASSWORD_PER_HOUR:-}
