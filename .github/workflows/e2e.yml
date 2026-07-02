@@ -62,6 +62,13 @@ jobs:
       LEGALISE_RATE_LIMIT_REGISTER_PER_HOUR: "0"
       LEGALISE_RATE_LIMIT_REQUEST_VERIFY_TOKEN_PER_HOUR: "0"
       LEGALISE_RATE_LIMIT_FORGOT_PASSWORD_PER_HOUR: "0"
+      # POST /api/settings/keys probes the candidate key against the real
+      # provider before persisting. The e2e uses a throwaway key, so point
+      # the Anthropic SDK at an unreachable host: the probe hits a
+      # connection error (not a 401), which the endpoint treats as a
+      # transient failure and persists the key unverified -> 201, exactly
+      # what settings-keys.spec.ts exercises (add + audit row).
+      ANTHROPIC_BASE_URL: "http://127.0.0.1:1"
     defaults:
       run:
         working-directory: frontend
