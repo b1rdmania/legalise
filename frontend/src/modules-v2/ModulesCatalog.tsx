@@ -244,10 +244,9 @@ export function ModulesCatalog() {
       <PageHeader
         display
         title="Skill library"
-        whisper="Browse and add skills"
         description={
           authed
-            ? "A skill is one piece of legal work — review an NDA, screen a dismissal, draft a letter. Add one here, switch it on in a matter, run it from Chat. What you've added lives in My skills."
+            ? "A skill is one piece of legal work — review an NDA, screen a dismissal, draft a letter. Add one, switch it on in a matter, run it from Chat."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -284,41 +283,6 @@ export function ModulesCatalog() {
           </div>
         }
       />
-
-      {/* Intro band — the plain-English value proposition, set as a
-          register leaf: headline, two short lines, then the three steps
-          every skill goes through here. Composed from existing tokens
-          (ink / paper / rule / muted / seal) — no new colours or media. */}
-      <section
-        className="mb-12 border border-ink/70 bg-paper p-6 sm:p-8"
-        data-testid="skills-intro"
-      >
-        <p className="text-[10px] uppercase tracking-[0.25em] text-muted">
-          Skills, kept on the record
-        </p>
-        <h2 className="mt-3 max-w-2xl text-[30px] leading-tight tracking-tight2 text-ink sm:text-[34px]">
-          Skills are powerful. Run loose, they make a mess.
-        </h2>
-
-        <div className="mt-6 grid gap-px border border-rule bg-rule sm:grid-cols-3">
-          <IntroStep
-            step="01"
-            title="Install"
-            body="Add a skill from the catalogue into your workspace."
-          />
-          <IntroStep
-            step="02"
-            title="Scan"
-            body="We check its signature and what it is allowed to touch."
-          />
-          <IntroStep
-            step="03"
-            title="Sign off"
-            body="Every run is audited, then signed off by a person."
-          />
-        </div>
-
-      </section>
 
       {!authed && (
         <section className="mb-10 grid gap-px border border-rule bg-rule sm:grid-cols-3">
@@ -527,7 +491,7 @@ export function ModulesCatalog() {
           importing still requires a workspace). */}
       <section className="mt-12" data-testid="lawve-catalogue">
           <SectionRule
-            label="The open catalogue"
+            label="Catalogue"
             right={
               authed ? (
                 <Link
@@ -546,13 +510,10 @@ export function ModulesCatalog() {
               )
             }
           />
-          {/* Where skills come from — the three admission routes, then
-              the review rule. A labelled row, not a hero. */}
-          <p className="mt-4 text-[10px] uppercase tracking-[0.18em] text-muted">
-            Where skills come from
-          </p>
+          {/* The three ways in, then the one rule. No sub-heading —
+              the cells say it themselves. */}
           <div
-            className="mt-2 grid gap-px border border-rule bg-rule sm:grid-cols-3"
+            className="mt-4 grid gap-px border border-rule bg-rule sm:grid-cols-3"
             data-testid="skill-sources"
           >
             <SourceRoute
@@ -571,7 +532,7 @@ export function ModulesCatalog() {
             />
             <SourceRoute
               name="Any public GitHub repo"
-              body="A SKILL.md at the repo root, pinned to the exact commit on import."
+              body="Needs a SKILL.md file at the top of the repo. We pin the exact version you imported."
             />
             <SourceRoute
               name={
@@ -719,25 +680,6 @@ export function ModulesCatalog() {
   );
 }
 
-function IntroStep({
-  step,
-  title,
-  body,
-}: {
-  step: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="bg-paper p-4">
-      <div className="flex items-baseline gap-2">
-        <span className="tech-token text-[11px] text-muted">{step}</span>
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-prose">{body}</p>
-    </div>
-  );
-}
 
 /** One admission route in the "Where skills come from" strip. */
 function SourceRoute({ name, body }: { name: ReactNode; body: string }) {
