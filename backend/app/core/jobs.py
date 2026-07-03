@@ -287,9 +287,8 @@ async def enqueue_or_mark_failed(session: AsyncSession, job: Job) -> None:
                 "error": "job_enqueue_failed",
                 "job_id": str(job.id),
                 "message": (
-                    "Failed to queue the job for execution. Please try again; "
-                    "the previous attempt has been marked failed and freed your "
-                    "active-job slot."
+                    "The job couldn't be queued. Try again — the failed "
+                    "attempt does not count against your active jobs."
                 ),
             },
         ) from exc

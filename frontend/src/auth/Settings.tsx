@@ -55,7 +55,7 @@ export function Settings({ tab }: { tab: SettingsTab }) {
       <PageHeader
         display
         title="Settings"
-        whisper="Your account at the registry"
+        whisper="Your account"
         description="The account holds your profile, your provider keys, and your defaults. Your name appears in audit rows; key changes are themselves recorded."
       />
       <div className="flex flex-col lg:flex-row gap-10">

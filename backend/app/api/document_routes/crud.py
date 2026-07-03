@@ -108,9 +108,9 @@ async def delete_document(
                 "error": "document_storage_delete_failed",
                 "document_id": doc_id_str,
                 "message": (
-                    "Failed to delete document storage objects. The "
-                    "document has NOT been deleted; please retry. If the "
-                    "error persists, contact the operator."
+                    "The document's files could not be deleted, so the "
+                    "document has NOT been removed. Try again; if it keeps "
+                    "failing, contact the operator."
                 ),
             },
         ) from exc

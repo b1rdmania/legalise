@@ -161,7 +161,7 @@ def _build_readme(
         "",
         "## Limitations",
         "- This is an application-level export, not a certified legal record.",
-        "- Original files / artefacts that predate object storage (or whose object is missing) are listed in metadata but their bytes are not included.",
+        "- Original files or artefacts whose stored bytes are no longer available are listed in metadata but not included.",
     ]
     if unavailable_artifacts:
         lines.append(

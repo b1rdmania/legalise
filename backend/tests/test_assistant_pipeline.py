@@ -119,7 +119,10 @@ class _KeylessFakeGateway:
 
 class _PausedFakeGateway:
     async def call(self, **_kw) -> ModelResult:
-        raise PrivilegePaused("Matter privilege posture is C_paused — LLM calls are blocked.")
+        raise PrivilegePaused(
+            "AI is paused on this matter. "
+            "Resume AI from the matter's Overview to continue."
+        )
 
 
 class _Scalars:

@@ -259,8 +259,8 @@ class ModelGateway:
                 raise PrivilegePaused(f"matter not found for matter_id={matter_id}")
             if PrivilegePosture(posture_row) is PrivilegePosture.C_PAUSED:
                 raise PrivilegePaused(
-                    "Matter privilege posture is C_paused — tool invocation is blocked. "
-                    "Change posture to A_cleared or B_mixed to proceed."
+                    "AI is paused on this matter, so tools cannot run. "
+                    "Resume AI from the matter's Overview to continue."
                 )
 
         result = await tool.handler(
@@ -357,8 +357,8 @@ class ModelGateway:
 
         if effective_posture is PrivilegePosture.C_PAUSED:
             raise PrivilegePaused(
-                "Matter privilege posture is C_paused — LLM calls are blocked. "
-                "Change posture to A_cleared or B_mixed to proceed."
+                "AI is paused on this matter. "
+                "Resume AI from the matter's Overview to continue."
             )
 
         # Runtime capability enforcement: if this call is attributed to a

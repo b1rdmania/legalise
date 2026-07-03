@@ -240,20 +240,24 @@ function ResultPanel({
   }
 
   if (state.kind === "posture_blocked") {
+    const paused =
+      state.err.posture === "C_paused" ||
+      state.err.reason === "posture_paused";
     return (
-      <Banner tone="amber" title="Privilege gate blocked invocation">
+      <Banner
+        tone="amber"
+        title={
+          paused
+            ? "AI is paused on this matter"
+            : "This run is restricted on this matter"
+        }
+      >
         <p>
-          This matter's privilege state (
-          <code className="tech-token text-xs">{state.err.posture}</code>)
-          requires role{" "}
-          <code className="tech-token text-xs">{state.err.requiredRole}</code>.
-          Your role is{" "}
-          <code className="tech-token text-xs">{state.err.actorRole}</code>.
+          {paused
+            ? "No skills can run while the matter is paused. Resume AI from the Overview tab, then run again."
+            : "Only qualified solicitors can run skills on this matter, and your role doesn't include that."}
         </p>
-        <p className="mt-1 text-xs">
-          Audit row:{" "}
-          <code className="tech-token">posture_gate.check.blocked</code>.
-        </p>
+        <p className="mt-1 text-xs">This refusal is recorded in Activity.</p>
       </Banner>
     );
   }

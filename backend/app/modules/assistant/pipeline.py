@@ -787,7 +787,7 @@ def _keyless_retrieval_answer(
         "over the matter. Below are the passages most relevant to your "
         f"question — {len(sources)} from {doc_count} {docs}, retrieved from "
         "this matter's own documents. Review them directly, or add a model "
-        "key in Settings to get a written answer."
+        "key in Settings → API Keys to get a written answer."
     )
     top = sources[0]
     return (
@@ -979,15 +979,29 @@ async def _dispatch_assistant_tool(
 def _tool_failure_message(exc: Exception) -> str:
     if isinstance(exc, CapabilityDenied):
         return (
-            "I couldn't run that skill because this matter does not grant "
-            f"{exc.capability} to {exc.plugin}/{exc.skill}."
+            "I couldn't run that skill: this matter doesn't grant it the "
+            "permission it needs. Check Activity for the failed run."
         )
     if isinstance(exc, PostureBlocked):
-        return "I couldn't run that skill because the matter posture blocked it."
+        if exc.result.reason == "posture_paused":
+            return (
+                "I couldn't run that skill: AI is paused on this matter. "
+                "Resume AI from the matter's Overview first."
+            )
+        return (
+            "I couldn't run that skill: your role doesn't allow skill "
+            "runs on this matter."
+        )
     if isinstance(exc, Phase1Blocked):
-        return "I couldn't run that skill because a runtime gate blocked it."
+        return (
+            "I couldn't run that skill: a workspace safety check blocked "
+            "it. Check Activity for the failed run."
+        )
     if isinstance(exc, AdviceBoundaryDenied):
-        return "I couldn't run that skill because the advice boundary blocked it."
+        return (
+            "I couldn't run that skill: it goes beyond what this "
+            "workspace may advise on. Check Activity for the failed run."
+        )
     if isinstance(exc, (CapabilityNotDeclared, EntrypointResolutionError, ValueError)):
         return f"I couldn't run that skill: {exc}"
     return "I couldn't run that skill. Check Activity for the failed run."
@@ -1185,8 +1199,8 @@ async def run_assistant_turn(
                 content=(
                     "This matter has reached its configured token budget "
                     f"({used} tokens used of {settings.matter_token_budget}). "
-                    "Raise LEGALISE_MATTER_TOKEN_BUDGET or continue in a new "
-                    "matter."
+                    "Continue in a new matter, or ask whoever runs this "
+                    "workspace to raise LEGALISE_MATTER_TOKEN_BUDGET."
                 ),
                 suggested_actions=[],
                 sources=[],
@@ -1436,9 +1450,9 @@ async def run_assistant_turn(
         # echo as the reply, clearly labelled as the keyless demo path.
         content_out = (
             f"{result.text}\n\n"
-            "Demo model (stub-echo) — this is a deterministic echo, not a "
-            "reasoned answer. Pick a real model in the matter's settings "
-            "to chat about the matter."
+            "Demo model — this echoes your message back; it does not "
+            "reason. Pick a real model in the matter's settings to chat "
+            "about the matter."
         )
         actions = []
         tool_calls = []

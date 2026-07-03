@@ -18,6 +18,7 @@ Matter-access predicate: matter owner OR workspace superuser. Uniform
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -35,6 +36,8 @@ from app.core.matter_artifacts import (
 from app.models import Matter, MatterArtifact, User
 from app.models.matter import STATUS_ARCHIVED
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -162,19 +165,19 @@ async def read_artifact_endpoint(
                 "error": "legacy_artifact_unavailable",
                 "artifact_id": str(row.id),
                 "message": (
-                    "This artifact predates object storage (or its object "
-                    "is missing) and is no longer retrievable. Its metadata "
-                    "and audit trail remain."
+                    "The file for this output is no longer available. "
+                    "Its details and audit trail remain."
                 ),
             },
         )
     except ValueError as exc:
+        logger.error("artifact %s did not parse as JSON: %s", row.id, exc)
         raise HTTPException(
             status_code=500,
             detail={
                 "error": "artifact_file_corrupt",
                 "artifact_id": str(row.id),
-                "message": f"artifact did not parse as JSON: {exc}",
+                "message": "The file for this output is damaged and can't be opened.",
             },
         ) from exc
 

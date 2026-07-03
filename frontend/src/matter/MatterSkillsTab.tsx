@@ -202,7 +202,7 @@ export function MatterSkillsTab({ slug }: Props) {
           ))}
           {runnableSkills.length === 0 && enabledModules.length === 0 && (
             <p className="text-sm text-muted">
-              No skills hold standing in this matter yet.
+              No skills are enabled in this matter yet. Enable one from the list below.
             </p>
           )}
         </div>
@@ -216,7 +216,7 @@ export function MatterSkillsTab({ slug }: Props) {
         />
         {availableModules.length === 0 ? (
           <p className="mt-3 text-sm text-muted" data-testid="available-empty">
-            Nothing awaits enablement here. Skills trusted in the workspace
+            Nothing to enable yet. Skills trusted in the workspace
             appear in this section.{" "}
             <Link
               to="/skills"

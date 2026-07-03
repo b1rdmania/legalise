@@ -459,7 +459,7 @@ async def upload_document(
             error_code=exc.error_code,
         )
         raise storage_write_http_exception(
-            message="Failed to write document to object storage.",
+            message="The document could not be saved. Try uploading it again.",
             storage_key=obj_key,
             backend=exc.backend,
         ) from exc

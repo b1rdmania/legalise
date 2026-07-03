@@ -33,6 +33,7 @@ Registration in app/main.py:
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -56,6 +57,8 @@ from app.models import (
     User,
 )
 from app.models.job import JOB_KIND_EXPORT, JOB_STATUS_SUCCEEDED
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -176,16 +179,24 @@ async def download_export(
             detail={
                 "error": "export_not_ready",
                 "status": job.status,
-                "message": "Export job has not completed. Poll the job status endpoint.",
+                "message": "The export isn't ready yet. Try again in a moment.",
             },
         )
 
     result = job.result_payload or {}
     export_key: str | None = result.get("export_key")
     if not export_key:
+        # Internal precision goes to the log; the user just needs a way out.
+        logger.error(
+            "export job %s succeeded but result_payload has no export_key",
+            export_job_id,
+        )
         raise HTTPException(
             500,
-            detail={"error": "export_key_missing", "message": "Export job succeeded but storage key is missing."},
+            detail={
+                "error": "export_key_missing",
+                "message": "The export finished but its file can't be found. Run the export again.",
+            },
         )
 
     # LMF-4: "who downloaded the export bundle" is part of the governance

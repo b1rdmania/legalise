@@ -129,7 +129,7 @@ async def get_document_asset(
             502,
             detail={
                 "error": "storage_read_failed",
-                "message": "Failed to read document image.",
+                "message": "This image is no longer available.",
                 "storage_key": key,
                 "backend": exc.backend,
             },

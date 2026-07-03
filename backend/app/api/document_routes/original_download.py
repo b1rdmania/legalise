@@ -75,7 +75,7 @@ async def download_generated_docx(
             502,
             detail={
                 "error": "storage_read_failed",
-                "message": "Failed to read generated document from object storage.",
+                "message": "The file for this generated document is no longer available. Generate it again.",
                 "storage_key": storage_uri,
                 "backend": exc.backend,
             },
@@ -153,7 +153,7 @@ async def get_document_original(
             502,
             detail={
                 "error": "storage_read_failed",
-                "message": "Failed to read the original document from object storage.",
+                "message": "The original file for this document is no longer available.",
                 "storage_key": doc.storage_uri,
                 "backend": exc.backend,
             },

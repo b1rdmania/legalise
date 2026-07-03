@@ -92,7 +92,7 @@ describe("InvocationRunner — happy path", () => {
 });
 
 describe("InvocationRunner — structured failure paths", () => {
-  it("renders posture banner with required role + actor role", async () => {
+  it("renders plain posture-blocked banner", async () => {
     vi.spyOn(api, "invokeCapability").mockRejectedValue(
       new api.PostureBlockedError(
         "posture blocked",
@@ -108,12 +108,15 @@ describe("InvocationRunner — structured failure paths", () => {
     fireEvent.click(runBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Privilege gate blocked/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/This run is restricted on this matter/),
+      ).toBeInTheDocument();
     });
-    expect(screen.getByText(/B_mixed/)).toBeInTheDocument();
-    expect(screen.getByText(/qualified_solicitor/)).toBeInTheDocument();
     expect(
-      screen.getByText(/posture_gate\.check\.blocked/),
+      screen.getByText(/Only qualified solicitors can run skills/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/recorded in Activity/),
     ).toBeInTheDocument();
   });
 
