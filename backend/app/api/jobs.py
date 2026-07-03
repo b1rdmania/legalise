@@ -135,7 +135,7 @@ async def job_events(
             async with factory() as s:
                 row = await s.scalar(select(Job).where(Job.id == job_id))
             if row is None:
-                yield _sse_frame("error", {"message": "job row vanished"})
+                yield _sse_frame("error", {"message": "This job no longer exists."})
                 break
             yield _sse_frame("status", _job_row(row))
             if row.status in terminal:

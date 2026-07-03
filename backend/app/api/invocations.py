@@ -253,7 +253,8 @@ async def invoke_capability_endpoint(
         raise provider_error_http_exception(
             exc,
             missing_key_message=(
-                "User has not configured an API key for the selected provider."
+                "Add an API key for the selected provider in "
+                "Settings → API Keys, then run the skill again."
             ),
             upstream_shape="generic",
         ) from exc

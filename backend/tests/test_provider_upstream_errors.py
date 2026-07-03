@@ -299,7 +299,7 @@ async def test_anthropic_truncation_raises_provider_truncated() -> None:
             await provider.call("long question")
 
     assert excinfo.value.code == "provider_truncated"
-    assert "truncated at the output limit" in str(excinfo.value)
+    assert "cut off at the model's output limit" in str(excinfo.value)
 
 
 @pytest.mark.asyncio

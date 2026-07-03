@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter
 
 from .common import *  # noqa: F403
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -127,7 +131,7 @@ async def post_upload_document_version(
             version_upload=True,
         )
         raise storage_write_http_exception(
-            message="Failed to write document version to object storage.",
+            message="This version could not be saved. Try again.",
             storage_key=obj_key,
             backend=exc.backend,
         ) from exc
@@ -554,11 +558,12 @@ async def get_document_version_pdf(
 
         data = await documents_api._html_to_pdf(html_doc)
     except RuntimeError as exc:
+        logger.error("pdf export failed for document %s: %s", doc.id, exc)
         raise HTTPException(
             502,
             detail={
                 "error": "pdf_export_failed",
-                "message": str(exc),
+                "message": "The PDF could not be generated. Try again in a moment.",
             },
         ) from exc
     filename = _pdf_export_filename(doc.filename, version.version_number)
@@ -637,7 +642,7 @@ async def get_document_version_original(
             502,
             detail={
                 "error": "storage_read_failed",
-                "message": "Failed to read the version original from object storage.",
+                "message": "The file for this version is no longer available.",
                 "storage_key": version.storage_uri,
                 "backend": exc.backend,
             },

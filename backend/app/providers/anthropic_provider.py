@@ -115,8 +115,8 @@ class AnthropicProvider:
                 code="provider_truncated",
                 upstream_status=None,
                 message=(
-                    "anthropic: response truncated at the output limit — "
-                    "try a narrower question"
+                    "The answer was cut off at the model's output limit. "
+                    "Ask a narrower question."
                 ),
             )
 
