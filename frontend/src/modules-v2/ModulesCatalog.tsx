@@ -28,7 +28,6 @@ import { PageHeader } from "../ui/primitives";
 import {
   CertCard,
   CertEyebrow,
-  Colophon,
   InkBands,
   LedgerLine,
   LedgerRow,
@@ -212,39 +211,22 @@ export function ModulesCatalog() {
     return counts;
   }, [installed, modules]);
 
-  // Schedule B shelf controls — client-side search + facets over the
-  // open catalogue, in the importer's filter idiom. Ordering comes from
-  // the shared grouping (skillDisplay.ts): quiet what-they-do sections,
-  // alphabetical by display name inside each.
+  // Shelf control — one search box over the open catalogue. Ordering
+  // comes from the shared grouping (skillDisplay.ts): quiet what-they-do
+  // sections, alphabetical by display name inside each.
   const [shelfQuery, setShelfQuery] = useState("");
-  const [shelfLicense, setShelfLicense] = useState("");
-  const [shelfAuthor, setShelfAuthor] = useState("");
 
-  const shelfLicenses = useMemo(
-    () =>
-      [...new Set((lawve ?? []).map((s) => s.license).filter((l): l is string => !!l))].sort(),
-    [lawve],
-  );
-  const shelfAuthors = useMemo(
-    () =>
-      [...new Set((lawve ?? []).map((s) => s.author_name).filter((a): a is string => !!a))].sort(),
-    [lawve],
-  );
   const shelf = useMemo(() => {
     const term = shelfQuery.trim().toLowerCase();
-    return (lawve ?? []).filter((s) => {
-      if (shelfLicense && s.license !== shelfLicense) return false;
-      if (shelfAuthor && s.author_name !== shelfAuthor) return false;
-      if (!term) return true;
-      return (
+    if (!term) return lawve ?? [];
+    return (lawve ?? []).filter(
+      (s) =>
         s.name.toLowerCase().includes(term) ||
         skillDisplayName(s.slug, s.author_name).toLowerCase().includes(term) ||
         s.description.toLowerCase().includes(term) ||
-        (s.author_name ?? "").toLowerCase().includes(term) ||
-        (s.license ?? "").toLowerCase().includes(term)
-      );
-    });
-  }, [lawve, shelfQuery, shelfLicense, shelfAuthor]);
+        (s.author_name ?? "").toLowerCase().includes(term),
+    );
+  }, [lawve, shelfQuery]);
   // A group with no surviving rows disappears with its header.
   const shelfGroups = useMemo(() => groupSkills(shelf), [shelf]);
 
@@ -265,7 +247,7 @@ export function ModulesCatalog() {
         whisper="Browse and add skills"
         description={
           authed
-            ? "Browse skills and add them to your workspace. A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Once added, enable it on a matter and run it from Chat. To see the skills you've already added, with their track record, go to My skills."
+            ? "A skill is one piece of legal work — review an NDA, screen a dismissal, draft a letter. Add one here, switch it on in a matter, run it from Chat. What you've added lives in My skills."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -317,13 +299,6 @@ export function ModulesCatalog() {
         <h2 className="mt-3 max-w-2xl text-[30px] leading-tight tracking-tight2 text-ink sm:text-[34px]">
           Skills are powerful. Run loose, they make a mess.
         </h2>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-prose">
-          Legalise adds a skill, scans it for safety, and puts every run
-          behind an audit step and a human sign-off.
-        </p>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-prose">
-          You control the model. It does not control you.
-        </p>
 
         <div className="mt-6 grid gap-px border border-rule bg-rule sm:grid-cols-3">
           <IntroStep
@@ -611,8 +586,8 @@ export function ModulesCatalog() {
             />
           </div>
           <p className="mt-2 text-[11px] text-muted">
-            Every skill, whatever the source, goes through review and
-            admission before it can run — nothing runs on import.
+            Wherever a skill comes from, nothing runs until you have
+            reviewed and approved it here.
           </p>
 
           {lawve == null ? (
@@ -624,13 +599,27 @@ export function ModulesCatalog() {
           ) : (
             <>
               <p className="mt-5 text-sm text-prose" data-testid="shelf-lede">
-                We've already pulled the Lawve catalogue — {lawve.length}{" "}
-                skills to choose from below.
+                We've pulled {lawve.length} skills from Lawve's public
+                GitHub feed. Lawve stopped updating that feed, so this is
+                a partial set
+                {directory ? (
+                  <>
+                    {" "}
+                    —{" "}
+                    <a
+                      href={directory.skills_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                    >
+                      lawve.ai
+                    </a>{" "}
+                    lists {directory.count}
+                  </>
+                ) : null}
+                . Found one there that isn't below? Import it by its
+                GitHub link.
               </p>
-              {/* Shelf controls — search + licence/author facets.
-                  Facets are the catalogue's real metadata (the upstream
-                  SKILL.md frontmatter carries nothing beyond name /
-                  description / author / licence / version). */}
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 <input
                   value={shelfQuery}
@@ -640,30 +629,6 @@ export function ModulesCatalog() {
                   className="min-h-[34px] w-48 border border-rule bg-paper px-3 text-[13px] text-ink focus:border-ink focus:outline-none"
                   data-testid="shelf-search"
                 />
-                <select
-                  value={shelfLicense}
-                  onChange={(e) => setShelfLicense(e.target.value)}
-                  className="rounded-md border border-rule bg-paper px-2 py-1 text-ink"
-                  aria-label="Filter by licence"
-                  data-testid="shelf-license-filter"
-                >
-                  <option value="">any licence</option>
-                  {shelfLicenses.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-                <select
-                  value={shelfAuthor}
-                  onChange={(e) => setShelfAuthor(e.target.value)}
-                  className="rounded-md border border-rule bg-paper px-2 py-1 text-ink"
-                  aria-label="Filter by author"
-                  data-testid="shelf-author-filter"
-                >
-                  <option value="">any author</option>
-                  {shelfAuthors.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
                 <span className="text-muted" data-testid="shelf-count">
                   {shelf.length} of {lawve.length}
                 </span>
@@ -747,34 +712,8 @@ export function ModulesCatalog() {
                   })()
                 )}
               </div>
-              {/* The honest gap strip — the directory is larger than the
-                  importable feed today; say so plainly. Hidden whenever
-                  the count could not be fetched. */}
-              {directory && (
-                <p
-                  className="mt-3 text-[11px] text-muted"
-                  data-testid="shelf-gap-strip"
-                >
-                  {directory.count} skills on{" "}
-                  <a
-                    href={directory.skills_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-                  >
-                    Lawve
-                  </a>{" "}
-                  · {lawve.length} importable here today · the catalogue feed
-                  is being arranged
-                </p>
-              )}
             </>
           )}
-          <Colophon>
-            Adding a skill takes a few steps: review it, check its
-            signature, grant its permissions. After that it shows up in
-            My skills.
-          </Colophon>
       </section>
     </div>
   );

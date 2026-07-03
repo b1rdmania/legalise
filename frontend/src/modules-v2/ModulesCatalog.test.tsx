@@ -293,26 +293,16 @@ describe("ModulesCatalog — integrations home", () => {
         .getAttribute("href"),
     ).toBe("https://lawve.ai/en/skills/contract-review-anthropic");
 
-    // Licence facet narrows the ledger.
-    fireEvent.change(screen.getByTestId("shelf-license-filter"), {
-      target: { value: "AGPL-3.0" },
-    });
-    expect(screen.queryByText("contract-review-anthropic")).toBeNull();
-    expect(screen.getByText("nda-review-jamie-tso")).toBeInTheDocument();
-    expect(screen.getByTestId("shelf-count")).toHaveTextContent("1 of 2");
-    fireEvent.change(screen.getByTestId("shelf-license-filter"), {
-      target: { value: "" },
-    });
-
-    // Author facet exists with the real authors.
-    expect(screen.getByTestId("shelf-author-filter")).toBeInTheDocument();
-    fireEvent.change(screen.getByTestId("shelf-author-filter"), {
+    // Search covers author names; the facet dropdowns are gone.
+    fireEvent.change(screen.getByTestId("shelf-search"), {
       target: { value: "Jamie Tso" },
     });
     expect(screen.getByTestId("shelf-count")).toHaveTextContent("1 of 2");
-    fireEvent.change(screen.getByTestId("shelf-author-filter"), {
+    fireEvent.change(screen.getByTestId("shelf-search"), {
       target: { value: "" },
     });
+    expect(screen.queryByTestId("shelf-license-filter")).toBeNull();
+    expect(screen.queryByTestId("shelf-author-filter")).toBeNull();
 
     // Ordering comes from the grouped ledger — no sort control.
     expect(screen.queryByTestId("shelf-sort")).toBeNull();
@@ -328,16 +318,16 @@ describe("ModulesCatalog — integrations home", () => {
       target: { value: "" },
     });
 
-    // The honest gap strip: directory size vs importable today.
+    // The honest gap now lives in the lede: feed is partial, directory is bigger.
     await waitFor(() => {
-      expect(screen.getByTestId("shelf-gap-strip")).toBeInTheDocument();
+      expect(screen.getByTestId("shelf-lede")).toHaveTextContent("lists 170");
     });
-    expect(screen.getByTestId("shelf-gap-strip")).toHaveTextContent(
-      "170 skills on Lawve · 2 importable here today",
+    expect(screen.getByTestId("shelf-lede")).toHaveTextContent(
+      "Lawve stopped updating that feed",
     );
   });
 
-  it("Schedule B: gap strip hides when the directory count fails", async () => {
+  it("Schedule B: the directory count drops out of the lede when it fails", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
     vi.spyOn(api, "listLawveSkills").mockResolvedValue({
@@ -352,7 +342,7 @@ describe("ModulesCatalog — integrations home", () => {
     await waitFor(() => {
       expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("shelf-gap-strip")).toBeNull();
+    expect(screen.getByTestId("shelf-lede")).not.toHaveTextContent("lists");
   });
 
   it("Schedule B: the shelf stocks for anonymous browsers too", async () => {
@@ -385,11 +375,11 @@ describe("ModulesCatalog — integrations home", () => {
     expect(screen.getByText("Any public GitHub repo")).toBeInTheDocument();
     expect(screen.getByText("Write your own")).toBeInTheDocument();
     expect(
-      screen.getByText(/nothing runs on import/i),
+      screen.getByText(/nothing runs until you have reviewed and approved it/i),
     ).toBeInTheDocument();
     // The lede derives the count from the live feed.
     expect(screen.getByTestId("shelf-lede")).toHaveTextContent(
-      "We've already pulled the Lawve catalogue — 2 skills to choose from below.",
+      "We've pulled 2 skills from Lawve's public GitHub feed.",
     );
   });
 
@@ -443,9 +433,9 @@ describe("ModulesCatalog — integrations home", () => {
     expect(
       screen.getByText(/ships scripts — manual review/),
     ).toBeInTheDocument();
-    // Filtering to AGPL hides the emptied Documents group with its header.
-    fireEvent.change(screen.getByTestId("shelf-license-filter"), {
-      target: { value: "AGPL-3.0" },
+    // A search that empties a group hides it with its header.
+    fireEvent.change(screen.getByTestId("shelf-search"), {
+      target: { value: "NDA" },
     });
     expect(screen.queryByTestId("shelf-group-documents")).toBeNull();
     expect(screen.getByTestId("shelf-group-contracts")).toBeInTheDocument();
