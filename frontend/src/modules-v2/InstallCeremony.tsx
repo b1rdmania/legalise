@@ -544,7 +544,11 @@ function Decision({
         )}
         <p className="flex items-center gap-2">
           <span>Advice ceiling:</span>
-          <span aria-hidden="true" className="tracking-[0.2em] text-ink">
+          <span
+            aria-hidden="true"
+            title={`Advice ceiling — how far this skill may go: ${(card.advice_tier_max ?? "factual_extraction").replaceAll("_", " ")} (${tierIdx + 1} of ${TIERS.length}, from factual extraction to approved final advice)`}
+            className="tracking-[0.2em] text-ink"
+          >
             {TIERS.map((_t, i) => (i <= tierIdx ? "●" : "○")).join("")}
           </span>
           <span className="text-xs text-muted">

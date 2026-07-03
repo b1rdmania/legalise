@@ -163,15 +163,27 @@ export const listInstalledModules = () =>
 export interface ModuleRequestRow {
   module_id: string;
   source: string | null;
+  /** Where the skill lives (e.g. the GitHub repo URL) — lets the admin
+   * Review-&-add link resolve sources the importer can't look up by
+   * slug. Optional: older rows won't carry it. */
+  source_url?: string | null;
   requested_by: string | null;
   requested_at: string;
 }
 
-export const requestModule = (moduleId: string, source?: string) =>
+export const requestModule = (
+  moduleId: string,
+  source?: string,
+  sourceUrl?: string,
+) =>
   apiFetch(`${API}/modules/requests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ module_id: moduleId, source: source ?? null }),
+    body: JSON.stringify({
+      module_id: moduleId,
+      source: source ?? null,
+      source_url: sourceUrl ?? null,
+    }),
   }).then((r) => jsonOrThrow<{ ok: boolean }>(r));
 
 export const listModuleRequests = () =>

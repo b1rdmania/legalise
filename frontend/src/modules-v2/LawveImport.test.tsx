@@ -139,6 +139,40 @@ describe("LawveImport", () => {
     expect(screen.getByTestId("lawve-card-office-processor")).toBeInTheDocument();
   });
 
+  it("renders the picker as a grouped ledger with display names and descriptions", async () => {
+    mountLawve();
+    await waitFor(() =>
+      expect(screen.getByTestId("lawve-card-contract-review-anthropic")).toBeInTheDocument(),
+    );
+    // Derived display name leads; raw slug stays as secondary text.
+    expect(screen.getByText("Contract review")).toBeInTheDocument();
+    expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
+    // The catalogue description is finally visible (both rows share it).
+    expect(screen.getAllByText("Review contracts.").length).toBeGreaterThan(0);
+    // Group headers by what they do; scripts get the manual-review marker.
+    expect(screen.getByTestId("lawve-group-contracts")).toBeInTheDocument();
+    expect(screen.getByText(/ships scripts — manual review/)).toBeInTheDocument();
+  });
+
+  it("auto-fetches a ?github= deep link into the GitHub panel", async () => {
+    const repoUrl = "https://github.com/example/legal-skill";
+    const getGithubSkill = vi
+      .spyOn(api, "getGithubSkill")
+      .mockResolvedValue(
+        detail({ slug: "legal-skill", name: "Legal Skill" }),
+      );
+    window.history.pushState({}, "", `/skills/lawve?github=${encodeURIComponent(repoUrl)}`);
+    try {
+      mountLawve();
+      await waitFor(() => expect(getGithubSkill).toHaveBeenCalledWith(repoUrl));
+      await waitFor(() => expect(screen.getByTestId("lawve-detail")).toBeInTheDocument());
+      // The URL lands in the GitHub field too, so re-fetch just works.
+      expect(screen.getByTestId("github-url")).toHaveValue(repoUrl);
+    } finally {
+      window.history.pushState({}, "", "/skills/lawve");
+    }
+  });
+
   it("opens a scripted skill and shows the non-execution flag", async () => {
     vi.spyOn(api, "getLawveSkill").mockResolvedValue(
       detail({ slug: "office-processor", name: "Office Processor", has_scripts: true, scripts: ["skills/office-processor/scripts/run.py"] }),

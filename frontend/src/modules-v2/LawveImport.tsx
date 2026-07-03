@@ -25,6 +25,11 @@ import { useAuth } from "../auth/AuthProvider";
 import { ErrorCallout, LoadingLine, PageHeader } from "../ui/primitives";
 import { LedgerLine, SectionRule } from "../ui/certificate";
 import { RequestSkillButton } from "./RequestSkillButton";
+import {
+  groupSkills,
+  licenceLabel,
+  skillDisplayName,
+} from "./skillDisplay";
 
 type ListQuery =
   | { status: "loading" }
@@ -86,6 +91,21 @@ export function LawveImport() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q.status]);
 
+  // Deep-link a GitHub source: /skills/lawve?github=<repo url> — the
+  // admin's Review-&-add link for a github-sourced request lands here
+  // and the URL is fetched straight into the GitHub panel.
+  useEffect(() => {
+    const url =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("github")
+        : null;
+    if (url) {
+      setGhUrl(url);
+      void openGithub(url);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const licenses = useMemo(
     () => [...new Set(skills.map((s) => s.license).filter((l): l is string => !!l))].sort(),
     [skills],
@@ -99,12 +119,16 @@ export function LawveImport() {
       if (!term) return true;
       return (
         s.name.toLowerCase().includes(term) ||
+        skillDisplayName(s.slug, s.author_name).toLowerCase().includes(term) ||
         s.description.toLowerCase().includes(term) ||
         (s.author_name ?? "").toLowerCase().includes(term) ||
         (s.license ?? "").toLowerCase().includes(term)
       );
     });
   }, [skills, search, licenseFilter, scriptsOnly, refsOnly]);
+  // Same what-they-do grouping as the Skill library shelf; a group
+  // with no surviving rows disappears with its header.
+  const grouped = useMemo(() => groupSkills(filtered), [filtered]);
 
   const openSkill = async (slug: string) => {
     setSelecting(true);
@@ -120,8 +144,8 @@ export function LawveImport() {
     }
   };
 
-  const openGithub = async () => {
-    const url = ghUrl.trim();
+  const openGithub = async (rawUrl?: string) => {
+    const url = (rawUrl ?? ghUrl).trim();
     if (!url) return;
     setSelecting(true);
     setDetailErr(null);
@@ -240,45 +264,77 @@ export function LawveImport() {
               <span className="text-muted">{filtered.length} of {skills.length}</span>
             </div>
 
-            {/* The catalogue ledger — index, licence, name + author, chevron.
-                Same scan rhythm as the register's admission lists. */}
-            <ul className="mt-4">
-              {filtered.map((s, i) => (
-                <li key={s.slug}>
-                  <button
-                    type="button"
-                    onClick={() => openSkill(s.slug)}
-                    className={
-                      "group block w-full text-left " +
-                      (selected?.slug === s.slug ? "bg-wash" : "")
-                    }
-                    data-testid={`lawve-card-${s.slug}`}
-                  >
-                    <LedgerLine
-                      index={i + 1}
-                      label={s.license ?? "licence ?"}
-                      right={
-                        <span
-                          aria-hidden="true"
-                          className="text-sm text-muted group-hover:text-seal"
-                        >
-                          →
-                        </span>
-                      }
-                    >
-                      <span className="text-ink group-hover:text-seal">
-                        {s.name}
-                      </span>
-                      <span className="ml-2 hidden text-[12px] text-muted sm:inline">
-                        {s.author_name ?? "unknown"}
-                        {s.has_scripts ? " · scripts" : ""}
-                        {s.has_references ? " · refs" : ""}
-                      </span>
-                    </LedgerLine>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {/* The catalogue ledger — grouped by what the skills do,
+                same scan rhythm and grouping as the Skill library. */}
+            {(() => {
+              let n = 0;
+              return grouped.map((group) => (
+                <div key={group.id} data-testid={`lawve-group-${group.id}`}>
+                  <div className="mt-5 flex items-baseline justify-between border-b border-rule pb-1.5">
+                    <h3 className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                      {group.label}
+                    </h3>
+                    <span className="tech-token text-[11px] text-muted">
+                      {group.skills.length}
+                    </span>
+                  </div>
+                  {group.note && (
+                    <p className="mt-1.5 text-[11px] text-muted">{group.note}</p>
+                  )}
+                  <ul>
+                    {group.skills.map((s) => {
+                      n += 1;
+                      return (
+                        <li key={s.slug}>
+                          <button
+                            type="button"
+                            onClick={() => openSkill(s.slug)}
+                            className={
+                              "group block w-full text-left " +
+                              (selected?.slug === s.slug ? "bg-wash" : "")
+                            }
+                            data-testid={`lawve-card-${s.slug}`}
+                          >
+                            <LedgerLine
+                              index={n}
+                              label={licenceLabel(s.license)}
+                              right={
+                                <span
+                                  aria-hidden="true"
+                                  className="text-sm text-muted group-hover:text-seal"
+                                >
+                                  →
+                                </span>
+                              }
+                            >
+                              <span className="block min-w-0">
+                                <span className="text-ink group-hover:text-seal">
+                                  {skillDisplayName(s.slug, s.author_name)}
+                                </span>
+                                <span className="ml-2 hidden text-[11px] text-muted sm:inline">
+                                  <span className="tech-token">{s.slug}</span>
+                                  {" · "}
+                                  {s.author_name ?? "unknown"}
+                                  {s.has_references ? " · refs" : ""}
+                                  {(s.has_scripts || s.script_review_required) && (
+                                    <span className="text-seal">
+                                      {" · ships scripts — manual review"}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="block truncate text-[12px] text-muted">
+                                  {s.description}
+                                </span>
+                              </span>
+                            </LedgerLine>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ));
+            })()}
           </div>
 
           {/* Detail + convert */}
@@ -337,7 +393,13 @@ export function LawveImport() {
                   {drafting ? "Converting…" : "Convert to skill draft"}
                 </button>
 
-                {draft && <DraftReview draft={draft} slug={selected.slug} />}
+                {draft && (
+                  <DraftReview
+                    draft={draft}
+                    slug={selected.slug}
+                    githubUrl={selectedGhUrl}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -347,7 +409,18 @@ export function LawveImport() {
   );
 }
 
-function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string }) {
+function DraftReview({
+  draft,
+  slug,
+  githubUrl,
+}: {
+  draft: LawveDraftResult;
+  slug: string;
+  /** Set when the skill was fetched from a GitHub URL rather than the
+   * Lawve catalogue — carried on the request so the admin's
+   * Review-&-add link can resolve the source. */
+  githubUrl: string | null;
+}) {
   const manifestJson = JSON.stringify(draft.manifest, null, 2);
   const [copied, setCopied] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -483,7 +556,8 @@ function DraftReview({ draft, slug }: { draft: LawveDraftResult; slug: string })
                       ? draft.manifest.id
                       : slug
                   }
-                  source="lawve"
+                  source={githubUrl ? "github" : "lawve"}
+                  sourceUrl={githubUrl ?? undefined}
                 />
               </div>
             </div>

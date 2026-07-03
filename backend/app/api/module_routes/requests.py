@@ -32,11 +32,16 @@ class ModuleRequestIn(BaseModel):
     # Where the requester found the skill ("lawve", "registry",
     # "github", …). Free-form hint for the admin review link.
     source: str | None = None
+    # Where the skill lives (e.g. the GitHub repo URL) — lets the
+    # admin's Review-&-add link re-open sources the importer cannot
+    # resolve by slug.
+    source_url: str | None = None
 
 
 class ModuleRequestOut(BaseModel):
     module_id: str
     source: str | None
+    source_url: str | None = None
     requested_by: str | None
     requested_at: str  # ISO-8601, latest request for this module_id
 
@@ -71,6 +76,7 @@ async def create_module_request(
         payload={
             "module_id": module_id,
             "source": body.source,
+            "source_url": body.source_url,
             "requested_by": str(user.id),
         },
     )
@@ -122,6 +128,7 @@ async def list_module_requests(
             ModuleRequestOut(
                 module_id=module_id,
                 source=payload.get("source"),
+                source_url=payload.get("source_url"),
                 requested_by=payload.get("requested_by"),
                 requested_at=r.timestamp.isoformat(),
             )

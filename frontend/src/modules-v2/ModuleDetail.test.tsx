@@ -258,7 +258,7 @@ describe("ModuleDetail", () => {
     fireEvent.click(screen.getByTestId("request-skill"));
 
     await waitFor(() => {
-      expect(request).toHaveBeenCalledWith("contract-review", "registry");
+      expect(request).toHaveBeenCalledWith("contract-review", "registry", undefined);
     });
     await waitFor(() => {
       expect(

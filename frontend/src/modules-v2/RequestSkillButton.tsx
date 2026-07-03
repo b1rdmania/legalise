@@ -14,9 +14,13 @@ type RequestState = "idle" | "sending" | "done" | "error";
 export function RequestSkillButton({
   moduleId,
   source,
+  sourceUrl,
 }: {
   moduleId: string;
   source?: string;
+  /** Where the skill lives (e.g. GitHub repo URL) so the admin's
+   * Review-&-add link can re-open the exact source. */
+  sourceUrl?: string;
 }) {
   const [state, setState] = useState<RequestState>("idle");
   const [err, setErr] = useState<string | null>(null);
@@ -33,7 +37,7 @@ export function RequestSkillButton({
     setErr(null);
     setState("sending");
     try {
-      await requestModule(moduleId, source);
+      await requestModule(moduleId, source, sourceUrl);
       setState("done");
     } catch (e) {
       setErr(String(e));
