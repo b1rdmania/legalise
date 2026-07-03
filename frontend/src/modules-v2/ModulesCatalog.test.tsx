@@ -266,7 +266,7 @@ describe("ModulesCatalog — integrations home", () => {
     expect(screen.queryByTestId("skill-requests")).toBeNull();
   });
 
-  it("Schedule B: shelf facets, sort, Lawve attribution, and the gap strip", async () => {
+  it("Schedule B: shelf facets, Lawve attribution, and the gap strip", async () => {
     vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
     vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
     mockLawveShelf([
@@ -314,12 +314,8 @@ describe("ModulesCatalog — integrations home", () => {
       target: { value: "" },
     });
 
-    // Sort control offers name / author / licence.
-    expect(screen.getByTestId("shelf-sort")).toBeInTheDocument();
-    fireEvent.change(screen.getByTestId("shelf-sort"), {
-      target: { value: "licence" },
-    });
-    expect(screen.getByTestId("shelf-count")).toHaveTextContent("2 of 2");
+    // Ordering comes from the grouped ledger — no sort control.
+    expect(screen.queryByTestId("shelf-sort")).toBeNull();
 
     // Search empties honestly.
     fireEvent.change(screen.getByTestId("shelf-search"), {
@@ -370,6 +366,141 @@ describe("ModulesCatalog — integrations home", () => {
       expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
     });
     expect(screen.getByTestId("shelf-search")).toBeInTheDocument();
+  });
+
+  it("tells the sources story: three routes, review rule, and the pulled-catalogue lede", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    mockLawveShelf([lawveRow(), lawveRow({ slug: "nda-review-jamie-tso", name: "nda-review-jamie-tso", author_name: "Jamie Tso", license: "AGPL-3.0" })]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("skill-sources")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Where skills come from")).toBeInTheDocument();
+    // Lawve is a text wordmark linking out — never a hotlinked logo.
+    expect(screen.getByTestId("lawve-link").getAttribute("href")).toBe(
+      "https://lawve.ai",
+    );
+    expect(screen.getByText("Any public GitHub repo")).toBeInTheDocument();
+    expect(screen.getByText("Write your own")).toBeInTheDocument();
+    expect(
+      screen.getByText(/nothing runs on import/i),
+    ).toBeInTheDocument();
+    // The lede derives the count from the live feed.
+    expect(screen.getByTestId("shelf-lede")).toHaveTextContent(
+      "We've already pulled the Lawve catalogue — 2 skills to choose from below.",
+    );
+  });
+
+  it("renders the catalogue as a grouped ledger: display names, descriptions, licence honesty, scripts marker", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    mockLawveShelf([
+      lawveRow({
+        slug: "nda-review-jamie-tso",
+        name: "nda-review-jamie-tso",
+        description: "Guide for reviewing incoming commercial NDAs.",
+        author_name: "Jamie Tso",
+        license: "AGPL-3.0",
+      }),
+      lawveRow({
+        slug: "docx-processing-anthropic",
+        name: "docx-processing-anthropic",
+        description: "Document creation, editing, and analysis.",
+        author_name: "Anthropic",
+        license: null,
+        has_scripts: true,
+        script_review_required: true,
+      }),
+      lawveRow({
+        slug: "politique-cookies-malik-taiar",
+        name: "politique-cookies-malik-taiar",
+        description: "Guide pour la rédaction de politiques cookies.",
+        author_name: "Malik Taiar",
+        license: "AGPL-3.0",
+      }),
+    ]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("shelf-group-contracts")).toBeInTheDocument();
+    });
+    // Legible derived names lead; the raw slug stays as secondary text.
+    expect(screen.getByText("NDA review")).toBeInTheDocument();
+    expect(screen.getByText("nda-review-jamie-tso")).toBeInTheDocument();
+    // The one-line description finally shows.
+    expect(
+      screen.getByText("Guide for reviewing incoming commercial NDAs."),
+    ).toBeInTheDocument();
+    // Groups render in what-they-do order with French law last.
+    expect(screen.getByTestId("shelf-group-documents")).toBeInTheDocument();
+    const french = screen.getByTestId("shelf-group-french");
+    expect(french).toHaveTextContent("French law (FR)");
+    expect(french).toHaveTextContent(/England & Wales/);
+    // Licence honesty + the scripts marker.
+    expect(screen.getByText("unlicensed — check source")).toBeInTheDocument();
+    expect(
+      screen.getByText(/ships scripts — manual review/),
+    ).toBeInTheDocument();
+    // Filtering to AGPL hides the emptied Documents group with its header.
+    fireEvent.change(screen.getByTestId("shelf-license-filter"), {
+      target: { value: "AGPL-3.0" },
+    });
+    expect(screen.queryByTestId("shelf-group-documents")).toBeNull();
+    expect(screen.getByTestId("shelf-group-contracts")).toBeInTheDocument();
+  });
+
+  it("hides the Workspace skills section entirely when the registry is empty", async () => {
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    mockLawveShelf([lawveRow()]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByText("Add skill")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Workspace skills")).toBeNull();
+    expect(
+      screen.queryByText("No reference skills in the registry yet."),
+    ).toBeNull();
+    // The library ↔ register pair is named consistently.
+    expect(screen.getByText("My skills →")).toBeInTheDocument();
+  });
+
+  it("admin: a github-sourced request links the importer to its repo URL", async () => {
+    vi.spyOn(api, "getCurrentUser").mockResolvedValue({
+      id: "u-1",
+      email: "admin@example.com",
+      name: "admin",
+      role: "qualified_solicitor",
+      plan: "free",
+      default_model_id: null,
+      default_privilege_posture: null,
+      is_active: true,
+      is_verified: true,
+      is_superuser: true,
+    });
+    vi.spyOn(api, "getModulesV2").mockResolvedValue({ modules: [], ui_slots: [] });
+    vi.spyOn(api, "listInstalledModules").mockResolvedValue([]);
+    vi.spyOn(api, "listModuleRequests").mockResolvedValue([
+      {
+        module_id: "lawve.gh-skill",
+        source: "github",
+        source_url: "https://github.com/example/legal-skill",
+        requested_by: "u-2",
+        requested_at: "2026-06-10T12:00:00+00:00",
+      },
+    ]);
+
+    mountAt();
+    await waitFor(() => {
+      expect(screen.getByTestId("skill-requests")).toBeInTheDocument();
+    });
+    const link = screen.getByText("Review & add →");
+    expect(link.getAttribute("href")).toBe(
+      "/skills/lawve?github=https%3A%2F%2Fgithub.com%2Fexample%2Flegal-skill",
+    );
   });
 
   it("renders without the retired open-skill-library browse section", async () => {

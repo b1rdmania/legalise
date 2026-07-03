@@ -14,7 +14,7 @@
  * not make it "ready everywhere" — running it is granted from a matter.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   getModulesV2,
@@ -41,13 +41,14 @@ import {
   type LawveSkillRow,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import {
+  groupSkills,
+  licenceLabel,
+  skillDisplayName,
+} from "./skillDisplay";
 
 type ModuleState = "available" | "installed" | "disabled";
 type SkillTab = "installed" | "available" | "revoked";
-// Shelf sort keys. The catalogue's real metadata is marketplace.json's
-// name / author / licence (the SKILL.md frontmatter vocabulary carries
-// nothing beyond it — surveyed upstream), so those are the facets.
-type ShelfSort = "name" | "author" | "licence";
 
 // "disabled" in the substrate (InstalledModule.enabled === false) is the
 // user-facing "Revoked" state per blueprint §7: a skill that was
@@ -211,12 +212,13 @@ export function ModulesCatalog() {
     return counts;
   }, [installed, modules]);
 
-  // Schedule B shelf controls — client-side search, facets, and sort
-  // over the open catalogue, in the importer's filter idiom.
+  // Schedule B shelf controls — client-side search + facets over the
+  // open catalogue, in the importer's filter idiom. Ordering comes from
+  // the shared grouping (skillDisplay.ts): quiet what-they-do sections,
+  // alphabetical by display name inside each.
   const [shelfQuery, setShelfQuery] = useState("");
   const [shelfLicense, setShelfLicense] = useState("");
   const [shelfAuthor, setShelfAuthor] = useState("");
-  const [shelfSort, setShelfSort] = useState<ShelfSort>("name");
 
   const shelfLicenses = useMemo(
     () =>
@@ -230,27 +232,21 @@ export function ModulesCatalog() {
   );
   const shelf = useMemo(() => {
     const term = shelfQuery.trim().toLowerCase();
-    const rows = (lawve ?? []).filter((s) => {
+    return (lawve ?? []).filter((s) => {
       if (shelfLicense && s.license !== shelfLicense) return false;
       if (shelfAuthor && s.author_name !== shelfAuthor) return false;
       if (!term) return true;
       return (
         s.name.toLowerCase().includes(term) ||
+        skillDisplayName(s.slug, s.author_name).toLowerCase().includes(term) ||
         s.description.toLowerCase().includes(term) ||
         (s.author_name ?? "").toLowerCase().includes(term) ||
         (s.license ?? "").toLowerCase().includes(term)
       );
     });
-    const key = (s: LawveSkillRow) =>
-      shelfSort === "author"
-        ? (s.author_name ?? "")
-        : shelfSort === "licence"
-          ? (s.license ?? "")
-          : s.name;
-    return rows.sort(
-      (a, b) => key(a).localeCompare(key(b)) || a.name.localeCompare(b.name),
-    );
-  }, [lawve, shelfQuery, shelfLicense, shelfAuthor, shelfSort]);
+  }, [lawve, shelfQuery, shelfLicense, shelfAuthor]);
+  // A group with no surviving rows disappears with its header.
+  const shelfGroups = useMemo(() => groupSkills(shelf), [shelf]);
 
   // Default to Added if anything is already trusted, otherwise show
   // Available so a fresh workspace lands on the discovery view.
@@ -269,7 +265,7 @@ export function ModulesCatalog() {
         whisper="Browse and add skills"
         description={
           authed
-            ? "Browse skills and add them to your workspace. A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Once added, enable it on a matter and run it from Chat. To see the skills you've already added, with their track record, go to Your skills."
+            ? "Browse skills and add them to your workspace. A skill is a piece of legal work — review an NDA, screen a dismissal, draft a letter. Once added, enable it on a matter and run it from Chat. To see the skills you've already added, with their track record, go to My skills."
             : "Legal skills are small pieces of legal work: review an NDA, test a claim, draft a letter, check authorities. Browse the library, then open the demo to see one run against a matter."
         }
         actions={
@@ -292,7 +288,7 @@ export function ModulesCatalog() {
                   to="/register"
                   className="inline-flex items-center px-2 py-2 text-sm text-muted hover:text-seal"
                 >
-                  Your skills →
+                  My skills →
                 </Link>
               </>
             ) : (
@@ -347,18 +343,6 @@ export function ModulesCatalog() {
           />
         </div>
 
-        <p className="mt-6 text-sm text-muted">
-          Looking for more?{" "}
-          <a
-            href="https://lawve.ai"
-            target="_blank"
-            rel="noreferrer"
-            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-            data-testid="lawve-link"
-          >
-            Browse community skills on Lawve →
-          </a>
-        </p>
       </section>
 
       {!authed && (
@@ -405,7 +389,11 @@ export function ModulesCatalog() {
                         ? // Lawve draft ids are "lawve.{slug}"; the importer
                           // deep-link takes the bare slug.
                           `/skills/lawve?skill=${encodeURIComponent(r.module_id.replace(/^lawve\./, ""))}`
-                        : "/skills/lawve"
+                        : r.source?.startsWith("github") && r.source_url
+                          ? // GitHub-sourced requests carry their repo URL;
+                            // the importer auto-fetches it on mount.
+                            `/skills/lawve?github=${encodeURIComponent(r.source_url)}`
+                          : "/skills/lawve"
                     }
                     className="text-sm text-muted hover:text-seal"
                   >
@@ -430,8 +418,10 @@ export function ModulesCatalog() {
 
       {/* Primary: reference skills (v2 registry).
           §7 tab structure: Added / Available / Revoked
-          (Revoked is operator-only). */}
-      {authed && (
+          (Revoked is operator-only). Hidden entirely when the registry
+          is empty — hosted has no filesystem reference modules, and an
+          empty schedule is noise, not information. */}
+      {authed && modules !== null && modules.length > 0 && (
       <section>
         <SectionRule
           label="Workspace skills"
@@ -484,13 +474,7 @@ export function ModulesCatalog() {
             )}
           </div>
         )}
-        {modules === null ? (
-          <p className="mt-3 text-sm text-muted">Loading skills…</p>
-        ) : modules.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">
-            No reference skills in the registry yet.
-          </p>
-        ) : filteredModules?.length === 0 ? (
+        {filteredModules?.length === 0 ? (
           <p className="mt-3 text-sm text-muted">
             {tab === "installed"
               ? "No skills added to this workspace yet. Switch to Available to browse the registry."
@@ -587,6 +571,50 @@ export function ModulesCatalog() {
               )
             }
           />
+          {/* Where skills come from — the three admission routes, then
+              the review rule. A labelled row, not a hero. */}
+          <p className="mt-4 text-[10px] uppercase tracking-[0.18em] text-muted">
+            Where skills come from
+          </p>
+          <div
+            className="mt-2 grid gap-px border border-rule bg-rule sm:grid-cols-3"
+            data-testid="skill-sources"
+          >
+            <SourceRoute
+              name={
+                <a
+                  href="https://lawve.ai"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  data-testid="lawve-link"
+                >
+                  Lawve
+                </a>
+              }
+              body="The community catalogue of legal skills."
+            />
+            <SourceRoute
+              name="Any public GitHub repo"
+              body="A SKILL.md at the repo root, pinned to the exact commit on import."
+            />
+            <SourceRoute
+              name={
+                <Link
+                  to="/skills/create"
+                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                >
+                  Write your own
+                </Link>
+              }
+              body="Author a skill for this workspace from scratch."
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-muted">
+            Every skill, whatever the source, goes through review and
+            admission before it can run — nothing runs on import.
+          </p>
+
           {lawve == null ? (
             <p className="mt-3 text-sm text-muted">Loading catalogue…</p>
           ) : lawve.length === 0 ? (
@@ -595,7 +623,11 @@ export function ModulesCatalog() {
             </p>
           ) : (
             <>
-              {/* Shelf controls — search, licence/author facets, sort.
+              <p className="mt-5 text-sm text-prose" data-testid="shelf-lede">
+                We've already pulled the Lawve catalogue — {lawve.length}{" "}
+                skills to choose from below.
+              </p>
+              {/* Shelf controls — search + licence/author facets.
                   Facets are the catalogue's real metadata (the upstream
                   SKILL.md frontmatter carries nothing beyond name /
                   description / author / licence / version). */}
@@ -632,17 +664,6 @@ export function ModulesCatalog() {
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </select>
-                <select
-                  value={shelfSort}
-                  onChange={(e) => setShelfSort(e.target.value as ShelfSort)}
-                  className="rounded-md border border-rule bg-paper px-2 py-1 text-ink"
-                  aria-label="Sort catalogue"
-                  data-testid="shelf-sort"
-                >
-                  <option value="name">sort: name</option>
-                  <option value="author">sort: author</option>
-                  <option value="licence">sort: licence</option>
-                </select>
                 <span className="text-muted" data-testid="shelf-count">
                   {shelf.length} of {lawve.length}
                 </span>
@@ -653,39 +674,77 @@ export function ModulesCatalog() {
                     No catalogue skills match that filter.
                   </p>
                 ) : (
-                  shelf.map((s, i) => (
-                    <LedgerLine
-                      key={s.slug}
-                      index={i + 1}
-                      label={s.license ?? "licence ?"}
-                      right={
-                        <span className="flex items-baseline gap-4">
-                          {s.lawve_url && (
-                            <a
-                              href={s.lawve_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="hidden text-[12px] text-muted hover:text-seal sm:inline"
-                              data-testid={`shelf-lawve-link-${s.slug}`}
+                  (() => {
+                    // Continuous ledger numbering across the groups.
+                    let n = 0;
+                    return shelfGroups.map((group) => (
+                      <div key={group.id} data-testid={`shelf-group-${group.id}`}>
+                        <div className="mt-6 flex items-baseline justify-between border-b border-rule pb-1.5">
+                          <h3 className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                            {group.label}
+                          </h3>
+                          <span className="tech-token text-[11px] text-muted">
+                            {group.skills.length}
+                          </span>
+                        </div>
+                        {group.note && (
+                          <p className="mt-1.5 text-[11px] text-muted">
+                            {group.note}
+                          </p>
+                        )}
+                        {group.skills.map((s) => {
+                          n += 1;
+                          return (
+                            <LedgerLine
+                              key={s.slug}
+                              index={n}
+                              label={licenceLabel(s.license)}
+                              right={
+                                <span className="flex items-baseline gap-4">
+                                  {s.lawve_url && (
+                                    <a
+                                      href={s.lawve_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="hidden text-[12px] text-muted hover:text-seal sm:inline"
+                                      data-testid={`shelf-lawve-link-${s.slug}`}
+                                    >
+                                      View on Lawve →
+                                    </a>
+                                  )}
+                                  <a
+                                    href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
+                                    className="text-sm text-muted hover:text-seal"
+                                  >
+                                    Review &amp; add →
+                                  </a>
+                                </span>
+                              }
                             >
-                              View on Lawve →
-                            </a>
-                          )}
-                          <a
-                            href={`/skills/lawve?skill=${encodeURIComponent(s.slug)}`}
-                            className="text-sm text-muted hover:text-seal"
-                          >
-                            Review &amp; add →
-                          </a>
-                        </span>
-                      }
-                    >
-                      <span className="text-ink">{s.name}</span>
-                      <span className="ml-2 hidden text-[12px] text-muted sm:inline">
-                        {s.author_name ?? "unknown"}
-                      </span>
-                    </LedgerLine>
-                  ))
+                              <span className="block min-w-0">
+                                <span className="text-ink">
+                                  {skillDisplayName(s.slug, s.author_name)}
+                                </span>
+                                <span className="ml-2 hidden text-[11px] text-muted sm:inline">
+                                  <span className="tech-token">{s.slug}</span>
+                                  {" · "}
+                                  {s.author_name ?? "unknown"}
+                                  {(s.has_scripts || s.script_review_required) && (
+                                    <span className="text-seal">
+                                      {" · ships scripts — manual review"}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="block truncate text-[12px] text-muted">
+                                  {s.description}
+                                </span>
+                              </span>
+                            </LedgerLine>
+                          );
+                        })}
+                      </div>
+                    ));
+                  })()
                 )}
               </div>
               {/* The honest gap strip — the directory is larger than the
@@ -714,7 +773,7 @@ export function ModulesCatalog() {
           <Colophon>
             Adding a skill takes a few steps: review it, check its
             signature, grant its permissions. After that it shows up in
-            Your skills.
+            My skills.
           </Colophon>
       </section>
     </div>
@@ -737,6 +796,16 @@ function IntroStep({
         <h3 className="text-sm font-semibold text-ink">{title}</h3>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-prose">{body}</p>
+    </div>
+  );
+}
+
+/** One admission route in the "Where skills come from" strip. */
+function SourceRoute({ name, body }: { name: ReactNode; body: string }) {
+  return (
+    <div className="bg-paper p-4">
+      <h3 className="text-sm font-semibold text-ink">{name}</h3>
+      <p className="mt-1 text-[12px] leading-relaxed text-muted">{body}</p>
     </div>
   );
 }

@@ -105,6 +105,34 @@ async def test_request_writes_audit_row(client, db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_github_request_round_trips_source_url(client) -> None:
+    """A github-sourced request carries its repo URL so the admin's
+    Review-&-add link can re-open the exact source."""
+    await _register_and_login(client)
+    module_id = f"gh-skill-{uuid.uuid4().hex[:8]}"
+    repo_url = "https://github.com/example/legal-skill"
+
+    resp = await client.post(
+        "/api/modules/requests",
+        json={"module_id": module_id, "source": "github", "source_url": repo_url},
+    )
+    assert resp.status_code == 201, resp.text
+
+    admin_email = await _register_and_login(client)
+    await _promote_to_superuser(admin_email)
+    resp = await client.get("/api/modules/requests")
+    assert resp.status_code == 200, resp.text
+    row = next(r for r in resp.json() if r["module_id"] == module_id)
+    assert row["source"] == "github"
+    assert row["source_url"] == repo_url
+
+    # Lawve-style requests without a URL still list with a null field.
+    lawve_rows = [r for r in resp.json() if r["module_id"] != module_id]
+    for r in lawve_rows:
+        assert "source_url" in r
+
+
+@pytest.mark.asyncio
 async def test_request_rejects_blank_module_id(client) -> None:
     await _register_and_login(client)
     resp = await client.post("/api/modules/requests", json={"module_id": "   "})

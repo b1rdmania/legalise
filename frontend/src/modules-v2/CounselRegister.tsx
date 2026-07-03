@@ -1,5 +1,5 @@
 /**
- * /register — "Your skills": the skills installed in this workspace,
+ * /register — "My skills": the skills installed in this workspace,
  * each with what it can read, what it can write, its advice limit, and
  * its track record.
  *
@@ -97,7 +97,7 @@ export function CounselRegister() {
   return (
     <div className="page-shell">
       <h1 className="font-redaction35 text-[64px] leading-none tracking-tight2 sm:text-[88px]">
-        Your skills
+        My skills
       </h1>
 
       <p className="mt-8 max-w-xl text-sm leading-relaxed text-prose">
@@ -130,11 +130,17 @@ export function CounselRegister() {
       )}
 
       {q.status === "ready" && q.rows.length > 0 && (
-        <div className="mt-12 grid gap-6 sm:grid-cols-2" data-testid="register-grid">
+        <>
+          <p className="mt-12 text-[11px] text-muted" data-testid="advice-ceiling-legend">
+            Advice ceiling — how far a skill may go, from factual extraction
+            (●○○○○) to approved final advice (●●●●●).
+          </p>
+          <div className="mt-4 grid gap-6 sm:grid-cols-2" data-testid="register-grid">
           {q.rows.map((row, i) => (
             <Certificate key={row.module_id} row={row} index={i} />
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <ExternalPacksSection />
@@ -202,6 +208,7 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
       <div className="mt-4 flex items-center justify-between border-t border-rule pt-3">
         <span
           aria-label={`advice ceiling: ${tier.replaceAll("_", " ")}`}
+          title={`Advice ceiling — how far this skill may go: ${tier.replaceAll("_", " ")} (${tierIdx + 1} of ${TIERS.length}, from factual extraction to approved final advice)`}
           className="tracking-[0.25em] text-ink text-sm"
         >
           {TIERS.map((_t, i) => (i <= tierIdx ? "●" : "○")).join("")}
@@ -247,6 +254,12 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
           </div>
         )}
       </dl>
+
+      {revoked && (
+        <p className="mt-2 text-[11px] text-muted" data-testid="superseded-note">
+          Superseded — re-import from its current source to use again.
+        </p>
+      )}
 
       {/* The seal — only a skill with a verified signature carries it. */}
       {verified && !revoked && (
