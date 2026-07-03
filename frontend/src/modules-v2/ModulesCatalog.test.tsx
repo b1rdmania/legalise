@@ -342,7 +342,9 @@ describe("ModulesCatalog — integrations home", () => {
     await waitFor(() => {
       expect(screen.getByText("contract-review-anthropic")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("shelf-lede")).not.toHaveTextContent("lists");
+    // Crash-tolerant like the old gap-strip check: assert the count text
+    // is absent anywhere rather than requiring the lede node itself.
+    expect(screen.queryByText(/lists \d/)).toBeNull();
   });
 
   it("Schedule B: the shelf stocks for anonymous browsers too", async () => {
