@@ -369,7 +369,7 @@ describe("ModulesCatalog — integrations home", () => {
     await waitFor(() => {
       expect(screen.getByTestId("skill-sources")).toBeInTheDocument();
     });
-    expect(screen.getByText("Where skills come from")).toBeInTheDocument();
+    expect(screen.getByText("Catalogue")).toBeInTheDocument();
     // Lawve is a text wordmark linking out — never a hotlinked logo.
     expect(screen.getByTestId("lawve-link").getAttribute("href")).toBe(
       "https://lawve.ai",
