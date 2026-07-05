@@ -115,6 +115,15 @@ fly secrets set \
 fly deploy
 ```
 
+**Verify the worker survived the deploy.** The `worker` process group has no HTTP health check, so a deploy (or an earlier manual scale-to-zero) can leave it stopped with no error anywhere — document indexing and exports then sit queued forever. After every `fly deploy`:
+
+```bash
+fly status -a legalise-backend        # expect a started machine in the worker group
+fly scale count worker=1 -a legalise-backend   # if it shows 0
+```
+
+`python -m app.tools.doctor` also fails its `worker.heartbeat` check when no worker has written arq's Redis health key recently.
+
 **Startup invariants will refuse to boot otherwise.** `main.lifespan` calls `assert_master_key_present` and `assert_auth_secrets_present` before binding the HTTP listener. In any non-dev `ENVIRONMENT`, the following are mandatory:
 
 - `LEGALISE_KEY_ENCRYPTION_SECRET` — 32-byte hex; encrypts `user_api_keys` at rest. Generate once, store forever; rotation is a v0.2 ops task.

@@ -51,7 +51,9 @@ class OpenAIProvider:
         # when the caller didn't pass one.
         self.default_model = default_model
 
-    async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
+    async def call(
+        self, prompt: str, *, system: str | None = None, **kwargs
+    ) -> tuple[str, int, int]:
         model = kwargs.get("model") or self.default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
         api_key = kwargs.get("api_key") or self._fallback_key
@@ -94,7 +96,29 @@ class OpenAIProvider:
                 message=f"openai: {type(exc).__name__}: {exc}",
             ) from exc
 
-        text = response.choices[0].message.content or ""
+        choice = response.choices[0]
+
+        # A hard stop at the output cap means the response is incomplete —
+        # surfacing the truncation honestly beats handing the caller a
+        # half-written body that fails its JSON-envelope parse downstream.
+        if getattr(choice, "finish_reason", None) == "length":
+            logger.warning(
+                "legalise.provider.openai.truncated",
+                model=model,
+                max_tokens=max_tokens,
+            )
+            raise ProviderUpstreamError(
+                provider="openai",
+                code="provider_truncated",
+                upstream_status=None,
+                message=(
+                    "The answer was cut off at the model's output limit. "
+                    "Ask a narrower question."
+                ),
+            )
+
+        text = choice.message.content or ""
         usage = response.usage
-        tokens = (usage.prompt_tokens + usage.completion_tokens) if usage else 0
-        return text, tokens
+        tokens_in = usage.prompt_tokens if usage else 0
+        tokens_out = usage.completion_tokens if usage else 0
+        return text, tokens_in, tokens_out

@@ -4,7 +4,7 @@ Each provider implements `app.core.model_gateway.ModelProvider`:
 
     name: str
     async def call(prompt: str, *, system: str | None = None, **kwargs)
-        -> tuple[str, int]
+        -> tuple[str, int, int]
 
 The `register_providers()` helper inspects environment settings and
 registers every provider that has credentials/URL configured. Called

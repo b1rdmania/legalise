@@ -279,6 +279,55 @@ async def check_redis_reachable() -> CheckResult:
     )
 
 
+async def check_worker_heartbeat() -> CheckResult:
+    """Read the arq worker's health key from Redis.
+
+    The worker writes the key every ``health_check_interval`` seconds
+    (see app.worker.WorkerSettings) and Redis expires it one second
+    after the next write is due, so presence == a live worker and
+    absence == no worker has run recently. The value is arq's own
+    counters line (jobs complete/failed/ongoing, queue depth) — job
+    ids and counts only, never matter content.
+    """
+    try:
+        import redis.asyncio as redis_asyncio
+        from arq.constants import default_queue_name, health_check_key_suffix
+    except ImportError:
+        return CheckResult(
+            "worker.heartbeat",
+            "fail",
+            "redis/arq packages not importable",
+            "rebuild backend image",
+        )
+    key = default_queue_name + health_check_key_suffix
+    client = redis_asyncio.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+    try:
+        raw = await client.get(key)
+    except Exception as exc:  # noqa: BLE001
+        return CheckResult(
+            "worker.heartbeat",
+            "fail",
+            f"cannot read {key} at {_mask_dsn(settings.redis_url)}: {exc.__class__.__name__}",
+            "is the `redis` service up? `docker compose ps redis`",
+        )
+    finally:
+        try:
+            await client.aclose()
+        except Exception:  # noqa: BLE001
+            pass
+    if raw is None:
+        return CheckResult(
+            "worker.heartbeat",
+            "fail",
+            f"no worker health key at {key} — the arq worker is not running, "
+            "so document indexing and exports will sit queued forever",
+            "start the worker: `docker compose ps worker` locally, or "
+            "`fly scale count worker=1 -a legalise-backend` on Fly",
+        )
+    detail = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+    return CheckResult("worker.heartbeat", "ok", detail)
+
+
 def _build_s3_client():
     import boto3
     from botocore.config import Config
@@ -604,7 +653,10 @@ async def _run_all(*, create_bucket: bool) -> int:
         # Skip downstream DB-needing checks if DB is unreachable.
 
     # Redis (own client).
-    results.append(await check_redis_reachable())
+    redis_ok = await check_redis_reachable()
+    results.append(redis_ok)
+    if redis_ok.status == "ok":
+        results.append(await check_worker_heartbeat())
 
     # S3 endpoint + bucket.
     endpoint = check_s3_endpoint_reachable()

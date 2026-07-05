@@ -922,8 +922,8 @@ def _make_assistant_provider_call(
             text=result.text,
             model_id=result.model_used or matter.default_model_id,
             provider=result.provider or result.model_used,
-            tokens_in=result.token_count,
-            tokens_out=0,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
             cost_micros=None,
             currency=None,
         )

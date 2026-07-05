@@ -179,6 +179,8 @@ def stub_gateway_two_findings(monkeypatch):
             token_count=1850,
             latency_ms=120,
             provider="anthropic",
+            tokens_in=1500,
+            tokens_out=350,
         )
 
     monkeypatch.setattr(gateway_singleton, "call", _stub_call)
@@ -504,12 +506,10 @@ async def test_contract_review_vertical_slice(
         assert parsed["findings"][0]["clause_id"] == "5.2"
 
     # ------- (7) confirm model.invoked carries provider/model + tokens -------
-    # Phase 10 adapter mapping (Decision #4 v3):
-    #   tokens_in   = gateway result.token_count (combined)
-    #   tokens_out  = 0 (sentinel; honest until providers split)
+    # Adapter mapping:
+    #   tokens_in / tokens_out = the split reported by the provider
     #   cost_micros = None (gateway doesn't price yet)
     #   currency    = None (paired)
-    # See PHASE_10_INVOKE_ENDPOINT_BUILD_PLAN.md Decision #4.
     async with factory() as session:
         model_row = await session.scalar(
             select(AuditEntry).where(
@@ -520,8 +520,8 @@ async def test_contract_review_vertical_slice(
         assert model_row is not None
         assert model_row.cost_micros is None
         assert model_row.currency is None
-        assert model_row.tokens_in == 1850
-        assert model_row.tokens_out == 0
+        assert model_row.tokens_in == 1500
+        assert model_row.tokens_out == 350
         assert model_row.provider == "anthropic"
         # Matter uses the default model (settings.default_model_id).
         assert model_row.model_id == "claude-sonnet-4-6"

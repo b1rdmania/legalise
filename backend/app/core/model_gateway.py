@@ -118,13 +118,19 @@ class ModelResult:
     # that need the provider name read this instead. Optional so existing
     # test fakes constructing ModelResult keep working.
     provider: str | None = None
+    # Input/output token split as reported by the provider. Optional for
+    # the same test-fake reason; `token_count` stays the summed total.
+    tokens_in: int | None = None
+    tokens_out: int | None = None
 
 
 class ModelProvider(Protocol):
     name: str
 
-    async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
-        """Return (response_text, approximate_token_count)."""
+    async def call(
+        self, prompt: str, *, system: str | None = None, **kwargs
+    ) -> tuple[str, int, int]:
+        """Return (response_text, input_token_count, output_token_count)."""
 
 
 class StubProvider:
@@ -134,11 +140,14 @@ class StubProvider:
     def __init__(self, name: str = "stub-echo"):
         self.name = name
 
-    async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
+    async def call(
+        self, prompt: str, *, system: str | None = None, **kwargs
+    ) -> tuple[str, int, int]:
         head = prompt.strip().splitlines()[0][:120] if prompt.strip() else "(empty)"
         text = f"[{self.name}] {head}"
-        tokens = max(1, len(prompt) // 4 + len(text) // 4)
-        return text, tokens
+        tokens_in = max(1, len(prompt) // 4)
+        tokens_out = max(1, len(text) // 4)
+        return text, tokens_in, tokens_out
 
 
 def _sha(s: str) -> str:
@@ -451,7 +460,9 @@ class ModelGateway:
 
         start = time.perf_counter()
         try:
-            response_text, tokens = await provider.call(prompt, system=system, **provider_kwargs)
+            response_text, tokens_in, tokens_out = await provider.call(
+                prompt, system=system, **provider_kwargs
+            )
         except ProviderUpstreamError as exc:
             # Audit provenance is mandatory on failure: a failed model call
             # is just as accountable as a successful one. R3 review: use
@@ -504,9 +515,11 @@ class ModelGateway:
             model_used=served_model,
             prompt_hash=_sha(prompt),
             response_hash=_sha(response_text),
-            token_count=tokens,
+            token_count=tokens_in + tokens_out,
             latency_ms=latency_ms,
             provider=provider.name,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
         )
 
         # Audit the call. Session lifecycle is the caller's responsibility.
@@ -526,6 +539,8 @@ class ModelGateway:
             prompt_hash=result.prompt_hash,
             response_hash=result.response_hash,
             token_count=result.token_count,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
             latency_ms=result.latency_ms,
             payload={
                 "requested_model": requested,
