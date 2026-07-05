@@ -166,7 +166,10 @@ out of scope here.
   storage-media compromise, not the key-holder — `encryption.py`.
 - An operator with raw Postgres superuser access could disable the WORM
   trigger; it defends against app bugs and the app role, not a DB superuser.
-  The hardening role split is **not yet flipped on the hosted stack**.
+  The hardening role split **is live on the hosted stack** (flipped 2026-06-30):
+  the app connects as `legalise_app`, which does not own the audit tables and
+  cannot disable the triggers. The residual is the owner/superuser role, held
+  by the deployment operator.
 
 **Deferred**
 - Customer-managed / external KMS keys (no operator key custody) — not in v1
@@ -197,7 +200,7 @@ An index, not the argument — detail and file links are above.
 | Category | Primary control | Where | Residual / Deferred |
 | --- | --- | --- | --- |
 | **S**poofing | Session auth; per-IP auth throttle; prod boot invariants | `rate_limit.py`, `encryption.py` | Proxy-header IP spoofing → throttle bypass only |
-| **T**ampering | WORM trigger on `audit_entries`; hash-linked chain | `0011_audit_worm.py`, `audit_chain.py` | DB superuser can disable trigger; role split not flipped |
+| **T**ampering | WORM trigger on `audit_entries`; hash-linked chain; role split live on hosted stack | `0011_audit_worm.py`, `audit_chain.py`, `infra/postgres-roles.sql` | DB owner/superuser can still disable trigger |
 | **R**epudiation | Hash-chained, append-only, re-verifiable audit; sign-off pins payload hash | `audit_chain.py`, `signoff.py` | A signer can still rubber-stamp (out of scope) |
 | **I**nfo disclosure | Per-user slug scoping (404 not 403); BYO keys encrypted at rest | `matter_access.py`, `encryption.py`, `user_keys.py` | App-code isolation, no DB RLS; operator holds the key |
 | **D**oS | Per-IP rate limiting on auth surface | `rate_limit.py` | No WAF / dedicated DoS protection |
@@ -214,10 +217,10 @@ An index, not the argument — detail and file links are above.
 - **Multi-tenant isolation between organisations.** One deployment is one
   workspace; there is no cross-tenant layer. Do not run multiple untrusting
   organisations on one deployment.
-- **The WORM role split on the hosted stack.** The append-only trigger is
-  live, but the DB role split (separate app vs migration roles,
-  `REVOKE UPDATE, DELETE` on the app role) is a v0.6 runbook and a **no-op on
-  the current single-role Fly + Neon stack** — not flipped on the hosted eval
+- **A hosted DB owner/superuser rewriting history.** The WORM role split is
+  live on the hosted stack (the app connects as `legalise_app`, which cannot
+  disable the audit triggers), but the table-owner role and the Neon platform
+  itself sit above it. Tamper-evident, not tamper-proof
   (`0011_audit_worm.py`, `infra/postgres-roles.sql`).
 - **End-to-end UK data residency.** Backend (Fly `lhr`) and Postgres (Neon
   London) are UK-region, but R2 is EU-placed (Western Europe) and frontier
