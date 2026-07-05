@@ -149,10 +149,10 @@ describe("InstallCeremony — the scan", () => {
 
     // The ledger shows the real verification results.
     expect(screen.getByTestId("scan-row-signature_checked")).toHaveTextContent(
-      "structure verified",
+      "structure checked",
     );
     expect(screen.getByTestId("scan-row-publisher_checked")).toHaveTextContent(
-      "legalise · verified",
+      "legalise · in publisher registry",
     );
     expect(screen.getByTestId("scan-row-gates_reviewed")).toHaveTextContent(
       "privilege_posture",

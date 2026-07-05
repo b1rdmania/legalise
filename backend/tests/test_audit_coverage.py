@@ -442,7 +442,7 @@ async def _install_contract_review(client) -> None:
     )
     assert start.status_code == 201
     ceremony_id = start.json()["ceremony_id"]
-    for _ in range(3):
+    for _ in range(6):
         r = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},

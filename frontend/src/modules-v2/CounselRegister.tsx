@@ -15,6 +15,7 @@ import { Link } from "@tanstack/react-router";
 import {
   formatReviewDuration,
   listInstalledModules,
+  signatureStatusLabel,
   type InstalledModule,
 } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
@@ -160,11 +161,12 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
   const tier = adviceTier(row);
   const tierIdx = TIERS.indexOf(tier as (typeof TIERS)[number]);
   const src = sourceRef(row);
-  // "verified" = real ed25519 provenance; "structure_verified" = shape-only
-  // check against the publisher registry. Both carry standing on the register.
-  const verified =
-    row.signature_status === "verified" ||
-    row.signature_status === "structure_verified";
+  // "verified" = real ed25519 provenance. "structure_verified" is a
+  // shape-only check: it carries standing on the register but never
+  // the signed seal.
+  const cryptoVerified = row.signature_status === "verified";
+  const checked =
+    cryptoVerified || row.signature_status === "structure_verified";
   const revoked = !row.enabled;
   const admitted = new Date(row.installed_at);
 
@@ -227,8 +229,8 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
       <dl className="mt-3 space-y-1 text-[11px] text-muted">
         <div className="flex justify-between gap-3">
           <dt className="uppercase tracking-[0.18em]">Signature</dt>
-          <dd className={verified ? "text-ink" : ""}>
-            {(row.signature_status ?? "unknown").replaceAll("_", " ")}
+          <dd className={checked ? "text-ink" : ""}>
+            {signatureStatusLabel(row.signature_status)}
           </dd>
         </div>
         <div className="flex justify-between gap-3">
@@ -261,8 +263,8 @@ function Certificate({ row, index }: { row: InstalledModule; index: number }) {
         </p>
       )}
 
-      {/* The seal — only a skill with a verified signature carries it. */}
-      {verified && !revoked && (
+      {/* The seal — only a cryptographically verified signature carries it. */}
+      {cryptoVerified && !revoked && (
         <span
           aria-label="verified signature"
           className="absolute -right-2 -top-2 flex h-12 w-12 rotate-12 items-center justify-center rounded-full border-2 border-seal text-[8px] uppercase tracking-[0.15em] text-seal"

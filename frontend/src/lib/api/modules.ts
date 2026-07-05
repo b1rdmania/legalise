@@ -219,6 +219,17 @@ export interface CeremonyResponse {
 
 export type CeremonyAction = "trust" | "reject" | "grant";
 
+// Display label for a manifest signature status. "structure_verified"
+// proves shape only — no cryptography ran — so it must never render
+// as verified or signed.
+export function signatureStatusLabel(
+  status: string | null | undefined,
+): string {
+  if (!status) return "unknown";
+  if (status === "structure_verified") return "structure checked";
+  return status.replaceAll("_", " ");
+}
+
 export interface StartInstallRequest {
   source: "registry" | "manifest";
   module_id?: string;
