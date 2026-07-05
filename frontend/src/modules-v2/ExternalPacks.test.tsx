@@ -1,7 +1,7 @@
 /**
  * Supervised exports — the pack certificate states the honesty boundary
- * as counts: verified-at-source vs attested-at-ingest, mismatches in
- * seal, sign-offs tallied.
+ * as counts: verified-at-source / attested-at-ingest / claimed-by-source
+ * (labelled unchecked), mismatches in seal, sign-offs tallied.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -27,6 +27,7 @@ function pack(overrides: Partial<ExternalPack> = {}): ExternalPack {
       edits: 2,
       verified_at_source: 2,
       attested_at_ingest: 1,
+      claimed_by_source: 0,
       unhashed: 0,
       hash_mismatches: 0,
     },
@@ -53,10 +54,36 @@ describe("PackCertificate", () => {
     expect(screen.getByTestId("pack-doc-count")).toHaveTextContent("3");
     expect(screen.getByTestId("pack-verified-count")).toHaveTextContent("2");
     expect(screen.getByTestId("pack-attested-count")).toHaveTextContent("1");
+    expect(screen.queryByTestId("pack-claimed-count")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pack-mismatch-count")).not.toBeInTheDocument();
     expect(screen.getByTestId("pack-signoffs")).toHaveTextContent("none yet");
     expect(
       screen.getByText("External pack — mike: Hart v Mercia Logistics"),
+    ).toBeInTheDocument();
+  });
+
+  it("labels manifest-only hashes as claimed and unchecked", () => {
+    render(
+      <PackCertificate
+        pack={pack({
+          counts: {
+            documents: 2,
+            versions: 2,
+            edits: 0,
+            verified_at_source: 0,
+            attested_at_ingest: 0,
+            claimed_by_source: 2,
+            unhashed: 0,
+            hash_mismatches: 0,
+          },
+        })}
+        index={0}
+      />,
+    );
+    expect(screen.getByTestId("pack-verified-count")).toHaveTextContent("0");
+    expect(screen.getByTestId("pack-claimed-count")).toHaveTextContent("2");
+    expect(
+      screen.getByText("Claimed by source — unchecked"),
     ).toBeInTheDocument();
   });
 
@@ -68,8 +95,9 @@ describe("PackCertificate", () => {
             documents: 2,
             versions: 2,
             edits: 0,
-            verified_at_source: 2,
-            attested_at_ingest: 0,
+            verified_at_source: 1,
+            attested_at_ingest: 1,
+            claimed_by_source: 0,
             unhashed: 0,
             hash_mismatches: 1,
           },

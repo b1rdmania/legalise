@@ -11,8 +11,8 @@ Two endpoints under ``/api/external``:
   artifact, and the ``external.pack.ingested`` audit row carrying the
   hash manifest.
 - ``GET /packs`` — list this user's external packs with their manifest
-  summary (source, counts: verified-at-source vs attested-at-ingest)
-  and sign-off tallies. Feeds the register face.
+  summary (source, counts: verified-at-source / attested-at-ingest /
+  claimed-by-source) and sign-off tallies. Feeds the register face.
 
 Sign-off over pack documents goes through the existing
 ``/api/matters/{slug}/signoffs`` surface — external artifacts carry

@@ -6,17 +6,25 @@ matter per pack, one WORM artifact per document, sign-off through the
 existing ``core/signoff.py`` path.
 
 The honesty boundary: this workspace did not
-watch the external work happen. There are exactly two grades of hash
+watch the external work happen. There are exactly three grades of hash
 claim, and each document records which one it carries:
 
-- ``verified_at_source`` — the export is a *manifest* whose versions
-  carry ``content_sha256`` computed by the source workspace at write
-  time. The hash predates the export; where the document bytes also
-  travelled, they are re-hashed at ingest and any mismatch is recorded
-  (``hash_mismatch``), never papered over.
-- ``attested_at_ingest`` — the export carried bytes but no source hash,
-  so the sha256 is computed HERE, at ingest. It proves what this
-  workspace received, not what the source workspace held.
+- ``verified_at_source`` — the export manifest carried a
+  ``content_sha256`` computed by the source workspace at write time,
+  the document bytes ALSO travelled, and re-hashing them at ingest
+  matched the claim. This is the only grade granted by an actual
+  check; without the bytes, no verification happened and this grade
+  may not be used.
+- ``attested_at_ingest`` — the export carried bytes; the sha256 is
+  computed HERE, at ingest. It proves what this workspace received,
+  not what the source workspace held. When the manifest also carried
+  a source hash that DISAGREES with the received bytes, the document
+  lands here with ``hash_mismatch=True`` — the failed claim is
+  recorded, never repaired, and the canonical hash is the one this
+  workspace computed over bytes it actually holds.
+- ``claimed_by_source`` — the manifest carried a source hash but no
+  bytes travelled, so there was nothing to check. The hash is
+  preserved verbatim as the source's own unchecked claim.
 
 The provenance trail is the export's own claim, preserved verbatim and
 mapped, never improved.
@@ -90,9 +98,13 @@ AUTHOR_HUMAN = "human"
 AUTHOR_ASSISTANT = "assistant"
 AUTHOR_UNKNOWN = "unknown"
 
-# The two grades of hash claim — the honesty boundary, as data.
+# The three grades of hash claim — the honesty boundary, as data.
+# ``verified_at_source`` requires an actual check: source hash AND
+# travelled bytes AND a match. ``claimed_by_source`` is a source hash
+# with no bytes to check it against — a claim, stated as one.
 HASH_VERIFIED_AT_SOURCE = "verified_at_source"
 HASH_ATTESTED_AT_INGEST = "attested_at_ingest"
+HASH_CLAIMED_BY_SOURCE = "claimed_by_source"
 
 
 @dataclass
@@ -151,22 +163,26 @@ class NormalisedEdit:
 class NormalisedDocument:
     external_id: str | None
     filename: str
-    # Canonical sha256 (hex) for this document's current version. Where
-    # the export manifest carried a source hash, this IS that hash
-    # (``hash_origin=verified_at_source``); otherwise it is computed at
-    # ingest from the bytes the export carried
-    # (``hash_origin=attested_at_ingest``). None when neither existed —
+    # Canonical sha256 (hex) for this document's current version. When
+    # bytes travelled, this is the hash computed at ingest
+    # (``verified_at_source`` when it matched a source claim,
+    # ``attested_at_ingest`` otherwise). When only a source hash
+    # travelled, this is that unchecked claim
+    # (``hash_origin=claimed_by_source``). None when neither existed —
     # recorded as unhashed, never guessed.
     sha256: str | None
     size_bytes: int | None
     current_version: NormalisedVersion | None
-    # verified_at_source | attested_at_ingest | None — WHICH claim the
-    # sha256 makes. Recorded per document; the register face counts it.
+    # verified_at_source | attested_at_ingest | claimed_by_source |
+    # None — WHICH claim the sha256 makes. Recorded per document; the
+    # register face counts it.
     hash_origin: str | None = None
-    # sha256 recomputed at ingest from travelled bytes (when present).
-    # Equal to ``sha256`` for attested-at-ingest documents; for
-    # verified-at-source documents it is the cross-check.
+    # sha256 recomputed at ingest from travelled bytes; None when no
+    # bytes travelled.
     ingest_sha256: str | None = None
+    # The source workspace's own hash claim, verbatim, when the
+    # manifest carried one. None otherwise.
+    source_sha256: str | None = None
     # True when a source hash AND travelled bytes both exist and
     # disagree. Recorded, never repaired.
     hash_mismatch: bool = False
@@ -194,6 +210,7 @@ class NormalisedDocument:
             "sha256": self.sha256,
             "hash_origin": self.hash_origin,
             "ingest_sha256": self.ingest_sha256,
+            "source_sha256": self.source_sha256,
             "hash_mismatch": self.hash_mismatch,
             "size_bytes": self.size_bytes,
             "author": self.author,
@@ -228,6 +245,9 @@ class NormalisedPack:
             ),
             "attested_at_ingest": sum(
                 1 for d in self.documents if d.hash_origin == HASH_ATTESTED_AT_INGEST
+            ),
+            "claimed_by_source": sum(
+                1 for d in self.documents if d.hash_origin == HASH_CLAIMED_BY_SOURCE
             ),
             "unhashed": sum(1 for d in self.documents if d.sha256 is None),
             "hash_mismatches": sum(1 for d in self.documents if d.hash_mismatch),
@@ -295,8 +315,9 @@ class MikeAdapter:
        detected by ``manifest_version``. Documents nest their
        ``versions`` (each carrying the source-computed
        ``content_sha256`` and the ``source`` provenance enum) and
-       ``edits``. Hashes here are *verified at source*: the source
-       workspace hashed the bytes at write time, before any export.
+       ``edits``. A source hash is *verified at source* only when the
+       bytes also travelled and re-hashing them at ingest matched;
+       with no bytes it stays *claimed by source* — unchecked.
     2. **Account export** (``GET /user/export``) — flat ``documents`` /
        ``document_versions`` / ``document_edits`` tables. No source
        hashes; documents are hashed at ingest from travelled bytes,
@@ -365,9 +386,9 @@ class MikeAdapter:
     def _normalise_manifest(
         self, export: dict[str, Any], files: dict[str, bytes]
     ) -> NormalisedPack:
-        """The preferred shape: per-document versions nested, hashes at
-        source (``content_sha256`` computed by the source workspace at
-        write time)."""
+        """The preferred shape: per-document versions nested, each
+        carrying the source workspace's own ``content_sha256`` claim
+        (checked against travelled bytes where present)."""
         docs_raw = export.get("documents")
         if not isinstance(docs_raw, list):
             raise MalformedExport("mike manifest: missing 'documents' list")
@@ -454,18 +475,31 @@ class MikeAdapter:
             hashlib.sha256(data).hexdigest() if data is not None else None
         )
         source_sha256 = current.content_sha256 if current else None
-        if source_sha256:
-            # The manifest carried a hash computed at the source — the
-            # stronger claim. Travelled bytes, when present, cross-check
-            # it; a disagreement is recorded, never repaired.
-            sha256 = source_sha256
-            hash_origin = HASH_VERIFIED_AT_SOURCE
-            hash_mismatch = (
-                ingest_sha256 is not None and ingest_sha256 != source_sha256
-            )
+        if source_sha256 and ingest_sha256 is not None:
+            if ingest_sha256 == source_sha256:
+                # The only path to verified_at_source: the manifest's
+                # claim was re-checked against bytes this workspace
+                # actually received, and they agree.
+                sha256 = source_sha256
+                hash_origin = HASH_VERIFIED_AT_SOURCE
+                hash_mismatch = False
+            else:
+                # The claim failed the check. Recorded, never repaired:
+                # the canonical hash is the one computed here over the
+                # bytes actually held; the failed claim stays on the
+                # record as source_sha256 with hash_mismatch=True.
+                sha256 = ingest_sha256
+                hash_origin = HASH_ATTESTED_AT_INGEST
+                hash_mismatch = True
         elif ingest_sha256 is not None:
             sha256 = ingest_sha256
             hash_origin = HASH_ATTESTED_AT_INGEST
+            hash_mismatch = False
+        elif source_sha256:
+            # Manifest-only: a source hash with no bytes to check it
+            # against. An unchecked claim, graded as one.
+            sha256 = source_sha256
+            hash_origin = HASH_CLAIMED_BY_SOURCE
             hash_mismatch = False
         else:
             sha256 = None
@@ -478,6 +512,7 @@ class MikeAdapter:
             sha256=sha256,
             hash_origin=hash_origin,
             ingest_sha256=ingest_sha256,
+            source_sha256=source_sha256,
             hash_mismatch=hash_mismatch,
             size_bytes=len(data) if data is not None else None,
             current_version=current,
@@ -641,11 +676,14 @@ async def ingest_external_pack(
         "ingested_at": datetime.now(UTC).isoformat(),
         # The honesty boundary, stated in the record itself.
         "attestation": (
-            "Two grades of hash claim, recorded per document: "
-            "verified_at_source (the source workspace hashed the bytes at "
-            "write time; travelled bytes cross-checked where present) and "
-            "attested_at_ingest (hashed here from the bytes the export "
-            "carried). This workspace did not watch the work happen."
+            "Three grades of hash claim, recorded per document: "
+            "verified_at_source (the source's hash was re-checked against "
+            "the bytes the export carried, and matched), attested_at_ingest "
+            "(hashed here from the bytes the export carried; any failed "
+            "source claim is recorded as a hash mismatch, never repaired) "
+            "and claimed_by_source (the source's own hash, no bytes to "
+            "check it against — an unverified claim). This workspace did "
+            "not watch the work happen."
         ),
     }
     manifest = await write_artifact(
