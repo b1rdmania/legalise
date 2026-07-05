@@ -38,6 +38,16 @@ Two independent enforcement layers plus a chain, plus verification:
    hash, later re-verify), and the matter export bundle. An owner-scoped
    read-only `GET …/audit/verify` powers the one-click "Verify integrity"
    button on Overview.
+5. **Exports verify offline** (PR #258): every matter export ships
+   `audit_chain.json` (each chain row in the exact canonical string form the
+   hashes are computed over, plus a head summary) and `verify_chain.py`, a
+   stdlib-only verifier copied verbatim into the zip
+   (`backend/app/core/export_chain_verifier.py`). A recipient can prove the
+   trail intact on a bare Python 3 install — no app, no network, no database.
+   `AuditEntryCanonical.canonical_fields()` is the single source of truth for
+   the rendering; two anti-drift tests (a no-DB cross-test and a DB-backed
+   round trip that runs the shipped verifier as a subprocess) pin the
+   standalone copy to it in CI.
 
 Honest limit, stated everywhere it matters: this is tamper-**evident**, not
 tamper-proof. A DB superuser with trigger access can rewrite unanchored
@@ -76,6 +86,10 @@ idle-in-transaction + waiter on advisory).
   README points at.
 - **Do not move audit writes earlier in request flows** without checking the
   advisory-lock rule above.
+- **Do not edit the exported verifier or the canonical rendering
+  independently.** `verify_chain.py` in exports is a verbatim copy; the
+  anti-drift tests exist because a diverged verifier quietly invalidates
+  every previously issued export.
 - Note: `REGULATORY_PLUMBING.md` once claimed the hash chain was "not in v1"
   (corrected in PR #254). If a doc drifts that way again, the chain is built —
   fix the doc, don't "implement" the chain a second time. ARCHITECTURE.md and
