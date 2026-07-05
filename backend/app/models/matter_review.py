@@ -53,8 +53,9 @@ REVIEW_STATE_VALUES = frozenset({REVIEW_PENDING} | REVIEW_TERMINAL_STATES)
 # findings pack plus prompt-runtime skill output — imported Lawve skills
 # produce `skill_response`, and their output must be reviewable for the
 # supervised-autonomy loop to apply equally to marketplace skills, not
-# just first-party modules.
-REVIEW_ELIGIBLE_KINDS = frozenset({"findings_pack", "skill_response"})
+# just first-party modules. `chat_draft` is an assistant reply saved as
+# a draft output from the chat surface — same loop, same reviewability.
+REVIEW_ELIGIBLE_KINDS = frozenset({"findings_pack", "skill_response", "chat_draft"})
 
 
 class MatterReview(Base):

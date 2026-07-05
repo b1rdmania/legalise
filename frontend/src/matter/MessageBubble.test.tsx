@@ -107,3 +107,81 @@ describe("MessageBubble — assistant markdown", () => {
     expect(screen.getByText("**not markdown**")).toBeInTheDocument();
   });
 });
+
+describe("MessageBubble — per-turn actions (copy / save as draft)", () => {
+  it("copies the raw message content to the clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    mount(message({ content: "Draft paragraph for the ET3." }));
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("button", { name: "Copy" }));
+
+    expect(writeText).toHaveBeenCalledWith("Draft paragraph for the ET3.");
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("saves the reply as a draft and offers to open it", async () => {
+    const onSaveDraft = vi.fn().mockResolvedValue("artifact-9");
+    const onOpenDraft = vi.fn();
+    render(
+      <MessageBubble
+        message={message({ content: "Grounds of resistance, first cut." })}
+        docs={[doc]}
+        chronology={[]}
+        onDocChip={vi.fn()}
+        onChronChip={vi.fn()}
+        onSaveDraft={onSaveDraft}
+        onOpenDraft={onOpenDraft}
+      />,
+    );
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("button", { name: "Save as draft" }));
+
+    expect(onSaveDraft).toHaveBeenCalledTimes(1);
+    expect(await screen.findByTestId("draft-saved")).toHaveTextContent(
+      "Saved as draft",
+    );
+    // The save action is gone — one draft per reply.
+    expect(screen.queryByRole("button", { name: "Save as draft" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "open" }));
+    expect(onOpenDraft).toHaveBeenCalledWith("artifact-9");
+  });
+
+  it("shows a plain error and keeps the action when saving fails", async () => {
+    const onSaveDraft = vi.fn().mockRejectedValue(new Error("boom"));
+    render(
+      <MessageBubble
+        message={message({ content: "x" })}
+        docs={[doc]}
+        chronology={[]}
+        onDocChip={vi.fn()}
+        onChronChip={vi.fn()}
+        onSaveDraft={onSaveDraft}
+      />,
+    );
+
+    const { default: userEvent } = await import("@testing-library/user-event");
+    await userEvent.click(screen.getByRole("button", { name: "Save as draft" }));
+
+    expect(
+      await screen.findByText("Couldn't save — try again"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save as draft" })).toBeInTheDocument();
+  });
+
+  it("hides the save action when no handler is supplied (read-only surfaces)", () => {
+    mount(message({ content: "demo reply" }));
+    expect(screen.queryByRole("button", { name: "Save as draft" })).toBeNull();
+    // Copy still renders.
+    expect(screen.getByRole("button", { name: "Copy" })).toBeInTheDocument();
+  });
+
+  it("never renders actions on user turns", () => {
+    mount(message({ id: "u-2", role: "user", content: "hello" }));
+    expect(screen.queryByTestId("message-actions")).toBeNull();
+  });
+});

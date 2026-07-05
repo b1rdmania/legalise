@@ -90,6 +90,16 @@ class AssistantPostResponse(BaseModel):
     thread_id: UUID | None = None
 
 
+class AssistantDraftSaveResponse(BaseModel):
+    """Result of saving an assistant reply as a draft output."""
+
+    artifact_id: UUID
+    kind: str = "chat_draft"
+    # True when this message was already saved — the existing draft is
+    # returned instead of a duplicate.
+    already_existed: bool = False
+
+
 class AssistantResponseEnvelope(BaseModel):
     """Shape the model is asked to return — `parse_model_json` validates it."""
 

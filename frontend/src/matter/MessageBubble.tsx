@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type {
   AssistantMessage,
   ChronologyEvent,
@@ -41,6 +41,11 @@ interface Props {
   onSources?: (message: AssistantMessage) => void;
   onVersions?: (message: AssistantMessage) => void;
   onRecord?: (message: AssistantMessage) => void;
+  // Save this reply as a draft output. Resolves to the artifact id.
+  // Omitted on read-only surfaces (demo) — the action doesn't render.
+  onSaveDraft?: (message: AssistantMessage) => Promise<string>;
+  // Open a saved draft (the artifact detail page).
+  onOpenDraft?: (artifactId: string) => void;
   compact?: boolean;
 }
 
@@ -54,6 +59,8 @@ export function MessageBubble({
   onSources,
   onVersions,
   onRecord,
+  onSaveDraft,
+  onOpenDraft,
   compact = false,
 }: Props) {
   const isUser = message.role === "user";
@@ -69,6 +76,8 @@ export function MessageBubble({
       onSources={onSources}
       onVersions={onVersions}
       onRecord={onRecord}
+      onSaveDraft={onSaveDraft}
+      onOpenDraft={onOpenDraft}
       compact={compact}
     />
   );
@@ -97,6 +106,8 @@ function AssistantMessageView({
   onSources,
   onVersions,
   onRecord,
+  onSaveDraft,
+  onOpenDraft,
   compact,
 }: Props) {
   const { text, citations } = extractCitations(message.content, docs, chronology);
@@ -173,7 +184,109 @@ function AssistantMessageView({
             onRecord={onRecord}
           />
         )}
+        {!compact && (
+          <MessageActions
+            message={message}
+            onSaveDraft={onSaveDraft}
+            onOpenDraft={onOpenDraft}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+// Quiet per-turn actions under an assistant reply: copy the text, and
+// save it as a draft output on the matter (the on-ramp into the
+// review/sign flow). Same understated idiom as the output-row links.
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved"; artifactId: string }
+  | { kind: "error" };
+
+function MessageActions({
+  message,
+  onSaveDraft,
+  onOpenDraft,
+}: {
+  message: AssistantMessage;
+  onSaveDraft?: (message: AssistantMessage) => Promise<string>;
+  onOpenDraft?: (artifactId: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [save, setSave] = useState<SaveState>({ kind: "idle" });
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    },
+    [],
+  );
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable (permissions, insecure context) — do nothing.
+    }
+  };
+
+  const saveDraft = async () => {
+    if (!onSaveDraft || save.kind === "saving") return;
+    setSave({ kind: "saving" });
+    try {
+      const artifactId = await onSaveDraft(message);
+      setSave({ kind: "saved", artifactId });
+    } catch {
+      setSave({ kind: "error" });
+    }
+  };
+
+  const linkCls =
+    "text-muted underline underline-offset-4 hover:text-ink transition-colors";
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
+      data-testid="message-actions"
+    >
+      <button type="button" onClick={() => void copy()} className={linkCls}>
+        {copied ? "Copied" : "Copy"}
+      </button>
+      {onSaveDraft && save.kind !== "saved" && (
+        <button
+          type="button"
+          onClick={() => void saveDraft()}
+          disabled={save.kind === "saving"}
+          className={linkCls + " disabled:opacity-50"}
+        >
+          {save.kind === "saving" ? "Saving…" : "Save as draft"}
+        </button>
+      )}
+      {save.kind === "saved" && (
+        <span className="text-muted" data-testid="draft-saved">
+          Saved as draft
+          {onOpenDraft && (
+            <>
+              {" — "}
+              <button
+                type="button"
+                onClick={() => onOpenDraft(save.artifactId)}
+                className={linkCls}
+              >
+                open
+              </button>
+            </>
+          )}
+        </span>
+      )}
+      {save.kind === "error" && (
+        <span className="text-seal">Couldn't save — try again</span>
+      )}
     </div>
   );
 }
