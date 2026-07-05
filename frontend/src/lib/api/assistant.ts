@@ -68,6 +68,9 @@ export type AssistantStreamEvent =
   | { event: "turn.accepted"; data: { user_message_id: string } }
   | { event: "turn.deterministic"; data: { assistant_message_id: string; kind: string } }
   | { event: "model.start"; data: { stage: string } }
+  // A token-streamed slice of the answer being written. Only emitted for
+  // providers that stream; the final `result` message stays authoritative.
+  | { event: "model.delta"; data: { text: string } }
   | { event: "tool.start"; data: { module_id: string; capability_id: string } }
   | {
       event: "tool.end";

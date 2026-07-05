@@ -734,6 +734,137 @@ describe("AssistantTab — no-key header notice", () => {
   });
 });
 
+describe("AssistantTab — token-streamed draft", () => {
+  it("renders deltas in a draft bubble, then the final message replaces it", async () => {
+    let releaseResult!: () => void;
+    const resultGate = new Promise<void>((resolve) => {
+      releaseResult = resolve;
+    });
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(
+      async function* () {
+        yield { event: "model.start", data: { stage: "assistant" } } as never;
+        yield { event: "model.delta", data: { text: "Khan was " } } as never;
+        yield { event: "model.delta", data: { text: "dismissed." } } as never;
+        await resultGate;
+        yield {
+          event: "result",
+          data: {
+            user: {
+              id: "u-1",
+              role: "user",
+              content: "When was Khan dismissed?",
+              suggested_actions: [],
+              created_at: "",
+            },
+            assistant: {
+              id: "a-1",
+              role: "assistant",
+              content: "Khan was dismissed.",
+              suggested_actions: [],
+              created_at: "",
+            },
+          },
+        } as never;
+      },
+    );
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "When was Khan dismissed?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    const bubble = await screen.findByTestId("chat-draft-bubble");
+    expect(bubble).toHaveTextContent("Khan was dismissed.");
+    // Draft is plain text with no per-message actions — those belong to
+    // the final message only.
+    expect(within(bubble).queryByTestId("message-actions")).toBeNull();
+    // Streaming is visible progress, so the honesty line stays hidden.
+    expect(screen.queryByTestId("chat-long-wait-note")).toBeNull();
+
+    releaseResult();
+    await waitFor(() =>
+      expect(screen.queryByTestId("chat-draft-bubble")).toBeNull(),
+    );
+    expect(await screen.findByText("Khan was dismissed.")).toBeInTheDocument();
+    expect(await screen.findByTestId("message-actions")).toBeInTheDocument();
+  });
+
+  it("resets the draft when a tool turn starts a second model call", async () => {
+    let releaseResult!: () => void;
+    const resultGate = new Promise<void>((resolve) => {
+      releaseResult = resolve;
+    });
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(
+      async function* () {
+        yield { event: "model.start", data: { stage: "assistant" } } as never;
+        yield { event: "model.delta", data: { text: "I'll run the tool." } } as never;
+        yield {
+          event: "model.start",
+          data: { stage: "assistant.final" },
+        } as never;
+        yield { event: "model.delta", data: { text: "Final answer." } } as never;
+        await resultGate;
+        yield {
+          event: "result",
+          data: {
+            user: {
+              id: "u-1",
+              role: "user",
+              content: "Run it",
+              suggested_actions: [],
+              created_at: "",
+            },
+            assistant: {
+              id: "a-1",
+              role: "assistant",
+              content: "Final answer.",
+              suggested_actions: [],
+              created_at: "",
+            },
+          },
+        } as never;
+      },
+    );
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "Run it" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    const bubble = await screen.findByTestId("chat-draft-bubble");
+    await waitFor(() => expect(bubble).toHaveTextContent("Final answer."));
+    expect(bubble).not.toHaveTextContent(/I'll run the tool\./);
+
+    releaseResult();
+    await waitFor(() =>
+      expect(screen.queryByTestId("chat-draft-bubble")).toBeNull(),
+    );
+  });
+
+  it("discards a partial draft and restores the prompt when the stream fails", async () => {
+    vi.spyOn(api, "postAssistantMessageStream").mockImplementation(
+      async function* () {
+        yield { event: "model.start", data: { stage: "assistant" } } as never;
+        yield { event: "model.delta", data: { text: "Half an ans" } } as never;
+        yield {
+          event: "error",
+          data: { message: "provider fell over" },
+        } as never;
+      },
+    );
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    const input = await screen.findByTestId("chat-composer-input");
+    fireEvent.change(input, { target: { value: "Do not lose me" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText(/Could not send message/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-draft-bubble")).toBeNull();
+    expect(screen.queryByText("Half an ans")).toBeNull();
+    expect(input).toHaveValue("Do not lose me");
+  });
+});
+
 describe("AssistantTab — long-wait honesty line", () => {
   it("does not show the note for a fast turn", async () => {
     let releaseResult!: () => void;

@@ -68,17 +68,29 @@ class AnthropicProvider:
         model = kwargs.get("model") or self.default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
         api_key = kwargs.get("api_key") or self._fallback_key
+        # Optional token-streaming callback: awaited with each text delta as
+        # it arrives. The returned text, usage, and stop_reason come from the
+        # SDK's accumulated final message, so downstream hashing/persistence
+        # sees exactly the text the deltas spelled out.
+        on_delta = kwargs.get("on_delta")
         if not api_key:
             raise RuntimeError("anthropic: no api_key supplied")
         client = AsyncAnthropic(api_key=api_key)
 
+        request_kwargs = dict(
+            model=model,
+            max_tokens=max_tokens,
+            system=system or "You are a UK legal AI assistant. Draft for solicitor review.",
+            messages=[{"role": "user", "content": prompt}],
+        )
         try:
-            message = await client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                system=system or "You are a UK legal AI assistant. Draft for solicitor review.",
-                messages=[{"role": "user", "content": prompt}],
-            )
+            if on_delta is None:
+                message = await client.messages.create(**request_kwargs)
+            else:
+                async with client.messages.stream(**request_kwargs) as stream:
+                    async for text_delta in stream.text_stream:
+                        await on_delta(text_delta)
+                    message = await stream.get_final_message()
         except APIStatusError as exc:
             logger.exception(
                 "legalise.provider.anthropic.error",
