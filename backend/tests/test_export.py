@@ -111,6 +111,13 @@ class TestBuildMatterExportUnit:
 
             session.scalars.side_effect = _scalars_side_effect
 
+            async def _execute_se(query):
+                result = MagicMock()
+                result.all.return_value = []
+                return result
+
+            session.execute.side_effect = _execute_se
+
             export_key = await build_matter_export(session, matter, job_id)
 
             assert export_key.endswith(f"{job_id}.zip")
@@ -197,6 +204,13 @@ class TestBuildMatterExportUnit:
 
             session.scalars.side_effect = _scalars_se
 
+            async def _execute_se(query):
+                result = MagicMock()
+                result.all.return_value = []
+                return result
+
+            session.execute.side_effect = _execute_se
+
             export_key = await build_matter_export(session, matter, job_id)
 
             storage = get_storage_backend()
@@ -256,6 +270,13 @@ class TestWorkerDispatchExport:
             return result
 
         session.scalars.side_effect = _scalars_se
+
+        async def _execute_se(query):
+            result = MagicMock()
+            result.all.return_value = []
+            return result
+
+        session.execute.side_effect = _execute_se
 
         import os
 

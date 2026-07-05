@@ -24,7 +24,6 @@ from app.models.audit_chain import (
     AuditChainEntry,
 )
 
-
 ENTRY_PREFIX = "audit-chain-entry-v1"
 LINK_PREFIX = "audit-chain-link-v1"
 
@@ -99,31 +98,40 @@ class AuditEntryCanonical:
             payload_text=payload_text,
         )
 
+    def canonical_fields(self) -> dict[str, str | None]:
+        """Field values as canonical strings, in hash order.
+
+        This is the exact rendering the entry hash is computed over.
+        The matter export writes these strings into ``audit_chain.json``
+        so the offline verifier (``export_chain_verifier.py``) can
+        recompute hashes without re-deriving any rendering rules.
+        """
+        return {
+            "id": str(self.id),
+            "timestamp": _timestamp_utc(self.timestamp),
+            "actor_id": _text(self.actor_id),
+            "matter_id": _text(self.matter_id),
+            "action": self.action,
+            "module": self.module,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "model_used": self.model_used,
+            "prompt_hash": self.prompt_hash,
+            "response_hash": self.response_hash,
+            "token_count": _text(self.token_count),
+            "latency_ms": _text(self.latency_ms),
+            "tokens_in": _text(self.tokens_in),
+            "tokens_out": _text(self.tokens_out),
+            "cost_micros": _text(self.cost_micros),
+            "currency": self.currency,
+            "provider": self.provider,
+            "model_id": self.model_id,
+            "payload_text": self.payload_text,
+        }
+
     def canonical(self) -> str:
         return "\n".join(
-            [
-                ENTRY_PREFIX,
-                _field(str(self.id)),
-                _field(_timestamp_utc(self.timestamp)),
-                _field(_text(self.actor_id)),
-                _field(_text(self.matter_id)),
-                _field(self.action),
-                _field(self.module),
-                _field(self.resource_type),
-                _field(self.resource_id),
-                _field(self.model_used),
-                _field(self.prompt_hash),
-                _field(self.response_hash),
-                _field(_text(self.token_count)),
-                _field(_text(self.latency_ms)),
-                _field(_text(self.tokens_in)),
-                _field(_text(self.tokens_out)),
-                _field(_text(self.cost_micros)),
-                _field(self.currency),
-                _field(self.provider),
-                _field(self.model_id),
-                _field(self.payload_text),
-            ]
+            [ENTRY_PREFIX, *(_field(value) for value in self.canonical_fields().values())]
         )
 
     def entry_hash(self) -> str:
