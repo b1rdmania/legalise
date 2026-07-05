@@ -154,6 +154,11 @@ export function ArtifactPreview({
   if (kind === "skill_response" && looksLikeSkillResponse(payload)) {
     return <SkillResponseView payload={payload} matterSlug={matterSlug} />;
   }
+  // chat_draft (assistant reply saved as a draft) shares the
+  // skill_response payload shape: output + model_id + source_anchors.
+  if (kind === "chat_draft" && looksLikeSkillResponse(payload)) {
+    return <SkillResponseView payload={payload} matterSlug={matterSlug} />;
+  }
   return <JsonFallback payload={payload} />;
 }
 

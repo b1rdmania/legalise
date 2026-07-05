@@ -10,6 +10,7 @@ import {
   getThreadMessages,
   listInstalledModules,
   postAssistantMessageStream,
+  saveMessageAsDraft,
   ProviderKeyMissingError,
   ProviderUpstreamError,
   providerKeyMissingFromBody,
@@ -792,6 +793,20 @@ export function AssistantTab({
                 onSources={(message) => setWorkPane({ kind: "sources", message })}
                 onVersions={(message) => setWorkPane({ kind: "versions", message })}
                 onRecord={(message) => setWorkPane({ kind: "activity", message })}
+                onSaveDraft={
+                  disabled
+                    ? undefined
+                    : (message) =>
+                        saveMessageAsDraft(matter.slug, message.id).then(
+                          (r) => r.artifact_id,
+                        )
+                }
+                onOpenDraft={(artifactId) =>
+                  void navigate({
+                    to: "/matters/$slug/artifacts/$artifactId",
+                    params: { slug: matter.slug, artifactId },
+                  })
+                }
               />
               {m.role === "assistant" && (
                 <AssistantSawPanel

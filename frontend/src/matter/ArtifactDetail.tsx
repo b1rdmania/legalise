@@ -44,6 +44,8 @@ function outputLabel(kind: string): string {
       return "Evidence list";
     case "skill_response":
       return "Skill response";
+    case "chat_draft":
+      return "Draft from chat";
     default:
       return kind.replace(/_/g, " ");
   }

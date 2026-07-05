@@ -11,7 +11,7 @@ import json
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,12 +21,15 @@ from app.core.auth import current_user
 from app.core.db import get_session
 from app.core.limits import check_assistant_message
 from app.core.matter_access import resolve_owned_open_matter
-from app.models import Matter, User
+from app.core.matter_artifacts import write_artifact
+from app.models import Matter, MatterArtifact, User
+from app.models.assistant import ROLE_ASSISTANT
 from app.models.assistant import AssistantMessage as AssistantMessageRow
 from app.models.assistant import AssistantThread as AssistantThreadRow
 
 from .pipeline import derive_thread_title, run_assistant_turn
 from .schemas import (
+    AssistantDraftSaveResponse,
     AssistantMessage,
     AssistantPostRequest,
     AssistantPostResponse,
@@ -310,6 +313,140 @@ async def post_message(
         user=_to_schema(user_row),
         assistant=_to_schema(assistant_row),
         thread_id=thread.id,
+    )
+
+
+# Artifact kind for an assistant reply saved as a draft output. Listed in
+# REVIEW_ELIGIBLE_KINDS (matter_review.py) so the saved draft enters the
+# existing review/sign-off flow with no special-casing downstream.
+CHAT_DRAFT_KIND = "chat_draft"
+SAVE_DRAFT_MODULE_ID = "assistant"
+SAVE_DRAFT_CAPABILITY_ID = "assistant.save_draft"
+
+
+def _draft_payload(row: AssistantMessageRow) -> dict[str, Any]:
+    """Artifact payload for a chat-saved draft.
+
+    Shape matches `skill_response` (`output` + `model_id` +
+    `source_anchors`) so the existing preview/review/sign surfaces render
+    it without new code paths, plus explicit chat provenance: the source
+    message id, hashes, and the retrieval sources exactly as persisted on
+    the message. `model_id` may be null (keyless / extractive answers) —
+    the provenance records what happened, it does not gate.
+    """
+    sources = [s for s in (row.sources or []) if isinstance(s, dict)]
+    anchors: list[dict[str, Any]] = []
+    for i, s in enumerate(sources):
+        anchors.append(
+            {
+                "id": f"src-{i + 1}",
+                "source_type": "document",
+                "document_id": s.get("document_id"),
+                "filename": s.get("title"),
+                "label": s.get("title"),
+                "quote": s.get("snippet"),
+            }
+        )
+    return {
+        "output": row.content,
+        "model_id": row.model_used,
+        "saved_from": "assistant_message",
+        "source_message_id": str(row.id),
+        "thread_id": str(row.thread_id) if row.thread_id else None,
+        "prompt_hash": row.prompt_hash,
+        "response_hash": row.response_hash,
+        "sources": sources,
+        "source_anchors": anchors,
+    }
+
+
+@router.post(
+    "/{slug}/assistant/messages/{message_id}/save-draft",
+    response_model=AssistantDraftSaveResponse,
+    status_code=201,
+)
+async def save_message_as_draft(
+    slug: str,
+    message_id: uuid.UUID,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> AssistantDraftSaveResponse:
+    """Save an assistant reply as a draft output on the matter.
+
+    Creates a `chat_draft` matter artifact from the persisted message —
+    content plus provenance (source message id, model, hashes, retrieval
+    sources). The artifact is the same first-class output the review and
+    sign-off endpoints already operate on, so the saved draft flows into
+    draft → review → sign with no special-casing.
+
+    Idempotent per message: saving the same reply again returns the
+    existing draft (200, `already_existed=true`). Uses the shared
+    archived-aware matter resolver — no drafts on tombstoned matters.
+    """
+    matter = await _resolve_matter(session, slug, user.id)
+    row = await session.scalar(
+        select(AssistantMessageRow).where(
+            AssistantMessageRow.id == message_id,
+            AssistantMessageRow.matter_id == matter.id,
+        )
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if row.role != ROLE_ASSISTANT:
+        raise HTTPException(
+            status_code=422,
+            detail="Only assistant replies can be saved as drafts",
+        )
+
+    # Idempotency: the message id doubles as the artifact's invocation id,
+    # and (invocation_id, kind) is unique — one draft per message.
+    existing = await session.scalar(
+        select(MatterArtifact).where(
+            MatterArtifact.invocation_id == row.id,
+            MatterArtifact.kind == CHAT_DRAFT_KIND,
+            MatterArtifact.matter_id == matter.id,
+        )
+    )
+    if existing is not None:
+        response.status_code = 200
+        return AssistantDraftSaveResponse(
+            artifact_id=existing.id, kind=existing.kind, already_existed=True
+        )
+
+    artifact = await write_artifact(
+        session,
+        matter=matter,
+        capability_id=SAVE_DRAFT_CAPABILITY_ID,
+        module_id=SAVE_DRAFT_MODULE_ID,
+        invocation_id=row.id,
+        kind=CHAT_DRAFT_KIND,
+        payload=_draft_payload(row),
+        actor_user_id=user.id,
+    )
+    # Supervision legibility (M13): the record states that this draft was
+    # prepared by AI in chat and which message it came from.
+    await audit.log(
+        session,
+        "assistant.draft.saved",
+        actor_id=user.id,
+        matter_id=matter.id,
+        module=SAVE_DRAFT_MODULE_ID,
+        resource_type="matter_artifact",
+        resource_id=str(artifact.id),
+        payload={
+            "source_message_id": str(row.id),
+            "thread_id": str(row.thread_id) if row.thread_id else None,
+            "model_used": row.model_used,
+            "prompt_hash": row.prompt_hash,
+            "response_hash": row.response_hash,
+            "source_count": len(row.sources or []),
+            "kind": CHAT_DRAFT_KIND,
+        },
+    )
+    await session.commit()
+    return AssistantDraftSaveResponse(
+        artifact_id=artifact.id, kind=artifact.kind, already_existed=False
     )
 
 

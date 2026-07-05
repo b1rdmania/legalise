@@ -118,6 +118,22 @@ export const postAssistantMessage = (
     body: JSON.stringify(body),
   }).then((r) => jsonOrThrow<AssistantPostResponse>(r));
 
+// Save an assistant reply as a draft output — a `chat_draft` matter
+// artifact carrying the message's content + provenance (source message
+// id, model, hashes, retrieval sources). Idempotent per message: saving
+// the same reply again returns the existing draft.
+export interface AssistantDraftSaveResponse {
+  artifact_id: string;
+  kind: string;
+  already_existed: boolean;
+}
+
+export const saveMessageAsDraft = (slug: string, messageId: string) =>
+  apiFetch(
+    `${API}/matters/${encodeURIComponent(slug)}/assistant/messages/${encodeURIComponent(messageId)}/save-draft`,
+    { method: "POST" },
+  ).then((r) => jsonOrThrow<AssistantDraftSaveResponse>(r));
+
 export async function* postAssistantMessageStream(
   slug: string,
   body: { content: string; selected_document_ids?: string[]; thread_id?: string },

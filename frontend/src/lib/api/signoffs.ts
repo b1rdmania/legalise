@@ -45,6 +45,7 @@ export const listSupervisorReviews = (slug: string) =>
 export const REVIEW_ELIGIBLE_KINDS: readonly string[] = [
   "findings_pack",
   "skill_response",
+  "chat_draft",
 ];
 
 export const requestReview = (slug: string, artifactId: string) =>
