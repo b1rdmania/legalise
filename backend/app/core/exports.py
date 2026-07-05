@@ -13,6 +13,10 @@ The bundle includes:
   - artefacts.json         — generated artefact metadata (storage_uri list,
                              no bytes)
   - audit.json             — all audit rows for the matter
+  - audit_chain.json       — the audit hash chain: per-entry hashes, link
+                             hashes, and the chain head, in the canonical
+                             string form the hashes are computed over
+  - verify_chain.py        — stdlib-only offline verifier for the chain
   - jobs.json              — all job rows for the matter
 
 Out of scope:
@@ -41,33 +45,36 @@ import io
 import json
 import uuid
 import zipfile
-from datetime import datetime
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import String, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.storage import get_storage_backend, matter_prefix
-from app.core.matter_artifacts import ArtifactBytesUnavailable, load_artifact_bytes
+from app.core.audit_chain import AuditEntryCanonical
 from app.core.audit_reconstruction import reconstruct
+from app.core.matter_artifacts import ArtifactBytesUnavailable, load_artifact_bytes
 from app.core.signoff import (
     compute_signoff_hash,
     current_signoff_ids,
     list_signoffs,
 )
+from app.core.storage import get_storage_backend, matter_prefix
 from app.models import (
+    SIGNOFF_REJECTED,
+    SIGNOFF_SIGNED,
+    SIGNOFF_SIGNED_WITH_OBSERVATIONS,
+    AuditChainEntry,
     AuditEntry,
     Document,
+    DocumentComment,
+    DocumentEdit,
+    DocumentVersion,
     Job,
     Matter,
     MatterArtifact,
     MatterReview,
-    SIGNOFF_REJECTED,
-    SIGNOFF_SIGNED,
-    SIGNOFF_SIGNED_WITH_OBSERVATIONS,
-    DocumentComment,
-    DocumentEdit,
-    DocumentVersion,
 )
 
 
@@ -129,6 +136,10 @@ def _build_readme(
         f"- `reviews.json` — {review_count} supervisor review decision(s).",
         f"- `reconstruction.json` — the rebuilt decision timeline ({recon_count} entries).",
         "- `audit.json` — raw audit entries for this matter.",
+        "- `audit_chain.json` — the audit hash chain: a per-entry hash, a link",
+        "  hash chaining each entry to the one before it, and the head hash.",
+        "- `verify_chain.py` — offline chain verifier. Run `python verify_chain.py`",
+        "  from the unpacked export; it needs only Python 3, no network, no database.",
         "- `jobs.json` — job records for this matter.",
         "",
         "## Sign-off status of outputs",
@@ -151,6 +162,8 @@ def _build_readme(
         "## What a human still needs to verify",
         "Before relying on anything in this pack:",
         "",
+        "- [ ] `python verify_chain.py` run and passing — confirms the audit",
+        "      trail in this pack has not been edited, reordered, or truncated.",
         "- [ ] Cited sources reviewed against the original documents.",
         "- [ ] Unsigned outputs treated as drafts, not final work product.",
         "- [ ] Rejected outputs not used as final material.",
@@ -232,7 +245,8 @@ def _build_working_pack(
         "- Document versions and edit decisions → `document_versions.json`",
         "  and `document_edits.json`.",
         "- The decision timeline → `reconstruction.json`.",
-        "- The raw audit chain → `audit.json`.",
+        "- The raw audit log → `audit.json`; its hash chain → `audit_chain.json`.",
+        "  Run `python verify_chain.py` to check the chain is intact.",
         "- Supervisor review state → `reviews.json`.",
         "",
         "## Before relying on this pack",
@@ -470,6 +484,66 @@ async def build_matter_export(
             for a in audit_rows
         ]
         zf.writestr("audit.json", _dumps(audit_list))
+
+        # --- audit_chain.json + verify_chain.py -------------------------------
+        # The hash chain is what makes the audit log tamper-evident; without
+        # it the export is a plain log. Ship the chain rows in the canonical
+        # string form the hashes are computed over, plus the head hash, plus
+        # a stdlib-only verifier — so a recipient can check the chain offline
+        # with no database and nothing but Python 3.
+        chain_rows = (
+            await session.execute(
+                select(
+                    AuditChainEntry,
+                    AuditEntry,
+                    cast(AuditEntry.payload, String).label("payload_text"),
+                )
+                .join(AuditEntry, AuditEntry.id == AuditChainEntry.audit_entry_id)
+                .where(AuditChainEntry.matter_id == matter.id)
+                .order_by(AuditChainEntry.scope_sequence)
+            )
+        ).all()
+        chain_entries: list[dict[str, Any]] = []
+        for chain, entry, payload_text in chain_rows:
+            canonical = AuditEntryCanonical.from_row(entry, payload_text or "{}")
+            chain_entries.append(
+                {
+                    **canonical.canonical_fields(),
+                    "scope_type": chain.scope_type,
+                    "scope_sequence": chain.scope_sequence,
+                    "chain_version": chain.chain_version,
+                    "previous_chain_hash": chain.previous_chain_hash,
+                    "entry_hash": chain.entry_hash,
+                    "chain_hash": chain.chain_hash,
+                }
+            )
+        chain_head: dict[str, Any] | None = None
+        if chain_entries:
+            last = chain_entries[-1]
+            chain_head = {
+                "chain_hash": last["chain_hash"],
+                "scope_sequence": last["scope_sequence"],
+                "entry_count": len(chain_entries),
+                "timestamp": last["timestamp"],
+            }
+        chain_doc: dict[str, Any] = {
+            "format": "legalise-audit-chain-export-v1",
+            "scope_type": "matter",
+            "matter_id": str(matter.id),
+            "exported_at": datetime.now(UTC).isoformat(),
+            "entry_count": len(chain_entries),
+            "head": chain_head,
+            "how_to_verify": (
+                "Run `python verify_chain.py` from the unpacked export. "
+                "It needs only a standard Python 3 install."
+            ),
+            "entries": chain_entries,
+        }
+        zf.writestr("audit_chain.json", _dumps(chain_doc))
+        zf.writestr(
+            "verify_chain.py",
+            (Path(__file__).parent / "export_chain_verifier.py").read_bytes(),
+        )
 
         # --- jobs.json -------------------------------------------------------
         job_rows = list(
