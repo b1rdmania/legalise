@@ -698,6 +698,87 @@ describe("AssistantTab — attach popover", () => {
   });
 });
 
+describe("AssistantTab — header document popover", () => {
+  const docWithStatus = (
+    id: string,
+    filename: string,
+    indexStatus?: string,
+  ): MatterDocument =>
+    ({ ...someDoc(id, filename), index_status: indexStatus }) as never;
+
+  it("keeps the zero-doc header line as plain text with no popover", async () => {
+    mountChat({ docs: [] });
+
+    const status = await screen.findByTestId("docs-context-status");
+    expect(status).toHaveTextContent("No documents yet");
+    fireEvent.click(status);
+    expect(screen.queryByTestId("chat-docs-popover")).toBeNull();
+  });
+
+  it("opens a list of documents with their index status from the doc count", async () => {
+    mountChat({
+      docs: [
+        docWithStatus("doc-1", "contract.pdf", "indexed"),
+        docWithStatus("doc-2", "witness.docx", "pending"),
+        docWithStatus("doc-3", "bundle.pdf", "failed"),
+      ],
+    });
+
+    const count = await screen.findByTestId("docs-context-status");
+    expect(count).toHaveTextContent("3 documents");
+    fireEvent.click(count);
+
+    const popover = await screen.findByTestId("chat-docs-popover");
+    expect(within(popover).getByText("contract.pdf")).toBeInTheDocument();
+    expect(within(popover).getByText("Searchable")).toBeInTheDocument();
+    expect(within(popover).getByText("witness.docx")).toBeInTheDocument();
+    expect(within(popover).getByText("Indexing…")).toBeInTheDocument();
+    expect(within(popover).getByText("bundle.pdf")).toBeInTheDocument();
+    expect(within(popover).getByText("Not searchable")).toBeInTheDocument();
+  });
+
+  it("shows just the names when every document is indexed and status is absent", async () => {
+    // Older payloads omit index_status; the row stays quiet rather than
+    // guessing a state.
+    mountChat({ docs: [someDoc("doc-1", "note.txt")] });
+
+    fireEvent.click(await screen.findByTestId("docs-context-status"));
+    const popover = await screen.findByTestId("chat-docs-popover");
+    expect(within(popover).getByText("note.txt")).toBeInTheDocument();
+    expect(within(popover).queryByText("Searchable")).toBeNull();
+    expect(within(popover).queryByText("Indexing…")).toBeNull();
+  });
+
+  it("navigates to the document on row click and closes the popover", async () => {
+    const onDocumentChip = vi.fn();
+    mountChat({
+      onDocumentChip,
+      docs: [docWithStatus("doc-1", "contract.pdf", "indexed")],
+    });
+
+    fireEvent.click(await screen.findByTestId("docs-context-status"));
+    fireEvent.click(await screen.findByTestId("chat-docs-row-doc-1"));
+
+    expect(onDocumentChip).toHaveBeenCalledWith("doc-1");
+    expect(screen.queryByTestId("chat-docs-popover")).toBeNull();
+  });
+
+  it("offers a filter for long lists, matching the attach popover", async () => {
+    const manyDocs = Array.from({ length: 7 }, (_, i) =>
+      docWithStatus(`doc-${i}`, `bundle-${i}.pdf`, "indexed"),
+    );
+    mountChat({ docs: manyDocs });
+
+    fireEvent.click(await screen.findByTestId("docs-context-status"));
+    const filter = await screen.findByTestId("chat-docs-filter");
+    fireEvent.change(filter, { target: { value: "bundle-3" } });
+
+    const popover = screen.getByTestId("chat-docs-popover");
+    expect(within(popover).getByText("bundle-3.pdf")).toBeInTheDocument();
+    expect(within(popover).queryByText("bundle-4.pdf")).toBeNull();
+  });
+});
+
 describe("AssistantTab — no-key header notice", () => {
   it("shows a passive notice when the matter's model needs a key the user lacks", async () => {
     vi.spyOn(api, "listApiKeys").mockResolvedValue([]);

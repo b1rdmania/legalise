@@ -30,6 +30,7 @@ import {
 } from "../../lib/api";
 import { InlineSpinner, ProviderKeyMissingBanner, primaryBtn } from "../../ui/primitives";
 import { posturePaused } from "../../lib/posture";
+import { indexStatusChip } from "../indexStatus";
 import { InlineAgentStatus, MessageBubble, type InlineAgentStep } from "../MessageBubble";
 import { GenericSkillRunner } from "../GenericSkillRunner";
 import {
@@ -563,6 +564,17 @@ export function AssistantTab({
 
   const [attachOpen, setAttachOpen] = useState(false);
 
+  // Header document popover: the doc count opens a list of the matter's
+  // documents with their index status, so grounding is visible before an
+  // answer — and a stuck "Indexing…" document has a user-visible surface.
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [docsFilter, setDocsFilter] = useState("");
+  const filteredHeaderDocs = useMemo(() => {
+    const q = docsFilter.trim().toLowerCase();
+    if (!q) return sortedDocs;
+    return sortedDocs.filter((d) => (d.filename ?? "").toLowerCase().includes(q));
+  }, [sortedDocs, docsFilter]);
+
   const onPickRunnerSkill = (skill: RunnableMatterSkill) => {
     setSkillsOpen(false);
     if (disabled) {
@@ -632,13 +644,85 @@ export function AssistantTab({
             {matter.title}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-            <span data-testid="docs-context-status">
-              {docs === null
-                ? "Loading documents…"
-                : docs.length > 0
-                  ? `${docs.length} document${docs.length === 1 ? "" : "s"}`
-                  : "No documents yet"}
-            </span>
+            {docs !== null && docs.length > 0 ? (
+              <span className="relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => setDocsOpen((v) => !v)}
+                  aria-expanded={docsOpen}
+                  aria-haspopup="menu"
+                  data-testid="docs-context-status"
+                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                >
+                  {docs.length} document{docs.length === 1 ? "" : "s"}
+                </button>
+                {docsOpen && (
+                  <div
+                    className="absolute top-full left-0 mt-2 rounded-item border border-rule bg-paper p-2 w-[280px] z-10 text-left"
+                    data-testid="chat-docs-popover"
+                  >
+                    {sortedDocs.length > 5 && (
+                      <input
+                        type="text"
+                        value={docsFilter}
+                        onChange={(e) => setDocsFilter(e.target.value)}
+                        placeholder="Filter documents"
+                        aria-label="Filter documents"
+                        data-testid="chat-docs-filter"
+                        className="mb-2 w-full rounded-item border border-rule bg-paper px-2 py-1 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+                      />
+                    )}
+                    <ul className="max-h-56 space-y-1 overflow-y-auto">
+                      {filteredHeaderDocs.map((d) => {
+                        const chip = indexStatusChip(d.index_status);
+                        return (
+                          <li key={d.id}>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setDocsOpen(false);
+                                dispatchDocChip(d.id);
+                              }}
+                              className="flex w-full items-baseline justify-between gap-2 rounded-item px-2 py-1.5 text-left text-xs hover:bg-panel-hover"
+                              data-testid={`chat-docs-row-${d.id}`}
+                            >
+                              <span className="tech-token min-w-0 truncate text-ink">
+                                {d.filename}
+                              </span>
+                              {chip && (
+                                <span
+                                  className={`shrink-0 text-[11px] ${chip.className}`}
+                                  title={chip.title}
+                                >
+                                  {chip.label}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                      {filteredHeaderDocs.length === 0 && (
+                        <li className="px-1 py-0.5 text-xs text-muted">
+                          No documents match.
+                        </li>
+                      )}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => setDocsOpen(false)}
+                      className="mt-3 tech-token text-[10px] text-muted hover:text-ink"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+              </span>
+            ) : (
+              <span data-testid="docs-context-status">
+                {docs === null ? "Loading documents…" : "No documents yet"}
+              </span>
+            )}
             {showContextRail && (
               <>
                 <span aria-hidden="true">·</span>
