@@ -62,7 +62,9 @@ class AnthropicProvider:
         # when the caller didn't pass one.
         self.default_model = default_model or settings.default_model_id
 
-    async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
+    async def call(
+        self, prompt: str, *, system: str | None = None, **kwargs
+    ) -> tuple[str, int, int]:
         model = kwargs.get("model") or self.default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
         api_key = kwargs.get("api_key") or self._fallback_key
@@ -128,10 +130,4 @@ class AnthropicProvider:
         text = "".join(text_parts)
 
         usage = message.usage
-        # Summed: the ModelProvider protocol returns one count and the
-        # audit plumbing carries one token_count column. Splitting
-        # input/output ripples through ModelResult, AssistantMessage and
-        # AuditEntry — not worth it for v0.1.
-        tokens = (usage.input_tokens or 0) + (usage.output_tokens or 0)
-
-        return text, tokens
+        return text, usage.input_tokens or 0, usage.output_tokens or 0

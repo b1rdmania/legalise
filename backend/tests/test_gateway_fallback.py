@@ -40,7 +40,7 @@ class _AnthropicStub:
     async def call(self, prompt: str, *, system=None, **kwargs):
         self.last_api_key = kwargs.get("api_key")
         self.last_kwargs = dict(kwargs)
-        return ("ok", 1)
+        return ("ok", 3, 2)
 
 
 class _FakeUserKeyRow:
@@ -175,6 +175,29 @@ async def test_user_key_passed_through_when_present(
             posture=PrivilegePosture.B_MIXED,
         )
     assert stub.last_api_key == "sk-user-key"
+
+
+@pytest.mark.asyncio
+@patch.object(gw_module, "mark_user_key_used")
+@patch.object(gw_module, "get_user_provider_key", return_value="sk-user-key")
+async def test_token_split_carried_on_model_result(
+    _mock_lookup, _mock_mark, gateway, actor_id
+):
+    g, _stub = gateway
+
+    with patch.object(gw_module.settings, "environment", "demo"), \
+         patch.object(gw_module.settings, "allow_server_key_fallback", False):
+        result = await g.call(
+            session=_StubSession(),
+            matter_id=None,
+            actor_id=actor_id,
+            prompt="hi",
+            model="claude-opus-4-7",
+            posture=PrivilegePosture.B_MIXED,
+        )
+    assert result.tokens_in == 3
+    assert result.tokens_out == 2
+    assert result.token_count == 5
 
 
 # ---------------------------------------------------------------------------

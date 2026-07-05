@@ -89,7 +89,7 @@ class _SucceedingProvider:
     name = "anthropic"
 
     async def call(self, prompt: str, *, system=None, **kwargs):
-        return "ok", 10
+        return "ok", 7, 3
 
 
 class _RaisingProvider:

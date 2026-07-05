@@ -338,6 +338,8 @@ async def test_adapter_maps_all_seven_provider_response_fields(
             token_count=4321,
             latency_ms=100,
             provider="anthropic",
+            tokens_in=4000,
+            tokens_out=321,
         )
 
     monkeypatch.setattr(gateway_singleton, "call", _stub_call)
@@ -361,10 +363,8 @@ async def test_adapter_maps_all_seven_provider_response_fields(
     assert response.text == "MODEL TEXT"
     assert response.model_id == matter.default_model_id  # "claude-opus-4-7"
     assert response.provider == "anthropic"
-    assert response.tokens_in == 4321
-    # Sentinel — keeps audit token_count = tokens_in + tokens_out
-    # equal to the gateway's combined count.
-    assert response.tokens_out == 0
+    assert response.tokens_in == 4000
+    assert response.tokens_out == 321
     # Gateway doesn't price; paired None.
     assert response.cost_micros is None
     assert response.currency is None

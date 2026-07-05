@@ -294,6 +294,12 @@ class WorkerSettings:
     max_jobs = 10
     job_timeout = 600  # 10 minutes max per pipeline run
     keep_result = 3600  # keep result 1 hour in Redis (id only, not content)
+    # Heartbeat: arq writes a health key to Redis every interval, expiring
+    # after interval + 1s. Doctor's `worker.heartbeat` check reads it, so a
+    # stopped worker (deploy anomaly, manual scale-to-zero) is detectable
+    # instead of jobs sitting queued forever. The key holds job counters
+    # only — no matter content.
+    health_check_interval = 60
 
 
 if __name__ == "__main__":

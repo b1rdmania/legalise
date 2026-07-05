@@ -321,8 +321,78 @@ async def test_anthropic_normal_stop_returns_text() -> None:
     with patch(
         "app.providers.anthropic_provider.AsyncAnthropic", return_value=client
     ):
-        text, tokens = await provider.call("question", max_tokens=8192)
+        text, tokens_in, tokens_out = await provider.call("question", max_tokens=8192)
 
     assert text == "complete body"
-    assert tokens == 30
+    assert tokens_in == 10
+    assert tokens_out == 20
     assert client.messages.create.call_args.kwargs["max_tokens"] == 8192
+
+
+# ---------------------------------------------------------------------------
+# OpenAI provider — output-limit truncation surfaces as a structured error
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_openai_truncation_raises_provider_truncated() -> None:
+    """finish_reason == "length" means the reply is incomplete — the
+    provider must raise (honest truncation message) rather than hand a
+    half-written body downstream to fail its JSON parse."""
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app.providers.openai_provider import OpenAIProvider
+
+    response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                finish_reason="length",
+                message=SimpleNamespace(content="truncated body…"),
+            )
+        ],
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=2048),
+    )
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(return_value=response)
+
+    provider = OpenAIProvider(api_key="sk-test", default_model="gpt-4o-mini")
+    with patch(
+        "app.providers.openai_provider.AsyncOpenAI", return_value=client
+    ):
+        with pytest.raises(ProviderUpstreamError) as excinfo:
+            await provider.call("long question")
+
+    assert excinfo.value.code == "provider_truncated"
+    assert "cut off at the model's output limit" in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_openai_normal_stop_returns_text() -> None:
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app.providers.openai_provider import OpenAIProvider
+
+    response = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                finish_reason="stop",
+                message=SimpleNamespace(content="complete body"),
+            )
+        ],
+        usage=SimpleNamespace(prompt_tokens=10, completion_tokens=20),
+    )
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(return_value=response)
+
+    provider = OpenAIProvider(api_key="sk-test", default_model="gpt-4o-mini")
+    with patch(
+        "app.providers.openai_provider.AsyncOpenAI", return_value=client
+    ):
+        text, tokens_in, tokens_out = await provider.call("question", max_tokens=8192)
+
+    assert text == "complete body"
+    assert tokens_in == 10
+    assert tokens_out == 20
+    assert client.chat.completions.create.call_args.kwargs["max_tokens"] == 8192

@@ -56,7 +56,9 @@ class OllamaProvider:
         self.default_model = default_model
         self._client = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT_SECONDS)
 
-    async def call(self, prompt: str, *, system: str | None = None, **kwargs) -> tuple[str, int]:
+    async def call(
+        self, prompt: str, *, system: str | None = None, **kwargs
+    ) -> tuple[str, int, int]:
         model = kwargs.get("model") or self.default_model
         # Strip an `ollama/` prefix if the caller passed a fully-qualified id.
         if model.startswith("ollama/"):
@@ -104,9 +106,10 @@ class OllamaProvider:
 
         data = response.json()
         text = (data.get("message") or {}).get("content", "")
-        # Ollama returns eval_count for the response tokens; prompt_eval_count for the prompt.
-        tokens = int(data.get("eval_count", 0)) + int(data.get("prompt_eval_count", 0))
-        return text, tokens
+        # Ollama returns prompt_eval_count for the prompt tokens; eval_count for the response.
+        tokens_in = int(data.get("prompt_eval_count", 0))
+        tokens_out = int(data.get("eval_count", 0))
+        return text, tokens_in, tokens_out
 
     async def aclose(self) -> None:
         await self._client.aclose()

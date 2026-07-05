@@ -140,13 +140,8 @@ def make_provider_call(
             # result.provider carries the provider name.
             model_id=result.model_used or matter.default_model_id,
             provider=result.provider or result.model_used,
-            tokens_in=result.token_count,
-            # Sentinel — pinned at 0 so the audit row's
-            # token_count = tokens_in + tokens_out stays honestly equal
-            # to the gateway's authoritative combined count. A future
-            # provider-protocol extension can split correctly without
-            # touching modules.
-            tokens_out=0,
+            tokens_in=result.tokens_in,
+            tokens_out=result.tokens_out,
             # The gateway doesn't price calls today; cost_micros +
             # currency stay None together (DB check constraint pairs them).
             cost_micros=None,

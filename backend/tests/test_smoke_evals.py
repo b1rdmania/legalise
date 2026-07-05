@@ -141,7 +141,7 @@ class _KeyedProviderStub:
         self.name = name
 
     async def call(self, prompt: str, *, system: str | None = None, **kwargs):
-        return ("ok", 1)
+        return ("ok", 1, 0)
 
 
 class TestPostureRouting:
