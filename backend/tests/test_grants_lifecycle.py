@@ -337,7 +337,7 @@ async def test_grant_from_publisher_checked_raises(db_session) -> None:
         manifest=_verified_manifest(module_id="legalise.r2-mid"),
         actor_user_id=user.id,
     )
-    # Advance into PUBLISHER_CHECKED on the fast path.
+    # Two advances into the full inspection path.
     await advance_ceremony(
         db_session, ceremony_id=ceremony.id, action="trust", actor_user_id=user.id
     )
@@ -347,7 +347,7 @@ async def test_grant_from_publisher_checked_raises(db_session) -> None:
         action="trust",
         actor_user_id=user.id,
     )
-    # We're now in PERMISSIONS_REVIEWED — grant still not allowed.
+    # Mid-ceremony (signature_checked) — grant still not allowed.
     assert refreshed.state is not CeremonyState.GRANTED
     with pytest.raises(InvalidCeremonyTransition):
         await advance_ceremony(
@@ -401,7 +401,7 @@ async def test_update_rejects_missing_dependency(client) -> None:
     )
     assert install_start.status_code == 201, install_start.text
     ceremony_id = install_start.json()["ceremony_id"]
-    for _ in range(3):
+    for _ in range(6):
         r = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},
@@ -446,7 +446,7 @@ async def test_repeated_grant_does_not_double_insert(client) -> None:
         json={"source": "manifest", "manifest": manifest},
     )
     ceremony_id = install_start.json()["ceremony_id"]
-    for _ in range(3):
+    for _ in range(6):
         r = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},

@@ -1,8 +1,10 @@
 """Verified publisher registry.
 
 Modules in the v2 catalogue declare a ``publisher`` string. The trust
-ceremony reads this registry to decide between the verified fast-path
-(3 steps) and the unverified full-inspection path (7 steps).
+ceremony reads this registry when checking signatures. The 3-step
+fast path requires a signature that cryptographically verifies against
+the publisher's registered ed25519 key; registry membership alone (no
+key) only reaches STRUCTURE_VERIFIED and takes the full 7-step path.
 
 Ships a hardcoded in-memory registry. May move to a DB-backed
 config so workspace admins can verify their firm's own publisher id.

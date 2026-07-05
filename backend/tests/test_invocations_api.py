@@ -215,7 +215,7 @@ async def _install_contract_review(client) -> None:
     )
     assert start.status_code == 201
     ceremony_id = start.json()["ceremony_id"]
-    for _ in range(3):
+    for _ in range(6):
         r = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},
@@ -381,8 +381,8 @@ async def test_contract_review_vertical_slice(
     assert install_resp.status_code == 201, install_resp.text
     ceremony_id = install_resp.json()["ceremony_id"]
 
-    # Verified fast path: 3 trusts + 1 grant.
-    for _ in range(3):
+    # Full inspection path (structure-only signature): 6 trusts + 1 grant.
+    for _ in range(6):
         r = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},

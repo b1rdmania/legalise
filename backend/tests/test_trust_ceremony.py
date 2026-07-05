@@ -8,10 +8,15 @@ test_migration_discipline.py).
 
 from __future__ import annotations
 
+import json
 import uuid
+from pathlib import Path
 
 import pytest
 from sqlalchemy import select
+
+import app.core.signing as signing
+from scripts.sign_manifest import keygen, sign_manifest
 
 from app.core.trust_ceremony import (
     Ceremony,
@@ -26,7 +31,13 @@ from app.models import AuditEntry, User
 
 
 def _verified_manifest(**overrides) -> dict:
-    """A manifest that should take the verified-publisher fast path."""
+    """First-party manifest with a shape-only signature.
+
+    The publisher is in the registry (``card.publisher_verified`` is
+    True) but the signature is garbage, so it resolves to
+    STRUCTURE_VERIFIED and must take the full inspection path. Only a
+    real ed25519 VERIFIED result earns the fast path.
+    """
     m = {
         "schema_version": "2.0.0",
         "id": "legalise.test-module",
@@ -67,6 +78,27 @@ def _unverified_manifest(**overrides) -> dict:
     m["signed_by"] = None
     m.pop("signature", None)
     return m
+
+
+@pytest.fixture()
+def legalise_key(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Generate an ed25519 keypair and register the public key for 'legalise'."""
+    key_path = tmp_path / "priv.key"
+    public_b64 = keygen(key_path)
+    monkeypatch.setattr(
+        signing,
+        "publisher_signing_key",
+        lambda publisher_id: public_b64 if publisher_id == "legalise" else None,
+    )
+    return key_path
+
+
+def _signed_manifest(tmp_path: Path, key_path: Path, **overrides) -> dict:
+    """A first-party manifest with a real ed25519 signature — VERIFIED."""
+    manifest = _verified_manifest(**overrides)
+    path = tmp_path / "module.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    return sign_manifest(path, key_path)
 
 
 async def _make_user(db_session) -> User:
@@ -144,14 +176,17 @@ def test_highest_tier_picks_max() -> None:
 
 
 @pytest.mark.asyncio
-async def test_verified_path_reaches_enabled_in_three_advances(db_session) -> None:
+async def test_verified_path_reaches_enabled_in_three_advances(
+    db_session, tmp_path: Path, legalise_key: Path
+) -> None:
     clear_ceremonies()
     user = await _make_user(db_session)
     ceremony = await start_ceremony(
         db_session,
-        manifest=_verified_manifest(),
+        manifest=_signed_manifest(tmp_path, legalise_key),
         actor_user_id=user.id,
     )
+    assert ceremony.permission_card.signature_status == "verified"
     assert ceremony.fast_path is True
     assert ceremony.state is CeremonyState.DISCOVERED
 
@@ -178,6 +213,30 @@ async def test_verified_path_reaches_enabled_in_three_advances(db_session) -> No
         db_session, ceremony_id=ceremony.id, action="grant", actor_user_id=user.id
     )
     assert c4.state is CeremonyState.ENABLED
+
+
+@pytest.mark.asyncio
+async def test_forged_shape_signature_never_gets_fast_path(db_session) -> None:
+    """A garbage signature of the right shape on publisher 'legalise'
+    resolves to structure_verified and must take the full inspection
+    path — impersonating the first-party publisher buys no reduced
+    scrutiny."""
+    clear_ceremonies()
+    user = await _make_user(db_session)
+    ceremony = await start_ceremony(
+        db_session,
+        manifest=_verified_manifest(signature="A" * 16),
+        actor_user_id=user.id,
+    )
+    assert ceremony.permission_card.signature_status == "structure_verified"
+    assert ceremony.fast_path is False
+
+    # First advance lands on INSPECTED — the start of the 7-step walk,
+    # not the fast path's PUBLISHER_CHECKED.
+    c1 = await advance_ceremony(
+        db_session, ceremony_id=ceremony.id, action="trust", actor_user_id=user.id
+    )
+    assert c1.state is CeremonyState.INSPECTED
 
 
 @pytest.mark.asyncio

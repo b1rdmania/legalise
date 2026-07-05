@@ -204,9 +204,13 @@ permissions forces a re-ceremony.
 ### The trust ceremony (manifest signing)
 
 Installing a module runs a trust ceremony
-(`backend/app/core/trust_ceremony.py`): verified publishers take a 3-step
-fast path, everything else the 7-step inspection (manifest → signature →
-publisher → permissions → data movement → gates → trust + grant).
+(`backend/app/core/trust_ceremony.py`): a manifest whose signature
+cryptographically verifies against the publisher's registered ed25519 key
+(`verified`) takes a 3-step fast path; everything else — including
+`structure_verified`, which proves shape only — gets the 7-step inspection
+(manifest → signature → publisher → permissions → data movement → gates →
+trust + grant). Since no publisher has a registered key yet, every install
+today takes the full path.
 
 Signing (`backend/app/core/signing.py`) has two real tiers and five
 outcomes:

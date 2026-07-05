@@ -13,7 +13,7 @@
  *   discovered → inspected → signature_checked → publisher_checked
  *     → permissions_reviewed → gates_reviewed → [decision] → granted
  *     → enabled.
- *   Fast path (verified publisher): discovered → publisher_checked
+ *   Fast path (cryptographically verified signature only): discovered → publisher_checked
  *     → permissions_reviewed → [decision] → granted → enabled.
  *   Terminal failures: rejected_by_user / signature_failed /
  *     publisher_blocked / permission_denied / sandbox_profile_missing.
@@ -29,6 +29,7 @@ import {
   advanceCeremony,
   getCeremony,
   InvalidCeremonyTransitionError,
+  signatureStatusLabel,
   type CeremonyPermissionCard,
   type CeremonyResponse,
 } from "../lib/api";
@@ -117,7 +118,7 @@ function entryFor(
       const status = card.signature_status ?? "unknown";
       return {
         label: "Signature",
-        value: status.replaceAll("_", " "),
+        value: signatureStatusLabel(status),
         bad: status === "failed" || status === "invalid",
       };
     }
@@ -125,7 +126,7 @@ function entryFor(
       return {
         label: "Publisher",
         value: `${card.publisher || "unknown"} · ${
-          card.publisher_verified ? "verified" : "community — unverified"
+          card.publisher_verified ? "in publisher registry" : "community — not in registry"
         }`,
       };
     case "permissions_reviewed": {

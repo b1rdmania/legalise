@@ -180,8 +180,9 @@ them, the runtime enforces them.
   when a module is enabled on a matter; a manifest update that *expands*
   permissions forces a re-ceremony.
 - **The trust ceremony.** Installing a module runs a ceremony whose length
-  depends on signature status: **verified publisher → fast path (3 steps)**;
-  **everything else → full inspection (7 steps)**: inspect manifest → check
+  depends on signature status: **cryptographic `verified` → fast path (3
+  steps)**; **everything else, including `structure_verified` → full
+  inspection (7 steps)**: inspect manifest → check
   signature → check publisher → review permissions → review data movement →
   review gates → explicit trust + grant.
 - **Signing — two real tiers, five outcomes.** `verified` = publisher has a

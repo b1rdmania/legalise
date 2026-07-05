@@ -5,12 +5,15 @@ Per the PHASE_3_BUILD_PLAN plan (repo history) 5 and the
 
 Two install modes:
 
-**Verified publisher fast path** (3 steps):
+**Cryptographically verified fast path** (3 steps) — only when the
+manifest signature verifies against the publisher's registered ed25519
+key (``SignatureStatus.VERIFIED``). Structure-only results never
+qualify:
 1. show publisher
 2. show permission card
 3. enable
 
-**Unverified publisher full path** (7 steps):
+**Full inspection path** (7 steps, everything else):
 1. inspect manifest
 2. verify signature status
 3. show publisher / unknown-publisher warning
@@ -307,9 +310,11 @@ async def start_ceremony(
     sig_result = verify_manifest_signature(manifest, signature=signature)
     card.signature_status = sig_result.status.value
 
+    # Fast path requires real cryptographic provenance. STRUCTURE_VERIFIED
+    # proves shape only — a forged signature of the right shape passes it —
+    # so it takes the full inspection like everything else.
     fast_path = (
-        sig_result.status
-        in (SignatureStatus.VERIFIED, SignatureStatus.STRUCTURE_VERIFIED)
+        sig_result.status is SignatureStatus.VERIFIED
         and card.publisher_verified
     )
 

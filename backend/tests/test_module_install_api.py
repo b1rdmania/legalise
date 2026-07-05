@@ -120,7 +120,7 @@ async def _install_via_ceremony(client, manifest) -> str:
     )
     assert start.status_code == 201, start.text
     ceremony_id = start.json()["ceremony_id"]
-    for _ in range(3):
+    for _ in range(6):
         r = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},
@@ -154,8 +154,9 @@ async def test_start_install_requires_admin(client) -> None:
 
 @pytest.mark.asyncio
 async def test_start_install_with_inline_manifest_succeeds(client) -> None:
-    """Superuser can install an inline manifest. Returns CeremonyResponse
-    with fast_path=true (publisher=legalise + signature)."""
+    """Superuser can install an inline manifest. The shape-only
+    signature reaches structure_verified, which never earns the fast
+    path — full inspection applies."""
     clear_ceremonies()
     await _register_admin(client)
     resp = await client.post(
@@ -165,7 +166,8 @@ async def test_start_install_with_inline_manifest_succeeds(client) -> None:
     assert resp.status_code == 201, resp.text
     body = resp.json()
     assert body["module_id"] == "legalise.test-install"
-    assert body["fast_path"] is True
+    assert body["fast_path"] is False
+    assert body["permission_card"]["signature_status"] == "structure_verified"
     assert body["state"] == "discovered"
     assert body["permission_card"]["publisher_verified"] is True
 
@@ -210,8 +212,8 @@ async def test_full_install_ceremony_persists_installed_module(client) -> None:
     assert start_resp.status_code == 201
     ceremony_id = start_resp.json()["ceremony_id"]
 
-    # 2-4. Advance through fast path with action=trust three times.
-    for _ in range(3):
+    # 2-7. Advance through the full inspection path with action=trust.
+    for _ in range(6):
         resp = await client.post(
             f"/api/modules/install/{ceremony_id}/advance",
             json={"action": "trust"},
@@ -243,7 +245,7 @@ async def test_full_install_ceremony_persists_installed_module(client) -> None:
         assert row.publisher == "legalise"
         assert row.enabled is True
         assert row.signature_status == "structure_verified"
-        assert row.verified_at is not None  # fast path took
+        assert row.verified_at is None  # structure-only never earns the fast path
 
 
 @pytest.mark.asyncio

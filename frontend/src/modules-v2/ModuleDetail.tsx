@@ -31,6 +31,7 @@ import {
   getModuleV2,
   listInstalledModules,
   revokeModuleV2,
+  signatureStatusLabel,
   startInstall,
   updateModuleV2,
   type InstalledModule,
@@ -315,10 +316,9 @@ export function ModuleDetail({ moduleId }: { moduleId: string }) {
                   : "muted"
               }
             >
-              {(installedRow?.signature_status ?? "not yet inspected").replaceAll(
-                "_",
-                " ",
-              )}
+              {installedRow?.signature_status
+                ? signatureStatusLabel(installedRow.signature_status)
+                : "not yet inspected"}
             </LedgerRow>
             {version && <LedgerRow label="Version">v{version}</LedgerRow>}
             {installStatus.kind !== "unknown" && (
