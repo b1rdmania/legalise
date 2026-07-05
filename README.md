@@ -237,6 +237,7 @@ Start with [`docs/`](./docs/):
 - [`docs/EVALUATING.md`](./docs/EVALUATING.md): the walkthrough and the evaluation gate
 - [`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md): adversary model and what we don't defend
 - [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md): what is not production-grade and what a fork must build (read before building on top)
+- [`docs/adr/`](./docs/adr/): architecture decision records — why the system is shaped this way and what not to refactor
 - [`docs/ROADMAP.md`](./docs/ROADMAP.md): shipped, deferred, parked
 - [`docs/ATTRIBUTIONS.md`](./docs/ATTRIBUTIONS.md): credits and licence notes
 
