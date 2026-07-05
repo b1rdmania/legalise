@@ -82,6 +82,7 @@ class _AssistantFakeGateway:
         resource_id=None,
         payload=None,
         caller_module=None,
+        on_delta=None,
     ) -> ModelResult:
         self.calls.append(
             {
@@ -91,6 +92,7 @@ class _AssistantFakeGateway:
                 "posture": posture,
                 "max_tokens": max_tokens,
                 "payload": payload or {},
+                "on_delta": on_delta,
             }
         )
         envelope = self.envelopes.pop(0) if self.envelopes else self.envelope

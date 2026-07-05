@@ -57,6 +57,10 @@ class OpenAIProvider:
         model = kwargs.get("model") or self.default_model
         max_tokens = kwargs.get("max_tokens", DEFAULT_MAX_TOKENS)
         api_key = kwargs.get("api_key") or self._fallback_key
+        # Optional token-streaming callback: awaited with each content delta.
+        # The returned text is the concatenation of exactly those deltas;
+        # finish_reason and usage arrive on the stream's final chunks.
+        on_delta = kwargs.get("on_delta")
         if not api_key:
             raise RuntimeError("openai: no api_key supplied")
         client = AsyncOpenAI(api_key=api_key)
@@ -67,11 +71,40 @@ class OpenAIProvider:
         messages.append({"role": "user", "content": prompt})
 
         try:
-            response = await client.chat.completions.create(
-                model=model,
-                max_tokens=max_tokens,
-                messages=messages,
-            )
+            if on_delta is None:
+                response = await client.chat.completions.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    messages=messages,
+                )
+                choice = response.choices[0]
+                finish_reason = getattr(choice, "finish_reason", None)
+                text = choice.message.content or ""
+                usage = response.usage
+            else:
+                stream = await client.chat.completions.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    messages=messages,
+                    stream=True,
+                    stream_options={"include_usage": True},
+                )
+                parts: list[str] = []
+                finish_reason = None
+                usage = None
+                async for chunk in stream:
+                    if chunk.choices:
+                        chunk_choice = chunk.choices[0]
+                        delta = getattr(chunk_choice, "delta", None)
+                        content = getattr(delta, "content", None) if delta else None
+                        if content:
+                            parts.append(content)
+                            await on_delta(content)
+                        if getattr(chunk_choice, "finish_reason", None):
+                            finish_reason = chunk_choice.finish_reason
+                    if getattr(chunk, "usage", None):
+                        usage = chunk.usage
+                text = "".join(parts)
         except APIStatusError as exc:
             logger.exception(
                 "legalise.provider.openai.error",
@@ -96,12 +129,10 @@ class OpenAIProvider:
                 message=f"openai: {type(exc).__name__}: {exc}",
             ) from exc
 
-        choice = response.choices[0]
-
         # A hard stop at the output cap means the response is incomplete —
         # surfacing the truncation honestly beats handing the caller a
         # half-written body that fails its JSON-envelope parse downstream.
-        if getattr(choice, "finish_reason", None) == "length":
+        if finish_reason == "length":
             logger.warning(
                 "legalise.provider.openai.truncated",
                 model=model,
@@ -117,8 +148,6 @@ class OpenAIProvider:
                 ),
             )
 
-        text = choice.message.content or ""
-        usage = response.usage
         tokens_in = usage.prompt_tokens if usage else 0
         tokens_out = usage.completion_tokens if usage else 0
         return text, tokens_in, tokens_out

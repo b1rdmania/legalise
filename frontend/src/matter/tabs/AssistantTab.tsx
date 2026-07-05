@@ -154,8 +154,12 @@ export function AssistantTab({
     useState<RunnableMatterSkill | null>(null);
   const [workPane, setWorkPane] = useState<AssistantWorkPaneState | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  // Answers arrive whole (no token streaming) — after ~10s of a pending
-  // turn, one quiet honesty line appears under the step ticker.
+  // Token-streamed draft of the answer being written. Streaming providers
+  // fill this via model.delta events; the final message replaces it on
+  // result. null = no draft (non-streaming providers never set it).
+  const [draft, setDraft] = useState<string | null>(null);
+  // Fallback for non-streaming paths: after ~10s of a pending turn with no
+  // draft text, one quiet honesty line appears under the step ticker.
   const [longWait, setLongWait] = useState(false);
   // Whether the user holds the key the matter's model needs. null =
   // unknown/not applicable; false drives the passive header notice. Same
@@ -275,11 +279,11 @@ export function AssistantTab({
     setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
-  // Auto-scroll to newest message.
+  // Auto-scroll to newest message (and follow the draft as it streams).
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, thinking]);
+  }, [messages, thinking, draft]);
 
   // Composer autogrow: track content height up to ~8 rows, then scroll.
   // Runs on every input change (including programmatic sets from the
@@ -418,6 +422,15 @@ export function AssistantTab({
           throw streamEventError(event);
         }
         setAgentSteps((prev) => nextAgentSteps(prev, event));
+        // Each model call starts a fresh draft (a tool turn writes twice);
+        // deltas append the answer as it is written.
+        if (event.event === "model.start") {
+          setDraft(null);
+        }
+        if (event.event === "model.delta") {
+          const text = event.data.text;
+          setDraft((prev) => (prev ?? "") + text);
+        }
         if (event.event === "context.loaded") {
           const docs = event.data.retrieved_document_count ?? 0;
           const chunks = event.data.retrieved_chunk_count ?? 0;
@@ -466,6 +479,9 @@ export function AssistantTab({
       setPending(false);
       setThinking(false);
       setAgentSteps([]);
+      // A partial draft never persists as a message: the final message
+      // already replaced it on success, and a failed turn discards it.
+      setDraft(null);
     }
   };
 
@@ -918,7 +934,22 @@ export function AssistantTab({
             <div className="flex justify-start">
               <InlineAgentStatus steps={agentSteps} />
             </div>
-            {longWait && (
+            {/* Token-streamed draft. Plain text while writing — markdown,
+                citation chips, and the action row belong to the final
+                message, which replaces this bubble on result. */}
+            {draft !== null && draft.length > 0 && (
+              <div className="flex justify-start" data-testid="chat-draft-bubble">
+                <div className="flex w-full flex-col gap-2">
+                  <div className="tech-token text-[11px] text-muted">
+                    Assistant · writing
+                  </div>
+                  <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
+                    {draft}
+                  </div>
+                </div>
+              </div>
+            )}
+            {longWait && !draft && (
               <p className="text-xs text-muted" data-testid="chat-long-wait-note">
                 Long answers can take up to a minute.
               </p>

@@ -345,6 +345,7 @@ class ModelGateway:
         resource_id: str | None = None,
         payload: dict | None = None,
         caller_module: str | None = None,
+        on_delta: Callable[[str], Awaitable[None]] | None = None,
     ) -> ModelResult:
         # Privilege posture is authoritative from the matter row in this
         # session, never from a caller-supplied argument. This closes the
@@ -401,6 +402,11 @@ class ModelGateway:
         provider_kwargs: dict = {}
         if max_tokens is not None:
             provider_kwargs["max_tokens"] = max_tokens
+        # Token streaming: providers that support it call `on_delta` with
+        # each text delta; providers that don't (stub-echo, ollama) accept
+        # and ignore the kwarg, falling back to a whole answer.
+        if on_delta is not None:
+            provider_kwargs["on_delta"] = on_delta
         # Pass the requested model through to keyed providers so the picked
         # model actually runs (not the provider's construct-time default).
         # Skipped when `requested` is a bare provider name (test passthrough)

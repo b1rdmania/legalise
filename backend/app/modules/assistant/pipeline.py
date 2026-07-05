@@ -153,6 +153,105 @@ _SUMMARY_SYSTEM_PROMPT = (
 
 AssistantEventHandler = Callable[[str, dict[str, Any]], Awaitable[None]]
 
+# The model's reply is a JSON envelope, so raw token deltas would show the
+# user braces and field names. The streamer below extracts only the
+# `content` string as it grows and emits that as `model.delta` events.
+# Display-only: persistence still parses the complete envelope, so the
+# final message is authoritative regardless of what streamed.
+
+_CONTENT_FIELD_RE = re.compile(r'"content"\s*:\s*"')
+_JSON_STRING_ESCAPES = {
+    '"': '"',
+    "\\": "\\",
+    "/": "/",
+    "b": "\b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+}
+
+
+def _partial_envelope_content(raw: str) -> str:
+    """Decode the envelope's `content` string value from a raw-text prefix.
+
+    Walks from the first `"content": "` to the closing quote or the end of
+    the prefix, unescaping as it goes. Incomplete trailing escapes (and a
+    high surrogate still waiting for its pair) are held back, so the output
+    only ever grows as more raw text arrives.
+    """
+    match = _CONTENT_FIELD_RE.search(raw)
+    if match is None:
+        return ""
+    out: list[str] = []
+    i = match.end()
+    n = len(raw)
+    while i < n:
+        ch = raw[i]
+        if ch == '"':
+            break
+        if ch != "\\":
+            out.append(ch)
+            i += 1
+            continue
+        if i + 1 >= n:
+            break
+        esc = raw[i + 1]
+        if esc != "u":
+            out.append(_JSON_STRING_ESCAPES.get(esc, esc))
+            i += 2
+            continue
+        if i + 6 > n:
+            break
+        try:
+            code = int(raw[i + 2 : i + 6], 16)
+        except ValueError:
+            i += 6
+            continue
+        if 0xD800 <= code <= 0xDBFF:
+            # High surrogate: needs the following \uXXXX low surrogate.
+            if i + 12 > n:
+                break
+            low_esc = raw[i + 6 : i + 12]
+            if low_esc.startswith("\\u"):
+                try:
+                    low = int(low_esc[2:], 16)
+                except ValueError:
+                    low = None
+                if low is not None and 0xDC00 <= low <= 0xDFFF:
+                    out.append(
+                        chr(0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00))
+                    )
+                    i += 12
+                    continue
+            out.append("�")
+            i += 6
+            continue
+        if 0xDC00 <= code <= 0xDFFF:
+            out.append("�")
+        else:
+            out.append(chr(code))
+        i += 6
+    return "".join(out)
+
+
+class _EnvelopeContentStreamer:
+    """Feed raw model deltas in; emit `model.delta` events carrying only the
+    new user-visible text of the envelope's `content` field."""
+
+    def __init__(self, on_event: AssistantEventHandler) -> None:
+        self._on_event = on_event
+        self._raw = ""
+        self._emitted = 0
+
+    async def feed(self, chunk: str) -> None:
+        self._raw += chunk
+        content = _partial_envelope_content(self._raw)
+        if len(content) > self._emitted:
+            delta = content[self._emitted :]
+            self._emitted = len(content)
+            await self._on_event("model.delta", {"text": delta})
+
 
 @dataclass(frozen=True)
 class AssistantToolSpec:
@@ -1382,6 +1481,14 @@ async def run_assistant_turn(
         await session.refresh(assistant_row)
         return assistant_row
 
+    # Token streaming: extract the envelope's `content` as it arrives and
+    # forward it as `model.delta` SSE events. Skipped for stub-echo (its
+    # output is not an envelope) and for the non-SSE route (no on_event).
+    def _delta_stream() -> dict[str, Any]:
+        if on_event is None or matter.default_model_id == "stub-echo":
+            return {}
+        return {"on_delta": _EnvelopeContentStreamer(on_event).feed}
+
     if on_event is not None:
         await on_event("model.start", {"stage": "assistant"})
     try:
@@ -1398,6 +1505,7 @@ async def run_assistant_turn(
             resource_id=str(user_row.id),
             payload={"stage": "assistant", "module": "assistant"},
             caller_module="assistant",
+            **_delta_stream(),
         )
     except ProviderKeyMissing:
         # Keyless fallback so a fresh, keyless fork still demos itself.
@@ -1533,6 +1641,7 @@ async def run_assistant_turn(
                     "tool_invocation_id": str(tool_invocation_id),
                 },
                 caller_module="assistant",
+                **_delta_stream(),
             )
             try:
                 final_envelope = parse_model_json(
