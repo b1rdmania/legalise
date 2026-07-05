@@ -6,6 +6,7 @@ import type { MatterDocument } from "../../lib/api";
 import { UploadError, deleteDocument } from "../../lib/api";
 import { EmptyState, ErrorCallout, LoadingLine } from "../../ui/primitives";
 import { LedgerLine, SectionRule } from "../../ui/certificate";
+import { indexStatusChip } from "../indexStatus";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n}B`;
@@ -40,41 +41,6 @@ function formatDate(iso: string): string {
 
 function plural(count: number, singular: string, pluralLabel = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : pluralLabel}`;
-}
-
-// Map the matter-wide retrieval index state to a light status chip.
-// Returns null for unknown/absent status so older payloads stay quiet.
-function indexStatusChip(
-  status: string | undefined,
-): { label: string; title: string; className: string } | null {
-  switch (status) {
-    case "indexed":
-      return {
-        label: "Searchable",
-        title: "Indexed for matter-wide retrieval",
-        className: "text-seal",
-      };
-    case "pending":
-      return {
-        label: "Indexing…",
-        title: "Being indexed for matter-wide retrieval",
-        className: "text-muted",
-      };
-    case "failed":
-      return {
-        label: "Not searchable",
-        title: "Indexing failed; this document is not retrievable",
-        className: "text-muted",
-      };
-    case "empty":
-      return {
-        label: "No text",
-        title: "No extractable text to index",
-        className: "text-muted",
-      };
-    default:
-      return null;
-  }
 }
 
 type IngressStatus =
