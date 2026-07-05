@@ -1,8 +1,9 @@
 // External packs — imported read-only matter bundles.
 //
 // An external workspace's export, ingested as a read-only matter and
-// supervised here: per-document hash manifest (verified-at-source vs
-// attested-at-ingest), sign-off through the existing signoffs surface.
+// supervised here: per-document hash manifest (verified-at-source /
+// attested-at-ingest / claimed-by-source), sign-off through the
+// existing signoffs surface.
 
 import { API, apiFetch, jsonOrThrow } from "./_core";
 
@@ -22,7 +23,7 @@ export interface ExternalPack {
   exported_at: string | null;
   ingested_at: string | null;
   // documents / versions / edits / verified_at_source /
-  // attested_at_ingest / unhashed / hash_mismatches
+  // attested_at_ingest / claimed_by_source / unhashed / hash_mismatches
   counts: Record<string, number>;
   manifest_artifact_id: string;
   document_artifact_ids: string[];
