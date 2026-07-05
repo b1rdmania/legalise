@@ -121,9 +121,10 @@ No background calls. No invisible inference. If it touched the matter, it's logg
 ## Try it
 
 [legalise.dev](https://legalise.dev) hosts a guided demo of the Khan v Acme
-workspace and the architecture write-up. **Hosted evaluator access is by
-request** — open sign-up isn't enabled; email
-[andrew@legalise.dev](mailto:andrew@legalise.dev) for backend access. To run
+workspace and the architecture write-up. **Sign-up is open** — create an
+account at [legalise.dev/auth/join](https://legalise.dev/auth/join) (email
+verification required), or email
+[andrew@legalise.dev](mailto:andrew@legalise.dev) with questions. To run
 the full workspace yourself, fork and run it locally.
 
 Stack: Postgres, MinIO, Redis, Gotenberg, FastAPI, React.

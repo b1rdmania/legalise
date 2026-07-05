@@ -63,10 +63,6 @@ about the hosted environment should see them before the architecture.
   operator can decrypt user keys offline.
 - **Retention is recorded, not enforced.** Every matter has a `retention_until`
   field; nothing sweeps and deletes when that date passes.
-- **Audit WORM role split is exercised in CI, not yet enabled on the hosted
-  deployment.** The append-only trigger and hash chain (§8) are active, so any
-  out-of-band rewrite is detectable; the second-layer role split is asserted in
-  every CI build but not yet switched on for the hosted stack.
 - **Application-layer encryption of stored prompts/responses is not yet
   implemented.** We rely on Neon/Fly/R2 at-rest defaults.
 - **One deployment is one workspace.** No organisation or multi-tenant model in
@@ -202,8 +198,10 @@ integrity: semantic rows commit only when the operation commits.
 Postgres trigger that rejects UPDATE and DELETE on every row whatever the role,
 and a role split (`infra/postgres-roles.sql`) that removes UPDATE/DELETE from the
 application role by grant. The split is exercised in CI on every build (the build
-fails if `legalise_app` can mutate an audit row). Production adoption is a
-connection-string switch, in the operations runbook.
+fails if `legalise_app` can mutate an audit row) and is live on the hosted
+deployment: the app connects as `legalise_app` (role created 2026-06-30), and the
+audit tables are owned by a separate role, so the connect role cannot disable the
+WORM triggers. Last verified against the production database 2026-07-05.
 
 **Third-party verification.** Every row is hash-chained via an append-only
 `audit_chain` table, so the head hash commits to every entry beneath it.
@@ -327,6 +325,7 @@ prefer anonymity.
 | 2026-05-14 | §9 skill provenance added (Git review as approval trail, SHA pinning) |
 | 2026-06-11 | Filesystem plugin path removed; §1/§9 reframed around the import path |
 | 2026-06-12 | Audit WORM trigger-enforced with hash chain; single-workspace scope added; WORM role split now exercised in CI |
+| 2026-07-05 | WORM role split confirmed live on the hosted deployment (flipped 2026-06-30, verified read-only against production); removed from §3 gaps |
 
 This file changes when the architecture changes; `git log docs/TRUST.md` is the
 canonical history.

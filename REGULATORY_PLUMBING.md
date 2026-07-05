@@ -23,7 +23,7 @@ The plumbing in v1 is demonstrative, not certified. It is the shape of what prod
 
 **v1 implementation.** Postgres table + middleware on every FastAPI route + hook in `model_gateway`. Exposed as a matter tab in the UI. Exportable as CSV / JSONL.
 
-**Not in v1.** Hash chain (each entry hashing the previous), tamper evidence, off-site immutable storage. These come in v0.2.
+**Now built.** The hash chain and tamper evidence shipped: every entry is hash-chained through an append-only `audit_chain` table, WORM triggers reject UPDATE and DELETE, and `GET /api/matters/{slug}/audit/chain` recomputes every link (see `docs/TRUST.md` §8). Still open: off-site immutable storage.
 
 ### 2. Privilege posture
 
@@ -39,7 +39,7 @@ The posture flows through the chronology and contract review modules and influen
 
 **v1 implementation.** Matter form has the posture selector. Each module's behaviour is documented in `docs/ARCHITECTURE.md` §4. Posture changes create audit entries.
 
-**Not in v1.** Refusal to start an LLM call where posture/data combination is invalid (currently a soft warning). Hardened in v0.2.
+**Now built.** The hard refusal shipped: a C_paused matter blocks every capability before it runs (`backend/app/core/posture_gate.py`), and the block itself writes an audit row. No longer a soft warning.
 
 ### 3. CPR 31.22 implied undertaking gate
 
