@@ -427,7 +427,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
                   <button
                     type="button"
                     onClick={() => setShowBackground((v) => !v)}
-                    className="text-xs uppercase tracking-widest text-muted hover:text-seal"
+                    className="hit text-xs uppercase tracking-widest text-muted hover:text-seal"
                     data-testid="toggle-background"
                     aria-expanded={showBackground}
                   >

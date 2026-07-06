@@ -7,11 +7,11 @@ export function Footer() {
           href="https://github.com/b1rdmania/legalise"
           target="_blank"
           rel="noreferrer"
-          className="hover:text-ink"
+          className="hit hover:text-ink"
         >
           View on GitHub
         </a>
-        <a href="mailto:andrew@legalise.dev" className="hover:text-ink">
+        <a href="mailto:andrew@legalise.dev" className="hit hover:text-ink">
           Email
         </a>
       </div>

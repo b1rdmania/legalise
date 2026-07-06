@@ -153,7 +153,7 @@ export function ArtifactsList({ slug }: { slug: string }) {
                   <Link
                     to="/matters/$slug/artifacts/$artifactId"
                     params={{ slug, artifactId: r.id }}
-                    className="text-[11px] text-muted hover:text-seal"
+                    className="hit text-[11px] text-muted hover:text-seal"
                   >
                     Open →
                   </Link>

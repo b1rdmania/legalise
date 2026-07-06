@@ -360,7 +360,7 @@ export function OverviewTab({
                 <Link
                   to="/matters/$slug/$tab"
                   params={{ slug, tab: "documents" }}
-                  className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  className="hit text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   Open →
                 </Link>
@@ -382,7 +382,7 @@ export function OverviewTab({
                 <Link
                   to="/matters/$slug/artifacts"
                   params={{ slug }}
-                  className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  className="hit text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   Outputs →
                 </Link>
@@ -445,7 +445,7 @@ export function OverviewTab({
           <Link
             to="/matters/$slug/audit"
             params={{ slug }}
-            className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            className="hit text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
             Activity →
           </Link>
@@ -554,7 +554,7 @@ export function OverviewTab({
                   <button
                     type="button"
                     onClick={() => setEditingModel(true)}
-                    className="text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                    className="hit text-xs text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     Change
                   </button>

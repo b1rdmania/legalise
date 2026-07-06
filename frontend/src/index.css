@@ -83,6 +83,21 @@
     font-family: "Redaction", Georgia, serif;
   }
 
+  /* Hit-area extender for the ledger idiom's small text links (Open →,
+     Delete, Pause AI…). The visual design wants 11–13px quiet links; a
+     thumb wants ≥24px. The pseudo-element grows the tap target without
+     moving a pixel of layout. Horizontal inset stays small so adjacent
+     row actions don't overlap. */
+  .hit {
+    position: relative;
+  }
+
+  .hit::after {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
+  }
+
   .tech-token {
     font-family: "Redaction", Georgia, "Times New Roman", serif;
     font-variant-numeric: tabular-nums;
