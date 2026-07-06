@@ -777,17 +777,18 @@ def _document_summary_content(document: Document, text: str) -> str:
 
     lead = sentences[0]
     bullets = sentences[1:4]
+    # The citation rides on the lead bullet. A separate "Source: [doc:…]"
+    # line rendered as a bare "Source:" in the chat UI once the frontend
+    # lifted the [doc:] token out as a chip.
     lines = [
         f"Summary of {document.filename}:",
         "",
-        f"- {lead}",
+        f"- {lead} [doc:{document.id}]",
     ]
     for sentence in bullets:
         lines.append(f"- {sentence}")
     lines.extend(
         [
-            "",
-            f"Source: [doc:{document.id}]",
             "",
             "Extract of the opening text, generated without a model. "
             "Add an API key in Settings → API Keys for real summaries.",
