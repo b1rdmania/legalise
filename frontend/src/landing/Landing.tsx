@@ -108,7 +108,23 @@ export function Landing() {
         className="scroll-mt-8 px-4 sm:px-6 md:px-16 lg:px-24 py-16 md:py-20"
       >
         <div className="max-w-3xl mx-auto">
-          <div className="border border-ink/70 bg-paper p-2">
+          {/* The video is a desktop screen-scan — at phone widths it renders
+              a whole three-pane workspace ~350px wide, illegible and
+              autoplaying. Phones get the guided demo instead. */}
+          <a
+            href="/guided-demo"
+            className="block border border-ink/70 bg-paper p-6 sm:hidden"
+          >
+            <p className="eyebrow mb-3">Demo</p>
+            <p className="text-sm text-prose leading-relaxed mb-4">
+              The 30-second scan is filmed on a desktop screen. On a phone,
+              walk the demo instead — the same loop, step by step.
+            </p>
+            <span className="text-sm font-semibold text-ink">
+              Walk the demo →
+            </span>
+          </a>
+          <div className="hidden border border-ink/70 bg-paper p-2 sm:block">
             <video
               src="/media/backend-demo-v2.mp4"
               poster="/media/backend-demo-v2-poster.jpg"
@@ -119,7 +135,8 @@ export function Landing() {
               controls
               preload="metadata"
               ref={(el) => {
-                if (el) {
+                // Don't spin the video up behind the phone-width swap card.
+                if (el && window.matchMedia("(min-width: 640px)").matches) {
                   el.muted = true;
                   void el.play().catch(() => undefined);
                 }
