@@ -108,22 +108,25 @@ export function ArtifactsList({ slug }: { slug: string }) {
 
   return (
     <div className="page-shell">
+      {/* Drafts appear here too (SignoffMark renders Draft), so the old
+          "Signed outputs" label under-promised and hid the save-as-draft
+          path from anyone scanning the nav for their draft. */}
       <SectionRule
-        label="Signed outputs"
+        label="Outputs"
         right={q.status === "ready" ? String(q.rows.length) : undefined}
       />
 
       {q.status === "loading" && (
-        <p className="mt-4 text-sm text-muted">Loading signed outputs…</p>
+        <p className="mt-4 text-sm text-muted">Loading outputs…</p>
       )}
       {q.status === "error" && (
         <p className="mt-4 text-sm text-seal">
-          Could not load signed outputs: {q.message}
+          Could not load outputs: {q.message}
         </p>
       )}
       {q.status === "ready" && q.rows.length === 0 && (
         <p className="mt-4 text-sm text-muted">
-          No signed outputs yet on this matter. Run a skill to produce one.
+          No outputs yet on this matter. Save an assistant answer as a draft, or run a skill.
         </p>
       )}
       {q.status === "ready" && q.rows.length > 0 && (
