@@ -373,7 +373,10 @@ export function GuidedDemo() {
                             <InkBands label="Writes" values={[s.writes]} />
                           </div>
                           <dl className="mt-4 space-y-1 border-t border-rule pt-3 text-[11px] text-muted">
-                            <LedgerRow label="Gate" tone="ink">privilege_posture</LedgerRow>
+                            {/* Plain words on the pick step — a stranger's first
+                                touch. The admission-scan ledger keeps the raw
+                                token; there the user is reading the register. */}
+                            <LedgerRow label="Gate" tone="ink">the matter's AI-access setting</LedgerRow>
                           </dl>
                         </CertCard>
                       </button>
@@ -554,14 +557,14 @@ export function GuidedDemo() {
                     <div className="mt-10 border-t border-rule pt-6">
                       <SectionRule label="Where this goes" />
                       <p className="mt-4 text-sm leading-relaxed text-prose">
-                        This walk was on rails. The same loop — admit a skill, run it inside the matter, sign it, read the record — is the product. It is open source, and in private beta for evaluators.
+                        This walk was on rails. The same loop — admit a skill, run it inside the matter, sign it, read the record — is the product. It is open source, and the hosted workspace is open for evaluation.
                       </p>
                       <div className="mt-5 flex flex-wrap gap-3">
-                        <a href="/architecture" className="inline-flex items-center bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]">See how it's built →</a>
-                        <a href="https://github.com/b1rdmania/legalise" className="inline-flex items-center border border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px]">Read the source</a>
+                        <a href="/auth/join" className="inline-flex items-center bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]">Create a workspace →</a>
+                        <a href="/architecture" className="inline-flex items-center border border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px]">See how it's built</a>
                       </div>
                       <p className="mt-4 text-xs text-muted">
-                        Evaluating it for a firm or a regulator? <a href="mailto:andrew@legalise.dev" className="text-seal hover:underline">Get in touch</a>.
+                        <a href="https://github.com/b1rdmania/legalise" className="text-seal hover:underline">Read the source</a>. Evaluating it for a firm or a regulator? <a href="mailto:andrew@legalise.dev" className="text-seal hover:underline">Get in touch</a>.
                       </p>
                     </div>
                   </div>

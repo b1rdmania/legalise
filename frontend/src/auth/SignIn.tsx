@@ -127,6 +127,10 @@ export function SignIn() {
         <a href="/auth/join" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
           Create one
         </a>
+        . Prefer your own machine?{" "}
+        <a href="/auth/signin" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
+          Run it yourself
+        </a>
         .
       </p>
     </AuthCard>
