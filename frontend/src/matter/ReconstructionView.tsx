@@ -273,18 +273,20 @@ export function ReconstructionView({ slug }: { slug: string }) {
       <PageHeader
         title="What happened here"
         actions={
-          <div className="flex flex-wrap gap-2">
+          /* Cross-links, not actions — as a bordered pair with one dark
+             they read as a view toggle. Quiet links match what they are. */
+          <div className="flex flex-wrap items-center gap-4 text-sm">
             <a
               href={`/matters/${encodeURIComponent(slug)}/artifacts`}
-              className="inline-flex items-center rounded-item border border-rule px-3 py-2 text-sm hover:border-ink"
+              className="hit text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
-              Signed outputs
+              Outputs →
             </a>
             <a
               href={`/matters/${encodeURIComponent(slug)}/lifecycle`}
-              className="inline-flex items-center bg-ink px-3 py-2 text-sm text-paper hover:opacity-90"
+              className="hit text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
-              Working pack
+              Working pack →
             </a>
           </div>
         }
