@@ -85,6 +85,16 @@ export function ChronologyTab({
 
   return (
     <div className="max-w-4xl">
+      {/* Same header tier as Documents — this tab previously opened with
+          the CPR banner or the auto-build button, no page name. */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Chronology</h1>
+        <p className="mt-1 text-sm text-muted">
+          The matter's events in date order. Proposed events count only
+          once a person accepts them.
+        </p>
+      </div>
+
       {chron.gate.required && !chron.gate.confirmed && (
         <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
       )}

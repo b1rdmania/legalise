@@ -108,11 +108,19 @@ export function ArtifactsList({ slug }: { slug: string }) {
 
   return (
     <div className="page-shell">
-      {/* Drafts appear here too (SignoffMark renders Draft), so the old
-          "Signed outputs" label under-promised and hid the save-as-draft
-          path from anyone scanning the nav for their draft. */}
+      {/* Same header tier as Documents — this tab previously opened with a
+          bare section rule and no page name. Drafts appear here too
+          (SignoffMark renders Draft), so the old "Signed outputs" label
+          under-promised and hid the save-as-draft path. */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Outputs</h1>
+        <p className="mt-1 text-sm text-muted">
+          Drafts and signed outputs on this matter. Open one to review,
+          sign, or export it.
+        </p>
+      </div>
       <SectionRule
-        label="Outputs"
+        label="All outputs"
         right={q.status === "ready" ? String(q.rows.length) : undefined}
       />
 

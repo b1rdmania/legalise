@@ -165,6 +165,15 @@ export function MatterSkillsTab({ slug }: Props) {
 
   return (
     <section>
+      {/* Same header tier as Documents — this tab previously opened with a
+          bare section eyebrow and no page name. */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Skills</h1>
+        <p className="mt-1 text-sm text-muted">
+          What can run inside this matter, and what it is allowed to touch.
+        </p>
+      </div>
+
       {error && (
         <p className="mb-4 text-sm text-seal" data-testid="matter-skills-error">
           {error}
