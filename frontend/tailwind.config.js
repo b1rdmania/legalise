@@ -28,7 +28,10 @@ export default {
         paper: '#F6F1E8',
         wash: '#EFE9DD',
         rule: '#E0D8C9',
-        muted: '#8B8273',
+        // Darkened 2026-07-06 from #8B8273: that value sat at 3.4:1 on paper,
+        // under WCAG AA for the 11–13px meta text it labels. #6E6759 holds the
+        // same warm hue at ≥4.5:1 on paper, panel and wash.
+        muted: '#6E6759',
         prose: '#564E42',
         // Tertiary accent — sealing wax. v0.5: verdicts, the seal/stamp,
         // privilege C_paused, audit blocked rows, CPR 31.22 flag,

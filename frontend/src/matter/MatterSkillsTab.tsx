@@ -59,7 +59,7 @@ function matterCapabilityIds(entry: V2ManifestEntry): string[] {
 }
 
 function friendlyCapabilitySummary(values: string[]): string {
-  if (values.length === 0) return "Project context";
+  if (values.length === 0) return "Matter context";
   const labels = new Set<string>();
   for (const value of values) {
     if (value.includes("document")) labels.add("Documents");
@@ -361,7 +361,7 @@ function AvailableModuleRow({
       const disabledReason = !entry.is_valid
     ? "This skill needs setup in the workspace before enabling."
     : !hasMatterCaps
-      ? "This skill cannot be enabled inside a project yet."
+      ? "This skill cannot be enabled inside a matter yet."
       : null;
 
   return (
@@ -391,7 +391,7 @@ function AvailableModuleRow({
       <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-rule pt-3 text-[11px] sm:grid-cols-3">
         <Meta label="Reads" value={friendlyCapabilitySummary(reads)} />
         <Meta label="Writes" value={friendlyCapabilitySummary(writes)} />
-        <Meta label="Project actions" value={String(matterCaps.length)} />
+        <Meta label="Matter actions" value={String(matterCaps.length)} />
       </dl>
       {disabledReason && (
         <p

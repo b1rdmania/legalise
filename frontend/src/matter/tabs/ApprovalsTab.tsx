@@ -73,7 +73,7 @@ export function ApprovalsTab({ slug }: { slug: string }) {
         <div className="mt-6">
           <EmptyState
             title="No reviews yet"
-            body='Open a Contract Review findings pack in Signed outputs and choose "Request review" to start one.'
+            body='Open an output under Signed outputs and choose "Request review" to start one.'
           />
         </div>
       )}

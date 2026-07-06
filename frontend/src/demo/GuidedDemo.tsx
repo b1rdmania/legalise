@@ -238,7 +238,7 @@ export function GuidedDemo() {
   // backward. Forward/back belongs to the footer step button + Back link.)
   const matterItems: RailItem[] = [
     { key: "assistant", label: "Chat", icon: <NavIcon name="assistant" />, active: railActive === "assistant" },
-    { key: "documents", label: "Files", icon: <NavIcon name="documents" />, active: railActive === "documents" },
+    { key: "documents", label: "Documents", icon: <NavIcon name="documents" />, active: railActive === "documents" },
     { key: "workflows", label: "Skills", icon: <NavIcon name="workflows" />, active: railActive === "workflows" },
     { key: "audit", label: "Record", icon: <NavIcon name="audit" />, active: railActive === "audit" },
   ];
@@ -314,7 +314,7 @@ export function GuidedDemo() {
             {primary ? (
               <PrimaryBtn onClick={primary.onClick}>{primary.label}</PrimaryBtn>
             ) : (
-              <span className="text-xs text-muted">Read the answer below, then continue.</span>
+              <span className="text-xs text-muted">Continue below.</span>
             )}
           </div>
 
@@ -533,7 +533,10 @@ export function GuidedDemo() {
 
                     <div className="relative mt-6 border border-ink/70 bg-paper p-5">
                       <span className="absolute right-5 top-5 -rotate-6 border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-seal">Signed</span>
-                      <CertEyebrow left="Record · created by the sign-off" />
+                      {/* pr keeps the eyebrow clear of the stamp when it wraps at phone widths */}
+                      <div className="pr-24">
+                        <CertEyebrow left="Record · created by the sign-off" />
+                      </div>
                       <dl className="mt-4 space-y-1 text-[11px] text-muted">
                         <LedgerRow label="Matter" tone="ink">Khan v Acme Trading Ltd</LedgerRow>
                         <LedgerRow label="Decision" tone="ink">{decision === "sign" ? "Signed" : decision === "reject" ? "Rejected" : "Signed with observations"}</LedgerRow>

@@ -1621,7 +1621,7 @@ export function DocumentDetail({
                     Run a skill with this file selected.
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted">
-                    Skills use the same project runner as Chat, with {doc.filename} already in context.
+                    Skills use the same matter runner as Chat, with {doc.filename} already in context.
                   </p>
                 </div>
                 <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
@@ -1662,10 +1662,10 @@ export function DocumentDetail({
                   />
                 </div>
               ) : skillLoadState === "loading" ? (
-                <p className="mt-3 text-sm text-muted">Loading project skills...</p>
+                <p className="mt-3 text-sm text-muted">Loading matter skills...</p>
               ) : skillLoadState === "error" ? (
                 <p className="mt-3 text-sm text-muted">
-                  Skills could not be loaded here. Open the project Skills page to check setup.
+                  Skills could not be loaded here. Open the matter's Skills page to check setup.
                 </p>
               ) : documentSkills.length === 0 ? (
                 <div className="mt-3 text-sm text-muted">
@@ -1678,7 +1678,7 @@ export function DocumentDetail({
                     params={{ slug, tab: "workflows" }}
                     className="mt-2 inline-block underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
-                    Open project Skills →
+                    Open matter Skills →
                   </Link>
                 </div>
               ) : (

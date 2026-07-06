@@ -46,6 +46,7 @@ import {
   type RowClass,
 } from "./auditClassify";
 import { humanActionLabel } from "./auditHumanLabel";
+import { useAuth } from "../auth/AuthProvider";
 import { PageHeader } from "../ui/primitives";
 
 // Class filter chips (AT-2). No `artifact` chip — artifacts are not an
@@ -682,6 +683,7 @@ function AdvancedDetails({
 
 function TimelineRow({ entry }: { entry: TimelineEntry }) {
   const [expanded, setExpanded] = useState(false);
+  const auth = useAuth();
   const tone = sourceTone(entry.source);
   const rowClass = classifyEntry(entry);
   const isProminent = rowClass === "signed" || rowClass === "review";
@@ -734,9 +736,16 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
         {entry.actor.user_id && (
           <span>
             user:{" "}
-            <code className="tech-token">
-              {String(entry.actor.user_id).slice(0, 8)}…
-            </code>
+            {/* The chain only carries the actor's id. Name the one actor we
+                can resolve client-side — the signed-in user — instead of
+                showing them their own UUID. */}
+            {auth.user && String(entry.actor.user_id) === String(auth.user.id) ? (
+              <span className="text-ink">you</span>
+            ) : (
+              <code className="tech-token">
+                {String(entry.actor.user_id).slice(0, 8)}…
+              </code>
+            )}
           </span>
         )}
       </div>

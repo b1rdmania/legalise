@@ -292,7 +292,7 @@ export function ModulesCatalog() {
           />
           <DemoStep
             title="2. Run it in a matter"
-            body="The skill works against the project documents, not a loose prompt."
+            body="The skill works against the matter's documents, not a loose prompt."
           />
           <DemoStep
             title="3. Check the record"

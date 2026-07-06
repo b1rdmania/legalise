@@ -39,10 +39,13 @@
 }
 
 @layer components {
+  /* Eyebrow colour is the warm muted token, not a cool grey: #9CA3AF was a
+     Tailwind-palette leftover from before Almond & Ink and read 2.3:1 on
+     paper — invisible to low-vision readers at 10px. */
   .eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.2em;
-    color: #9CA3AF;
+    color: #6E6759;
     font-size: 10px;
     font-weight: 700;
   }
@@ -50,7 +53,7 @@
   .eyebrow-sm {
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #9CA3AF;
+    color: #6E6759;
     font-size: 10px;
     font-weight: 700;
   }
@@ -87,7 +90,7 @@
   }
 
   .prose-p {
-    color: #4B5563;
+    color: #564E42;
     margin-bottom: 1.5rem;
     line-height: 1.7;
   }

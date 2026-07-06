@@ -9,7 +9,7 @@ export function CprGateBanner({ count, onConfirm }: { count: number; onConfirm: 
         {count} chronology {count === 1 ? "entry traces" : "entries trace"} to documents obtained
         under disclosure. CPR 31.22(1) restricts use of disclosed material to the proceedings in
         which it was disclosed. Until you acknowledge the implied undertaking, the server
-        withholds detail of those {count === 1 ? "entry" : "entries"} - the rows below show them
+        withholds detail of {count === 1 ? "that entry - the row below shows it" : "those entries - the rows below show them"}{" "}
         as redacted.
       </p>
       <p className="text-prose leading-relaxed mb-4">

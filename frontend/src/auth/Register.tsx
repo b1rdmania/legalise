@@ -109,7 +109,6 @@ export function Register() {
         .
       </p>
       <p className="mt-4 border-t border-rule pt-4 text-xs text-muted">
-        Evaluation only — the hosted workspace is not for live client matters.
         We&apos;ll email a link to confirm your address.
       </p>
     </AuthCard>

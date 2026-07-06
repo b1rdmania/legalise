@@ -167,7 +167,7 @@ export function TopBar({
                   <Github size={18} strokeWidth={1.75} aria-hidden="true" />
                 </a>
                 <a
-                  href="/auth/signin"
+                  href="/auth/login"
                   className="text-muted hover:text-ink transition-colors"
                 >
                   Sign in

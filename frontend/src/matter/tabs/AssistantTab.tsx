@@ -1101,7 +1101,7 @@ export function AssistantTab({
                                     {skill.title}
                                   </span>
                                   <span className="mt-0.5 block text-[11px] text-muted">
-                                    Ready in this project
+                                    Ready in this matter
                                   </span>
                                 </span>
                                 <span aria-hidden="true" className="text-muted">
@@ -1755,7 +1755,7 @@ function MatterContextRail({
         actionTestId="open-documents-link"
       >
         {docs === null ? (
-          <p className="text-sm text-muted">Loading project files…</p>
+          <p className="text-sm text-muted">Loading matter documents…</p>
         ) : docs.length === 0 ? (
           <p className="text-sm text-muted">No documents loaded yet.</p>
         ) : (

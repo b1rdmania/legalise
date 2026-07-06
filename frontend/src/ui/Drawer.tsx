@@ -110,7 +110,7 @@ export function Drawer({
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: "/auth/signin", label: "Sign in" },
+      { href: "/auth/login", label: "Sign in" },
     ];
   }
 

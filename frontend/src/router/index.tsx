@@ -664,6 +664,10 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPreload: "intent",
+  // SPA navigations otherwise keep the previous page's scroll offset —
+  // e.g. submitting /auth/join from a scrolled position landed
+  // /auth/verify-pending with its heading under the fixed header.
+  scrollRestoration: true,
 });
 
 declare module "@tanstack/react-router" {
