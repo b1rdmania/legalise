@@ -1013,7 +1013,10 @@ export function DocumentDetail({
           aria-label="Document command surface"
           data-testid="document-command-bar"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-3 py-2.5">
+          {/* One command row: views left, actions right. This was two
+              stacked toolbars — three rows of chrome (with the page header)
+              before any document showed. */}
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[13px]">
             <nav
               className="flex flex-wrap items-center gap-2"
               aria-label="Document workspace views"
@@ -1064,13 +1067,11 @@ export function DocumentDetail({
                 ))}
               </div>
             )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[13px]">
             <Link
               to="/matters/$slug/$tab"
               params={{ slug, tab: "assistant" }}
               search={{ document: documentId }}
-              className="inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-seal"
+              className="ml-auto inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-seal"
               data-testid="document-ask-chat-link"
             >
               Ask about this file
@@ -1098,7 +1099,7 @@ export function DocumentDetail({
               onClick={() => setShowPanel((v) => !v)}
               aria-expanded={showPanel}
               data-testid="document-panel-toggle"
-              className="ml-auto inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
+              className="inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
             >
               {showPanel ? "Hide panel" : "Panel"}
             </button>
