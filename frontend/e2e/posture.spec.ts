@@ -112,10 +112,14 @@ test("B_mixed: solicitor sees the banner with required role + actor role", async
   await expect(
     page.getByText(/only qualified solicitors can run skills/i),
   ).toBeVisible();
-  await expect(page.getByText("qualified_solicitor")).toBeVisible();
-  // The actor's role appears verbatim.
+  // Role tokens render as display words in banner copy (WI-5.1):
+  // "qualified solicitor", never the raw substrate enum.
+  await expect(
+    page.getByText(/requires the qualified solicitor role/i),
+  ).toBeVisible();
   const bodyText = (await page.textContent("body")) ?? "";
-  expect(bodyText).toMatch(/Your role:.*solicitor/);
+  expect(bodyText).toMatch(/Your role: solicitor\./);
+  expect(bodyText).not.toContain("qualified_solicitor");
 });
 
 test("B_mixed: qualified_solicitor sees no banner", async ({
