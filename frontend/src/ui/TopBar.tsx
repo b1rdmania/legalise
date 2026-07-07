@@ -42,6 +42,7 @@ export function TopBar({
               onClick={() => setNavOpen(true)}
               className="flex items-center gap-2 text-ink min-h-[44px]"
               aria-label="Open menu"
+              aria-expanded={navOpen}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path

@@ -11,8 +11,9 @@
  * an <a href> (real routes) or a <button onClick> (demo tab switch).
  */
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { BrandMark } from "./BrandMark";
+import { FocusSentinel, useDrawerA11y } from "./drawerA11y";
 
 export type RailItem = {
   key: string;
@@ -125,19 +126,35 @@ export function SidebarView({
   open: boolean;
   onClose: () => void;
 }) {
+  // Drawer a11y (WI-2): focus into the panel on open, restore to the
+  // trigger on close, Escape closes, Tab trapped by the sentinels. The
+  // hook is inert while `open` is false, so the static desktop rail is
+  // unaffected.
+  const panelRef = useRef<HTMLElement>(null);
+  useDrawerA11y({ open, onClose, panelRef });
+
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-40 bg-ink/20 md:hidden" onClick={onClose} aria-hidden="true" />
+        <div
+          className="fixed inset-0 z-40 bg-ink/20 transition-opacity duration-150 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+          data-testid="drawer-scrim"
+        />
       )}
       <aside
+        ref={panelRef}
         className={
           "fixed inset-y-0 left-0 z-50 w-64 bg-panel flex flex-col transition-transform " +
           "md:static md:z-auto md:h-full md:shrink-0 md:rounded-panel md:shadow-panel md:translate-x-0 " +
           (open ? "translate-x-0" : "-translate-x-full md:translate-x-0")
         }
         aria-label="Navigation"
+        role={open ? "dialog" : undefined}
+        aria-modal={open || undefined}
       >
+        {open && <FocusSentinel panelRef={panelRef} edge="start" />}
         {/* brand — links to app home when the caller wires a brandHref */}
         <div className="flex items-center px-4 h-[64px] border-b border-rule shrink-0">
           {brandHref ? (
@@ -221,6 +238,7 @@ export function SidebarView({
         )}
 
         {account}
+        {open && <FocusSentinel panelRef={panelRef} edge="end" />}
       </aside>
     </>
   );
