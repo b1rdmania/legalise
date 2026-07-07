@@ -48,12 +48,23 @@ describe("PostureBanner — B_mixed", () => {
     expect(
       screen.getByText(/only qualified solicitors can run skills/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/qualified_solicitor/)).toBeInTheDocument();
-    // The actor's role appears verbatim — match exact "solicitor"
-    // to avoid catching "qualified_solicitor" first.
+    // Role tokens render as display words in banner copy (WI-5.1):
+    // "qualified solicitor" / "solicitor", never the raw substrate token.
     expect(
-      screen.getByText((_, el) => el?.textContent?.trim() === "solicitor"),
+      screen.getByText(/requires the qualified solicitor role/i),
     ).toBeInTheDocument();
+    expect(screen.getByText(/your role: solicitor\./i)).toBeInTheDocument();
+    expect(screen.queryByText(/qualified_solicitor/)).toBeNull();
+  });
+
+  it("maps every role token to display words in banner copy", () => {
+    // workspace_admin does not satisfy B_mixed (substrate truth), so the
+    // banner shows — and its role reads as words, not the enum token.
+    render(<PostureBanner posture="B_mixed" user={user("workspace_admin")} />);
+    expect(
+      screen.getByText(/your role: workspace admin\./i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/workspace_admin/)).toBeNull();
   });
 
   it("renders nothing for qualified_solicitor", () => {
