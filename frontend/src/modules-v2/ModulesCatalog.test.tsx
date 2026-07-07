@@ -379,10 +379,14 @@ describe("ModulesCatalog — integrations home", () => {
     expect(
       screen.getByText(/nothing runs until you have reviewed and approved it/i),
     ).toBeInTheDocument();
-    // The lede derives the count from the live feed.
-    expect(screen.getByTestId("shelf-lede")).toHaveTextContent(
-      "We've pulled 2 skills from Lawve's public GitHub feed.",
-    );
+    // The lede derives the count from the live feed — wait for the
+    // shelf fetch to land (asserting synchronously here raced it and
+    // flaked on CI).
+    await waitFor(() => {
+      expect(screen.getByTestId("shelf-lede")).toHaveTextContent(
+        "We've pulled 2 skills from Lawve's public GitHub feed.",
+      );
+    });
   });
 
   it("renders the catalogue as a grouped ledger: display names, descriptions, licence honesty, scripts marker", async () => {
