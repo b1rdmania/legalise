@@ -126,8 +126,8 @@ export function Landing() {
           </a>
           <div className="hidden border border-ink/70 bg-paper p-2 sm:block">
             <video
-              src="/media/backend-demo-v2.mp4"
-              poster="/media/backend-demo-v2-poster.jpg"
+              src="/media/backend-demo-v3.mp4"
+              poster="/media/backend-demo-v3-poster.jpg"
               className="block w-full border border-rule/60"
               loop
               autoPlay
