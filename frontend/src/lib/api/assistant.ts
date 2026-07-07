@@ -52,7 +52,10 @@ export interface AssistantThread {
 }
 
 export type AssistantStreamEvent =
-  | { event: "turn.start"; data: { slug: string } }
+  // thread_id is present when the server resolved/created the thread —
+  // it lets a stopped turn refresh the right thread even when the turn
+  // opened a new one.
+  | { event: "turn.start"; data: { slug: string; thread_id?: string } }
   | {
       event: "context.loaded";
       data: {
