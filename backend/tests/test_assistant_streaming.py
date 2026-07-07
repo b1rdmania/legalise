@@ -8,11 +8,15 @@ Covers the four invariants of the streaming path:
   and the gateway's ModelResult/audit row carries them;
 - truncation still fires — stop_reason/finish_reason arrive at stream end
   and raise `provider_truncated` exactly as the non-streaming path does;
-- providers that can't stream fall back silently — no deltas, same reply.
+- providers that can't stream fall back silently — no deltas, same reply;
+- a client disconnect mid-stream never cancels the turn — the detached
+  task persists the message and its audit row anyway (the Case A pin the
+  chat Stop control rests on).
 """
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import uuid
@@ -481,3 +485,133 @@ class TestOpenAIStreaming:
                 await provider.call("long question", on_delta=_on_delta)
 
         assert excinfo.value.code == "provider_truncated"
+
+
+# ---------------------------------------------------------------------------
+# SSE endpoint — client disconnect never cancels the turn (the Case A pin)
+# ---------------------------------------------------------------------------
+
+
+class TestStreamDisconnectPersistence:
+    @pytest.mark.asyncio
+    async def test_client_drop_mid_stream_still_persists_message_and_audit(self) -> None:
+        """Pins the guarantee the chat Stop control rests on: the stream
+        endpoint runs the turn in a detached task with its own session, so
+        dropping the SSE client mid-stream (which closes only the relay
+        generator) leaves the turn running to completion — the assistant
+        message row and the module.assistant.message audit row still land.
+        """
+        from types import SimpleNamespace as _NS
+
+        from app.models import AuditEntry
+        from app.models.assistant import AssistantMessage as AssistantMessageRow
+        from app.modules.assistant import router as assistant_router
+        from app.modules.assistant.schemas import AssistantPostRequest
+
+        from tests.test_assistant_pipeline import _UserStub
+
+        matter = _make_matter()
+        session = _AssistantSession(matter)
+        user = _UserStub()
+        user.id = matter.created_by_id
+
+        delta_seen = asyncio.Event()
+        client_gone = asyncio.Event()
+
+        class _HeldGateway:
+            """Streams a first delta, then holds the turn open until the
+            test has dropped the client, then finishes normally."""
+
+            async def call(self, *, on_delta=None, **kwargs) -> ModelResult:
+                text = json.dumps(_STREAMED_ENVELOPE)
+                if on_delta is not None:
+                    await on_delta(text[:24])
+                    delta_seen.set()
+                await client_gone.wait()
+                if on_delta is not None:
+                    await on_delta(text[24:])
+                return ModelResult(
+                    text=text,
+                    model_used="claude-opus-4-7",
+                    prompt_hash="ph",
+                    response_hash=hashlib.sha256(text.encode()).hexdigest(),
+                    token_count=63,
+                    latency_ms=5,
+                    provider="anthropic",
+                    tokens_in=42,
+                    tokens_out=21,
+                )
+
+        class _SessionFactory:
+            def __call__(self):
+                return self
+
+            async def __aenter__(self):
+                return session
+
+            async def __aexit__(self, *_exc):
+                return None
+
+        request = _NS(app=_NS(state=_NS(session_factory=_SessionFactory())))
+
+        # Inject the held gateway through the real pipeline: the route does
+        # not take a gateway parameter, so wrap run_assistant_turn.
+        real_run = assistant_router.run_assistant_turn
+        gateway = _HeldGateway()
+
+        async def _run_with_held_gateway(**kwargs):
+            return await real_run(gateway=gateway, **kwargs)
+
+        with patch.object(
+            assistant_router, "run_assistant_turn", _run_with_held_gateway
+        ):
+            resp = await assistant_router.post_message_stream(
+                matter.slug,
+                AssistantPostRequest(content="When was Khan dismissed?"),
+                request,
+                user,
+            )
+            iterator = resp.body_iterator
+            saw_delta_frame = False
+            async for chunk in iterator:
+                frame = chunk if isinstance(chunk, str) else chunk.decode()
+                if "model.delta" in frame:
+                    saw_delta_frame = True
+                    break
+            assert saw_delta_frame, "stream never reached a model.delta frame"
+
+            # The client goes away mid-stream. Closing the relay generator
+            # is exactly what an ASGI disconnect does; the detached turn
+            # task must be untouched by it.
+            await iterator.aclose()
+            client_gone.set()
+
+            async def _wait_for_persisted_reply() -> None:
+                while not any(
+                    isinstance(o, AssistantMessageRow) and o.role == "assistant"
+                    for o in session.added
+                ):
+                    await asyncio.sleep(0.01)
+
+            await asyncio.wait_for(_wait_for_persisted_reply(), timeout=5)
+
+        assert delta_seen.is_set()
+        user_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AssistantMessageRow) and o.role == "user"
+        ]
+        assistant_rows = [
+            o
+            for o in session.added
+            if isinstance(o, AssistantMessageRow) and o.role == "assistant"
+        ]
+        assert len(user_rows) == 1
+        assert len(assistant_rows) == 1
+        assert assistant_rows[0].content == _STREAMED_ENVELOPE["content"]
+        message_audits = [
+            o
+            for o in session.added
+            if isinstance(o, AuditEntry) and o.action == "module.assistant.message"
+        ]
+        assert len(message_audits) == 1

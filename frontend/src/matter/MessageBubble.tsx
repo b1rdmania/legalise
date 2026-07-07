@@ -44,6 +44,10 @@ interface Props {
   // Save this reply as a draft output. Resolves to the artifact id.
   // Omitted on read-only surfaces (demo) — the action doesn't render.
   onSaveDraft?: (message: AssistantMessage) => Promise<string>;
+  // Resend the prompt that produced this reply as a new turn. The caller
+  // passes it only on the last assistant message and only when no turn
+  // is in flight — the earlier answer stays in the transcript.
+  onRegenerate?: () => void;
   // Open a saved draft (the artifact detail page).
   onOpenDraft?: (artifactId: string) => void;
   compact?: boolean;
@@ -60,6 +64,7 @@ export function MessageBubble({
   onVersions,
   onRecord,
   onSaveDraft,
+  onRegenerate,
   onOpenDraft,
   compact = false,
 }: Props) {
@@ -77,6 +82,7 @@ export function MessageBubble({
       onVersions={onVersions}
       onRecord={onRecord}
       onSaveDraft={onSaveDraft}
+      onRegenerate={onRegenerate}
       onOpenDraft={onOpenDraft}
       compact={compact}
     />
@@ -107,6 +113,7 @@ function AssistantMessageView({
   onVersions,
   onRecord,
   onSaveDraft,
+  onRegenerate,
   onOpenDraft,
   compact,
 }: Props) {
@@ -188,6 +195,7 @@ function AssistantMessageView({
           <MessageActions
             message={message}
             onSaveDraft={onSaveDraft}
+            onRegenerate={onRegenerate}
             onOpenDraft={onOpenDraft}
           />
         )}
@@ -208,10 +216,12 @@ type SaveState =
 function MessageActions({
   message,
   onSaveDraft,
+  onRegenerate,
   onOpenDraft,
 }: {
   message: AssistantMessage;
   onSaveDraft?: (message: AssistantMessage) => Promise<string>;
+  onRegenerate?: () => void;
   onOpenDraft?: (artifactId: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -286,6 +296,16 @@ function MessageActions({
       )}
       {save.kind === "error" && (
         <span className="text-seal">Couldn't save — try again</span>
+      )}
+      {onRegenerate && (
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className={linkCls}
+          data-testid="message-regenerate"
+        >
+          Regenerate
+        </button>
       )}
     </div>
   );

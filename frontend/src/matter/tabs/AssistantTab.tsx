@@ -158,6 +158,43 @@ export function AssistantTab({
   // fill this via model.delta events; the final message replaces it on
   // result. null = no draft (non-streaming providers never set it).
   const [draft, setDraft] = useState<string | null>(null);
+  // True only while model.delta events are arriving — the guard for the
+  // Stop affordance. Keyless/stub turns never stream, so Stop never
+  // appears for them ("stream active", not "request active").
+  const [streamActive, setStreamActive] = useState(false);
+  // A user-stopped turn: the frozen partial draft. The turn keeps running
+  // server-side (client disconnect never cancels it — the stream endpoint
+  // runs the turn in a detached task) and the persisted reply replaces
+  // this once the thread refresh finds it.
+  const [stopped, setStopped] = useState<{ text: string } | null>(null);
+  // One AbortController per in-flight streaming turn.
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+  // Cancellation token for the post-stop thread poll: bumped by any new
+  // send, thread switch, or unmount so a stale poll never writes state.
+  const stopPollToken = useRef(0);
+  const stopPollTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Reset on mount, not just initialisation: StrictMode's dev
+    // mount/unmount/mount cycle runs the cleanup once, and the ref must
+    // come back true for the real mount.
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      stopPollToken.current += 1;
+      if (stopPollTimer.current !== null) window.clearTimeout(stopPollTimer.current);
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const cancelStopPoll = () => {
+    stopPollToken.current += 1;
+    if (stopPollTimer.current !== null) {
+      window.clearTimeout(stopPollTimer.current);
+      stopPollTimer.current = null;
+    }
+  };
   // Fallback for non-streaming paths: after ~10s of a pending turn with no
   // draft text, one quiet honesty line appears under the step ticker.
   const [longWait, setLongWait] = useState(false);
@@ -251,6 +288,11 @@ export function AssistantTab({
 
   const switchThread = async (threadId: string) => {
     if (threadId === activeThreadId || pending) return;
+    // Belt and braces: pending guards mean no stream can be in flight
+    // here, but a stopped turn may still be polling for its reply.
+    abortRef.current?.abort();
+    cancelStopPoll();
+    setStopped(null);
     setActiveThreadId(threadId);
     setError(null);
     setKeyMissingProvider(null);
@@ -271,6 +313,9 @@ export function AssistantTab({
   // refresh the list.
   const startNewChat = () => {
     if (pending) return;
+    abortRef.current?.abort();
+    cancelStopPoll();
+    setStopped(null);
     setActiveThreadId(null);
     setMessages([]);
     setError(null);
@@ -395,9 +440,15 @@ export function AssistantTab({
     if (!content || pending || disabled) return;
     setError(null);
     setKeyMissingProvider(null);
+    cancelStopPoll();
+    setStopped(null);
     setPending(true);
     setThinking(true);
     setAgentSteps([{ label: "Starting turn", status: "running" }]);
+    // How many persisted messages the thread showed before this turn —
+    // the post-stop poll uses it to tell "reply landed" from "user row
+    // only" (both rows commit together at the end of the turn).
+    const baselineCount = messages.length;
     const optimistic: AssistantMessage = {
       id: `optimistic-${Date.now()}`,
       role: "user",
@@ -407,13 +458,26 @@ export function AssistantTab({
     };
     setMessages((prev) => [...prev, optimistic]);
     setInput("");
+    const controller = new AbortController();
+    abortRef.current = controller;
+    // Local mirror of the draft text: the catch block needs the partial
+    // answer at stop time, and reading React state there would be stale.
+    let draftText = "";
+    // The thread this turn runs in. turn.start carries the id even when
+    // the server opened a new thread, so a stopped turn can still be
+    // refreshed from the right thread.
+    let turnThreadId: string | null = activeThreadId;
     try {
       const wasNewThread = activeThreadId === null;
-      const stream = postAssistantMessageStream(matter.slug, {
-        content,
-        selected_document_ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
-        thread_id: activeThreadId ?? undefined,
-      });
+      const stream = postAssistantMessageStream(
+        matter.slug,
+        {
+          content,
+          selected_document_ids: selectedIds.size > 0 ? Array.from(selectedIds) : undefined,
+          thread_id: activeThreadId ?? undefined,
+        },
+        controller.signal,
+      );
       let sawResult = false;
       let newThreadId: string | null = null;
       let retrieval: { docs: number; chunks: number } | null = null;
@@ -422,14 +486,20 @@ export function AssistantTab({
           throw streamEventError(event);
         }
         setAgentSteps((prev) => nextAgentSteps(prev, event));
+        if (event.event === "turn.start" && event.data.thread_id) {
+          turnThreadId = event.data.thread_id;
+        }
         // Each model call starts a fresh draft (a tool turn writes twice);
         // deltas append the answer as it is written.
         if (event.event === "model.start") {
           setDraft(null);
+          draftText = "";
         }
         if (event.event === "model.delta") {
           const text = event.data.text;
           setDraft((prev) => (prev ?? "") + text);
+          draftText += text;
+          setStreamActive(true);
         }
         if (event.event === "context.loaded") {
           const docs = event.data.retrieved_document_count ?? 0;
@@ -465,29 +535,100 @@ export function AssistantTab({
         void refreshThreads();
       }
     } catch (err) {
-      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-      // The optimistic message is gone — give the user their prompt back
-      // in the composer so a failed send never eats the text. Attached
-      // docs are untouched (selection only clears on explicit remove).
-      setInput(content);
-      if (err instanceof ProviderKeyMissingError) {
-        setKeyMissingProvider(err.provider);
+      if (controller.signal.aborted) {
+        // User Stop (or unmount/thread-switch abort). The turn keeps
+        // running server-side and persists atomically, so nothing is
+        // lost: keep the optimistic user message, freeze the partial
+        // draft, and poll the thread until the recorded reply lands.
+        if (mountedRef.current) {
+          setStopped({ text: draftText });
+          if (turnThreadId) {
+            schedulePostStopRefresh(turnThreadId, baselineCount);
+          }
+        }
       } else {
-        setError(formatError(err));
+        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        // The optimistic message is gone — give the user their prompt back
+        // in the composer so a failed send never eats the text. Attached
+        // docs are untouched (selection only clears on explicit remove).
+        setInput(content);
+        if (err instanceof ProviderKeyMissingError) {
+          setKeyMissingProvider(err.provider);
+        } else {
+          setError(formatError(err));
+        }
       }
     } finally {
-      setPending(false);
-      setThinking(false);
-      setAgentSteps([]);
-      // A partial draft never persists as a message: the final message
-      // already replaced it on success, and a failed turn discards it.
-      setDraft(null);
+      if (mountedRef.current) {
+        setPending(false);
+        setThinking(false);
+        setAgentSteps([]);
+        setStreamActive(false);
+        // A partial draft never persists as a message: the final message
+        // already replaced it on success, a failed turn discards it, and
+        // a stopped turn froze its copy into `stopped` above.
+        setDraft(null);
+      }
     }
+  };
+
+  // After a user Stop, the turn is still finishing on the server. Refresh
+  // the thread after ~2s and keep checking until the persisted reply
+  // (user + assistant rows commit together) replaces the frozen draft.
+  const schedulePostStopRefresh = (threadId: string, baselineCount: number) => {
+    const token = stopPollToken.current;
+    let attempt = 0;
+    const tick = async () => {
+      if (!mountedRef.current || stopPollToken.current !== token) return;
+      try {
+        const msgs = await getThreadMessages(matter.slug, threadId);
+        if (!mountedRef.current || stopPollToken.current !== token) return;
+        const last = msgs[msgs.length - 1];
+        if (msgs.length >= baselineCount + 2 && last?.role === "assistant") {
+          setMessages(msgs);
+          setActiveThreadId((current) => current ?? threadId);
+          setStopped(null);
+          void refreshThreads();
+          return;
+        }
+      } catch {
+        // transient — try again on the next tick
+      }
+      attempt += 1;
+      if (attempt < 24) {
+        stopPollTimer.current = window.setTimeout(() => void tick(), 2500);
+      }
+    };
+    stopPollTimer.current = window.setTimeout(() => void tick(), 2000);
   };
 
   const onSend = async () => {
     await sendMessage(input);
   };
+
+  const onStop = () => {
+    abortRef.current?.abort();
+  };
+
+  // Regenerate: resend the last user prompt as a brand-new turn through
+  // the normal send path. The earlier answer stays in the transcript —
+  // the record is append-only and the UI matches. Only offered on the
+  // last assistant message, and only when no turn is in flight (a
+  // stopped turn is still finishing server-side, so it counts).
+  const lastAssistantIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return i;
+    }
+    return -1;
+  }, [messages]);
+  const regenerateContent = useMemo(() => {
+    for (let i = lastAssistantIndex - 1; i >= 0; i--) {
+      if (messages[i].role === "user") return messages[i].content;
+    }
+    return null;
+  }, [messages, lastAssistantIndex]);
+  const canRegenerate =
+    !disabled && !pending && stopped === null && regenerateContent !== null;
 
   // Enter sends; Shift+Enter inserts a newline (the universal chat
   // convention). ⌘/Ctrl+Enter still sends. The isComposing guard keeps
@@ -893,7 +1034,7 @@ export function AssistantTab({
             </div>
           </div>
         )}
-        {messages.map((m) => {
+        {messages.map((m, i) => {
           const note = m.role === "assistant" ? retrievalNotes.get(m.id) : undefined;
           return (
             <div key={m.id}>
@@ -901,6 +1042,11 @@ export function AssistantTab({
                 message={m}
                 docs={docs}
                 chronology={chronology}
+                onRegenerate={
+                  canRegenerate && i === lastAssistantIndex && regenerateContent
+                    ? () => void sendMessage(regenerateContent)
+                    : undefined
+                }
                 onDocChip={dispatchDocChip}
                 onChronChip={dispatchChronChip}
                 onAction={dispatchAction}
@@ -942,6 +1088,28 @@ export function AssistantTab({
             onClose={() => setActiveRunnerSkill(null)}
             compact
           />
+        )}
+        {stopped && (
+          // A user-stopped turn: the partial draft, frozen, with an honest
+          // line about what happens next. The persisted reply replaces
+          // this via the post-stop thread refresh.
+          <div className="flex justify-start" data-testid="chat-stopped-bubble">
+            <div className="flex w-full flex-col gap-2">
+              {stopped.text.length > 0 && (
+                <>
+                  <div className="tech-token text-[11px] text-muted">
+                    Assistant · stopped
+                  </div>
+                  <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-ink">
+                    {stopped.text}
+                  </div>
+                </>
+              )}
+              <p className="text-xs text-muted" data-testid="chat-stopped-note">
+                Stopped. The full answer is still being recorded.
+              </p>
+            </div>
+          </div>
         )}
         {thinking && (
           <div className="flex flex-col gap-1.5">
@@ -1204,16 +1372,31 @@ export function AssistantTab({
               )}
             </div>
 
-            {/* Right: Send */}
+            {/* Right: Send, or Stop while an answer is streaming. Stop is
+                the same geometry as Send but bordered, not dark — a stop
+                is a small verdict, so seal text is allowed. It only
+                appears while model.delta events are arriving; keyless
+                turns never stream, so they never show it. */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={onSend}
-                disabled={pending || !input.trim()}
-                data-testid="chat-composer-send"
-                className={primaryBtn + " px-4 py-1.5 text-[14px]"}
-              >
-                {pending ? "Sending…" : "Send"}
-              </button>
+              {streamActive ? (
+                <button
+                  type="button"
+                  onClick={onStop}
+                  data-testid="chat-composer-stop"
+                  className="rounded-item border border-ink bg-paper px-4 py-1.5 text-[14px] font-medium text-seal transition-colors hover:bg-paper-sunken min-h-[44px]"
+                >
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={onSend}
+                  disabled={pending || !input.trim()}
+                  data-testid="chat-composer-send"
+                  className={primaryBtn + " px-4 py-1.5 text-[14px]"}
+                >
+                  {pending ? "Sending…" : "Send"}
+                </button>
+              )}
             </div>
           </div>
           </div>
