@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import { navigate, type Route } from "../lib/route";
 import type { Matter } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
+import { FocusSentinel, useDrawerA11y } from "./drawerA11y";
 import { SIDEBAR_NAV, sidebarActiveFor, isTabKey } from "../matter/tabs/types";
 import { postureLabel } from "../lib/posture";
 
@@ -22,6 +24,11 @@ export function Drawer({
   health: HealthResponse | null;
 }) {
   const auth = useAuth();
+  // Drawer a11y (WI-2): focus in on open, restore to the hamburger on
+  // close, Escape closes, Tab trapped by the sentinels. Hooks run before
+  // the early return; the hook is inert while closed.
+  const panelRef = useRef<HTMLElement>(null);
+  useDrawerA11y({ open: navOpen, onClose: () => setNavOpen(false), panelRef });
   if (!navOpen) return null;
 
   const isDetail = route.name === "detail";
@@ -118,15 +125,18 @@ export function Drawer({
     <>
       <div
         onClick={close}
-        className="md:hidden fixed inset-0 z-50 bg-ink/40"
+        className="md:hidden fixed inset-0 z-50 bg-ink/20 transition-opacity duration-150"
         aria-hidden="true"
+        data-testid="drawer-scrim"
       />
       <aside
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
         className="md:hidden fixed inset-y-0 left-0 z-50 w-[min(320px,86vw)] bg-paper border-r border-rule flex flex-col overflow-y-auto"
       >
+        <FocusSentinel panelRef={panelRef} edge="start" />
         <div className="h-[64px] px-4 flex items-center justify-between border-b border-rule">
           <span className="font-bold text-lg tracking-tight2 text-ink">LEGALISE</span>
           <button
@@ -183,6 +193,7 @@ export function Drawer({
             </div>
           </div>
         )}
+        <FocusSentinel panelRef={panelRef} edge="end" />
       </aside>
     </>
   );

@@ -84,18 +84,15 @@ function AppShellInner() {
     navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login");
   }, [auth.loading, auth.user, route]);
 
-  // body-scroll-lock + esc to close
+  // body-scroll-lock while a drawer is open. Escape/focus handling lives
+  // in the drawers themselves (ui/drawerA11y.tsx) so both the workspace
+  // rail and the public Drawer behave identically.
   useEffect(() => {
     if (!navOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setNavOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
     };
   }, [navOpen]);
 
@@ -151,6 +148,7 @@ function AppShellInner() {
             type="button"
             onClick={() => setNavOpen(true)}
             aria-label="Open menu"
+            aria-expanded={navOpen}
             className="min-h-[44px] min-w-[44px] -ml-2 flex items-center justify-center text-ink"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
