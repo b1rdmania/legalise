@@ -1,17 +1,13 @@
 /**
  * /about — the business-card landing (DESIGN.md P28).
  *
- * Plain, specific, no superlatives. Contact marks sit twice: a logo bar
- * under the opening line, and a text CTA at the foot. Portrait to the
- * right of the content.
+ * Plain, specific, no superlatives. One contact bar (logo marks under the
+ * opening line), portrait to the right of the content.
  */
 
 const GITHUB_PROFILE = "https://github.com/b1rdmania";
 const LINKEDIN = "https://www.linkedin.com/in/andrew-bird-nomos/";
 const X_PROFILE = "https://x.com/b1rdmania";
-
-const linkClass =
-  "text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal";
 
 export function About() {
   return (
@@ -76,52 +72,21 @@ export function About() {
 
             <div className="mt-8 max-w-xl space-y-5 text-base leading-relaxed text-prose">
               <p>
-                Resolutely unimpressed by the legal AI incumbents. Closed
-                models, priced per seat, mostly CRMs and document red-liners +
-                a sprinkle of AI.
-              </p>
-              <p>The machines have more power than this.</p>
-              <p>
                 I build open source, at the frontier. I&apos;ve been through the
                 FCA and Bank of England sandbox as an applicant, so I&apos;ve
                 seen up close what a regulator wants from a technical build
                 before they sign it off.
               </p>
               <p>
-                That&apos;s my lens. Not &ldquo;what can AI do&rdquo;. The answer
-                to that, soon, is almost everything. It&apos;s more what a
-                regulator or an insurer needs to see before a firm puts AI at the
-                centre of how it works.
-              </p>
-              <p>
-                What interests me isn&apos;t firms working faster and billing the
-                same. It&apos;s whether this changes how people actually access
-                law.
+                What interests me is changing how people actually access law.
+                And from that, what a regulator or an insurer needs to see
+                before a firm puts AI at the centre of how it works.
               </p>
               <p>
                 Interested in working at the edge of what&apos;s possible. A
                 regulated firm, an SRA pilot, or something not invented yet.
               </p>
             </div>
-
-            {/* Foot CTA — the links again, as text. */}
-            <p className="mt-10 text-sm text-muted">
-              <a href={X_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
-                X
-              </a>
-              {" · "}
-              <a href={LINKEDIN} target="_blank" rel="noreferrer" className={linkClass}>
-                LinkedIn
-              </a>
-              {" · "}
-              <a href="mailto:andrew@legalise.dev" className={linkClass}>
-                andrew@legalise.dev
-              </a>
-              {" · "}
-              <a href={GITHUB_PROFILE} target="_blank" rel="noreferrer" className={linkClass}>
-                GitHub
-              </a>
-            </p>
           </header>
 
           <div className="shrink-0 lg:w-60 lg:pt-2">
