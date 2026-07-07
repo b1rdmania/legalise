@@ -837,7 +837,16 @@ export function AssistantTab({
 
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 space-y-6 overflow-y-auto border-t border-rule py-6"
+          className={
+            "min-h-0 flex-1 space-y-6 overflow-y-auto border-t border-rule py-6" +
+            // An empty thread is chips top-left, composer bottom, and a
+            // dead panel between. Centre the empty state vertically at
+            // md+; small screens have no void to fill and stay
+            // top-anchored. Normal flow returns with the first message.
+            (loaded && messages.length === 0
+              ? " md:flex md:flex-col md:justify-center"
+              : "")
+          }
         >
         {!loaded && (
           <p className="tech-token text-xs text-muted flex items-center gap-2">
@@ -863,7 +872,11 @@ export function AssistantTab({
           </div>
         )}
         {loaded && messages.length === 0 && (docs === null || docs.length > 0) && (
-          <div className="grid gap-2 sm:grid-cols-2" data-testid="chat-empty-state">
+          <div className="max-w-md" data-testid="chat-empty-state">
+            <p className="mb-3 text-sm text-muted">
+              Ask about the documents in this matter.
+            </p>
+            <div className="grid gap-2">
             {suggestions.map((s) => (
               <button
                 key={s}
@@ -877,6 +890,7 @@ export function AssistantTab({
                 </span>
               </button>
             ))}
+            </div>
           </div>
         )}
         {messages.map((m) => {
