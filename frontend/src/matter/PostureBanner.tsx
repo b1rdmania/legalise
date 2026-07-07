@@ -50,6 +50,20 @@ interface Props {
 // substrate behaviour.
 const ROLE_THAT_SATISFIES_B_MIXED = "qualified_solicitor";
 
+// Display words for the substrate role tokens (ALLOWED_ROLES,
+// lib/api/admin.ts). Banner copy ONLY — role comparisons above and
+// anything sent to the API keep the raw token. This banner renders
+// role copy only in firm-role-gated mode (dormant on hosted).
+const ROLE_DISPLAY_WORDS: Record<string, string> = {
+  solicitor: "solicitor",
+  qualified_solicitor: "qualified solicitor",
+  workspace_admin: "workspace admin",
+};
+
+function roleDisplayWord(role: string): string {
+  return ROLE_DISPLAY_WORDS[role] ?? role.replace(/_/g, " ");
+}
+
 export function PostureBanner({
   posture,
   user,
@@ -95,15 +109,8 @@ export function PostureBanner({
           Only qualified solicitors can run skills on this matter.
         </p>
         <p className="mt-1 text-sm text-muted">
-          Requires{" "}
-          <code className="tech-token text-xs">qualified_solicitor</code>.
-          {user && (
-            <>
-              {" "}
-              Your role:{" "}
-              <code className="tech-token text-xs">{user.role}</code>.
-            </>
-          )}
+          Requires the {roleDisplayWord(ROLE_THAT_SATISFIES_B_MIXED)} role.
+          {user && <> Your role: {roleDisplayWord(user.role)}.</>}
         </p>
         {adminCanChange && (
           <ChangePostureControl
