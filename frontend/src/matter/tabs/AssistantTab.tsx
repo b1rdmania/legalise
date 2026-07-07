@@ -668,7 +668,7 @@ export function AssistantTab({
                   aria-expanded={docsOpen}
                   aria-haspopup="menu"
                   data-testid="docs-context-status"
-                  className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  className="hit underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
                   {docs.length} document{docs.length === 1 ? "" : "s"}
                 </button>
@@ -755,7 +755,7 @@ export function AssistantTab({
                   No {providerLabel(matter.required_provider)} key yet —{" "}
                   <a
                     href="/settings/keys"
-                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                    className="hit underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
                     add one in Settings
                   </a>
@@ -787,7 +787,7 @@ export function AssistantTab({
                     type="button"
                     onClick={onTogglePause}
                     disabled={postureSubmitting}
-                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
+                    className="hit underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal disabled:opacity-50"
                     data-testid="chat-pause-toggle"
                   >
                     {posturePaused(matter.privilege_posture) ? "Resume AI" : "Pause AI"}
@@ -1101,7 +1101,7 @@ export function AssistantTab({
                                     {skill.title}
                                   </span>
                                   <span className="mt-0.5 block text-[11px] text-muted">
-                                    Ready in this project
+                                    Ready in this matter
                                   </span>
                                 </span>
                                 <span aria-hidden="true" className="text-muted">
@@ -1755,7 +1755,7 @@ function MatterContextRail({
         actionTestId="open-documents-link"
       >
         {docs === null ? (
-          <p className="text-sm text-muted">Loading project files…</p>
+          <p className="text-sm text-muted">Loading matter documents…</p>
         ) : docs.length === 0 ? (
           <p className="text-sm text-muted">No documents loaded yet.</p>
         ) : (

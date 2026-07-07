@@ -176,7 +176,7 @@ describe("MatterSkillsTab — enable truth", () => {
     expect(btn).toBeDisabled();
     expect(
       screen.getByTestId("available-disabled-reason-workspace-only"),
-    ).toHaveTextContent(/cannot be enabled inside a project/i);
+    ).toHaveTextContent(/cannot be enabled inside a matter/i);
   });
 
   it("keeps the modal open and surfaces the error on grant failure", async () => {

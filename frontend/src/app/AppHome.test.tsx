@@ -37,11 +37,11 @@ function mountAt(initialPath: string) {
     path: "/app",
     component: AppHome,
   });
-  // /auth/signin + /matters target stubs — AppHome may navigate to
+  // /auth/login + /matters target stubs — AppHome may navigate to
   // them and we need real routes for navigate() to resolve cleanly.
   const signinRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: "/auth/signin",
+    path: "/auth/login",
     component: () => <div data-testid="signin-stub" />,
   });
   const waitlistRoute = createRoute({

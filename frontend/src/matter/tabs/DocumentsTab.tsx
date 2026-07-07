@@ -361,14 +361,14 @@ export function DocumentsTab({
                       <Link
                         to="/matters/$slug/documents/$documentId"
                         params={{ slug, documentId: d.id }}
-                        className="text-sm text-muted hover:text-seal"
+                        className="hit text-sm text-muted hover:text-seal"
                       >
                         Open →
                       </Link>
                       <button
                         type="button"
                         onClick={() => onDelete(d)}
-                        className="text-sm text-muted hover:text-seal"
+                        className="hit text-sm text-muted hover:text-seal"
                       >
                         Delete
                       </button>

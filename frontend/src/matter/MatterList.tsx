@@ -35,9 +35,13 @@ export function MatterList() {
         title="Matters"
         description="Every matter in this workspace. Each row shows its type, status, and AI-access state. Open a matter to work on it."
         actions={
+          /* From md up the rail already pins its own "+ New matter" CTA a
+             few hundred pixels away; two identical dark buttons on one
+             screen fight for the same weight. Below md the rail is behind
+             the drawer, so the header button stays. */
           <a
             href="/matters/new"
-            className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
+            className="bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] inline-flex items-center md:hidden"
           >
             New matter
           </a>

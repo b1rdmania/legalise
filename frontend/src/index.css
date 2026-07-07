@@ -39,10 +39,13 @@
 }
 
 @layer components {
+  /* Eyebrow colour is the warm muted token, not a cool grey: #9CA3AF was a
+     Tailwind-palette leftover from before Almond & Ink and read 2.3:1 on
+     paper — invisible to low-vision readers at 10px. */
   .eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.2em;
-    color: #9CA3AF;
+    color: #6E6759;
     font-size: 10px;
     font-weight: 700;
   }
@@ -50,7 +53,7 @@
   .eyebrow-sm {
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #9CA3AF;
+    color: #6E6759;
     font-size: 10px;
     font-weight: 700;
   }
@@ -80,6 +83,21 @@
     font-family: "Redaction", Georgia, serif;
   }
 
+  /* Hit-area extender for the ledger idiom's small text links (Open →,
+     Delete, Pause AI…). The visual design wants 11–13px quiet links; a
+     thumb wants ≥24px. The pseudo-element grows the tap target without
+     moving a pixel of layout. Horizontal inset stays small so adjacent
+     row actions don't overlap. */
+  .hit {
+    position: relative;
+  }
+
+  .hit::after {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
+  }
+
   .tech-token {
     font-family: "Redaction", Georgia, "Times New Roman", serif;
     font-variant-numeric: tabular-nums;
@@ -87,7 +105,7 @@
   }
 
   .prose-p {
-    color: #4B5563;
+    color: #564E42;
     margin-bottom: 1.5rem;
     line-height: 1.7;
   }

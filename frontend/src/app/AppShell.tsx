@@ -81,7 +81,7 @@ function AppShellInner() {
     if (auth.loading) return;
     if (auth.user) return;
     if (isPublicRoute(route)) return;
-    navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/signin");
+    navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login");
   }, [auth.loading, auth.user, route]);
 
   // body-scroll-lock + esc to close

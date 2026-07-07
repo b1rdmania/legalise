@@ -16,7 +16,7 @@
  *      binary path. Deliberately no UI shortcut.
  *
  *   3. has_superuser === true
- *      If unauth → bounce to /auth/signin (or /waitlist when
+ *      If unauth → bounce to /auth/login (or /waitlist when
  *      HOSTED_ACCESS_WAITLIST). If authed → bounce to /matters, the
  *      canonical workspace index.
  *
@@ -145,7 +145,7 @@ function BootstrapRequiredState() {
 function SigninRedirect() {
   const nav = useNavigate();
   useEffect(() => {
-    void nav({ to: HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/signin" });
+    void nav({ to: HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login" });
   }, [nav]);
   return <CenteredLoader label="Redirecting…" />;
 }

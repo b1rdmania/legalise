@@ -1013,7 +1013,10 @@ export function DocumentDetail({
           aria-label="Document command surface"
           data-testid="document-command-bar"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-3 py-2.5">
+          {/* One command row: views left, actions right. This was two
+              stacked toolbars — three rows of chrome (with the page header)
+              before any document showed. */}
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[13px]">
             <nav
               className="flex flex-wrap items-center gap-2"
               aria-label="Document workspace views"
@@ -1064,13 +1067,11 @@ export function DocumentDetail({
                 ))}
               </div>
             )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[13px]">
             <Link
               to="/matters/$slug/$tab"
               params={{ slug, tab: "assistant" }}
               search={{ document: documentId }}
-              className="inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-seal"
+              className="ml-auto inline-flex min-h-[34px] items-center rounded-item border border-ink bg-ink px-3 text-paper hover:bg-seal"
               data-testid="document-ask-chat-link"
             >
               Ask about this file
@@ -1098,7 +1099,7 @@ export function DocumentDetail({
               onClick={() => setShowPanel((v) => !v)}
               aria-expanded={showPanel}
               data-testid="document-panel-toggle"
-              className="ml-auto inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
+              className="inline-flex min-h-[34px] items-center rounded-item border border-rule bg-paper px-3 text-ink hover:border-ink"
             >
               {showPanel ? "Hide panel" : "Panel"}
             </button>
@@ -1621,7 +1622,7 @@ export function DocumentDetail({
                     Run a skill with this file selected.
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted">
-                    Skills use the same project runner as Chat, with {doc.filename} already in context.
+                    Skills use the same matter runner as Chat, with {doc.filename} already in context.
                   </p>
                 </div>
                 <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
@@ -1662,10 +1663,10 @@ export function DocumentDetail({
                   />
                 </div>
               ) : skillLoadState === "loading" ? (
-                <p className="mt-3 text-sm text-muted">Loading project skills...</p>
+                <p className="mt-3 text-sm text-muted">Loading matter skills...</p>
               ) : skillLoadState === "error" ? (
                 <p className="mt-3 text-sm text-muted">
-                  Skills could not be loaded here. Open the project Skills page to check setup.
+                  Skills could not be loaded here. Open the matter's Skills page to check setup.
                 </p>
               ) : documentSkills.length === 0 ? (
                 <div className="mt-3 text-sm text-muted">
@@ -1678,7 +1679,7 @@ export function DocumentDetail({
                     params={{ slug, tab: "workflows" }}
                     className="mt-2 inline-block underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                   >
-                    Open project Skills →
+                    Open matter Skills →
                   </Link>
                 </div>
               ) : (

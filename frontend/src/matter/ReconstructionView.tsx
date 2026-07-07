@@ -46,6 +46,7 @@ import {
   type RowClass,
 } from "./auditClassify";
 import { humanActionLabel } from "./auditHumanLabel";
+import { useAuth } from "../auth/AuthProvider";
 import { PageHeader } from "../ui/primitives";
 
 // Class filter chips (AT-2). No `artifact` chip — artifacts are not an
@@ -272,18 +273,20 @@ export function ReconstructionView({ slug }: { slug: string }) {
       <PageHeader
         title="What happened here"
         actions={
-          <div className="flex flex-wrap gap-2">
+          /* Cross-links, not actions — as a bordered pair with one dark
+             they read as a view toggle. Quiet links match what they are. */
+          <div className="flex flex-wrap items-center gap-4 text-sm">
             <a
               href={`/matters/${encodeURIComponent(slug)}/artifacts`}
-              className="inline-flex items-center rounded-item border border-rule px-3 py-2 text-sm hover:border-ink"
+              className="hit text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
-              Signed outputs
+              Outputs →
             </a>
             <a
               href={`/matters/${encodeURIComponent(slug)}/lifecycle`}
-              className="inline-flex items-center bg-ink px-3 py-2 text-sm text-paper hover:opacity-90"
+              className="hit text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
             >
-              Working pack
+              Working pack →
             </a>
           </div>
         }
@@ -426,7 +429,7 @@ export function ReconstructionView({ slug }: { slug: string }) {
                   <button
                     type="button"
                     onClick={() => setShowBackground((v) => !v)}
-                    className="text-xs uppercase tracking-widest text-muted hover:text-seal"
+                    className="hit text-xs uppercase tracking-widest text-muted hover:text-seal"
                     data-testid="toggle-background"
                     aria-expanded={showBackground}
                   >
@@ -682,6 +685,7 @@ function AdvancedDetails({
 
 function TimelineRow({ entry }: { entry: TimelineEntry }) {
   const [expanded, setExpanded] = useState(false);
+  const auth = useAuth();
   const tone = sourceTone(entry.source);
   const rowClass = classifyEntry(entry);
   const isProminent = rowClass === "signed" || rowClass === "review";
@@ -734,9 +738,16 @@ function TimelineRow({ entry }: { entry: TimelineEntry }) {
         {entry.actor.user_id && (
           <span>
             user:{" "}
-            <code className="tech-token">
-              {String(entry.actor.user_id).slice(0, 8)}…
-            </code>
+            {/* The chain only carries the actor's id. Name the one actor we
+                can resolve client-side — the signed-in user — instead of
+                showing them their own UUID. */}
+            {auth.user && String(entry.actor.user_id) === String(auth.user.id) ? (
+              <span className="text-ink">you</span>
+            ) : (
+              <code className="tech-token">
+                {String(entry.actor.user_id).slice(0, 8)}…
+              </code>
+            )}
           </span>
         )}
       </div>

@@ -16,7 +16,7 @@ import { postureDot, postureLabel } from "../lib/posture";
 
 const DEMO_NAV: ReadonlyArray<{ key: TabKey; label: string }> = [
   { key: "assistant", label: "Chat" },
-  { key: "documents", label: "Files" },
+  { key: "documents", label: "Documents" },
   { key: "workflows", label: "Skills" },
 ];
 
@@ -383,7 +383,7 @@ function DemoWorkflowsTab({
 
   return (
     <div className="max-w-5xl">
-      <SectionRule label="Skills in this project" right="2 admitted" />
+      <SectionRule label="Skills in this matter" right="2 admitted" />
       <p className="mt-5 max-w-xl text-sm leading-relaxed text-prose">
         A skill is a small piece of legal work: review an NDA, test a claim,
         draft a letter. Each one declares what it may read and write before
@@ -499,7 +499,7 @@ function DemoDocumentsTab({
 
   return (
     <div className="max-w-6xl">
-      <SectionRule label="Documents in this project" />
+      <SectionRule label="Documents in this matter" />
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
         <div>

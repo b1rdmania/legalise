@@ -59,7 +59,7 @@ function matterCapabilityIds(entry: V2ManifestEntry): string[] {
 }
 
 function friendlyCapabilitySummary(values: string[]): string {
-  if (values.length === 0) return "Project context";
+  if (values.length === 0) return "Matter context";
   const labels = new Set<string>();
   for (const value of values) {
     if (value.includes("document")) labels.add("Documents");
@@ -165,6 +165,15 @@ export function MatterSkillsTab({ slug }: Props) {
 
   return (
     <section>
+      {/* Same header tier as Documents — this tab previously opened with a
+          bare section eyebrow and no page name. */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Skills</h1>
+        <p className="mt-1 text-sm text-muted">
+          What can run inside this matter, and what it is allowed to touch.
+        </p>
+      </div>
+
       {error && (
         <p className="mb-4 text-sm text-seal" data-testid="matter-skills-error">
           {error}
@@ -361,7 +370,7 @@ function AvailableModuleRow({
       const disabledReason = !entry.is_valid
     ? "This skill needs setup in the workspace before enabling."
     : !hasMatterCaps
-      ? "This skill cannot be enabled inside a project yet."
+      ? "This skill cannot be enabled inside a matter yet."
       : null;
 
   return (
@@ -391,7 +400,7 @@ function AvailableModuleRow({
       <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-rule pt-3 text-[11px] sm:grid-cols-3">
         <Meta label="Reads" value={friendlyCapabilitySummary(reads)} />
         <Meta label="Writes" value={friendlyCapabilitySummary(writes)} />
-        <Meta label="Project actions" value={String(matterCaps.length)} />
+        <Meta label="Matter actions" value={String(matterCaps.length)} />
       </dl>
       {disabledReason && (
         <p

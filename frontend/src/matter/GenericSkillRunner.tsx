@@ -137,11 +137,11 @@ export function GenericSkillRunner({
         <div>
           <p className="text-sm font-semibold text-ink">{skill.title}</p>
           <p className="mt-1 max-w-xl text-xs text-muted">
-            {skill.description || "Runs against this project and writes an output to Activity."}
+            {skill.description || "Runs against this matter and writes an output to Activity."}
           </p>
         </div>
         <span className="rounded-full border border-line px-2 py-0.5 text-[11px] text-muted">
-          Ready in this project
+          Ready in this matter
         </span>
       </div>
 
@@ -159,7 +159,7 @@ export function GenericSkillRunner({
 
         <div>
           <p className="text-[11px] uppercase tracking-widest text-muted">
-            {needsDocument ? "Documents selected" : "Project material"}
+            {needsDocument ? "Documents selected" : "Matter material"}
           </p>
           {documents === null ? (
             <p className="mt-2 text-xs text-muted">Loading documents…</p>
@@ -443,7 +443,7 @@ function defaultPromptFor(
   if (skill.reads.includes("document.body.read")) {
     return "Run this skill on the selected document.";
   }
-  return "Run this skill on the project.";
+  return "Run this skill on the matter.";
 }
 
 function errorToState(err: unknown): RunnerState {
@@ -451,7 +451,7 @@ function errorToState(err: unknown): RunnerState {
     return {
       kind: "blocked",
       title: "Privilege state blocks this skill",
-      body: "This project is not currently allowed to run that skill.",
+      body: "This matter is not currently allowed to run that skill.",
       detail: err.reason,
     };
   }
@@ -459,7 +459,7 @@ function errorToState(err: unknown): RunnerState {
     return {
       kind: "blocked",
       title: "This skill needs setup",
-      body: "A required project permission is missing. Open Skills to enable it.",
+      body: "A required matter permission is missing. Open Skills to enable it.",
     };
   }
   if (err instanceof Phase1BlockedError) {

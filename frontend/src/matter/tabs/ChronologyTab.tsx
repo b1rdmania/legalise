@@ -85,6 +85,16 @@ export function ChronologyTab({
 
   return (
     <div className="max-w-4xl">
+      {/* Same header tier as Documents — this tab previously opened with
+          the CPR banner or the auto-build button, no page name. */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Chronology</h1>
+        <p className="mt-1 text-sm text-muted">
+          The matter's events in date order. Proposed events count only
+          once a person accepts them.
+        </p>
+      </div>
+
       {chron.gate.required && !chron.gate.confirmed && (
         <CprGateBanner count={chron.gate.tainted_event_count} onConfirm={onConfirmGate} />
       )}
@@ -180,7 +190,10 @@ function ChronologyTable({
             }`}
           >
             <div
-              className="absolute right-0 top-0 bottom-0 bg-[#00A35C]/15 pointer-events-none"
+              /* Significance bar. Was #00A35C green — the one flat green in an
+                 Almond & Ink UI, and at sig 5 it flooded the whole row like a
+                 broken selection state. A quiet ink wash keeps the encoding. */
+              className="absolute right-0 top-0 bottom-0 bg-ink/[0.06] pointer-events-none"
               style={{ width: sigBarWidth }}
               aria-hidden="true"
             />

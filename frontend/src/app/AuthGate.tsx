@@ -36,7 +36,7 @@ export function AuthGate() {
   useEffect(() => {
     if (auth.loading) return;
     if (auth.user) return;
-    navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/signin");
+    navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login");
   }, [auth.loading, auth.user]);
 
   if (auth.loading || !auth.user) {

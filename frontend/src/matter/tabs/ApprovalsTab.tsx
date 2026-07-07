@@ -59,12 +59,15 @@ export function ApprovalsTab({ slug }: { slug: string }) {
 
   return (
     <div className="max-w-3xl">
-      <p className="text-sm text-muted">
-        <span className="text-ink">
+      {/* Same header tier as Documents — this tab previously opened with a
+          bare disclaimer sentence and no page name. */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-ink">Approvals</h1>
+        <p className="mt-1 text-sm text-muted">
           "Approved in Legalise" records that a human reviewed an output —
           it is not legal advice certification or SRA approval.
-        </span>
-      </p>
+        </p>
+      </div>
 
       {q.status === "loading" && <LoadingLine label="loading reviews" />}
       {q.status === "error" && <ErrorCallout message={q.message} />}
@@ -73,7 +76,7 @@ export function ApprovalsTab({ slug }: { slug: string }) {
         <div className="mt-6">
           <EmptyState
             title="No reviews yet"
-            body='Open a Contract Review findings pack in Signed outputs and choose "Request review" to start one.'
+            body='Open an output under Outputs and choose "Request review" to start one.'
           />
         </div>
       )}

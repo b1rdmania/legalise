@@ -152,20 +152,27 @@ export function LedgerLine({
   testid?: string;
 }) {
   return (
+    /* Below sm the fixed columns (index 40px + label 160px + right meta)
+       exceed the viewport and force horizontal scroll, so the row wraps:
+       line one carries index · label · right-aligned meta, and the entry
+       text drops to its own full-width line. From sm up, the original
+       single-line ledger geometry is unchanged. */
     <div
-      className="flex items-baseline gap-4 border-b border-rule/60 py-2.5"
+      className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-rule/60 py-2.5 sm:flex-nowrap"
       data-testid={testid}
     >
       <span className="tech-token w-10 shrink-0 text-[11px] text-muted">
         {String(index).padStart(4, "0")}
       </span>
       {label != null && (
-        <span className="w-40 shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted">
+        <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted sm:w-40">
           {label}
         </span>
       )}
-      <span className="min-w-0 flex-1 text-sm text-ink">{children}</span>
-      {right != null && <span className="shrink-0">{right}</span>}
+      <span className="order-last min-w-0 basis-full text-sm text-ink sm:order-none sm:flex-1 sm:basis-auto">
+        {children}
+      </span>
+      {right != null && <span className="ml-auto shrink-0 sm:ml-0">{right}</span>}
     </div>
   );
 }

@@ -104,7 +104,7 @@ export function ArtifactDetail({
             params={{ slug }}
             className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
           >
-            ← Signed outputs
+            ← Outputs
           </Link>
         </p>
         <h1 className="text-xl font-bold tracking-tight2">Output not found</h1>
@@ -124,7 +124,7 @@ export function ArtifactDetail({
           params={{ slug }}
           className="text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
-          ← Signed outputs
+          ← Outputs
         </Link>
       </p>
       {/* The artifact's certificate header — its entry in the record

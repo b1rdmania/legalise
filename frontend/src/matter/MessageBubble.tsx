@@ -247,7 +247,7 @@ function MessageActions({
   };
 
   const linkCls =
-    "text-muted underline underline-offset-4 hover:text-ink transition-colors";
+    "hit text-muted underline underline-offset-4 hover:text-ink transition-colors";
 
   return (
     <div
