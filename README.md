@@ -241,8 +241,17 @@ Start with [`docs/`](./docs/):
 - [`docs/ROADMAP.md`](./docs/ROADMAP.md): shipped, deferred, parked
 - [`docs/ATTRIBUTIONS.md`](./docs/ATTRIBUTIONS.md): credits and licence notes
 
-Operator and contributor material is maintained outside this public repo. Open
-an issue if you're self-hosting and need something that isn't here.
+Operator material is maintained outside this public repo. Open an issue if
+you're self-hosting and need something that isn't here.
+
+## Contributing
+
+You don't need to touch the core. The easiest ways in: practitioner feedback
+(no code, corrections with authority attached), a one-row eval case, or a
+governed legal skill built in your own repo and listed in the
+[community catalogue](./docs/CATALOGUE.md) with a one-row PR. The ladder, the
+ground rules, and the dev setup are in [CONTRIBUTING.md](./CONTRIBUTING.md);
+skill authoring is in [`docs/BUILDING_SKILLS.md`](./docs/BUILDING_SKILLS.md).
 
 ## Caveat
 

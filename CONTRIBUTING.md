@@ -2,6 +2,32 @@
 
 Thanks for considering a contribution.
 
+## Ways in, easiest first
+
+You do not need to touch the core to contribute. In rough order of
+effort:
+
+1. **Practitioner feedback.** You work in or around E&W practice and
+   something here is wrong, missing, or would not survive a real
+   matter. No code required.
+   [Open a feedback issue](https://github.com/b1rdmania/legalise/issues/new?template=practitioner_feedback.yml);
+   corrections with authority attached are the most valuable thing this
+   project receives.
+2. **Eval cases.** One JSONL row asserting an invariant against real
+   production functions. Data only, reviewable in minutes. See
+   [`evals/agent-kit/`](./evals/agent-kit/README.md) and the
+   [eval case template](https://github.com/b1rdmania/legalise/issues/new?template=eval_case.yml).
+3. **Skills.** Build a governed legal skill in your own repo (an
+   evening's work, mostly legal drafting) and list it with a one-row PR
+   to the catalogue. Guide: [`docs/BUILDING_SKILLS.md`](./docs/BUILDING_SKILLS.md).
+   Index: [`docs/CATALOGUE.md`](./docs/CATALOGUE.md).
+4. **Docs.** If a claim in the docs does not match the code, that is a
+   bug either way. PRs welcome.
+5. **Core code.** Backend and frontend changes, the highest bar: tests,
+   audit integration, posture respect. Look for
+   [`good first issue`](https://github.com/b1rdmania/legalise/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+   labels, or open an issue before building anything large.
+
 ## Ground rules
 
 1. **Solicitor-in-the-loop is the design assumption.** Every output is a draft. Don't soften this.

@@ -1,0 +1,34 @@
+name: Practitioner feedback
+description: You work in or around E&W legal practice and something here is wrong, missing, or would not survive contact with a real matter.
+labels: ["provenance:practitioner"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the highest-value issue type this project receives. You do not need to read the code.
+        Corrections with authority attached (a statute, a CPR Part, an SRA position, an insurer requirement) are gold.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feedback?
+      options:
+        - Correction (the docs or a skill assert something wrong)
+        - Coverage gap (a skill or safeguard real practice would need)
+        - Workflow mismatch (the loop does not match how matters actually run)
+        - Regulatory or insurance angle we have missed
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: The feedback
+      description: What is wrong or missing, and if you can, the authority that says so.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Your vantage point (optional)
+      description: Practice area, firm size, role. No names needed. Helps us weigh the feedback.
+    validations:
+      required: false

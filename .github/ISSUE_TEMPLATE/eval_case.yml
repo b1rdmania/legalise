@@ -1,0 +1,39 @@
+name: Eval case proposal
+description: Propose a deterministic regression case for the agent-kit dataset. Data-only PRs are the fastest way to a first contribution.
+labels: ["evals", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The eval harness ([`evals/agent-kit/`](https://github.com/b1rdmania/legalise/blob/master/evals/agent-kit/README.md)) runs
+        deterministic cases against real production functions. A case is one JSONL row: an input, and judges that assert on the output.
+        If your case fits an existing adapter case (`posture_refusal`, `deterministic_summary`, `chain_intact`, `retrieval_grounding`),
+        you can PR the row directly. If it needs a new adapter case, propose it here first.
+  - type: textarea
+    id: invariant
+    attributes:
+      label: What invariant should hold?
+      description: The claim the case checks, in plain language.
+      placeholder: A matter with posture B_mixed must never route privileged document bodies to a hosted provider.
+    validations:
+      required: true
+  - type: dropdown
+    id: adapter-case
+    attributes:
+      label: Which adapter case?
+      options:
+        - posture_refusal
+        - deterministic_summary
+        - chain_intact
+        - retrieval_grounding
+        - Needs a new adapter case (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: Case sketch (optional)
+      description: A draft JSONL row if you have one. See existing rows in evals/agent-kit/dataset.jsonl for the shape.
+      render: json
+    validations:
+      required: false

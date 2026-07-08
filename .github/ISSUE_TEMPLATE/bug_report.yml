@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in the running stack behaves differently from what the docs claim.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The house rule: a capability is only described as live if the code implements it.
+        If the docs claim something the code does not do, that is a bug even when the code is "working as written".
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got.
+      placeholder: Ran the chronology skill on the Khan sample matter, expected an audit row per model call, got none for the second call.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Steps from a fresh `docker compose up`. The Khan v Acme sample matter seeds automatically, so repros against it are ideal.
+      placeholder: |
+        1. docker compose -f infra/docker-compose.yml up --build
+        2. Sign up, open Khan v Acme
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: macOS 15 / Docker 27 / commit abc1234
+    validations:
+      required: false
+  - type: dropdown
+    id: provenance
+    attributes:
+      label: Where are you coming from? (optional)
+      description: Helps us see whose problems we are actually solving.
+      options:
+        - Practitioner (solicitor, paralegal, legal ops)
+        - Builder (developer, researcher)
+        - Firm (evaluating for an organisation)
+        - Prefer not to say
+    validations:
+      required: false
