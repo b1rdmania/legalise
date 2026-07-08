@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # cost and latency than Opus, and it answers matter questions cleanly
     # (Opus 4.7 was the legacy default and tended to deflect). A user's own
     # default_model_id, then an explicit per-matter choice, override this.
-    default_model_id: str = "claude-sonnet-4-6"
+    default_model_id: str = "claude-sonnet-5"
 
     # Retrieval embedding backend. "fastembed" (default) runs a local,
     # keyless ONNX model (BAAI/bge-small-en-v1.5, 384-dim) so privileged

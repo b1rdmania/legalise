@@ -133,11 +133,19 @@ export async function jsonOrThrow<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Human-readable provider name for UI copy. Covers the brand spellings
+// naive capitalisation gets wrong (OpenAI, OpenRouter).
+export function providerLabel(provider: string): string {
+  if (provider === "openai") return "OpenAI";
+  if (provider === "openrouter") return "OpenRouter";
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
 // Translate a `ProviderUpstreamError` code into a human readable banner
 // string. `{provider}` is substituted with the actual provider name so
-// the same map serves Anthropic, OpenAI, and Ollama.
+// the same map serves Anthropic, OpenAI, OpenRouter, and Ollama.
 export function providerUpstreamMessage(err: ProviderUpstreamError): string {
-  const provider = err.provider.charAt(0).toUpperCase() + err.provider.slice(1);
+  const provider = providerLabel(err.provider);
   switch (err.code) {
     case "provider_invalid_key":
       return `${provider} rejected the API key. Re-check it in Settings.`;

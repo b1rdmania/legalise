@@ -110,6 +110,81 @@ async def test_auth_failure_rejects_and_does_not_persist(persisted):
     assert persisted["persisted"] is False
 
 
+def _openrouter_body(api_key: str = "sk-or-candidate-key") -> UserApiKeyUpsert:
+    return UserApiKeyUpsert(provider="openrouter", api_key=api_key)
+
+
+def _fake_httpx_client(status_code: int | None = 200, raise_exc: Exception | None = None):
+    """Async-context-manager httpx.AsyncClient stand-in whose `get` either
+    returns a response with `status_code` or raises `raise_exc`."""
+    import httpx  # noqa: F401 - mirrors the lazy import in the route
+
+    class _Resp:
+        def __init__(self, code: int) -> None:
+            self.status_code = code
+
+    class _Client:
+        def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+            self.last_url: str | None = None
+            self.last_headers: dict | None = None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc) -> None:  # noqa: ANN002
+            return None
+
+        async def get(self, url, headers=None):  # noqa: ANN001
+            self.last_url = url
+            self.last_headers = headers
+            if raise_exc is not None:
+                raise raise_exc
+            return _Resp(status_code)
+
+    return _Client
+
+
+@pytest.mark.asyncio
+async def test_openrouter_valid_key_persists(persisted):
+    """The OpenRouter probe is a token-free GET /key; a 200 persists."""
+    with patch("httpx.AsyncClient", _fake_httpx_client(status_code=200)):
+        row = await upsert_key(
+            _openrouter_body(), session=_FakeSession(), user=_FakeUser()
+        )
+    assert persisted["persisted"] is True
+    assert row is not None
+
+
+@pytest.mark.asyncio
+async def test_openrouter_auth_failure_rejects_and_does_not_persist(persisted):
+    from fastapi import HTTPException
+
+    with patch("httpx.AsyncClient", _fake_httpx_client(status_code=401)):
+        with pytest.raises(HTTPException) as excinfo:
+            await upsert_key(
+                _openrouter_body(), session=_FakeSession(), user=_FakeUser()
+            )
+
+    assert excinfo.value.status_code == 400
+    assert "rejected" in excinfo.value.detail
+    assert persisted["persisted"] is False
+
+
+@pytest.mark.asyncio
+async def test_openrouter_transient_failure_still_persists(persisted):
+    import httpx
+
+    with patch(
+        "httpx.AsyncClient",
+        _fake_httpx_client(raise_exc=httpx.ConnectError("unreachable")),
+    ):
+        row = await upsert_key(
+            _openrouter_body(), session=_FakeSession(), user=_FakeUser()
+        )
+    assert persisted["persisted"] is True
+    assert row is not None
+
+
 @pytest.mark.asyncio
 async def test_transient_failure_still_persists(persisted):
     async def _transient(self, prompt, *, system=None, **kwargs):  # noqa: ANN001

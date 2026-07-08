@@ -14,6 +14,7 @@ import {
   ProviderKeyMissingError,
   ProviderUpstreamError,
   providerKeyMissingFromBody,
+  providerLabel,
   providerUpstreamMessage,
   tryParseProviderUpstream,
   type AssistantMessage,
@@ -2042,10 +2043,6 @@ function RailPanel({
       <div className="mt-3">{children}</div>
     </section>
   );
-}
-
-function providerLabel(provider: string): string {
-  return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
 
 function formatError(err: unknown): string {

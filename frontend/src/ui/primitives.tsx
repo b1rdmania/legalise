@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { providerLabel } from "../lib/api/_core";
 
 export const inputCls =
   "bg-paper border border-rule rounded-item px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
@@ -11,7 +12,7 @@ export const primaryBtn =
 // link to `/settings/keys` is what makes this a one-click resolution
 // instead of a dead-end blob.
 export function ProviderKeyMissingBanner({ provider }: { provider: string }) {
-  const label = provider.charAt(0).toUpperCase() + provider.slice(1);
+  const label = providerLabel(provider);
   return (
     <div className="border border-ink p-3 my-3 text-sm">
       <div className="font-semibold text-ink mb-1">{label} API key required</div>

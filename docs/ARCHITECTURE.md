@@ -308,8 +308,11 @@ All LLM traffic leaves through one chokepoint —
 directly; this is the only place matter content crosses to a third party
 (the single egress in `docs/THREAT_MODEL.md`).
 
-- **Providers:** Anthropic and OpenAI (keyed), Ollama (local, keyless),
-  plus a deterministic `stub-echo` provider for smoke tests and the demo.
+- **Providers:** Anthropic, OpenAI, and OpenRouter (keyed), Ollama
+  (local, keyless), plus a deterministic `stub-echo` provider for smoke
+  tests and the demo. OpenRouter (ADR-011) is BYO-key only, takes
+  slash-form model ids ("anthropic/claude-sonnet-5"), and pins
+  `provider.data_collection = "deny"` on every request.
 - **BYO key, no server-paid keys in prod.** User keys are stored encrypted
   per user (`backend/app/core/user_keys.py`, AES-256-GCM), decrypted for a
   single call. A server fallback key is used **only** in a dev environment
@@ -326,8 +329,8 @@ directly; this is the only place matter content crosses to a third party
   emit `model.call.error` via `audit_failure`.
 
 The matter default is the recommended Anthropic model (currently
-`claude-sonnet-4-6`, in `config.py` / `matter.py`) — per-matter,
-overridable, refreshed as model ids advance.
+`claude-sonnet-5`, the reference model, in `config.py` / `matter.py`) —
+per-matter, overridable, refreshed as model ids advance.
 
 ---
 

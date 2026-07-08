@@ -17,6 +17,11 @@ def test_required_provider_property_matches_gateway() -> None:
     # Pure property — no DB. The mapping is the gateway's, not a copy.
     assert Matter(default_model_id="claude-opus-4-7").required_provider == "anthropic"
     assert Matter(default_model_id="gpt-4o").required_provider == "openai"
+    assert (
+        Matter(default_model_id="anthropic/claude-sonnet-5").required_provider
+        == "openrouter"
+    )
+    assert Matter(default_model_id="openai/gpt-5").required_provider == "openrouter"
     assert Matter(default_model_id="stub-echo").required_provider is None
     assert Matter(default_model_id="ollama-local").required_provider is None
 

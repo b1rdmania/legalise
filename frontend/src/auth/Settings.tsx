@@ -293,7 +293,7 @@ function SettingsProfile({
               type="text"
               value={defaultModel}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultModel(e.target.value)}
-              placeholder="claude-sonnet-4-6"
+              placeholder="claude-sonnet-5"
               className={inputCls + " tech-token"}
             />
           )}
@@ -474,6 +474,12 @@ function DefaultModelPicker() {
               </button>
             );
           })}
+          {models.some((m) => m.provider === "openrouter") && (
+            <p className="mt-1 text-xs text-muted">
+              Other models run through OpenRouter. Citation behaviour is
+              verified on the reference model only.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -482,7 +488,7 @@ function DefaultModelPicker() {
 
 function SettingsKeys() {
   const [keys, setKeys] = useState<UserApiKeyRead[] | null>(null);
-  const [provider, setProvider] = useState<"anthropic" | "openai">("anthropic");
+  const [provider, setProvider] = useState<"anthropic" | "openai" | "openrouter">("anthropic");
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -541,9 +547,9 @@ function SettingsKeys() {
         <SectionRule label="Provider keys" />
         <p className="prose-p mb-0 mt-3">
         The hosted site has no shared production model key. To run real
-        model calls, bring your own Anthropic or OpenAI key. Keys are
-        encrypted and used only for your requests — Legalise does not
-        resell model access.
+        model calls, bring your own Anthropic, OpenAI, or OpenRouter key.
+        Keys are encrypted and used only for your requests — Legalise does
+        not resell model access.
         </p>
       </div>
 
@@ -574,7 +580,9 @@ function SettingsKeys() {
                       ? "Claude models"
                       : k.provider === "openai"
                         ? "GPT models"
-                        : "model calls"}
+                        : k.provider === "openrouter"
+                          ? "many models, one key"
+                          : "model calls"}
                   </span>
                 </span>
                 <span className="text-muted">{k.created_at.slice(0, 10)}</span>
@@ -602,15 +610,16 @@ function SettingsKeys() {
         </p>
         <Field
           label="Provider"
-          hint="Anthropic key is used by Claude models; OpenAI key by GPT models"
+          hint="Anthropic key is used by Claude models; OpenAI key by GPT models; an OpenRouter key runs the (via OpenRouter) models"
         >
           <select
             value={provider}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setProvider(e.target.value as "anthropic" | "openai")}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setProvider(e.target.value as "anthropic" | "openai" | "openrouter")}
             className={inputCls}
           >
             <option value="anthropic">Anthropic — used by Claude models</option>
             <option value="openai">OpenAI — used by GPT models</option>
+            <option value="openrouter">OpenRouter - one key, many models</option>
           </select>
         </Field>
         <Field label="API key" hint="stored encrypted; the full key is never shown after submission">
