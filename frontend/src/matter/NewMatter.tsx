@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { createMatter, listModels, type ModelOption } from "../lib/api";
+import { createMatter, listModels, providerLabel, type ModelOption } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
 import { navigate } from "../lib/route";
 import type { ReactNode } from "react";
@@ -30,7 +30,7 @@ const CAUSE_PREFILL: Record<string, string> = {
 // Aligned with the catalog's recommended default. Only used until
 // /api/models responds (or if it never does); once the list arrives the
 // recommended/usable model wins.
-const FALLBACK_MODEL_ID = "claude-sonnet-4-6";
+const FALLBACK_MODEL_ID = "claude-sonnet-5";
 
 // Ledger-label form field (DESIGN.md P27): labels carry the 0.18em
 // clerk's-ledger tier rather than the generic eyebrow-sm.
@@ -215,9 +215,7 @@ export function NewMatter() {
             >
               {models.map((m) => {
                 const needsKey = m.requires_key && !m.key_configured;
-                const provider = m.provider
-                  ? m.provider.charAt(0).toUpperCase() + m.provider.slice(1)
-                  : "";
+                const provider = m.provider ? providerLabel(m.provider) : "";
                 return (
                   <option key={m.id} value={m.id} disabled={needsKey}>
                     {m.label}
@@ -226,6 +224,12 @@ export function NewMatter() {
                 );
               })}
             </select>
+          )}
+          {models !== null && models.some((m) => m.provider === "openrouter") && (
+            <p className="text-xs text-muted">
+              Other models run through OpenRouter. Citation behaviour is
+              verified on the reference model only.
+            </p>
           )}
           {selectedNeedsKey && (
             <p className="text-xs text-muted">

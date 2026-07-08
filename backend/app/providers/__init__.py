@@ -22,6 +22,7 @@ from app.core.model_gateway import ModelGateway
 from app.providers.anthropic_provider import AnthropicProvider
 from app.providers.ollama_provider import OllamaProvider
 from app.providers.openai_provider import OpenAIProvider
+from app.providers.openrouter_provider import OpenRouterProvider
 
 logger = structlog.get_logger()
 
@@ -75,6 +76,12 @@ async def register_providers(gateway: ModelGateway) -> list[str]:
     gateway.register(OpenAIProvider(api_key=settings.openai_api_key))
     registered.append("openai")
 
+    # OpenRouter is BYO-key only — constructed with no fallback key on
+    # purpose. There is no server-side OpenRouter key, not even the
+    # dev-only env fallback the other keyed providers get.
+    gateway.register(OpenRouterProvider(api_key=None))
+    registered.append("openrouter")
+
     if settings.ollama_url and await _probe_ollama(settings.ollama_url):
         gateway.register(OllamaProvider(base_url=settings.ollama_url))
         registered.append("ollama")
@@ -83,4 +90,10 @@ async def register_providers(gateway: ModelGateway) -> list[str]:
     return registered
 
 
-__all__ = ["register_providers", "AnthropicProvider", "OpenAIProvider", "OllamaProvider"]
+__all__ = [
+    "register_providers",
+    "AnthropicProvider",
+    "OpenAIProvider",
+    "OpenRouterProvider",
+    "OllamaProvider",
+]

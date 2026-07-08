@@ -12,7 +12,7 @@ export interface UserApiKeyRead {
 export const listApiKeys = () =>
   apiFetch(`${API}/settings/keys`).then((r) => jsonOrThrow<UserApiKeyRead[]>(r));
 
-export const upsertApiKey = (provider: "anthropic" | "openai", apiKey: string) =>
+export const upsertApiKey = (provider: "anthropic" | "openai" | "openrouter", apiKey: string) =>
   apiFetch(`${API}/settings/keys`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

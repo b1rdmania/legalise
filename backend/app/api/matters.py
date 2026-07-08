@@ -110,7 +110,8 @@ class MatterRead(BaseModel):
     pivot_fact: str | None
     privilege_posture: str
     default_model_id: str
-    # Keyed provider the default model needs ("anthropic"/"openai"), or
+    # Keyed provider the default model needs ("anthropic"/"openai"/
+    # "openrouter"), or
     # null for keyless models. Frontend reads this for run-readiness
     # instead of re-deriving model families.
     required_provider: str | None
@@ -140,7 +141,7 @@ class MatterModelPatch(BaseModel):
 class ModelCatalogEntryRead(BaseModel):
     id: str
     label: str
-    # "anthropic" | "openai" | "ollama" | "none"
+    # "anthropic" | "openai" | "openrouter" | "ollama" | "none"
     provider: str
     requires_key: bool
     note: str
@@ -273,7 +274,7 @@ async def list_models(
 
     Each entry is annotated with `key_configured` against THIS user's
     stored provider keys: keyless models (provider "ollama"/"none") are
-    always ready; keyed models (anthropic/openai) are ready only when the
+    always ready; keyed models (anthropic/openai/openrouter) are ready only when the
     user has a stored key for that provider.
     """
     rows = await session.scalars(

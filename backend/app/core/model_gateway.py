@@ -1,4 +1,4 @@
-"""Model gateway — privilege-aware routing across Anthropic, OpenAI, Ollama.
+"""Model gateway — privilege-aware routing across Anthropic, OpenAI, OpenRouter, Ollama.
 
 Every call writes an `AuditEntry` row with prompt/response hashes, model used,
 token count and latency. Privilege posture gates which provider can serve the
@@ -39,7 +39,9 @@ from app.models import Matter
 
 # Providers that require a per-user (or server-fallback) API key. Ollama
 # and stub-echo run keyless; everything else routes through user_keys.
-_KEYED_PROVIDERS = {"anthropic", "openai"}
+# OpenRouter is BYO-key only: there is no server-side OpenRouter key,
+# not even as a dev fallback.
+_KEYED_PROVIDERS = {"anthropic", "openai", "openrouter"}
 _DEV_ENVIRONMENTS = {"development", "dev", "local"}
 
 
@@ -52,6 +54,11 @@ def provider_for_model(model_id: str | None) -> str | None:
     """
     if not model_id:
         return None
+    # Slash-form ids are OpenRouter model slugs ("anthropic/claude-sonnet-5",
+    # "openai/gpt-5"). Bare claude-*/gpt-* ids keep routing direct to the
+    # provider's own API, as before.
+    if "/" in model_id:
+        return "openrouter"
     if model_id.startswith("claude-"):
         return "anthropic"
     if model_id.startswith("gpt-"):
@@ -298,7 +305,12 @@ class ModelGateway:
             # probe reachability synchronously, so we trust the requested
             # model unless it's obviously frontier and a local exists.
             local = self._providers.get("ollama")
-            if local is not None and requested.startswith(("claude-", "gpt-")):
+            # Frontier ids: bare claude-*/gpt-* and OpenRouter slash-form
+            # slugs. All of them leave the tenant, so B_mixed prefers the
+            # local provider for the lot.
+            if local is not None and (
+                requested.startswith(("claude-", "gpt-")) or "/" in requested
+            ):
                 return local
         # Map a model id (e.g. claude-opus-4-7) onto a provider name
         # (anthropic). Without this, a Claude model id falls through to
@@ -395,7 +407,8 @@ class ModelGateway:
         requested = model or settings.default_model_id
         provider = self._select_provider(requested, effective_posture)
 
-        # Per-user key resolution for keyed providers (anthropic, openai).
+        # Per-user key resolution for keyed providers (anthropic, openai,
+        # openrouter).
         # Ollama/stub-echo are keyless. If the user has no key and the
         # dev-only server fallback isn't permitted, raise structured
         # ProviderKeyMissing — routers translate to 422 with a UI nudge.
@@ -420,6 +433,14 @@ class ModelGateway:
             or getattr(provider, "default_model", None)
             or provider.name
         )
+        # OpenRouter reports which model (and which upstream provider)
+        # actually served the call in the response body. The provider
+        # fills this request-scoped out-param; after a successful call
+        # the reported values refine `served_model` and land in the
+        # audit payload as `upstream_provider`.
+        served_meta: dict = {}
+        if provider.name == "openrouter":
+            provider_kwargs["meta_out"] = served_meta
         if provider.name in _KEYED_PROVIDERS:
             user_key: str | None = None
             if actor_id is not None:
@@ -516,6 +537,13 @@ class ModelGateway:
         if provider.name in _KEYED_PROVIDERS and actor_id is not None and "api_key" in provider_kwargs:
             await mark_user_key_used(session, actor_id, provider.name)
 
+        # Served-model refinement (OpenRouter): trust the response body's
+        # `model` field over the requested slug — that is what audit rows
+        # must record. `requested_model` in the payload keeps the
+        # requested-vs-served distinction legible (PR #248).
+        if served_meta.get("served_model"):
+            served_model = served_meta["served_model"]
+
         result = ModelResult(
             text=response_text,
             model_used=served_model,
@@ -552,6 +580,14 @@ class ModelGateway:
                 "requested_model": requested,
                 "provider": provider.name,
                 "posture": effective_posture.value,
+                # Upstream provider that served the call via OpenRouter,
+                # when the response reported one. Lives in the payload
+                # JSON so no audit-schema change is needed.
+                **(
+                    {"upstream_provider": served_meta["upstream_provider"]}
+                    if served_meta.get("upstream_provider")
+                    else {}
+                ),
                 **(payload or {}),
             },
         )

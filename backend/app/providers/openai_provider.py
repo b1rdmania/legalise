@@ -51,6 +51,38 @@ class OpenAIProvider:
         # when the caller didn't pass one.
         self.default_model = default_model
 
+    def _make_client(self, api_key: str) -> AsyncOpenAI:
+        """Build the SDK client. Subclasses (OpenRouter) override to set a
+        different base_url and attribution headers."""
+        return AsyncOpenAI(api_key=api_key)
+
+    def _request_extras(self) -> dict:
+        """Extra kwargs merged into every chat.completions.create call.
+
+        Subclasses use this to pin request-body fields the wire format
+        requires (OpenRouter's `provider.data_collection` routing pin).
+        """
+        return {}
+
+    @staticmethod
+    def _capture_meta(obj: object, meta: object) -> None:
+        """Record served-model metadata from a response (or stream chunk)
+        into the gateway-supplied `meta_out` dict, when one was passed.
+
+        `model` is the model that actually served the call; `provider`
+        (OpenRouter only) is the upstream provider name. Both are absent
+        on plain OpenAI responses' chunks sometimes, so only truthy
+        values are recorded.
+        """
+        if not isinstance(meta, dict):
+            return
+        served = getattr(obj, "model", None)
+        if served:
+            meta["served_model"] = served
+        upstream = getattr(obj, "provider", None)
+        if upstream and isinstance(upstream, str):
+            meta["upstream_provider"] = upstream
+
     async def call(
         self, prompt: str, *, system: str | None = None, **kwargs
     ) -> tuple[str, int, int]:
@@ -61,9 +93,12 @@ class OpenAIProvider:
         # The returned text is the concatenation of exactly those deltas;
         # finish_reason and usage arrive on the stream's final chunks.
         on_delta = kwargs.get("on_delta")
+        # Gateway-supplied out-param: filled with the served model (and,
+        # for OpenRouter, the upstream provider) read off the response.
+        meta_out = kwargs.get("meta_out")
         if not api_key:
-            raise RuntimeError("openai: no api_key supplied")
-        client = AsyncOpenAI(api_key=api_key)
+            raise RuntimeError(f"{self.name}: no api_key supplied")
+        client = self._make_client(api_key)
 
         messages: list[dict] = []
         if system:
@@ -76,11 +111,13 @@ class OpenAIProvider:
                     model=model,
                     max_tokens=max_tokens,
                     messages=messages,
+                    **self._request_extras(),
                 )
                 choice = response.choices[0]
                 finish_reason = getattr(choice, "finish_reason", None)
                 text = choice.message.content or ""
                 usage = response.usage
+                self._capture_meta(response, meta_out)
             else:
                 stream = await client.chat.completions.create(
                     model=model,
@@ -88,11 +125,13 @@ class OpenAIProvider:
                     messages=messages,
                     stream=True,
                     stream_options={"include_usage": True},
+                    **self._request_extras(),
                 )
                 parts: list[str] = []
                 finish_reason = None
                 usage = None
                 async for chunk in stream:
+                    self._capture_meta(chunk, meta_out)
                     if chunk.choices:
                         chunk_choice = chunk.choices[0]
                         delta = getattr(chunk_choice, "delta", None)
@@ -107,26 +146,26 @@ class OpenAIProvider:
                 text = "".join(parts)
         except APIStatusError as exc:
             logger.exception(
-                "legalise.provider.openai.error",
+                f"legalise.provider.{self.name}.error",
                 model=model,
                 upstream_status=exc.status_code,
             )
-            raise _translate_status_error("openai", exc) from exc
+            raise _translate_status_error(self.name, exc) from exc
         except APIConnectionError as exc:
-            logger.exception("legalise.provider.openai.connection_error", model=model)
+            logger.exception(f"legalise.provider.{self.name}.connection_error", model=model)
             raise ProviderUpstreamError(
-                provider="openai",
+                provider=self.name,
                 code="provider_error",
                 upstream_status=None,
-                message=f"openai: connection error: {exc}",
+                message=f"{self.name}: connection error: {exc}",
             ) from exc
         except Exception as exc:
-            logger.exception("legalise.provider.openai.error", model=model)
+            logger.exception(f"legalise.provider.{self.name}.error", model=model)
             raise ProviderUpstreamError(
-                provider="openai",
+                provider=self.name,
                 code="provider_error",
                 upstream_status=None,
-                message=f"openai: {type(exc).__name__}: {exc}",
+                message=f"{self.name}: {type(exc).__name__}: {exc}",
             ) from exc
 
         # A hard stop at the output cap means the response is incomplete —
@@ -134,12 +173,12 @@ class OpenAIProvider:
         # half-written body that fails its JSON-envelope parse downstream.
         if finish_reason == "length":
             logger.warning(
-                "legalise.provider.openai.truncated",
+                f"legalise.provider.{self.name}.truncated",
                 model=model,
                 max_tokens=max_tokens,
             )
             raise ProviderUpstreamError(
-                provider="openai",
+                provider=self.name,
                 code="provider_truncated",
                 upstream_status=None,
                 message=(

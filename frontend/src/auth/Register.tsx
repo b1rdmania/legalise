@@ -53,7 +53,7 @@ export function Register() {
     <AuthCard
       eyebrow="The workspace"
       heading="Create an account"
-      intro="Evaluation access. Bring your own Anthropic / OpenAI key, or use the keyless demo model. Not for live client matters."
+      intro="Evaluation access. Bring your own Anthropic, OpenAI, or OpenRouter key, or use the keyless demo model. Not for live client matters."
     >
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <LedgerField label="Name" htmlFor="reg-name">

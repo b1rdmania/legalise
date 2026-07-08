@@ -10,14 +10,20 @@ Each entry carries:
     id            the model id stored on the matter (``default_model_id``)
     label         human-readable name for the picker
     provider      gateway provider name the id routes to —
-                  "anthropic" | "openai" | "ollama" | "none"
+                  "anthropic" | "openai" | "openrouter" | "ollama" | "none"
     requires_key  True if a per-user provider key must be configured
     note          short one-line hint shown beside the entry
 
 Provider values are kept consistent with
-``app.core.model_gateway.provider_for_model`` (claude-* -> anthropic,
-gpt-* -> openai, keyless otherwise). To add or retire a model, edit
-``_CATALOG`` below — nothing else needs to change.
+``app.core.model_gateway.provider_for_model`` (slash-form ids ->
+openrouter, claude-* -> anthropic, gpt-* -> openai, keyless otherwise).
+To add or retire a model, edit ``_CATALOG`` below — nothing else needs
+to change.
+
+Reference-model policy: Legalise is built and tested against Claude
+Sonnet 5. Other models run (via their own provider or an OpenRouter
+key) but are available, not endorsed — citation behaviour is verified
+on the reference model only.
 """
 
 from __future__ import annotations
@@ -39,6 +45,14 @@ class ModelEntry:
 _CATALOG: list[ModelEntry] = [
     # --- Anthropic (claude-* -> anthropic, requires a user key) ----------
     ModelEntry(
+        id="claude-sonnet-5",
+        label="Claude Sonnet 5 - reference model",
+        provider="anthropic",
+        requires_key=True,
+        note="Legalise is built and tested against Sonnet 5. Runs on your Anthropic key.",
+        recommended=True,
+    ),
+    ModelEntry(
         id="claude-opus-4-8",
         label="Claude Opus 4.8 — most capable",
         provider="anthropic",
@@ -50,8 +64,7 @@ _CATALOG: list[ModelEntry] = [
         label="Claude Sonnet 4.6 — balanced",
         provider="anthropic",
         requires_key=True,
-        note="Strong quality at lower cost and latency. Recommended default.",
-        recommended=True,
+        note="Previous default; superseded by Sonnet 5.",
     ),
     ModelEntry(
         id="claude-haiku-4-5",
@@ -83,6 +96,30 @@ _CATALOG: list[ModelEntry] = [
         provider="openai",
         requires_key=True,
         note="Cheaper, faster OpenAI tier.",
+    ),
+    # --- OpenRouter (slash-form ids -> openrouter, one key, many models).
+    # Curated, not exhaustive. Requests are privacy-pinned: routing only
+    # to endpoints that do not train on or retain prompts.
+    ModelEntry(
+        id="anthropic/claude-sonnet-5",
+        label="Claude Sonnet 5 (via OpenRouter)",
+        provider="openrouter",
+        requires_key=True,
+        note="The reference model on an OpenRouter key.",
+    ),
+    ModelEntry(
+        id="openai/gpt-5",
+        label="GPT-5 (via OpenRouter)",
+        provider="openrouter",
+        requires_key=True,
+        note="OpenAI flagship on an OpenRouter key.",
+    ),
+    ModelEntry(
+        id="deepseek/deepseek-r1",
+        label="DeepSeek R1 (via OpenRouter)",
+        provider="openrouter",
+        requires_key=True,
+        note="Strong open-weights reasoning model on an OpenRouter key.",
     ),
     # --- Local (Ollama, keyless, in-tenant) ------------------------------
     ModelEntry(

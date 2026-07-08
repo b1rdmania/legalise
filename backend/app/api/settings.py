@@ -30,12 +30,16 @@ from app.models import User, UserApiKey
 router = APIRouter()
 
 
-SUPPORTED_PROVIDERS = ("anthropic", "openai")
-Provider = Literal["anthropic", "openai"]
+SUPPORTED_PROVIDERS = ("anthropic", "openai", "openrouter")
+Provider = Literal["anthropic", "openai", "openrouter"]
 
 # Providers verified with a live probe at save time. Keyless providers
 # (ollama, stub-echo) never reach this router and need no verification.
-_VERIFIABLE_PROVIDERS = {"anthropic", "openai"}
+_VERIFIABLE_PROVIDERS = {"anthropic", "openai", "openrouter"}
+
+# OpenRouter exposes a dedicated key endpoint — an authenticated GET is
+# the cheapest possible validity check (no tokens spent).
+_OPENROUTER_KEY_URL = "https://openrouter.ai/api/v1/key"
 
 
 async def _verify_provider_key(provider: str, api_key: str) -> None:
@@ -54,6 +58,28 @@ async def _verify_provider_key(provider: str, api_key: str) -> None:
         unreachable.
       - success -> return cleanly.
     """
+    if provider == "openrouter":
+        # Cheaper than a model call: GET /key with the candidate key is
+        # OpenRouter's own auth check and spends no tokens.
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(
+                    _OPENROUTER_KEY_URL,
+                    headers={"Authorization": f"Bearer {api_key}"},
+                )
+        except httpx.HTTPError:
+            # Transient — don't block the save because OpenRouter is
+            # momentarily unreachable.
+            return
+        if resp.status_code in (401, 403):
+            raise HTTPException(
+                400,
+                f"the key was rejected by {provider}; check it and try again",
+            )
+        return
+
     if provider == "anthropic":
         from app.providers.anthropic_provider import AnthropicProvider
 

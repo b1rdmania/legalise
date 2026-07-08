@@ -28,6 +28,7 @@ import {
   listInstalledModules,
   ModuleDisabledError,
   ModuleNotInstalledError,
+  providerLabel as sharedProviderLabel,
   revokeGrant,
   type GrantRow,
   type InstalledModule,
@@ -170,7 +171,7 @@ function readinessFor(opts: {
     };
   }
 
-  const providerLabel = provider.charAt(0).toUpperCase() + provider.slice(1);
+  const providerLabel = sharedProviderLabel(provider);
   if (opts.keyQuery.status === "loading") {
     return {
       disabled: true,

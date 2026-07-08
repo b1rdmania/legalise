@@ -16,3 +16,4 @@ claims verified against master as of 2026-07-05.
 - [ADR-008](./ADR-008-register-sidecar-provenance.md) — The register sidecar: three-grade provenance for external exports
 - [ADR-009](./ADR-009-model-gateway.md) — One model gateway: passthrough + audit-stamping contract
 - [ADR-010](./ADR-010-fail-closed-deletes.md) — Fail-closed deletes and the tombstone lifecycle
+- [ADR-011](./ADR-011-openrouter.md) — OpenRouter as a BYO-key provider
