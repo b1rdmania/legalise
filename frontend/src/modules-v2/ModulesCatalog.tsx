@@ -532,7 +532,22 @@ export function ModulesCatalog() {
             />
             <SourceRoute
               name="Any public GitHub repo"
-              body="Needs a SKILL.md file at the top of the repo. We pin the exact version you imported."
+              body={
+                <>
+                  Needs a SKILL.md file at the top of the repo. We pin the
+                  exact version you imported. Community-built skills are
+                  indexed in the{" "}
+                  <a
+                    href="https://github.com/b1rdmania/legalise/blob/master/docs/CATALOGUE.md"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+                  >
+                    community catalogue
+                  </a>
+                  .
+                </>
+              }
             />
             <SourceRoute
               name={
@@ -682,7 +697,7 @@ export function ModulesCatalog() {
 
 
 /** One admission route in the "Where skills come from" strip. */
-function SourceRoute({ name, body }: { name: ReactNode; body: string }) {
+function SourceRoute({ name, body }: { name: ReactNode; body: ReactNode }) {
   return (
     <div className="bg-paper p-4">
       <h3 className="text-sm font-semibold text-ink">{name}</h3>

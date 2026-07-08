@@ -1,0 +1,47 @@
+name: Skill submission
+description: Add your skill to the community catalogue. Your skill stays in your repo; the catalogue links to it at a pinned ref.
+labels: ["skill-catalogue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Skills live in your own repository and import into Legalise through the trust ceremony.
+        Getting listed is a one-row PR to [`docs/CATALOGUE.md`](https://github.com/b1rdmania/legalise/blob/master/docs/CATALOGUE.md).
+        This issue form is the pre-flight: we check the ground rules together before you open the PR.
+        Authoring guide: [`docs/BUILDING_SKILLS.md`](https://github.com/b1rdmania/legalise/blob/master/docs/BUILDING_SKILLS.md).
+  - type: input
+    id: repo
+    attributes:
+      label: Skill repository
+      description: Public GitHub repo containing a SKILL.md at the root (or a /tree/ URL to a subdirectory).
+      placeholder: https://github.com/you/your-skill
+    validations:
+      required: true
+  - type: textarea
+    id: what-it-does
+    attributes:
+      label: What it does
+      description: One or two sentences. What matter context does it read, what does it produce?
+    validations:
+      required: true
+  - type: checkboxes
+    id: ground-rules
+    attributes:
+      label: Ground rules
+      options:
+        - label: England & Wales jurisdiction. Every legal assertion cites authority (statutes by short title and section, rules by CPR Part, cases by neutral citation).
+          required: true
+        - label: The output is a draft for solicitor review, and the SKILL.md says so. Nothing softens the sign-off assumption.
+          required: true
+        - label: I verified every legal citation manually, including any drafted with AI assistance.
+          required: true
+        - label: The skill is prompt-runtime only. It declares what it reads and writes; it does not ask users to run scripts.
+          required: true
+  - type: textarea
+    id: test-notes
+    attributes:
+      label: Import test
+      description: Confirm you imported it into a local Legalise via GitHub import and walked the trust ceremony. Note anything the ceremony flagged.
+      placeholder: Imported at commit abc1234, 7-step inspection, no permission warnings.
+    validations:
+      required: true
