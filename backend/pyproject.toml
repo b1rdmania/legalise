@@ -1,6 +1,6 @@
 [project]
 name = "legalise-backend"
-version = "0.2.1"
+version = "0.2.2"
 description = "Legalise — UK legal AI workspace backend"
 # No `readme` field: the canonical README lives at the repo root, which is
 # outside the backend Docker build context (`../backend`). Adding `readme`

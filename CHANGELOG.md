@@ -6,16 +6,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-### Docs
-- README: eval-release warning raised to a callout at the top; "Try it" updated (hosted access is by request, not "paused"); positioning tightened to "UK legal AI".
-- ARCHITECTURE: default-model note made version-agnostic (was a stale `claude-opus-4-7`).
+## [0.2.2] — 2026-07-09
+
+Not a feature release — a hygiene checkpoint before an evaluation walkthrough.
+Self-serve signup and streaming chat landed since 0.2.1; the rest is
+hardening, public-positioning honesty passes, and test-suite cleanup.
 
 ### Added
-- `MIGRATION_DSN` — a privileged DSN for `alembic`, so the app can run under a reduced-privilege role (the WORM role split) while migrations keep DDL authority. Unset = use `POSTGRES_DSN` (single-role deployments unchanged).
+- **Self-serve signup** — public `/auth/signup` register form with email
+  verification (24h token), fork-first framing.
+- **OpenRouter** as a BYO-key provider, Sonnet 5 as the reference model.
+- **Token-by-token streaming** chat answers; **Stop** and **Regenerate**
+  turn controls; doc-count popover in the chat header.
+- **Save assistant replies as draft outputs** directly from chat.
+- **Mobile thread control** — dropdown + New chat on small screens.
+- Matter **export carries the audit hash chain** plus an offline verifier
+  (F5), and 10 ADRs (`docs/adr/ADR-001` to `ADR-010`) documenting why the
+  system is shaped the way it is.
+- `MIGRATION_DSN` — a privileged DSN for `alembic`, so the app can run
+  under a reduced-privilege role (the WORM role split) while migrations
+  keep DDL authority. Unset = use `POSTGRES_DSN` (single-role deployments
+  unchanged).
+- Contributor onramp: community skill catalogue, skill-authoring guide,
+  contribution ladder.
+
+### Changed
+- Design-audit pass across matters/chat/skill-library/activity surfaces:
+  consolidated header tiers, mobile drawer scrim + focus trap, role
+  display words instead of enum tokens in the posture banner, doc-viewer
+  command row, Outputs page renamed to match what it holds.
+- Skill library redesigned: sources story, categorised catalogue,
+  plain-English pass.
+- Public docs (README, EVALUATING, ARCHITECTURE) rewritten across several
+  honesty passes — gaps and caveats led with, stale claims fixed, internal
+  build scaffolding (`PRODUCT_PLAN.md`) dropped from the public repo.
+
+### Security / Hardening
+- Login throttle, keyless-path limits, and model-passthrough hardening on
+  the backend launch surface.
+- Module install fast path now gated on cryptographic `VERIFIED` status
+  only; native skills whose entrypoint can't run on the deployment are
+  refused rather than silently failing later.
+- Provenance grading (`verified_at_source`) now requires an actual
+  byte-match check instead of trusting the claim.
+- Patched 4 dev-tooling advisories (`vite`, `undici`, `@babel/core`,
+  `js-yaml`) — all transitive dev deps of vite/vitest/eslint/jsdom, not
+  runtime dependencies. `npm audit`: 0 vulnerabilities.
 
 ### Fixed
-- `doctor` masked the DB/Redis password in `db.reachable` / `redis.reachable` output (it was printing full DSNs).
-- `doctor` s3 check now round-trips an object on the configured bucket instead of calling `list_buckets()`, which a least-privilege (bucket-scoped) Cloudflare R2 token correctly denies — it was reporting `AccessDenied` / "storage down" while uploads actually worked.
+- `doctor` masked the DB/Redis password in `db.reachable` /
+  `redis.reachable` output (it was printing full DSNs).
+- `doctor` s3 check now round-trips an object on the configured bucket
+  instead of calling `list_buckets()`, which a least-privilege
+  (bucket-scoped) Cloudflare R2 token correctly denies — it was reporting
+  `AccessDenied` / "storage down" while uploads actually worked.
+- Background document-index jobs no longer block matter deletion.
+- Chronology rebuild deduplicates instead of re-proposing existing events.
+- Sandbox module tests were failing locally on macOS (not in CI): `RLIMIT_AS`
+  on Darwin counts mapped shared-library address space against the cap,
+  breaking `exec()` in the child. Marked Darwin-skipped with the real
+  reason instead of left as unexplained local failures.
+- Frontend Docker image (`node:22-slim`) had drifted from the Node 20 CI
+  pin, with nothing local to catch it — added `.nvmrc` and an `engines`
+  field, realigned the Dockerfile.
+
+### Tests
+- Split 4 oversized test files (1100–1650 lines each) by behavior area:
+  `test_assistant_pipeline.py`, `DocumentDetail.test.tsx`,
+  `AssistantTab.test.tsx`, `DocumentRichEditor.test.tsx`.
+- Collapsed near-duplicate ACL/gate test clusters — 12 "canonical
+  scenario" advice-boundary tests, 2 route-ACL 404 clusters, 6
+  malformed-cursor tests — into `pytest.mark.parametrize` tables. No
+  scenario dropped; backend collection count unchanged at 993.
+
+### Docs
+- `docs/README.md` front-door index now includes `LIMITATIONS.md` and
+  `docs/adr/`, matching what the root README already treats as core
+  evaluator reading.
 
 ## [0.2.1] — 2026-06-30
 
