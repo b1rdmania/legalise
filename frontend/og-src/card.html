@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Legalise og card — screenshot at 1200x630 headless Chrome</title>
+<!--
+  Regenerate:
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+    --disable-gpu --hide-scrollbars --window-size=1200,630 --force-device-scale-factor=1 \
+    --virtual-time-budget=3000 --screenshot=og-card-v3.png "file://$PWD/card.html"
+  then move the PNG into frontend/public/ and bump the filename in index.html
+  (new filename = cache bust for LinkedIn/Twitter scrapers).
+-->
+<style>
+  @font-face {
+    font-family: 'Redaction 35';
+    src: url('../public/fonts/redaction/Redaction_35-Regular.woff2') format('woff2');
+    font-weight: 400;
+  }
+  @font-face {
+    font-family: 'Redaction 35';
+    src: url('../public/fonts/redaction/Redaction_35-Bold.woff2') format('woff2');
+    font-weight: 700;
+  }
+  @font-face {
+    font-family: 'Redaction';
+    src: url('../public/fonts/redaction/Redaction-Regular.woff2') format('woff2');
+    font-weight: 400;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: #f4f0e7;
+    color: #1a1a18;
+    display: flex; flex-direction: column;
+  }
+  .main {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 34px;
+    padding-bottom: 10px;
+  }
+  .mark { width: 68px; height: 68px; }
+  .wordmark {
+    font-family: 'Redaction 35', serif; font-weight: 700;
+    font-size: 110px; line-height: 1; letter-spacing: -0.01em;
+  }
+  .wordmark .dot { color: #8f2016; }
+  .tag {
+    font-family: 'Redaction 35', serif; font-weight: 400;
+    font-size: 44px; line-height: 1.3; text-align: center;
+    max-width: 1040px;
+  }
+  .foot {
+    background: #ebe6d9;
+    padding: 24px 60px;
+    display: flex; justify-content: space-between;
+    font-family: 'Redaction', serif;
+    font-size: 20px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: #6f695e;
+  }
+  .foot .lic { color: #8f2016; }
+</style>
+</head>
+<body>
+  <div class="main">
+    <svg class="mark" viewBox="0 0 64 64" fill="none" stroke="#181818" stroke-width="6" aria-label="Legalise mark">
+      <rect x="8" y="8" width="48" height="48"/>
+      <path d="M18 18 H34 L46 30 V46 H18 Z" fill="#181818" stroke="none"/>
+    </svg>
+    <div class="wordmark">Legalise<span class="dot">.</span></div>
+    <div class="tag">AI can draft the case. It cannot sign it.</div>
+  </div>
+  <div class="foot">
+    <span>github.com/b1rdmania/legalise</span>
+    <span class="lic">Apache 2.0</span>
+  </div>
+</body>
+</html>
