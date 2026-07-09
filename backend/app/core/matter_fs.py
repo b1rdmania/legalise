@@ -6,10 +6,13 @@ Each matter is mirrored to disk under `settings.matters_root/[slug]/`:
                          + markdown body (case theory, pivot fact).
     history.md         — append-only internal log. Every materialise call
                          and every domain event appends one line.
-    chronology.md      — seeded chronology fixture. v0.1 hand-written, v0.2
-                         lifts to live extraction.
-    documents/         — uploaded files (placeholder names in v0.1; binary
-                         storage upgrade lives behind the same path).
+    chronology.md      — written once on matter creation and never updated
+                         after. The real chronology is extracted events in
+                         the database (`app.modules.chronology.build`); this
+                         file is a static disk mirror, not a live view.
+    documents/         — one `.meta` sidecar per document under this path;
+                         binary bytes live in the configured storage backend
+                         (`app.core.storage`), not here.
 
 The schema deliberately matches the Stella matter folder convention
 (`schemas/matter.json`) so a matter can move between workspaces without
@@ -17,7 +20,7 @@ translation.
 
 This module is the only writer of files under `matters_root`. Callers
 invoke `materialise_matter` on create and `append_history` on subsequent
-events; binary document writes are stretch (Week 1 Day 5+).
+events.
 """
 
 from __future__ import annotations
@@ -126,7 +129,8 @@ def materialise_matter(matter: Matter) -> Path:
     if not chron.exists():
         chron.write_text(
             f"# Chronology — {matter.title}\n\n"
-            "Seeded fixture. Live extraction lands v0.2.\n\n"
+            "Static disk mirror, written once. The live chronology is "
+            "extracted events in the database — see the Chronology tab.\n\n"
             "| Date | Event | Source | Significance |\n"
             "|------|-------|--------|--------------|\n",
             encoding="utf-8",
@@ -160,8 +164,9 @@ def record_document(
     tag: str | None,
 ) -> None:
     """Record a document arrival in the matter history and write a metadata
-    placeholder under `documents/` so the folder structure mirrors the
-    domain even when the binary store hasn't landed yet.
+    sidecar under `documents/` so the on-disk folder structure mirrors the
+    domain. Binary bytes live in the configured storage backend
+    (`app.core.storage`), not in this file.
 
     The metadata file is named by the document's primary key — never by the
     user-supplied filename — so attacker-controlled filenames cannot escape

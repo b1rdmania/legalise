@@ -1,3 +1,5 @@
+import { WAITLIST_EMAIL, WAITLIST_MAILTO } from "../lib/access";
+
 export function Waitlist() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
@@ -9,7 +11,7 @@ export function Waitlist() {
         Legalise is open source. The hosted site is an evaluation
         environment — not a live-client product. The guided demo and the
         repository are open now; a hosted evaluation account is by request —
-        email <a href="mailto:andrew@legalise.dev" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">andrew@legalise.dev</a>{" "}
+        email <a href={WAITLIST_MAILTO} className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">{WAITLIST_EMAIL}</a>{" "}
         to run the Khan v Acme sample on the keyless demo model, or with your
         own Anthropic / OpenAI key.
       </p>
@@ -37,7 +39,7 @@ export function Waitlist() {
           >
             Fork on GitHub
           </a>
-          <a href="/auth/signup" className="text-sm text-muted hover:text-ink transition-colors">
+          <a href={WAITLIST_MAILTO} className="text-sm text-muted hover:text-ink transition-colors">
             Request an account
           </a>
         </div>

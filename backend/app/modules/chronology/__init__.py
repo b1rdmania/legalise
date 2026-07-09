@@ -1,1 +1,1 @@
-"""Pre-build placeholder — real implementation lands during v0.1 build."""
+"""Chronology module: extracts dated events from a matter's documents."""

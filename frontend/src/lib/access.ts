@@ -13,7 +13,7 @@ export const HOSTED_ACCESS_WAITLIST =
 
 export const WAITLIST_HREF = "/waitlist";
 
-export const WAITLIST_EMAIL = "hello@legalise.dev";
+export const WAITLIST_EMAIL = "andrew@legalise.dev";
 
 export const WAITLIST_MAILTO =
   `mailto:${WAITLIST_EMAIL}?subject=${encodeURIComponent(

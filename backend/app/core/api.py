@@ -17,13 +17,15 @@ Modules should import only from this file:
 If a primitive you need isn't here, open an issue rather than reaching into
 internals. The contract is part of the platform.
 
-Status (R3, Day 4):
+Status:
 - `model_gateway`  — wired to the real ModelGateway singleton.
 - `audit`          — wired to a thin helper that writes AuditEntry rows.
 - `get_matter`     — wired to a slug-based lookup.
-- `require_matter` — placeholder; FastAPI dependency lands when modules
-                     get their own routers (Day 5).
-- `storage`        — placeholder; lands with MinIO/R2 wiring (Day 5+).
+- `require_matter` — still `None`. Module routers exist now
+                     (`app.modules.*`), but nothing wires this name.
+- `storage`        — still `None`. Real blob storage exists at
+                     `app.core.storage` (S3/MinIO/R2 and a local backend);
+                     it is just never re-exported through this name.
 """
 
 from __future__ import annotations
