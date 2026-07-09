@@ -32,6 +32,7 @@ Plus the matter-context composition test (formerly in
 
 from __future__ import annotations
 
+import dataclasses
 import uuid
 
 import pytest
@@ -196,386 +197,251 @@ async def _make_user(db_session) -> User:
 
 
 # ---------------------------------------------------------------------------
-# Canonical scenario 1: valid transition
+# Canonical scenarios 1-7 + initial-tier + invalid-vocabulary cases,
+# collapsed into one table-driven test. Each row shares the same
+# skeleton: make a user -> call check() -> assert result["allowed"] ->
+# look up the AdviceBoundaryDecision row (when one is expected) ->
+# assert .status -> assert specific gate_state keys -> (sometimes)
+# assert an AuditEntry row exists for a specific action. Rows that
+# don't produce a decision/audit row (role-denial-before-persist,
+# initial-tier-any-authenticated) simply leave those fields unset.
 # ---------------------------------------------------------------------------
 
 
+@dataclasses.dataclass(frozen=True)
+class _CanonicalScenario:
+    id: str
+    requested_tier: str
+    from_tier: str | None
+    actor_role: str | None
+    expected_allowed: bool
+    declared_tier_max: str | None = None
+    # None => don't look up an AdviceBoundaryDecision row at all.
+    expected_status: str | None = None
+    # Subset of gate_state that must match exactly by key.
+    gate_state_equals: dict = dataclasses.field(default_factory=dict)
+    gate_state_required_contains: tuple[str, ...] = ()
+    gate_state_required_not_contains: tuple[str, ...] = ()
+    # Extra attribute checks on the decision row: attr name -> expected value.
+    decision_extra: dict = dataclasses.field(default_factory=dict)
+    # None => don't assert an AuditEntry row exists.
+    audit_action: str | None = None
+    audit_module: str = "core.advice_boundary"
+
+
+_CANONICAL_SCENARIOS = [
+    pytest.param(
+        _CanonicalScenario(
+            id="valid-transition-with-solicitor",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            actor_role="qualified_solicitor",
+            expected_allowed=True,
+            expected_status=DECISION_STATUS_COMPLETED,
+            decision_extra={"actor_role": "qualified_solicitor"},
+            audit_action="advice_boundary.check.completed",
+        ),
+        id="valid-transition-with-solicitor",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="invalid-transition-skipping-supervised",
+            requested_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            actor_role="qualified_solicitor",
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_BLOCKED,
+            gate_state_equals={"blocked_reason": "invalid_transition"},
+            audit_action="advice_boundary.check.blocked",
+        ),
+        id="invalid-transition-skipping-supervised",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="downward-transition",
+            requested_tier=ADVICE_TIER_DRAFT_ADVICE,
+            from_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            actor_role="qualified_solicitor",
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_BLOCKED,
+            gate_state_equals={"blocked_reason": "invalid_transition"},
+        ),
+        id="downward-transition",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="workspace-admin-cannot-promote-draft-to-supervised",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            actor_role="workspace_admin",  # NOT solicitor
+            expected_allowed=False,
+            gate_state_equals={"blocked_reason": "role_denied"},
+            gate_state_required_contains=("qualified_solicitor",),
+            gate_state_required_not_contains=("workspace_admin",),
+        ),
+        id="workspace-admin-cannot-promote-draft-to-supervised",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="role-denied",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            actor_role="paralegal",  # not in the required set
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_DENIED,
+            gate_state_equals={
+                "blocked_reason": "role_denied",
+                "actor_role": "paralegal",
+            },
+            gate_state_required_contains=("qualified_solicitor",),
+            audit_action="advice_boundary.check.denied",
+        ),
+        id="role-denied",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="tier-exceeds-declared-max",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            declared_tier_max=ADVICE_TIER_DRAFT_ADVICE,
+            actor_role="qualified_solicitor",
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_DENIED,
+            gate_state_equals={"blocked_reason": "tier_exceeded"},
+        ),
+        id="tier-exceeds-declared-max",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="null-declared-tier-max-allowed",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            declared_tier_max=None,
+            actor_role="qualified_solicitor",
+            expected_allowed=True,
+            expected_status=DECISION_STATUS_COMPLETED,
+            gate_state_equals={"declared_tier_max_supplied": False},
+            decision_extra={"declared_tier_max": None},
+        ),
+        id="null-declared-tier-max-allowed",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="no-transition-out-of-terminal",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
+            actor_role="workspace_admin",
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_BLOCKED,
+            gate_state_equals={
+                "blocked_reason": "tier_disallowed",
+                "reason": "from_tier_is_terminal",
+            },
+        ),
+        id="no-transition-out-of-terminal",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="initial-tier-creation-with-any-authenticated",
+            requested_tier=ADVICE_TIER_DRAFT_ADVICE,
+            from_tier=None,
+            actor_role="paralegal",
+            expected_allowed=True,
+        ),
+        id="initial-tier-creation-with-any-authenticated",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="initial-tier-supervised-is-not-permitted",
+            requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
+            from_tier=None,
+            actor_role="qualified_solicitor",  # still blocked: tier itself is not a valid initial tier
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_BLOCKED,
+            gate_state_equals={
+                "blocked_reason": "invalid_transition",
+                "reason": "tier_not_permitted_as_initial",
+            },
+        ),
+        id="initial-tier-supervised-is-not-permitted",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="initial-tier-approved-final-is-not-permitted",
+            requested_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
+            from_tier=None,
+            actor_role="workspace_admin",  # still blocked, even for admin
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_BLOCKED,
+            gate_state_equals={
+                "blocked_reason": "invalid_transition",
+                "reason": "tier_not_permitted_as_initial",
+            },
+        ),
+        id="initial-tier-approved-final-is-not-permitted",
+    ),
+    pytest.param(
+        _CanonicalScenario(
+            id="invalid-tier-string-is-failed",
+            requested_tier="not_a_tier",
+            from_tier=ADVICE_TIER_DRAFT_ADVICE,
+            actor_role="qualified_solicitor",
+            expected_allowed=False,
+            expected_status=DECISION_STATUS_FAILED,
+            audit_action="advice_boundary.check.failed",
+        ),
+        id="invalid-tier-string-is-failed",
+    ),
+]
+
+
 @pytest.mark.asyncio
-async def test_canonical_valid_transition_with_solicitor(db_session) -> None:
+@pytest.mark.parametrize("scenario", _CANONICAL_SCENARIOS)
+async def test_canonical_scenarios(db_session, scenario: _CanonicalScenario) -> None:
     user = await _make_user(db_session)
     output_id = f"output-{uuid.uuid4().hex[:8]}"
 
     result = await check(
         db_session,
         output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
+        requested_tier=scenario.requested_tier,
+        from_tier=scenario.from_tier,
+        declared_tier_max=scenario.declared_tier_max,
         actor_user_id=user.id,
-        actor_role="qualified_solicitor",
+        actor_role=scenario.actor_role,
     )
-    assert result["allowed"] is True
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
+    assert result["allowed"] is scenario.expected_allowed
+
+    for key, expected_value in scenario.gate_state_equals.items():
+        assert result["gate_state"][key] == expected_value
+
+    for role in scenario.gate_state_required_contains:
+        assert role in result["gate_state"]["required"]
+
+    for role in scenario.gate_state_required_not_contains:
+        assert role not in result["gate_state"]["required"]
+
+    decision = None
+    if scenario.expected_status is not None:
+        decision = await db_session.scalar(
+            select(AdviceBoundaryDecision).where(
+                AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
+            )
         )
-    )
-    assert decision.status == DECISION_STATUS_COMPLETED
-    assert decision.actor_role == "qualified_solicitor"
+        assert decision.status == scenario.expected_status
+        for attr, expected_value in scenario.decision_extra.items():
+            assert getattr(decision, attr) == expected_value
 
-    audit_row = await db_session.scalar(
-        select(AuditEntry).where(
-            AuditEntry.action == "advice_boundary.check.completed",
-            AuditEntry.resource_id == str(decision.id),
+    if scenario.audit_action is not None:
+        assert decision is not None  # audit rows are always keyed off a decision
+        audit_row = await db_session.scalar(
+            select(AuditEntry).where(
+                AuditEntry.action == scenario.audit_action,
+                AuditEntry.resource_id == str(decision.id),
+            )
         )
-    )
-    assert audit_row is not None
-    assert audit_row.module == "core.advice_boundary"
-
-
-# ---------------------------------------------------------------------------
-# Canonical scenario 2: invalid transition (skipping supervised)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_canonical_invalid_transition_skipping_supervised(db_session) -> None:
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_BLOCKED
-    assert result["gate_state"]["blocked_reason"] == "invalid_transition"
-
-    audit_row = await db_session.scalar(
-        select(AuditEntry).where(
-            AuditEntry.action == "advice_boundary.check.blocked",
-            AuditEntry.resource_id == str(decision.id),
-        )
-    )
-    assert audit_row is not None
-
-
-# ---------------------------------------------------------------------------
-# Canonical scenario 3: downward transition
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_canonical_downward_transition(db_session) -> None:
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_DRAFT_ADVICE,
-        from_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_BLOCKED
-    assert result["gate_state"]["blocked_reason"] == "invalid_transition"
-
-
-# ---------------------------------------------------------------------------
-# Reviewer P2: workspace_admin cannot promote draft -> supervised
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_workspace_admin_cannot_promote_draft_to_supervised(db_session) -> None:
-    """Per ADVICE_BOUNDARY.md, admin override does not apply to the
-    draft -> supervised promotion step. Only a qualified solicitor's
-    clinical review can promote."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        actor_user_id=user.id,
-        actor_role="workspace_admin",  # NOT solicitor
-    )
-    assert result["allowed"] is False
-    assert result["gate_state"]["blocked_reason"] == "role_denied"
-    assert "workspace_admin" not in result["gate_state"]["required"]
-    assert "qualified_solicitor" in result["gate_state"]["required"]
-
-
-# ---------------------------------------------------------------------------
-# Canonical scenario 4: role denial
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_canonical_role_denied(db_session) -> None:
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        actor_user_id=user.id,
-        actor_role="paralegal",  # not in the required set
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_DENIED
-    assert result["gate_state"]["blocked_reason"] == "role_denied"
-    assert result["gate_state"]["actor_role"] == "paralegal"
-    assert "qualified_solicitor" in result["gate_state"]["required"]
-
-    audit_row = await db_session.scalar(
-        select(AuditEntry).where(
-            AuditEntry.action == "advice_boundary.check.denied",
-            AuditEntry.resource_id == str(decision.id),
-        )
-    )
-    assert audit_row is not None
-
-
-# ---------------------------------------------------------------------------
-# Canonical scenario 5: tier exceeds declared max
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_canonical_tier_exceeds_declared_max(db_session) -> None:
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    # Capability declared advice_tier_max = draft_advice but caller
-    # requests supervised_legal_advice. Even with a qualified solicitor
-    # role this is denied because the manifest forbids it.
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        declared_tier_max=ADVICE_TIER_DRAFT_ADVICE,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_DENIED
-    assert result["gate_state"]["blocked_reason"] == "tier_exceeded"
-
-
-# ---------------------------------------------------------------------------
-# Canonical scenario 6: null declared_tier_max (Phase 1 mode)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_canonical_null_declared_tier_max_allowed(db_session) -> None:
-    """With declared_tier_max=None (Phase 1 mode), the tier-max check
-    is skipped. The decision still records the null condition for
-    Phase 5 audit reconstruction."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        declared_tier_max=None,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-    )
-    assert result["allowed"] is True
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_COMPLETED
-    assert decision.declared_tier_max is None
-    assert result["gate_state"]["declared_tier_max_supplied"] is False
-
-
-# ---------------------------------------------------------------------------
-# Canonical scenario 7: immutability of approved_final_advice
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_canonical_no_transition_out_of_terminal(db_session) -> None:
-    """Once an output reaches approved_final_advice it cannot transition
-    out — even with workspace_admin role."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    # Try to demote from approved_final_advice back to supervised.
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
-        actor_user_id=user.id,
-        actor_role="workspace_admin",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_BLOCKED
-    assert result["gate_state"]["blocked_reason"] == "tier_disallowed"
-    assert result["gate_state"]["reason"] == "from_tier_is_terminal"
-
-
-# ---------------------------------------------------------------------------
-# Initial-tier setting (no from_tier)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_initial_tier_creation_with_any_authenticated(db_session) -> None:
-    """Creating an output at draft_advice (from_tier=None) succeeds
-    for any authenticated actor — initial-tier rules use the
-    INITIAL_TIER_ROLE_REQUIREMENTS table."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_DRAFT_ADVICE,
-        from_tier=None,
-        actor_user_id=user.id,
-        actor_role="paralegal",
-    )
-    assert result["allowed"] is True
-
-
-@pytest.mark.asyncio
-async def test_initial_tier_supervised_is_not_permitted(db_session) -> None:
-    """Reviewer P1#1 round 2: supervised_legal_advice cannot be set as
-    initial tier (from_tier=None). It requires a transition path
-    through prior tiers. Closes the supervision-bypass path where
-    direct creation could yield a supervised output with no draft
-    history."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    # Try as solicitor — still blocked because the tier itself is not
-    # permitted as initial.
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_SUPERVISED_LEGAL_ADVICE,
-        from_tier=None,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_BLOCKED
-    assert result["gate_state"]["blocked_reason"] == "invalid_transition"
-    assert result["gate_state"]["reason"] == "tier_not_permitted_as_initial"
-
-
-@pytest.mark.asyncio
-async def test_initial_tier_approved_final_is_not_permitted(db_session) -> None:
-    """Reviewer P1#1 round 2: approved_final_advice cannot be set as
-    initial tier, even for workspace_admin. This closes the bypass
-    where an admin could direct-create final advice with no supervised
-    history."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier=ADVICE_TIER_APPROVED_FINAL_ADVICE,
-        from_tier=None,
-        actor_user_id=user.id,
-        actor_role="workspace_admin",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_BLOCKED
-    assert result["gate_state"]["blocked_reason"] == "invalid_transition"
-    assert result["gate_state"]["reason"] == "tier_not_permitted_as_initial"
-
-
-# ---------------------------------------------------------------------------
-# Invalid tier vocabulary
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_invalid_tier_string_is_failed(db_session) -> None:
-    """Tier strings outside the canonical vocabulary produce a
-    `failed` decision (system error), not blocked/denied."""
-    user = await _make_user(db_session)
-    output_id = f"output-{uuid.uuid4().hex[:8]}"
-
-    result = await check(
-        db_session,
-        output_id=output_id,
-        requested_tier="not_a_tier",
-        from_tier=ADVICE_TIER_DRAFT_ADVICE,
-        actor_user_id=user.id,
-        actor_role="qualified_solicitor",
-    )
-    assert result["allowed"] is False
-    decision = await db_session.scalar(
-        select(AdviceBoundaryDecision).where(
-            AdviceBoundaryDecision.id == uuid.UUID(result["decision_id"])
-        )
-    )
-    assert decision.status == DECISION_STATUS_FAILED
-
-    audit_row = await db_session.scalar(
-        select(AuditEntry).where(
-            AuditEntry.action == "advice_boundary.check.failed",
-            AuditEntry.resource_id == str(decision.id),
-        )
-    )
-    assert audit_row is not None
+        assert audit_row is not None
+        assert audit_row.module == scenario.audit_module
 
 
 # ---------------------------------------------------------------------------

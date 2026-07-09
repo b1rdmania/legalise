@@ -212,71 +212,68 @@ def test_source_order_is_canonical() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_decode_cursor_rejects_non_base64() -> None:
-    with pytest.raises(ValueError, match="base64"):
-        decode_cursor("not a cursor!@#$%")
-
-
-def test_decode_cursor_rejects_non_json_payload() -> None:
+def _b64_raw(raw: bytes) -> str:
     import base64 as b64
 
-    bad = b64.urlsafe_b64encode(b"not json").decode("ascii")
-    with pytest.raises(ValueError, match="JSON"):
-        decode_cursor(bad)
+    return b64.urlsafe_b64encode(raw).decode("ascii")
 
 
-def test_decode_cursor_rejects_missing_keys() -> None:
-    import base64 as b64
+def _b64_json(payload) -> str:
     import json
 
-    bad = b64.urlsafe_b64encode(
-        json.dumps({"source": "audit"}).encode()
-    ).decode("ascii")
-    with pytest.raises(ValueError, match="missing required key"):
-        decode_cursor(bad)
+    return _b64_raw(json.dumps(payload).encode())
 
 
-def test_decode_cursor_rejects_bad_timestamp() -> None:
-    import base64 as b64
-    import json
-
-    bad = b64.urlsafe_b64encode(
-        json.dumps(
+_MALFORMED_CURSOR_CASES = [
+    pytest.param(
+        "not a cursor!@#$%",
+        "base64",
+        id="non-base64",
+    ),
+    pytest.param(
+        _b64_raw(b"not json"),
+        "JSON",
+        id="non-json-payload",
+    ),
+    pytest.param(
+        _b64_json({"source": "audit"}),
+        "missing required key",
+        id="missing-keys",
+    ),
+    pytest.param(
+        _b64_json(
             {
                 "source": "audit",
                 "occurred_at": "not a date",
                 "source_row_id": str(uuid.uuid4()),
             }
-        ).encode()
-    ).decode("ascii")
-    with pytest.raises(ValueError, match="ISO-8601"):
-        decode_cursor(bad)
-
-
-def test_decode_cursor_rejects_non_uuid_row_id() -> None:
-    import base64 as b64
-    import json
-
-    bad = b64.urlsafe_b64encode(
-        json.dumps(
+        ),
+        "ISO-8601",
+        id="bad-timestamp",
+    ),
+    pytest.param(
+        _b64_json(
             {
                 "source": "audit",
                 "occurred_at": datetime.now(UTC).isoformat(),
                 "source_row_id": "not-a-uuid",
             }
-        ).encode()
-    ).decode("ascii")
-    with pytest.raises(ValueError, match="UUID"):
-        decode_cursor(bad)
+        ),
+        "UUID",
+        id="non-uuid-row-id",
+    ),
+    pytest.param(
+        _b64_json([1, 2, 3]),
+        "object",
+        id="non-dict-payload",
+    ),
+]
 
 
-def test_decode_cursor_rejects_non_dict_payload() -> None:
-    import base64 as b64
-    import json
-
-    bad = b64.urlsafe_b64encode(json.dumps([1, 2, 3]).encode()).decode("ascii")
-    with pytest.raises(ValueError, match="object"):
-        decode_cursor(bad)
+@pytest.mark.parametrize("bad_cursor, match", _MALFORMED_CURSOR_CASES)
+def test_decode_cursor_rejects_malformed_cursor(bad_cursor: str, match: str) -> None:
+    with pytest.raises(ValueError, match=match):
+        decode_cursor(bad_cursor)
 
 
 # ---------------------------------------------------------------------------

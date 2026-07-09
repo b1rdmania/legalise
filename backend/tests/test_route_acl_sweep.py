@@ -87,27 +87,37 @@ async def _create_matter_and_upload_text(client, text: str) -> tuple[str, str]:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    "resource_path,needs_saved_version",
+    [
+        pytest.param("body", False, id="document-body"),
+        pytest.param("versions", False, id="document-versions"),
+        pytest.param("anonymise", False, id="anonymise"),
+        pytest.param("versions/{version_id}/docx", True, id="version-docx"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_get_document_body_cross_user_returns_404(client) -> None:
-    """User B cannot read User A's document body by UUID."""
+async def test_document_get_routes_cross_user_returns_404(
+    client, resource_path, needs_saved_version
+) -> None:
+    """User B cannot GET User A's document UUID-keyed resources."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
     _, doc_id = await _create_matter_and_upload(client)
+
+    version_id = ""
+    if needs_saved_version:
+        save = await client.post(
+            f"/api/documents/{doc_id}/versions/manual",
+            json={"resolved_text": "Owned user edit."},
+        )
+        assert save.status_code == 200, save.text
+        version_id = save.json()["id"]
+
     await client.post("/auth/logout")
 
     await _signup_and_login(client, EMAIL_B, PASSWORD_B)
-    resp = await client.get(f"/api/documents/{doc_id}/body")
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_get_document_versions_cross_user_returns_404(client) -> None:
-    """User B cannot list User A's document versions by UUID."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    _, doc_id = await _create_matter_and_upload(client)
-    await client.post("/auth/logout")
-
-    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
-    resp = await client.get(f"/api/documents/{doc_id}/versions")
+    path = resource_path.format(version_id=version_id)
+    resp = await client.get(f"/api/documents/{doc_id}/{path}")
     assert resp.status_code == 404, resp.text
 
 
@@ -263,25 +273,41 @@ async def test_document_comments_owner_can_anchor_note_to_extracted_text(client)
     assert stale.status_code == 409, stale.text
 
 
+@pytest.mark.parametrize(
+    "mechanism",
+    [
+        pytest.param("cross_user", id="comments-cross-user"),
+        pytest.param("archived_matter", id="comments-archived-matter"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_document_comments_cross_user_returns_404(client) -> None:
-    """User B cannot list, create, or resolve User A's document comments by UUID."""
+async def test_document_comments_returns_404(client, mechanism) -> None:
+    """List, create, resolve, and reopen document comments 404 once access is denied.
+
+    Cross-user also asserts that editing (PATCH) 404s; the archived-matter
+    variant does not exercise PATCH in the original coverage.
+    """
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    _, doc_id = await _create_matter_and_upload(client)
+    slug, doc_id = await _create_matter_and_upload(client)
     created = await client.post(
         f"/api/documents/{doc_id}/comments",
         json={"body": "Owner note."},
     )
     assert created.status_code == 200, created.text
     comment_id = created.json()["id"]
-    await client.post("/auth/logout")
 
-    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    if mechanism == "cross_user":
+        await client.post("/auth/logout")
+        await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    else:
+        del_resp = await client.delete(f"/api/matters/{slug}")
+        assert del_resp.status_code in (200, 204), del_resp.text
+
     listed = await client.get(f"/api/documents/{doc_id}/comments")
     assert listed.status_code == 404, listed.text
     posted = await client.post(
         f"/api/documents/{doc_id}/comments",
-        json={"body": "Cross-user note."},
+        json={"body": "Should not land."},
     )
     assert posted.status_code == 404, posted.text
     resolved = await client.post(
@@ -292,11 +318,13 @@ async def test_document_comments_cross_user_returns_404(client) -> None:
         f"/api/documents/{doc_id}/comments/{comment_id}/reopen",
     )
     assert reopened.status_code == 404, reopened.text
-    updated = await client.patch(
-        f"/api/documents/{doc_id}/comments/{comment_id}",
-        json={"body": "Cross-user edit."},
-    )
-    assert updated.status_code == 404, updated.text
+
+    if mechanism == "cross_user":
+        updated = await client.patch(
+            f"/api/documents/{doc_id}/comments/{comment_id}",
+            json={"body": "Cross-user edit."},
+        )
+        assert updated.status_code == 404, updated.text
 
 
 @pytest.mark.asyncio
@@ -944,114 +972,81 @@ async def test_post_manual_document_version_cross_user_returns_404(client) -> No
     assert resp.status_code == 404, resp.text
 
 
+@pytest.mark.parametrize(
+    "mechanism",
+    [
+        pytest.param("cross_user", id="working-draft-cross-user"),
+        pytest.param("archived_matter", id="working-draft-archived-matter"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_document_working_draft_cross_user_returns_404(client) -> None:
-    """User B cannot read, write, or commit User A's working draft by UUID."""
+async def test_document_working_draft_returns_404(client, mechanism) -> None:
+    """Get, write, and commit a working draft 404 once access is denied."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    _, doc_id = await _create_matter_and_upload_text(client, "Owned draft source.")
+    slug, doc_id = await _create_matter_and_upload_text(client, "Owned draft source.")
     saved = await client.put(
         f"/api/documents/{doc_id}/draft",
         json={"plain_text": "Owned working draft."},
     )
     assert saved.status_code == 200, saved.text
-    await client.post("/auth/logout")
 
-    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    if mechanism == "cross_user":
+        await client.post("/auth/logout")
+        await _signup_and_login(client, EMAIL_B, PASSWORD_B)
+    else:
+        del_resp = await client.delete(f"/api/matters/{slug}")
+        assert del_resp.status_code == 204, del_resp.text
+
     get_resp = await client.get(f"/api/documents/{doc_id}/draft")
     assert get_resp.status_code == 404, get_resp.text
     put_resp = await client.put(
         f"/api/documents/{doc_id}/draft",
-        json={"plain_text": "Cross-user draft should not land."},
+        json={"plain_text": "Should not land."},
     )
     assert put_resp.status_code == 404, put_resp.text
     commit_resp = await client.post(f"/api/documents/{doc_id}/draft/commit")
     assert commit_resp.status_code == 404, commit_resp.text
 
 
+@pytest.mark.parametrize(
+    "resource_path,needs_saved_version,check_alive",
+    [
+        pytest.param("body", False, True, id="document-body"),
+        pytest.param("versions", False, True, id="document-versions"),
+        pytest.param("anonymise", False, False, id="anonymise"),
+        pytest.param("versions/{version_id}/docx", True, False, id="version-docx"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_get_document_version_docx_cross_user_returns_404(client) -> None:
-    """User B cannot download User A's saved editor version."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    _, doc_id = await _create_matter_and_upload(client)
-    save = await client.post(
-        f"/api/documents/{doc_id}/versions/manual",
-        json={"resolved_text": "Owned user edit."},
-    )
-    assert save.status_code == 200, save.text
-    version_id = save.json()["id"]
-    await client.post("/auth/logout")
-
-    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
-    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/docx")
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_get_document_body_archived_matter_returns_404(client) -> None:
-    """After the owning matter is archived, GET document body 404s."""
+async def test_document_get_routes_archived_matter_returns_404(
+    client, resource_path, needs_saved_version, check_alive
+) -> None:
+    """After the owning matter is archived, document UUID-keyed GET routes 404."""
     await _signup_and_login(client, EMAIL_A, PASSWORD_A)
     slug, doc_id = await _create_matter_and_upload(client)
 
-    # Confirm body is accessible while matter is live
-    alive = await client.get(f"/api/documents/{doc_id}/body")
-    assert alive.status_code == 200, alive.text
+    version_id = ""
+    if needs_saved_version:
+        save = await client.post(
+            f"/api/documents/{doc_id}/versions/manual",
+            json={"resolved_text": "Owned user edit."},
+        )
+        assert save.status_code == 200, save.text
+        version_id = save.json()["id"]
 
-    # Tombstone the matter
+    path = resource_path.format(version_id=version_id)
+
+    if check_alive:
+        # Confirm the resource is accessible while the matter is live.
+        alive = await client.get(f"/api/documents/{doc_id}/{path}")
+        assert alive.status_code == 200, alive.text
+
+    # Tombstone the matter.
     del_resp = await client.delete(f"/api/matters/{slug}")
     assert del_resp.status_code == 204, del_resp.text
 
-    # Body endpoint must now 404
-    resp = await client.get(f"/api/documents/{doc_id}/body")
+    resp = await client.get(f"/api/documents/{doc_id}/{path}")
     assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_get_document_versions_archived_matter_returns_404(client) -> None:
-    """After the owning matter is archived, GET document versions 404s."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    slug, doc_id = await _create_matter_and_upload(client)
-
-    # Confirm versions accessible while matter is live
-    alive = await client.get(f"/api/documents/{doc_id}/versions")
-    assert alive.status_code == 200, alive.text
-
-    del_resp = await client.delete(f"/api/matters/{slug}")
-    assert del_resp.status_code == 204, del_resp.text
-
-    resp = await client.get(f"/api/documents/{doc_id}/versions")
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_document_comments_archived_matter_returns_404(client) -> None:
-    """After the owning matter is archived, document comment endpoints 404."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    slug, doc_id = await _create_matter_and_upload(client)
-    created = await client.post(
-        f"/api/documents/{doc_id}/comments",
-        json={"body": "Review note before archive."},
-    )
-    assert created.status_code == 200, created.text
-    comment_id = created.json()["id"]
-
-    del_resp = await client.delete(f"/api/matters/{slug}")
-    assert del_resp.status_code in (200, 204), del_resp.text
-
-    listed = await client.get(f"/api/documents/{doc_id}/comments")
-    assert listed.status_code == 404, listed.text
-    posted = await client.post(
-        f"/api/documents/{doc_id}/comments",
-        json={"body": "Review note after archive."},
-    )
-    assert posted.status_code == 404, posted.text
-    resolved = await client.post(
-        f"/api/documents/{doc_id}/comments/{comment_id}/resolve",
-    )
-    assert resolved.status_code == 404, resolved.text
-    reopened = await client.post(
-        f"/api/documents/{doc_id}/comments/{comment_id}/reopen",
-    )
-    assert reopened.status_code == 404, reopened.text
 
 
 @pytest.mark.asyncio
@@ -1067,75 +1062,6 @@ async def test_post_manual_document_version_archived_matter_returns_404(client) 
         f"/api/documents/{doc_id}/versions/manual",
         json={"resolved_text": "Archived matter edit should not land."},
     )
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_document_working_draft_archived_matter_returns_404(client) -> None:
-    """After archive, draft read/write/commit 404s."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    slug, doc_id = await _create_matter_and_upload_text(client, "Archive draft source.")
-    saved = await client.put(
-        f"/api/documents/{doc_id}/draft",
-        json={"plain_text": "Archive working draft."},
-    )
-    assert saved.status_code == 200, saved.text
-
-    del_resp = await client.delete(f"/api/matters/{slug}")
-    assert del_resp.status_code == 204, del_resp.text
-
-    get_resp = await client.get(f"/api/documents/{doc_id}/draft")
-    assert get_resp.status_code == 404, get_resp.text
-    put_resp = await client.put(
-        f"/api/documents/{doc_id}/draft",
-        json={"plain_text": "Archived matter draft should not land."},
-    )
-    assert put_resp.status_code == 404, put_resp.text
-    commit_resp = await client.post(f"/api/documents/{doc_id}/draft/commit")
-    assert commit_resp.status_code == 404, commit_resp.text
-
-
-@pytest.mark.asyncio
-async def test_get_document_version_docx_archived_matter_returns_404(client) -> None:
-    """After the owning matter is archived, version .docx download 404s."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    slug, doc_id = await _create_matter_and_upload(client)
-    save = await client.post(
-        f"/api/documents/{doc_id}/versions/manual",
-        json={"resolved_text": "Owned user edit."},
-    )
-    assert save.status_code == 200, save.text
-    version_id = save.json()["id"]
-
-    del_resp = await client.delete(f"/api/matters/{slug}")
-    assert del_resp.status_code == 204, del_resp.text
-
-    resp = await client.get(f"/api/documents/{doc_id}/versions/{version_id}/docx")
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_get_anonymise_document_archived_matter_returns_404(client) -> None:
-    """GET /{doc_id}/anonymise 404s once the owning matter is archived."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    slug, doc_id = await _create_matter_and_upload(client)
-
-    del_resp = await client.delete(f"/api/matters/{slug}")
-    assert del_resp.status_code == 204, del_resp.text
-
-    resp = await client.get(f"/api/documents/{doc_id}/anonymise")
-    assert resp.status_code == 404, resp.text
-
-
-@pytest.mark.asyncio
-async def test_get_anonymise_document_cross_user_returns_404(client) -> None:
-    """User B cannot GET User A's anonymisation result by UUID."""
-    await _signup_and_login(client, EMAIL_A, PASSWORD_A)
-    _, doc_id = await _create_matter_and_upload(client)
-    await client.post("/auth/logout")
-
-    await _signup_and_login(client, EMAIL_B, PASSWORD_B)
-    resp = await client.get(f"/api/documents/{doc_id}/anonymise")
     assert resp.status_code == 404, resp.text
 
 
