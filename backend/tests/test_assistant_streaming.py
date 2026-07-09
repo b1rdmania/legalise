@@ -35,7 +35,7 @@ from app.modules.assistant.pipeline import (
 )
 from app.modules.assistant.schemas import AssistantPostRequest
 
-from tests.test_assistant_pipeline import (
+from tests._assistant_pipeline_helpers import (
     _AssistantSession,
     _make_matter,
 )
@@ -508,7 +508,7 @@ class TestStreamDisconnectPersistence:
         from app.modules.assistant import router as assistant_router
         from app.modules.assistant.schemas import AssistantPostRequest
 
-        from tests.test_assistant_pipeline import _UserStub
+        from tests._assistant_pipeline_helpers import _UserStub
 
         matter = _make_matter()
         session = _AssistantSession(matter)
