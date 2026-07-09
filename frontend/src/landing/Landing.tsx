@@ -41,6 +41,11 @@ export function Landing() {
             Legalise keeps AI work inside the matter file, with a record of
             every human review, edit, approval, and sign-off.
           </p>
+          <p className="mt-5 text-base text-muted max-w-2xl">
+            Courts have started sanctioning AI-drafted filings no one
+            reviewed. Built for the partner who signs, and the COLP who
+            answers for it.
+          </p>
           <p className="mt-5 text-base text-muted">
             Unfinished. Experimental. Come break it.
           </p>
