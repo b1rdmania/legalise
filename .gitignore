@@ -46,6 +46,10 @@ backend/data/
 data/
 matters/
 
+# Internal build-agent handovers — work orders for the next build agent,
+# not evaluator-facing docs. Kept locally, not in the public repo.
+docs/handovers/
+
 # Build artefacts
 *.log
 coverage/
