@@ -633,7 +633,7 @@ export function Architecture() {
           </h1>
           <div className="mt-6 max-w-2xl text-base leading-relaxed text-prose">
             <p>
-              Legalise is an open-source governance layer for legal AI in
+              Legalise is an open-source, independent register for legal AI in
               England and Wales — an evaluation of the guardrails around it:
               supervision, human sign-off, and a tamper-evident record. It is
               not a finished product. This page documents how it is built: the
