@@ -17,3 +17,5 @@ claims verified against master as of 2026-07-05.
 - [ADR-009](./ADR-009-model-gateway.md) — One model gateway: passthrough + audit-stamping contract
 - [ADR-010](./ADR-010-fail-closed-deletes.md) — Fail-closed deletes and the tombstone lifecycle
 - [ADR-011](./ADR-011-openrouter.md) — OpenRouter as a BYO-key provider
+- [ADR-012](./ADR-012-social-and-magic-link-auth.md) — Social sign-in (Google/Microsoft/GitHub) and magic-link auth
+- [ADR-013](./ADR-013-supervised-ai-standard-of-care.md) — Supervised AI built to the UKJT standard of care
