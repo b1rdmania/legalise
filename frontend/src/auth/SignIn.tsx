@@ -4,6 +4,8 @@ import { navigate } from "../lib/route";
 import { requestVerifyToken } from "../lib/api";
 import { useAuth } from "./AuthProvider";
 import { AuthCard, LedgerField } from "./AuthCard";
+import { MagicLinkForm } from "./MagicLinkForm";
+import { OAuthButtons } from "./OAuthButtons";
 import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
 
 type ResendState = "idle" | "sending" | "sent" | "error";
@@ -59,6 +61,7 @@ export function SignIn() {
 
   return (
     <AuthCard eyebrow="The workspace" heading="Sign in" intro="Evaluation access to the hosted workspace. Not for live client matters.">
+      <OAuthButtons />
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <LedgerField label="Email" htmlFor="signin-email">
           <input
@@ -122,6 +125,9 @@ export function SignIn() {
           </a>
         </div>
       </form>
+      <div className="mt-6">
+        <MagicLinkForm />
+      </div>
       <p className="text-sm text-muted mt-6">
         Need an account?{" "}
         <a href="/auth/join" className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">

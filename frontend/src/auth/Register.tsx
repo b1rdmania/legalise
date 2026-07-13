@@ -3,6 +3,8 @@ import type { ChangeEvent, FormEvent } from "react";
 import { navigate } from "../lib/route";
 import { useAuth } from "./AuthProvider";
 import { AuthCard, LedgerField } from "./AuthCard";
+import { MagicLinkForm } from "./MagicLinkForm";
+import { OAuthButtons } from "./OAuthButtons";
 import { ErrorCallout, inputCls, primaryBtn } from "../ui/primitives";
 
 /**
@@ -55,6 +57,7 @@ export function Register() {
       heading="Create an account"
       intro="Evaluation access. Bring your own Anthropic, OpenAI, or OpenRouter key, or use the keyless demo model. Not for live client matters."
     >
+      <OAuthButtons />
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <LedgerField label="Name" htmlFor="reg-name">
           <input
@@ -98,6 +101,9 @@ export function Register() {
           {busy ? "Creating…" : "Create account"}
         </button>
       </form>
+      <div className="mt-6">
+        <MagicLinkForm />
+      </div>
       <p className="text-sm text-muted mt-6">
         Already have an account?{" "}
         <a

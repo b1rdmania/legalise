@@ -210,3 +210,31 @@ async def send_password_reset(to: str, link: str) -> None:
         footer_lines=footer_lines,
     )
     await _send("password_reset", to, subject, html, text)
+
+
+async def send_magic_link(to: str, link: str) -> None:
+    subject = "Sign in to Legalise"
+    body_paragraphs = [
+        "Use the link below to sign in to Legalise — no password needed.",
+        "If you don't have an account yet, this creates one using this "
+        "email address.",
+    ]
+    footer_lines = [
+        "If you didn't request this, ignore this message — nobody can "
+        "sign in without clicking this exact link.",
+        "This link expires 15 minutes after issue and works once.",
+    ]
+    html = _render_html(
+        heading="Sign in to Legalise",
+        body_paragraphs=body_paragraphs,
+        cta_label="Sign in",
+        cta_link=link,
+        footer_lines=footer_lines,
+    )
+    text = _render_text(
+        body_paragraphs=body_paragraphs,
+        cta_label="Sign in",
+        cta_link=link,
+        footer_lines=footer_lines,
+    )
+    await _send("magic_link", to, subject, html, text)

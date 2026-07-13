@@ -129,6 +129,48 @@ export const requestVerifyToken = (email: string) =>
     body: JSON.stringify({ email }),
   }).then((r) => authJsonOrThrow<unknown>(r));
 
+// Magic link (passwordless email) — see ADR-012. Unlike verifyEmail, this
+// both proves ownership AND logs in (creating the account if the email
+// is new), so it returns 204 with a session cookie set, same as signin.
+export const requestMagicLink = (email: string) =>
+  apiFetch(`${AUTH}/magic-link/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  }).then((r) => authJsonOrThrow<unknown>(r));
+
+export const verifyMagicLink = (token: string) =>
+  apiFetch(`${AUTH}/magic-link/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  }).then((r) => authJsonOrThrow<unknown>(r));
+
+// Which OAuth provider buttons to render — unconfigured providers hide
+// rather than 404 on click.
+export interface OAuthProviders {
+  google: boolean;
+  microsoft: boolean;
+  github: boolean;
+}
+
+// The same public, unauthenticated endpoint also reports magic link —
+// it's off by default (see ADR-012 / MAGIC_LINK_ENABLED) since, unlike
+// OAuth, it needs no external credentials to work and so needs its own
+// explicit switch.
+export interface SignInMethods extends OAuthProviders {
+  magic_link: boolean;
+}
+
+export const getSignInMethods = (): Promise<SignInMethods> =>
+  apiFetch(`${AUTH}/oauth/providers`).then((r) => authJsonOrThrow<SignInMethods>(r));
+
+// OAuth sign-in is a real browser redirect (only the backend holds the
+// provider client secret needed for the token exchange) — not a fetch
+// call. Build the URL; callers render it as a plain <a href>.
+export const oauthAuthorizeUrl = (provider: keyof OAuthProviders): string =>
+  `${AUTH}/oauth/${provider}/authorize`;
+
 export interface UserProfileUpdate {
   name?: string;
   default_model_id?: string | null;

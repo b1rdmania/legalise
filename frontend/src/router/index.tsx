@@ -51,6 +51,7 @@ import { ForgotPassword } from "../auth/ForgotPassword";
 import { ResetPassword } from "../auth/ResetPassword";
 import { VerifyPending } from "../auth/VerifyPending";
 import { Verify } from "../auth/Verify";
+import { MagicLink } from "../auth/MagicLink";
 import { Settings } from "../auth/Settings";
 import { Help } from "../help/Help";
 import { MatterList } from "../matter/MatterList";
@@ -221,6 +222,19 @@ const verifyRoute = createRoute({
     return <Verify token={token ?? null} />;
   },
   validateSearch: (s: Record<string, unknown>): VerifySearch => ({
+    token: typeof s.token === "string" ? s.token : undefined,
+  }),
+});
+
+type MagicLinkSearch = { token?: string };
+const magicLinkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/magic-link",
+  component: () => {
+    const { token } = magicLinkRoute.useSearch();
+    return <MagicLink token={token ?? null} />;
+  },
+  validateSearch: (s: Record<string, unknown>): MagicLinkSearch => ({
     token: typeof s.token === "string" ? s.token : undefined,
   }),
 });
@@ -621,6 +635,7 @@ const routeTree = rootRoute.addChildren([
   resetRoute,
   verifyPendingRoute,
   verifyRoute,
+  magicLinkRoute,
   modulesRoute,
   legacyModulesRedirect,
   demoIndexRoute,

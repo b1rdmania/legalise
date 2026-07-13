@@ -116,6 +116,49 @@ class Settings(BaseSettings):
     email_verify_url_base: str = "http://localhost:5173/auth/verify"
     password_reset_url_base: str = "http://localhost:5173/auth/reset"
 
+    # Social sign-in (OAuth) + magic link. All optional — each provider
+    # silently disables (its router doesn't mount, its button doesn't
+    # render) if its id/secret pair is unset. Not part of
+    # assert_auth_secrets_present: these are additive login methods, not
+    # required for the app to function.
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    microsoft_oauth_client_id: str | None = None
+    microsoft_oauth_client_secret: str | None = None
+    github_oauth_client_id: str | None = None
+    github_oauth_client_secret: str | None = None
+    # The backend's own externally-reachable origin, used to build the
+    # absolute OAuth callback URL each provider redirects back to after
+    # consent (e.g. registered in Google Cloud Console as
+    # `{oauth_callback_base_url}/auth/oauth/google/callback`). Deliberately
+    # an explicit setting, not derived from the incoming request's
+    # scheme/host — this app sits behind Fly + Cloudflare with no
+    # proxy-header trust middleware configured, so `request.base_url`
+    # cannot be trusted to reflect the real public origin. Same reasoning
+    # as email_verify_url_base/password_reset_url_base being explicit
+    # settings rather than request-derived.
+    oauth_callback_base_url: str = "http://localhost:8000"
+    # Where the frontend SPA lands after a successful OAuth login. OAuth
+    # callbacks are handled server-side (only the backend holds the
+    # client secret needed to exchange the provider's auth code), so this
+    # is a real HTTP redirect target — AuthProvider picks up the new
+    # session cookie on mount. Same path-form reasoning as the verify/
+    # reset URLs above.
+    oauth_redirect_url: str = "http://localhost:5173/matters"
+    # Magic-link tokens are self-issued (same secret/lifetime shape as
+    # email verification), so — unlike OAuth — the link points at a
+    # frontend page that POSTs the token to the backend itself, matching
+    # Verify.tsx's existing pending/ok/error pattern rather than a bare
+    # server-side redirect.
+    magic_link_url_base: str = "http://localhost:5173/auth/magic-link"
+    # Unlike the OAuth providers (each individually gated by its own
+    # credentials), magic link needs no external setup to work — so it
+    # needs its own explicit off switch, default False, or merging this
+    # feature to master would make it live in production the moment it
+    # deploys, with no credential step to hold it back. Flip to true only
+    # once the whole social-login surface is ready to launch together.
+    magic_link_enabled: bool = Field(default=False, alias="MAGIC_LINK_ENABLED")
+
     # CORS. Override with the CORS_ORIGINS env var as a JSON array, e.g.
     # CORS_ORIGINS='["https://legalise.dev","http://localhost:3000"]'.
     # The live demo's frontend at legalise.dev calls the backend at

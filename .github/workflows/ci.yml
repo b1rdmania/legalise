@@ -89,6 +89,13 @@ jobs:
       # examples.modules.contract_review.capability. The backend job
       # runs from ./backend, so add the repo root explicitly.
       PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
+      # Magic-link auth is off by default in production (MAGIC_LINK_ENABLED,
+      # see ADR-012 — it needs no external credentials, unlike OAuth, so it
+      # needs its own switch or shipping the feature would make it live the
+      # moment it deploys). The router mounts at app-import time, so this
+      # must be set before pytest starts, not inside a test — CI enables it
+      # so tests/test_auth_magic_link.py actually exercises the route.
+      MAGIC_LINK_ENABLED: "true"
 
     steps:
       - uses: actions/checkout@v4

@@ -32,7 +32,7 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.core.email import send_password_reset, send_verification
 from app.core.seed import seed_demo_matter_for_user
-from app.models import AccessToken, AuditEntry, User
+from app.models import AccessToken, AuditEntry, OAuthAccount, User
 
 logger = structlog.get_logger()
 
@@ -43,7 +43,7 @@ logger = structlog.get_logger()
 async def get_user_db(
     session: AsyncSession = Depends(get_session),
 ) -> AsyncIterator[SQLAlchemyUserDatabase]:
-    yield SQLAlchemyUserDatabase(session, User)
+    yield SQLAlchemyUserDatabase(session, User, OAuthAccount)
 
 
 async def get_access_token_db(

@@ -5,6 +5,8 @@ populated for alembic autogenerate.
 
 Schema overview:
 - User: id, email, name, role
+- OAuthAccount: id, user_id, oauth_name, account_id, account_email — one row
+    per (user, provider) social sign-in link. See ADR-012.
 - Matter: id, slug, title, matter_type, status, case_theory, pivot_fact,
     privilege_posture, default_model_id, facts (JSONB),
     opened_at, closed_at, retention_until, created_by_id
@@ -22,7 +24,7 @@ See ARCHITECTURE.md for the full data model.
 """
 
 from app.models.base import Base
-from app.models.user import AccessToken, User, UserApiKey
+from app.models.user import AccessToken, OAuthAccount, User, UserApiKey
 from app.models.matter import (
     Matter,
     PRIVILEGE_CLEARED,
@@ -153,6 +155,7 @@ __all__ = [
     "Base",
     "User",
     "AccessToken",
+    "OAuthAccount",
     "UserApiKey",
     "Matter",
     "Document",

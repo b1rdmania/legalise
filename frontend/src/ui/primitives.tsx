@@ -7,6 +7,9 @@ export const inputCls =
 export const primaryBtn =
   "bg-ink text-paper rounded-item px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";
 
+export const secondaryBtn =
+  "border border-rule rounded-item px-4 py-2 hover:border-ink hover:bg-wash transition-colors text-sm font-medium min-h-[44px] text-ink disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center";
+
 // Inline banner for the canonical `provider_key_missing` 422 error.
 // Border + text tokens only. No fill, no radius, no shadow. The deep
 // link to `/settings/keys` is what makes this a one-click resolution

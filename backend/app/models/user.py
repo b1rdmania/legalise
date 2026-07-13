@@ -10,18 +10,51 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, UTC
 
-from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID
+from fastapi_users_db_sqlalchemy import (
+    SQLAlchemyBaseOAuthAccountTableUUID,
+    SQLAlchemyBaseUserTableUUID,
+)
 from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyBaseAccessTokenTableUUID
 from sqlalchemy import DateTime, ForeignKey, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from app.models.base import Base
+
+
+class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
+    """Social sign-in identity, one row per (user, provider). See
+    ADR-012. `hashed_password` on `User` stays nullable-in-practice for
+    OAuth-only accounts — fastapi-users hashes an unusable random
+    password on OAuth-created users so the column is never empty, but
+    no login-by-password path can succeed for them without first
+    setting a real password via the normal reset flow.
+    """
+
+    __tablename__ = "oauth_accounts"
+
+    @declared_attr
+    def user_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(
+            UUID(as_uuid=True),
+            ForeignKey("users.id", ondelete="cascade"),
+            nullable=False,
+        )
 
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
     __tablename__ = "users"
 
+    # `lazy="selectin"` deliberately, not fastapi-users' docs example of
+    # `lazy="joined"` — joined-eager-load on a collection duplicates rows
+    # in any plain `session.scalars(select(User)).all()` query unless the
+    # caller adds `.unique()`, which would mean auditing every existing
+    # User list query in the app (admin_users.py's list endpoint hit this
+    # exact bug in testing). selectin is a separate batched query — no
+    # duplication, no ripple effect on code that predates OAuth.
+    oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
+        "OAuthAccount", lazy="selectin"
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     role: Mapped[str] = mapped_column(String(32), nullable=False, default="solicitor")
     # v0.1 plan field - display only. No enforcement, no billing semantics

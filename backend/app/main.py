@@ -23,6 +23,8 @@ from app.api.documents import router as documents_router
 from app.api.exports import router as exports_router
 from app.api.external_packs import router as external_packs_router
 from app.api.jobs import router as jobs_router
+from app.api.magic_link import router as magic_link_router
+from app.api.oauth import router as oauth_router
 from app.api.admin_launch_funnel import router as admin_launch_funnel_router
 from app.api.admin_users import router as admin_users_router
 from app.api.artifacts import router as artifacts_router
@@ -303,6 +305,12 @@ async def health() -> dict[str, Any]:
 # catch-all that would otherwise match `me` and return 403.
 app.include_router(account_router, prefix="/auth/users", tags=["account"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+# Off by default (MAGIC_LINK_ENABLED) — unlike OAuth, magic link needs no
+# external credentials to work, so it needs its own explicit switch or it
+# would go live in production the moment this feature deploys.
+if settings.magic_link_enabled:
+    app.include_router(magic_link_router, prefix="/auth/magic-link", tags=["auth"])
+app.include_router(oauth_router, prefix="/auth/oauth", tags=["auth"])
 app.include_router(settings_router, prefix="/api/settings", tags=["settings"])
 app.include_router(usage_router, prefix="/api", tags=["usage"])
 app.include_router(matters_router, prefix="/api/matters", tags=["matters"])

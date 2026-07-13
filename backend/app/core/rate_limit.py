@@ -17,6 +17,9 @@ Defaults (overridable via ``LEGALISE_RATE_LIMIT_<ROUTE>_PER_HOUR``):
 - ``auth.request_verify_token``  10 / IP / hour
 - ``auth.forgot_password``       10 / IP / hour
 - ``auth.login``                 10 / IP / hour
+- ``auth.magic_link_request``     5 / IP / hour — tighter than
+  forgot_password since a magic link both logs in *and* can create an
+  account, not just reset a credential.
 
 Set an override to ``0`` to disable that route's throttle (e.g. local
 load testing).
@@ -54,6 +57,7 @@ RATE_LIMITED_ROUTES: dict[str, tuple[str, int]] = {
     "auth.request_verify_token": ("REQUEST_VERIFY_TOKEN", 10),
     "auth.forgot_password": ("FORGOT_PASSWORD", 10),
     "auth.login": ("LOGIN", 10),
+    "auth.magic_link_request": ("MAGIC_LINK_REQUEST", 5),
 }
 
 WINDOW_SECONDS = 3600
