@@ -167,12 +167,17 @@ export function TopBar({
                 >
                   <Github size={18} strokeWidth={1.75} aria-hidden="true" />
                 </a>
-                <a
-                  href="/auth/login"
-                  className="text-muted hover:text-ink transition-colors"
+                {/* Disabled, not removed — hosted sign-in is off while
+                    we're deciding whether to launch (evaluators are
+                    going in via a direct matter link instead). Flip
+                    back to a real <a href="/auth/login"> when ready. */}
+                <span
+                  aria-disabled="true"
+                  className="text-muted/40 cursor-not-allowed select-none"
+                  title="Sign-in is temporarily unavailable"
                 >
                   Sign in
-                </a>
+                </span>
               </>
             )}
           </nav>

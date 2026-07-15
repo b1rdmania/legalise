@@ -52,6 +52,7 @@ export function Drawer({
     active?: boolean;
     external?: boolean;
     onClick?: () => void;
+    disabled?: boolean;
   };
   let primary: Item[] = [];
   let secondary: Item[] = [];
@@ -117,7 +118,8 @@ export function Drawer({
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      { href: "/auth/login", label: "Sign in" },
+      // Disabled, not removed — see TopBar.tsx for why.
+      { label: "Sign in", disabled: true },
     ];
   }
 
@@ -210,6 +212,7 @@ function DrawerItem({
     active?: boolean;
     external?: boolean;
     onClick?: () => void;
+    disabled?: boolean;
   };
   tone: "primary" | "secondary";
   onNavigate: () => void;
@@ -225,6 +228,17 @@ function DrawerItem({
       ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
       : "text-muted hover:text-seal hover:bg-wash");
   const cls = tone === "primary" ? primaryCls : secondaryCls;
+
+  if (item.disabled) {
+    return (
+      <span
+        aria-disabled="true"
+        className="px-4 py-3 text-[16px] text-left text-muted/40 cursor-not-allowed select-none"
+      >
+        {item.label}
+      </span>
+    );
+  }
 
   if (item.onClick) {
     return (
