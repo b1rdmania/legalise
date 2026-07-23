@@ -87,7 +87,7 @@ export function Landing() {
             }}
             className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-seal transition-colors min-h-[44px]"
           >
-            <span>Watch a 30-second demo</span>
+            <span>Watch the one-minute demo</span>
             <svg
               width="20"
               height="20"
@@ -121,7 +121,7 @@ export function Landing() {
           >
             <p className="eyebrow mb-3">Demo</p>
             <p className="text-sm text-prose leading-relaxed mb-4">
-              The 30-second scan is filmed on a desktop screen. On a phone,
+              The one-minute demo is made for a desktop screen. On a phone,
               walk the demo instead — the same loop, step by step.
             </p>
             <span className="text-sm font-semibold text-ink">
@@ -130,8 +130,8 @@ export function Landing() {
           </a>
           <div className="hidden border border-ink/70 bg-paper p-2 sm:block">
             <video
-              src="/media/backend-demo-v3.mp4"
-              poster="/media/backend-demo-v3-poster.jpg"
+              src="/media/legalise-promo-v1.mp4"
+              poster="/media/legalise-promo-v1-poster.jpg"
               className="block w-full border border-rule/60"
               loop
               autoPlay
