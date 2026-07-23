@@ -1,12 +1,10 @@
 # Legalise documentation
 
-Legalise is an open-source UK legal-AI workspace, currently an **evaluation
-release candidate**. The hosted site at legalise.dev is a limited evaluation
-environment, not a live-client legal service.
+Legalise is an open-source UK legal-AI workspace in evaluation release.
+`legalise.dev` is a static demo and documentation site. Its hosted backend is
+currently off.
 
-This folder is deliberately small. These are the documents that earn a place
-on the front door — the ones a solicitor, evaluator, or technical reviewer
-should read.
+These are the main documents for evaluators, self-hosters, and reviewers.
 
 ## The set
 
@@ -17,7 +15,7 @@ should read.
 | [**EVALUATING.md**](./EVALUATING.md) | The hands-on walkthrough, the bar we hold before inviting evaluators, and the record of the gate runs we have walked. |
 | [**THREAT_MODEL.md**](./THREAT_MODEL.md) | Adversary model and what we explicitly do not defend against. |
 | [**LIMITATIONS.md**](./LIMITATIONS.md) | What is not production-grade and what a fork must build before going near a live matter. Read before building on top. |
-| [**ROADMAP.md**](./ROADMAP.md) | What ships now, what's locked for live-matter readiness, what's parked — honest about deferrals. |
+| [**ROADMAP.md**](./ROADMAP.md) | What is shipped, planned, or out of scope. |
 | [**adr/**](./adr/) | Architecture decision records — why the system is shaped this way and what not to refactor. |
 | [**ATTRIBUTIONS.md**](./ATTRIBUTIONS.md) | Design-idea credits, runtime dependencies, and model-asset licences. |
 

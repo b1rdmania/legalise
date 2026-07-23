@@ -557,10 +557,10 @@ export function GuidedDemo() {
                     <div className="mt-10 border-t border-rule pt-6">
                       <SectionRule label="Where this goes" />
                       <p className="mt-4 text-sm leading-relaxed text-prose">
-                        This walk was on rails. The same loop — admit a skill, run it inside the matter, sign it, read the record — is the product. It is open source, and the hosted workspace is open for evaluation.
+                        This walk was on rails. The same loop — admit a skill, run it inside the matter, sign it, read the record — is the product. The complete workspace is open source and runs on your own infrastructure and model keys.
                       </p>
                       <div className="mt-5 flex flex-wrap gap-3">
-                        <a href="/auth/join" className="inline-flex items-center bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]">Create a workspace →</a>
+                        <a href="https://github.com/b1rdmania/legalise" className="inline-flex items-center bg-ink text-paper px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px]">Run it yourself →</a>
                         <a href="/architecture" className="inline-flex items-center border border-ink text-ink px-4 py-2 hover:bg-wash transition-colors text-sm font-medium min-h-[44px]">See how it's built</a>
                       </div>
                       <p className="mt-4 text-xs text-muted">

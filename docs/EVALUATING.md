@@ -1,13 +1,13 @@
 # Evaluating Legalise
 
-This is the doc for anyone evaluating Legalise: the hands-on walkthrough,
-the bar we hold before inviting serious legal evaluators, and the record of
-the gate runs we have actually walked.
+This document contains the hands-on walkthrough, release checks, and recorded
+gate runs.
 
-Legalise is an open-source evaluation release candidate. The hosted site at
-legalise.dev is a limited evaluation environment, not a live-client legal
-service. See [`TRUST.md`](./TRUST.md) for the security and regulatory posture
-and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for how the system works.
+Legalise is an open-source evaluation release. `legalise.dev` is a static demo
+and documentation site; its hosted backend is currently off. Run the walkthrough
+on a local or self-hosted deployment. See [`TRUST.md`](./TRUST.md) for the
+security posture and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the system
+design.
 
 ---
 
@@ -18,13 +18,12 @@ This is the evaluator-facing walkthrough. It assumes you have followed
 `legalise doctor` successfully. If `khan.demo_present` is `ok`, the Khan
 v Acme matter is ready.
 
-The goal is to prove the Legalise loop without explaining every internal
-row name:
+The walkthrough exercises the main loop:
 
 > open a project → inspect files → enable/run a skill → review output
 > → sign → read Activity → export the working pack.
 
-**What it proves.** By the end you will have opened a real matter folder,
+By the end you will have opened a sample matter,
 inspected the files the skill can use, added and enabled a governed skill,
 run it through the durable job path, reviewed and signed the output, read
 matter Activity, and exported the working pack. That sequence is the
@@ -96,7 +95,7 @@ legal position.
    sign-off, and any gates or denials.
 3. Use advanced details only if you need raw row filters.
 
-Activity is the proof layer for the current matter. The raw audit rows
+Activity is the record for the current matter. The raw audit rows
 remain inspectable, but they are not the primary user surface.
 
 ### 8 — Export the working pack
@@ -107,7 +106,7 @@ remain inspectable, but they are not the primary user surface.
 
 The pack contains the matter metadata, documents, outputs, sign-off
 records, reviews, reconstruction data, and README/manifest copy that
-states the honesty boundaries.
+states the limits.
 
 ### If something looks wrong
 
@@ -119,7 +118,7 @@ states the honesty boundaries.
 
 ## Part 2 — The pre-evaluation gate
 
-This is the bar before inviting serious legal evaluators into the
+Run these checks before inviting legal evaluators into the
 workspace. It is narrower than live-client readiness, but stricter than
 the public demo. The aim is simple: an evaluator should be able to run one
 matter from start to finish without us explaining stitched demo paths,
@@ -159,7 +158,7 @@ matter or seeded Khan shortcuts.
 
 ### Operational gate
 
-Before legal evaluators get backend access, confirm:
+Before deploying a backend for evaluators, confirm:
 
 - worker process group is running wherever the backend is running;
 - migrations run as a release step and are current;
@@ -169,14 +168,13 @@ Before legal evaluators get backend access, confirm:
 - restore has been rehearsed at least once in a disposable environment;
 - audit-chain verification is green after restore;
 - app-role audit WORM permissions are either enforced or explicitly
-  listed as a hosted-eval residual risk;
+  listed as a deployment residual risk;
 - error/job telemetry does not record prompts, responses, or document text;
 - `LEGALISE_KEY_ENCRYPTION_SECRET` rotation has a rehearsed runbook;
-- private-beta terms say the hosted workspace is not for live client
+- evaluation terms say the workspace is not for live client
   matters unless separately approved.
 
-Open hosted residuals are tracked as a live issue (pre-promotion
-operational gate).
+Track open operational risks before enabling evaluator access.
 
 ### Launch decision
 

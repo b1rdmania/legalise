@@ -155,7 +155,6 @@ const STATUS_MATRIX: {
   { capability: "Skill admission ceremony, two signature grades", status: "shipped", verification: "signing.py · trust_ceremony.py" },
   { capability: "Per-user matter isolation, session revocation", status: "shipped", verification: "matter_access.py · TRUST.md" },
   { capability: "Audit-role split asserted in CI", status: "shipped", verification: "SECURITY.md (build gate)" },
-  { capability: "WORM role split enabled on the hosted deployment", status: "shipped", verification: "verify-worm-role-split.sh · TRUST.md" },
   { capability: "Deterministic evals: grounding, refusal, chain integrity", status: "shipped", verification: "evals/agent-kit · agent_evals.py" },
   { capability: "Retention enforcement (opt-in scheduled sweep)", status: "shipped", verification: "retention_sweep.py" },
   { capability: "Organisation / team / SSO / MFA", status: "deferred", verification: "TRUST.md · ROADMAP.md" },
@@ -163,8 +162,7 @@ const STATUS_MATRIX: {
   { capability: "Manifest web-of-trust / publisher registry at scale", status: "deferred", verification: "TRUST.md" },
   { capability: "Durable job recovery, regulator reconstruction", status: "deferred", verification: "ROADMAP.md" },
   { capability: "SBOM / SLSA / signed images / SOC 2 / ISO", status: "deferred", verification: "not present — roadmap only" },
-  { capability: "Hosted demo touches Anthropic commercial API", status: "accepted", verification: "TRUST.md (no-training terms)" },
-  { capability: "R2 storage EU-placed, not UK-specific", status: "accepted", verification: "TRUST.md" },
+  { capability: "Hosted application backend", status: "deferred", verification: "legalise.dev is static; self-host for the full workspace" },
 ];
 
 const CITATIONS: { label: string; href: string }[] = [
@@ -504,7 +502,7 @@ function GatewayDiagram() {
         </defs>
       </svg>
       <figcaption className="px-1 pt-3 pb-1 text-[11px] text-prose">
-        Every model call leaves through one gateway.
+        Legalise model calls leave through one gateway.
       </figcaption>
     </figure>
   );
@@ -633,12 +631,10 @@ export function Architecture() {
           </h1>
           <div className="mt-6 max-w-2xl text-base leading-relaxed text-prose">
             <p>
-              Legalise is an open-source, independent register for legal AI in
-              England and Wales — an evaluation of the guardrails around it:
-              supervision, human sign-off, and a tamper-evident record. It is
-              not a finished product. This page documents how it is built: the
-              subsystems, how they fit together, and where in the repository to
-              verify each claim.
+              Legalise is an open-source workspace for AI-assisted legal work
+              in England and Wales. It records sources, model calls, review,
+              edits, and sign-off against each matter. This page describes the
+              implementation and links to the relevant code.
             </p>
             <p className="mt-4">
               Every code reference links to the file that implements it. The
@@ -682,30 +678,25 @@ export function Architecture() {
           or a witness-statement summary.
         </P>
         <P>
-          Every output is a draft until a named person reviews it, edits it with
-          tracked changes, and signs it. Everything the system does, including
-          what it refuses, is written to one tamper-evident record. Documents,
-          model calls, outputs, signatures, and the audit log all hang off one
-          matter, owned by one user and governed by one privilege setting.
+          Outputs remain drafts until a named person records a review decision.
+          Legalise records model calls, outputs, sign-offs, and refusals against
+          the matter. The audit record is tamper-evident, not tamper-proof.
         </P>
 
         <H2 id="limits">What is not solved</H2>
         <P>
-          Read this first. The hosted site is an evaluation environment, not a
-          practice one: not a law firm, no legal advice, and not for live client
-          matters. Model calls run on your own keys — Legalise does not pay for
-          or sit between your model usage.
+          The hosted backend is currently off. legalise.dev contains a static
+          guided demo and documentation, with no accounts, model calls, or
+          matter storage. Run the full workspace locally or on infrastructure
+          you control.
         </P>
         <P>
-          Not built yet: one deployment is one workspace (no multi-tenancy, SSO,
-          or organisation roles); manifest signing works, but the web of trust
-          around it does not exist yet; durable job recovery and production-grade
-          regulator reconstruction are planned, not solved; there are no
-          certifications (SOC 2, ISO 27001). Document storage is EU-placed, not
-          UK-specific.
+          One deployment is one workspace. There is no multi-tenancy, SSO,
+          organisation model, publisher web of trust, SOC 2, or ISO 27001
+          certification. The full list is maintained in LIMITATIONS.md.
         </P>
         <P>
-          The honest boundaries: the audit trail is tamper-evident, not
+          The audit trail is tamper-evident, not
           tamper-proof — a database superuser can disable the trigger and rewrite
           history, and the external anchoring that would close that gap is not
           built. A cloud provider sees the prompt in cleartext unless the
@@ -812,11 +803,9 @@ export function Architecture() {
 
         <H2 id="gateway">The inference gateway</H2>
         <P>
-          Every model call goes through one gateway. The providers (Anthropic,
-          OpenAI, local Ollama, and a keyless stub for development) sit behind a
-          single interface, and the gateway is the only component that talks to a
-          model provider. There is one exit point, so what can leave for a third
-          party is defined in one file.
+          Model calls made by Legalise go through one gateway. Anthropic,
+          OpenAI, OpenRouter, local Ollama, and a development stub sit behind
+          the same interface.
         </P>
         <P>
           Users bring their own keys. Each user stores an Anthropic or OpenAI key
@@ -826,8 +815,8 @@ export function Architecture() {
           to start if that master key is missing, the wrong length, or not valid
           hex. If a user has no key for a provider that needs one, the call fails
           safely with a clear error and an audit row. There is no quiet fallback
-          to a server-owned key in production. The hosted site is for evaluation;
-          real calls require the user's own provider credentials.
+          to a server-owned key in production. Self-hosted users supply their
+          own provider credentials.
         </P>
         <GatewayDiagram />
         <P>
@@ -1005,14 +994,13 @@ export function Architecture() {
 
         <H2 id="record">The audit record</H2>
         <P>
-          Every model call writes an audit row holding the model used, the
+          Each gateway call writes an audit row holding the model used, the
           SHA-256 hashes of the prompt and response (never the text itself), the
-          token count, and the latency. Every change to a matter writes a row
-          too. The rows are hash-chained: an append-only table links each entry
+          token count, and the latency. Recorded matter changes write rows too.
+          The rows are hash-chained: an append-only table links each entry
           to the one before it for that matter, so the chain's head hash is the
-          matter's fingerprint and stands for every entry under it. Publish that
-          head hash and anyone can later prove the trail was not rewritten,
-          because a changed trail no longer adds up to the same head. A Postgres
+          matter's fingerprint. A previously published head can be compared
+          with a later verification to detect a changed trail. A Postgres
           trigger written in PL/pgSQL writes the chain the moment a row lands.
           The verify endpoint{" "}
           <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/verify</code>{" "}
@@ -1026,11 +1014,9 @@ export function Architecture() {
           UPDATE and DELETE on every row, whatever role tries it. A database role
           split also strips the application role of permission to change or
           delete audit rows, so the app is refused before the trigger runs. CI
-          checks the split on every build, and it is enabled on the hosted
-          deployment: the app connects as a role that cannot rewrite the log,
-          verified end to end. A database superuser can still disable the trigger
-          and rewrite history; the external anchoring that would close that gap is
-          not built (see below).
+          checks the split. A self-hosted operator must apply the documented
+          role split. A database superuser can still disable the trigger and
+          rewrite history; external anchoring is not built.
         </P>
         <P>
           The exported working pack holds the outputs, the source context, the
@@ -1076,19 +1062,14 @@ export function Architecture() {
 
         <H2 id="deployment">Deployment and self-hosting</H2>
         <P>
-          The architecture is model-agnostic: the gateway treats providers as
-          interchangeable, and the original build ran against local models, GPT,
-          and Claude. For the demo, the working build is tuned tightly to
-          Anthropic and the Claude skills format. The known cost of that choice:
-          demo traffic touches Anthropic's commercial API, under its no-training
-          contract terms, with the data questions that carries.
+          The gateway supports Anthropic, OpenAI, OpenRouter, and local Ollama
+          providers. Provider behavior is not identical; the reference
+          evaluation must be run against each model a deployment intends to use.
         </P>
         <P>
-          The project is Apache-2.0 and can be self-hosted. The back end (Fly{" "}
-          <code className="tech-token">lhr</code>) and Postgres (Neon London) sit
-          in the UK. R2 object storage is placed in the EU, not specifically the
-          UK, so end-to-end UK residency is not claimed. If you self-host, you own
-          the master encryption key. Because{" "}
+          The project is Apache-2.0 and can be self-hosted. The hosted backend is
+          currently off. A self-hosting operator chooses the infrastructure,
+          controls the data location, and owns the master encryption key. Because{" "}
           <code className="tech-token">B_mixed</code> prefers a registered local
           Ollama provider, a firm building on this can tune it to run entirely on
           local models; at that point no client data needs to leave the building,

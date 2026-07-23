@@ -5,9 +5,9 @@ cannot do, and what it does **not** defend against. Every control maps to a
 file. Partial or absent defences are marked **Residual** or **Deferred**. A
 control is claimed only if the code implements it.
 
-Scope: the open-source codebase and the single hosted eval (`legalise.dev`).
-Forks inherit the code-level controls but make their own operational choices,
-out of scope here.
+Scope: the open-source codebase and self-hosted deployments. `legalise.dev` is
+a static site; its application backend is currently off. Operators inherit the
+code-level controls but make their own infrastructure choices.
 
 ---
 
@@ -33,8 +33,8 @@ out of scope here.
 3. **Backend ↔ storage (Postgres / R2).** Matter rows, audit rows, blobs at
    rest; the backend holds both credentials.
 4. **Self-host operator boundary.** Whoever runs the deployment holds the
-   master key and DB credentials — the outermost boundary and the honest
-   limit of the model (see the insider row; it applies to the hosted eval).
+   master key and DB credentials — the outermost boundary and the
+   limit of the model (see the insider row).
 
 ```
   Browser ──auth/throttle/scoping──▶ Backend ──single egress──▶ Model provider
@@ -153,23 +153,23 @@ out of scope here.
 - The audit chain is hash-linked and independently re-verifiable: a Python
   verifier recomputes every hash and cross-checks the PL/pgSQL-written chain,
   so CI catches drift — `audit_chain.py`.
-- A read-only endpoint exposes the chain head as a matter fingerprint;
-  exporting it proves the trail was not rewritten — `matters.py`.
+- A read-only endpoint exposes the chain head as a matter fingerprint. A head
+  recorded outside the deployment can later be used to detect a rewritten
+  trail — `matters.py`.
 - `audit_entries` is append-only: a Postgres trigger (`enforce_audit_worm`)
   raises on any UPDATE or DELETE — `0011_audit_worm.py`, `models/audit.py`.
 
-**Residual — the honest limit (applies to the hosted eval)**
+**Residual — operator access**
 - An operator holding both the database and the master key
   (`LEGALISE_KEY_ENCRYPTION_SECRET`) can read matter content and decrypt
-  stored provider keys. Both are held by whoever runs the deployment,
-  including the hosted-eval maintainer. Encryption at rest defends against
+  stored provider keys. Both are held by whoever runs the deployment.
+  Encryption at rest defends against
   storage-media compromise, not the key-holder — `encryption.py`.
 - An operator with raw Postgres superuser access could disable the WORM
   trigger; it defends against app bugs and the app role, not a DB superuser.
-  The hardening role split **is live on the hosted stack** (flipped 2026-06-30):
-  the app connects as `legalise_app`, which does not own the audit tables and
-  cannot disable the triggers. The residual is the owner/superuser role, held
-  by the deployment operator.
+  The supplied role split connects the app as `legalise_app`, which does not
+  own the audit tables and cannot disable the triggers. Self-hosters must apply
+  and verify that split. The owner/superuser remains above it.
 
 **Deferred**
 - Customer-managed / external KMS keys (no operator key custody) — not in v1
@@ -200,7 +200,7 @@ An index, not the argument — detail and file links are above.
 | Category | Primary control | Where | Residual / Deferred |
 | --- | --- | --- | --- |
 | **S**poofing | Session auth; per-IP auth throttle; prod boot invariants | `rate_limit.py`, `encryption.py` | Proxy-header IP spoofing → throttle bypass only |
-| **T**ampering | WORM trigger on `audit_entries`; hash-linked chain; role split live on hosted stack | `0011_audit_worm.py`, `audit_chain.py`, `infra/postgres-roles.sql` | DB owner/superuser can still disable trigger |
+| **T**ampering | WORM trigger on `audit_entries`; hash-linked chain; supplied app/owner role split | `0011_audit_worm.py`, `audit_chain.py`, `infra/postgres-roles.sql` | Self-hosters must apply the split; DB owner/superuser can still disable trigger |
 | **R**epudiation | Hash-chained, append-only, re-verifiable audit; sign-off pins payload hash | `audit_chain.py`, `signoff.py` | A signer can still rubber-stamp (out of scope) |
 | **I**nfo disclosure | Per-user slug scoping (404 not 403); BYO keys encrypted at rest | `matter_access.py`, `encryption.py`, `user_keys.py` | App-code isolation, no DB RLS; operator holds the key |
 | **D**oS | Per-IP rate limiting on auth surface | `rate_limit.py` | No WAF / dedicated DoS protection |
@@ -217,23 +217,21 @@ An index, not the argument — detail and file links are above.
 - **Multi-tenant isolation between organisations.** One deployment is one
   workspace; there is no cross-tenant layer. Do not run multiple untrusting
   organisations on one deployment.
-- **A hosted DB owner/superuser rewriting history.** The WORM role split is
-  live on the hosted stack (the app connects as `legalise_app`, which cannot
-  disable the audit triggers), but the table-owner role and the Neon platform
-  itself sit above it. Tamper-evident, not tamper-proof
+- **A DB owner/superuser rewriting history.** The supplied WORM role split uses
+  `legalise_app`, which cannot disable the audit triggers, but the table-owner
+  role and database operator sit above it. Tamper-evident, not tamper-proof
   (`0011_audit_worm.py`, `infra/postgres-roles.sql`).
-- **End-to-end UK data residency.** Backend (Fly `lhr`) and Postgres (Neon
-  London) are UK-region, but R2 is EU-placed (Western Europe) and frontier
-  providers are US-based. Residency is *partial* — `docs/TRUST.md` (§3, §5).
-- **At-rest disk encryption beyond provider defaults.** We rely on Neon /
-  Fly / R2 defaults; no application-layer envelope encryption of matter
-  bodies — `docs/TRUST.md`.
+- **A fixed data-residency posture.** Self-hosters choose their infrastructure
+  and model providers. Legalise does not certify end-to-end UK residency.
+- **Application-layer encryption of matter bodies.** Stored matter content
+  relies on the at-rest controls of the chosen database and object store —
+  `docs/TRUST.md`.
 
 ---
 
 ## Maps to
 
-- Trust narrative + sub-processors + residency honesty: `docs/TRUST.md`
+- Trust boundaries, optional providers, and residency: `docs/TRUST.md`
 - Auth, gates, model-gateway surface: `docs/ARCHITECTURE.md` (§4–5, §7)
 - Forward-looking controls (KMS, anchoring, residency cert): `docs/ROADMAP.md`
 - Vulnerability reporting + disclosure SLA: `SECURITY.md`

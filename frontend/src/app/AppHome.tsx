@@ -28,7 +28,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { getBootstrapState, type BootstrapState } from "../lib/api";
 import { useAuth } from "../auth/AuthProvider";
-import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
+import { HOSTED_AUTH_HREF } from "../lib/access";
 import { PageHeader } from "../ui/primitives";
 
 const BOOTSTRAP_CLI = "python -m app.tools.bootstrap_admin <email>";
@@ -145,7 +145,7 @@ function BootstrapRequiredState() {
 function SigninRedirect() {
   const nav = useNavigate();
   useEffect(() => {
-    void nav({ to: HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login" });
+    void nav({ to: HOSTED_AUTH_HREF });
   }, [nav]);
   return <CenteredLoader label="Redirecting…" />;
 }

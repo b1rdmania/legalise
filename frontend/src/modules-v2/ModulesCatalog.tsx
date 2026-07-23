@@ -505,7 +505,7 @@ export function ModulesCatalog() {
                   href="/auth/signup"
                   className="normal-case tracking-normal text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
                 >
-                  Create a workspace to import →
+                  Run locally to import →
                 </a>
               )
             }

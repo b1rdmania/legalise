@@ -1,12 +1,11 @@
 # Trust & Security
 
 > Status: **evaluation release source of truth.** Describes the system as built
-> today, plus items committed before any live-client or firm-pilot posture.
+> today and lists controls not yet implemented.
 
-Legalise is an open-source workspace for England & Wales solicitor work. Every
-decision here serves three constraints: legal professional privilege (LPP), the
-SRA Code of Conduct, and UK GDPR. Where the evaluation release cannot yet enforce
-a constraint, we say so plainly rather than paper over it.
+Legalise is an open-source workspace for England & Wales solicitor work. Its
+design considers legal professional privilege (LPP), the SRA Code of Conduct,
+and UK GDPR. Controls that are not implemented are listed below.
 
 This is not legal advice. The firm using Legalise is the controller and the
 accountable party.
@@ -20,13 +19,12 @@ control, an audit log, and a governed skill-import path (the Lawve catalogue or
 any public GitHub repo with a `SKILL.md`). Solicitors author and review; the
 system drafts and records.
 
-The model is supervised autonomy, not unsupervised automation: Legalise records
+Legalise records
 what the AI saw, what it did, which permission allowed it, and which human stayed
 accountable. The assistant is scoped to one matter and cannot see others, and
 works under a token budget that can truncate. Retrieval is in-tenant and keyless
 by default (`fastembed`), so indexing privileged documents does not send text to
-a model provider. The audit log is the receipt for this; it is not a claim that
-v0.1 is a regulated practice system.
+a model provider. This does not make Legalise a regulated practice system.
 
 Firms needing a four-eyes rule can set `SIGNOFF_AUTHOR_MUST_DIFFER`, blocking an
 author from signing their own output (rejecting stays allowed). Off by default,
@@ -44,17 +42,17 @@ so a sole practitioner can sign their own work.
 - **Not certified** against any framework today. No SOC 2, no ISO 27001, no
   Cyber Essentials. See Section 12.
 
-### Hosted demo and BYO model keys
+### Public site and BYO model keys
 
-The hosted site is a limited evaluation environment, not a regulated legal
-service. Users must supply their own model provider credentials. Legalise does
-not bundle, resell, or intermediate model access. Do not use the hosted site for
-live client matters.
+`legalise.dev` is a static demo and documentation site. Its hosted backend is
+currently off, so it has no accounts, model calls, or matter storage. A
+self-hosted deployment requires users to supply their own model provider
+credentials. Legalise does not bundle or resell model access. Do not use this
+evaluation release for live client matters.
 
 ## 3. What the evaluation release does not yet do (read this first)
 
-Gaps are at the top, not the bottom. Anyone weighing a procurement conversation
-about the hosted environment should see them before the architecture.
+Review these gaps before evaluating or self-hosting the application.
 
 - **Self-hosted production needs your own master encryption key.** The release
   ships authentication (fastapi-users cookie sessions, email verification,
@@ -64,14 +62,14 @@ about the hosted environment should see them before the architecture.
 - **Retention is recorded, not enforced.** Every matter has a `retention_until`
   field; nothing sweeps and deletes when that date passes.
 - **Application-layer encryption of stored prompts/responses is not yet
-  implemented.** We rely on Neon/Fly/R2 at-rest defaults.
+  implemented.** Self-hosters rely on the at-rest controls of their chosen
+  database and object store.
 - **One deployment is one workspace.** No organisation or multi-tenant model in
   the beta. Teams needing separation run one deployment each. Deliberate scope,
   recorded in the README.
-- **UK residency is partial.** Backend (Fly `lhr`) and Postgres (Neon London) are
-  in the UK. Cloudflare R2 placement is EU (Western Europe), not UK-specific.
-  Anthropic and OpenAI commercial APIs are US-served under contractual no-training
-  terms.
+- **Data residency depends on deployment.** Self-hosters choose the database,
+  object store, and model provider. Cloud model providers may process data
+  outside the UK.
 - **Anthropic / OpenAI UK addenda are not yet signed by us.** Standard commercial
   terms apply (including no-training); the UK IDTA paperwork is an open action.
 - **DPIA is owed, not published.** A v0.2 deliverable.
@@ -81,12 +79,14 @@ about the hosted environment should see them before the architecture.
   policy, not ours, but it can block a pilot — firms must check their cover.
   Legalise does not provide indemnity.
 
-If any of the above blocks a firm's procurement, the answer today is "we are not
-the right tool for you yet."
+These gaps rule out procurement or live-client use without further controls.
 
 ---
 
-## 4. Data flow
+## 4. Reference data flow
+
+The hosted backend is off. This diagram shows the previous reference deployment
+and remains useful when assessing a similar self-hosted topology:
 
 ```
 solicitor ──▶ Legalise frontend (browser)
@@ -105,14 +105,16 @@ solicitor ──▶ Legalise frontend (browser)
                 └─▶ matter filesystem materialisation (Fly volume, lhr) ── matter.md, history.md, chronology.md
 ```
 
-**No customer data flows anywhere not on this diagram.** No analytics, no
-error-tracking SaaS that ingests prompts, no third-party feature-flag service
-that sees matter content. Sentry / OpenTelemetry land v0.2, scoped to
-operational telemetry only (no prompts, no responses).
+The application code does not configure analytics, prompt-bearing error
+tracking, or a third-party feature-flag service. Self-hosters are responsible
+for any services they add.
 
 ---
 
-## 5. Sub-processors
+## 5. Reference sub-processors
+
+There are no application sub-processors for the static public site. The table
+below records the previous hosted topology and common optional providers.
 
 | Sub-processor | Purpose | Region | UK transfer mechanism |
 |---|---|---|---|
@@ -124,12 +126,11 @@ operational telemetry only (no prompts, no responses).
 | Cloudflare, Inc. | Object storage (R2), CDN, DNS | R2 jurisdiction: `eu` (Western Europe). CDN: edge | UK IDTA addendum + UK addendum to DPA |
 | GitHub, Inc. (Microsoft) | Source code, CI/CD | US | UK IDTA addendum |
 
-**Honest framing:** Anthropic, OpenAI and Cloudflare are US-headquartered.
-Anthropic and OpenAI both contractually commit to no training on customer data
-via the commercial APIs we use. R2 placement is EU (Western Europe), not
-UK-specific. Backend and database are UK-region. We do not claim "UK data
-residency end-to-end" because it is not literally true. Any change to this list
-is a change to this file, visible in `git log`.
+Anthropic, OpenAI and Cloudflare are US-headquartered.
+Anthropic and OpenAI contractually commit to no training on customer data
+through their commercial APIs. R2 placement is EU (Western Europe), not
+UK-specific. A self-hosted operator must assess its own deployment and transfer
+terms.
 
 ---
 
@@ -197,17 +198,17 @@ integrity: semantic rows commit only when the operation commits.
 `audit_entries` is append-only by enforcement, in two independent layers: a
 Postgres trigger that rejects UPDATE and DELETE on every row whatever the role,
 and a role split (`infra/postgres-roles.sql`) that removes UPDATE/DELETE from the
-application role by grant. The split is exercised in CI on every build (the build
-fails if `legalise_app` can mutate an audit row) and is live on the hosted
-deployment: the app connects as `legalise_app` (role created 2026-06-30), and the
-audit tables are owned by a separate role, so the connect role cannot disable the
-WORM triggers. Last verified against the production database 2026-07-05.
+application role by grant. The split is exercised in CI (the build fails if
+`legalise_app` can mutate an audit row). A self-hosted operator must apply the
+role definitions and verify them after deployment. The previous hosted
+deployment passed that check on 2026-07-05.
 
 **Third-party verification.** Every row is hash-chained via an append-only
 `audit_chain` table, so the head hash commits to every entry beneath it.
-Publishing that head hash lets anyone later prove the record was not rewritten —
-if the trail changes, the head no longer recomputes. This is tamper-evident, not
-tamper-proof. The verify endpoint (`GET /api/matters/{slug}/audit/chain`)
+Recording that head outside the deployment allows a later check to detect a
+rewritten trail: if the trail changes, the head no longer recomputes. This is
+tamper-evident, not tamper-proof. The verify endpoint
+(`GET /api/matters/{slug}/audit/chain`)
 recomputes every link and reports the head plus any breaks.
 
 ---
@@ -225,7 +226,7 @@ can never reach the runtime silently. Every invocation is audited
 (`module.capability.invoked` plus the gateway's `model.call`), so "which skills
 ran against which matters?" is answerable from the log.
 
-Manifest signatures come in two honest grades. `verified` means an ed25519
+Manifest signatures come in two grades. `verified` means an ed25519
 signature cryptographically checks out against the publisher's registered public
 key. `structure_verified` means shape-only: signature present and plausible,
 publisher in the registry, `signed_by` matches — but no cryptography was performed
@@ -271,11 +272,9 @@ sole-practitioner and small-firm case via direct signup.
 
 ## 11. Encryption
 
-- **In transit:** TLS 1.2+ for all external connections. Fly.io and Neon
-  terminate TLS; their internal hop is also encrypted.
-- **At rest:** Postgres-at-rest (Neon default, AES-256); R2 objects encrypted by
-  Cloudflare; matter materialisation on the Fly volume relies on Fly's storage
-  encryption.
+- **In transit:** production deployments must use TLS for external connections.
+- **At rest:** self-hosters rely on the controls of their chosen Postgres,
+  object-storage, and filesystem providers.
 - **Application layer:** per-user provider API keys are AES-256-GCM-encrypted
   (Section 10). Stored prompts/responses are not yet application-layer encrypted —
   tracked for v0.2.

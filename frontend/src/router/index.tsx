@@ -57,7 +57,10 @@ import { Help } from "../help/Help";
 import { MatterList } from "../matter/MatterList";
 import { NewMatter } from "../matter/NewMatter";
 import { MatterDetail } from "../matter/MatterDetail";
-import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
+import {
+  HOSTED_ACCESS_DISABLED,
+  HOSTED_ACCESS_WAITLIST,
+} from "../lib/access";
 import { getAuthSnapshot } from "../auth/AuthSnapshot";
 
 // ---------------------------------------------------------------------------
@@ -135,18 +138,26 @@ const manifestoRedirect = createRoute({
   },
 });
 
+function redirectDisabledHostedAuth(): void {
+  if (HOSTED_ACCESS_DISABLED) {
+    throw redirect({ to: "/auth/signup" });
+  }
+}
+
 const waitlistRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/waitlist",
+  beforeLoad: redirectDisabledHostedAuth,
   component: Waitlist,
 });
 
-// During the beta, /auth/signin shows the hosted-beta page (no public
-// login form). The real form lives at /auth/login for testers.
+// Public sign-in entry. Deployments may present the self-host or waitlist
+// surface here while keeping the actual form at /auth/login.
 const signinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/signin",
   beforeLoad: () => {
+    redirectDisabledHostedAuth();
     const snap = getAuthSnapshot();
     if (!snap.loading && snap.user) {
       throw redirect({ to: "/matters" });
@@ -155,11 +166,12 @@ const signinRoute = createRoute({
   component: () => (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignUp />),
 });
 
-// Quiet login route for beta testers — the actual sign-in form.
+// Actual sign-in form for deployments with hosted auth enabled.
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/login",
   beforeLoad: () => {
+    redirectDisabledHostedAuth();
     const snap = getAuthSnapshot();
     if (!snap.loading && snap.user) {
       throw redirect({ to: "/matters" });
@@ -174,12 +186,13 @@ const signupRoute = createRoute({
   component: () => (HOSTED_ACCESS_WAITLIST ? <Waitlist /> : <SignUp />),
 });
 
-// Self-serve hosted registration form. Public; if already signed in,
-// bounce to the workspace.
+// Self-serve registration for deployments with hosted auth enabled. If
+// already signed in, bounce to the workspace.
 const joinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/join",
   beforeLoad: () => {
+    redirectDisabledHostedAuth();
     const snap = getAuthSnapshot();
     if (!snap.loading && snap.user) {
       throw redirect({ to: "/matters" });
@@ -191,6 +204,7 @@ const joinRoute = createRoute({
 const forgotRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/forgot",
+  beforeLoad: redirectDisabledHostedAuth,
   component: ForgotPassword,
 });
 
@@ -198,6 +212,7 @@ type ResetSearch = { token?: string };
 const resetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/reset",
+  beforeLoad: redirectDisabledHostedAuth,
   component: () => {
     const { token } = resetRoute.useSearch();
     return <ResetPassword token={token ?? null} />;
@@ -210,6 +225,7 @@ const resetRoute = createRoute({
 const verifyPendingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/verify-pending",
+  beforeLoad: redirectDisabledHostedAuth,
   component: VerifyPending,
 });
 
@@ -217,6 +233,7 @@ type VerifySearch = { token?: string };
 const verifyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/verify",
+  beforeLoad: redirectDisabledHostedAuth,
   component: () => {
     const { token } = verifyRoute.useSearch();
     return <Verify token={token ?? null} />;
@@ -230,6 +247,7 @@ type MagicLinkSearch = { token?: string };
 const magicLinkRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/auth/magic-link",
+  beforeLoad: redirectDisabledHostedAuth,
   component: () => {
     const { token } = magicLinkRoute.useSearch();
     return <MagicLink token={token ?? null} />;

@@ -15,7 +15,7 @@ import { Outlet } from "@tanstack/react-router";
 import { BACKEND_ROOT, getMatter } from "../lib/api";
 import { isPublicRoute, navigate, useRoute, type Route } from "../lib/route";
 import { useAuth } from "../auth/AuthProvider";
-import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
+import { HOSTED_ACCESS_DISABLED, HOSTED_AUTH_HREF } from "../lib/access";
 import { TopBar } from "../ui/TopBar";
 import { Drawer } from "../ui/Drawer";
 import { Sidebar } from "../ui/Sidebar";
@@ -66,6 +66,7 @@ function AppShellInner() {
   const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
+    if (HOSTED_ACCESS_DISABLED) return;
     fetch(`${BACKEND_ROOT}/health`)
       .then((r) => r.json())
       .then((data: HealthResponse) => setHealth(data))
@@ -81,7 +82,7 @@ function AppShellInner() {
     if (auth.loading) return;
     if (auth.user) return;
     if (isPublicRoute(route)) return;
-    navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login");
+    navigate(HOSTED_AUTH_HREF);
   }, [auth.loading, auth.user, route]);
 
   // body-scroll-lock while a drawer is open. Escape/focus handling lives

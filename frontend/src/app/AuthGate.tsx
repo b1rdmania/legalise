@@ -24,7 +24,7 @@ import { useEffect } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { useAuth } from "../auth/AuthProvider";
 import { navigate } from "../lib/route";
-import { HOSTED_ACCESS_WAITLIST } from "../lib/access";
+import { HOSTED_AUTH_HREF } from "../lib/access";
 
 export function AuthGate() {
   const auth = useAuth();
@@ -36,7 +36,7 @@ export function AuthGate() {
   useEffect(() => {
     if (auth.loading) return;
     if (auth.user) return;
-    navigate(HOSTED_ACCESS_WAITLIST ? "/waitlist" : "/auth/login");
+    navigate(HOSTED_AUTH_HREF);
   }, [auth.loading, auth.user]);
 
   if (auth.loading || !auth.user) {

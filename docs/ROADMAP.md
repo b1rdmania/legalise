@@ -1,10 +1,11 @@
 # Roadmap
 
-What ships now, what's locked for live-matter readiness, what's parked. Honest about deferrals.
+What is shipped, planned, or out of scope.
 
 ## Current: evaluation release candidate
 
-Open-source UK legal AI workspace, regulator-shaped, hosted as a limited evaluation environment. legalise.dev is a runnable evaluation copy, not for live client matters. Evaluator backend access is gated by [`EVALUATING.md`](./EVALUATING.md).
+Open-source UK legal AI workspace in evaluation release. `legalise.dev` is a
+static demo and documentation site. Its hosted backend is currently off.
 
 Shipped surfaces:
 
@@ -20,18 +21,19 @@ Shipped surfaces:
 - **Export Gating v1.1.** Export ZIP carries documents, artifacts with `signoff_status` + `signoff_hash_matches`, `signoffs.json`, `reviews.json`, and a reconstruction timeline.
 - **Audit reconstruction.** Ordered timeline merged from audit, state-machine, and advice-boundary sources.
 - **Module catalogue + add-skill trust ceremony** with declared/granted capabilities and `module.json` validation. Skills arrive only by import at a pinned SHA.
-- **Signed manifests.** ed25519 with two honest grades: `verified` (cryptographic check against a registered key) and `structure_verified` (shape-only). No registered key means no `verified`.
+- **Signed manifests.** ed25519 with two grades: `verified` (cryptographic check against a registered key) and `structure_verified` (shape-only). No registered key means no `verified`.
 - **Hash-chained audit log** with a third-party verify endpoint that recomputes every link and reports the head plus any breaks.
 - **Inline tracked changes** — AI-proposed edits accepted or rejected by a human.
 - **Author/signer separation.** `SIGNOFF_AUTHOR_MUST_DIFFER` (off by default so a sole practitioner can sign their own work).
 - **Object storage.** S3-compatible: MinIO local, Cloudflare R2 hosted. Fly filesystem is cache only, never source of truth.
 - **Job runner.** arq + Redis with a `jobs` table as source of truth; runs survive disconnects and restarts.
 - **Migration discipline.** Migrations run as a deploy release step, not at app boot.
-- **Hosted evaluation limits** with a usage endpoint. Self-hosting removes them. **fastapi-users cookie sessions** + email verification. Smoke evals + real-DB E2E coverage across the workspace.
+- **Optional deployment limits** with a usage endpoint. **fastapi-users cookie sessions** + email verification. Smoke evals + real-DB E2E coverage across the workspace.
 
 ## Live-matter readiness: locked direction
 
-Serious backend substrate before broader launch pressure. Object storage, job runner, migration discipline, and hosted limits have shipped. Remaining:
+Object storage, job recovery, migration discipline, and deployment limits are
+implemented. Remaining:
 
 - **Matter export / delete.** Owner-scoped, refuses while jobs run, records audit/retention consequences.
 - **Audit WORM hardening.** Trigger guard and hash chain exist; remaining is operational — split migration/app roles, revoke update/delete for the app role, add external notary/anchoring.

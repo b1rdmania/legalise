@@ -546,10 +546,9 @@ function SettingsKeys() {
       <div>
         <SectionRule label="Provider keys" />
         <p className="prose-p mb-0 mt-3">
-        The hosted site has no shared production model key. To run real
-        model calls, bring your own Anthropic, OpenAI, or OpenRouter key.
-        Keys are encrypted and used only for your requests — Legalise does
-        not resell model access.
+        Legalise has no shared production model key. Bring your own Anthropic,
+        OpenAI, or OpenRouter key. Keys are encrypted and used only for your
+        requests. Legalise does not resell model access.
         </p>
       </div>
 

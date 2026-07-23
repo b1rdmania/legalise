@@ -164,7 +164,7 @@ export function DemoMatter() {
               href="/auth/signup"
               className="mx-2 mt-3 block px-3 text-sm text-muted underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal transition-colors"
             >
-              Create a workspace →
+              Run it yourself →
             </a>
           }
           utilItems={[]}
@@ -192,7 +192,7 @@ export function DemoMatter() {
                 <p className="mx-auto w-full max-w-[760px] text-[13px] text-muted" data-testid="demo-readonly-strip">
                   Public demo · read-only Khan v Acme ·{" "}
                   <a href="/auth/signup" className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal">
-                    create a workspace
+                    run it yourself
                   </a>{" "}
                   to run it yourself.
                 </p>
@@ -339,9 +339,9 @@ function DemoMattersTab({ onOpenKhan }: { onOpenKhan: () => void }) {
           href="/auth/signup"
           className="underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
         >
-          Create a workspace
+          Run it yourself
         </a>{" "}
-        to open your own matters.
+        to open your own matters locally.
       </p>
     </div>
   );

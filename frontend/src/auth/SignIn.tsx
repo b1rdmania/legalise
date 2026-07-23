@@ -60,7 +60,7 @@ export function SignIn() {
   };
 
   return (
-    <AuthCard eyebrow="The workspace" heading="Sign in" intro="Evaluation access to the hosted workspace. Not for live client matters.">
+    <AuthCard eyebrow="The workspace" heading="Sign in" intro="Sign in to this Legalise deployment. Not for live client matters.">
       <OAuthButtons />
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <LedgerField label="Email" htmlFor="signin-email">

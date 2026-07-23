@@ -1,7 +1,6 @@
 /**
  * /auth/signup — Legalise is open source, so the primary path is to fork and
- * run the whole thing yourself. Hosted access is a secondary, by-request
- * evaluation option. No demo video here; the pitch is "run it".
+ * run the whole thing yourself. No demo video here; the pitch is "run it".
  */
 export function SignUp() {
   return (
@@ -47,31 +46,6 @@ export function SignUp() {
         </p>
       </div>
 
-      <div className="mt-14 max-w-xl border-t border-rule pt-8">
-        <h2 className="text-lg font-bold tracking-tight2 text-ink">Prefer hosted?</h2>
-        <div className="mt-4 space-y-5 text-base leading-relaxed text-prose">
-          <p>
-            Run it on our infrastructure instead. The hosted site is an
-            evaluation environment —{" "}
-            <strong className="font-semibold text-ink">not for live client matters</strong>.
-            Bring your own key, or use the keyless demo model.
-          </p>
-          <div className="flex flex-wrap items-center gap-4">
-            <a
-              href="/auth/join"
-              className="border border-ink hover:bg-ink hover:text-paper text-ink px-4 py-2 transition-colors text-sm font-medium min-h-[44px] inline-flex items-center"
-            >
-              Create an account
-            </a>
-            <a
-              href="/auth/login"
-              className="text-sm text-muted hover:text-ink transition-colors"
-            >
-              Sign in &rarr;
-            </a>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

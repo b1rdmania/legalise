@@ -9,6 +9,7 @@ import {
   type SignupCapture,
 } from "../lib/api";
 import { setAuthSnapshot } from "./AuthSnapshot";
+import { HOSTED_ACCESS_DISABLED } from "../lib/access";
 
 export type AuthState = {
   user: CurrentUser | null;
@@ -35,10 +36,16 @@ export function useAuth(): AuthState {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!HOSTED_ACCESS_DISABLED);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (HOSTED_ACCESS_DISABLED) {
+      setUser(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const u = await getCurrentUser();
@@ -53,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    if (!HOSTED_ACCESS_DISABLED) void refresh();
   }, [refresh]);
 
   // Mirror auth state into the module-level snapshot so TanStack Router's

@@ -1,5 +1,9 @@
 export const HOSTED_ACCESS_MODE =
-  (import.meta.env.VITE_HOSTED_ACCESS_MODE as "waitlist" | "open" | undefined) ??
+  (import.meta.env.VITE_HOSTED_ACCESS_MODE as
+    | "disabled"
+    | "waitlist"
+    | "open"
+    | undefined) ??
   "open";
 
 const HOSTED_ACCESS_HOST =
@@ -10,6 +14,15 @@ const CURRENT_HOST =
 
 export const HOSTED_ACCESS_WAITLIST =
   HOSTED_ACCESS_MODE === "waitlist" && CURRENT_HOST === HOSTED_ACCESS_HOST;
+
+export const HOSTED_ACCESS_DISABLED =
+  HOSTED_ACCESS_MODE === "disabled" && CURRENT_HOST === HOSTED_ACCESS_HOST;
+
+export const HOSTED_AUTH_HREF = HOSTED_ACCESS_DISABLED
+  ? "/auth/signup"
+  : HOSTED_ACCESS_WAITLIST
+    ? "/waitlist"
+    : "/auth/login";
 
 export const WAITLIST_HREF = "/waitlist";
 

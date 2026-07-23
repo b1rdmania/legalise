@@ -1,10 +1,9 @@
 # Architecture
 
-How Legalise works **today**, in the open-source evaluation release at
-`legalise.dev`. Every load-bearing claim cites a file (or `file:line`) —
-follow the citation for detail. House rule: a capability is claimed live
-only if the code implements it. Anything deferred, dormant, or unmounted
-is named — see §8.
+How the open-source evaluation release works today. `legalise.dev` serves a
+static demo and these documents; its hosted backend is currently off.
+Implemented claims cite the relevant code. Deferred or dormant components are
+named in §8.
 
 ---
 
@@ -18,10 +17,9 @@ The core loop:
 
 > **draft → cite → sign-off → audit**
 
-The AI drafts and cites; a human signs off, pinned to the exact output
-they saw; the sequence lands in a hash-chained register an outsider can
-re-verify. The thesis is narrow: the machine signs its own *record*; the
-human signs the *work*.
+The AI drafts and cites. A human reviews the output and records a decision
+pinned to the exact content they saw. The sequence is written to a
+hash-chained register that can be checked separately.
 
 The workspace is **matter-first and chat-led**: isolation, authorisation,
 and audit are always per matter; chat is the primary surface, with
@@ -53,9 +51,8 @@ evidence path can be replayed, not inferred.
 - **Conversion / extraction:** Gotenberg, LibreOffice headless, `pypdf` /
   `pdfplumber` / `python-docx`.
 - **PII detection:** Microsoft Presidio + spaCy.
-- **Hosting:** Cloudflare → Fly.io (lhr) → Neon (London) Postgres. The
-  single hosted deployment is an evaluation instance, not a production
-  product.
+- **Public site:** Cloudflare Pages. The hosted application backend is
+  currently off. Self-hosted deployments provide the full workspace.
 
 **The matter as the unit of isolation.** Every matter-scoped route checks
 ownership (`Matter.created_by_id == user.id`). Grants, audit scope,
@@ -117,7 +114,7 @@ A reviewer reaches it two ways:
    chain as `audit.json` with a README of "what a human still needs to
    verify".
 
-**Honest limit (stated in the migration itself):** this is
+**Limit:** this is
 tamper-*evidence*, not external anchoring. It detects edit / delete /
 reorder of DB history while the chain table and triggers are present, but
 a privileged operator who disables the triggers can rewrite unanchored
@@ -152,7 +149,7 @@ changed by diff and migration, never runtime config. A block emits
 **Important caveat — firm-role gates are dormant by default.** The
 `qualified_solicitor` requirement on `B_mixed` only bites when
 `LEGALISE_FIRM_ROLE_GATES_ENABLED` is true. It defaults to **false**
-(`backend/app/core/config.py:77`), so on the hosted eval any
+(`backend/app/core/config.py:77`), so with the default configuration any
 authenticated owner satisfies a non-paused posture. When dormant, the
 gate records `required_role: any_authenticated` so the log stays truthful
 about the *effective* requirement rather than faking a solicitor check.
@@ -270,8 +267,8 @@ else's export" path.
 
 ## 6. Sign-off & review
 
-Professional sign-off (`backend/app/core/signoff.py`) is the human half of
-the thesis. A user records `signed`, `signed_with_observations`, or
+Professional sign-off (`backend/app/core/signoff.py`) records human review.
+A user records `signed`, `signed_with_observations`, or
 `rejected`; the two non-clean decisions require reasoning. Each sign-off:
 
 - **Pins the exact output** — `artifact_hash` is the SHA-256 of canonical
@@ -358,7 +355,7 @@ today**. Named so a reviewer is not misled.
 - **Firm-role gates — dormant by default.** The `qualified_solicitor` /
   `workspace_admin` hierarchy in the posture and advice-boundary gates is
   real code but off by default (`LEGALISE_FIRM_ROLE_GATES_ENABLED=false`).
-  On the hosted eval, the tier *structure* is enforced; the *role*
+  In the default configuration, the tier *structure* is enforced; the *role*
   requirement is not.
 - **Manifest v2 / matter-context store / sandbox strategy.** The
   matter-context store (`backend/app/core/matter_context/`) is mounted and

@@ -3,7 +3,7 @@
 This is an evaluation release, not a production system. Read this before you
 build on top of Legalise.
 
-It separates three things that are too often muddled together:
+This document separates:
 
 1. **Deliberate scope** — choices for an open-source evaluation release, not
    accidents or TODOs. A fork with different goals may revisit them.
@@ -12,8 +12,8 @@ It separates three things that are too often muddled together:
 3. **What is real and tested** — the governance substrate, and the evals that
    check it.
 
-The honest mismatch to avoid: this is an evaluation-complete technical release.
-It is not built for a firm procurement committee, and does not pretend to be.
+This is a technical evaluation release. It is not ready for firm procurement or
+live client work.
 
 ---
 
@@ -28,7 +28,7 @@ single tool then calls the model once more for the final reply (see
 multi-step planning, no self-correction loop, no agent budget. Only the first
 tool call is honoured.
 
-This is the thesis, not a shortcut. Every turn is one governed, inspectable,
+Every turn is one governed, inspectable,
 **signable** unit. A multi-step autonomous loop works against that — what would
 a solicitor sign, and against which intermediate step? A fork that wants
 autonomy can build a bounded, fully-audited agent loop, but that is a different
@@ -81,7 +81,7 @@ live client matters.
 
 A per-matter cumulative token budget (`LEGALISE_MATTER_TOKEN_BUDGET`, 0 = off)
 refuses a new turn once the matter's recorded usage reaches the ceiling — a real
-spend guard on real recorded usage. Two honest gaps remain: context *sizing*
+spend guard on real recorded usage. Two gaps remain: context *sizing*
 still uses a character heuristic, not a real tokenizer, and there is no monetary
 (£) cost ceiling — only token counts. **Fork:** add real per-request token
 counting and a cost (not just token) budget if you need pound-denominated caps.

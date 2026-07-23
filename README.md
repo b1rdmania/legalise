@@ -4,8 +4,9 @@
 > software. Not for live client matters.** See
 > [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md) for what is and isn't ready.
 
-An open-source governance layer for UK legal AI: human sign-off and a
-tamper-evident audit trail for AI-assisted legal work.
+An open-source workspace for AI-assisted legal work in England and Wales.
+It records sources, model calls, review, edits, and human sign-off against
+each matter.
 
 Open source, runs locally, bring your own model key.
 
@@ -14,118 +15,65 @@ Open source, runs locally, bring your own model key.
 ## How it works
 
 The loop is **draft, cite, sign-off, audit**. AI prepares an output inside a
-matter file and cites the documents it used. A named solicitor reviews it and
-signs; the signature pins the exact output by hash. Every step writes to an
-audit log the application cannot edit or delete.
+matter and cites the documents used. A named person reviews it and records a
+decision. The decision pins the reviewed output by hash.
 
-AI is preparation, not the deliverable. The audit trail makes the work
-inspectable; the signature makes a human accountable. What Legalise does and
-does not claim is in [`docs/TRUST.md`](./docs/TRUST.md), gaps first.
-
----
-
-## What you can do with it
-
-- **Evaluate supervised autonomy.** Run a skill over a matter's documents,
-  review the output, sign it, verify the audit chain — then export the working
-  pack to see exactly what a regulator or insurer would receive.
-- **Fork it as a reference architecture.** The governance substrate — capability
-  gates, privilege posture, professional sign-off, hash-chained audit — is
-  tested and runnable. Adapt it for your own legal AI, or another regulated
-  domain.
-- **Self-host for internal use.** Run it on your own infrastructure with your
-  own model keys; privileged content is never sent off the box to be indexed.
-  Your supervision, your PII cover, your call on posture per matter.
+Matter actions handled by Legalise write to an append-only, hash-chained audit
+log. The log is tamper-evident, not tamper-proof. See
+[`docs/TRUST.md`](./docs/TRUST.md) for the claim boundary and open gaps.
 
 ---
 
 ## What's in the repo
 
-A worked evaluation workspace around the Khan v Acme sample matter, ordered as
-the matter loop:
+A worked evaluation workspace around the Khan v Acme sample matter:
 
-- **Documents.** Every file in the matter: drag/drop ingress, extracted bodies,
-  version history, the CPR 31.22 disclosure flag, and original-file retrieval
-  through an owner-only backend proxy.
-- **Chat.** Ask about the matter, or run a ready skill against selected documents.
-- **Skills.** Governed legal skills enabled per matter, readiness shown up front
-  (`Ready` / `Keyless demo model` / `Requires Anthropic key` / `Requires OpenAI key`).
-- **Activity.** The proof layer: module invoked, model called, output written,
-  sign-off recorded, gate denials.
-- **Signed outputs** and **Working pack.** The signed material and the exportable
-  matter record.
+- **Documents:** upload, extraction, version history, disclosure flags, and
+  owner-scoped original-file access.
+- **Chat and skills:** work against selected matter documents through a shared
+  model gateway.
+- **Review and sign-off:** record `signed`, `signed_with_observations`, or
+  `rejected`; pin the reviewed output by hash.
+- **Activity and export:** inspect the matter record and export its documents,
+  outputs, sign-offs, source anchors, and audit data.
 
-Skills produce outputs the user reviews, signs, and exports:
-
-- **Professional sign-off.** The author reads an AI-prepared output and records
-  `signed`, `signed_with_observations`, or `rejected`. The signature pins the
-  output by hash; the history is append-only. Supervisor Review is an optional
-  second path.
-- **Source anchors.** Each output carries the documents it cited — server-known,
-  independent of the model. Quotes are checked against the source text: cited
-  for review, not certified.
-- **Export.** The matter ZIP carries documents, audit trail, outputs, sign-off
-  records, source anchors, and an integrity flag showing whether each signed
-  output still matches its pinned hash.
-
-Supporting substrate:
-
-- **Permission gates.** A manifest declares what a skill needs; the workspace
-  grants it on a matter; the runtime checks it before every privileged
-  operation. A denial is a structured 403 plus an audit row.
-- **Privilege and advice-boundary gates** before every model call.
-- **Model gateway** across Anthropic, OpenAI, and Ollama. Users bring their own
-  keys, stored encrypted at rest. Legalise does not provide model access.
+The runtime includes capability checks, matter privilege settings, an
+advice-boundary gate, and one model gateway for Anthropic, OpenAI, OpenRouter,
+and Ollama. Users bring their own model keys. Legalise does not provide model
+access.
 
 Skills arrive by import. The
 [`awesome-legal-skills`](https://github.com/lawve-ai/awesome-legal-skills)
 (Lawve) catalogue is browsable in-app, and any public GitHub repo with a
 `SKILL.md` can be dropped in by URL (e.g.
 [`pre-motion`](https://github.com/b1rdmania/pre-motion)). Each import becomes a
-governed draft pinned to a commit SHA, passes the trust ceremony, and runs
-under the same sign-off and source-anchor handling.
+draft pinned to a commit SHA. It must pass the admission flow and receive
+matter-level permissions before it can run.
 
 ---
 
-## What it proves
+## What it records
 
-A regulator, insurer, supervisor, or partner eventually asks four questions
-about any AI tool used on a matter. Legalise answers each with a record, not a
-promise:
+- Documents and source anchors used by a Legalise workflow.
+- Model, token, latency, posture, and prompt/response hashes for gateway calls.
+- Review decisions, tracked edits, sign-offs, and refusals.
+- An append-only audit row and hash-chain entry for recorded matter actions.
 
-**1. What did it see?** The assistant is scoped to one matter and can't see
-others. Every document it reads is logged — so "what did the AI look at" is a
-trail, not a guess.
-
-**2. Under what protection?** Each matter sets how AI may touch privileged
-material — **cloud allowed**, **mixed** (the default), or **paused** (local
-model only) — and the rule is checked before every model call. Disclosure-
-restricted material (CPR 31.22) is flagged and withheld until acknowledged.
-
-**3. What did it produce?** Prompt, response, model, tokens, and posture are
-hashed and stored. Any answer reconstructs from its audit row.
-
-**4. Who stayed accountable?** A named solicitor signs each output by hash; the
-record shows whether the signer wrote it. Every model call, change, and refusal
-writes one row to an append-only log — a Postgres trigger blocks edits and
-deletes, and rows hash-chain.
-
-Caveat, plainly: this is tamper-**evident**, not tamper-proof. A database
-superuser can still rewrite and re-link history; external anchoring would close
-that and isn't built. See [`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
-
-No background calls. No invisible inference. If it touched the matter, it's logged.
+A database superuser can rewrite unanchored history by disabling the controls.
+External anchoring is not built. See
+[`docs/TRUST.md`](./docs/TRUST.md#8-audit-trail).
 
 ---
 
 ## Try it
 
 [legalise.dev](https://legalise.dev) hosts a guided demo of the Khan v Acme
-workspace and the architecture write-up. **Sign-up is open** — create an
-account at [legalise.dev/auth/join](https://legalise.dev/auth/join) (email
-verification required), or email
-[andrew@legalise.dev](mailto:andrew@legalise.dev) with questions. To run
-the full workspace yourself, fork and run it locally.
+workspace and the architecture write-up. **The hosted backend is currently
+turned off:** there are no hosted accounts, model calls, or matter storage.
+Run the complete workspace locally or on your own infrastructure with your own
+model keys.
+
+Email [andrew@legalise.dev](mailto:andrew@legalise.dev) with questions.
 
 Stack: Postgres, MinIO, Redis, Gotenberg, FastAPI, React.
 
@@ -218,7 +166,7 @@ If you don't want quickstart to clone the skills catalogue or start compose:
 
 ## Status
 
-Evaluation release — honest about what's in and what isn't.
+Evaluation release. Not for live client matters.
 
 - **What works** is in the [CHANGELOG](./CHANGELOG.md), and you can run all of
   it: the full matter loop, audited retrieval, sign-off, export, and a

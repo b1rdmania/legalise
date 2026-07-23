@@ -34,20 +34,19 @@ export function Landing() {
             Open source · England &amp; Wales · Evaluation release
           </div>
           <h1 className="font-redaction35 text-[40px] sm:text-[56px] md:text-[64px] leading-[1.04] tracking-tight2 text-ink max-w-2xl">
-            AI can draft the case. It cannot sign it.
+            AI can draft. A lawyer still signs.
           </h1>
           <div className="w-16 h-[3px] bg-seal mt-6 mb-8" aria-hidden="true" />
           <p className="text-lg md:text-xl text-muted leading-relaxed max-w-2xl">
-            Legalise keeps AI work inside the matter file, with a record of
-            every human review, edit, approval, and sign-off.
+            Legalise records the sources, model calls, review, edits, and
+            sign-off attached to a matter.
           </p>
           <p className="mt-5 text-base text-muted max-w-2xl">
-            Courts have started sanctioning AI-drafted filings no one
-            reviewed. Built for the partner who signs, and the COLP who
-            answers for it.
+            The hosted backend is currently off. This site contains the guided
+            demo and documentation; run the full workspace yourself.
           </p>
           <p className="mt-5 text-base text-muted">
-            Unfinished. Experimental. Come break it.
+            Open source. Evaluation release. Not for live client work.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 mt-10">
