@@ -27,7 +27,7 @@ By the end you will have opened a sample matter,
 inspected the files the skill can use, added and enabled a governed skill,
 run it through the durable job path, reviewed and signed the output, read
 matter Activity, and exported the working pack. That sequence is the
-smallest end-to-end demonstration of supervised autonomy: a skill declares
+smallest end-to-end demonstration of the review workflow: a skill declares
 what it needs, the matter grants it, runtime checks enforce it, output is
 signed, and the record preserves what happened.
 

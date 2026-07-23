@@ -115,7 +115,7 @@ const DOC_MAP: { section: string; docs: { label: string; file: string }[] }[] = 
     ],
   },
   {
-    section: "Supervised autonomy",
+    section: "Review and sign-off",
     docs: [{ label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` }],
   },
   {

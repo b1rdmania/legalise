@@ -178,7 +178,7 @@ export function DemoLoop() {
           {phase.step === "reviewed" && (
             <Step n={3} title="Supervisor review requested" done>
               <p className="text-sm text-muted" data-testid="demo-review-note">
-                Requested. In supervised autonomy, a separate reviewer decides — an author
+                Requested. A separate reviewer decides — an author
                 cannot approve their own output. That separation is the guarantee, not a
                 limitation.
               </p>

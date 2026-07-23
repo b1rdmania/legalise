@@ -17,7 +17,7 @@ code-level controls but make their own infrastructure choices.
 | --- | --- | --- |
 | Client / privileged documents | Postgres (`document_bodies`), R2 blobs | Privileged material; disclosure is the worst harm |
 | User provider API keys | `user_api_keys` (encrypted at rest) | A leaked key is billable + impersonatable upstream |
-| Audit-chain integrity | `audit_entries` + `audit_chain` | The register is the product; a rewritten trail is fatal |
+| Audit-chain integrity | `audit_entries` + `audit_chain` | A rewritten trail defeats the record's purpose |
 | Auth / session | session cookie, `users` table | Account takeover = all a user's matters |
 | Per-user matter isolation | every matter-scoped route | One user reading another's matter is a breach |
 

@@ -549,7 +549,7 @@ export function GuidedDemo() {
                     </div>
 
                     <Coachmark>
-                      The refusal carries the same weight as an approval. The citation check's refusal of <strong>Henderson v Brent</strong> is struck onto the record, not hidden. The model drafted and you signed. That is the whole product: choose a skill, install it, run it, and stand behind what it produced.
+                      The refusal carries the same weight as an approval. The citation check's refusal of <strong>Henderson v Brent</strong> is struck onto the record, not hidden. The model drafted and you signed. That is the workflow: choose a skill, install it, run it, and review what it produced.
                     </Coachmark>
 
                     {/* Where a convinced stranger goes next — the demo no longer
