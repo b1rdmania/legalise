@@ -168,6 +168,14 @@ If you don't want quickstart to clone the skills catalogue or start compose:
 
 Evaluation release. Not for live client matters.
 
+**NB — the honest state of it.** The audit engine is complete and strong.
+The document editor, the LLM layer, and matter organisation are about 80%
+there. Chasing a perfect open-source legal workspace was draining time in
+a lane that's already crowded, so treat this as an open experiment: come
+in as a contributor and close the gap, or take the audit engine and plug
+it into the workspace you already have. Throw the repo at your LLM and
+see what it thinks.
+
 - **What works** is in the [CHANGELOG](./CHANGELOG.md), and you can run all of
   it: the full matter loop, audited retrieval, sign-off, export, and a
   deterministic eval harness ([agent-kit](https://github.com/b1rdmania/agent-kit))
