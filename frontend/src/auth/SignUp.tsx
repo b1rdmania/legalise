@@ -44,6 +44,25 @@ export function SignUp() {
           <span className="tech-token">localhost:3000</span> and create the
           first account — it&apos;s seeded with the Khan v Acme sample matter.
         </p>
+
+        {/* The hosted-backend note — same posture as sign-in / architecture. */}
+        <div className="border border-rule bg-wash p-4 text-sm leading-relaxed">
+          <p className="text-ink">
+            <strong>There is a hosted backend — built, but switched off.</strong>{" "}
+            It&apos;s functional but incomplete, and I&apos;d rather run it
+            with a real firm than polish it in the dark.
+          </p>
+          <p className="mt-2 text-prose">
+            Interested in running it as a pilot?{" "}
+            <a
+              href="mailto:andrew@legalise.dev?subject=Legalise%20hosted%20pilot"
+              className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+            >
+              Drop me an email
+            </a>
+            .
+          </p>
+        </div>
       </div>
 
     </div>
