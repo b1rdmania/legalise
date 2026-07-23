@@ -118,8 +118,8 @@ export function Drawer({
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
     secondary = [
-      // Disabled, not removed — see TopBar.tsx for why.
-      { label: "Sign in", disabled: true },
+      // Live again — the sign-in page carries the hosted-backend note.
+      { href: "/auth/login", label: "Sign in" },
     ];
   }
 

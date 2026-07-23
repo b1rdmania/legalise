@@ -652,6 +652,27 @@ export function Architecture() {
             </p>
           </div>
 
+          {/* The honest state, up front — mirrors the README's Status note. */}
+          <aside className="mt-8 max-w-2xl border border-rule bg-paper p-5 text-sm leading-relaxed">
+            <p className="text-ink">
+              <strong>The honest state of it.</strong> The audit engine is
+              complete and strong. The document editor, the LLM layer, and
+              matter organisation are about 80% there. The hosted backend is
+              built, but switched off — everything runs self-hosted.
+            </p>
+            <p className="mt-2 text-prose">
+              Treat it as an open experiment: contribute, take the audit
+              engine into your own workspace, or{" "}
+              <a
+                href="mailto:andrew@legalise.dev?subject=Legalise%20hosted%20pilot"
+                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+              >
+                email me
+              </a>{" "}
+              to run the hosted version as a pilot.
+            </p>
+          </aside>
+
           {/* Contents */}
           <nav aria-label="Contents" className="mt-8 max-w-2xl border-t border-rule/50 pt-4">
             <ul className="flex flex-wrap gap-x-5 gap-y-2">

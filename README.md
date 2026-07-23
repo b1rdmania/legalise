@@ -176,6 +176,10 @@ in as a contributor and close the gap, or take the audit engine and plug
 it into the workspace you already have. Throw the repo at your LLM and
 see what it thinks.
 
+The hosted backend is built and functional, but switched off —
+self-hosting is the supported path. If you'd run the hosted version as a
+pilot, email [andrew@legalise.dev](mailto:andrew@legalise.dev).
+
 - **What works** is in the [CHANGELOG](./CHANGELOG.md), and you can run all of
   it: the full matter loop, audited retrieval, sign-off, export, and a
   deterministic eval harness ([agent-kit](https://github.com/b1rdmania/agent-kit))

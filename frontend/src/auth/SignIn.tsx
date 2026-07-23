@@ -61,6 +61,28 @@ export function SignIn() {
 
   return (
     <AuthCard eyebrow="The workspace" heading="Sign in" intro="Sign in to this Legalise deployment. Not for live client matters.">
+      {/* The honest state: the hosted backend exists but isn't running.
+          The form stays visible so the surface is real, and the note
+          carries the pilot ask. */}
+      <div className="mb-6 border border-rule bg-wash p-4 text-sm leading-relaxed">
+        <p className="text-ink">
+          <strong>The hosted backend is built, but switched off.</strong>{" "}
+          Everything here runs self-hosted — clone the repo and you have the
+          whole thing.
+        </p>
+        <p className="mt-2 text-prose">
+          Want to run the hosted version as a pilot? It&apos;s functional but
+          incomplete, and I&apos;d rather run it with a real firm than polish
+          it in the dark.{" "}
+          <a
+            href="mailto:andrew@legalise.dev?subject=Legalise%20hosted%20pilot"
+            className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
+          >
+            Drop me an email
+          </a>
+          .
+        </p>
+      </div>
       <OAuthButtons />
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <LedgerField label="Email" htmlFor="signin-email">
