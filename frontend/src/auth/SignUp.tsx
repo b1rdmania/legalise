@@ -36,15 +36,6 @@ export function SignUp() {
           </a>
         </div>
 
-        <pre className="border border-rule bg-wash p-4 text-[13px] leading-relaxed overflow-x-auto text-ink">
-          <code>git clone https://github.com/b1rdmania/legalise{"\n"}cd legalise{"\n"}./scripts/quickstart.sh</code>
-        </pre>
-        <p className="text-sm text-muted">
-          Open{" "}
-          <span className="tech-token">localhost:3000</span> and create the
-          first account — it&apos;s seeded with the Khan v Acme sample matter.
-        </p>
-
         {/* The hosted-backend note — same posture as sign-in / architecture. */}
         <div className="border border-rule bg-wash p-4 text-sm leading-relaxed">
           <p className="text-ink">
