@@ -169,7 +169,7 @@ export function LedgerLine({
           {label}
         </span>
       )}
-      <span className="order-last min-w-0 basis-full text-sm text-ink sm:order-none sm:flex-1 sm:basis-auto">
+      <span className="order-last min-w-0 basis-full text-sm text-ink sm:order-0 sm:flex-1 sm:basis-auto">
         {children}
       </span>
       {right != null && <span className="ml-auto shrink-0 sm:ml-0">{right}</span>}
@@ -180,7 +180,7 @@ export function LedgerLine({
 /** Closing colophon — one institutional sentence, only where earned. */
 export function Colophon({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-14 border-t border-rule pt-3 text-[10px] uppercase tracking-[0.2em] text-muted">
+    <p className="mt-14 border-t border-rule pt-3 text-[10px] uppercase tracking-track2 text-muted">
       {children}
     </p>
   );

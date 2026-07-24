@@ -131,7 +131,7 @@ export function EditPanel({
         rows={4}
         placeholder="Type an edit instruction, or pick a preset above."
         disabled={busy}
-        className="w-full resize-vertical border border-rule bg-paper px-3 py-2 font-sans text-[14px] text-ink transition-colors focus:border-ink focus:outline-none"
+        className="w-full resize-vertical border border-rule bg-paper px-3 py-2 font-sans text-[14px] text-ink transition-colors focus:border-ink focus:outline-hidden"
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -142,7 +142,7 @@ export function EditPanel({
           value={mode}
           onChange={(e) => setMode(e.target.value as EditMode)}
           disabled={busy}
-          className="bg-paper border border-rule px-2 py-1.5 text-[12px] focus:border-ink focus:outline-none tech-token text-ink"
+          className="bg-paper border border-rule px-2 py-1.5 text-[12px] focus:border-ink focus:outline-hidden tech-token text-ink"
         >
           <option value="free-text">free-text</option>
           <option value="tighten">tighten</option>

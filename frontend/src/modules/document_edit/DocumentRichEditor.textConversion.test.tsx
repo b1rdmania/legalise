@@ -197,7 +197,7 @@ describe("DocumentRichEditor text conversion", () => {
     });
   });
 
-  it("builds the editor outline from real headings before paragraph fallback", () => {
+  it("builds the editor outline-solid from real headings before paragraph fallback", () => {
     expect(
       documentOutlineFromJson(
         {

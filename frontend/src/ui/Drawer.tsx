@@ -220,12 +220,12 @@ function DrawerItem({
   const primaryCls =
     "px-4 py-3 text-[16px] flex items-center gap-3 text-left " +
     (item.active
-      ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
+      ? "bg-wash text-ink font-semibold border-l-2 border-ink ml-[-2px] pl-[18px]"
       : "text-ink hover:bg-wash");
   const secondaryCls =
     "px-4 py-3 text-[16px] text-left " +
     (item.active
-      ? "bg-wash text-ink font-semibold border-l-2 border-ink -ml-[2px] pl-[18px]"
+      ? "bg-wash text-ink font-semibold border-l-2 border-ink ml-[-2px] pl-[18px]"
       : "text-muted hover:text-seal hover:bg-wash");
   const cls = tone === "primary" ? primaryCls : secondaryCls;
 

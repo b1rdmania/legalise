@@ -81,7 +81,7 @@ export function documentEditorProps(onImageFile: (file: File) => void) {
   return {
     attributes: {
       class:
-        "legalise-document-editor min-h-[760px] border border-rule bg-paper px-9 py-12 text-[16px] leading-8 outline-none shadow-[0_18px_50px_rgba(0,0,0,0.08)] sm:px-14",
+        "legalise-document-editor min-h-[760px] border border-rule bg-paper px-9 py-12 text-[16px] leading-8 outline-hidden shadow-[0_18px_50px_rgba(0,0,0,0.08)] sm:px-14",
     },
     handlePaste: (_view: unknown, event: ClipboardEvent) => {
       const file = firstImageFile(event.clipboardData?.files);

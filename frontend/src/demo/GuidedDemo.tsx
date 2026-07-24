@@ -435,7 +435,7 @@ export function GuidedDemo() {
                   <div className="mt-1 max-h-40 overflow-auto rounded-md border border-rule">
                     {DOCS.map((d) => (
                       <label key={d.key} className="flex items-center gap-2 border-b border-rule px-3 py-1.5 last:border-b-0">
-                        <input type="checkbox" checked readOnly className="accent-[#7e2b22]" />
+                        <input type="checkbox" checked readOnly className="accent-seal" />
                         <span className="tech-token text-[12px] text-prose">{d.filename}</span>
                       </label>
                     ))}
@@ -497,7 +497,7 @@ export function GuidedDemo() {
                         {DECISIONS.map((d) => (
                           <label key={d.id} className={"block cursor-pointer border p-3 text-sm " + (decision === d.id ? "border-ink bg-wash" : "border-rule")}>
                             <span className="flex items-center gap-2">
-                              <input type="radio" name="gd-decision" checked={decision === d.id} onChange={() => setDecision(d.id)} className="accent-[#7e2b22]" />
+                              <input type="radio" name="gd-decision" checked={decision === d.id} onChange={() => setDecision(d.id)} className="accent-seal" />
                               <span className="font-medium text-ink">{d.title}</span>
                             </span>
                             <span className="mt-1 block pl-6 text-xs text-muted">{d.help}</span>
@@ -510,7 +510,7 @@ export function GuidedDemo() {
                         className="mt-3 w-full border border-rule bg-wash px-3 py-2 text-sm text-ink"
                       />
                       <label className="mt-3 flex items-start gap-2 text-sm text-prose">
-                        <input type="checkbox" defaultChecked className="mt-0.5 accent-[#7e2b22]" />
+                        <input type="checkbox" defaultChecked className="mt-0.5 accent-seal" />
                         I am a qualified person and take responsibility for this output.
                       </label>
                       <div className="mt-4">
@@ -535,7 +535,7 @@ export function GuidedDemo() {
                     </div>
 
                     <div className="relative mt-6 border border-ink/70 bg-paper p-5">
-                      <span className="absolute right-5 top-5 -rotate-6 border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-seal">Signed</span>
+                      <span className="absolute right-5 top-5 -rotate-6 border-2 border-seal px-3 py-1 text-[11px] font-bold uppercase tracking-track2 text-seal">Signed</span>
                       {/* pr keeps the eyebrow clear of the stamp when it wraps at phone widths */}
                       <div className="pr-24">
                         <CertEyebrow left="Record · created by the sign-off" />

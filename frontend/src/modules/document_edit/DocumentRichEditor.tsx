@@ -630,7 +630,7 @@ export function DocumentRichEditor({
   return (
     <section className="min-h-[760px] rounded-card border border-rule bg-paper" data-testid="document-editor">
       <div
-        className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur"
+        className="sticky top-0 z-10 border-b border-rule bg-paper/95 backdrop-blur-sm"
         data-testid="document-editor-command-bar"
       >
         <CommandBarRow

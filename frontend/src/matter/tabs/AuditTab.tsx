@@ -243,7 +243,7 @@ function AuditDetailDrawer({
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="min-w-0">
             <div className="eyebrow mb-2">{isBlocked ? "Refused entry" : "Audit entry"}</div>
-            <h3 className={"text-lg font-bold leading-tight break-words " + (isBlocked ? "text-seal" : "text-ink")}>
+            <h3 className={"text-lg font-bold leading-tight wrap-break-word " + (isBlocked ? "text-seal" : "text-ink")}>
               {entry.action}
             </h3>
           </div>
@@ -304,7 +304,7 @@ function PlainRow({ label, value }: { label: string; value: string }) {
   return (
     <>
       <dt className="text-[10px] uppercase tracking-[0.18em] text-muted self-center">{label}</dt>
-      <dd className="text-ink break-words">{value}</dd>
+      <dd className="text-ink wrap-break-word">{value}</dd>
     </>
   );
 }
@@ -323,7 +323,7 @@ function Row({
   return (
     <>
       <dt className="text-muted uppercase tracking-track2 text-[9px] self-center">{label}</dt>
-      <dd className={"text-ink " + (mono ? "tech-token " : "") + (brk ? "break-all" : "break-words")}>
+      <dd className={"text-ink " + (mono ? "tech-token " : "") + (brk ? "break-all" : "wrap-break-word")}>
         {value}
       </dd>
     </>
@@ -392,7 +392,7 @@ function ActorRow({ actor }: { actor: string | null | undefined }) {
   return (
     <>
       <RowLabel label="Actor" />
-      <dd className="text-ink break-words">{actor}</dd>
+      <dd className="text-ink wrap-break-word">{actor}</dd>
     </>
   );
 }
@@ -425,7 +425,7 @@ function ResourceRow({ entry }: { entry: AuditEntry }) {
   return (
     <>
       <RowLabel label="Resource" />
-      <dd className="text-ink tech-token break-words">{value}</dd>
+      <dd className="text-ink tech-token wrap-break-word">{value}</dd>
     </>
   );
 }
@@ -451,7 +451,7 @@ function MatterIdRow({
       <>
         <RowLabel label="Matter id" />
         <dd>
-          <div className="text-ink break-words">{matter.title}</div>
+          <div className="text-ink wrap-break-word">{matter.title}</div>
           {isUuid(matterId) ? (
             <div className="mt-1 text-muted">
               <UuidValue value={matterId} />
@@ -476,7 +476,7 @@ function MatterIdRow({
   return (
     <>
       <RowLabel label="Matter id" />
-      <dd className="text-ink tech-token break-words">{matterId}</dd>
+      <dd className="text-ink tech-token wrap-break-word">{matterId}</dd>
     </>
   );
 }

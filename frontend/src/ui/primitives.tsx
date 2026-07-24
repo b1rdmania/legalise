@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { providerLabel } from "../lib/api/_core";
 
 export const inputCls =
-  "bg-paper border border-rule rounded-item px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
+  "bg-paper border border-rule rounded-item px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-hidden transition-colors min-h-[44px] font-sans text-ink w-full";
 
 export const primaryBtn =
   "bg-ink text-paper rounded-item px-4 py-2 hover:bg-seal transition-colors text-sm font-medium min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed";

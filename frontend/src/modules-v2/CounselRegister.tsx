@@ -146,7 +146,7 @@ export function CounselRegister() {
 
       <ExternalPacksSection />
 
-      <p className="mt-14 border-t border-rule pt-3 text-[10px] uppercase tracking-[0.2em] text-muted">
+      <p className="mt-14 border-t border-rule pt-3 text-[10px] uppercase tracking-track2 text-muted">
         Refusals and removals are recorded the same way as approvals.
       </p>
     </div>

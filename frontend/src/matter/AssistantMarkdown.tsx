@@ -56,7 +56,7 @@ const components = {
     />
   ),
   code: (props: MdProps<"code">) => (
-    <code className="rounded-sm bg-wash px-1 py-0.5 text-[0.92em]" {...props} />
+    <code className="rounded-xs bg-wash px-1 py-0.5 text-[0.92em]" {...props} />
   ),
   pre: (props: MdProps<"pre">) => (
     <pre

@@ -827,7 +827,7 @@ export function AssistantTab({
                         placeholder="Filter documents"
                         aria-label="Filter documents"
                         data-testid="chat-docs-filter"
-                        className="mb-2 w-full rounded-item border border-rule bg-paper px-2 py-1 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+                        className="mb-2 w-full rounded-item border border-rule bg-paper px-2 py-1 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-hidden"
                       />
                     )}
                     <ul className="max-h-56 space-y-1 overflow-y-auto">
@@ -1217,7 +1217,7 @@ export function AssistantTab({
             rows={2}
             data-testid="chat-composer-input"
             placeholder={`Ask about ${matter.title}`}
-            className="w-full resize-none rounded-item border border-rule bg-paper px-4 py-3 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:border-ink focus:outline-none disabled:cursor-not-allowed disabled:bg-wash disabled:text-muted"
+            className="w-full resize-none rounded-item border border-rule bg-paper px-4 py-3 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:border-ink focus:outline-hidden disabled:cursor-not-allowed disabled:bg-wash disabled:text-muted"
           />
           <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
             {/* Left: attachment chips + workflows stub */}
@@ -1336,7 +1336,7 @@ export function AssistantTab({
                       placeholder="Filter documents"
                       aria-label="Filter documents"
                       data-testid="chat-attach-filter"
-                      className="mb-2 w-full rounded-item border border-rule bg-paper px-2 py-1 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+                      className="mb-2 w-full rounded-item border border-rule bg-paper px-2 py-1 text-xs text-ink placeholder:text-muted focus:border-ink focus:outline-hidden"
                     />
                   )}
                   <ul className="max-h-56 space-y-2 overflow-y-auto">

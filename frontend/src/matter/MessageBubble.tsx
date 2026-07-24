@@ -354,7 +354,7 @@ function AssistantOutputRow({
     >
       <span
         aria-hidden="true"
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-rule bg-paper-sunken tech-token text-[10px] font-semibold uppercase text-muted"
+        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-xs border border-rule bg-paper-sunken tech-token text-[10px] font-semibold uppercase text-muted"
       >
         {outputKind.slice(0, 1)}
       </span>
