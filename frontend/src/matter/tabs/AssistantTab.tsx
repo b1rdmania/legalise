@@ -980,7 +980,7 @@ export function AssistantTab({
         <div
           ref={scrollRef}
           className={
-            "min-h-0 flex-1 space-y-6 overflow-y-auto border-t border-rule py-6" +
+            "min-h-0 flex-1 space-y-8 overflow-y-auto border-t border-rule py-6" +
             // An empty thread is chips top-left, composer bottom, and a
             // dead panel between. Centre the empty state vertically at
             // md+; small screens have no void to fill and stay
@@ -1000,23 +1000,32 @@ export function AssistantTab({
           // With no documents, "Summarise the witness statement" is a doomed
           // prompt — route to the Documents tab instead. The starter chips
           // return once the matter has files.
-          <div className="grid gap-2 sm:grid-cols-2" data-testid="chat-empty-state-no-docs">
-            <button
-              type="button"
-              onClick={() => setTabAndHash("documents")}
-              className="group flex min-h-[44px] items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 text-left text-[14px] leading-5 text-ink transition-colors hover:border-ink hover:bg-paper-sunken"
-            >
-              <span>Upload your first document</span>
-              <span className="text-muted transition-colors group-hover:text-ink" aria-hidden>
-                →
-              </span>
-            </button>
+          <div className="mx-auto w-full max-w-md" data-testid="chat-empty-state-no-docs">
+            <p className="eyebrow-sm mb-2">Assistant</p>
+            <p className="mb-4 text-[15px] leading-relaxed text-prose">
+              This matter has no documents yet. Add one to start asking
+              grounded questions.
+            </p>
+            <div className="grid gap-2">
+              <button
+                type="button"
+                onClick={() => setTabAndHash("documents")}
+                className="group flex min-h-[44px] items-center justify-between gap-3 rounded-item border border-rule bg-paper px-3 text-left text-[14px] leading-5 text-ink transition-colors hover:border-ink hover:bg-paper-sunken"
+              >
+                <span>Upload your first document</span>
+                <span className="text-muted transition-colors group-hover:text-ink" aria-hidden>
+                  →
+                </span>
+              </button>
+            </div>
           </div>
         )}
         {loaded && messages.length === 0 && (docs === null || docs.length > 0) && (
-          <div className="max-w-md" data-testid="chat-empty-state">
-            <p className="mb-3 text-sm text-muted">
-              Ask about the documents in this matter.
+          <div className="mx-auto w-full max-w-md" data-testid="chat-empty-state">
+            <p className="eyebrow-sm mb-2">Assistant</p>
+            <p className="mb-4 text-[15px] leading-relaxed text-prose">
+              Ask about the documents in this matter, or start with one of
+              these.
             </p>
             <div className="grid gap-2">
             {suggestions.map((s) => (
@@ -1190,7 +1199,7 @@ export function AssistantTab({
                   type="button"
                   onClick={() => removeDoc(d.id)}
                   title={`Remove ${d.filename}`}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-item border border-rule bg-paper px-2 py-1 text-xs text-muted hover:border-ink hover:text-ink transition-colors"
                 >
                   <span className="max-w-[200px] truncate">{d.filename}</span>
                   <span aria-hidden>×</span>
@@ -1208,6 +1217,10 @@ export function AssistantTab({
             </div>
           )}
 
+          {/* Composer shell: textarea + toolbar read as one comfortable
+              input surface. The shell carries the border and focus ring;
+              the textarea sits transparent inside it. */}
+          <div className="rounded-card border border-rule bg-paper transition-colors focus-within:border-ink">
           <textarea
             ref={textareaRef}
             value={input}
@@ -1217,11 +1230,11 @@ export function AssistantTab({
             rows={2}
             data-testid="chat-composer-input"
             placeholder={`Ask about ${matter.title}`}
-            className="w-full resize-none rounded-item border border-rule bg-paper px-4 py-3 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:border-ink focus:outline-hidden disabled:cursor-not-allowed disabled:bg-wash disabled:text-muted"
+            className="w-full resize-none rounded-card bg-transparent px-4 pt-3.5 pb-2 text-[17px] leading-6 text-ink transition-colors placeholder:text-muted focus:outline-hidden disabled:cursor-not-allowed disabled:text-muted"
           />
-          <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center justify-between gap-3 flex-wrap px-3 pb-2.5">
             {/* Left: attachment chips + workflows stub */}
-            <div className="flex items-center gap-3 relative">
+            <div className="flex items-center gap-1 relative -ml-1">
               {/* Single attach affordance: this control opens the picker
                   popover below. Label says exactly what it does so there
                   is only one obvious way to attach documents. */}
@@ -1231,7 +1244,7 @@ export function AssistantTab({
                 aria-expanded={attachOpen}
                 aria-haspopup="menu"
                 data-testid="chat-documents-toggle"
-                className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
+                className="inline-flex items-center rounded-item px-2 py-1 tech-token text-[11px] text-muted hover:bg-panel-hover hover:text-ink transition-colors"
               >
                 Attach documents{selectedDocIds.size > 0 ? ` (${selectedDocIds.size})` : ""}
               </button>
@@ -1241,7 +1254,7 @@ export function AssistantTab({
                 aria-expanded={skillsOpen}
                 aria-haspopup="menu"
                 data-testid="chat-skills-toggle"
-                className="tech-token text-[11px] text-muted hover:text-ink transition-colors"
+                className="inline-flex items-center rounded-item px-2 py-1 tech-token text-[11px] text-muted hover:bg-panel-hover hover:text-ink transition-colors"
               >
                 Skills{runnableSkillCount > 0 ? ` (${runnableSkillCount})` : ""}
               </button>
@@ -1399,6 +1412,7 @@ export function AssistantTab({
                 </button>
               )}
             </div>
+          </div>
           </div>
           </div>
         )}

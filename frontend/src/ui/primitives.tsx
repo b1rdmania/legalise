@@ -73,18 +73,48 @@ export function EmptyState({
   title,
   body,
   action,
+  icon,
 }: {
   title: string;
   body?: string;
   action?: ReactNode;
+  icon?: ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-rule p-8 text-center max-w-2xl mx-auto">
-      <div className="eyebrow mb-3">Empty</div>
-      <div className="text-sm font-semibold text-ink">{title}</div>
-      {body && <p className="text-sm text-prose mt-2">{body}</p>}
-      {action && <div className="mt-6 flex items-center justify-center gap-3">{action}</div>}
+    <div className="rounded-card border border-rule bg-paper px-8 py-14 text-center max-w-md mx-auto">
+      <div className="mx-auto mb-6 text-muted/40" aria-hidden="true">
+        {icon ?? <EmptyStateMark />}
+      </div>
+      <h3 className="font-redaction35 text-[22px] leading-tight text-ink">{title}</h3>
+      {body && (
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-prose">{body}</p>
+      )}
+      {action && (
+        <div className="mt-8 flex items-center justify-center gap-3">{action}</div>
+      )}
     </div>
+  );
+}
+
+// Default restrained mark for EmptyState — a single thin-stroke document
+// glyph in currentColor so it inherits the muted wrapper tint. Never the
+// seal (wax red); an empty state is neutral, not a verdict.
+function EmptyStateMark() {
+  return (
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="mx-auto"
+    >
+      <path d="M7 3.5h6.5L18 8v11.5a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z" />
+      <path d="M13 3.75V8h4.25" />
+    </svg>
   );
 }
 

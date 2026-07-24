@@ -128,7 +128,7 @@ function AssistantMessageView({
     <div className="flex justify-start">
       {/* P29 §2: assistant turns are plain prose on the panel — no gray
           block, no left border. The output row and chips carry the chrome. */}
-      <div className={(compact ? "max-w-full" : "w-full") + " flex flex-col gap-2"}>
+      <div className={(compact ? "max-w-full" : "w-full") + " flex flex-col gap-2.5"}>
         <div className={`tech-token ${metaSizing} text-muted`}>
           Assistant{!compact && modelLabel(message) ? ` · ${modelLabel(message)}` : ""}
           {!compact && sourceCount > 0
@@ -152,9 +152,9 @@ function AssistantMessageView({
                   c.kind === "doc" ? onDocChip(c.id) : onChronChip(c.id)
                 }
                 title={c.full}
-                className={`inline-flex items-center rounded-item border border-rule bg-paper text-ink px-2 py-0.5 tech-token ${
+                className={`inline-flex items-center rounded-item border border-rule bg-paper text-ink px-2 py-1 tech-token ${
                   compact ? "text-[10px]" : "text-[11px]"
-                } hover:border-ink transition-colors`}
+                } hover:border-ink hover:bg-panel-hover transition-colors`}
               >
                 <span className="text-muted">
                   {c.kind === "doc" ? "Document" : "Event"}

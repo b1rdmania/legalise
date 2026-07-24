@@ -27,26 +27,44 @@ export type RailItem = {
 
 export type RailPosture = { label: string; dot: string };
 
+function SectionDivider() {
+  // Inset hairline that separates the rail's major zones. Aligned to the
+  // nav content edge (mx-2 + px-3 = 20px), matching the eyebrow inset below.
+  return <div className="mx-5 mt-4 border-t border-rule" aria-hidden="true" />;
+}
+
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <div className="px-3 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
-      {children}
-    </div>
+    <>
+      <SectionDivider />
+      <div className="eyebrow-sm px-5 pt-4 pb-2">{children}</div>
+    </>
   );
 }
 
 function NavLink({ item }: { item: RailItem }) {
   const interactive = Boolean(item.href || item.onSelect);
   const className =
-    "mx-2 flex items-center gap-3 min-h-[40px] px-3 rounded-item text-sm text-left transition-colors " +
+    "group mx-2 flex items-center gap-3 min-h-[40px] px-3 rounded-item text-sm text-left transition-colors " +
     (item.active
       ? "bg-panel-sel text-ink font-semibold"
       : interactive
         ? "text-prose hover:bg-panel-hover hover:text-ink"
         : "text-prose");
+  // Icon weight tracks state: rest is quiet (70%), hover/active ink up to
+  // full — the crisping happens in ink weight, not colour (no nav accent).
   const inner = (
     <>
-      {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
+      {item.icon && (
+        <span
+          className={
+            "shrink-0 transition-opacity " +
+            (item.active ? "opacity-100" : "opacity-70 group-hover:opacity-100")
+          }
+        >
+          {item.icon}
+        </span>
+      )}
       <span className="truncate">{item.label}</span>
     </>
   );
@@ -192,7 +210,8 @@ export function SidebarView({
 
           {matterItems && matterItems.length > 0 && (
             <>
-              <div className="px-3 pt-7 pb-2">
+              <SectionDivider />
+              <div className="px-5 pt-4 pb-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-ink leading-snug wrap-break-word">{matterTitle}</span>
                   {matterPosture && (
