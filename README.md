@@ -10,6 +10,8 @@ each matter.
 
 Open source, runs locally, bring your own model key.
 
+![The Legalise workspace: a matter, a chat, and every answer pinned to its source](./docs/media/workspace-chat.png)
+
 ---
 
 ## How it works
@@ -17,6 +19,17 @@ Open source, runs locally, bring your own model key.
 The loop is **draft, cite, sign-off, audit**. AI prepares an output inside a
 matter and cites the documents used. A named person reviews it and records a
 decision. The decision pins the reviewed output by hash.
+
+```mermaid
+flowchart LR
+    A[Documents<br/>in the matter] --> B[AI drafts<br/>+ cites sources]
+    B --> C[Named person<br/>reviews]
+    C --> D[Sign-off<br/>pins output by hash]
+    A -.-> R[(Append-only<br/>hash-chained record)]
+    B -.-> R
+    C -.-> R
+    D -.-> R
+```
 
 Matter actions handled by Legalise write to an append-only, hash-chained audit
 log. The log is tamper-evident, not tamper-proof. See
@@ -42,6 +55,8 @@ advice-boundary gate, and one model gateway for Anthropic, OpenAI, OpenRouter,
 and Ollama. Users bring their own model keys. Legalise does not provide model
 access.
 
+![Skills in a matter, each declaring what it reads, writes, and records](./docs/media/skills.png)
+
 Skills arrive by import. The
 [`awesome-legal-skills`](https://github.com/lawve-ai/awesome-legal-skills)
 (Lawve) catalogue is browsable in-app, and any public GitHub repo with a
@@ -58,6 +73,20 @@ matter-level permissions before it can run.
 - Model, token, latency, posture, and prompt/response hashes for gateway calls.
 - Review decisions, tracked edits, sign-offs, and refusals.
 - An append-only audit row and hash-chain entry for recorded matter actions.
+
+Each entry folds the previous entry's hash into its own, so changing one entry
+breaks the chain from that point on. That is what "tamper-evident" means here:
+not that the record can't be altered, but that alteration shows.
+
+```mermaid
+flowchart LR
+    E1["Entry 1<br/>source.attached<br/>hash: a3f2…9c"] --> E2["Entry 2<br/>model.call<br/>hash: d81e…44"]
+    E2 --> E3["Entry 3<br/>document.edited<br/>hash: 6b0a…e1"]
+    E3 --> E4["Entry 4<br/>matter.signoff<br/>hash: f97c…08"]
+    E1 -.->|prev hash| E2
+    E2 -.->|prev hash| E3
+    E3 -.->|prev hash| E4
+```
 
 A database superuser can rewrite unanchored history by disabling the controls.
 External anchoring is not built. See
@@ -230,3 +259,16 @@ you're a UK solicitor wondering what your AI did with the client documents.
 
 Forks are independent deployments, not operated, reviewed, or endorsed by the
 maintainer unless stated.
+
+---
+
+## The one-minute demo
+
+The loop end to end: open source, the workspace, skills installing with explicit
+grants, the record building step by step, and the tamper-evident chain.
+
+https://github.com/b1rdmania/legalise/raw/master/docs/media/legalise-demo.mp4
+
+[![Watch the Legalise demo](./docs/media/legalise-demo-poster.jpg)](https://legalise.dev/)
+
+Or watch it with sound on [legalise.dev](https://legalise.dev/).
