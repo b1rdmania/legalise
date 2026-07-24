@@ -127,24 +127,50 @@ export function AuditTab({ audit, matter }: { audit: AuditEntry[] | null; matter
           No entries match this filter.
         </div>
       ) : (
-        <ol className="divide-y divide-rule/60">
-          {visible.map((e) => {
+        // Timeline: a hairline spine runs down the left; each entry is a node
+        // on it, so the append-only chain reads as one continuous thread
+        // rather than a flat list. The node marks the entry; the spine is the
+        // chain. Blocked/refused entries take the seal accent on the node.
+        <ol className="relative py-1" data-testid="audit-timeline">
+          {visible.map((e, i) => {
             const isSelected = selectedId === e.id;
-            // Blocked / refused / denied entries are the events that matter
-            // most for "what didn't happen and why" — keep the seal accent.
             const isBlocked = isBlockedAction(e.action);
             const isTechnical = isTechnicalRow(e);
+            const isFirst = i === 0;
+            const isLast = i === visible.length - 1;
             return (
-              <li key={e.id}>
+              <li key={e.id} className="relative">
                 <button
                   type="button"
                   onClick={() => setSelectedId(e.id)}
                   className={
-                    "w-full text-left flex items-baseline gap-4 px-4 py-3 transition-colors " +
+                    "group w-full text-left flex items-start gap-4 pl-5 pr-4 py-3 transition-colors " +
                     (isSelected ? "bg-wash" : "hover:bg-wash")
                   }
                 >
-                  <span className="tech-token text-[10px] text-muted shrink-0 w-[96px] tabular-nums">
+                  {/* The spine + node. The spine is a single hairline that the
+                      node sits on; it stops half a row short at the ends so the
+                      thread starts and finishes cleanly. */}
+                  <span className="relative shrink-0 self-stretch w-3" aria-hidden="true">
+                    <span
+                      className={
+                        "absolute left-1/2 -translate-x-1/2 w-px bg-rule " +
+                        (isFirst ? "top-[18px] " : "top-0 ") +
+                        (isLast ? "h-[18px]" : "bottom-0")
+                      }
+                    />
+                    <span
+                      className={
+                        "absolute left-1/2 top-[14px] -translate-x-1/2 h-2 w-2 rounded-full ring-2 ring-paper " +
+                        (isBlocked
+                          ? "bg-seal"
+                          : isSelected
+                            ? "bg-ink"
+                            : "bg-rule group-hover:bg-ink transition-colors")
+                      }
+                    />
+                  </span>
+                  <span className="tech-token text-[10px] text-muted shrink-0 w-[92px] tabular-nums pt-[3px]">
                     {shortTimestamp(e.timestamp)}
                   </span>
                   <span className="min-w-0 flex-1">
