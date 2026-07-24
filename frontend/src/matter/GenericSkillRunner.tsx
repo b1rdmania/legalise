@@ -152,7 +152,7 @@ export function GenericSkillRunner({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={compact ? 2 : 3}
-            className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-none"
+            className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-hidden"
             placeholder="Tell the skill what to do."
           />
         </label>
@@ -204,7 +204,7 @@ export function GenericSkillRunner({
                       [field.key]: e.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-hidden"
                 >
                   {field.options.map((option) => (
                     <option key={option} value={option}>{option}</option>
@@ -219,7 +219,7 @@ export function GenericSkillRunner({
                       [field.key]: e.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm focus:border-ink focus:outline-hidden"
                 />
               )}
               {field.description && (
@@ -423,7 +423,7 @@ function Pair({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-[10px] uppercase tracking-widest text-muted">{label}</dt>
-      <dd className="mt-0.5 break-words text-xs text-ink">{value}</dd>
+      <dd className="mt-0.5 wrap-break-word text-xs text-ink">{value}</dd>
     </div>
   );
 }

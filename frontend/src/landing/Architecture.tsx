@@ -60,7 +60,7 @@ function Src({ file, children }: { file: string; children: React.ReactNode }) {
 function SourceRow({ items }: { items: { label: string; file: string }[] }) {
   return (
     <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-rule/50 pt-4">
-      <span className="tech-token text-[10px] uppercase tracking-[0.2em] text-muted">
+      <span className="tech-token text-[10px] uppercase tracking-track2 text-muted">
         Source:
       </span>
       {items.map((it) => (

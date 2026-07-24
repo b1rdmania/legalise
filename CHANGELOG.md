@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-24
+
+The reframe release. Legalise is now presented as an open experiment: the
+audit engine is complete and strong; the document editor, LLM layer, and
+matter organisation are about 80% there. The hosted backend is built but
+switched off — self-hosting is the supported path — and firms who want to
+run the hosted version as a pilot are invited to get in touch.
+
+### Added
+- **One-minute promo video** on the landing page — the loop end to end
+  (open source, workspace, skill grants, the record building, the
+  tamper-evident chain), with Andy's own voiceover.
+- **Hosted-backend / pilot note** carried consistently across the sign-in,
+  Run-it-yourself, and Architecture surfaces, and the README: functional
+  but switched off, pilots by email.
+- README **screenshots, two mermaid diagrams** (the draft→cite→sign-off→
+  audit loop and the hash chain), and the demo video.
+
+### Changed
+- **Sign-in is live again** — the nav link and page work; the page states
+  the hosted backend is built but off and carries the pilot ask.
+- **Record / audit trail** now reads as a **timeline** — a hairline spine
+  with a node per entry, so the append-only chain reads as one thread
+  rather than a flat list; blocked/refused entries keep the seal node.
+- **UI polish** in the paper/ink editorial language: finished empty states
+  (serif title, restrained glyph slot), tighter sidebar rhythm and
+  active-state clarity, and a more comfortable chat composer with promoted
+  source/citation chips and considered intro states.
+- Run-it-yourself page trimmed — fork button, guided demo, and the pilot
+  note carry it; setup detail lives in the README.
+
+### Infrastructure
+- **Migrated Tailwind CSS v3 → v4.** Design tokens (the Almond & Ink
+  palette, Redaction type, radius/shadow/tracking) moved from
+  `tailwind.config.js` into an `@theme` block in `index.css`; PostCSS now
+  uses `@tailwindcss/postcss`. No visual regression (about page
+  pixel-identical; body text shifts under 2px from a v4 preflight default).
+  401 frontend tests pass.
+
 ## [0.2.2] — 2026-07-09
 
 Not a feature release — a hygiene checkpoint before an evaluation walkthrough.

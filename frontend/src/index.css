@@ -1,6 +1,606 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Redaction', Georgia, 'Times New Roman', serif;
+  --font-mono: 'Redaction', Georgia, 'Times New Roman', serif;
+  --font-redaction20: 'Redaction 20', Georgia, serif;
+  --font-redaction35: 'Redaction 35', Georgia, serif;
+
+  --color-ink: #221e17;
+  --color-paper: #f6f1e8;
+  --color-wash: #efe9dd;
+  --color-rule: #e0d8c9;
+  --color-muted: #6e6759;
+  --color-prose: #564e42;
+  --color-seal: #7e2b22;
+  --color-canvas: #e9e2d4;
+  --color-panel: #f2ece1;
+  --color-panel-hover: #e9e2d4;
+  --color-panel-sel: #e0d7c6;
+  --color-panel-2: #f2ece1;
+
+  --container-page: 1440px;
+
+  --tracking-tight2: -0.02em;
+  --tracking-track1: 0.1em;
+  --tracking-track2: 0.2em;
+
+  --radius-none: 0;
+  --radius: 0;
+  --radius-panel: 18px;
+  --radius-item: 8px;
+  --radius-card: 12px;
+
+  --shadow-none: none;
+  --shadow: none;
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.01);
+  --shadow-panel-hover: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility eyebrow {
+  /* Eyebrow colour is the warm muted token, not a cool grey: #9CA3AF was a
+     Tailwind-palette leftover from before Almond & Ink and read 2.3:1 on
+     paper — invisible to low-vision readers at 10px. */
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #6e6759;
+  font-size: 10px;
+  font-weight: 700;
+
+  /* Section eyebrows/labels stay clean (grit muddies at 10px). */
+  font-family: 'Redaction', Georgia, serif;
+}
+
+@utility eyebrow-sm {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6e6759;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Redaction', Georgia, serif;
+}
+
+@utility bg-ink {
+  /* Primary actions stay quiet. Earlier builds treated every dark button as a
+     stamped legal seal, which made ordinary controls shout. */
+  &button {
+    font-family: 'Redaction', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  & a {
+    font-family: 'Redaction', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+}
+
+@utility hit {
+  /* Hit-area extender for the ledger idiom's small text links (Open →,
+     Delete, Pause AI…). The visual design wants 11–13px quiet links; a
+     thumb wants ≥24px. The pseudo-element grows the tap target without
+     moving a pixel of layout. Horizontal inset stays small so adjacent
+     row actions don't overlap. */
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -8px -4px;
+  }
+}
+
+@utility tech-token {
+  font-family: 'Redaction', Georgia, 'Times New Roman', serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+
+@utility prose-p {
+  color: #564e42;
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@utility legalise-document-editor {
+  & p {
+    margin: 0 0 1.1rem;
+  }
+
+  & p:last-child {
+    margin-bottom: 0;
+  }
+
+  & h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 0.9rem;
+  }
+
+  & h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.45;
+    margin: 0 0 0.75rem;
+  }
+
+  & p + h2 {
+    margin-top: 1.6rem;
+  }
+
+  & ul + h2 {
+    margin-top: 1.6rem;
+  }
+
+  & ol + h2 {
+    margin-top: 1.6rem;
+  }
+
+  & table + h2 {
+    margin-top: 1.6rem;
+  }
+
+  & p + h3 {
+    margin-top: 1.25rem;
+  }
+
+  & ul + h3 {
+    margin-top: 1.25rem;
+  }
+
+  & ol + h3 {
+    margin-top: 1.25rem;
+  }
+
+  & table + h3 {
+    margin-top: 1.25rem;
+  }
+
+  & ul {
+    margin: 0 0 1.1rem 1.25rem;
+    padding: 0;
+  }
+
+  & ol {
+    margin: 0 0 1.1rem 1.25rem;
+    padding: 0;
+  }
+
+  & ul {
+    list-style: disc;
+  }
+
+  & ol {
+    list-style: decimal;
+  }
+
+  & mark {
+    background: #fff4b8;
+    padding: 0 0.1em;
+  }
+
+  & .legalise-find-match {
+    background: #fff4b8;
+    box-shadow: inset 0 -2px 0 #d8a300;
+    padding: 0 0.08em;
+  }
+
+  & .legalise-find-match-active {
+    background: #ffe28a;
+    box-shadow:
+      inset 0 -2px 0 #111111,
+      0 0 0 1px rgba(17, 17, 17, 0.18);
+  }
+
+  & .legalise-review-note-open {
+    background: #eaf4f4;
+    box-shadow: inset 0 -2px 0 #2f6f6d;
+    padding: 0 0.08em;
+  }
+
+  & .legalise-review-note-resolved {
+    background: #f1f1ed;
+    box-shadow: inset 0 -2px 0 #9ca3af;
+    padding: 0 0.08em;
+  }
+
+  /* Inline tracked changes — proposed AI/skill edits. Deletion struck in
+     seal (a deletion being proposed, not decoration); insertion underlined
+     in ink. Controls appear on hover of the change; always on touch. */
+  & .legalise-track-delete {
+    color: #8b0000;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+
+  & .legalise-track-insert {
+    color: #181818;
+    text-decoration: underline;
+    text-decoration-color: #181818;
+    text-underline-offset: 3px;
+    padding: 0 0.05em;
+  }
+
+  & .legalise-track-controls {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 4px;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    vertical-align: baseline;
+  }
+
+  & .legalise-track-change:hover .legalise-track-controls {
+    opacity: 1;
+  }
+
+  &
+    .legalise-track-delete:hover
+    + .legalise-track-change
+    .legalise-track-controls {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    & .legalise-track-controls {
+      opacity: 1;
+    }
+  }
+
+  & .legalise-track-controls button {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    color: #181818;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+
+  & .legalise-track-controls .legalise-track-accept:hover {
+    background: #8b0000;
+    border-color: #8b0000;
+    color: #ffffff;
+  }
+
+  & .legalise-track-controls .legalise-track-reject:hover {
+    border-color: #8b0000;
+    color: #8b0000;
+  }
+
+  & ul[data-type='taskList'] {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+  }
+
+  & ul[data-type='taskList'] li {
+    align-items: flex-start;
+    display: flex;
+    gap: 0.65rem;
+    margin: 0.25rem 0;
+  }
+
+  & ul[data-type='taskList'] li > label {
+    flex: 0 0 auto;
+    line-height: 1.8;
+    user-select: none;
+  }
+
+  & ul[data-type='taskList'] li > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  & ul[data-type='taskList'] input[type='checkbox'] {
+    accent-color: #181818;
+    height: 1rem;
+    width: 1rem;
+  }
+
+  & img {
+    border: 1px solid #d9d9d6;
+    display: block;
+    height: auto;
+    margin: 1rem auto 1.25rem;
+    max-width: 100%;
+  }
+
+  & table {
+    border-collapse: collapse;
+    margin: 0 0 1.25rem;
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  & th {
+    border: 1px solid #d9d9d6;
+    min-width: 6rem;
+    padding: 0.45rem 0.55rem;
+    position: relative;
+    vertical-align: top;
+  }
+
+  & td {
+    border: 1px solid #d9d9d6;
+    min-width: 6rem;
+    padding: 0.45rem 0.55rem;
+    position: relative;
+    vertical-align: top;
+  }
+
+  & th {
+    background: #f7f7f4;
+    font-weight: 700;
+  }
+
+  & .selectedCell::after {
+    background: rgba(24, 24, 24, 0.08);
+    content: '';
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+  }
+
+  & .tableWrapper {
+    margin: 0 0 1.25rem;
+    overflow-x: auto;
+  }
+}
+
+@utility legalise-find-match {
+  .legalise-document-editor & {
+    background: #fff4b8;
+    box-shadow: inset 0 -2px 0 #d8a300;
+    padding: 0 0.08em;
+  }
+}
+
+@utility legalise-find-match-active {
+  .legalise-document-editor & {
+    background: #ffe28a;
+    box-shadow:
+      inset 0 -2px 0 #111111,
+      0 0 0 1px rgba(17, 17, 17, 0.18);
+  }
+}
+
+@utility legalise-review-note-open {
+  .legalise-document-editor & {
+    background: #eaf4f4;
+    box-shadow: inset 0 -2px 0 #2f6f6d;
+    padding: 0 0.08em;
+  }
+}
+
+@utility legalise-review-note-resolved {
+  .legalise-document-editor & {
+    background: #f1f1ed;
+    box-shadow: inset 0 -2px 0 #9ca3af;
+    padding: 0 0.08em;
+  }
+}
+
+@utility legalise-track-delete {
+  /* Inline tracked changes — proposed AI/skill edits. Deletion struck in
+     seal (a deletion being proposed, not decoration); insertion underlined
+     in ink. Controls appear on hover of the change; always on touch. */
+  .legalise-document-editor & {
+    color: #8b0000;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+
+  .legalise-document-editor
+    &:hover
+    + .legalise-track-change
+    .legalise-track-controls {
+    opacity: 1;
+  }
+}
+
+@utility legalise-track-insert {
+  .legalise-document-editor & {
+    color: #181818;
+    text-decoration: underline;
+    text-decoration-color: #181818;
+    text-underline-offset: 3px;
+    padding: 0 0.05em;
+  }
+}
+
+@utility legalise-track-controls {
+  .legalise-document-editor & {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 4px;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    vertical-align: baseline;
+  }
+
+  .legalise-document-editor .legalise-track-change:hover & {
+    opacity: 1;
+  }
+
+  .legalise-document-editor
+    .legalise-track-delete:hover
+    + .legalise-track-change
+    & {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .legalise-document-editor & {
+      opacity: 1;
+    }
+  }
+
+  .legalise-document-editor & button {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    color: #181818;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+
+  .legalise-document-editor & .legalise-track-accept:hover {
+    background: #8b0000;
+    border-color: #8b0000;
+    color: #ffffff;
+  }
+
+  .legalise-document-editor & .legalise-track-reject:hover {
+    border-color: #8b0000;
+    color: #8b0000;
+  }
+}
+
+@utility legalise-track-change {
+  .legalise-document-editor &:hover .legalise-track-controls {
+    opacity: 1;
+  }
+
+  .legalise-document-editor
+    .legalise-track-delete:hover
+    + &
+    .legalise-track-controls {
+    opacity: 1;
+  }
+}
+
+@utility legalise-track-accept {
+  .legalise-document-editor .legalise-track-controls &:hover {
+    background: #8b0000;
+    border-color: #8b0000;
+    color: #ffffff;
+  }
+}
+
+@utility legalise-track-reject {
+  .legalise-document-editor .legalise-track-controls &:hover {
+    border-color: #8b0000;
+    color: #8b0000;
+  }
+}
+
+@utility selectedCell {
+  .legalise-document-editor &::after {
+    background: rgba(24, 24, 24, 0.08);
+    content: '';
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+  }
+}
+
+@utility tableWrapper {
+  .legalise-document-editor & {
+    margin: 0 0 1.25rem;
+    overflow-x: auto;
+  }
+}
+
+@utility legalise-docx-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+
+  & .legalise-docx-wrapper {
+    background: transparent;
+    padding: 0;
+  }
+
+  & .legalise-docx {
+    box-shadow: 0 1px 2px rgba(24, 24, 24, 0.08);
+  }
+}
+
+@utility legalise-docx-wrapper {
+  .legalise-docx-preview & {
+    background: transparent;
+    padding: 0;
+  }
+
+  .legalise-docx-preview-wide & {
+    width: 100%;
+  }
+}
+
+@utility legalise-docx {
+  .legalise-docx-preview & {
+    box-shadow: 0 1px 2px rgba(24, 24, 24, 0.08);
+  }
+
+  .legalise-docx-preview-wide & {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
+}
+
+@utility legalise-docx-preview-wide {
+  align-items: stretch;
+
+  & .legalise-docx-wrapper {
+    width: 100%;
+  }
+
+  & .legalise-docx {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
+}
+
+@utility legalise-docx-search-hit {
+  background: rgba(196, 143, 51, 0.28);
+  color: inherit;
+  padding: 0 0.08em;
+}
+
+@utility legalise-docx-search-hit-active {
+  background: rgba(196, 143, 51, 0.52);
+  box-shadow: 0 0 0 1px rgba(24, 24, 24, 0.28);
+}
+
+@utility page-shell {
+  /* P32 — the one page shell. Every routed workspace page sits in this
+     geometry: left-aligned, one width, one gutter, one vertical rhythm.
+     Pages cap inner content (forms, prose) themselves; the shell and
+     its rules stay constant. */
+  @apply max-w-5xl px-6 sm:px-10 py-12 text-ink;
+}
 
 @layer base {
   html {
@@ -39,25 +639,6 @@
 }
 
 @layer components {
-  /* Eyebrow colour is the warm muted token, not a cool grey: #9CA3AF was a
-     Tailwind-palette leftover from before Almond & Ink and read 2.3:1 on
-     paper — invisible to low-vision readers at 10px. */
-  .eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: #6E6759;
-    font-size: 10px;
-    font-weight: 700;
-  }
-
-  .eyebrow-sm {
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #6E6759;
-    font-size: 10px;
-    font-weight: 700;
-  }
-
   /* ── Editorial typography — deploys Redaction's range (Andy, 2026-06-03).
      Each rule is independent; tune or delete any line freely.
      Built blind to screenshots, so treat as a first pass to react to. ── */
@@ -67,351 +648,48 @@
   cite {
     font-style: italic;
   }
+}
 
-  /* Primary actions stay quiet. Earlier builds treated every dark button as a
-     stamped legal seal, which made ordinary controls shout. */
-  button.bg-ink,
-  a.bg-ink {
-    font-family: "Redaction", Georgia, serif;
-    font-weight: 600;
-    letter-spacing: 0;
-  }
-
-  /* Section eyebrows/labels stay clean (grit muddies at 10px). */
-  .eyebrow,
-  .eyebrow-sm {
-    font-family: "Redaction", Georgia, serif;
-  }
-
-  /* Hit-area extender for the ledger idiom's small text links (Open →,
-     Delete, Pause AI…). The visual design wants 11–13px quiet links; a
-     thumb wants ≥24px. The pseudo-element grows the tap target without
-     moving a pixel of layout. Horizontal inset stays small so adjacent
-     row actions don't overlap. */
-  .hit {
-    position: relative;
-  }
-
-  .hit::after {
-    content: "";
-    position: absolute;
-    inset: -8px -4px;
-  }
-
-  .tech-token {
-    font-family: "Redaction", Georgia, "Times New Roman", serif;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum" 1, "lnum" 1;
-  }
-
-  .prose-p {
-    color: #564E42;
-    margin-bottom: 1.5rem;
-    line-height: 1.7;
-  }
-
-  .prose-p:last-child {
-    margin-bottom: 0;
-  }
-
-  .legalise-document-editor p {
-    margin: 0 0 1.1rem;
-  }
-
-  .legalise-document-editor p:last-child {
-    margin-bottom: 0;
-  }
-
-  .legalise-document-editor h2 {
-    font-size: 1.35rem;
-    font-weight: 700;
-    line-height: 1.35;
-    margin: 0 0 0.9rem;
-  }
-
-  .legalise-document-editor h3 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    line-height: 1.45;
-    margin: 0 0 0.75rem;
-  }
-
-  .legalise-document-editor p + h2,
-  .legalise-document-editor ul + h2,
-  .legalise-document-editor ol + h2,
-  .legalise-document-editor table + h2 {
-    margin-top: 1.6rem;
-  }
-
-  .legalise-document-editor p + h3,
-  .legalise-document-editor ul + h3,
-  .legalise-document-editor ol + h3,
-  .legalise-document-editor table + h3 {
-    margin-top: 1.25rem;
-  }
-
-  .legalise-document-editor ul,
-  .legalise-document-editor ol {
-    margin: 0 0 1.1rem 1.25rem;
-    padding: 0;
-  }
-
-  .legalise-document-editor ul {
-    list-style: disc;
-  }
-
-  .legalise-document-editor ol {
-    list-style: decimal;
-  }
-
-  .legalise-document-editor mark {
-    background: #FFF4B8;
-    padding: 0 0.1em;
-  }
-
-  .legalise-document-editor .legalise-find-match {
-    background: #FFF4B8;
-    box-shadow: inset 0 -2px 0 #D8A300;
-    padding: 0 0.08em;
-  }
-
-  .legalise-document-editor .legalise-find-match-active {
-    background: #FFE28A;
-    box-shadow:
-      inset 0 -2px 0 #111111,
-      0 0 0 1px rgba(17, 17, 17, 0.18);
-  }
-
-  .legalise-document-editor .legalise-review-note-open {
-    background: #EAF4F4;
-    box-shadow: inset 0 -2px 0 #2F6F6D;
-    padding: 0 0.08em;
-  }
-
-  .legalise-document-editor .legalise-review-note-resolved {
-    background: #F1F1ED;
-    box-shadow: inset 0 -2px 0 #9CA3AF;
-    padding: 0 0.08em;
-  }
-
-  /* Inline tracked changes — proposed AI/skill edits. Deletion struck in
-     seal (a deletion being proposed, not decoration); insertion underlined
-     in ink. Controls appear on hover of the change; always on touch. */
-  .legalise-document-editor .legalise-track-delete {
-    color: #8B0000;
-    text-decoration: line-through;
-    text-decoration-thickness: 1px;
-  }
-
-  .legalise-document-editor .legalise-track-insert {
-    color: #181818;
-    text-decoration: underline;
-    text-decoration-color: #181818;
-    text-underline-offset: 3px;
-    padding: 0 0.05em;
-  }
-
-  .legalise-document-editor .legalise-track-controls {
-    display: inline-flex;
-    gap: 2px;
-    margin-left: 4px;
-    opacity: 0;
-    transition: opacity 120ms ease;
-    vertical-align: baseline;
-  }
-
-  .legalise-document-editor .legalise-track-change:hover .legalise-track-controls,
-  .legalise-document-editor
-    .legalise-track-delete:hover
-    + .legalise-track-change
-    .legalise-track-controls {
-    opacity: 1;
-  }
-
-  @media (hover: none) {
-    .legalise-document-editor .legalise-track-controls {
+@layer utilities {
+  /* Ledger entries landing during the install scan. */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
       opacity: 1;
+      transform: none;
     }
   }
 
-  .legalise-document-editor .legalise-track-controls button {
-    background: #FFFFFF;
-    border: 1px solid #E5E5E5;
-    color: #181818;
-    cursor: pointer;
-    font-size: 10px;
-    line-height: 1;
-    padding: 2px 4px;
-  }
+  /* Print / PDF — document content only, serif body, no app chrome. */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
 
-  .legalise-document-editor .legalise-track-controls .legalise-track-accept:hover {
-    background: #8B0000;
-    border-color: #8B0000;
-    color: #FFFFFF;
-  }
+    .legalise-document-editor,
+    .legalise-document-editor * {
+      visibility: visible;
+    }
 
-  .legalise-document-editor .legalise-track-controls .legalise-track-reject:hover {
-    border-color: #8B0000;
-    color: #8B0000;
-  }
+    .legalise-document-editor {
+      border: none !important;
+      box-shadow: none !important;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      left: 0;
+      line-height: 1.6;
+      min-height: auto !important;
+      padding: 0 !important;
+      position: absolute;
+      top: 0;
+      width: 100% !important;
+    }
 
-  .legalise-document-editor ul[data-type="taskList"] {
-    list-style: none;
-    margin: 0 0 1.25rem;
-    padding: 0;
-  }
-
-  .legalise-document-editor ul[data-type="taskList"] li {
-    align-items: flex-start;
-    display: flex;
-    gap: 0.65rem;
-    margin: 0.25rem 0;
-  }
-
-  .legalise-document-editor ul[data-type="taskList"] li > label {
-    flex: 0 0 auto;
-    line-height: 1.8;
-    user-select: none;
-  }
-
-  .legalise-document-editor ul[data-type="taskList"] li > div {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .legalise-document-editor ul[data-type="taskList"] input[type="checkbox"] {
-    accent-color: #181818;
-    height: 1rem;
-    width: 1rem;
-  }
-
-  .legalise-document-editor img {
-    border: 1px solid #D9D9D6;
-    display: block;
-    height: auto;
-    margin: 1rem auto 1.25rem;
-    max-width: 100%;
-  }
-
-  .legalise-document-editor table {
-    border-collapse: collapse;
-    margin: 0 0 1.25rem;
-    table-layout: fixed;
-    width: 100%;
-  }
-
-  .legalise-document-editor th,
-  .legalise-document-editor td {
-    border: 1px solid #D9D9D6;
-    min-width: 6rem;
-    padding: 0.45rem 0.55rem;
-    position: relative;
-    vertical-align: top;
-  }
-
-  .legalise-document-editor th {
-    background: #F7F7F4;
-    font-weight: 700;
-  }
-
-  .legalise-document-editor .selectedCell::after {
-    background: rgba(24, 24, 24, 0.08);
-    content: "";
-    inset: 0;
-    pointer-events: none;
-    position: absolute;
-    z-index: 2;
-  }
-
-  .legalise-document-editor .tableWrapper {
-    margin: 0 0 1.25rem;
-    overflow-x: auto;
-  }
-
-  .legalise-docx-preview {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
-  }
-
-  .legalise-docx-preview .legalise-docx-wrapper {
-    background: transparent;
-    padding: 0;
-  }
-
-  .legalise-docx-preview .legalise-docx {
-    box-shadow: 0 1px 2px rgba(24, 24, 24, 0.08);
-  }
-
-  .legalise-docx-preview-wide {
-    align-items: stretch;
-  }
-
-  .legalise-docx-preview-wide .legalise-docx-wrapper {
-    width: 100%;
-  }
-
-  .legalise-docx-preview-wide .legalise-docx {
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 100%;
-  }
-
-  .legalise-docx-search-hit {
-    background: rgba(196, 143, 51, 0.28);
-    color: inherit;
-    padding: 0 0.08em;
-  }
-
-  .legalise-docx-search-hit-active {
-    background: rgba(196, 143, 51, 0.52);
-    box-shadow: 0 0 0 1px rgba(24, 24, 24, 0.28);
-  }
-}
-
-/* Ledger entries landing during the install scan. */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* Print / PDF — document content only, serif body, no app chrome. */
-@media print {
-  body * {
-    visibility: hidden;
-  }
-
-  .legalise-document-editor,
-  .legalise-document-editor * {
-    visibility: visible;
-  }
-
-  .legalise-document-editor {
-    border: none !important;
-    box-shadow: none !important;
-    font-family: Georgia, "Times New Roman", Times, serif;
-    font-size: 12pt;
-    left: 0;
-    line-height: 1.6;
-    min-height: auto !important;
-    padding: 0 !important;
-    position: absolute;
-    top: 0;
-    width: 100% !important;
-  }
-
-  .legalise-document-editor .legalise-track-controls {
-    display: none !important;
-  }
-}
-
-@layer components {
-  /* P32 — the one page shell. Every routed workspace page sits in this
-     geometry: left-aligned, one width, one gutter, one vertical rhythm.
-     Pages cap inner content (forms, prose) themselves; the shell and
-     its rules stay constant. */
-  .page-shell {
-    @apply max-w-5xl px-6 sm:px-10 py-12 text-ink;
+    .legalise-document-editor .legalise-track-controls {
+      display: none !important;
+    }
   }
 }

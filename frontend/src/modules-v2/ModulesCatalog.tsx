@@ -374,7 +374,7 @@ export function ModulesCatalog() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search skills"
               aria-label="Search skills"
-              className="min-h-[38px] w-48 border border-rule bg-paper px-3 text-[16px] text-ink focus:border-ink focus:outline-none"
+              className="min-h-[38px] w-48 border border-rule bg-paper px-3 text-[16px] text-ink focus:border-ink focus:outline-hidden"
             />
           )}
         </div>
@@ -602,7 +602,7 @@ export function ModulesCatalog() {
                   onChange={(e) => setShelfQuery(e.target.value)}
                   placeholder="Search the catalogue"
                   aria-label="Search the catalogue"
-                  className="min-h-[34px] w-48 border border-rule bg-paper px-3 text-[13px] text-ink focus:border-ink focus:outline-none"
+                  className="min-h-[34px] w-48 border border-rule bg-paper px-3 text-[13px] text-ink focus:border-ink focus:outline-hidden"
                   data-testid="shelf-search"
                 />
                 <span className="text-muted" data-testid="shelf-count">

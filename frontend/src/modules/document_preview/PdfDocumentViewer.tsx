@@ -174,7 +174,7 @@ export function PdfDocumentViewer({
               if (!Number.isFinite(next)) return;
               setPageNumber(Math.min(Math.max(1, next), numPages || next));
             }}
-            className="h-10 w-20 border border-rule bg-paper px-2 text-center text-sm outline-none focus:border-ink"
+            className="h-10 w-20 border border-rule bg-paper px-2 text-center text-sm outline-hidden focus:border-ink"
           />
           <button
             type="button"
@@ -218,7 +218,7 @@ export function PdfDocumentViewer({
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onSearchKeyDown}
             placeholder="Search text in this PDF"
-            className="min-h-[40px] min-w-[260px] flex-1 border border-rule bg-paper px-3 text-sm outline-none focus:border-ink"
+            className="min-h-[40px] min-w-[260px] flex-1 border border-rule bg-paper px-3 text-sm outline-hidden focus:border-ink"
           />
           <span className="text-xs text-muted">
             {loadingText

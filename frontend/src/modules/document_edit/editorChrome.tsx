@@ -88,7 +88,7 @@ export function ColorButton({
       }`}
     >
       <span
-        className="block h-4 w-4 rounded-sm border border-rule"
+        className="block h-4 w-4 rounded-xs border border-rule"
         style={{ backgroundColor: color }}
         aria-hidden="true"
       />

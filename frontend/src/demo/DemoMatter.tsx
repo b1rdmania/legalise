@@ -509,7 +509,7 @@ function DemoDocumentsTab({
               value={fileQuery}
               onChange={(event) => setFileQuery(event.target.value)}
               placeholder="Search files"
-              className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+              className="h-9 w-full border border-rule bg-paper px-3 text-sm text-ink outline-hidden focus:border-ink"
               data-testid="demo-document-list-search"
             />
           </label>
@@ -602,7 +602,7 @@ function DemoDocumentsTab({
                   value={previewQuery}
                   onChange={(event) => setPreviewQuery(event.target.value)}
                   placeholder="Search this document"
-                  className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+                  className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-hidden focus:border-ink"
                   data-testid="demo-document-preview-search"
                 />
               </label>
@@ -694,7 +694,7 @@ export function DemoDocumentReader({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search this document"
-            className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-none focus:border-ink"
+            className="h-9 w-full rounded-item border border-rule bg-paper px-3 text-sm text-ink outline-hidden focus:border-ink"
             data-testid="demo-document-search"
           />
         </label>

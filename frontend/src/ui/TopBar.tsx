@@ -69,7 +69,7 @@ export function TopBar({
         }
       >
         <div className="max-w-page mx-auto px-4 sm:px-6 h-[64px] sm:h-[80px] flex items-center justify-between">
-          <a href="/" className="flex items-center group outline-none" aria-label="Legalise">
+          <a href="/" className="flex items-center group outline-hidden" aria-label="Legalise">
             <img
               src="/legalise-wordmark.svg"
               alt="Legalise"

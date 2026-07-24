@@ -287,7 +287,7 @@ export function DocxOriginalPreview({
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onSearchKeyDown}
             placeholder="Search text in this Word file"
-            className="min-h-[40px] min-w-[260px] flex-1 border border-rule bg-paper px-3 text-sm outline-none focus:border-ink"
+            className="min-h-[40px] min-w-[260px] flex-1 border border-rule bg-paper px-3 text-sm outline-hidden focus:border-ink"
           />
           <span className="text-xs text-muted">
             {state.status === "loading"

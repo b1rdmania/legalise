@@ -193,7 +193,7 @@ function ChronologyTable({
               /* Significance bar. Was #00A35C green — the one flat green in an
                  Almond & Ink UI, and at sig 5 it flooded the whole row like a
                  broken selection state. A quiet ink wash keeps the encoding. */
-              className="absolute right-0 top-0 bottom-0 bg-ink/[0.06] pointer-events-none"
+              className="absolute right-0 top-0 bottom-0 bg-ink/6 pointer-events-none"
               style={{ width: sigBarWidth }}
               aria-hidden="true"
             />

@@ -140,7 +140,7 @@ export function DocumentsTab({
   };
 
   const inputCls =
-    "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-none transition-colors min-h-[40px] font-sans text-ink";
+    "bg-paper border border-rule px-3 py-2 text-[16px] focus:border-ink focus:outline-hidden transition-colors min-h-[40px] font-sans text-ink";
   const totalBytes = docs?.reduce((total, d) => total + d.size_bytes, 0) ?? 0;
   const filteredDocs =
     docs?.filter((d) => {
@@ -292,7 +292,7 @@ export function DocumentsTab({
                 value={documentQuery}
                 onChange={(event) => setDocumentQuery(event.target.value)}
                 placeholder="Search files"
-                className="min-h-[40px] w-full rounded-item border border-rule bg-paper px-3 font-sans text-sm text-ink outline-none focus:border-ink"
+                className="min-h-[40px] w-full rounded-item border border-rule bg-paper px-3 font-sans text-sm text-ink outline-hidden focus:border-ink"
               />
             <div className="flex flex-wrap items-end gap-2">
               {[

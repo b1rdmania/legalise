@@ -133,7 +133,7 @@ export function NewMatter() {
   };
 
   const inputCls =
-    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-none transition-colors min-h-[44px] font-sans text-ink w-full";
+    "bg-paper border border-rule px-4 py-3 text-[16px] sm:text-[17px] focus:border-ink focus:outline-hidden transition-colors min-h-[44px] font-sans text-ink w-full";
 
   return (
     <div className="page-shell">

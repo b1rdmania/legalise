@@ -957,7 +957,7 @@ export function DocumentDetail({
 
         <header className="border-b border-rule pb-5">
           <div className="min-w-0">
-            <h1 className="max-w-4xl break-words text-[22px] font-semibold leading-[1.1] tracking-tight2 text-ink sm:text-[26px]">
+            <h1 className="max-w-4xl wrap-break-word text-[22px] font-semibold leading-[1.1] tracking-tight2 text-ink sm:text-[26px]">
               {doc.filename}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-muted">
@@ -1448,7 +1448,7 @@ export function DocumentDetail({
                         value={versionUploadNotes}
                         onChange={(event) => setVersionUploadNotes(event.target.value)}
                         placeholder="Optional version note"
-                        className="w-full rounded-item border border-rule bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
+                        className="w-full rounded-item border border-rule bg-paper px-3 py-2 text-sm outline-hidden focus:border-ink"
                       />
                     </div>
                     {versionUploadFile && (
@@ -2037,7 +2037,7 @@ export function DocumentDetail({
                       onChange={(event) => setCommentQuote(event.target.value)}
                       placeholder="Optional quoted passage"
                       rows={2}
-                      className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                      className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-hidden focus:border-ink"
                     />
                   </label>
                   <label className="grid gap-1 text-[10px] uppercase tracking-[0.18em] text-muted">
@@ -2047,7 +2047,7 @@ export function DocumentDetail({
                       onChange={(event) => setCommentBody(event.target.value)}
                       placeholder="What should be checked before relying on this document?"
                       rows={3}
-                      className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                      className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-hidden focus:border-ink"
                     />
                   </label>
                   {commentError && <p className="text-xs text-red-700">{commentError}</p>}
@@ -2105,7 +2105,7 @@ export function DocumentDetail({
                             value={editingCommentBody}
                             onChange={(event) => setEditingCommentBody(event.target.value)}
                             rows={3}
-                            className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-none focus:border-ink"
+                            className="w-full resize-y rounded-item border border-rule bg-paper px-3 py-2 font-sans text-sm font-normal normal-case tracking-normal text-ink outline-hidden focus:border-ink"
                           />
                         </label>
                         <div className="flex flex-wrap gap-2">

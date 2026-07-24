@@ -198,7 +198,7 @@ function Fact({
         className={
           (mono ? "tech-token " : "") +
           (muted ? "text-muted" : "text-ink") +
-          " break-words"
+          " wrap-break-word"
         }
       >
         {value}

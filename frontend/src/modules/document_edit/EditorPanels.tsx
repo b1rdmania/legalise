@@ -55,7 +55,7 @@ export function FindPanel({
         onChange={(event) => setFindQuery(event.target.value)}
         onKeyDown={onFindKeyDown}
         placeholder="Search this document"
-        className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-none focus:border-ink"
+        className="min-h-[34px] min-w-[220px] flex-1 border border-rule bg-paper-sunken px-3 text-sm outline-hidden focus:border-ink"
       />
       <span className="text-xs text-muted" data-testid="document-editor-find-count">
         {findQuery.trim().length >= 3
@@ -532,7 +532,7 @@ export function EditorSideRail({
             Outline
           </p>
           {outlineItems.length > 0 ? (
-            <nav className="mt-2 space-y-1" aria-label="Document outline">
+            <nav className="mt-2 space-y-1" aria-label="Document outline-solid">
               {outlineItems.map((item) => (
                 <button
                   key={item.id}

@@ -534,7 +534,7 @@ export function OverviewTab({
                 disabled={savingModel}
                 defaultValue={modelId}
                 onChange={(e) => void onModelChange(e.target.value)}
-                className="bg-paper border border-rule rounded-item px-3 py-2 text-sm focus:border-ink focus:outline-none text-ink"
+                className="bg-paper border border-rule rounded-item px-3 py-2 text-sm focus:border-ink focus:outline-hidden text-ink"
               >
                 {models.map((m) => {
                   const needsKey = m.requires_key && !m.key_configured;
