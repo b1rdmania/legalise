@@ -81,12 +81,12 @@
 @utility bg-ink {
   /* Primary actions stay quiet. Earlier builds treated every dark button as a
      stamped legal seal, which made ordinary controls shout. */
-  &button {
+  &:is(button) {
     font-family: 'Redaction', Georgia, serif;
     font-weight: 600;
     letter-spacing: 0;
   }
-  & a {
+  &:is(a) {
     font-family: 'Redaction', Georgia, serif;
     font-weight: 600;
     letter-spacing: 0;
