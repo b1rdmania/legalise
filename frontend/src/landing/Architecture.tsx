@@ -33,6 +33,8 @@ const SRC = {
   githubImport: `${BLOB}/backend/app/core/github_import.py`,
   auditChain: `${BLOB}/backend/app/core/audit_chain.py`,
   auditChainEndpoint: `${BLOB}/backend/app/api/audit.py#L247`,
+  exportVerifier: `${BLOB}/backend/app/core/export_chain_verifier.py`,
+  exportVerifierTest: `${BLOB}/backend/tests/test_export_audit_chain.py`,
   signoff: `${BLOB}/backend/app/core/signoff.py`,
   config: `${BLOB}/backend/app/core/config.py`,
   presidio: `${BLOB}/backend/app/modules/anonymisation/presidio_engine.py`,
@@ -912,13 +914,26 @@ export function Architecture() {
         </P>
         <P>
           The exported working pack holds the outputs, the source context, the
-          signatures, and the audit trail: what a solicitor uses to answer what
-          the AI saw, when, under what protection, and what it produced.
+          signatures, the audit trail, and a standard-library verifier. A
+          recipient can check the record with Python 3 alone—without Legalise,
+          a network connection, or database access.
         </P>
+        <div className="mt-6 max-w-3xl border border-rule/60 bg-wash p-4">
+          <p className="eyebrow-sm mb-3">Verify an exported pack</p>
+          <pre className="tech-token overflow-x-auto whitespace-pre text-[12px] leading-6 text-prose">
+{`$ unzip matter-export.zip -d matter-export
+$ cd matter-export
+$ python3 verify_chain.py
+PASS: audit chain verified — …
+unbroken from sequence 1.`}
+          </pre>
+        </div>
         <SourceRow
           items={[
             { label: "audit_chain.py", file: SRC.auditChain },
             { label: "GET /audit/verify", file: SRC.auditChainEndpoint },
+            { label: "offline verifier", file: SRC.exportVerifier },
+            { label: "export verification tests", file: SRC.exportVerifierTest },
             { label: "SECURITY.md", file: `${BLOB}/SECURITY.md` },
             { label: "TRUST.md", file: `${BLOB}/docs/TRUST.md` },
           ]}

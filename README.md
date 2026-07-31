@@ -33,6 +33,21 @@ Matter actions handled by Legalise write to an append-only, hash-chained audit
 log. The log is tamper-evident, not tamper-proof. See
 [`docs/TRUST.md`](./docs/TRUST.md) for the claim boundary and open gaps.
 
+Every exported matter pack includes `audit_chain.json` and a standalone,
+standard-library verifier. A recipient needs only Python 3—no Legalise install,
+network, or database:
+
+```bash
+unzip matter-export.zip -d matter-export
+cd matter-export
+python3 verify_chain.py
+```
+
+The verifier exits non-zero if an entry was edited, removed, or reordered. Its
+[source](./backend/app/core/export_chain_verifier.py) and
+[export round-trip tests](./backend/tests/test_export_audit_chain.py) are in the
+repository.
+
 ---
 
 ## What's in the repo
