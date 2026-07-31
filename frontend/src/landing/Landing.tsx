@@ -3,7 +3,7 @@ export function Landing() {
     <div className="mx-auto max-w-page">
       <section className="relative min-h-[520px] overflow-hidden border-b border-rule md:min-h-[600px]">
         <div
-          className="pointer-events-none absolute right-[-4%] top-[-6%] z-0 hidden h-[112%] w-[80%] md:block"
+          className="pointer-events-none absolute inset-0 z-0 hidden md:block"
           aria-hidden="true"
           style={{
             opacity: 0.07,
@@ -28,7 +28,6 @@ export function Landing() {
           </p>
         </div>
       </section>
-
     </div>
   );
 }
