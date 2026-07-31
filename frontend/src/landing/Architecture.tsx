@@ -171,7 +171,7 @@ const CITATIONS: { label: string; href: string }[] = [
   { label: "Architecture", href: `${REPO}/blob/master/docs/ARCHITECTURE.md` },
   { label: "Evaluating", href: `${REPO}/blob/master/docs/EVALUATING.md` },
   { label: "Roadmap", href: `${REPO}/blob/master/docs/ROADMAP.md` },
-  { label: "Apache 2.0", href: `${REPO}/blob/master/LICENSE` },
+  { label: "MIT", href: `${REPO}/blob/master/LICENSE` },
 ];
 
 /** The contents list at the top of the page. */
@@ -959,7 +959,7 @@ export function Architecture() {
           evaluation must be run against each model a deployment intends to use.
         </P>
         <P>
-          The project is Apache-2.0 and can be self-hosted. The hosted backend is
+          The project is MIT-licensed and can be self-hosted. The hosted backend is
           currently off. A self-hosting operator chooses the infrastructure,
           controls the data location, and owns the master encryption key. Because{" "}
           <code className="tech-token">B_mixed</code> prefers a registered local

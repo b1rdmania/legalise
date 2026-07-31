@@ -143,7 +143,10 @@ the *what*; look at recent commits on master for the house style.
 
 ## CLA
 
-This project will use a Contributor License Agreement to allow the maintainer to dual-licence the code in future for commercial distribution. By submitting a PR you agree your contribution is licensed under Apache 2.0 *and* granted to the project under terms that permit future relicensing.
+This project uses a Contributor License Agreement to allow the maintainer to
+dual-licence the code in future. By submitting a PR, you agree that your
+contribution is licensed under MIT and granted to the project under terms that
+permit future relicensing.
 
 ## AI-generated contributions
 

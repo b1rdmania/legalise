@@ -92,6 +92,5 @@ MIT-licensed and not bundled into the runtime artifact.
   filed as a public Discussion at the Legalise repo, is offered as a
   cross-project interop surface for Stella, Mike, and any future
   open-source legal AI workspace.
-- The Apache-2.0 licence puts no restriction on Stella using any
-  Legalise code; Mike can consume Legalise code into AGPL without
-  back-pressure on Legalise itself.
+- The MIT licence permits Stella to reuse Legalise code; Mike can consume
+  Legalise code into AGPL without back-pressure on Legalise itself.
