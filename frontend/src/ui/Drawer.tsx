@@ -109,18 +109,13 @@ export function Drawer({
       { label: "Sign out", onClick: onSignOut },
     ];
   } else {
-    // Unauth marketing nav — Demo · Architecture · About · GitHub,
-    // then a muted sign-in.
+    // Unauth public nav — the architecture and repository are the product.
     primary = [
-      { href: "/guided-demo", label: "Demo" },
       { href: "/architecture", label: "Architecture" },
       { href: "/about", label: "About" },
       { href: GITHUB_REPO, label: "GitHub", external: true },
     ];
-    secondary = [
-      // Live again — the sign-in page carries the hosted-backend note.
-      { href: "/auth/login", label: "Sign in" },
-    ];
+    secondary = [];
   }
 
   return (

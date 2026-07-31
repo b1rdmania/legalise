@@ -126,15 +126,9 @@ export function TopBar({
                 />
               </>
             ) : (
-              // The anonymous surface: Demo · Architecture · About ·
-              // GitHub (logo), plus one muted sign-in text link.
+              // The anonymous surface leads with the technical record:
+              // Architecture · About · GitHub.
               <>
-                <a
-                  href="/guided-demo"
-                  className="transition-colors text-ink hover:opacity-70"
-                >
-                  Demo
-                </a>
                 <a
                   href="/architecture"
                   className={
@@ -166,15 +160,6 @@ export function TopBar({
                   className="text-ink hover:opacity-70 transition-colors"
                 >
                   <Github size={18} strokeWidth={1.75} aria-hidden="true" />
-                </a>
-                {/* Live again — the page itself explains that the hosted
-                    backend is functional but switched off, and carries the
-                    pilot ask. */}
-                <a
-                  href="/auth/login"
-                  className="text-ink hover:opacity-70 transition-colors"
-                >
-                  Sign in
                 </a>
               </>
             )}

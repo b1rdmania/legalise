@@ -631,10 +631,11 @@ export function Architecture() {
           </h1>
           <div className="mt-6 max-w-2xl text-base leading-relaxed text-prose">
             <p>
-              Legalise is an open-source workspace for AI-assisted legal work
-              in England and Wales. It records sources, model calls, review,
-              edits, and sign-off against each matter. This page describes the
-              implementation and links to the relevant code.
+              Legalise is open-source governance and audit infrastructure for
+              AI-assisted legal work in England and Wales. It makes sources,
+              model calls, review, sign-off, and the resulting record
+              independently inspectable. This page describes the implementation
+              and links to the relevant code.
             </p>
             <p className="mt-4">
               Every code reference links to the file that implements it. The
@@ -655,21 +656,15 @@ export function Architecture() {
           {/* The honest state, up front — mirrors the README's Status note. */}
           <aside className="mt-8 max-w-2xl border border-rule bg-paper p-5 text-sm leading-relaxed">
             <p className="text-ink">
-              <strong>The honest state of it.</strong> The audit engine is
-              complete and strong. The document editor, the LLM layer, and
-              matter organisation are about 80% there. The hosted backend is
-              built, but switched off — everything runs self-hosted.
+              <strong>The honest state of it.</strong> This is an open-source
+              evaluation release. The database-enforced audit chain, sign-off
+              gate, export, and offline verifier are implemented and tested.
+              External anchoring is not built.
             </p>
             <p className="mt-2 text-prose">
-              Treat it as an open experiment: contribute, take the audit
-              engine into your own workspace, or{" "}
-              <a
-                href="mailto:andrew@legalise.dev?subject=Legalise%20hosted%20pilot"
-                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              >
-                email me
-              </a>{" "}
-              to run the hosted version as a pilot.
+              Treat it as a reference implementation: inspect it, challenge the
+              threat model, or take the audit substrate into infrastructure you
+              operate. The full workspace remains available for self-hosting.
             </p>
           </aside>
 
@@ -706,8 +701,8 @@ export function Architecture() {
 
         <H2 id="limits">What is not solved</H2>
         <P>
-          The hosted backend is currently off. legalise.dev contains a static
-          guided demo and documentation, with no accounts, model calls, or
+          legalise.dev is the public technical surface: architecture,
+          limitations, and source links. It holds no accounts, model calls, or
           matter storage. Run the full workspace locally or on infrastructure
           you control.
         </P>

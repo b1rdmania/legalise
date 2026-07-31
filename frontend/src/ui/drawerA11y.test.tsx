@@ -159,7 +159,7 @@ describe("public Drawer a11y", () => {
     trigger.focus();
     fireEvent.click(trigger);
     expect(document.activeElement).toBe(
-      screen.getByRole("link", { name: "Demo" }),
+      screen.getByRole("link", { name: "Architecture" }),
     );
   });
 
