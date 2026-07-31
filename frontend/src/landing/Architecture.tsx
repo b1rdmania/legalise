@@ -640,6 +640,14 @@ export function Architecture() {
             Evaluation release for England and Wales. External anchoring is not
             built.
           </p>
+          <a
+            href={REPO}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-5 inline-block text-sm font-medium text-ink underline decoration-rule underline-offset-4 transition-colors hover:text-seal hover:decoration-seal"
+          >
+            View source on GitHub ↗
+          </a>
 
           {/* Contents */}
           <nav aria-label="Contents" className="mt-8 max-w-2xl border-t border-rule/50 pt-4">
