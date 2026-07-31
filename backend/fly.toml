@@ -54,6 +54,13 @@ primary_region = "lhr"
 # dequeues background jobs (export-to-docx, PDF generation, etc.).
 # Without a worker process, those jobs sit forever in Redis. The command
 # string here is exec'd via entrypoint.sh's one-shot branch ($# > 0).
+#
+# COST NOTE: `worker` has no http_service, so auto_stop/min_machines do
+# not apply to it — a worker machine runs until something stops it, and
+# `fly deploy` recreates one whether or not the group was scaled to zero.
+# Machine counts are not expressible here; they live in `fly scale`. So
+# while this app is parked, `fly scale count app=0 worker=0` has to be
+# re-run after any deploy, or the deploy has to not happen at all.
 [processes]
   app = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
   worker = "arq app.worker.WorkerSettings"
@@ -61,19 +68,22 @@ primary_region = "lhr"
 [http_service]
   internal_port = 8000
   force_https = true
-  # Keep ONE app machine warm. Pure scale-to-zero (min=0) cold-started
-  # on the first request after idle — uvicorn boot + demo seed takes
-  # long enough that a browser fetch NetworkErrors before Fly finishes
-  # waking it (seen live during a walkthrough). min=1 keeps one warm so
-  # the first hit is instant; auto_stop="stop" still reaps any
-  # auto-started EXTRAS above the warm baseline. Net: "1 warm, scale up
-  # under load, never to zero" — cheap but not flaky.
-  # Governs the `app` (HTTP) process only; the `worker` has no
-  # http_service and stays running for queued arq jobs (scale it to 0
-  # manually between demos if its steady cost matters).
+  # Scale to zero when idle. No hosted deployment is served from this app
+  # today — legalise.dev is a static Cloudflare Pages site and nothing
+  # proxies to the backend — so a warm machine is pure cost. fly-proxy
+  # cold-starts one on the first request if anything ever does call it.
+  #
+  # If a hosted demo is ever run from here again, set min_machines_running
+  # back to 1 before demoing: a cold start has to boot uvicorn and run the
+  # ENVIRONMENT="demo" seed, which takes long enough that a browser fetch
+  # NetworkErrors before Fly finishes waking it. That is a demo-day
+  # decision, not a default.
+  #
+  # Governs the `app` (HTTP) process only. The `worker` has no
+  # http_service, so nothing auto-stops it — see [processes] below.
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
   processes = ["app"]
 
 [[http_service.checks]]
