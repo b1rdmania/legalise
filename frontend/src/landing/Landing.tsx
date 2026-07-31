@@ -1,11 +1,9 @@
-import { Footer } from "../ui/Footer";
-
 export function Landing() {
   return (
     <div className="mx-auto max-w-page">
       <section className="relative min-h-[520px] overflow-hidden border-b border-rule md:min-h-[600px]">
         <div
-          className="pointer-events-none absolute right-[-8%] top-[8%] z-0 hidden h-[84%] w-[68%] md:block"
+          className="pointer-events-none absolute right-[-4%] top-[-6%] z-0 hidden h-[112%] w-[80%] md:block"
           aria-hidden="true"
           style={{
             opacity: 0.07,
@@ -31,9 +29,6 @@ export function Landing() {
         </div>
       </section>
 
-      <div className="px-4 pb-8 sm:px-6 md:px-16 lg:px-24">
-        <Footer />
-      </div>
     </div>
   );
 }
