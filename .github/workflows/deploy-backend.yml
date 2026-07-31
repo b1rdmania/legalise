@@ -3,8 +3,20 @@ name: Deploy backend (Fly.io)
 # Remote-build deploy to the legalise-backend Fly app. Builds the image
 # on Fly's builders (no Docker on the runner), runs the release_command
 # (`alembic upgrade head` per backend/fly.toml) against Neon, then
-# promotes. Mirrors the frontend's auto-on-push behaviour so neither
-# surface needs a manual deploy from a workstation.
+# promotes.
+#
+# MANUAL ONLY, deliberately. This ran on every push touching backend/**,
+# which meant changes with no runtime effect deployed the app and started
+# machines billing: a licence-file edit did exactly that. The hosted
+# backend is not serving anything - legalise.dev is a static Pages site
+# with no proxy to it - so a deploy on push is cost with no reader.
+#
+# Deploy from the Actions tab (Run workflow) or `fly deploy` from
+# backend/. If a hosted deployment is ever run from here again, restoring
+# the push trigger is a two-line change - but see the worker note in
+# backend/fly.toml first: nothing auto-stops the worker process, so an
+# unattended deploy leaves a machine running until someone scales it
+# down.
 #
 # Required repo secret (Settings → Secrets and variables → Actions):
 #   FLY_API_TOKEN  — a Fly deploy token. Create at
@@ -14,11 +26,6 @@ name: Deploy backend (Fly.io)
 #                    legalise-backend app where possible.
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 concurrency:
