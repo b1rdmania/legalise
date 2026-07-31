@@ -176,9 +176,7 @@ const CITATIONS: { label: string; href: string }[] = [
 
 /** The contents list at the top of the page. */
 const CONTENTS: { id: string; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "limits", label: "What is not solved" },
-  { id: "built", label: "How it is built" },
+  { id: "overview", label: "How it works" },
   { id: "identity", label: "Identity and access" },
   { id: "gateway", label: "The inference gateway" },
   { id: "gate", label: "The privilege gate" },
@@ -188,6 +186,7 @@ const CONTENTS: { id: string; label: string }[] = [
   { id: "record", label: "The audit record" },
   { id: "signoff", label: "Sign-off" },
   { id: "deployment", label: "Deployment and self-hosting" },
+  { id: "limits", label: "What is not solved" },
   { id: "status", label: "Status" },
   { id: "docs", label: "Reference documents" },
 ];
@@ -629,44 +628,18 @@ export function Architecture() {
           <h1 className="font-redaction35 text-[52px] sm:text-[72px] leading-none tracking-tight2 text-ink">
             Architecture
           </h1>
-          <div className="mt-6 max-w-2xl text-base leading-relaxed text-prose">
-            <p>
-              Legalise is open-source governance and audit infrastructure for
-              AI-assisted legal work in England and Wales. It makes sources,
-              model calls, review, sign-off, and the resulting record
-              independently inspectable. This page describes the implementation
-              and links to the relevant code.
-            </p>
-            <p className="mt-4">
-              Every code reference links to the file that implements it. The
-              code is canonical; where this page and the repository disagree,
-              trust the{" "}
-              <a
-                href={REPO}
-                target="_blank"
-                rel="noreferrer"
-                className="text-ink underline underline-offset-4 decoration-rule hover:decoration-seal hover:text-seal"
-              >
-                repository
-              </a>
-              .
-            </p>
-          </div>
-
-          {/* The honest state, up front — mirrors the README's Status note. */}
-          <aside className="mt-8 max-w-2xl border border-rule bg-paper p-5 text-sm leading-relaxed">
-            <p className="text-ink">
-              <strong>The honest state of it.</strong> This is an open-source
-              evaluation release. The database-enforced audit chain, sign-off
-              gate, export, and offline verifier are implemented and tested.
-              External anchoring is not built.
-            </p>
-            <p className="mt-2 text-prose">
-              Treat it as a reference implementation: inspect it, challenge the
-              threat model, or take the audit substrate into infrastructure you
-              operate. The full workspace remains available for self-hosting.
-            </p>
-          </aside>
+          <p className="mt-6 max-w-3xl text-base leading-relaxed text-prose">
+            Legalise is a self-hosted workspace and reference implementation for
+            governed legal AI. Before a model or skill runs, it checks the
+            matter&apos;s policy. AI output remains a draft until a named human
+            signs the exact file. Every action and refusal enters a
+            database-enforced hash chain and is included in an export that can
+            be verified offline.
+          </p>
+          <p className="mt-4 text-sm text-muted">
+            Evaluation release for England and Wales. External anchoring is not
+            built.
+          </p>
 
           {/* Contents */}
           <nav aria-label="Contents" className="mt-8 max-w-2xl border-t border-rule/50 pt-4">
@@ -685,77 +658,26 @@ export function Architecture() {
           </nav>
         </header>
 
-        <H2 id="overview">Overview</H2>
+        <H2 id="overview">How it works</H2>
         <P>
-          A <em>matter</em> is one legal case or file. A solicitor opens a
-          matter, uploads its documents, and works in chat. The model answers
-          with its sources attached and can run skills, which are small, vetted
-          units of legal work such as a letter before claim, a disclosure list,
-          or a witness-statement summary.
+          A <em>matter</em> is one legal case or file. Its documents, chat,
+          model calls, skills, outputs, review, and sign-off share one policy
+          boundary and one record.
         </P>
         <P>
-          Outputs remain drafts until a named person records a review decision.
-          Legalise records model calls, outputs, sign-offs, and refusals against
-          the matter. The audit record is tamper-evident, not tamper-proof.
-        </P>
-
-        <H2 id="limits">What is not solved</H2>
-        <P>
-          legalise.dev is the public technical surface: architecture,
-          limitations, and source links. It holds no accounts, model calls, or
-          matter storage. Run the full workspace locally or on infrastructure
-          you control.
-        </P>
-        <P>
-          One deployment is one workspace. There is no multi-tenancy, SSO,
-          organisation model, publisher web of trust, SOC 2, or ISO 27001
-          certification. The full list is maintained in LIMITATIONS.md.
-        </P>
-        <P>
-          The audit trail is tamper-evident, not
-          tamper-proof — a database superuser can disable the trigger and rewrite
-          history, and the external anchoring that would close that gap is not
-          built. A cloud provider sees the prompt in cleartext unless the
-          matter's posture pauses cloud calls. Models hallucinate; citations give
-          the reviewer something to check, not a guarantee. Review is explicit
-          and recorded — it is not optional.
-        </P>
-        <P>
-          If any of this is wrong, or you can break it, the repository is open:{" "}
-          <a
-            href={`${REPO}/issues`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-ink underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-          >
-            issues and contributions welcome
-          </a>
-          .
-        </P>
-
-        <H2 id="built">How it is built</H2>
-        <P>
-          Python, FastAPI, and Postgres on the back end; React on the front
-          end. The governance parts do not depend on any one model provider.
-          The diagram shows a matter's six stages, each writing to the same
-          record.
+          React provides the workspace; FastAPI and Python run the back end;
+          Postgres enforces the audit record. The governance path is independent
+          of any one model provider.
         </P>
         <SpineDiagram />
         <P>
-          The next diagram shows the same path as the steps a request passes
-          through, with the check each step runs written beside it. Read it top
-          to bottom; a request reaches the next step only if the current one
-          lets it through.
+          A request advances only when the current check allows it. Refusals
+          enter the same record as successful actions.
         </P>
         <RequestPathDiagram />
         <P>
-          Documents belong to a matter. Before any model is called, the gate
-          reads that matter's privilege setting from the database, and a paused
-          matter stops the request there. The model runs on the user's own keys.
-          The output is a draft until a person signs it. Every step writes to the
-          same hash-chained, exportable record, refusals included. Skills arrive
-          only by import, from the Lawve catalogue or any public GitHub
-          repository, read at a fixed commit and admitted through a ceremony.
+          Model calls use the user&apos;s own keys. Skills arrive from a public
+          GitHub repository at a fixed commit and run only after admission.
         </P>
         <SourceRow
           items={[
@@ -784,15 +706,11 @@ export function Architecture() {
         <P>
           Login uses fastapi-users with cookie sessions (HttpOnly, Secure,
           SameSite=Lax) backed by a server-side{" "}
-          <code className="tech-token">access_token</code> table, so signing out
-          revokes the session on the server rather than clearing a cookie in the
-          browser. Passwords are hashed with the library's Argon2/bcrypt scheme.
-          Email verification runs through Resend, and a password reset uses a
-          short-lived one-time token. Requests from unauthenticated users are
-          rate limited by IP: five registrations and ten verification or reset
-          requests per IP per hour. The count comes from a sliding window
-          recomputed from Postgres, so the limit holds across several machines.
-          The first rejection in a window writes an{" "}
+          <code className="tech-token">access_token</code> table, so sign-out
+          revokes the session server-side. Passwords use Argon2/bcrypt; email
+          verification uses Resend; password resets use short-lived tokens.
+          Postgres-backed IP limits hold across multiple app instances, and the
+          first rejection in a window writes an{" "}
           <code className="tech-token">auth.rate_limited</code> row.
         </P>
         <P>
@@ -802,12 +720,6 @@ export function Architecture() {
           matter returns 404, not 403, so user A cannot learn that user B has a
           matter with a given name. Access decisions, changes, and model calls
           each write their own audit row.
-        </P>
-        <P>
-          Limits: this targets the sole practitioner and small firm. There is no
-          organisation or team object, no single sign-on, no two-factor login,
-          and one deployment is one workspace. Those are planned for v0.2 and
-          later, not shipped.
         </P>
         <SourceRow
           items={[
@@ -819,29 +731,20 @@ export function Architecture() {
 
         <H2 id="gateway">The inference gateway</H2>
         <P>
-          Model calls made by Legalise go through one gateway. Anthropic,
-          OpenAI, OpenRouter, local Ollama, and a development stub sit behind
-          the same interface.
-        </P>
-        <P>
-          Users bring their own keys. Each user stores an Anthropic or OpenAI key
-          under Settings, encrypted with AES-256-GCM (ciphertext, a 12-byte
-          nonce, and the auth tag stored together) under a master key passed to
-          the back end via an environment variable. In production the app refuses
-          to start if that master key is missing, the wrong length, or not valid
-          hex. If a user has no key for a provider that needs one, the call fails
-          safely with a clear error and an audit row. There is no quiet fallback
-          to a server-owned key in production. Self-hosted users supply their
-          own provider credentials.
+          Every model call passes through one interface for Anthropic, OpenAI,
+          OpenRouter, local Ollama, or the development stub. Users bring their
+          own keys, encrypted with AES-256-GCM under a deployment master key. In
+          production, an invalid master key stops startup and a missing provider
+          key stops the call with an error and audit row; there is no fallback to
+          a server-owned key.
         </P>
         <GatewayDiagram />
         <P>
-          Inside the box, every call runs the same five steps in order: read the
-          matter's privilege setting from the database; refuse if the matter is
-          paused; pick the provider for the requested model; decrypt the key, now
-          and not before; make the call, hash the prompt and response, write the
-          audit row. The decrypted key lives only for the length of the call and
-          never touches a log or the audit row.
+          Every call reads the matter&apos;s policy from the database, refuses a
+          paused matter, selects the provider, decrypts the key just in time,
+          makes the call, then hashes the prompt and response into the audit
+          row. The plaintext key exists only for the call and never enters a log
+          or audit row.
         </P>
         <P>
           The gateway resolves which provider a model name belongs to in a single
@@ -871,31 +774,20 @@ export function Architecture() {
           all.
         </P>
         <P>
-          The gateway reads the setting from the matter row, in the same session
-          as the request, never from a value the caller handed in. That closes a
-          gap where a caller reads{" "}
-          <code className="tech-token">B_mixed</code>, an administrator switches
-          the matter to <code className="tech-token">C_paused</code>, and the old
-          value is used anyway. On a paused matter the gateway stops before any
-          network traffic, and the change of setting is itself audited.
+          The gateway reads the setting from the matter row for each request,
+          never from caller-supplied state. A paused matter stops before network
+          traffic, and changing the setting is itself audited.
         </P>
         <P>
-          The gate works at two levels. The gateway blocks model calls on a
-          paused matter. A second gate,{" "}
+          A second gate,{" "}
           <code className="tech-token">check_posture</code>, runs before any
-          capability, so even a non-model action is stopped on a paused matter,
-          and a non-solicitor on a privileged matter gets a refusal that fits the
-          setting rather than a grant. A privilege-gated tool with no matter
-          attached is refused rather than allowed to skip the check. The policy
-          is a six-line table in one file; changing it is a reviewed code change,
-          not a switch anyone can flip in production.
-        </P>
-        <P>
-          Calls made by a skill carry one more check: a call for a{" "}
-          <code className="tech-token">(plugin, skill)</code> pair must hold the{" "}
-          <code className="tech-token">model.invoke</code> grant for that pair,
+          capability, including non-model actions. Missing matter context is a
+          refusal, not a bypass. Skill calls also require a{" "}
+          <code className="tech-token">model.invoke</code> grant for their{" "}
+          <code className="tech-token">(plugin, skill)</code> pair,
           and a tool that writes a privileged resource also needs its matching
-          write permission.
+          write permission. The policy is a reviewed table in code, not a
+          production switch.
         </P>
         <SourceRow
           items={[
@@ -948,14 +840,13 @@ export function Architecture() {
         <P>
           <code className="tech-token">verified</code> means the manifest carries
           an ed25519 signature that checks out cryptographically against the
-          publisher's registered public key, so only the holder of the matching
-          private key could have produced it.{" "}
+          publisher&apos;s registered public key.{" "}
           <code className="tech-token">structure_verified</code> means shape only:
           the signature is present and plausible and the publisher is in the
-          registry, but no cryptography was run, so a well-made forgery would
-          pass. The status string says which check ran, and a publisher with no
-          registered key can never reach{" "}
-          <code className="tech-token">verified</code>.
+          registry, but no cryptography ran. A publisher without a registered
+          key can never reach <code className="tech-token">verified</code>. The
+          signature covers a fixed hash of the manifest with signature fields
+          removed, pinning the signed content.
         </P>
         <div className="mt-8 max-w-3xl border border-rule bg-paper p-2">
           <pre className="tech-token overflow-x-auto whitespace-pre border border-rule/60 bg-wash p-4 text-[11px] leading-5 text-prose">
@@ -977,18 +868,6 @@ export function Architecture() {
             then admitted.
           </p>
         </div>
-        <P>
-          The two grades come from one rule in one file. If the publisher has a
-          registered ed25519 public key, the signature is checked against it with
-          real cryptography and the result is{" "}
-          <code className="tech-token">verified</code> or{" "}
-          <code className="tech-token">invalid</code>. If there is no registered
-          key, the verifier checks shape only and reports{" "}
-          <code className="tech-token">structure_verified</code>. What gets signed
-          is a fixed hash of the manifest with the signature fields removed, so
-          the exact bytes being signed are pinned and re-saving the file cannot
-          change them.
-        </P>
         <SourceRow
           items={[
             { label: "signing.py", file: SRC.signing },
@@ -1001,38 +880,27 @@ export function Architecture() {
 
         <H2 id="refusal">Refusals</H2>
         <P>
-          The privilege gate is only worth something if its refusals are kept and
-          visible. When a paused matter refuses a privileged read, the refusal
-          lands in the record as a struck entry, in the same row shape and the
-          same ledger as any other action, rather than vanishing into a log
-          nobody reads. Refusals are recorded with the same weight as approvals.
+          A refusal lands in the same ledger as any successful action and
+          appears as a struck entry. It does not disappear into an application
+          log.
         </P>
 
         <H2 id="record">The audit record</H2>
         <P>
-          Each gateway call writes an audit row holding the model used, the
-          SHA-256 hashes of the prompt and response (never the text itself), the
-          token count, and the latency. Recorded matter changes write rows too.
-          The rows are hash-chained: an append-only table links each entry
-          to the one before it for that matter, so the chain's head hash is the
-          matter's fingerprint. A previously published head can be compared
-          with a later verification to detect a changed trail. A Postgres
-          trigger written in PL/pgSQL writes the chain the moment a row lands.
-          The verify endpoint{" "}
+          Each model call records the model, token count, latency, and SHA-256
+          hashes of the prompt and response—not their text. Matter changes write
+          rows too. A Postgres trigger links each row to its predecessor, making
+          the head hash a fingerprint of the matter. The verify endpoint{" "}
           <code className="tech-token">GET /api/matters/&#123;slug&#125;/audit/verify</code>{" "}
-          recomputes the same hashes separately in Python from the raw rows and
-          reports the head plus any breaks. Two pieces of code do the same sum,
-          and CI fails the build if they ever disagree.
+          recomputes the chain independently in Python and reports the head and
+          any breaks. CI fails if the PL/pgSQL and Python recipes disagree.
         </P>
         <AuditChainDiagram />
         <P>
-          The table is append-only in two layers. A Postgres trigger rejects
-          UPDATE and DELETE on every row, whatever role tries it. A database role
-          split also strips the application role of permission to change or
-          delete audit rows, so the app is refused before the trigger runs. CI
-          checks the split. A self-hosted operator must apply the documented
-          role split. A database superuser can still disable the trigger and
-          rewrite history; external anchoring is not built.
+          A trigger rejects UPDATE and DELETE, while the application role lacks
+          permission to attempt either; CI checks both controls. A self-hosted
+          operator must apply the documented role split. A database superuser
+          can still disable these controls and rewrite unanchored history.
         </P>
         <P>
           The exported working pack holds the outputs, the source context, the
@@ -1090,6 +958,40 @@ export function Architecture() {
           Ollama provider, a firm building on this can tune it to run entirely on
           local models; at that point no client data needs to leave the building,
           and a local model is not a third party for privilege.
+        </P>
+
+        <H2 id="limits">What is not solved</H2>
+        <P>
+          One deployment is one workspace. Multi-tenancy, organisation
+          accounts, SSO, MFA, a publisher web of trust, SOC 2, and ISO 27001
+          certification are not shipped. The full boundary is maintained in{" "}
+          <a
+            href={`${BLOB}/docs/LIMITATIONS.md`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+          >
+            LIMITATIONS.md
+          </a>
+          .
+        </P>
+        <P>
+          A database superuser can rewrite an unanchored audit trail. A cloud
+          provider sees prompts in cleartext unless matter policy blocks the
+          call. Models can hallucinate; citations support human review but do
+          not replace it.
+        </P>
+        <P>
+          If a claim is wrong or a control can be broken, open an issue in the{" "}
+          <a
+            href={`${REPO}/issues`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-ink underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
+          >
+            repository
+          </a>
+          .
         </P>
 
         <H2 id="status">Status</H2>
