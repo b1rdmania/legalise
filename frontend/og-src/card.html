@@ -8,7 +8,7 @@
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
     --disable-gpu --hide-scrollbars --window-size=1200,630 \
     --force-device-scale-factor=1 \
-    --screenshot=../public/og-card-v4.png "file://$PWD/card.html"
+    --screenshot=../public/og-card-v5.png "file://$PWD/card.html"
 -->
 <style>
   @font-face {
@@ -39,7 +39,7 @@
   .content {
     position: relative;
     z-index: 1;
-    width: 860px;
+    width: 800px;
     height: 100%;
     padding: 82px 76px 76px;
     display: flex;
@@ -48,21 +48,12 @@
   }
   .wordmark {
     font-family: "Redaction 35", serif;
-    font-size: 132px;
+    font-size: 152px;
     font-weight: 700;
     line-height: 0.95;
     letter-spacing: -0.035em;
   }
   .wordmark .dot { color: #8f2016; }
-  .tag {
-    max-width: 760px;
-    margin-top: 48px;
-    font-family: "Redaction 35", serif;
-    font-size: 54px;
-    font-weight: 400;
-    line-height: 1.08;
-    letter-spacing: -0.015em;
-  }
 </style>
 </head>
 <body>
@@ -79,7 +70,6 @@
   </svg>
   <main class="content">
     <div class="wordmark">Legalise<span class="dot">.</span></div>
-    <div class="tag">Governance infrastructure for legal AI.</div>
   </main>
 </body>
 </html>
