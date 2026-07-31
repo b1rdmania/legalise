@@ -176,23 +176,6 @@ const CITATIONS: { label: string; href: string }[] = [
   { label: "MIT", href: `${REPO}/blob/master/LICENSE` },
 ];
 
-/** The contents list at the top of the page. */
-const CONTENTS: { id: string; label: string }[] = [
-  { id: "overview", label: "How it works" },
-  { id: "identity", label: "Identity and access" },
-  { id: "gateway", label: "The inference gateway" },
-  { id: "gate", label: "The privilege gate" },
-  { id: "anon", label: "Anonymisation" },
-  { id: "admission", label: "Skill admission" },
-  { id: "refusal", label: "Refusals" },
-  { id: "record", label: "The audit record" },
-  { id: "signoff", label: "Sign-off" },
-  { id: "deployment", label: "Deployment and self-hosting" },
-  { id: "limits", label: "What is not solved" },
-  { id: "status", label: "Status" },
-  { id: "docs", label: "Reference documents" },
-];
-
 /** The matter spine: six stations over one record rail. */
 function SpineDiagram() {
   const stations = [
@@ -651,21 +634,6 @@ export function Architecture() {
             View source on GitHub ↗
           </a>
 
-          {/* Contents */}
-          <nav aria-label="Contents" className="mt-8 max-w-2xl border-t border-rule/50 pt-4">
-            <ul className="flex flex-wrap gap-x-5 gap-y-2">
-              {CONTENTS.map((c) => (
-                <li key={c.id}>
-                  <a
-                    href={`#${c.id}`}
-                    className="text-[13px] text-muted underline underline-offset-4 decoration-rule transition-colors hover:text-seal hover:decoration-seal"
-                  >
-                    {c.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
         </header>
 
         <H2 id="overview">How it works</H2>
