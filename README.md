@@ -4,13 +4,11 @@
 > software. Not for live client matters.** See
 > [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md) for what is and isn't ready.
 
-An open-source workspace for AI-assisted legal work in England and Wales.
-It records sources, model calls, review, edits, and human sign-off against
-each matter.
-
-Open source, runs locally, bring your own model key.
-
-![The Legalise workspace: a matter, a chat, and every answer pinned to its source](./docs/media/workspace-chat.png)
+Open-source governance infrastructure for AI-assisted legal work. Legalise is
+a self-hosted workspace and reference implementation: matter policy gates model
+and skill calls, AI output remains a draft until named human sign-off, and
+actions and refusals enter a database-enforced hash chain. Exports carry the
+record and an offline verifier.
 
 ---
 
@@ -39,7 +37,7 @@ log. The log is tamper-evident, not tamper-proof. See
 
 ## What's in the repo
 
-A worked evaluation workspace around the Khan v Acme sample matter:
+A self-hosted workspace for exercising the governance layer end to end:
 
 - **Documents:** upload, extraction, version history, disclosure flags, and
   owner-scoped original-file access.
@@ -54,8 +52,6 @@ The runtime includes capability checks, matter privilege settings, an
 advice-boundary gate, and one model gateway for Anthropic, OpenAI, OpenRouter,
 and Ollama. Users bring their own model keys. Legalise does not provide model
 access.
-
-![Skills in a matter, each declaring what it reads, writes, and records](./docs/media/skills.png)
 
 Skills arrive by import. The
 [`awesome-legal-skills`](https://github.com/lawve-ai/awesome-legal-skills)
@@ -94,19 +90,11 @@ External anchoring is not built. See
 
 ---
 
-## Try it
-
-[legalise.dev](https://legalise.dev) hosts a guided demo of the Khan v Acme
-workspace and the architecture write-up. **The hosted backend is currently
-turned off:** there are no hosted accounts, model calls, or matter storage.
-Run the complete workspace locally or on your own infrastructure with your own
-model keys.
-
-Email [andrew@legalise.dev](mailto:andrew@legalise.dev) with questions.
+## Run locally
 
 Stack: Postgres, MinIO, Redis, Gotenberg, FastAPI, React.
 
-### Local fork
+### Quickstart
 
 1. **Clone.**
 
@@ -197,17 +185,10 @@ If you don't want quickstart to clone the skills catalogue or start compose:
 
 Evaluation release. Not for live client matters.
 
-**NB — the honest state of it.** The audit engine is complete and strong.
-The document editor, the LLM layer, and matter organisation are about 80%
-there. Chasing a perfect open-source legal workspace was draining time in
-a lane that's already crowded, so treat this as an open experiment: come
-in as a contributor and close the gap, or take the audit engine and plug
-it into the workspace you already have. Throw the repo at your LLM and
-see what it thinks.
-
-The hosted backend is built and functional, but switched off —
-self-hosting is the supported path. If you'd run the hosted version as a
-pilot, email [andrew@legalise.dev](mailto:andrew@legalise.dev).
+The database-enforced audit chain, sign-off gate, export, and offline verifier
+are implemented and tested. The editor, model layer, and matter workspace
+remain evaluation quality. The hosted backend is off; self-hosting is the
+supported path.
 
 - **What works** is in the [CHANGELOG](./CHANGELOG.md), and you can run all of
   it: the full matter loop, audited retrieval, sign-off, export, and a
@@ -254,21 +235,8 @@ Apache 2.0. See [LICENSE](./LICENSE).
 
 ## Maintainer
 
-[@b1rdmania](https://github.com/b1rdmania). Open an issue, or get in touch if
-you're a UK solicitor wondering what your AI did with the client documents.
+[@b1rdmania](https://github.com/b1rdmania). Open an issue for questions,
+failures, or challenges to the stated security boundary.
 
 Forks are independent deployments, not operated, reviewed, or endorsed by the
 maintainer unless stated.
-
----
-
-## The one-minute demo
-
-The loop end to end: open source, the workspace, skills installing with explicit
-grants, the record building step by step, and the tamper-evident chain.
-
-https://github.com/b1rdmania/legalise/raw/master/docs/media/legalise-demo.mp4
-
-[![Watch the Legalise demo](./docs/media/legalise-demo-poster.jpg)](https://legalise.dev/)
-
-Or watch it with sound on [legalise.dev](https://legalise.dev/).
