@@ -149,3 +149,45 @@ async def test_orm_update_blocked(db_session: AsyncSession) -> None:
 
     with pytest.raises(DBAPIError, match="append-only"):
         await db_session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Tests — TRUNCATE (statement-level triggers from migration 0044)
+# ---------------------------------------------------------------------------
+#
+# Row-level triggers do not fire on TRUNCATE, so 0011/0030 alone let
+# `TRUNCATE audit_entries, audit_chain` empty the record and the chain
+# verifier then passes over zero rows. 0044 adds BEFORE TRUNCATE ... FOR
+# EACH STATEMENT guards on both tables.
+
+
+@pytest.mark.asyncio
+async def test_truncate_audit_entries_is_blocked(
+    db_connection: AsyncConnection,
+) -> None:
+    """TRUNCATE on audit_entries must raise."""
+    row = _seed_row()
+    await _insert_row(db_connection, row)
+
+    with pytest.raises(DBAPIError, match="append-only"):
+        await db_connection.execute(text("TRUNCATE audit_entries CASCADE"))
+
+
+@pytest.mark.asyncio
+async def test_truncate_audit_chain_is_blocked(
+    db_connection: AsyncConnection,
+) -> None:
+    """TRUNCATE on audit_chain must raise."""
+    with pytest.raises(DBAPIError, match="append-only"):
+        await db_connection.execute(text("TRUNCATE audit_chain CASCADE"))
+
+
+@pytest.mark.asyncio
+async def test_truncate_multi_table_is_blocked(
+    db_connection: AsyncConnection,
+) -> None:
+    """The single-statement two-table wipe must raise too."""
+    with pytest.raises(DBAPIError, match="append-only"):
+        await db_connection.execute(
+            text("TRUNCATE audit_entries, audit_chain CASCADE")
+        )

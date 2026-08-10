@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-08-10
+
+Audit-substrate hardening, prompted by external review. Luca Minotti, an
+avocat in Geneva, ported migrations 0011/0030 and the export verifier to a
+clean PostgreSQL 16 — without running any Legalise code — and stress-tested
+the result: concurrent writes, tampering, re-linking, rollback, and offline
+verification of a bundle his own database produced. Two findings, both
+confirmed and fixed here.
+
+### Fixed
+- **TRUNCATE bypassed the WORM guards.** Postgres row-level triggers do not
+  fire on TRUNCATE, so a single `TRUNCATE audit_entries, audit_chain`
+  emptied the record — and the chain verifier then passed over the empty
+  tables. Migration 0044 adds `BEFORE TRUNCATE ... FOR EACH STATEMENT`
+  triggers on both tables, with tests covering the single- and multi-table
+  forms.
+- **The role split missed `audit_chain`.** `infra/postgres-roles.sql`
+  revoked mutation on `audit_entries` only; `audit_chain` (added in 0030)
+  stayed writable by the app role, protected by its trigger alone. Both
+  WORM tables now get `REVOKE UPDATE, DELETE, TRUNCATE` — TRUNCATE
+  explicitly, since it is a distinct Postgres privilege the row triggers
+  never see.
+
 ## [0.3.0] — 2026-07-24
 
 The reframe release. Legalise is now presented as an open experiment: the

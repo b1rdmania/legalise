@@ -79,10 +79,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE legalise_migrate IN SCHEMA public
     GRANT USAGE, SELECT ON SEQUENCES TO legalise_app;
 
 -- The whole point: the app role may APPEND audit rows but never mutate them.
--- This REVOKE targets the existing audit_entries table specifically. If a
--- future migration ever drops and recreates audit_entries, that migration is
--- responsible for re-applying this REVOKE (the trigger in 0011 is recreated
--- the same way) — default privileges deliberately are NOT used here, because
--- a blanket future-table revoke would also strip mutation from every new
+-- These REVOKEs target the existing WORM tables specifically. If a future
+-- migration ever drops and recreates one, that migration is responsible for
+-- re-applying its REVOKE (the triggers in 0011/0030/0044 are recreated the
+-- same way) — default privileges deliberately are NOT used here, because a
+-- blanket future-table revoke would also strip mutation from every new
 -- non-audit table.
-REVOKE UPDATE, DELETE ON audit_entries FROM legalise_app;
+--
+-- TRUNCATE is revoked explicitly: it is a distinct Postgres privilege, and
+-- row-level WORM triggers do not fire on it (statement-level guards were
+-- added in migration 0044). audit_chain (added in 0030) gets the same
+-- treatment — it was previously covered only by its trigger.
+REVOKE UPDATE, DELETE, TRUNCATE ON audit_entries FROM legalise_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON audit_chain FROM legalise_app;
