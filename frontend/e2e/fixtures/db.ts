@@ -92,9 +92,18 @@ async function runPsql(sql: string): Promise<void> {
 /**
  * Truncate every app-side table including users + access_token.
  * Module manifests on disk and their signatures are not touched.
+ *
+ * `session_replication_role = replica` skips the WORM triggers
+ * (migration 0044 blocks TRUNCATE on audit_entries/audit_chain for
+ * everyone else). This runs as the compose superuser — the reset is
+ * an operator-level wipe, which is exactly the boundary the WORM
+ * layer documents.
  */
 export async function resetDb(): Promise<void> {
-  await runPsql(`TRUNCATE ${APP_TABLES.join(", ")} RESTART IDENTITY CASCADE;`);
+  await runPsql(
+    `BEGIN; SET LOCAL session_replication_role = replica; ` +
+      `TRUNCATE ${APP_TABLES.join(", ")} RESTART IDENTITY CASCADE; COMMIT;`,
+  );
 }
 
 // Back-compat aliases for the v1 plan's reset-mode names. Both
