@@ -33,7 +33,7 @@ dependencies = [
   "pdfplumber>=0.11",
   "structlog>=24.4.0",
   "fastapi-users[sqlalchemy,oauth]>=14.0.1,<15.0.0",
-  "cryptography>=44.0.0,<49.0.0",
+  "cryptography>=50.0.0,<51.0.0",
   "resend>=2.5.0",
   "pyyaml>=6.0",
   # Pin <1.2 - 1.2 broke `frontmatter.dump(post, BytesIO)` by tightening
