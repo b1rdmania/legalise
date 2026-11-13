@@ -253,7 +253,9 @@ describe("DocumentDetail — skills", () => {
       "",
       "Run Plain-English Summary.",
     ].join("\n");
-    expect(screen.getAllByRole("textbox")[0]).toHaveValue(expectedRequest);
+    // Tiptap 3.3x gives the editor role="textbox", so select the skill
+    // request by its label rather than by position.
+    expect(screen.getByLabelText("Request")).toHaveValue(expectedRequest);
     fireEvent.click(screen.getByTestId("generic-run-demo.guided-skill-summarise"));
 
     await waitFor(() => {

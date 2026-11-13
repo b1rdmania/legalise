@@ -14,12 +14,17 @@ if [ ! -f "$ROOT/.env" ]; then
 fi
 
 echo "[quickstart] starting Legalise"
+UP_ARGS=(up -d)
 if [ "${LEGALISE_USE_PREBUILT_IMAGES:-false}" = "true" ]; then
   COMPOSE_ARGS+=(-f "$PREBUILT_COMPOSE_FILE")
   echo "[quickstart] using prebuilt images"
+else
+  # Rebuild so a returning user never runs a stale image against
+  # newer code. Docker layer caching keeps this fast when nothing changed.
+  UP_ARGS+=(--build)
 fi
 
-docker compose "${COMPOSE_ARGS[@]}" up -d
+docker compose "${COMPOSE_ARGS[@]}" "${UP_ARGS[@]}"
 
 cat <<EOF
 

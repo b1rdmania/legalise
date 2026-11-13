@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@98172f70657cb3e15db199af139be99bd3e61200 # master 2026-10-30
 
       - name: Deploy (remote build + release migrations)
         working-directory: backend
