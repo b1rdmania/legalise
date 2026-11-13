@@ -321,6 +321,9 @@ export function PdfDocumentViewer({
             file={file}
             loading={<p className="text-sm text-muted">Loading PDF...</p>}
             error={<p className="text-sm text-red-700">Could not render this PDF.</p>}
+            // react-pdf 11 defaults to Suspense, which throws load errors
+            // to an error boundary instead of rendering `error`.
+            suspense={false}
             onLoadError={(err) => setError(err.message)}
             onLoadSuccess={(pdf) => {
               setError(null);
