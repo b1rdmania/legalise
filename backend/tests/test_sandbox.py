@@ -16,6 +16,7 @@ before assuming these pass on Linux CI runners without checking.
 from __future__ import annotations
 
 import platform
+import signal
 
 import pytest
 
@@ -86,10 +87,16 @@ def test_launch_real_subprocess_runs_and_terminates() -> None:
     handles the lifecycle correctly on Linux (RLIMIT_AS is
     macOS-incompatible — see module docstring)."""
     p = profile_for_kind("skill")
+    # A short-lived process exits on its own: wait for it first, or
+    # terminate() can race it and return -SIGTERM.
     proc = launch_mcp_server(["/bin/echo", "hello"], profile=p)
     assert proc.pid > 0
-    exit_code = proc.terminate(timeout=3.0)
-    assert exit_code == 0
+    proc.process.wait(timeout=3.0)
+    assert proc.terminate(timeout=3.0) == 0
+
+    # A long-running process is stopped by terminate().
+    proc = launch_mcp_server(["/bin/sleep", "30"], profile=p)
+    assert proc.terminate(timeout=3.0) == -signal.SIGTERM
 
 
 @pytest.mark.skipif(

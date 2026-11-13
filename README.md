@@ -3,6 +3,8 @@
 > ⚠️ **Evaluation release — a reference implementation, not production
 > software. Not for live client matters.** See
 > [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md) for what is and isn't ready.
+>
+> Not in active development. Security fixes still land; forks are welcome.
 
 Open-source governance infrastructure for AI-assisted legal work. Legalise is
 a self-hosted workspace and reference implementation: matter policy gates model
