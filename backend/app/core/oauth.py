@@ -22,6 +22,7 @@ error — a browser mid-redirect should always land on a real page.
 
 from __future__ import annotations
 
+import secrets
 from typing import Annotated
 from urllib.parse import urlparse
 
@@ -42,6 +43,8 @@ logger = structlog.get_logger()
 
 STATE_TOKEN_AUDIENCE = "legalise:oauth-state"
 STATE_TOKEN_LIFETIME_SECONDS = 600  # 10 minutes — plenty for a consent screen
+STATE_CSRF_CLAIM = "csrf"
+STATE_CSRF_COOKIE = "legalise_oauth_csrf"
 
 
 def _login_url(error: str | None = None) -> str:
@@ -65,15 +68,34 @@ def build_oauth_router(provider_name: str, oauth_client: BaseOAuth2) -> APIRoute
     callback_url = f"{settings.oauth_callback_base_url}/auth/oauth/{provider_name}/callback"
     authorize_callback = OAuth2AuthorizeCallback(oauth_client, redirect_url=callback_url)
 
+    cookie_path = f"/auth/oauth/{provider_name}"
+
     @router.get("/authorize")
     async def authorize() -> RedirectResponse:
+        # Bind the state to this browser. A signed state alone can be
+        # minted by anyone who hits /authorize, then planted in a victim's
+        # browser via a crafted callback link (login CSRF / account
+        # takeover, GHSA-5j53-63w8-8625). The CSRF value lives in an
+        # HttpOnly cookie and inside the signed state; the callback
+        # requires both to match.
+        csrf = secrets.token_urlsafe(32)
         state = generate_jwt(
-            {"aud": STATE_TOKEN_AUDIENCE},
+            {"aud": STATE_TOKEN_AUDIENCE, STATE_CSRF_CLAIM: csrf},
             settings.session_secret,
             STATE_TOKEN_LIFETIME_SECONDS,
         )
         authorization_url = await oauth_client.get_authorization_url(callback_url, state)
-        return RedirectResponse(authorization_url, status_code=302)
+        response = RedirectResponse(authorization_url, status_code=302)
+        response.set_cookie(
+            STATE_CSRF_COOKIE,
+            csrf,
+            max_age=STATE_TOKEN_LIFETIME_SECONDS,
+            path=cookie_path,
+            secure=settings.session_cookie_secure,
+            httponly=True,
+            samesite="lax",
+        )
+        return response
 
     @router.get("/callback")
     async def callback(
@@ -93,9 +115,21 @@ def build_oauth_router(provider_name: str, oauth_client: BaseOAuth2) -> APIRoute
             return RedirectResponse(_login_url("provider_denied"), status_code=302)
 
         try:
-            decode_jwt(returned_state or "", settings.session_secret, [STATE_TOKEN_AUDIENCE])
+            state_data = decode_jwt(
+                returned_state or "", settings.session_secret, [STATE_TOKEN_AUDIENCE]
+            )
         except _pyjwt.PyJWTError:
             logger.warning("auth.oauth.bad_state", provider=provider_name)
+            return RedirectResponse(_login_url("invalid_state"), status_code=302)
+
+        state_csrf = state_data.get(STATE_CSRF_CLAIM)
+        cookie_csrf = request.cookies.get(STATE_CSRF_COOKIE)
+        if (
+            not isinstance(state_csrf, str)
+            or not cookie_csrf
+            or not secrets.compare_digest(state_csrf, cookie_csrf)
+        ):
+            logger.warning("auth.oauth.csrf_mismatch", provider=provider_name)
             return RedirectResponse(_login_url("invalid_state"), status_code=302)
 
         account_id, account_email = await oauth_client.get_id_email(token["access_token"])
@@ -127,6 +161,13 @@ def build_oauth_router(provider_name: str, oauth_client: BaseOAuth2) -> APIRoute
         login_response = await auth_backend.login(strategy, user)
         await user_manager.on_after_login(user, request, login_response)
         redirect = RedirectResponse(settings.oauth_redirect_url, status_code=302)
+        redirect.delete_cookie(
+            STATE_CSRF_COOKIE,
+            path=cookie_path,
+            secure=settings.session_cookie_secure,
+            httponly=True,
+            samesite="lax",
+        )
         return _copy_set_cookie(login_response, redirect)
 
     return router

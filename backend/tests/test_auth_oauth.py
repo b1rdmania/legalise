@@ -201,6 +201,44 @@ async def test_callback_rejects_tampered_state(oauth_client, monkeypatch) -> Non
 
 
 @pytest.mark.asyncio
+async def test_callback_rejects_state_from_another_browser(oauth_client, monkeypatch) -> None:
+    """Login CSRF (GHSA-5j53-63w8-8625): an attacker mints a valid signed
+    state from their own browser and plants the callback link in a
+    victim's. The state is genuine, but the victim's browser does not
+    hold the matching CSRF cookie, so the callback must refuse it."""
+    get_token, get_id_email = _fake_provider_response("google-acct-csrf", "csrf@example.com")
+    monkeypatch.setattr(GoogleOAuth2, "get_access_token", get_token)
+    monkeypatch.setattr(GoogleOAuth2, "get_id_email", get_id_email)
+
+    attacker_state = await _authorize_and_get_state(oauth_client)
+    oauth_client.cookies.clear()  # the victim's browser: no CSRF cookie
+
+    resp = await oauth_client.get(
+        "/auth/oauth/google/callback", params={"code": "fake-code", "state": attacker_state}
+    )
+    assert resp.status_code == 302
+    assert "oauth_error=invalid_state" in resp.headers["location"]
+    assert "set-cookie" not in resp.headers
+
+
+@pytest.mark.asyncio
+async def test_callback_rejects_mismatched_csrf_cookie(oauth_client, monkeypatch) -> None:
+    get_token, get_id_email = _fake_provider_response("google-acct-csrf2", "csrf2@example.com")
+    monkeypatch.setattr(GoogleOAuth2, "get_access_token", get_token)
+    monkeypatch.setattr(GoogleOAuth2, "get_id_email", get_id_email)
+
+    attacker_state = await _authorize_and_get_state(oauth_client)
+    oauth_client.cookies.clear()
+    await _authorize_and_get_state(oauth_client)  # victim's own, different cookie
+
+    resp = await oauth_client.get(
+        "/auth/oauth/google/callback", params={"code": "fake-code", "state": attacker_state}
+    )
+    assert resp.status_code == 302
+    assert "oauth_error=invalid_state" in resp.headers["location"]
+
+
+@pytest.mark.asyncio
 async def test_callback_provider_denial_redirects_with_error(oauth_client) -> None:
     """The provider redirects back with `error=access_denied` instead of
     a `code` when the user declines consent — no code, no state check
