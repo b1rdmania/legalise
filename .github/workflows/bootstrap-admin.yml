@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@98172f70657cb3e15db199af139be99bd3e61200 # master 2026-10-30
       - name: Run bootstrap_admin on the live backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
