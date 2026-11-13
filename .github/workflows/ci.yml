@@ -213,7 +213,7 @@ jobs:
   # The main `backend` job stays on STORAGE_BACKEND=local (fast, no MinIO).
   #
   # MinIO is started via `docker run` (not a service container) because
-  # `minio/minio` requires `server /data` as the startup command, which
+  # MinIO requires `server /data` as the startup command, which
   # GitHub Actions service containers cannot pass via the `services:` block.
   # ---------------------------------------------------------------------------
   storage-minio-smoke:
@@ -259,7 +259,7 @@ jobs:
             -p 9000:9000 \
             -e MINIO_ROOT_USER=legalise \
             -e MINIO_ROOT_PASSWORD=legalisesecret \
-            minio/minio server /data
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data
           # Wait for MinIO to become ready (up to 30 s).
           for i in $(seq 1 15); do
             curl -sf http://localhost:9000/minio/health/live && echo "MinIO ready" && break
@@ -267,13 +267,17 @@ jobs:
           done
 
       - name: Create MinIO bucket
+        # The mc client download (dl.min.io) is gone; boto3 is already
+        # installed with the backend.
         run: |
-          # Install mc (MinIO client) and create the smoke-test bucket.
-          curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc \
-            -o /usr/local/bin/mc
-          chmod +x /usr/local/bin/mc
-          mc alias set local http://localhost:9000 legalise legalisesecret
-          mc mb --ignore-existing local/legalise-smoke
+          python -c "
+          import boto3
+          s3 = boto3.client('s3', endpoint_url='http://localhost:9000',
+              aws_access_key_id='legalise', aws_secret_access_key='legalisesecret',
+              region_name='us-east-1')
+          s3.create_bucket(Bucket='legalise-smoke')
+          print('bucket created')
+          "
 
       - name: pytest (MinIO smoke only)
         working-directory: backend
